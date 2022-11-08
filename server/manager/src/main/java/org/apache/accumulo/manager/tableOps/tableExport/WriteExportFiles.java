@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -48,9 +47,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
+import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
@@ -58,7 +58,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -79,9 +78,9 @@ class WriteExportFiles extends ManagerRepo {
   }
 
   private void checkOffline(ClientContext context) throws Exception {
-    if (Tables.getTableState(context, tableInfo.tableID) != TableState.OFFLINE) {
-      Tables.clearCache(context);
-      if (Tables.getTableState(context, tableInfo.tableID) != TableState.OFFLINE) {
+    if (context.getTableState(tableInfo.tableID) != TableState.OFFLINE) {
+      context.clearTableListCache();
+      if (context.getTableState(tableInfo.tableID) != TableState.OFFLINE) {
         throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonical(),
             tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
             "Table is not offline");
@@ -235,7 +234,7 @@ class WriteExportFiles extends ManagerRepo {
       entry.getValue().write(dataOut);
 
       if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-        String path = TabletFileUtil.validate(entry.getKey().getColumnQualifierData().toString());
+        String path = ValidationUtil.validate(entry.getKey().getColumnQualifierData().toString());
         String[] tokens = path.split("/");
         if (tokens.length < 1) {
           throw new RuntimeException("Illegal path " + path);

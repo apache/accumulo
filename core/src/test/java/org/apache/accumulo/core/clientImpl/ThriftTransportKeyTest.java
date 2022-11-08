@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -22,9 +22,9 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
@@ -40,14 +40,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ThriftTransportKeyTest {
 
   private static final String primary = "accumulo";
 
-  @Before
+  @BeforeEach
   public void setup() {
     System.setProperty("java.security.krb5.realm", "accumulo");
     System.setProperty("java.security.krb5.kdc", "fake");
@@ -77,7 +77,7 @@ public class ThriftTransportKeyTest {
 
     try {
       assertThrows(RuntimeException.class,
-          () -> new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999), 120 * 1000,
+          () -> new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999), 120_000,
               clientCtx));
     } finally {
       verify(clientCtx);
@@ -137,8 +137,8 @@ public class ThriftTransportKeyTest {
     replay(clientCtx);
 
     ThriftTransportKey ttk =
-        new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999), 120 * 1000, clientCtx);
+        new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999), 120_000, clientCtx);
 
-    assertEquals("Normal ThriftTransportKey doesn't equal itself", ttk, ttk);
+    assertEquals(ttk, ttk, "Normal ThriftTransportKey doesn't equal itself");
   }
 }

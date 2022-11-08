@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -143,7 +143,7 @@ public class TableLoadBalancer extends TabletBalancer {
   @Override
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current,
       Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
-    long minBalanceTime = 5 * 1000;
+    long minBalanceTime = 5_000;
     // Iterate over the tables and balance each of them
     TableOperations t = getTableOperations();
     if (t == null)

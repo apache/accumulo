@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,10 +19,10 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.FileReader;
@@ -54,6 +54,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -80,7 +81,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -89,11 +90,6 @@ public class VolumeIT extends ConfigurableMacBase {
   private File volDirBase;
   private Path v1, v2, v3;
   private List<String> expected = new ArrayList<>();
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 10 * 60;
-  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -189,7 +185,7 @@ public class VolumeIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = getUniqueNames(2);
 
-      String uuid = verifyAndShutdownCluster(client, tableNames[0]);
+      InstanceId uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
       updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(),
           v1 + "," + v2 + "," + v3));
@@ -207,8 +203,8 @@ public class VolumeIT extends ConfigurableMacBase {
   }
 
   // grab uuid before shutting down cluster
-  private String verifyAndShutdownCluster(AccumuloClient c, String tableName) throws Exception {
-    String uuid = c.instanceOperations().getInstanceID();
+  private InstanceId verifyAndShutdownCluster(AccumuloClient c, String tableName) throws Exception {
+    InstanceId uuid = c.instanceOperations().getInstanceId();
 
     verifyVolumesUsed(c, tableName, false, v1, v2);
 
@@ -225,7 +221,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
-      String uuid = verifyAndShutdownCluster(client, tableNames[0]);
+      InstanceId uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
       updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3));
 
@@ -246,13 +242,13 @@ public class VolumeIT extends ConfigurableMacBase {
   }
 
   // check that all volumes are initialized
-  private void checkVolumesInitialized(List<Path> volumes, String uuid) throws Exception {
+  private void checkVolumesInitialized(List<Path> volumes, InstanceId uuid) throws Exception {
     for (Path volumePath : volumes) {
       FileSystem fs = volumePath.getFileSystem(cluster.getServerContext().getHadoopConf());
       Path vp = new Path(volumePath, Constants.INSTANCE_ID_DIR);
       FileStatus[] iids = fs.listStatus(vp);
       assertEquals(1, iids.length);
-      assertEquals(uuid, iids[0].getPath().getName());
+      assertEquals(uuid.canonical(), iids[0].getPath().getName());
     }
   }
 
@@ -411,12 +407,12 @@ public class VolumeIT extends ConfigurableMacBase {
 
     File v1f = new File(v1.toUri());
     File v8f = new File(new File(v1.getParent().toUri()), "v8");
-    assertTrue("Failed to rename " + v1f + " to " + v8f, v1f.renameTo(v8f));
+    assertTrue(v1f.renameTo(v8f), "Failed to rename " + v1f + " to " + v8f);
     Path v8 = new Path(v8f.toURI());
 
     File v2f = new File(v2.toUri());
     File v9f = new File(new File(v2.getParent().toUri()), "v9");
-    assertTrue("Failed to rename " + v2f + " to " + v9f, v2f.renameTo(v9f));
+    assertTrue(v2f.renameTo(v9f), "Failed to rename " + v2f + " to " + v9f);
     Path v9 = new Path(v9f.toURI());
 
     updateConfig(config -> {

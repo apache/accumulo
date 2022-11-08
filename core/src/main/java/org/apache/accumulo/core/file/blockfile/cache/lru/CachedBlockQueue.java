@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
 import java.util.LinkedList;
+import java.util.Objects;
 import java.util.PriorityQueue;
 
 /**
@@ -36,10 +37,10 @@ import java.util.PriorityQueue;
  */
 public class CachedBlockQueue implements HeapSize {
 
-  private PriorityQueue<CachedBlock> queue;
+  private final PriorityQueue<CachedBlock> queue;
 
   private long heapSize;
-  private long maxSize;
+  private final long maxSize;
 
   /**
    * @param maxSize
@@ -72,7 +73,8 @@ public class CachedBlockQueue implements HeapSize {
       queue.add(cb);
       heapSize += cb.heapSize();
     } else {
-      CachedBlock head = queue.peek();
+      CachedBlock head =
+          Objects.requireNonNull(queue.peek(), "No cached blocks available from queue");
       if (cb.compareTo(head) > 0) {
         heapSize += cb.heapSize();
         heapSize -= head.heapSize();
@@ -96,20 +98,7 @@ public class CachedBlockQueue implements HeapSize {
     while (!queue.isEmpty()) {
       blocks.addFirst(queue.poll());
     }
-    return blocks.toArray(new CachedBlock[blocks.size()]);
-  }
-
-  /**
-   * Get a sorted List of all elements in this queue, in descending order.
-   *
-   * @return list of cached elements in descending order
-   */
-  public LinkedList<CachedBlock> getList() {
-    LinkedList<CachedBlock> blocks = new LinkedList<>();
-    while (!queue.isEmpty()) {
-      blocks.addFirst(queue.poll());
-    }
-    return blocks;
+    return blocks.toArray(new CachedBlock[0]);
   }
 
   /**

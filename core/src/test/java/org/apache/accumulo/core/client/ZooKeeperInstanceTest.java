@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -22,35 +22,36 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooCacheFactory;
 import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @Deprecated(since = "2.0.0")
 public class ZooKeeperInstanceTest {
-  private static final UUID IID = UUID.randomUUID();
-  private static final String IID_STRING = IID.toString();
+  private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
+  private static final String IID_STRING = IID.canonical();
   private ZooCacheFactory zcf;
   private ZooCache zc;
   private ZooKeeperInstance zki;
 
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ID =
-      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ID;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_NAME =
-      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_HOST =
-      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT =
-      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
+  private static final ClientConfiguration.ClientProperty INSTANCE_ID =
+      ClientConfiguration.ClientProperty.INSTANCE_ID;
+  private static final ClientConfiguration.ClientProperty INSTANCE_NAME =
+      ClientConfiguration.ClientProperty.INSTANCE_NAME;
+  private static final ClientConfiguration.ClientProperty INSTANCE_ZK_HOST =
+      ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
+  private static final ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT =
+      ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
 
   private void mockIdConstruction(ClientConfiguration config) {
     expect(config.get(INSTANCE_ID)).andReturn(IID_STRING);
@@ -66,7 +67,7 @@ public class ZooKeeperInstanceTest {
     expect(config.get(INSTANCE_ZK_TIMEOUT)).andReturn("30");
   }
 
-  @Before
+  @BeforeEach
   public void setUp() {
     ClientConfiguration config = createMock(ClientConfiguration.class);
     mockNameConstruction(config);

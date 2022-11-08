@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,14 +18,14 @@
  */
 package org.apache.accumulo.server.conf.codec;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Exercise the base class specific methods - most testing will occur in subclasses
@@ -53,18 +53,18 @@ public class VersionedPropCodecTest {
   public void getDataVersionBadTimestamp() {
     // length so that array reads do not error
     byte[] bytes = new byte[100];
-    assertThrows(IllegalArgumentException.class, () -> VersionedPropCodec.getDataVersion(bytes));
+    assertThrows(IllegalArgumentException.class, () -> VersionedPropCodec.readTimestamp(bytes));
   }
 
   @Test
   public void goPath() throws IOException {
     int aVersion = 13;
-    VersionedProperties vProps =
-        new VersionedProperties(aVersion, Instant.now(), Map.of("k1", "v1"));
+    var timestamp = Instant.now();
+    VersionedProperties vProps = new VersionedProperties(aVersion, timestamp, Map.of("k1", "v1"));
 
     VersionedPropCodec codec = VersionedPropGzipCodec.codec(true);
     byte[] encodedBytes = codec.toBytes(vProps);
 
-    assertEquals(aVersion + 1, VersionedPropCodec.getDataVersion(encodedBytes));
+    assertEquals(timestamp, VersionedPropCodec.readTimestamp(encodedBytes));
   }
 }

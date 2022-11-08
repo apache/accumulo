@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -38,10 +37,10 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.constraints.VisibilityConstraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellUtil;
@@ -134,9 +133,9 @@ public class CreateTableCommand extends Command {
     shellState.setTableName(tableName); // switch shell to new table context
 
     if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
-      for (String key : IterConfigUtil.generateInitialTableProperties(true).keySet()) {
-        shellState.getAccumuloClient().tableOperations().removeProperty(tableName, key);
-      }
+      Set<String> initialProps = IteratorConfigUtil.generateInitialTableProperties(true).keySet();
+      shellState.getAccumuloClient().tableOperations().modifyProperties(tableName,
+          properties -> initialProps.forEach(properties::remove));
     }
 
     // Copy options if flag was set
@@ -144,12 +143,11 @@ public class CreateTableCommand extends Command {
       if (shellState.getAccumuloClient().tableOperations().exists(tableName)) {
         final Map<String,String> configuration = shellState.getAccumuloClient().tableOperations()
             .getConfiguration(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
-        for (Entry<String,String> entry : configuration.entrySet()) {
-          if (Property.isValidTablePropertyKey(entry.getKey())) {
-            shellState.getAccumuloClient().tableOperations().setProperty(tableName, entry.getKey(),
-                entry.getValue());
-          }
-        }
+
+        shellState.getAccumuloClient().tableOperations().modifyProperties(tableName,
+            properties -> configuration.entrySet().stream()
+                .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+                .forEach(entry -> properties.put(entry.getKey(), entry.getValue())));
       }
     }
 
@@ -316,7 +314,7 @@ public class CreateTableCommand extends Command {
     createTableOptLocalityProps.setArgs(Option.UNLIMITED_VALUES);
 
     createTableOptIteratorProps = new Option("i", "iter", true,
-        "initialize" + " iterator at table creation using profile. If no scope supplied, all"
+        "initialize iterator at table creation using profile. If no scope supplied, all"
             + " scopes are activated.");
     createTableOptIteratorProps.setArgName("profile[:[all]|[scan[,]][minc[,]][majc]]");
     createTableOptIteratorProps.setArgs(Option.UNLIMITED_VALUES);

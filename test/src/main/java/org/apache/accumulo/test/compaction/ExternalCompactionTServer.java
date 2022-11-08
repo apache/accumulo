@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,8 +19,10 @@
 package org.apache.accumulo.test.compaction;
 
 import org.apache.accumulo.server.ServerOpts;
+import org.apache.accumulo.server.zookeeper.TransactionWatcher;
+import org.apache.accumulo.tserver.TabletClientHandler;
 import org.apache.accumulo.tserver.TabletServer;
-import org.apache.accumulo.tserver.ThriftClientHandler;
+import org.apache.accumulo.tserver.WriteTracker;
 
 public class ExternalCompactionTServer extends TabletServer {
 
@@ -29,8 +31,9 @@ public class ExternalCompactionTServer extends TabletServer {
   }
 
   @Override
-  protected ThriftClientHandler getThriftClientHandler() {
-    return new NonCommittingExternalCompactionThriftClientHandler(this);
+  protected TabletClientHandler newTabletClientHandler(TransactionWatcher watcher,
+      WriteTracker writeTracker) {
+    return new NonCommittingExternalCompactionTabletClientHandler(this, watcher, writeTracker);
   }
 
   public static void main(String[] args) throws Exception {

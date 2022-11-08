@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -55,29 +55,15 @@ public class TraceUtil {
 
   public static void initializeTracer(AccumuloConfiguration conf) {
     enabled = conf.getBoolean(Property.GENERAL_OPENTELEMETRY_ENABLED);
-    logTracingState(false);
+    logTracingState();
   }
 
-  public static void enable() {
-    enabled = true;
-    logTracingState(true);
-  }
-
-  public static void disable() {
-    enabled = false;
-    logTracingState(true);
-  }
-
-  private static void logTracingState(boolean debug) {
+  private static void logTracingState() {
     var msg = "Trace enabled in Accumulo: {}, OpenTelemetry instance: {}, Tracer instance: {}";
     var enabledInAccumulo = enabled ? "yes" : "no";
     var openTelemetry = getOpenTelemetry();
     var tracer = getTracer(openTelemetry);
-    if (debug) {
-      LOG.debug(msg, enabledInAccumulo, openTelemetry.getClass(), tracer.getClass());
-    } else {
-      LOG.info(msg, enabledInAccumulo, openTelemetry.getClass(), tracer.getClass());
-    }
+    LOG.info(msg, enabledInAccumulo, openTelemetry.getClass(), tracer.getClass());
   }
 
   private static OpenTelemetry getOpenTelemetry() {
@@ -110,7 +96,7 @@ public class TraceUtil {
 
   private static Span startSpan(Class<?> caller, String spanName, SpanKind kind,
       Map<String,String> attributes, TInfo tinfo) {
-    if (!enabled) {
+    if (!enabled && !Span.current().getSpanContext().isValid()) {
       return Span.getInvalid();
     }
     final String name = String.format(SPAN_FORMAT, caller.getSimpleName(), spanName);
@@ -153,8 +139,7 @@ public class TraceUtil {
    */
   public static TInfo traceInfo() {
     TInfo tinfo = new TInfo();
-    W3CTraceContextPropagator.getInstance().inject(Context.current(), tinfo,
-        (carrier, key, value) -> carrier.putToHeaders(key, value));
+    W3CTraceContextPropagator.getInstance().inject(Context.current(), tinfo, TInfo::putToHeaders);
     return tinfo;
   }
 

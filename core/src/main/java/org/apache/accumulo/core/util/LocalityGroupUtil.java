@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -54,6 +54,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class LocalityGroupUtil {
 
   private static final Logger log = LoggerFactory.getLogger(LocalityGroupUtil.class);
@@ -75,8 +77,9 @@ public class LocalityGroupUtil {
         .collect(toUnmodifiableSet());
   }
 
-  @SuppressWarnings("serial")
   public static class LocalityGroupConfigurationError extends AccumuloException {
+    private static final long serialVersionUID = 855450342044719186L;
+
     LocalityGroupConfigurationError(String why) {
       super(why);
     }
@@ -273,6 +276,8 @@ public class LocalityGroupUtil {
     }
 
     @Override
+    @SuppressFBWarnings(value = "EQ_UNUSUAL",
+        justification = "method expected to be unused or overridden")
     public boolean equals(Object o) {
       throw new UnsupportedOperationException();
     }

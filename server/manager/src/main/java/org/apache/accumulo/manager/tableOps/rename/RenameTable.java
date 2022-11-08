@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,14 +24,14 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Namespaces;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -61,8 +61,8 @@ public class RenameTable extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    Pair<String,String> qualifiedOldTableName = Tables.qualify(oldTableName);
-    Pair<String,String> qualifiedNewTableName = Tables.qualify(newTableName);
+    Pair<String,String> qualifiedOldTableName = TableNameUtil.qualify(oldTableName);
+    Pair<String,String> qualifiedNewTableName = TableNameUtil.qualify(newTableName);
 
     // ensure no attempt is made to rename across namespaces
     if (newTableName.contains(".") && !namespaceId
@@ -95,7 +95,7 @@ public class RenameTable extends ManagerRepo {
         }
         return newName.getBytes(UTF_8);
       });
-      Tables.clearCache(manager.getContext());
+      manager.getContext().clearTableListCache();
     } finally {
       Utils.getTableNameLock().unlock();
       Utils.unreserveTable(manager, tableId, tid, true);

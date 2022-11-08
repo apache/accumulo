@@ -8,7 +8,7 @@
 # "License"); you may not use this file except in compliance
 # with the License.  You may obtain a copy of the License at
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#   https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
@@ -30,6 +30,7 @@ Services:
   tserver                Accumulo tserver
   compaction-coordinator Accumulo compaction coordinator (experimental)
   compactor              Accumulo compactor (experimental)
+  sserver                Accumulo scan server (experimental)
 
 Commands:
   start       Starts service
@@ -46,21 +47,21 @@ function invalid_args {
   exit 1
 }
 
-function rotate_log () {
+function rotate_log() {
   logfile="$1"
   max_retained="5"
-  if [[ -f "$logfile" ]]; then
-    while [[ "$max_retained" -gt 1 ]]; do
-      prev=$(( max_retained - 1))
+  if [[ -f $logfile ]]; then
+    while [[ $max_retained -gt 1 ]]; do
+      prev=$((max_retained - 1))
       [ -f "$logfile.$prev" ] && mv -f "$logfile.$prev" "$logfile.$max_retained"
       max_retained=$prev
     done
-    mv -f "$logfile" "$logfile.$max_retained";
+    mv -f "$logfile" "$logfile.$max_retained"
   fi
 }
 
 function start_service() {
-  if [[ -f "$pid_file" ]]; then
+  if [[ -f $pid_file ]]; then
     pid=$(cat "$pid_file")
     if kill -0 "$pid" 2>/dev/null; then
       echo "$host : $service already running (${pid})"
@@ -78,30 +79,30 @@ function start_service() {
   rotate_log "$outfile"
   rotate_log "$errfile"
 
-  nohup "${bin}/accumulo" "$service" "$@" >"$outfile" 2>"$errfile" < /dev/null &
-  echo "$!" > "${pid_file}"
+  nohup "${bin}/accumulo" "$service" "$@" >"$outfile" 2>"$errfile" </dev/null &
+  echo "$!" >"${pid_file}"
 
   # Check the max open files limit and selectively warn
   max_files_open=$(ulimit -n)
-  if [[ -n $max_files_open ]] ; then
+  if [[ -n $max_files_open ]]; then
     max_files_recommended=32768
-    if (( max_files_open < max_files_recommended )); then
+    if ((max_files_open < max_files_recommended)); then
       echo "WARN : Max open files on $host is $max_files_open, recommend $max_files_recommended" >&2
     fi
   fi
 }
 
 function stop_service() {
-  if [[ -f "$pid_file" ]]; then
-    echo "Stopping $service on $host";
+  if [[ -f $pid_file ]]; then
+    echo "Stopping $service on $host"
     kill -s TERM "$(cat "$pid_file")" 2>/dev/null
     rm -f "${pid_file}" 2>/dev/null
   fi
 }
 
 function kill_service() {
-  if [[ -f "$pid_file" ]]; then
-    echo "Killing $service on $host";
+  if [[ -f $pid_file ]]; then
+    echo "Killing $service on $host"
     kill -s KILL "$(cat "$pid_file")" 2>/dev/null
     rm -f "${pid_file}" 2>/dev/null
   fi
@@ -115,17 +116,20 @@ function main() {
   # Resolve base directory
   SOURCE="${BASH_SOURCE[0]}"
   while [ -h "${SOURCE}" ]; do
-     bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-     SOURCE="$(readlink "${SOURCE}")"
-     [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}"
+    bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+    SOURCE="$(readlink "${SOURCE}")"
+    [[ ${SOURCE} != /* ]] && SOURCE="${bin}/${SOURCE}"
   done
   # Set up variables needed by accumulo-env.sh
-  export bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-  export basedir=$( cd -P "${bin}"/.. && pwd )
+  bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+  export bin
+  basedir=$(cd -P "${bin}"/.. && pwd)
+  export basedir
   export conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
   export lib="${basedir}/lib"
 
   if [[ -f "${conf}/accumulo-env.sh" ]]; then
+    #shellcheck source=../conf/accumulo-env.sh
     source "${conf}/accumulo-env.sh"
   fi
   ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
@@ -135,9 +139,9 @@ function main() {
   mkdir -p "$ACCUMULO_PID_DIR" 2>/dev/null
 
   host="$(hostname)"
-  if [[ -z "$host" ]]; then
-    host=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
-  fi 
+  if [[ -z $host ]]; then
+    host=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d'/')
+  fi
   service="$1"
 
   if [[ $service == "master" ]]; then
@@ -147,11 +151,11 @@ function main() {
 
   pid_file="${ACCUMULO_PID_DIR}/accumulo-${service}${ACCUMULO_SERVICE_INSTANCE}.pid"
   case "$service" in
-    gc|manager|monitor|tserver|compaction-coordinator|compactor)
+    gc | manager | monitor | tserver | compaction-coordinator | compactor | sserver)
       if [[ -z $2 ]]; then
         invalid_args "<command> cannot be empty"
       fi
-      case "$2" in 
+      case "$2" in
         start)
           start_service "${@:3}"
           ;;

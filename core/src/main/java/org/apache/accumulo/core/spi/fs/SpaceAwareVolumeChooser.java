@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,13 +18,14 @@
  */
 package org.apache.accumulo.core.spi.fs;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -84,8 +85,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
           ? Long.parseLong(propertyValue) : defaultComputationCacheDuration;
 
       choiceCache = CacheBuilder.newBuilder()
-          .expireAfterWrite(computationCacheDuration, TimeUnit.MILLISECONDS)
-          .build(new CacheLoader<>() {
+          .expireAfterWrite(computationCacheDuration, MILLISECONDS).build(new CacheLoader<>() {
             @Override
             public WeightedRandomCollection load(Set<String> key) {
               return new WeightedRandomCollection(key, env);

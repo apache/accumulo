@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.security.SecureRandom;
@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -57,15 +56,15 @@ public class MinorCompactor extends FileCompactor {
   public MinorCompactor(TabletServer tabletServer, Tablet tablet, InMemoryMap imm,
       TabletFile outputFile, MinorCompactionReason mincReason, TableConfiguration tableConfig) {
     super(tabletServer.getContext(), tablet.getExtent(), Collections.emptyMap(), outputFile, true,
-        new MinCEnv(mincReason, imm.compactionIterator()), Collections.emptyList(), tableConfig);
+        new MinCEnv(mincReason, imm.compactionIterator()), Collections.emptyList(), tableConfig,
+        tableConfig.getCryptoService());
     this.tabletServer = tabletServer;
     this.mincReason = mincReason;
   }
 
   private boolean isTableDeleting() {
     try {
-      return Tables.getTableState(tabletServer.getContext(), extent.tableId())
-          == TableState.DELETING;
+      return tabletServer.getContext().getTableState(extent.tableId()) == TableState.DELETING;
     } catch (Exception e) {
       log.warn("Failed to determine if table " + extent.tableId() + " was deleting ", e);
       return false; // can not get positive confirmation that its deleting.

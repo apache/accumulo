@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,7 +21,6 @@ package org.apache.accumulo.core.classloader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
@@ -40,7 +39,7 @@ public class URLClassLoaderFactory implements ContextClassLoaderFactory {
       } catch (MalformedURLException e) {
         throw new IllegalArgumentException("Error creating URL from classpath segment: " + p, e);
       }
-    }).collect(Collectors.toList()).toArray(new URL[0]);
+    }).toArray(URL[]::new);
     return URLClassLoader.newInstance(urls);
   }
 

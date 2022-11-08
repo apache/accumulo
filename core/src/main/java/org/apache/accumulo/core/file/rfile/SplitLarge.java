@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,7 +24,7 @@ import java.util.List;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -78,11 +78,9 @@ public class SplitLarge implements KeywordExecutable {
 
     for (String file : opts.files) {
       AccumuloConfiguration aconf = opts.getSiteConfiguration();
-      CryptoService cryptoService =
-          CryptoServiceFactory.newInstance(aconf, CryptoServiceFactory.ClassloaderType.JAVA);
+      CryptoService cs = CryptoFactoryLoader.getServiceForServer(aconf);
       Path path = new Path(file);
-      CachableBuilder cb =
-          new CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(cryptoService);
+      CachableBuilder cb = new CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(cs);
       try (Reader iter = new RFile.Reader(cb)) {
 
         if (!file.endsWith(".rf")) {
@@ -94,10 +92,9 @@ public class SplitLarge implements KeywordExecutable {
         int blockSize = (int) aconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE);
         try (
             Writer small = new RFile.Writer(
-                new BCFile.Writer(fs.create(new Path(smallName)), null, "gz", conf, cryptoService),
-                blockSize);
+                new BCFile.Writer(fs.create(new Path(smallName)), null, "gz", conf, cs), blockSize);
             Writer large = new RFile.Writer(
-                new BCFile.Writer(fs.create(new Path(largeName)), null, "gz", conf, cryptoService),
+                new BCFile.Writer(fs.create(new Path(largeName)), null, "gz", conf, cs),
                 blockSize)) {
           small.startDefaultLocalityGroup();
           large.startDefaultLocalityGroup();

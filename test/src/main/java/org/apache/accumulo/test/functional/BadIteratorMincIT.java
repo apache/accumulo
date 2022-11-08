@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
 
@@ -34,15 +35,15 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
 public class BadIteratorMincIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   @Test
@@ -68,7 +69,7 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
       // try to scan table
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         int count = Iterators.size(scanner.iterator());
-        assertEquals("Did not see expected # entries " + count, 1, count);
+        assertEquals(1, count, "Did not see expected # entries " + count);
 
         // remove the bad iterator
         c.tableOperations().removeIterator(tableName, BadIterator.class.getSimpleName(),

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -38,7 +37,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
+import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -66,19 +65,17 @@ public class RemoveEntriesForMissingFiles {
   }
 
   private static class CheckFileTask implements Runnable {
-    @SuppressWarnings("rawtypes")
-    private Map cache;
-    private VolumeManager fs;
-    private AtomicInteger missing;
-    private BatchWriter writer;
-    private Key key;
-    private Path path;
-    private Set<Path> processing;
-    private AtomicReference<Exception> exceptionRef;
+    private final Map<Path,Path> cache;
+    private final VolumeManager fs;
+    private final AtomicInteger missing;
+    private final BatchWriter writer;
+    private final Key key;
+    private final Path path;
+    private final Set<Path> processing;
+    private final AtomicReference<Exception> exceptionRef;
 
-    @SuppressWarnings({"rawtypes"})
-    CheckFileTask(Map cache, VolumeManager fs, AtomicInteger missing, BatchWriter writer, Key key,
-        Path map, Set<Path> processing, AtomicReference<Exception> exceptionRef) {
+    CheckFileTask(Map<Path,Path> cache, VolumeManager fs, AtomicInteger missing, BatchWriter writer,
+        Key key, Path map, Set<Path> processing, AtomicReference<Exception> exceptionRef) {
       this.cache = cache;
       this.fs = fs;
       this.missing = missing;
@@ -90,7 +87,6 @@ public class RemoveEntriesForMissingFiles {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void run() {
       try {
         if (fs.exists(path)) {
@@ -123,10 +119,10 @@ public class RemoveEntriesForMissingFiles {
   private static int checkTable(ServerContext context, String tableName, Range range, boolean fix)
       throws Exception {
 
-    @SuppressWarnings({"rawtypes"})
-    Map cache = new LRUMap(100000);
+    Map<Path,Path> cache = new LRUMap<>(100000);
     Set<Path> processing = new HashSet<>();
-    ExecutorService threadPool = ThreadPools.createFixedThreadPool(16, "CheckFileTasks", false);
+    ExecutorService threadPool =
+        ThreadPools.getServerThreadPools().createFixedThreadPool(16, "CheckFileTasks", false);
 
     System.out.printf("Scanning : %s %s\n", tableName, range);
 
@@ -148,7 +144,7 @@ public class RemoveEntriesForMissingFiles {
 
       count++;
       Key key = entry.getKey();
-      Path map = new Path(TabletFileUtil.validate(key.getColumnQualifierData().toString()));
+      Path map = new Path(ValidationUtil.validate(key.getColumnQualifierData().toString()));
 
       synchronized (processing) {
         while (processing.size() >= 64 || processing.contains(map))
@@ -161,7 +157,7 @@ public class RemoveEntriesForMissingFiles {
         processing.add(map);
       }
 
-      threadPool.submit(
+      threadPool.execute(
           new CheckFileTask(cache, fs, missing, writer, key, map, processing, exceptionRef));
     }
 
@@ -198,7 +194,7 @@ public class RemoveEntriesForMissingFiles {
     } else if (tableName.equals(MetadataTable.NAME)) {
       return checkTable(context, RootTable.NAME, TabletsSection.getRange(), fix);
     } else {
-      TableId tableId = Tables.getTableId(context, tableName);
+      TableId tableId = context.getTableId(tableName);
       Range range = new KeyExtent(tableId, null, null).toMetaRange();
       return checkTable(context, MetadataTable.NAME, range, fix);
     }

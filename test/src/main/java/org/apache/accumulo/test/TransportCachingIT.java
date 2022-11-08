@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,7 +36,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,28 +78,28 @@ public class TransportCachingIT extends AccumuloClusterHarness {
       TTransport second = getAnyTransport(servers, pool, true);
 
       // We should get the same transport
-      assertSame("Expected the first and second to be the same instance", first, second);
+      assertSame(first, second, "Expected the first and second to be the same instance");
       pool.returnTransport(second);
 
       // Ensure does not get cached connection just returned
       TTransport third = getAnyTransport(servers, pool, false);
-      assertNotSame("Expected second and third transport to be different instances", second, third);
+      assertNotSame(second, third, "Expected second and third transport to be different instances");
 
       TTransport fourth = getAnyTransport(servers, pool, false);
-      assertNotSame("Expected third and fourth transport to be different instances", third, fourth);
+      assertNotSame(third, fourth, "Expected third and fourth transport to be different instances");
 
       pool.returnTransport(third);
       pool.returnTransport(fourth);
 
       // The following three asserts ensure the per server queue is LIFO
       TTransport fifth = getAnyTransport(servers, pool, true);
-      assertSame("Expected fourth and fifth transport to be the same instance", fourth, fifth);
+      assertSame(fourth, fifth, "Expected fourth and fifth transport to be the same instance");
 
       TTransport sixth = getAnyTransport(servers, pool, true);
-      assertSame("Expected third and sixth transport to be the same instance", third, sixth);
+      assertSame(third, sixth, "Expected third and sixth transport to be the same instance");
 
       TTransport seventh = getAnyTransport(servers, pool, true);
-      assertSame("Expected second and seventh transport to be the same instance", second, seventh);
+      assertSame(second, seventh, "Expected second and seventh transport to be the same instance");
 
       pool.returnTransport(fifth);
       pool.returnTransport(sixth);

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -49,10 +49,10 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Key;
@@ -116,7 +116,8 @@ public class InputConfigurator extends ConfiguratorBase {
     USE_LOCAL_ITERATORS,
     SCAN_OFFLINE,
     BATCH_SCANNER,
-    BATCH_SCANNER_THREADS
+    BATCH_SCANNER_THREADS,
+    CONSISTENCY_LEVEL
   }
 
   /**
@@ -602,6 +603,39 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   /**
+   * Set the ConsistencyLevel for the Accumulo scans that create the input data
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @param level
+   *          the consistency level
+   * @since 2.1.0
+   */
+  public static void setConsistencyLevel(Class<?> implementingClass, Configuration conf,
+      ConsistencyLevel level) {
+    conf.set(enumToConfKey(implementingClass, Features.CONSISTENCY_LEVEL), level.name());
+  }
+
+  /**
+   * Get the ConsistencyLevel for the Accumulo scans that create the input data
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @return the consistency level
+   * @since 2.1.0
+   */
+  public static ConsistencyLevel getConsistencyLevel(Class<?> implementingClass,
+      Configuration conf) {
+    return ConsistencyLevel
+        .valueOf(conf.get(enumToConfKey(implementingClass, Features.CONSISTENCY_LEVEL),
+            ConsistencyLevel.IMMEDIATE.name()));
+  }
+
+  /**
    * Sets configurations for multiple tables at a time.
    *
    * @param implementingClass
@@ -835,9 +869,9 @@ public class InputConfigurator extends ConfiguratorBase {
       List<Range> ranges, ClientContext context) throws AccumuloException, TableNotFoundException {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
-    if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
-      Tables.clearCache(context);
-      if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
+    if (context.getTableState(tableId) != TableState.OFFLINE) {
+      context.clearTableListCache();
+      if (context.getTableState(tableId) != TableState.OFFLINE) {
         throw new AccumuloException(
             "Table is online tableId:" + tableId + " cannot scan table in offline mode ");
       }

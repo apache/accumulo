@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.core.iterators.system;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -47,7 +47,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SourceSwitchingIteratorTest {
 
@@ -280,16 +280,17 @@ public class SourceSwitchingIteratorTest {
 
     assertSame(flag, tds.iflag);
 
-    ssi.seek(new Range("r1"), new ArrayList<>(), false);
+    final Range r1Range = new Range("r1");
+    final List<ByteSequence> columnFamilies = List.of();
+
+    ssi.seek(r1Range, columnFamilies, false);
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
     assertFalse(ssi.hasTop());
 
     flag.set(true);
 
-    try {
-      ssi.seek(new Range("r1"), new ArrayList<>(), false);
-      fail("expected to see IterationInterruptedException");
-    } catch (IterationInterruptedException iie) {}
+    assertThrows(IterationInterruptedException.class,
+        () -> ssi.seek(r1Range, columnFamilies, false));
 
   }
 

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,8 @@
  */
 package org.apache.accumulo.hadoop.mapred;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -40,26 +39,21 @@ import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder.InputFormatOption
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AccumuloInputFormatTest {
 
   private JobConf job;
   private static Properties clientProperties;
 
-  @Rule
-  public TestName test = new TestName();
-
-  @Before
+  @BeforeEach
   public void createJob() {
     job = new JobConf();
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void setupClientInfo() {
     clientProperties =
         org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest.setupClientProperties();
@@ -228,15 +222,14 @@ public class AccumuloInputFormatTest {
   }
 
   @Test
-  public void testJobStoreException() throws Exception {
+  public void testJobStoreException() {
     // test exception thrown when not calling store
     AccumuloInputFormat.configure().clientProperties(clientProperties).table("table")
         .auths(Authorizations.EMPTY);
     AccumuloInputFormat aif = new AccumuloInputFormat();
 
-    try {
-      aif.getSplits(job, 1);
-      fail("IllegalStateException should have been thrown for not calling store");
-    } catch (IllegalStateException e) {}
+    assertThrows(IllegalStateException.class, () -> aif.getSplits(job, 1),
+        "IllegalStateException should have been thrown for not calling store");
   }
+
 }

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -56,6 +56,8 @@ public class MiniAccumuloConfigImpl {
   private Map<String,String> configuredSiteConig = new HashMap<>();
   private Map<String,String> clientProps = new HashMap<>();
   private int numTservers = 2;
+  private int numScanServers = 0;
+  private int numCompactors = 1;
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
   private boolean jdwpEnabled = false;
   private Map<String,String> systemProperties = new HashMap<>();
@@ -73,7 +75,7 @@ public class MiniAccumuloConfigImpl {
 
   private int zooKeeperPort = 0;
   private int configuredZooKeeperPort = 0;
-  private long zooKeeperStartupTime = 20 * 1000;
+  private long zooKeeperStartupTime = 20_000;
   private String existingZooKeepers;
 
   private long defaultMemorySize = 256 * 1024 * 1024;
@@ -263,6 +265,20 @@ public class MiniAccumuloConfigImpl {
       throw new IllegalArgumentException("Must have at least one tablet server");
     }
     this.numTservers = numTservers;
+    return this;
+  }
+
+  /**
+   * Calling this method is optional. If not set, it defaults to two.
+   *
+   * @param numScanServers
+   *          the number of tablet servers that mini accumulo cluster should start
+   */
+  public MiniAccumuloConfigImpl setNumScanServers(int numScanServers) {
+    if (numScanServers < 0) {
+      throw new IllegalArgumentException("Must have zero or more scan servers");
+    }
+    this.numScanServers = numScanServers;
     return this;
   }
 
@@ -531,6 +547,13 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
+   * @return the number of scan servers configured for this cluster
+   */
+  public int getNumScanServers() {
+    return numScanServers;
+  }
+
+  /**
    * @return is the current configuration in jdwpEnabled mode?
    *
    * @since 1.6.0
@@ -790,5 +813,24 @@ public class MiniAccumuloConfigImpl {
    */
   public void setRootUserName(String rootUserName) {
     this.rootUserName = rootUserName;
+  }
+
+  /**
+   * @return number of Compactors
+   * @since 2.1.0
+   */
+  public int getNumCompactors() {
+    return numCompactors;
+  }
+
+  /**
+   * Set number of Compactors
+   *
+   * @param numCompactors
+   *          number of compactors
+   * @since 2.1.0
+   */
+  public void setNumCompactors(int numCompactors) {
+    this.numCompactors = numCompactors;
   }
 }

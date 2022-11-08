@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.server.zookeeper;
 
+import static java.lang.Math.toIntExact;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -30,9 +32,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
@@ -58,7 +61,6 @@ public class DistributedWorkQueue {
   private ThreadPoolExecutor threadPool;
   private ZooReaderWriter zoo;
   private String path;
-  private AccumuloConfiguration config;
   private ServerContext context;
   private long timerInitialDelay, timerPeriod;
 
@@ -165,25 +167,21 @@ public class DistributedWorkQueue {
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context) {
     // Preserve the old delay and period
-    this(path, config, context, random.nextInt(60_000), 60_000);
+    this(path, config, context, random.nextInt(toIntExact(MINUTES.toMillis(1))),
+        MINUTES.toMillis(1));
   }
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context,
       long timerInitialDelay, long timerPeriod) {
     this.path = path;
-    this.config = config;
     this.context = context;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
-    zoo = new ZooReaderWriter(this.config);
+    zoo = context.getZooReaderWriter();
   }
 
   public ServerContext getContext() {
     return context;
-  }
-
-  public ZooReaderWriter getZooReaderWriter() {
-    return zoo;
   }
 
   public void startProcessing(final Processor processor, ThreadPoolExecutor executorService)
@@ -203,20 +201,16 @@ public class DistributedWorkQueue {
               try {
                 lookForWork(processor, zoo.getChildren(path, this));
               } catch (KeeperException e) {
-                log.error("Failed to look for work", e);
+                log.error("Failed to look for work at path {}; {}", path, event, e);
               } catch (InterruptedException e) {
-                log.info("Interrupted looking for work", e);
+                log.info("Interrupted looking for work at path {}; {}", path, event, e);
               }
             else
-              log.info("Unexpected path for NodeChildrenChanged event {}", event.getPath());
+              log.info("Unexpected path for NodeChildrenChanged event watching path {}; {}", path,
+                  event);
             break;
-          case NodeCreated:
-          case NodeDataChanged:
-          case NodeDeleted:
-          case ChildWatchRemoved:
-          case DataWatchRemoved:
-          case None:
-            log.info("Got unexpected zookeeper event: {} for {}", event.getType(), path);
+          default:
+            log.info("Unexpected event watching path {}; {}", path, event);
             break;
         }
       }
@@ -225,19 +219,20 @@ public class DistributedWorkQueue {
     lookForWork(processor, children);
 
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
-    context.getScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
-      @Override
-      public void run() {
-        log.debug("Looking for work in {}", path);
-        try {
-          lookForWork(processor, zoo.getChildren(path));
-        } catch (KeeperException e) {
-          log.error("Failed to look for work", e);
-        } catch (InterruptedException e) {
-          log.info("Interrupted looking for work", e);
-        }
-      }
-    }, timerInitialDelay, timerPeriod, TimeUnit.MILLISECONDS);
+    ThreadPools.watchCriticalScheduledTask(
+        context.getScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
+          @Override
+          public void run() {
+            log.debug("Looking for work in {}", path);
+            try {
+              lookForWork(processor, zoo.getChildren(path));
+            } catch (KeeperException e) {
+              log.error("Failed to look for work", e);
+            } catch (InterruptedException e) {
+              log.info("Interrupted looking for work", e);
+            }
+          }
+        }, timerInitialDelay, timerPeriod, TimeUnit.MILLISECONDS));
   }
 
   /**
@@ -248,6 +243,7 @@ public class DistributedWorkQueue {
   }
 
   public void addWork(String workId, byte[] data) throws KeeperException, InterruptedException {
+
     if (workId.equalsIgnoreCase(LOCKS_NODE))
       throw new IllegalArgumentException("locks is reserved work id");
 
@@ -274,13 +270,8 @@ public class DistributedWorkQueue {
               condVar.notify();
             }
             break;
-          case NodeCreated:
-          case NodeDataChanged:
-          case NodeDeleted:
-          case ChildWatchRemoved:
-          case DataWatchRemoved:
-          case None:
-            log.info("Got unexpected zookeeper event: {} for {}", event.getType(), path);
+          default:
+            log.info("Got unexpected zookeeper event for path {}: {}", path, event);
             break;
         }
       }

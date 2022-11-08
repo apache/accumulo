@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,12 +18,15 @@
  */
 package org.apache.accumulo.core.util.ratelimit;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -41,6 +44,7 @@ public class SharedRateLimiterFactory {
   private static final long REPORT_RATE = 60000;
   private static final long UPDATE_RATE = 1000;
   private static SharedRateLimiterFactory instance = null;
+  private static ScheduledFuture<?> updateTaskFuture;
   private final Logger log = LoggerFactory.getLogger(SharedRateLimiterFactory.class);
   private final WeakHashMap<String,WeakReference<SharedRateLimiter>> activeLimiters =
       new WeakHashMap<>();
@@ -52,14 +56,16 @@ public class SharedRateLimiterFactory {
     if (instance == null) {
       instance = new SharedRateLimiterFactory();
 
-      ScheduledThreadPoolExecutor svc = ThreadPools.createGeneralScheduledExecutorService(conf);
-      svc.scheduleWithFixedDelay(Threads
+      ScheduledThreadPoolExecutor svc =
+          ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
+      updateTaskFuture = svc.scheduleWithFixedDelay(Threads
           .createNamedRunnable("SharedRateLimiterFactory update polling", instance::updateAll),
-          UPDATE_RATE, UPDATE_RATE, TimeUnit.MILLISECONDS);
+          UPDATE_RATE, UPDATE_RATE, MILLISECONDS);
 
-      svc.scheduleWithFixedDelay(Threads
+      ScheduledFuture<?> future = svc.scheduleWithFixedDelay(Threads
           .createNamedRunnable("SharedRateLimiterFactory report polling", instance::reportAll),
-          REPORT_RATE, REPORT_RATE, TimeUnit.MILLISECONDS);
+          REPORT_RATE, REPORT_RATE, MILLISECONDS);
+      ThreadPools.watchNonCriticalScheduledTask(future);
 
     }
     return instance;
@@ -89,6 +95,9 @@ public class SharedRateLimiterFactory {
    */
   public RateLimiter create(String name, RateProvider rateProvider) {
     synchronized (activeLimiters) {
+      if (updateTaskFuture.isDone()) {
+        log.warn("SharedRateLimiterFactory update task has failed.");
+      }
       var limiterRef = activeLimiters.get(name);
       var limiter = limiterRef == null ? null : limiterRef.get();
       if (limiter == null) {
@@ -167,7 +176,7 @@ public class SharedRateLimiterFactory {
     /** Report the current throughput and usage of this rate limiter to the debug log. */
     public void report() {
       if (log.isDebugEnabled()) {
-        long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastUpdate.get());
+        long duration = NANOSECONDS.toMillis(System.nanoTime() - lastUpdate.get());
         if (duration == 0) {
           return;
         }

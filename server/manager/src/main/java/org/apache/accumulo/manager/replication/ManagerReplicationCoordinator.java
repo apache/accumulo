@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -26,15 +26,14 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinatorErrorCode;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinatorException;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
@@ -54,14 +53,13 @@ public class ManagerReplicationCoordinator implements ReplicationCoordinator.Ifa
   private final SecurityOperation security;
 
   public ManagerReplicationCoordinator(Manager manager) {
-    this(manager, new ZooReader(manager.getContext().getZooKeepers(),
-        manager.getContext().getZooKeepersSessionTimeOut()));
+    this(manager, manager.getContext().getZooReader());
   }
 
   protected ManagerReplicationCoordinator(Manager manager, ZooReader reader) {
     this.manager = manager;
     this.reader = reader;
-    this.security = AuditedSecurityOperation.getInstance(manager.getContext());
+    this.security = manager.getContext().getSecurityOperation();
   }
 
   @Override

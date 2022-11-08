@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ConstraintViolationSummaryTest {
 
@@ -35,7 +35,7 @@ public class ConstraintViolationSummaryTest {
     cvs = new ConstraintViolationSummary(null, (short) 2, null, 101L);
     assertEquals(
         "ConstraintViolationSummary(constrainClass:null,"
-            + " violationCode:2, violationDescription:null," + " numberOfViolatingMutations:101)",
+            + " violationCode:2, violationDescription:null, numberOfViolatingMutations:101)",
         cvs.toString());
   }
 }

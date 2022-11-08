@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -31,10 +31,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.FateTxId;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -192,11 +192,13 @@ public class MetadataSchema {
       public static final String DEFAULT_TABLET_DIR_NAME = "default_tablet";
 
       /**
+       * Matches regex for a tablet directory like "default_tablet" or "t-000009x"
+       *
        * @return true if dirName is a valid value for the {@link #DIRECTORY_COLUMN} in the metadata
        *         table. Returns false otherwise.
        */
       public static boolean isValidDirCol(String dirName) {
-        return !dirName.contains("/");
+        return dirName.matches("[\\dA-Za-z_-]+");
       }
 
       /**
@@ -324,8 +326,9 @@ public class MetadataSchema {
      * data for the current tablet, so that they are safe to merge
      */
     public static class ChoppedColumnFamily {
-      public static final Text NAME = new Text("chopped");
-      public static final ColumnFQ CHOPPED_COLUMN = new ColumnFQ(NAME, new Text("chopped"));
+      public static final String STR_NAME = "chopped";
+      public static final Text NAME = new Text(STR_NAME);
+      public static final ColumnFQ CHOPPED_COLUMN = new ColumnFQ(NAME, new Text(STR_NAME));
     }
 
     public static class ExternalCompactionColumnFamily {
@@ -457,6 +460,19 @@ public class MetadataSchema {
   public static class ExternalCompactionSection {
     private static final Section section =
         new Section(RESERVED_PREFIX + "ecomp", true, RESERVED_PREFIX + "ecomq", false);
+
+    public static Range getRange() {
+      return section.getRange();
+    }
+
+    public static String getRowPrefix() {
+      return section.getRowPrefix();
+    }
+  }
+
+  public static class ScanServerFileReferenceSection {
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "sserv", true, RESERVED_PREFIX + "sserx", false);
 
     public static Range getRange() {
       return section.getRange();

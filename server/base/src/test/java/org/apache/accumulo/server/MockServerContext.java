@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server;
 
+import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 
 import java.util.Properties;
@@ -25,7 +26,9 @@ import java.util.Properties;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.server.conf.store.PropStore;
 import org.easymock.EasyMock;
 
 /**
@@ -38,13 +41,11 @@ public class MockServerContext {
     ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     conf.set(Property.INSTANCE_VOLUMES, "file:///");
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
-    expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-        .anyTimes();
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     return context;
   }
 
-  public static ServerContext getWithZK(String instanceID, String zk, int zkTimeout) {
+  public static ServerContext getWithZK(InstanceId instanceID, String zk, int zkTimeout) {
     var sc = get();
     expect(sc.getZooKeeperRoot()).andReturn("/accumulo/" + instanceID).anyTimes();
     expect(sc.getInstanceID()).andReturn(instanceID).anyTimes();
@@ -53,4 +54,14 @@ public class MockServerContext {
     return sc;
   }
 
+  public static ServerContext getMockContextWithPropStore(final InstanceId instanceID,
+      ZooReaderWriter zrw, PropStore propStore) {
+
+    ServerContext sc = createMock(ServerContext.class);
+    expect(sc.getInstanceID()).andReturn(instanceID).anyTimes();
+    expect(sc.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(sc.getZooKeeperRoot()).andReturn("/accumulo/" + instanceID).anyTimes();
+    expect(sc.getPropStore()).andReturn(propStore).anyTimes();
+    return sc;
+  }
 }

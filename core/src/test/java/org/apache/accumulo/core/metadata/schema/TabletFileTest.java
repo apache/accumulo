@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TabletFileTest {
 
@@ -54,40 +54,34 @@ public class TabletFileTest {
 
   @Test
   public void testBadPaths() {
-    try {
-      test("C0004.rf", "", "2a", "t-0003", "C0004.rf");
-      fail("Failed to throw error on bad path");
-    } catch (NullPointerException e) {}
     // 2a< srv:dir
-    try {
-      test("dir", "", "2a", "", "");
-      fail("Failed to throw error on bad path");
-    } catch (NullPointerException e) {}
-    try {
-      test("hdfs://localhost:8020/accumulo/tablets/2a/default_tablet/F0000070.rf",
-          "hdfs://localhost:8020/accumulo", "2a", "default_tablet", "F0000070.rf");
-      fail("Failed to throw error on bad path");
-    } catch (IllegalArgumentException e) {}
-    try {
-      test("hdfs://localhost:8020/accumulo/2a/default_tablet/F0000070.rf",
-          " hdfs://localhost:8020/accumulo", "2a", "default_tablet", " F0000070.rf");
-      fail("Failed to throw error on bad path");
-    } catch (IllegalArgumentException e) {}
-    try {
-      test("/accumulo/tables/2a/default_tablet/F0000070.rf", "", "2a", "default_tablet",
-          "F0000070.rf");
-      fail("Failed to throw error on bad path");
-    } catch (IllegalArgumentException e) {}
-    try {
-      test("hdfs://localhost:8020/accumulo/tables/2a/F0000070.rf", "hdfs://localhost:8020/accumulo",
-          "2a", "", "F0000070.rf");
-      fail("Failed to throw error on bad path");
-    } catch (IllegalArgumentException e) {}
-    try {
-      test("hdfs://localhost:8020/accumulo/tables/F0000070.rf", "hdfs://localhost:8020/accumulo",
-          null, "", "F0000070.rf");
-      fail("Failed to throw error on bad path");
-    } catch (IllegalArgumentException e) {}
+    final String message = "Failed to throw error on bad path";
+
+    assertThrows(NullPointerException.class, () -> test("C0004.rf", "", "2a", "t-0003", "C0004.rf"),
+        message);
+    assertThrows(NullPointerException.class, () -> test("dir", "", "2a", "", ""), message);
+
+    assertThrows(IllegalArgumentException.class,
+        () -> test("hdfs://localhost:8020/accumulo/tablets/2a/default_tablet/F0000070.rf",
+            "hdfs://localhost:8020/accumulo", "2a", "default_tablet", "F0000070.rf"),
+        message);
+    assertThrows(IllegalArgumentException.class,
+        () -> test("hdfs://localhost:8020/accumulo/2a/default_tablet/F0000070.rf",
+            " hdfs://localhost:8020/accumulo", "2a", "default_tablet", " F0000070.rf"),
+        message);
+    assertThrows(IllegalArgumentException.class,
+        () -> test("/accumulo/tables/2a/default_tablet/F0000070.rf", "", "2a", "default_tablet",
+            "F0000070.rf"),
+        message);
+    assertThrows(IllegalArgumentException.class,
+        () -> test("hdfs://localhost:8020/accumulo/tables/2a/F0000070.rf",
+            "hdfs://localhost:8020/accumulo", "2a", "", "F0000070.rf"),
+        message);
+    assertThrows(IllegalArgumentException.class,
+        () -> test("hdfs://localhost:8020/accumulo/tables/F0000070.rf",
+            "hdfs://localhost:8020/accumulo", null, "", "F0000070.rf"),
+        message);
+
   }
 
   private final String id = "2a";

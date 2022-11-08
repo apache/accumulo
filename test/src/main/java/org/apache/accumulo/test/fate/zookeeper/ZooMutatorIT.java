@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,9 +19,11 @@
 package org.apache.accumulo.test.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -29,16 +31,22 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
+import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.harness.WithTestNames;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.hash.Hashing;
 
-@Category({ZooKeeperTestingServerTests.class})
-public class ZooMutatorIT {
+@Tag(ZOOKEEPER_TESTING_SERVER)
+public class ZooMutatorIT extends WithTestNames {
+
+  @TempDir
+  private static File tempDir;
+
   /**
    * This test uses multiple threads to update the data in a single zookeeper node using
    * {@link ZooReaderWriter#mutateOrCreate(String, byte[], ZooReaderWriter.Mutator)} and tries to
@@ -73,10 +81,11 @@ public class ZooMutatorIT {
    */
   @Test
   public void concurrentMutatorTest() throws Exception {
-
-    try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer()) {
-      szk.initPaths("/accumulo/" + UUID.randomUUID());
-      ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
+    File newFolder = new File(tempDir, testName() + "/");
+    assertTrue(newFolder.isDirectory() || newFolder.mkdir(), "failed to create dir: " + newFolder);
+    try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer(newFolder)) {
+      szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
+      ZooReaderWriter zk = szk.getZooReaderWriter();
 
       var executor = Executors.newFixedThreadPool(16);
 
@@ -97,7 +106,7 @@ public class ZooMutatorIT {
               byte[] val =
                   zk.mutateOrCreate("/test-zm", initialData.getBytes(UTF_8), this::nextValue);
               int nextCount = getCount(val);
-              assertTrue("nextCount <= count " + nextCount + " " + count, nextCount > count);
+              assertTrue(nextCount > count, "nextCount <= count " + nextCount + " " + count);
               count = nextCount;
               countCounts.merge(count, 1, Integer::sum);
             }

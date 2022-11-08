@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -41,6 +41,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -50,7 +51,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ServerClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -64,9 +64,9 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
@@ -79,7 +79,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -87,7 +86,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
-import com.google.common.collect.Lists;
 import com.google.common.hash.Hashing;
 
 /**
@@ -212,15 +210,15 @@ public class Gatherer {
 
         // When no location, the approach below will consistently choose the same tserver for the
         // same file (as long as the set of tservers is stable).
-        int idx =
-            Math.abs(Hashing.murmur3_32().hashString(entry.getKey().getPathStr(), UTF_8).asInt())
-                % tservers.size();
+        int idx = Math
+            .abs(Hashing.murmur3_32_fixed().hashString(entry.getKey().getPathStr(), UTF_8).asInt())
+            % tservers.size();
         location = tservers.get(idx);
       }
 
       // merge contiguous ranges
-      List<Range> merged = Range
-          .mergeOverlapping(Lists.transform(entry.getValue(), tm -> tm.getExtent().toDataRange()));
+      List<Range> merged = Range.mergeOverlapping(entry.getValue().stream()
+          .map(tm -> tm.getExtent().toDataRange()).collect(Collectors.toList()));
       List<TRowRange> ranges =
           merged.stream().map(r -> toClippedExtent(r).toThrift()).collect(Collectors.toList()); // clip
                                                                                                 // ranges
@@ -307,7 +305,7 @@ public class Gatherer {
 
       Client client = null;
       try {
-        client = ThriftUtil.getTServerClient(location, ctx);
+        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, ctx);
         // partition files into smaller chunks so that not too many are sent to a tserver at once
         for (Map<TabletFile,List<TRowRange>> files : partition(allFiles, 500)) {
           if (!pfiles.failedFiles.isEmpty()) {
@@ -325,8 +323,6 @@ public class Gatherer {
             }
 
             pfiles.summaries.merge(new SummaryCollection(tSums), factory);
-          } catch (TApplicationException tae) {
-            throw new RuntimeException(tae);
           } catch (TTransportException e) {
             pfiles.failedFiles.addAll(files.keySet());
             continue;
@@ -350,26 +346,14 @@ public class Gatherer {
   }
 
   private class PartitionFuture implements Future<SummaryCollection> {
-
-    private CompletableFuture<ProcessedFiles> future;
-    private int modulus;
-    private int remainder;
-    private ExecutorService execSrv;
-    private TInfo tinfo;
-    private AtomicBoolean cancelFlag = new AtomicBoolean(false);
+    private final CompletableFuture<SummaryCollection> future;
+    private final AtomicBoolean cancelFlag = new AtomicBoolean(false);
 
     PartitionFuture(TInfo tinfo, ExecutorService execSrv, int modulus, int remainder) {
-      this.tinfo = tinfo;
-      this.execSrv = execSrv;
-      this.modulus = modulus;
-      this.remainder = remainder;
-    }
-
-    private synchronized void initiateProcessing(ProcessedFiles previousWork) {
-      try {
-        Predicate<TabletFile> fileSelector =
-            file -> Math.abs(Hashing.murmur3_32().hashString(file.getPathStr(), UTF_8).asInt())
-                % modulus == remainder;
+      Function<ProcessedFiles,CompletableFuture<ProcessedFiles>> go = previousWork -> {
+        Predicate<TabletFile> fileSelector = file -> Math
+            .abs(Hashing.murmur3_32_fixed().hashString(file.getPathStr(), UTF_8).asInt()) % modulus
+            == remainder;
         if (previousWork != null) {
           fileSelector = fileSelector.and(previousWork.failedFiles::contains);
         }
@@ -390,50 +374,17 @@ public class Gatherer {
               .supplyAsync(new FilesProcessor(tinfo, location, allFiles, cancelFlag), execSrv));
         }
 
-        future = CompletableFutureUtil.merge(futures,
+        return CompletableFutureUtil.merge(futures,
             (pf1, pf2) -> ProcessedFiles.merge(pf1, pf2, factory), ProcessedFiles::new);
-
-        // when all processing is done, check for failed files... and if found starting processing
-        // again
-        future.thenRun(this::updateFuture);
-      } catch (Exception e) {
-        future = CompletableFuture.completedFuture(new ProcessedFiles());
-        // force future to have this exception
-        future.obtrudeException(e);
-      }
-    }
-
-    private ProcessedFiles _get() {
-      try {
-        return future.get();
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
-      } catch (ExecutionException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    private synchronized CompletableFuture<ProcessedFiles> updateFuture() {
-      if (future.isDone()) {
-        if (!future.isCancelled() && !future.isCompletedExceptionally()) {
-          ProcessedFiles pf = _get();
-          if (!pf.failedFiles.isEmpty()) {
-            initiateProcessing(pf);
-          }
-        }
-      }
-
-      return future;
-    }
-
-    synchronized void initiateProcessing() {
-      Preconditions.checkState(future == null);
-      initiateProcessing(null);
+      };
+      future = CompletableFutureUtil
+          .iterateUntil(go,
+              previousWork -> previousWork != null && previousWork.failedFiles.isEmpty(), null)
+          .thenApply(pf -> pf.summaries);
     }
 
     @Override
-    public synchronized boolean cancel(boolean mayInterruptIfRunning) {
+    public boolean cancel(boolean mayInterruptIfRunning) {
       boolean canceled = future.cancel(mayInterruptIfRunning);
       if (canceled) {
         cancelFlag.set(true);
@@ -442,58 +393,24 @@ public class Gatherer {
     }
 
     @Override
-    public synchronized boolean isCancelled() {
+    public boolean isCancelled() {
       return future.isCancelled();
     }
 
     @Override
-    public synchronized boolean isDone() {
-      updateFuture();
-      if (future.isDone()) {
-        if (future.isCancelled() || future.isCompletedExceptionally()) {
-          return true;
-        }
-
-        ProcessedFiles pf = _get();
-        if (pf.failedFiles.isEmpty()) {
-          return true;
-        } else {
-          updateFuture();
-        }
-      }
-
-      return false;
+    public boolean isDone() {
+      return future.isDone();
     }
 
     @Override
     public SummaryCollection get() throws InterruptedException, ExecutionException {
-      CompletableFuture<ProcessedFiles> futureRef = updateFuture();
-      ProcessedFiles processedFiles = futureRef.get();
-      while (!processedFiles.failedFiles.isEmpty()) {
-        futureRef = updateFuture();
-        processedFiles = futureRef.get();
-      }
-      return processedFiles.summaries;
+      return future.get();
     }
 
     @Override
     public SummaryCollection get(long timeout, TimeUnit unit)
         throws InterruptedException, ExecutionException, TimeoutException {
-      long nanosLeft = unit.toNanos(timeout);
-      long t1, t2;
-      CompletableFuture<ProcessedFiles> futureRef = updateFuture();
-      t1 = System.nanoTime();
-      ProcessedFiles processedFiles = futureRef.get(Long.max(1, nanosLeft), TimeUnit.NANOSECONDS);
-      t2 = System.nanoTime();
-      nanosLeft -= (t2 - t1);
-      while (!processedFiles.failedFiles.isEmpty()) {
-        futureRef = updateFuture();
-        t1 = System.nanoTime();
-        processedFiles = futureRef.get(Long.max(1, nanosLeft), TimeUnit.NANOSECONDS);
-        t2 = System.nanoTime();
-        nanosLeft -= (t2 - t1);
-      }
-      return processedFiles.summaries;
+      return future.get(timeout, unit);
     }
 
   }
@@ -504,10 +421,7 @@ public class Gatherer {
    */
   public Future<SummaryCollection> processPartition(ExecutorService execSrv, int modulus,
       int remainder) {
-    PartitionFuture future =
-        new PartitionFuture(TraceUtil.traceInfo(), execSrv, modulus, remainder);
-    future.initiateProcessing();
-    return future;
+    return new PartitionFuture(TraceUtil.traceInfo(), execSrv, modulus, remainder);
   }
 
   public interface FileSystemResolver {
@@ -523,7 +437,8 @@ public class Gatherer {
     List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {
       futures.add(CompletableFuture.supplyAsync(() -> {
-        List<RowRange> rrl = Lists.transform(entry.getValue(), RowRange::new);
+        List<RowRange> rrl =
+            entry.getValue().stream().map(RowRange::new).collect(Collectors.toList());
         return getSummaries(volMgr, entry.getKey(), rrl, summaryCache, indexCache, fileLenCache);
       }, srp));
     }
@@ -558,7 +473,7 @@ public class Gatherer {
 
       TSummaries tSums;
       try {
-        tSums = ServerClient.execute(ctx, new TabletClientService.Client.Factory(), client -> {
+        tSums = ThriftClientTypes.TABLET_SERVER.execute(ctx, client -> {
           TSummaries tsr =
               client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus, remainder);
           while (!tsr.finished && !cancelFlag.get()) {

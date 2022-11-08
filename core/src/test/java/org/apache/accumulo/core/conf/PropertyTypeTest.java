@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,38 +18,34 @@
  */
 package org.apache.accumulo.core.conf;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.apache.accumulo.core.WithTestNames;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Joiner;
 
-public class PropertyTypeTest {
+public class PropertyTypeTest extends WithTestNames {
 
-  @Rule
-  public TestName testName = new TestName();
-  private PropertyType type = null;
+  private PropertyType type;
 
-  @Before
+  @BeforeEach
   public void getPropertyTypeForTest() {
-    String tn = testName.getMethodName();
-    if (tn.startsWith("testType")) {
+    if (testName().startsWith("testType")) {
+      String tn = testName().substring("testType".length());
       try {
-        type = PropertyType.valueOf(tn.substring(8));
+        type = PropertyType.valueOf(tn);
       } catch (IllegalArgumentException e) {
         throw new AssertionError("Unexpected test method for non-existent "
-            + PropertyType.class.getSimpleName() + "." + tn.substring(8));
+            + PropertyType.class.getSimpleName() + "." + tn);
       }
     }
   }
@@ -58,7 +54,7 @@ public class PropertyTypeTest {
   public void testGetFormatDescription() {
     assertEquals(
         "An arbitrary string of characters whose format is unspecified"
-            + " and interpreted based on the context of the property to which it" + " applies.",
+            + " and interpreted based on the context of the property to which it applies.",
         PropertyType.STRING.getFormatDescription());
   }
 
@@ -67,37 +63,35 @@ public class PropertyTypeTest {
     assertEquals("string", PropertyType.STRING.toString());
   }
 
+  /**
+   * This test checks the remainder of the methods in this class to ensure each property type has a
+   * corresponding test
+   */
   @Test
   public void testFullCoverage() {
-    // This test checks the remainder of the methods in this class to ensure each property type has
-    // a corresponding test
-    Stream<String> types = Arrays.stream(PropertyType.values()).map(Enum<PropertyType>::name);
 
-    List<String> typesTested = Arrays.stream(this.getClass().getMethods()).map(Method::getName)
-        .filter(m -> m.startsWith("testType")).map(m -> m.substring(8))
-        .collect(Collectors.toList());
+    String typePrefix = "testType";
+    Set<String> typesTested = Stream.of(this.getClass().getMethods()).map(Method::getName)
+        .filter(m -> m.startsWith(typePrefix)).map(m -> m.substring(typePrefix.length()))
+        .collect(Collectors.toSet());
 
-    types = types.map(t -> {
-      assertTrue(PropertyType.class.getSimpleName() + "." + t + " does not have a test.",
-          typesTested.contains(t));
-      return t;
-    });
-    assertEquals(types.count(), typesTested.size());
+    Set<String> types =
+        Stream.of(PropertyType.values()).map(Enum<PropertyType>::name).collect(Collectors.toSet());
+
+    assertEquals(types, typesTested, "Expected to see a test method for each property type");
   }
 
   private void valid(final String... args) {
     for (String s : args) {
-      assertTrue(
-          s + " should be valid for " + PropertyType.class.getSimpleName() + "." + type.name(),
-          type.isValidFormat(s));
+      assertTrue(type.isValidFormat(s),
+          s + " should be valid for " + PropertyType.class.getSimpleName() + "." + type.name());
     }
   }
 
   private void invalid(final String... args) {
     for (String s : args) {
-      assertFalse(
-          s + " should be invalid for " + PropertyType.class.getSimpleName() + "." + type.name(),
-          type.isValidFormat(s));
+      assertFalse(type.isValidFormat(s),
+          s + " should be invalid for " + PropertyType.class.getSimpleName() + "." + type.name());
     }
   }
 

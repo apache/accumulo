@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -56,7 +56,7 @@ public class SummarizerConfiguration {
     if (configId == null) {
       ArrayList<String> keys = new ArrayList<>(this.options.keySet());
       Collections.sort(keys);
-      Hasher hasher = Hashing.murmur3_32().newHasher();
+      Hasher hasher = Hashing.murmur3_32_fixed().newHasher();
       hasher.putString(className, UTF_8);
       for (String key : keys) {
         hasher.putString(key, UTF_8);
@@ -84,7 +84,7 @@ public class SummarizerConfiguration {
   }
 
   /**
-   * The propertyId is used to when creating table properties for a summarizer. Its not used for
+   * The propertyId is used when creating table properties for a summarizer. It's not used for
    * equality or hashCode for this class.
    */
   public String getPropertyId() {
@@ -237,7 +237,9 @@ public class SummarizerConfiguration {
      * Convenience method for adding multiple options. The following
      *
      * <pre>
-     * {@code builder.addOptions("opt1","val1","opt2","val2","opt3","val3")}
+     * {@code
+     * builder.addOptions("opt1", "val1", "opt2", "val2", "opt3", "val3")
+     * }
      * </pre>
      *
      * <p>
@@ -245,9 +247,9 @@ public class SummarizerConfiguration {
      *
      * <pre>
      * {@code
-     *   builder.addOption("opt1","val1");
-     *   builder.addOption("opt2","val2");
-     *   builder.addOption("opt3","val3");
+     * builder.addOption("opt1", "val1");
+     * builder.addOption("opt2", "val2");
+     * builder.addOption("opt3", "val3");
      * }
      * </pre>
      *

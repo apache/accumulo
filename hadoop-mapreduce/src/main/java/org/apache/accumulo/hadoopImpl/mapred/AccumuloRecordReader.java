@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.hadoopImpl.mapred;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -41,13 +41,13 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -135,6 +135,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
     ClientContext context = (ClientContext) client;
     Authorizations authorizations = InputConfigurator.getScanAuthorizations(CLASS, job);
     String classLoaderContext = InputConfigurator.getClassLoaderContext(CLASS, job);
+    ConsistencyLevel cl = InputConfigurator.getConsistencyLevel(CLASS, job);
     String table = baseSplit.getTableName();
 
     // in case the table name changed, we can still use the previous name for terms of
@@ -162,7 +163,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
       } catch (TableNotFoundException e) {
         throw new IOException(e);
       }
-
+      scanner.setConsistencyLevel(cl == null ? ConsistencyLevel.IMMEDIATE : cl);
+      log.info("Using consistency level: {}", scanner.getConsistencyLevel());
       scanner.setRanges(multiRangeSplit.getRanges());
       scannerBase = scanner;
 
@@ -190,6 +192,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
           scanner = new OfflineScanner(context, TableId.of(baseSplit.getTableId()), authorizations);
         } else {
           scanner = new ScannerImpl(context, TableId.of(baseSplit.getTableId()), authorizations);
+          scanner.setConsistencyLevel(cl == null ? ConsistencyLevel.IMMEDIATE : cl);
+          log.info("Using consistency level: {}", scanner.getConsistencyLevel());
         }
         if (isIsolated) {
           log.info("Creating isolated scanner");
@@ -290,16 +294,16 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
     LinkedList<InputSplit> splits = new LinkedList<>();
     Map<String,InputTableConfig> tableConfigs =
         InputConfigurator.getInputTableConfigs(callingClass, job);
-    try (AccumuloClient client = createClient(job, callingClass)) {
+    try (AccumuloClient client = createClient(job, callingClass);
+        var context = ((ClientContext) client)) {
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
         String tableName = tableConfigEntry.getKey();
         InputTableConfig tableConfig = tableConfigEntry.getValue();
 
-        ClientContext context = (ClientContext) client;
         TableId tableId;
         // resolve table name to id once, and use id from this point forward
         try {
-          tableId = Tables.getTableId(context, tableName);
+          tableId = context.getTableId(tableName);
         } catch (TableNotFoundException e) {
           throw new IOException(e);
         }

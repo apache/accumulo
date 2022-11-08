@@ -7,7 +7,7 @@
 # "License"); you may not use this file except in compliance
 # with the License.  You may obtain a copy of the License at
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#   https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
@@ -29,18 +29,22 @@ on:
   pull_request:
     branches: [ '*' ]
 
+permissions:
+  contents: read
+
 jobs:
   # fast build to populate the local maven repository cache
   fastbuild:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up JDK 11
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v3
       with:
+        distribution: adopt
         java-version: 11
     - name: Cache local maven repository
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ~/.m2/repository/
@@ -49,6 +53,10 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
     - name: Show the first log message
       run: git log -n1
+    - name: Check for unapproved characters
+      run: contrib/ci/find-unapproved-chars.sh
+    - name: Check for unapproved JUnit API usage
+      run: contrib/ci/find-unapproved-junit.sh
     - name: Build with Maven (Fast Build)
       timeout-minutes: 20
       run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -DskipTests -DskipFormat -DverifyFormat
@@ -60,19 +68,22 @@ jobs:
     strategy:
       matrix:
         profile:
-          - {name: 'unit-tests',    args: 'verify -PskipQA -DskipTests=false'}
-          - {name: 'qa-checks',     args: 'verify javadoc:jar -Psec-bugs -DskipTests -Dspotbugs.timeout=3600000'}
-          - {name: 'hadoop-compat', args: 'package -DskipTests -Dhadoop.version=3.0.3'}
+          - {name: 'unit-tests',    javaver: 11, args: 'verify -PskipQA -DskipTests=false'}
+          - {name: 'qa-checks',     javaver: 11, args: 'verify javadoc:jar -Psec-bugs -DskipTests -Dspotbugs.timeout=3600000'}
+          - {name: 'compat',        javaver: 11, args: 'package -DskipTests -Dhadoop.version=3.0.3 -Dzookeeper.version=3.5.10'}
+          - {name: 'errorprone',    javaver: 11, args: 'verify -Perrorprone,skipQA'}
+          - {name: 'jdk17',         javaver: 17, args: 'verify -DskipITs'}
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up JDK 11
-      uses: actions/setup-java@v1
+    - uses: actions/checkout@v3
+    - name: Set up JDK ${{ matrix.profile.javaver }}
+      uses: actions/setup-java@v3
       with:
-        java-version: 11
+        distribution: adopt
+        java-version: ${{ matrix.profile.javaver }}
     - name: Cache local maven repository
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ~/.m2/repository/
@@ -101,21 +112,21 @@ jobs:
         MAVEN_OPTS: -Djansi.force=true
     - name: Upload unit test results
       if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: surefire-reports-${{ matrix.profile.name }}
         path: ./**/target/surefire-reports/
         if-no-files-found: ignore
     - name: Upload integration test results
       if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: failsafe-reports-${{ matrix.profile.name }}
         path: ./**/target/failsafe-reports/
         if-no-files-found: ignore
     - name: Upload mini test logs
       if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: mini-tests-logs-${{ matrix.profile.name }}
         path: ./**/target/**/mini-tests/**/logs/

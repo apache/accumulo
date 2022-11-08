@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -43,8 +44,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
-import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
-import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.Shell.PrintFile;
@@ -70,6 +69,7 @@ public class ScanCommand extends Command {
   private Option sampleOpt;
   private Option contextOpt;
   private Option executionHintsOpt;
+  private Option scanServerOpt;
 
   protected void setupSampling(final String tableName, final CommandLine cl, final Shell shellState,
       ScannerBase scanner)
@@ -86,6 +86,15 @@ public class ScanCommand extends Command {
     }
   }
 
+  protected ConsistencyLevel getConsistency(CommandLine cl) {
+    if (cl.hasOption(scanServerOpt.getOpt())) {
+      String arg = cl.getOptionValue(scanServerOpt.getOpt());
+      return ConsistencyLevel.valueOf(arg.toUpperCase());
+    } else {
+      return ConsistencyLevel.IMMEDIATE;
+    }
+  }
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
@@ -93,7 +102,9 @@ public class ScanCommand extends Command {
       final String tableName = OptUtil.getTableOpt(cl, shellState);
 
       final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
-      final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
+      @SuppressWarnings("deprecation")
+      final org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter =
+          getInterpreter(cl, tableName, shellState);
 
       String classLoaderContext = null;
       if (cl.hasOption(contextOpt.getOpt())) {
@@ -122,6 +133,12 @@ public class ScanCommand extends Command {
       setupSampling(tableName, cl, shellState, scanner);
 
       scanner.setExecutionHints(ShellUtil.parseMapOpt(cl, executionHintsOpt));
+
+      try {
+        scanner.setConsistencyLevel(getConsistency(cl));
+      } catch (IllegalArgumentException e) {
+        Shell.log.error("Consistency Level argument must be immediate or eventual", e);
+      }
 
       // output the records
 
@@ -215,23 +232,24 @@ public class ScanCommand extends Command {
     }
   }
 
-  protected ScanInterpreter getInterpreter(final CommandLine cl, final String tableName,
-      final Shell shellState) throws Exception {
+  @Deprecated(since = "2.1.0")
+  protected org.apache.accumulo.core.util.interpret.ScanInterpreter getInterpreter(
+      final CommandLine cl, final String tableName, final Shell shellState) throws Exception {
 
-    Class<? extends ScanInterpreter> clazz = null;
+    Class<? extends org.apache.accumulo.core.util.interpret.ScanInterpreter> clazz = null;
     try {
       if (cl.hasOption(interpreterOpt.getOpt())) {
         Shell.log
             .warn("Scan Interpreter option is deprecated and will be removed in a future version.");
 
         clazz = ClassLoaderUtil.loadClass(cl.getOptionValue(interpreterOpt.getOpt()),
-            ScanInterpreter.class);
+            org.apache.accumulo.core.util.interpret.ScanInterpreter.class);
       } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
         Shell.log
             .warn("Scan Interpreter option is deprecated and will be removed in a future version.");
 
         clazz = ClassLoaderUtil.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()),
-            ScanInterpreter.class);
+            org.apache.accumulo.core.util.interpret.ScanInterpreter.class);
       }
     } catch (ClassNotFoundException e) {
       Shell.log.error("Interpreter class could not be loaded.", e);
@@ -241,7 +259,7 @@ public class ScanCommand extends Command {
       clazz = InterpreterCommand.getCurrentInterpreter(tableName, shellState);
 
     if (clazz == null)
-      clazz = DefaultScanInterpreter.class;
+      clazz = org.apache.accumulo.core.util.interpret.DefaultScanInterpreter.class;
 
     return clazz.getDeclaredConstructor().newInstance();
   }
@@ -270,7 +288,8 @@ public class ScanCommand extends Command {
   }
 
   protected void fetchColumns(final CommandLine cl, final ScannerBase scanner,
-      final ScanInterpreter formatter) throws UnsupportedEncodingException {
+      @SuppressWarnings("deprecation") final org.apache.accumulo.core.util.interpret.ScanInterpreter formatter)
+      throws UnsupportedEncodingException {
 
     if ((cl.hasOption(scanOptCf.getOpt()) || cl.hasOption(scanOptCq.getOpt()))
         && cl.hasOption(scanOptColumns.getOpt())) {
@@ -285,18 +304,24 @@ public class ScanCommand extends Command {
       for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
         final String[] sa = a.split(":", 2);
         if (sa.length == 1) {
-          scanner.fetchColumnFamily(
-              formatter.interpretColumnFamily(new Text(a.getBytes(Shell.CHARSET))));
+          @SuppressWarnings("deprecation")
+          var interprettedCF = formatter.interpretColumnFamily(new Text(a.getBytes(Shell.CHARSET)));
+          scanner.fetchColumnFamily(interprettedCF);
         } else {
-          scanner.fetchColumn(
-              formatter.interpretColumnFamily(new Text(sa[0].getBytes(Shell.CHARSET))),
-              formatter.interpretColumnQualifier(new Text(sa[1].getBytes(Shell.CHARSET))));
+          @SuppressWarnings("deprecation")
+          var interprettedCF =
+              formatter.interpretColumnFamily(new Text(sa[0].getBytes(Shell.CHARSET)));
+          @SuppressWarnings("deprecation")
+          var interprettedCQ =
+              formatter.interpretColumnQualifier(new Text(sa[1].getBytes(Shell.CHARSET)));
+          scanner.fetchColumn(interprettedCF, interprettedCQ);
         }
       }
     }
   }
 
-  private void fetchColumsWithCFAndCQ(CommandLine cl, Scanner scanner, ScanInterpreter interpeter) {
+  private void fetchColumsWithCFAndCQ(CommandLine cl, Scanner scanner,
+      @SuppressWarnings("deprecation") org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter) {
     String cf = "";
     String cq = "";
     if (cl.hasOption(scanOptCf.getOpt())) {
@@ -311,18 +336,23 @@ public class ScanCommand extends Command {
           scanOptCf.getOpt(), scanOptCq.getOpt());
       throw new IllegalArgumentException(formattedString);
     } else if (!cf.isEmpty() && cq.isEmpty()) {
-      scanner.fetchColumnFamily(
-          interpeter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET))));
-
+      @SuppressWarnings("deprecation")
+      var interprettedCF = interpeter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
+      scanner.fetchColumnFamily(interprettedCF);
     } else if (!cf.isEmpty() && !cq.isEmpty()) {
-      scanner.fetchColumn(interpeter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET))),
-          interpeter.interpretColumnQualifier(new Text(cq.getBytes(Shell.CHARSET))));
+      @SuppressWarnings("deprecation")
+      var interprettedCF = interpeter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
+      @SuppressWarnings("deprecation")
+      var interprettedCQ =
+          interpeter.interpretColumnQualifier(new Text(cq.getBytes(Shell.CHARSET)));
+      scanner.fetchColumn(interprettedCF, interprettedCQ);
 
     }
 
   }
 
-  protected Range getRange(final CommandLine cl, final ScanInterpreter formatter)
+  protected Range getRange(final CommandLine cl,
+      @SuppressWarnings("deprecation") final org.apache.accumulo.core.util.interpret.ScanInterpreter formatter)
       throws UnsupportedEncodingException {
     if ((cl.hasOption(OptUtil.START_ROW_OPT) || cl.hasOption(OptUtil.END_ROW_OPT))
         && cl.hasOption(scanOptRow.getOpt())) {
@@ -333,15 +363,23 @@ public class ScanCommand extends Command {
     }
 
     if (cl.hasOption(scanOptRow.getOpt())) {
-      return new Range(formatter
-          .interpretRow(new Text(cl.getOptionValue(scanOptRow.getOpt()).getBytes(Shell.CHARSET))));
+      @SuppressWarnings("deprecation")
+      var interprettedRow = formatter
+          .interpretRow(new Text(cl.getOptionValue(scanOptRow.getOpt()).getBytes(Shell.CHARSET)));
+      return new Range(interprettedRow);
     } else {
       Text startRow = OptUtil.getStartRow(cl);
-      if (startRow != null)
-        startRow = formatter.interpretBeginRow(startRow);
+      if (startRow != null) {
+        @SuppressWarnings("deprecation")
+        var interprettedBeginRow = formatter.interpretBeginRow(startRow);
+        startRow = interprettedBeginRow;
+      }
       Text endRow = OptUtil.getEndRow(cl);
-      if (endRow != null)
-        endRow = formatter.interpretEndRow(endRow);
+      if (endRow != null) {
+        @SuppressWarnings("deprecation")
+        var interprettedEndRow = formatter.interpretEndRow(endRow);
+        endRow = interprettedEndRow;
+      }
       final boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
       final boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
       return new Range(startRow, startInclusive, endRow, endInclusive);
@@ -385,7 +423,7 @@ public class ScanCommand extends Command {
     optEndRowExclusive.setArgName("end-exclusive");
     scanOptRow = new Option("r", "row", true, "row to scan");
     scanOptColumns = new Option("c", "columns", true,
-        "comma-separated columns.This" + " option is mutually exclusive with cf and cq");
+        "comma-separated columns. This option is mutually exclusive with cf and cq");
     scanOptCf = new Option("cf", "column-family", true, "column family to scan.");
     scanOptCq = new Option("cq", "column-qualifier", true, "column qualifier to scan");
 
@@ -400,11 +438,13 @@ public class ScanCommand extends Command {
         "fully qualified name of a class that is a formatter and interpreter");
     timeoutOption = new Option(null, "timeout", true,
         "time before scan should fail if no data is returned. If no unit is"
-            + " given assumes seconds. Units d,h,m,s,and ms are supported. e.g. 30s" + " or 100ms");
+            + " given assumes seconds. Units d,h,m,s,and ms are supported. e.g. 30s or 100ms");
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     sampleOpt = new Option(null, "sample", false, "Show sample");
     contextOpt = new Option("cc", "context", true, "name of the classloader context");
     executionHintsOpt = new Option(null, "execution-hints", true, "Execution hints map");
+    scanServerOpt =
+        new Option("cl", "consistency-level", true, "set consistency level (experimental)");
 
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
@@ -419,6 +459,7 @@ public class ScanCommand extends Command {
     outputFileOpt.setArgName("file");
     contextOpt.setArgName("context");
     executionHintsOpt.setArgName("<key>=<value>{,<key>=<value>}");
+    scanServerOpt.setArgName("immediate|eventual");
 
     profileOpt = new Option("pn", "profile", true, "iterator profile name");
     profileOpt.setArgName("profile");
@@ -453,6 +494,7 @@ public class ScanCommand extends Command {
     o.addOption(sampleOpt);
     o.addOption(contextOpt);
     o.addOption(executionHintsOpt);
+    o.addOption(scanServerOpt);
 
     return o;
   }

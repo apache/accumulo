@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.test.zookeeper;
 
-import static org.apache.accumulo.harness.AccumuloITBase.random;
-
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.server.util.PortUtils;
 import org.apache.curator.test.TestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
@@ -33,6 +33,8 @@ import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Uses Apache Curator to create a running zookeeper server for internal tests. The zookeeper port
  * is randomly assigned in case multiple instances are created by concurrent tests.
@@ -40,6 +42,7 @@ import org.slf4j.LoggerFactory;
 public class ZooKeeperTestingServer implements AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperTestingServer.class);
+  public static final String SECRET = "secret";
 
   private TestingServer zkServer;
   private final ZooKeeper zoo;
@@ -48,15 +51,15 @@ public class ZooKeeperTestingServer implements AutoCloseable {
    * Instantiate a running zookeeper server - this call will block until the server is ready for
    * client connections. It will try three times, with a 5 second pause to connect.
    */
-  public ZooKeeperTestingServer() {
-    this(getPort());
+  public ZooKeeperTestingServer(File tmpDir) {
+    this(tmpDir, PortUtils.getRandomFreePort());
   }
 
-  private ZooKeeperTestingServer(int port) {
+  private ZooKeeperTestingServer(File tmpDir, int port) {
+
+    Preconditions.checkArgument(tmpDir.isDirectory());
 
     try {
-
-      Path tmpDir = Files.createTempDirectory("zk_test");
 
       CountDownLatch connectionLatch = new CountDownLatch(1);
 
@@ -69,7 +72,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
 
         try {
 
-          zkServer = new TestingServer(port, tmpDir.toFile());
+          zkServer = new TestingServer(port, tmpDir);
           zkServer.start();
 
           started = true;
@@ -94,20 +97,12 @@ public class ZooKeeperTestingServer implements AutoCloseable {
 
   }
 
-  /**
-   * Returns an random integer between 50_000 and 65_000 (typical ephemeral port range for linux is
-   * listed as 49,152 to 65,535
-   *
-   * @return a random port with the linux ephemeral port range.
-   */
-  private static int getPort() {
-    final int minPort = 50_000;
-    final int maxPort = 65_000;
-    return random.nextInt((maxPort - minPort) + 1) + minPort;
-  }
-
   public ZooKeeper getZooKeeper() {
     return zoo;
+  }
+
+  public ZooReaderWriter getZooReaderWriter() {
+    return new ZooReader(getConn(), 30000).asWriter(SECRET);
   }
 
   public String getConn() {

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -36,10 +37,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -65,6 +66,7 @@ import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -126,6 +128,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   // latency timers
   private final ScheduledThreadPoolExecutor executor;
+  private ScheduledFuture<?> latencyTimerFuture;
   private final Map<String,TimeoutTracker> timeoutTrackers =
       Collections.synchronizedMap(new HashMap<>());
 
@@ -200,13 +203,13 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
-    this.executor =
-        ThreadPools.createGeneralScheduledExecutorService(this.context.getConfiguration());
+    this.executor = context.threadPools()
+        .createGeneralScheduledExecutorService(this.context.getConfiguration());
     this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
-    this.maxLatency = config.getMaxLatency(TimeUnit.MILLISECONDS) <= 0 ? Long.MAX_VALUE
-        : config.getMaxLatency(TimeUnit.MILLISECONDS);
-    this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);
+    this.maxLatency = config.getMaxLatency(MILLISECONDS) <= 0 ? Long.MAX_VALUE
+        : config.getMaxLatency(MILLISECONDS);
+    this.timeout = config.getTimeout(MILLISECONDS);
     this.mutations = new MutationSet();
     this.lastProcessingStartTime = System.currentTimeMillis();
     this.durability = config.getDurability();
@@ -214,17 +217,18 @@ public class TabletServerBatchWriter implements AutoCloseable {
     this.writer = new MutationWriter(config.getMaxWriteThreads());
 
     if (this.maxLatency != Long.MAX_VALUE) {
-      executor.scheduleWithFixedDelay(Threads.createNamedRunnable("BatchWriterLatencyTimer", () -> {
-        try {
-          synchronized (TabletServerBatchWriter.this) {
-            if ((System.currentTimeMillis() - lastProcessingStartTime)
-                > TabletServerBatchWriter.this.maxLatency)
-              startProcessing();
-          }
-        } catch (Exception e) {
-          updateUnknownErrors("Max latency task failed " + e.getMessage(), e);
-        }
-      }), 0, this.maxLatency / 4, TimeUnit.MILLISECONDS);
+      latencyTimerFuture = executor
+          .scheduleWithFixedDelay(Threads.createNamedRunnable("BatchWriterLatencyTimer", () -> {
+            try {
+              synchronized (TabletServerBatchWriter.this) {
+                if ((System.currentTimeMillis() - lastProcessingStartTime)
+                    > TabletServerBatchWriter.this.maxLatency)
+                  startProcessing();
+              }
+            } catch (Exception e) {
+              updateUnknownErrors("Max latency task failed " + e.getMessage(), e);
+            }
+          }), 0, this.maxLatency / 4, MILLISECONDS);
     }
   }
 
@@ -248,6 +252,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
       throw new IllegalStateException("Closed");
     if (m.size() == 0)
       throw new IllegalArgumentException("Can not add empty mutations");
+    if (this.latencyTimerFuture != null) {
+      ThreadPools.ensureRunning(this.latencyTimerFuture,
+          "Latency timer thread has exited, cannot guarantee latency target");
+    }
 
     checkForFailures();
 
@@ -504,7 +512,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     if (!authorizationFailures.isEmpty()) {
 
       // was a table deleted?
-      Tables.clearCache(context);
+      context.clearTableListCache();
       authorizationFailures.keySet().stream().map(KeyExtent::tableId)
           .forEach(context::requireNotDeleted);
 
@@ -576,14 +584,17 @@ public class TabletServerBatchWriter implements AutoCloseable {
     private MutationSet recentFailures = null;
     private long initTime;
     private final Runnable task;
+    private final ScheduledFuture<?> future;
 
     FailedMutations() {
       task =
           Threads.createNamedRunnable("failed mutationBatchWriterLatencyTimers handler", this::run);
-      executor.scheduleWithFixedDelay(task, 0, 500, TimeUnit.MILLISECONDS);
+      future = executor.scheduleWithFixedDelay(task, 0, 500, MILLISECONDS);
     }
 
     private MutationSet init() {
+      ThreadPools.ensureRunning(future,
+          "Background task that re-queues failed mutations has exited.");
       if (recentFailures == null) {
         recentFailures = new MutationSet();
         initTime = System.currentTimeMillis();
@@ -645,11 +656,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
       queued = new HashSet<>();
-      sendThreadPool =
-          ThreadPools.createFixedThreadPool(numSendThreads, this.getClass().getName(), false);
+      sendThreadPool = context.threadPools().createFixedThreadPool(numSendThreads,
+          this.getClass().getName(), false);
       locators = new HashMap<>();
-      binningThreadPool =
-          ThreadPools.createFixedThreadPool(1, "BinMutations", new SynchronousQueue<>(), false);
+      binningThreadPool = context.threadPools().createFixedThreadPool(1, "BinMutations",
+          new SynchronousQueue<>(), false);
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
@@ -775,7 +786,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       for (String server : servers)
         if (!queued.contains(server)) {
-          sendThreadPool.submit(new SendTask(server));
+          sendThreadPool.execute(new SendTask(server));
           queued.add(server);
         }
     }
@@ -805,8 +816,6 @@ public class TabletServerBatchWriter implements AutoCloseable {
             send(tsmuts);
             tsmuts = getMutationsToSend(location);
           }
-
-          return;
         } catch (Exception t) {
           updateUnknownErrors(
               "Failed to send tablet server " + location + " its batch : " + t.getMessage(), t);
@@ -907,9 +916,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
         final TabletClientService.Iface client;
 
         if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
-          client = ThriftUtil.getTServerClient(parsedServer, context, timeoutTracker.getTimeOut());
+          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context,
+              timeoutTracker.getTimeOut());
         else
-          client = ThriftUtil.getTServerClient(parsedServer, context);
+          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
 
         try {
           MutationSet allFailures = new MutationSet();

@@ -8,7 +8,7 @@
 # "License"); you may not use this file except in compliance
 # with the License.  You may obtain a copy of the License at
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#   https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
@@ -66,7 +66,8 @@ function parse_config {
 
   trap 'rm -f "$CONFIG_FILE"' EXIT
   CONFIG_FILE=$(mktemp) || exit 1
-  ${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser "${conf}"/cluster.yaml > "$CONFIG_FILE" || parse_fail
+  ${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser "${conf}"/cluster.yaml >"$CONFIG_FILE" || parse_fail
+  #shellcheck source=/dev/null
   . "$CONFIG_FILE"
   rm -f "$CONFIG_FILE"
 
@@ -86,8 +87,15 @@ function parse_config {
 
   for queue in $COMPACTION_QUEUES; do
     Q="COMPACTOR_HOSTS_${queue}"
-    if [[ -z "${!Q}" ]]; then
+    if [[ -z ${!Q} ]]; then
       echo "WARN: External compaction queue $queue configured, but no compactors configured for it"
+    fi
+  done
+
+  for group in $SSERVER_GROUPS; do
+    G="SSERVER_HOSTS_${group}"
+    if [[ -z ${!G} ]]; then
+      echo "WARN: ScanServer group $group configured, but no hosts configured for it"
     fi
   done
 
@@ -104,14 +112,14 @@ function parse_config {
     GC_HOSTS=$manager1
   fi
 
-}
-
-function get_ip() {
-  ip_addr=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
-  if [[ $? != 0 ]]; then
-    ip_addr=$(getent ahosts "$(hostname -f)" | grep DGRAM | cut -f 1 -d ' ')
+  if [[ -z $NUM_TSERVERS ]]; then
+    echo "INFO: ${NUM_TSERVERS} tservers will be started per host"
   fi
-  echo "$ip_addr"
+
+  # shellcheck disable=SC2153
+  if [[ -z $NUM_SSERVERS ]]; then
+    echo "INFO: ${NUM_SSERVERS} sservers will be started per host"
+  fi
 }
 
 function control_service() {
@@ -119,30 +127,33 @@ function control_service() {
   host="$2"
   service="$3"
 
-  local last_instance_id; last_instance_id=1
-  [[ "$service" == "tserver" ]] && last_instance_id=${NUM_TSERVERS:-1}
+  local last_instance_id
+  last_instance_id=1
+  [[ $service == "tserver" ]] && last_instance_id=${NUM_TSERVERS:-1}
+  [[ $service == "sserver" ]] && last_instance_id=${NUM_SSERVERS:-1}
 
-  for (( inst_id=1; inst_id<=last_instance_id; inst_id++ ))
-  do
+  for ((inst_id = 1; inst_id <= last_instance_id; inst_id++)); do
     ACCUMULO_SERVICE_INSTANCE=""
-    [[ "$service" == "tserver" && ${NUM_TSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
-    [[ "$service" == "compactor" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
+    [[ $service == "tserver" && ${NUM_TSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
+    [[ $service == "compactor" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
+    [[ $service == "sserver" && ${NUM_SSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
 
-    if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || $host == $(get_ip) ]] ; then
+    if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || "$(hostname -I)" =~ $host ]]; then
       #
-      # The server processes take arguments (e.g. -a, -p, -o, -q [in the case of the Compactor]).
+      # The server processes take arguments (e.g. -p, -o, -q [in the case of the Compactor]). Always add the -a argument
+      # using the value of $host
       #
       if [[ $# -gt 3 ]]; then
-        ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "${@:4}"
+        ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-a" "$host" "${@:4}"
       else
-        ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd"
+        ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "-a" "$host"
       fi
     else
       if [[ $# -gt 3 ]]; then
-        EXTRA_ARGS="${@:4}"
-        $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" $EXTRA_ARGS '"
+        EXTRA_ARGS="${*:4}"
+        $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-a\" \"$host\" $EXTRA_ARGS '"
       else
-        $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\"'"
+        $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"-a\" \"$host\"'"
       fi
     fi
   done
@@ -158,8 +169,7 @@ function start_tservers() {
   for server in $TSERVER_HOSTS; do
     echo -n "."
     start_service "$server" tserver &
-    if (( ++count % 72 == 0 )) ;
-    then
+    if ((++count % 72 == 0)); then
       echo
       wait
     fi
@@ -170,7 +180,7 @@ function start_tservers() {
 function start_all() {
   unset DISPLAY
 
-  if [[ "$1" != "--no-tservers" ]]; then
+  if [[ $1 != "--no-tservers" ]]; then
     start_tservers
   fi
 
@@ -186,13 +196,20 @@ function start_all() {
     start_service "$monitor" monitor
   done
 
+  for group in $SSERVER_GROUPS; do
+    G="SSERVER_HOSTS_${group}"
+    for sserver in ${!G}; do
+      start_service "$sserver" sserver "-g" "$group"
+    done
+  done
+
   for coordinator in $COORDINATOR_HOSTS; do
     start_service "$coordinator" compaction-coordinator
   done
 
   for queue in $COMPACTION_QUEUES; do
     Q="COMPACTOR_HOSTS_${queue}"
-    for compactor in "${!Q}"; do
+    for compactor in ${!Q}; do
       start_service "$compactor" compactor "-q" "$queue"
     done
   done
@@ -201,7 +218,7 @@ function start_all() {
 
 function start_here() {
 
-  local_hosts="$(hostname -a 2> /dev/null) $(hostname) localhost 127.0.0.1 $(get_ip)"
+  local_hosts="$(hostname -a 2>/dev/null) $(hostname) localhost 127.0.0.1 $(hostname -I)"
 
   for host in $local_hosts; do
     for tserver in $TSERVER_HOSTS; do
@@ -239,6 +256,17 @@ function start_here() {
     done
   done
 
+  for group in $SSERVER_GROUPS; do
+    for host in $local_hosts; do
+      G="SSERVER_HOSTS_${group}"
+      for sserver in ${!G}; do
+        if echo "$sserver" | grep -q "^${host}\$"; then
+          start_service "$sserver" sserver "-g" "$group"
+        fi
+      done
+    done
+  done
+
   for host in $local_hosts; do
     for coordinator in $COORDINATOR_HOSTS; do
       if echo "$coordinator" | grep -q "^${host}\$"; then
@@ -250,7 +278,7 @@ function start_here() {
   for queue in $COMPACTION_QUEUES; do
     for host in $local_hosts; do
       Q="COMPACTOR_HOSTS_${queue}"
-      for compactor in "${!Q}"; do
+      for compactor in ${!Q}; do
         if echo "$compactor" | grep -q "^${host}\$"; then
           start_service "$compactor" compactor "-q" "$queue"
         fi
@@ -305,6 +333,13 @@ function kill_all() {
     kill_service "$monitor" monitor
   done
 
+  for group in $SSERVER_GROUPS; do
+    G="SSERVER_HOSTS_${group}"
+    for sserver in ${!G}; do
+      kill_service "$sserver" sserver "-g" "$group"
+    done
+  done
+
   for host in $TSERVER_HOSTS; do
     kill_service "$host" tserver
   done
@@ -315,20 +350,18 @@ function kill_all() {
 
   for queue in $COMPACTION_QUEUES; do
     Q="COMPACTOR_HOSTS_${queue}"
-    for compactor in "${!Q}"; do
+    for compactor in ${!Q}; do
       kill_service "$compactor" compactor "-q" "$queue"
     done
   done
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
 }
-
 
 function stop_all() {
   echo "Stopping Accumulo cluster..."
-  if ! ${accumulo_cmd} admin stopAll
-  then
+  if ! ${accumulo_cmd} admin stopAll; then
     echo "Invalid password or unable to connect to the manager"
     echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
     sleep 10
@@ -342,7 +375,7 @@ function stop_all() {
 
   # Look for processes not killed by 'admin stopAll'
 
-  for end_cmd in "stop" "kill" ; do
+  for end_cmd in "stop" "kill"; do
 
     for manager in $MANAGER_HOSTS; do
       end_service $end_cmd "$manager" manager
@@ -356,13 +389,20 @@ function stop_all() {
       end_service $end_cmd "$monitor" monitor
     done
 
+    for group in $SSERVER_GROUPS; do
+      G="SSERVER_HOSTS_${group}"
+      for sserver in ${!G}; do
+        end_service $end_cmd "$sserver" sserver "-g" "$group"
+      done
+    done
+
     for coordinator in $COORDINATOR_HOSTS; do
       end_service $end_cmd "$coordinator" compaction-coordinator
     done
 
     for queue in $COMPACTION_QUEUES; do
       Q="COMPACTOR_HOSTS_${queue}"
-      for compactor in "${!Q}"; do
+      for compactor in ${!Q}; do
         end_service $end_cmd "$compactor" compactor "-q" "$queue"
       done
     done
@@ -373,12 +413,12 @@ function stop_all() {
   stop_tservers
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
 }
 
 function stop_here() {
   # Determine hostname without errors to user
-  hosts_to_check=("$(hostname -a 2> /dev/null | head -1)" "$(hostname -f)")
+  hosts_to_check=("$(hostname -a 2>/dev/null | head -1)" "$(hostname -f)")
 
   if echo "${TSERVER_HOSTS}" | grep -Eq 'localhost|127[.]0[.]0[.]1'; then
     ${accumulo_cmd} admin stop localhost
@@ -397,9 +437,15 @@ function stop_here() {
       for svc in tserver gc manager monitor compaction-coordinator; do
         end_service $end_cmd "$host" $svc
       done
+      for group in $SSERVER_GROUPS; do
+        G="SSERVER_HOSTS_${group}"
+        for sserver in ${!G}; do
+          end_service $end_cmd "$sserver" sserver "-g" "$group"
+        done
+      done
       for queue in $COMPACTION_QUEUES; do
         Q="COMPACTOR_HOSTS_${queue}"
-        for compactor in "${!Q}"; do
+        for compactor in ${!Q}; do
           end_service $end_cmd "$host" compactor "-q" "$queue"
         done
       done
@@ -416,12 +462,12 @@ function main() {
   # Resolve base directory
   SOURCE="${BASH_SOURCE[0]}"
   while [ -h "${SOURCE}" ]; do
-     bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-     SOURCE="$(readlink "${SOURCE}")"
-     [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}"
+    bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+    SOURCE="$(readlink "${SOURCE}")"
+    [[ ${SOURCE} != /* ]] && SOURCE="${bin}/${SOURCE}"
   done
-  bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-  basedir=$( cd -P "${bin}"/.. && pwd )
+  bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+  basedir=$(cd -P "${bin}"/.. && pwd)
   conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
 
   accumulo_cmd="${bin}/accumulo"
@@ -429,7 +475,11 @@ function main() {
 
   case "$1" in
     create-config)
-      cat <<EOF > "$conf"/cluster.yaml
+      if [[ -f "$conf"/cluster.yaml ]]; then
+        echo "ERROR : $conf/cluster.yaml already exists, not overwriting"
+        exit 1
+      fi
+      cat <<EOF >"$conf"/cluster.yaml
 manager:
   - localhost
 
@@ -442,17 +492,30 @@ gc:
 tserver:
   - localhost
 
+#sserver:
+#  - default:
+#    - localhost
+#
 #compaction:
 #  coordinator:
 #    - localhost
 #  compactor:
-#    - queue:
-#      - q1
-#      - q2
 #    - q1:
 #        - localhost
 #    - q2:
 #        - localhost
+#
+
+#
+# The following are used by the accumulo-cluster script to determine how many servers
+# to start on each host. If the following variables are not set, then they default to 1.
+# If the environment variable NUM_TSERVERS is set when running accumulo_cluster
+# then its value will override what is set in this file for tservers_per_host. Likewise if
+# NUM_SSERVERS is set then it will override sservers_per_host.
+#
+tservers_per_host: 1
+sservers_per_host: 1
+
 EOF
       ;;
     restart)

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -49,7 +51,6 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
@@ -62,47 +63,39 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Suppliers;
+
 /**
  * Utility class for performing various security operations with the appropriate checks
  */
 public class SecurityOperation {
   private static final Logger log = LoggerFactory.getLogger(SecurityOperation.class);
 
-  protected Authorizor authorizor;
-  protected Authenticator authenticator;
-  protected PermissionHandler permHandle;
-  protected boolean isKerberos;
-  private static String rootUserName = null;
+  private final Authorizor authorizor;
+  private final Authenticator authenticator;
+  private final PermissionHandler permHandle;
+  private final boolean isKerberos;
+  private final Supplier<String> rootUserName;
   private final ZooCache zooCache;
-  private final String ZKUserPath;
+  private final String zkUserPath;
 
   protected final ServerContext context;
 
-  static SecurityOperation instance;
-
-  public static synchronized SecurityOperation getInstance(ServerContext context) {
-    if (instance == null) {
-      instance = new SecurityOperation(context, getAuthorizor(context), getAuthenticator(context),
-          getPermHandler(context));
-    }
-    return instance;
-  }
-
-  protected static Authorizor getAuthorizor(ServerContext context) {
+  public static Authorizor getAuthorizor(ServerContext context) {
     Authorizor toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_AUTHORIZOR, Authorizor.class, new ZKAuthorizor());
     toRet.initialize(context);
     return toRet;
   }
 
-  protected static Authenticator getAuthenticator(ServerContext context) {
+  public static Authenticator getAuthenticator(ServerContext context) {
     Authenticator toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_AUTHENTICATOR, Authenticator.class, new ZKAuthenticator());
     toRet.initialize(context);
     return toRet;
   }
 
-  protected static PermissionHandler getPermHandler(ServerContext context) {
+  public static PermissionHandler getPermHandler(ServerContext context) {
     PermissionHandler toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_PERMISSION_HANDLER, PermissionHandler.class,
         new ZKPermHandler());
@@ -110,15 +103,12 @@ public class SecurityOperation {
     return toRet;
   }
 
-  protected SecurityOperation(ServerContext context) {
-    this.context = context;
-    ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
-    zooCache = new ZooCache(context.getZooReaderWriter(), null);
-  }
-
-  public SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
+  protected SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
       PermissionHandler pm) {
-    this(context);
+    this.context = context;
+    zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
+    zooCache = new ZooCache(context.getZooReader(), null);
+    rootUserName = Suppliers.memoize(() -> new String(zooCache.get(zkUserPath), UTF_8));
     authorizor = author;
     authenticator = authent;
     permHandle = pm;
@@ -151,10 +141,8 @@ public class SecurityOperation {
     }
   }
 
-  public synchronized String getRootUsername() {
-    if (rootUserName == null)
-      rootUserName = new String(zooCache.get(ZKUserPath), UTF_8);
-    return rootUserName;
+  private String getRootUsername() {
+    return rootUserName.get();
   }
 
   public boolean isSystemUser(TCredentials credentials) {
@@ -163,7 +151,7 @@ public class SecurityOperation {
   }
 
   protected void authenticate(TCredentials credentials) throws ThriftSecurityException {
-    if (!credentials.getInstanceId().equals(context.getInstanceID()))
+    if (!credentials.getInstanceId().equals(context.getInstanceID().canonical()))
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.INVALID_INSTANCEID);
 
@@ -180,7 +168,7 @@ public class SecurityOperation {
               SecurityErrorCode.BAD_CREDENTIALS);
         }
       } else {
-        if (!(context.getCredentials().equals(creds))) {
+        if (!context.getCredentials().equals(creds)) {
           log.debug("Provided credentials did not match server's expected"
               + " credentials. Expected {} but got {}", context.getCredentials(), creds);
           throw new ThriftSecurityException(creds.getPrincipal(),
@@ -362,7 +350,7 @@ public class SecurityOperation {
    *
    * @return true if a user exists and has permission; false otherwise
    */
-  protected boolean _hasTablePermission(String user, TableId table, TablePermission permission,
+  private boolean _hasTablePermission(String user, TableId table, TablePermission permission,
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
@@ -388,7 +376,7 @@ public class SecurityOperation {
    *
    * @return true if a user exists and has permission; false otherwise
    */
-  protected boolean _hasNamespacePermission(String user, NamespaceId namespace,
+  private boolean _hasNamespacePermission(String user, NamespaceId namespace,
       NamespacePermission permission, boolean useCached) throws ThriftSecurityException {
     if (permission == null)
       return false;
@@ -685,7 +673,7 @@ public class SecurityOperation {
     }
   }
 
-  protected void _createUser(TCredentials credentials, Credentials newUser)
+  private void _createUser(TCredentials credentials, Credentials newUser)
       throws ThriftSecurityException {
     try {
       AuthenticationToken token = newUser.getToken();

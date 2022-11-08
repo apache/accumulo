@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -40,9 +40,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Retry.RetryFactory;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.fate.util.Retry;
-import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
@@ -242,7 +242,7 @@ public class TabletServerLogger {
 
         try {
           // Backoff
-          createRetry.waitForNextAttempt();
+          createRetry.waitForNextAttempt(log, "create new WAL ");
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new RuntimeException(e);
@@ -262,8 +262,9 @@ public class TabletServerLogger {
     if (nextLogMaker != null) {
       return;
     }
-    nextLogMaker = ThreadPools.createFixedThreadPool(1, "WALog creator", true);
-    nextLogMaker.submit(new Runnable() {
+    nextLogMaker =
+        ThreadPools.getServerThreadPools().createFixedThreadPool(1, "WALog creator", true);
+    nextLogMaker.execute(new Runnable() {
       @Override
       public void run() {
         final ServerResources conf = tserver.getServerConfig();
@@ -443,7 +444,7 @@ public class TabletServerLogger {
 
         try {
           // Backoff
-          writeRetry.waitForNextAttempt();
+          writeRetry.waitForNextAttempt(log, "write to WAL");
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new RuntimeException(e);

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -130,8 +130,7 @@ public class BulkSerialize {
     final Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
     try (OutputStream fsOut = output.create(renamingFile);
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(fsOut))) {
-      Gson gson = new GsonBuilder().create();
-      gson.toJson(oldToNewNameMap, writer);
+      new Gson().toJson(oldToNewNameMap, writer);
     }
   }
 

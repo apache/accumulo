@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.tserver;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import org.apache.accumulo.core.conf.Property;
@@ -48,7 +47,7 @@ class UnloadTabletHandler implements Runnable {
     this.extent = extent;
     this.goalState = goalState;
     this.server = server;
-    this.requestTimeSkew = requestTime - MILLISECONDS.convert(System.nanoTime(), NANOSECONDS);
+    this.requestTimeSkew = requestTime - NANOSECONDS.toMillis(System.nanoTime());
   }
 
   @Override
@@ -122,7 +121,7 @@ class UnloadTabletHandler implements Runnable {
         TabletStateStore.unassign(server.getContext(), tls, null);
       } else {
         TabletStateStore.suspend(server.getContext(), tls, null,
-            requestTimeSkew + MILLISECONDS.convert(System.nanoTime(), NANOSECONDS));
+            requestTimeSkew + NANOSECONDS.toMillis(System.nanoTime()));
       }
     } catch (DistributedStoreException ex) {
       log.warn("Unable to update storage", ex);

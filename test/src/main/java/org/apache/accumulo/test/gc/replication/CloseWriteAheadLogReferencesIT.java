@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,8 +21,8 @@ package org.apache.accumulo.test.gc.replication;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,6 +39,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -57,14 +58,12 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
-
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
@@ -82,7 +81,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setupInstance() throws Exception {
     client = Accumulo.newClient().from(getClientProperties()).build();
     client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
@@ -92,12 +91,12 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     ReplicationTable.setOnline(client);
   }
 
-  @After
+  @AfterEach
   public void teardownInstance() {
     client.close();
   }
 
-  @Before
+  @BeforeEach
   public void setupEasyMockStuff() {
     SiteConfiguration siteConfig = EasyMock.createMock(SiteConfiguration.class);
     final AccumuloConfiguration systemConf = new ConfigurationCopy(new HashMap<>());
@@ -119,7 +118,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     expect(context.getZooKeepers()).andReturn("localhost").anyTimes();
     expect(context.getInstanceName()).andReturn("test").anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
-    expect(context.getInstanceID()).andReturn("1111").anyTimes();
+    expect(context.getInstanceID()).andReturn(InstanceId.of("1111")).anyTimes();
     expect(context.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/1111").anyTimes();
 
     replay(siteConfig, context);
@@ -142,7 +141,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.fetchColumnFamily(ReplicationSection.COLF);
-      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      Entry<Key,Value> entry = getOnlyElement(s);
       Status status = Status.parseFrom(entry.getValue().get());
       assertFalse(status.getClosed());
     }
@@ -163,7 +162,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
     try (Scanner s = client.createScanner(MetadataTable.NAME)) {
       s.fetchColumnFamily(ReplicationSection.COLF);
-      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      Entry<Key,Value> entry = getOnlyElement(s);
       Status status = Status.parseFrom(entry.getValue().get());
       assertTrue(status.getClosed());
     }
@@ -182,7 +181,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     refs.updateReplicationEntries(client, wals);
 
     try (Scanner s = ReplicationTable.getScanner(client)) {
-      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+      Entry<Key,Value> entry = getOnlyElement(s);
       Status status = Status.parseFrom(entry.getValue().get());
       assertFalse(status.getClosed());
     }

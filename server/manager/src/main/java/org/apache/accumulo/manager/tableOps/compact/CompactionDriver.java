@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -25,19 +25,19 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.MapCounter;
-import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 
 class CompactionDriver extends ManagerRepo {
 
-  public static String createCompactionCancellationPath(String instanceId, TableId tableId) {
+  public static String createCompactionCancellationPath(InstanceId instanceId, TableId tableId) {
     return Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId.canonical()
         + Constants.ZTABLE_COMPACT_CANCEL_ID;
   }
@@ -119,13 +119,13 @@ class CompactionDriver extends ManagerRepo {
 
     long scanTime = System.currentTimeMillis() - t1;
 
-    Tables.clearCache(manager.getContext());
-    if (tabletCount == 0 && !Tables.exists(manager.getContext(), tableId))
+    manager.getContext().clearTableListCache();
+    if (tabletCount == 0 && !manager.getContext().tableNodeExists(tableId))
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
 
     if (serversToFlush.size() == 0
-        && Tables.getTableState(manager.getContext(), tableId) == TableState.OFFLINE)
+        && manager.getContext().getTableState(tableId) == TableState.OFFLINE)
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, null);
 

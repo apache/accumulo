@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.LoggerFactory;
 
@@ -122,8 +123,8 @@ public class CompactionWatcher implements Runnable {
 
   public static synchronized void startWatching(ServerContext context) {
     if (!watching) {
-      context.getScheduledExecutor().scheduleWithFixedDelay(
-          new CompactionWatcher(context.getConfiguration()), 10000, 10000, TimeUnit.MILLISECONDS);
+      ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
+          new CompactionWatcher(context.getConfiguration()), 10000, 10000, TimeUnit.MILLISECONDS));
       watching = true;
     }
   }

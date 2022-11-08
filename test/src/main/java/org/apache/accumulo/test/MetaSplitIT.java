@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,9 +38,9 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,11 +50,11 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   private Collection<Text> metadataSplits = null;
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 3 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
   }
 
-  @Before
+  @BeforeEach
   public void saveMetadataSplits() throws Exception {
     if (getClusterType() == ClusterType.STANDALONE) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -71,7 +72,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void restoreMetadataSplits() throws Exception {
     if (metadataSplits != null) {
       log.info("Restoring split on metadata table");
@@ -145,7 +146,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
       Thread.sleep(2000);
     }
     Collection<Text> splits = opts.listSplits(MetadataTable.NAME);
-    assertEquals("Actual metadata table splits: " + splits, numSplits, splits.size());
+    assertEquals(numSplits, splits.size(), "Actual metadata table splits: " + splits);
   }
 
 }

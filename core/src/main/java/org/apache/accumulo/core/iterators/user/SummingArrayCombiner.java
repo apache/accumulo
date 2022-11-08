@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -133,7 +133,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
     io.setName("sumarray");
     io.setDescription("SummingArrayCombiner can interpret Values as arrays of"
         + " Longs using a variety of encodings (arrays of variable length longs or"
-        + " fixed length longs, or comma-separated strings) before summing" + " element-wise.");
+        + " fixed length longs, or comma-separated strings) before summing element-wise.");
     io.addNamedOption(TYPE, "<VARLEN|FIXEDLEN|STRING|fullClassName>");
     return io;
   }

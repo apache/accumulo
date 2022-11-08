@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.client;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -28,13 +29,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
-import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
@@ -46,6 +44,8 @@ import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
@@ -214,8 +214,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     smi = new ScannerTranslatorImpl(scanner, scanner.getSamplerConfiguration());
     this.range = scanner.getRange();
     this.size = scanner.getBatchSize();
-    this.timeOut = scanner.getTimeout(TimeUnit.MILLISECONDS);
-    this.batchTimeOut = scanner.getTimeout(TimeUnit.MILLISECONDS);
+    this.timeOut = scanner.getTimeout(MILLISECONDS);
+    this.batchTimeOut = scanner.getTimeout(MILLISECONDS);
     this.readaheadThreshold = scanner.getReadaheadThreshold();
     SamplerConfiguration samplerConfig = scanner.getSamplerConfiguration();
     if (samplerConfig != null)
@@ -232,8 +232,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     smi.scanner.setBatchSize(size);
-    smi.scanner.setTimeout(timeOut, TimeUnit.MILLISECONDS);
-    smi.scanner.setBatchTimeout(batchTimeOut, TimeUnit.MILLISECONDS);
+    smi.scanner.setTimeout(timeOut, MILLISECONDS);
+    smi.scanner.setBatchTimeout(batchTimeOut, MILLISECONDS);
     smi.scanner.setReadaheadThreshold(readaheadThreshold);
     if (isolated)
       smi.scanner.enableIsolation();
@@ -250,11 +250,13 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     SortedKeyValueIterator<Key,Value> skvi;
     try {
-      IteratorEnvironment env = new ClientSideIteratorEnvironment(getSamplerConfiguration() != null,
-          getIteratorSamplerConfigurationInternal());
-      IterLoad iterLoad = new IterLoad().iters(tm.values()).iterOpts(serverSideIteratorOptions)
-          .iterEnv(env).useAccumuloClassLoader(false);
-      skvi = IterConfigUtil.loadIterators(smi, iterLoad);
+      IteratorEnvironment iterEnv = new ClientSideIteratorEnvironment(
+          getSamplerConfiguration() != null, getIteratorSamplerConfigurationInternal());
+
+      IteratorBuilder ib =
+          IteratorBuilder.builder(tm.values()).opts(serverSideIteratorOptions).env(iterEnv).build();
+
+      skvi = IteratorConfigUtil.loadIterators(smi, ib);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

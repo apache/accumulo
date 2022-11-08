@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -39,9 +39,9 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,19 +60,14 @@ public class RestartStressIT extends AccumuloClusterHarness {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 10 * 60;
-  }
-
   private ExecutorService svc;
 
-  @Before
+  @BeforeEach
   public void setup() {
     svc = Executors.newFixedThreadPool(1);
   }
 
-  @After
+  @AfterEach
   public void teardown() throws Exception {
     if (svc == null) {
       return;

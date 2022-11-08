@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,9 +19,10 @@
 package org.apache.accumulo.hadoop.mapred;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -34,7 +35,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.mapred.JobConf;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AccumuloOutputFormatTest {
   @Test
@@ -90,10 +91,8 @@ public class AccumuloOutputFormatTest {
     Properties cp = Accumulo.newClientProperties().to("test", "zk").as("blah", "blah").build();
 
     AccumuloOutputFormat.configure().clientProperties(cp);
-    try {
-      new AccumuloOutputFormat().checkOutputSpecs(null, job);
-      fail("IllegalStateException should have been thrown.");
-    } catch (IllegalStateException e) {}
+    assertThrows(IllegalStateException.class,
+        () -> new AccumuloOutputFormat().checkOutputSpecs(null, job));
   }
 
   @Test
@@ -106,8 +105,8 @@ public class AccumuloOutputFormatTest {
     AccumuloOutputFormat.configure().clientProperties(cp).defaultTable(tableName).createTables(true)
         .store(job);
 
-    assertEquals("Should have been able to create table", true,
-        OutputConfigurator.canCreateTables(AccumuloOutputFormat.class, job));
+    assertTrue(OutputConfigurator.canCreateTables(AccumuloOutputFormat.class, job),
+        "Should have been able to create table");
   }
 
   @Test
@@ -129,8 +128,8 @@ public class AccumuloOutputFormatTest {
 
       AccumuloOutputFormat.configure().clientPropertiesPath(file.getAbsolutePath()).store(job);
 
-      assertEquals("Properties from path does not match the expected values ", cp,
-          OutputConfigurator.getClientProperties(AccumuloOutputFormat.class, job));
+      assertEquals(cp, OutputConfigurator.getClientProperties(AccumuloOutputFormat.class, job),
+          "Properties from path does not match the expected values ");
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }

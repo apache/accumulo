@@ -8,7 +8,7 @@
     "License"); you may not use this file except in compliance
     with the License.  You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+      https://www.apache.org/licenses/LICENSE-2.0
 
     Unless required by applicable law or agreed to in writing,
     software distributed under the License is distributed on an
@@ -23,19 +23,44 @@
           <h3>${title}</h3>
         </div>
       </div>
-      <div class="row">
+      <div class="row d-flex justify-content-center">
         <div class="col-sm-6 col-sm-offset-3" id="manager">
           <table class="table table-bordered table-striped table-condensed">
             <thead>
-              <tr><th colspan="2"><a href="/manager">Accumulo Manager</a></th></tr>
-              <tr><td colspan="2" class="center" style="display:none;"><span class="label label-danger nowrap">Manager is Down</span></td></tr>
-              <tr><td class="left"><a href="/tables">Tables</a></td><td class="right"></td></tr>
-              <tr><td class="left"><a href="/tservers">Total&nbsp;Known&nbsp;Tablet&nbsp;Servers</a></td><td class="right"></td></tr>
-              <tr><td class="left"><a href="/tservers">Dead&nbsp;Tablet&nbsp;Servers</a></td><td class="right"></td></tr>
-              <tr><td class="left">Tablets</td><td class="right"></td></tr>
-              <tr><td class="left">Entries</td><td class="right"></td></tr>
-              <tr><td class="left">Lookups</td><td class="right"></td></tr>
-              <tr><td class="left">Uptime</td><td class="right"></td></tr>
+              <tr>
+                <th colspan="2"><a href="/manager">Accumulo Manager</a></th>
+              </tr>
+              <tr>
+                <td colspan="2" class="center" style="display:none;"><span class="label label-danger nowrap">Manager is Down</span></td>
+              </tr>
+              <tr>
+                <td class="left"><a href="/tables">Tables</a></td>
+                <td class="right"></td>
+              </tr>
+              <tr>
+                <td class="left"><a href="/tservers">Total&nbsp;Known&nbsp;Tablet&nbsp;Servers</a></td>
+                <td class="right"></td>
+              </tr>
+              <tr>
+                <td class="left"><a href="/tservers">Dead&nbsp;Tablet&nbsp;Servers</a></td>
+                <td class="right"></td>
+              </tr>
+              <tr>
+                <td class="left">Tablets</td>
+                <td class="right"></td>
+              </tr>
+              <tr>
+                <td class="left">Entries</td>
+                <td class="right"></td>
+              </tr>
+              <tr>
+                <td class="left">Lookups</td>
+                <td class="right"></td>
+              </tr>
+              <tr>
+                <td class="left">Uptime</td>
+                <td class="right"></td>
+              </tr>
             </thead>
             <tbody></tbody>
           </table>

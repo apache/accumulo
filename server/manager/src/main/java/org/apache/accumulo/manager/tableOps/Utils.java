@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -32,16 +32,17 @@ import java.util.function.Function;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Namespaces;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
-import org.apache.accumulo.fate.zookeeper.FateLock;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooReservation;
+import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
+import org.apache.accumulo.core.fate.zookeeper.FateLock;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooReservation;
+import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.FileSystem;
@@ -58,7 +59,7 @@ public class Utils {
   public static void checkTableDoesNotExist(ServerContext context, String tableName,
       TableId tableId, TableOperation operation) throws AcceptableThriftTableOperationException {
 
-    TableId id = Tables.getNameToIdMap(context).get(tableName);
+    TableId id = context.getTableNameToIdMap().get(tableName);
 
     if (id != null && !id.equals(tableId))
       throw new AcceptableThriftTableOperationException(null, tableName, operation,
@@ -95,7 +96,7 @@ public class Utils {
           throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
       }
-      log.info("table {} ({}) locked for {} operation: {}", tableId, Long.toHexString(tid),
+      log.info("table {} {} locked for {} operation: {}", tableId, FateTxId.formatTid(tid),
           (writeLock ? "write" : "read"), op);
       return 0;
     } else
@@ -104,14 +105,14 @@ public class Utils {
 
   public static void unreserveTable(Manager env, TableId tableId, long tid, boolean writeLock) {
     getLock(env.getContext(), tableId, tid, writeLock).unlock();
-    log.info("table {} ({}) unlocked for {}", tableId, Long.toHexString(tid),
+    log.info("table {} {} unlocked for {}", tableId, FateTxId.formatTid(tid),
         (writeLock ? "write" : "read"));
   }
 
   public static void unreserveNamespace(Manager env, NamespaceId namespaceId, long id,
       boolean writeLock) {
     getLock(env.getContext(), namespaceId, id, writeLock).unlock();
-    log.info("namespace {} ({}) unlocked for {}", namespaceId, Long.toHexString(id),
+    log.info("namespace {} {} unlocked for {}", namespaceId, FateTxId.formatTid(id),
         (writeLock ? "write" : "read"));
   }
 
@@ -125,7 +126,7 @@ public class Utils {
           throw new AcceptableThriftTableOperationException(namespaceId.canonical(), "", op,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
       }
-      log.info("namespace {} ({}) locked for {} operation: {}", namespaceId, Long.toHexString(id),
+      log.info("namespace {} {} locked for {} operation: {}", namespaceId, FateTxId.formatTid(id),
           (writeLock ? "write" : "read"), op);
       return 0;
     } else
@@ -139,7 +140,7 @@ public class Utils {
 
     ZooReaderWriter zk = env.getContext().getZooReaderWriter();
 
-    if (ZooReservation.attempt(zk, resvPath, String.format("%016x", tid), "")) {
+    if (ZooReservation.attempt(zk, resvPath, FastFormat.toHexString(tid), "")) {
       return 0;
     } else
       return 50;
@@ -150,12 +151,12 @@ public class Utils {
     String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
     ZooReservation.release(env.getContext().getZooReaderWriter(), resvPath,
-        String.format("%016x", tid));
+        FastFormat.toHexString(tid));
   }
 
   private static Lock getLock(ServerContext context, AbstractId<?> id, long tid,
       boolean writeLock) {
-    byte[] lockData = String.format("%016x", tid).getBytes(UTF_8);
+    byte[] lockData = FastFormat.toZeroPaddedHex(tid);
     var fLockPath =
         FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
     FateLock qlock = new FateLock(context.getZooReaderWriter(), fLockPath);

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -27,7 +27,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -70,7 +69,7 @@ public class ReplicationUtil {
 
     // The number of threads each tserver will use at most to replicate data
     int replicationThreadsPerServer =
-        Integer.parseInt(context.getConfiguration().get(Property.REPLICATION_WORKER_THREADS));
+        context.getConfiguration().getCount(Property.REPLICATION_WORKER_THREADS);
 
     // The total number of "slots" we have to replicate data
     return activeTservers * replicationThreadsPerServer;
@@ -112,7 +111,7 @@ public class ReplicationUtil {
   public Set<ReplicationTarget> getReplicationTargets() {
     // The total set of configured targets
     final Set<ReplicationTarget> allConfiguredTargets = new HashSet<>();
-    final Map<String,TableId> tableNameToId = Tables.getNameToIdMap(context);
+    final Map<String,TableId> tableNameToId = context.getTableNameToIdMap();
 
     for (String table : tableNameToId.keySet()) {
       if (MetadataTable.NAME.equals(table) || RootTable.NAME.equals(table)) {

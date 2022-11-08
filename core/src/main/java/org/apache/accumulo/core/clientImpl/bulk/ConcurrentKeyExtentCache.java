@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -35,13 +35,18 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport.KeyExtentCache;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
 class ConcurrentKeyExtentCache implements KeyExtentCache {
+
+  private static Logger log = LoggerFactory.getLogger(ConcurrentKeyExtentCache.class);
 
   private static final Text MAX = new Text();
 
@@ -83,13 +88,15 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
 
   @VisibleForTesting
   protected Stream<KeyExtent> lookupExtents(Text row) {
-    return TabletsMetadata.builder(ctx).forTable(tableId).overlapping(row, null).checkConsistency()
-        .fetch(PREV_ROW).build().stream().limit(100).map(TabletMetadata::getExtent);
+    return TabletsMetadata.builder(ctx).forTable(tableId).overlapping(row, true, null)
+        .checkConsistency().fetch(PREV_ROW).build().stream().limit(100)
+        .map(TabletMetadata::getExtent);
   }
 
   @Override
   public KeyExtent lookup(Text row) {
     while (true) {
+
       KeyExtent ke = getFromCache(row);
       if (ke != null)
         return ke;
@@ -120,12 +127,22 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
 
         for (Text lookupRow : lookupRows) {
           if (getFromCache(lookupRow) == null) {
-            Iterator<KeyExtent> iter = lookupExtents(lookupRow).iterator();
-            while (iter.hasNext()) {
-              KeyExtent ke2 = iter.next();
-              if (inCache(ke2))
+            while (true) {
+              try {
+                Iterator<KeyExtent> iter = lookupExtents(lookupRow).iterator();
+                while (iter.hasNext()) {
+                  KeyExtent ke2 = iter.next();
+                  if (inCache(ke2))
+                    break;
+                  updateCache(ke2);
+                }
                 break;
-              updateCache(ke2);
+              } catch (TabletDeletedException tde) {
+                // tablets were merged away in the table, start over and try again
+                log.debug("While trying to obtain a tablet location for bulk import, a tablet was "
+                    + "deleted. If this was caused by a concurrent merge tablet "
+                    + "operation, this is okay. Otherwise, it could be a problem.", tde);
+              }
             }
           }
         }

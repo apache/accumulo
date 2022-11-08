@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.test.replication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -47,28 +48,26 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
-
-@Ignore("Replication ITs are not stable and not currently maintained")
+@Disabled("Replication ITs are not stable and not currently maintained")
 @Deprecated
 public class StatusCombinerMacIT extends SharedMiniClusterBase {
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniCluster();
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -92,7 +91,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
       for (IteratorScope scope : scopes) {
         String key = Property.TABLE_ITERATOR_PREFIX.getKey() + scope.name() + "."
             + ReplicationTableUtil.COMBINER_NAME + ".opt.columns";
-        assertTrue("Properties did not contain key : " + key, properties.containsKey(key));
+        assertTrue(properties.containsKey(key), "Properties did not contain key : " + key);
         assertEquals(ReplicationSection.COLF.toString(), properties.get(key));
       }
     }
@@ -119,7 +118,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
 
       Entry<Key,Value> entry;
       try (Scanner s = ReplicationTable.getScanner(client)) {
-        entry = Iterables.getOnlyElement(s);
+        entry = getOnlyElement(s);
         assertEquals(StatusUtil.fileCreatedValue(createTime), entry.getValue());
 
         bw = ReplicationTable.getBatchWriter(client);
@@ -135,7 +134,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
       }
 
       try (Scanner s = ReplicationTable.getScanner(client)) {
-        entry = Iterables.getOnlyElement(s);
+        entry = getOnlyElement(s);
         Status stat = Status.parseFrom(entry.getValue().get());
         assertEquals(Long.MAX_VALUE, stat.getBegin());
       }

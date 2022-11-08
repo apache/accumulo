@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -20,6 +20,7 @@ package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.conf.ClientProperty.CONDITIONAL_WRITER_THREADS_MAX;
 import static org.apache.accumulo.core.conf.ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX;
 
@@ -131,7 +132,7 @@ public class ConditionalWriterConfig {
   }
 
   public long getTimeout(TimeUnit timeUnit) {
-    return timeUnit.convert(timeout != null ? timeout : DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
+    return timeUnit.convert(timeout != null ? timeout : DEFAULT_TIMEOUT, MILLISECONDS);
   }
 
   public int getMaxWriteThreads() {

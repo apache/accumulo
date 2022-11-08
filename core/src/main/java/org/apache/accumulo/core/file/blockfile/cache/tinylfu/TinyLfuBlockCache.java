@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,12 +18,14 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ScheduledFuture;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize;
@@ -46,9 +48,10 @@ import com.github.benmanes.caffeine.cache.stats.CacheStats;
  * A block cache that is memory bounded using the W-TinyLFU eviction algorithm. This implementation
  * delegates to a Caffeine cache to provide concurrent O(1) read and write operations.
  * <ul>
- * <li>W-TinyLFU: http://arxiv.org/pdf/1512.00727.pdf</li>
- * <li>Caffeine: https://github.com/ben-manes/caffeine</li>
- * <li>Cache design: http://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html</li>
+ * <li><a href="https://arxiv.org/pdf/1512.00727.pdf">W-TinyLFU</a></li>
+ * <li><a href="https://github.com/ben-manes/caffeine">Caffeine</a></li>
+ * <li><a href="https://highscalability.com/blog/2016/1/25/design-of-a-modern-cache.html">Cache
+ * design</a></li>
  * </ul>
  */
 public final class TinyLfuBlockCache implements BlockCache {
@@ -58,8 +61,8 @@ public final class TinyLfuBlockCache implements BlockCache {
   private final Cache<String,Block> cache;
   private final Policy.Eviction<String,Block> policy;
   private final int maxSize;
-  private final ScheduledExecutorService statsExecutor =
-      ThreadPools.createScheduledExecutorService(1, "TinyLfuBlockCacheStatsExecutor", true);
+  private final ScheduledExecutorService statsExecutor = ThreadPools.getServerThreadPools()
+      .createScheduledExecutorService(1, "TinyLfuBlockCacheStatsExecutor", true);
 
   public TinyLfuBlockCache(Configuration conf, CacheType type) {
     cache = Caffeine.newBuilder()
@@ -70,8 +73,9 @@ public final class TinyLfuBlockCache implements BlockCache {
         }).maximumWeight(conf.getMaxSize(type)).recordStats().build();
     policy = cache.policy().eviction().get();
     maxSize = (int) Math.min(Integer.MAX_VALUE, policy.getMaximum());
-    statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC,
-        TimeUnit.SECONDS);
+    ScheduledFuture<?> future = statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC,
+        STATS_PERIOD_SEC, SECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   @Override

@@ -8,7 +8,7 @@
 # "License"); you may not use this file except in compliance
 # with the License.  You may obtain a copy of the License at
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#   https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
@@ -19,15 +19,15 @@
 #
 
 if [ -z "$JAVA_HOME" ]; then
-   echo "JAVA_HOME is not set. Java is required to proceed"
-   exit 1
+  echo "JAVA_HOME is not set. Java is required to proceed"
+  exit 1
 fi
 
-for x in A B C
-do
-    mkdir -p target/generated-sources/$x/test target/test-classes/ClassLoaderTest$x
-    sed "s/testX/test$x/" < src/test/java/test/TestTemplate > target/generated-sources/$x/test/TestObject.java
-    $JAVA_HOME/bin/javac -cp target/test-classes target/generated-sources/$x/test/TestObject.java -d target/generated-sources/$x
-    $JAVA_HOME/bin/jar -cf target/test-classes/ClassLoaderTest$x/Test.jar -C target/generated-sources/$x test/TestObject.class
-    rm -r target/generated-sources/$x
+for x in A B C; do
+  mkdir -p target/generated-sources/$x/test target/test-classes/ClassLoaderTest$x
+  sed "s/testX/test$x/" <src/test/java/test/TestTemplate >target/generated-sources/$x/test/TestObject.java
+  export CLASSPATH=target/test-classes
+  "$JAVA_HOME"/bin/javac target/generated-sources/$x/test/TestObject.java -d target/generated-sources/$x
+  "$JAVA_HOME"/bin/jar -cf target/test-classes/ClassLoaderTest$x/Test.jar -C target/generated-sources/$x test/TestObject.class
+  rm -r target/generated-sources/$x
 done

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
 import java.util.Arrays;
@@ -32,6 +33,7 @@ import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
@@ -217,29 +219,36 @@ class AssignmentHandler implements Runnable {
       }
       log.warn("failed to open tablet {} reporting failure to manager", extent);
       server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
-      long reschedule = Math.min((1L << Math.min(32, retryAttempt)) * 1000, 10 * 60 * 1000L);
+      long reschedule = Math.min((1L << Math.min(32, retryAttempt)) * 1000, MINUTES.toMillis(10));
       log.warn(String.format("rescheduling tablet load in %.2f seconds", reschedule / 1000.));
-      this.server.getContext().getScheduledExecutor().schedule(new Runnable() {
-        @Override
-        public void run() {
-          log.info("adding tablet {} back to the assignment pool (retry {})", extent, retryAttempt);
-          AssignmentHandler handler = new AssignmentHandler(server, extent, retryAttempt + 1);
-          if (extent.isMeta()) {
-            if (extent.isRootTablet()) {
-              Threads.createThread("Root tablet assignment retry", handler).start();
-            } else {
-              server.resourceManager.addMetaDataAssignment(extent, log, handler);
+      ThreadPools.watchCriticalScheduledTask(
+          this.server.getContext().getScheduledExecutor().schedule(new Runnable() {
+            @Override
+            public void run() {
+              log.info("adding tablet {} back to the assignment pool (retry {})", extent,
+                  retryAttempt);
+              AssignmentHandler handler = new AssignmentHandler(server, extent, retryAttempt + 1);
+              if (extent.isMeta()) {
+                if (extent.isRootTablet()) {
+                  Threads.createThread("Root tablet assignment retry", handler).start();
+                } else {
+                  server.resourceManager.addMetaDataAssignment(extent, log, handler);
+                }
+              } else {
+                server.resourceManager.addAssignment(extent, log, handler);
+              }
             }
-          } else {
-            server.resourceManager.addAssignment(extent, log, handler);
-          }
-        }
-      }, reschedule, TimeUnit.MILLISECONDS);
+          }, reschedule, TimeUnit.MILLISECONDS));
     }
   }
 
   public static boolean checkTabletMetadata(KeyExtent extent, TServerInstance instance,
       TabletMetadata meta) throws AccumuloException {
+    return checkTabletMetadata(extent, instance, meta, false);
+  }
+
+  public static boolean checkTabletMetadata(KeyExtent extent, TServerInstance instance,
+      TabletMetadata meta, boolean ignoreLocationCheck) throws AccumuloException {
 
     if (meta == null) {
       log.info(METADATA_ISSUE + "{}, its metadata was not found.", extent);
@@ -268,8 +277,8 @@ class AssignmentHandler implements Runnable {
 
     TabletMetadata.Location loc = meta.getLocation();
 
-    if (loc == null || loc.getType() != TabletMetadata.LocationType.FUTURE
-        || !instance.equals(loc)) {
+    if (!ignoreLocationCheck && (loc == null || loc.getType() != TabletMetadata.LocationType.FUTURE
+        || !instance.equals(loc))) {
       log.info(METADATA_ISSUE + "Unexpected location {} {}", extent, loc);
       return false;
     }

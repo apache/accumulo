@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -32,7 +32,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,8 +50,8 @@ public class Namespaces {
       throws NamespaceNotFoundException {
     String namespace = getNamespaceName(context, namespaceId);
     List<TableId> tableIds = new LinkedList<>();
-    for (Entry<String,TableId> nameToId : Tables.getNameToIdMap(context).entrySet())
-      if (namespace.equals(Tables.qualify(nameToId.getKey()).getFirst()))
+    for (Entry<String,TableId> nameToId : context.getTableNameToIdMap().entrySet())
+      if (namespace.equals(TableNameUtil.qualify(nameToId.getKey()).getFirst()))
         tableIds.add(nameToId.getValue());
     return tableIds;
   }
@@ -59,8 +60,8 @@ public class Namespaces {
       throws NamespaceNotFoundException {
     String namespace = getNamespaceName(context, namespaceId);
     List<String> names = new LinkedList<>();
-    for (String name : Tables.getNameToIdMap(context).keySet())
-      if (namespace.equals(Tables.qualify(name).getFirst()))
+    for (String name : context.getTableNameToIdMap().keySet())
+      if (namespace.equals(TableNameUtil.qualify(name).getFirst()))
         names.add(name);
     return names;
   }

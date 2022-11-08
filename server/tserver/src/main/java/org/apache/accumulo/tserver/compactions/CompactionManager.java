@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.tserver.compactions;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.accumulo.core.util.compaction.CompactionServicesConfig.DEFAULT_SERVICE;
 
 import java.util.Collection;
@@ -29,7 +32,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.Property;
@@ -40,10 +42,10 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.spi.compaction.CompactionServices;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.compactions.CompactionExecutor.CType;
 import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
@@ -101,17 +103,15 @@ public class CompactionManager {
 
     long increment = Math.max(1, maxTimeBetweenChecks / 10);
 
-    var retryFactory = Retry.builder().infiniteRetries()
-        .retryAfter(increment, TimeUnit.MILLISECONDS).incrementBy(increment, TimeUnit.MILLISECONDS)
-        .maxWait(maxTimeBetweenChecks, TimeUnit.MILLISECONDS).backOffFactor(1.07)
-        .logInterval(1, TimeUnit.MINUTES).createFactory();
+    var retryFactory = Retry.builder().infiniteRetries().retryAfter(increment, MILLISECONDS)
+        .incrementBy(increment, MILLISECONDS).maxWait(maxTimeBetweenChecks, MILLISECONDS)
+        .backOffFactor(1.07).logInterval(1, MINUTES).createFactory();
     var retry = retryFactory.createRetry();
     Compactable last = null;
 
     while (true) {
       try {
-        long passed = TimeUnit.MILLISECONDS.convert(System.nanoTime() - lastCheckAllTime,
-            TimeUnit.NANOSECONDS);
+        long passed = NANOSECONDS.toMillis(System.nanoTime() - lastCheckAllTime);
         if (passed >= maxTimeBetweenChecks) {
           // take a snapshot of what is currently running
           HashSet<ExternalCompactionId> runningEcids =
@@ -127,8 +127,7 @@ public class CompactionManager {
           // still exists
           runningExternalCompactions.keySet().removeAll(runningEcids);
         } else {
-          var compactable =
-              compactablesToCheck.poll(maxTimeBetweenChecks - passed, TimeUnit.MILLISECONDS);
+          var compactable = compactablesToCheck.poll(maxTimeBetweenChecks - passed, MILLISECONDS);
           if (compactable != null) {
             last = compactable;
             submitCompaction(compactable);
@@ -146,7 +145,7 @@ public class CompactionManager {
         log.warn("Failed to compact {} ", extent, e);
         retry.useRetry();
         try {
-          retry.waitForNextAttempt();
+          retry.waitForNextAttempt(log, "compaction initiation loop");
         } catch (InterruptedException e1) {
           log.debug("Retry interrupted", e1);
         }
@@ -225,7 +224,7 @@ public class CompactionManager {
   private synchronized void checkForConfigChanges(boolean force) {
     try {
       final long secondsSinceLastCheck =
-          TimeUnit.SECONDS.convert(System.nanoTime() - lastConfigCheckTime, TimeUnit.NANOSECONDS);
+          NANOSECONDS.toSeconds(System.nanoTime() - lastConfigCheckTime);
       if (!force && (secondsSinceLastCheck < 1)) {
         return;
       }

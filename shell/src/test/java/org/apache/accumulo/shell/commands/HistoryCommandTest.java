@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,8 +21,9 @@ package org.apache.accumulo.shell.commands;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,9 +39,8 @@ import org.jline.reader.impl.DefaultExpander;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class HistoryCommandTest {
 
@@ -52,7 +52,7 @@ public class HistoryCommandTest {
   Terminal terminal;
   Shell shell;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     command = new HistoryCommand();
     command.getOptions(); // Make sure everything is initialized
@@ -94,9 +94,7 @@ public class HistoryCommandTest {
     reader.unsetOpt(LineReader.Option.DISABLE_EVENT_EXPANSION);
     Expander expander = new DefaultExpander();
     // Fails github QA since that doesn't have terminal with event expansion. Adding this check
-    Assume
-        .assumeFalse(expander.expandHistory(reader.getHistory(), baos.toString().trim()).isEmpty());
-
+    assumeFalse(expander.expandHistory(reader.getHistory(), baos.toString().trim()).isEmpty());
     assertEquals("foo", expander.expandHistory(reader.getHistory(), baos.toString().trim()));
   }
 }

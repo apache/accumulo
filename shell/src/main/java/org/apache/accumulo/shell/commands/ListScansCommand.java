@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -35,7 +35,7 @@ public class ListScansCommand extends Command {
   @Override
   public String description() {
     return "lists what scans are currently running in accumulo. See the"
-        + " accumulo.core.client.admin.ActiveScan javadoc for more information" + " about columns.";
+        + " accumulo.core.client.admin.ActiveScan javadoc for more information about columns.";
   }
 
   @Override
@@ -53,6 +53,7 @@ public class ListScansCommand extends Command {
       tservers.add(cl.getOptionValue(tserverOption.getOpt()));
     } else {
       tservers = instanceOps.getTabletServers();
+      tservers.addAll(instanceOps.getScanServers());
     }
 
     shellState.printLines(new ActiveScanIterator(tservers, instanceOps), paginate);

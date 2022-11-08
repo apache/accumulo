@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.Properties;
@@ -345,6 +346,16 @@ public interface AccumuloClient extends AutoCloseable {
    * @since 2.0.0
    */
   interface ClientFactory<T> {
+
+    /**
+     * Override default handling of uncaught exceptions in client threads
+     *
+     * @param ueh
+     *          UncaughtExceptionHandler implementation
+     * @return AccumuloClient or Properties
+     * @since 2.1.0
+     */
+    ClientFactory<T> withUncaughtExceptionHandler(UncaughtExceptionHandler ueh);
 
     /**
      * Builds AccumuloClient or client Properties

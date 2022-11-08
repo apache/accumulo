@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,11 +18,12 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.Locations;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -44,13 +46,13 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LocatorIT extends AccumuloClusterHarness {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 120;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   private void assertContains(Locations locations, HashSet<String> tservers,
@@ -69,9 +71,9 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       TabletId tid = entry.getKey();
       String location = locations.getTabletLocation(tid);
-      assertNotNull("Location for " + tid + " was null", location);
-      assertTrue("Unknown location " + location, tservers.contains(location));
-      assertEquals("Expected <host>:<port> " + location, 2, location.split(":").length);
+      assertNotNull(location, "Location for " + tid + " was null");
+      assertTrue(tservers.contains(location), "Unknown location " + location);
+      assertEquals(2, location.split(":").length, "Expected <host>:<port> " + location);
 
     }
 
@@ -88,12 +90,13 @@ public class LocatorIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      client.tableOperations().create(tableName);
+      TableOperations tableOps = client.tableOperations();
+      tableOps.create(tableName);
 
       Range r1 = new Range("m");
       Range r2 = new Range("o", "x");
 
-      String tableId = client.tableOperations().tableIdMap().get(tableName);
+      String tableId = tableOps.tableIdMap().get(tableName);
 
       TabletId t1 = newTabletId(tableId, null, null);
       TabletId t2 = newTabletId(tableId, "r", null);
@@ -104,39 +107,29 @@ public class LocatorIT extends AccumuloClusterHarness {
       HashSet<String> tservers = new HashSet<>(client.instanceOperations().getTabletServers());
 
       ranges.add(r1);
-      Locations ret = client.tableOperations().locate(tableName, ranges);
+      Locations ret = tableOps.locate(tableName, ranges);
       assertContains(ret, tservers, Map.of(r1, Set.of(t1)), Map.of(t1, Set.of(r1)));
 
       ranges.add(r2);
-      ret = client.tableOperations().locate(tableName, ranges);
+      ret = tableOps.locate(tableName, ranges);
       assertContains(ret, tservers, Map.of(r1, Set.of(t1), r2, Set.of(t1)),
           Map.of(t1, Set.of(r1, r2)));
 
       TreeSet<Text> splits = new TreeSet<>();
       splits.add(new Text("r"));
-      client.tableOperations().addSplits(tableName, splits);
+      tableOps.addSplits(tableName, splits);
 
-      ret = client.tableOperations().locate(tableName, ranges);
+      ret = tableOps.locate(tableName, ranges);
       assertContains(ret, tservers, Map.of(r1, Set.of(t2), r2, Set.of(t2, t3)),
           Map.of(t2, Set.of(r1, r2), t3, Set.of(r2)));
 
-      client.tableOperations().offline(tableName, true);
+      tableOps.offline(tableName, true);
 
-      try {
-        client.tableOperations().locate(tableName, ranges);
-        fail();
-      } catch (TableOfflineException e) {
-        // expected
-      }
+      assertThrows(TableOfflineException.class, () -> tableOps.locate(tableName, ranges));
 
-      client.tableOperations().delete(tableName);
+      tableOps.delete(tableName);
 
-      try {
-        client.tableOperations().locate(tableName, ranges);
-        fail();
-      } catch (TableNotFoundException e) {
-        // expected
-      }
+      assertThrows(TableNotFoundException.class, () -> tableOps.locate(tableName, ranges));
     }
   }
 }

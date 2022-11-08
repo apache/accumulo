@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,31 +18,58 @@
  */
 package org.apache.accumulo.iteratortest.framework;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.iteratortest.IteratorTestBase;
+import org.apache.accumulo.iteratortest.IteratorTestCase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput.TestOutcome;
-import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
-import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
-import org.junit.runners.Parameterized.Parameters;
+import org.apache.accumulo.iteratortest.IteratorTestParameters;
 
 /**
  * A Basic test asserting that the framework is functional.
  */
-public class JUnitFrameworkTest extends BaseJUnit4IteratorTest {
+public class JUnitFrameworkTest extends IteratorTestBase {
+
+  @Override
+  protected Stream<IteratorTestParameters> parameters() {
+    var data = createData();
+    var input = new IteratorTestInput(IdentityIterator.class, Map.of(), new Range(), data);
+    var expectedOutput = new IteratorTestOutput(data);
+    return Stream.of(new NoopIteratorTestCase().toParameters(input, expectedOutput));
+  }
+
+  private static TreeMap<Key,Value> createData() {
+    TreeMap<Key,Value> data = new TreeMap<>();
+    data.put(new Key("1", "a", ""), new Value("1a"));
+    data.put(new Key("2", "a", ""), new Value("2a"));
+    data.put(new Key("3", "a", ""), new Value("3a"));
+    return data;
+  }
+
+  /**
+   * Noop iterator implementation.
+   */
+  private static class IdentityIterator extends WrappingIterator {
+
+    @Override
+    public IdentityIterator deepCopy(IteratorEnvironment env) {
+      return new IdentityIterator();
+    }
+  }
 
   /**
    * An IteratorTestCase implementation that returns the original input without any external action.
    */
-  public static class NoopIteratorTestCase implements IteratorTestCase {
+  private static class NoopIteratorTestCase implements IteratorTestCase {
 
     @Override
     public IteratorTestOutput test(IteratorTestInput testInput) {
@@ -57,45 +84,4 @@ public class JUnitFrameworkTest extends BaseJUnit4IteratorTest {
 
   }
 
-  @Parameters
-  public static Object[][] parameters() {
-    IteratorTestInput input = getIteratorInput();
-    IteratorTestOutput output = getIteratorOutput();
-    List<IteratorTestCase> tests = Collections.singletonList(new NoopIteratorTestCase());
-    return BaseJUnit4IteratorTest.createParameters(input, output, tests);
-  }
-
-  private static final TreeMap<Key,Value> DATA = createData();
-
-  private static TreeMap<Key,Value> createData() {
-    TreeMap<Key,Value> data = new TreeMap<>();
-    data.put(new Key("1", "a", ""), new Value("1a"));
-    data.put(new Key("2", "a", ""), new Value("2a"));
-    data.put(new Key("3", "a", ""), new Value("3a"));
-    return data;
-  }
-
-  private static IteratorTestInput getIteratorInput() {
-    return new IteratorTestInput(IdentityIterator.class, Collections.emptyMap(), new Range(), DATA);
-  }
-
-  private static IteratorTestOutput getIteratorOutput() {
-    return new IteratorTestOutput(DATA);
-  }
-
-  public JUnitFrameworkTest(IteratorTestInput input, IteratorTestOutput expectedOutput,
-      IteratorTestCase testCase) {
-    super(input, expectedOutput, testCase);
-  }
-
-  /**
-   * Noop iterator implementation.
-   */
-  private static class IdentityIterator extends WrappingIterator {
-
-    @Override
-    public IdentityIterator deepCopy(IteratorEnvironment env) {
-      return new IdentityIterator();
-    }
-  }
 }

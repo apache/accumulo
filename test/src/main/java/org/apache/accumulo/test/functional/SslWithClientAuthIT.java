@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,12 +18,13 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.time.Duration;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Run all the same tests as SslIT, but with client auth turned on.
@@ -31,17 +32,18 @@ import org.junit.Test;
  * All the methods are overridden just to make it easier to run individual tests from an IDE.
  */
 public class SslWithClientAuthIT extends SslIT {
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(8);
+  }
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configure(cfg, hadoopCoreSite);
     Map<String,String> site = cfg.getSiteConfig();
     site.put(Property.INSTANCE_RPC_SSL_CLIENT_AUTH.getKey(), "true");
     cfg.setSiteConfig(site);
-  }
-
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 8 * 60;
   }
 
   @Override

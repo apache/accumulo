@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,10 +18,11 @@
  */
 package org.apache.accumulo.tserver.memory;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Arrays;
 import java.util.List;
@@ -33,26 +34,23 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
+@Timeout(60)
 public class LargestFirstMemoryManagerTest {
-  @Rule
-  public Timeout timeout = Timeout.seconds(60);
 
   private static final long ZERO = LargestFirstMemoryManager.ZERO_TIME;
-  private static final long LATER = ZERO + 20 * 60 * 1000;
+  private static final long LATER = ZERO + MINUTES.toMillis(20);
   private static final long ONE_GIG = 1024 * 1024 * 1024;
   private static final long ONE_MEG = 1024 * 1024;
   private static final long HALF_GIG = ONE_GIG / 2;
   private static final long QGIG = ONE_GIG / 4;
-  private static final long ONE_MINUTE = 60 * 1000;
 
   private ServerContext context;
 
-  @Before
+  @BeforeEach
   public void mockServerInfo() {
     context = createMock(ServerContext.class);
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
@@ -158,17 +156,17 @@ public class LargestFirstMemoryManagerTest {
         t(k("b"), ZERO, QGIG + 1, 0), t(k("c"), ZERO, 0, QGIG + 2)));
     assertEquals(0, tabletsToMinorCompact.size());
     // not going to bother compacting any more
-    mgr.currentTime += ONE_MINUTE;
+    mgr.currentTime += MINUTES.toMillis(1);
     tabletsToMinorCompact = mgr.tabletsToMinorCompact(tablets(t(k("a"), ZERO, QGIG, 0),
         t(k("b"), ZERO, QGIG + 1, 0), t(k("c"), ZERO, 0, QGIG + 2)));
     assertEquals(0, tabletsToMinorCompact.size());
     // now do nothing
-    mgr.currentTime += ONE_MINUTE;
+    mgr.currentTime += MINUTES.toMillis(1);
     tabletsToMinorCompact = mgr.tabletsToMinorCompact(
         tablets(t(k("a"), ZERO, QGIG, 0), t(k("b"), ZERO, 0, 0), t(k("c"), ZERO, 0, 0)));
     assertEquals(0, tabletsToMinorCompact.size());
     // on no! more data, this time we compact because we've adjusted
-    mgr.currentTime += ONE_MINUTE;
+    mgr.currentTime += MINUTES.toMillis(1);
     tabletsToMinorCompact = mgr.tabletsToMinorCompact(
         tablets(t(k("a"), ZERO, QGIG, 0), t(k("b"), ZERO, QGIG + 1, 0), t(k("c"), ZERO, 0, 0)));
     assertEquals(1, tabletsToMinorCompact.size());
@@ -207,7 +205,7 @@ public class LargestFirstMemoryManagerTest {
 
     @Override
     protected long getMinCIdleThreshold(KeyExtent extent) {
-      return 15 * 60 * 1000;
+      return MINUTES.toMillis(15);
     }
 
     @Override
@@ -229,7 +227,6 @@ public class LargestFirstMemoryManagerTest {
 
     public LargestFirstMemoryManagerWithExistenceCheck(Predicate<TableId> existenceCheck,
         Predicate<TableId> deletingCheck) {
-      super();
       this.existenceCheck = existenceCheck;
       this.deletingCheck = deletingCheck;
     }

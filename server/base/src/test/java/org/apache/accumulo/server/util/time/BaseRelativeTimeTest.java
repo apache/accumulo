@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.server.util.time;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BaseRelativeTimeTest {
 
@@ -66,8 +66,8 @@ public class BaseRelativeTimeTest {
     }
     long many = brt.currentTime();
     assertTrue(many > once);
-    assertTrue("after much advice, relative time is still closer to local time",
-        (advice.value - many) < (once - local.value));
+    assertTrue((advice.value - many) < (once - local.value),
+        "after much advice, relative time is still closer to local time");
   }
 
   @Test
@@ -84,9 +84,9 @@ public class BaseRelativeTimeTest {
     assertTrue(once < local.value);
     brt.updateTime(advice.value);
     long twice = brt.currentTime();
-    assertTrue("Time cannot go backwards", once <= twice);
+    assertTrue(once <= twice, "Time cannot go backwards");
     brt.updateTime(advice.value - 10000);
-    assertTrue("Time cannot go backwards", once <= twice);
+    assertTrue(once <= twice, "Time cannot go backwards");
   }
 
 }

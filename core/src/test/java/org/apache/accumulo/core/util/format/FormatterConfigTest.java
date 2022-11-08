@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,16 +18,16 @@
  */
 package org.apache.accumulo.core.util.format;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.text.DateFormat;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class FormatterConfigTest {
 
@@ -41,10 +41,8 @@ public class FormatterConfigTest {
   @Test
   public void testSetShownLength() {
     FormatterConfig config = new FormatterConfig();
-    try {
-      config.setShownLength(-1);
-      fail("Should throw on negative length.");
-    } catch (IllegalArgumentException e) {}
+    assertThrows(IllegalArgumentException.class, () -> config.setShownLength(-1),
+        "Should throw on negative length.");
 
     config.setShownLength(0);
     assertEquals(0, config.getShownLength());

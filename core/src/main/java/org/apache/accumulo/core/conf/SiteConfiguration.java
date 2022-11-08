@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -77,8 +77,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     // visible to package-private for testing only
     Builder() {}
 
-    // exists for testing only
-    OverridesOption noFile() {
+    private OverridesOption noFile() {
       return this;
     }
 
@@ -197,6 +196,13 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   /**
+   * Build a SiteConfiguration that is initially empty with the option to override.
+   */
+  public static SiteConfiguration.OverridesOption empty() {
+    return new SiteConfiguration.Builder().noFile();
+  }
+
+  /**
    * Build a SiteConfiguration from the environmental configuration and no overrides.
    */
   public static SiteConfiguration auto() {
@@ -251,8 +257,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   @Override
-  public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
-    return config.containsKey(prop.getKey()) || parent.isPropertySet(prop, cacheAndWatch);
+  public boolean isPropertySet(Property prop) {
+    return config.containsKey(prop.getKey()) || parent.isPropertySet(prop);
   }
 
   @Override
@@ -270,5 +276,10 @@ public class SiteConfiguration extends AccumuloConfiguration {
         props.put(k, config.get(k));
       }
     });
+  }
+
+  @Override
+  public AccumuloConfiguration getParent() {
+    return parent;
   }
 }

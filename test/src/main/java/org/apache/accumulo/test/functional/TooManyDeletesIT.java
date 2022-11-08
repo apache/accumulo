@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,10 +32,10 @@ import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactionStrategy;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("removal")
 public class TooManyDeletesIT extends AccumuloClusterHarness {
@@ -46,8 +46,6 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
       String table = getUniqueNames(1)[0];
 
       SummarizerConfiguration sc = SummarizerConfiguration.builder(DeletesSummarizer.class).build();
-
-      // TODO open issue about programmatic config of compaction strategies
 
       NewTableConfiguration ntc = new NewTableConfiguration().enableSummarization(sc);
       HashMap<String,String> props = new HashMap<>();

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.core.client;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTest;
@@ -36,7 +36,7 @@ import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestThrift1474 {
 
@@ -69,12 +69,12 @@ public class TestThrift1474 {
 
     TThreadPoolServer.Args args = new TThreadPoolServer.Args(serverTransport);
     args.stopTimeoutVal = 10;
-    args.stopTimeoutUnit = TimeUnit.MILLISECONDS;
+    args.stopTimeoutUnit = MILLISECONDS;
     final TServer server = new TThreadPoolServer(args.processor(processor));
     Thread thread = new Thread(server::serve);
     thread.start();
     while (!server.isServing()) {
-      sleepUninterruptibly(10, TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(10, MILLISECONDS);
     }
 
     TTransport transport = new TSocket("localhost", port);
@@ -83,12 +83,7 @@ public class TestThrift1474 {
     ThriftTest.Client client = new ThriftTest.Client(protocol);
     assertTrue(client.success());
     assertFalse(client.fails());
-    try {
-      client.throwsError();
-      fail("no exception thrown");
-    } catch (ThriftSecurityException ex) {
-      // expected
-    }
+    assertThrows(ThriftSecurityException.class, client::throwsError);
     server.stop();
     thread.join();
   }

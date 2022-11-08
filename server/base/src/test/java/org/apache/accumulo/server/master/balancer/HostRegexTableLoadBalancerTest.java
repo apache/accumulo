@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,10 +21,10 @@ package org.apache.accumulo.server.master.balancer;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,11 +45,11 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @Deprecated(since = "2.1.0")
 public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalancerTest {
@@ -77,9 +77,9 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   @Test
   public void testInit() {
     init();
-    assertEquals("OOB check interval value is incorrect", 7000, this.getOobCheckMillis());
-    assertEquals("Max migrations is incorrect", 4, this.getMaxMigrations());
-    assertEquals("Max outstanding migrations is incorrect", 10, this.getMaxOutstandingMigrations());
+    assertEquals(7000, this.getOobCheckMillis(), "OOB check interval value is incorrect");
+    assertEquals(4, this.getMaxMigrations(), "Max migrations is incorrect");
+    assertEquals(10, this.getMaxOutstandingMigrations(), "Max outstanding migrations is incorrect");
     assertFalse(isIpBasedRegex());
     Map<String,Pattern> patterns = this.getPoolNameToRegexPattern();
     assertEquals(2, patterns.size());

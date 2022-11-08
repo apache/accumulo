@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -17,6 +17,8 @@
  * under the License.
  */
 package org.apache.accumulo.core.metadata;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,7 +31,6 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -114,9 +115,9 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME),
             true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
-        more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent,
-            src.tablet_location, encodedResults, locCols, serverSideIteratorList,
-            serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
+        ThriftScanner.getBatchFromServer(context, range, src.tablet_extent, src.tablet_location,
+            encodedResults, locCols, serverSideIteratorList, serverSideIteratorOptions,
+            Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
 
         decodeRows(encodedResults, results);
       }
@@ -124,8 +125,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       if (timer != null) {
         timer.stop();
         log.trace("tid={} Got {} results from {} in {}", Thread.currentThread().getId(),
-            results.size(), src.tablet_extent,
-            String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+            results.size(), src.tablet_extent, String.format("%.3f secs", timer.scale(SECONDS)));
       }
 
       // if (log.isTraceEnabled()) log.trace("results "+results);
@@ -213,7 +213,6 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   public static TabletLocations getMetadataLocationEntries(SortedMap<Key,Value> entries) {
     Text location = null;
     Text session = null;
-    KeyExtent ke;
 
     List<TabletLocation> results = new ArrayList<>();
     ArrayList<KeyExtent> locationless = new ArrayList<>();
@@ -246,7 +245,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         location = new Text(val.toString());
         session = new Text(colq);
       } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
-        ke = KeyExtent.fromMetaPrevRow(entry);
+        KeyExtent ke = KeyExtent.fromMetaPrevRow(entry);
         if (location != null)
           results.add(new TabletLocation(ke, location.toString(), session.toString()));
         else

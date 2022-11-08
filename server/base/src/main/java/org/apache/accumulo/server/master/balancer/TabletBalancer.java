@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -17,6 +17,8 @@
  * under the License.
  */
 package org.apache.accumulo.server.master.balancer;
+
+import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,6 +36,7 @@ import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
@@ -46,8 +49,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -212,12 +213,8 @@ public abstract class TabletBalancer
     @Override
     public void run() {
       balancerLog.warn("Not balancing due to {} outstanding migrations.", migrations.size());
-      /*
-       * TODO ACCUMULO-2938 redact key extents in this output to avoid leaking protected
-       * information.
-       */
       balancerLog.debug("Sample up to 10 outstanding migrations: {}",
-          Iterables.limit(migrations, 10));
+          migrations.stream().limit(10).collect(toList()));
     }
   }
 
@@ -261,7 +258,8 @@ public abstract class TabletBalancer
   public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, TableId tableId)
       throws ThriftSecurityException, TException {
     log.debug("Scanning tablet server {} for table {}", tserver, tableId);
-    Client client = ThriftUtil.getClient(new Client.Factory(), tserver.getHostAndPort(), context);
+    Client client =
+        ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, tserver.getHostAndPort(), context);
     try {
       return client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical());
     } catch (TTransportException e) {

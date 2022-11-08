@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
@@ -55,6 +56,8 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -74,13 +77,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Su
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 /**
@@ -184,8 +184,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         for (AutoCloseable closable : closables) {
           closable.close();
         }
-      }, Iterables.filter(Iterables.concat(iterables),
-          tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent())));
+      }, () -> iterables.stream().flatMap(i -> StreamSupport.stream(i.spliterator(), false))
+          .filter(tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()))
+          .iterator());
 
     }
 
@@ -355,10 +356,20 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     @Override
-    public Options overlapping(Text startRow, Text endRow) {
-      this.range = new KeyExtent(tableId, null, startRow).toMetaRange();
+    public Options overlapping(Text startRow, boolean startInclusive, Text endRow) {
+      var metaStartRow =
+          TabletsSection.encodeRow(tableId, startRow == null ? new Text("") : startRow);
+      var metaEndRow = TabletsSection.encodeRow(tableId, null);
+      this.range =
+          new Range(metaStartRow, startRow == null ? true : startInclusive, metaEndRow, true);
       this.endRow = endRow;
+
       return this;
+    }
+
+    @Override
+    public Options overlapping(Text startRow, Text endRow) {
+      return overlapping(startRow, false, endRow);
     }
 
     @Override
@@ -464,8 +475,21 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
      * Limit to tablets that overlap the range {@code (startRow, endRow]}. Can pass null
      * representing -inf and +inf. The impl creates open ended ranges which may be problematic, see
      * #813.
+     *
+     * <p>
+     * This method is equivalent to calling {@link #overlapping(Text, boolean, Text)} as
+     * {@code overlapping(startRow, false, endRow)}
+     * </p>
      */
     Options overlapping(Text startRow, Text endRow);
+
+    /**
+     * When {@code startRowInclusive} is true limits to tablets that overlap the range
+     * {@code [startRow,endRow]}. When {@code startRowInclusive} is false limits to tablets that
+     * overlap the range {@code (startRow, endRow]}. Can pass null for start and end row
+     * representing -inf and +inf.
+     */
+    Options overlapping(Text startRow, boolean startRowInclusive, Text endRow);
   }
 
   private static class TabletMetadataIterator implements Iterator<TabletMetadata> {
@@ -510,10 +534,10 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       case EVENTUAL:
         return getRootMetadata(zkRoot, ctx.getZooCache());
       case IMMEDIATE:
-        ZooReader zooReader = new ZooReader(ctx.getZooKeepers(), ctx.getZooKeepersSessionTimeOut());
+        ZooReader zooReader = ctx.getZooReader();
         try {
-          return RootTabletMetadata.fromJson(zooReader.getData(zkRoot + RootTable.ZROOT_TABLET))
-              .convertToTabletMetadata();
+          byte[] bytes = zooReader.getData(zkRoot + RootTable.ZROOT_TABLET);
+          return new RootTabletMetadata(new String(bytes, UTF_8)).toTabletMetadata();
         } catch (InterruptedException | KeeperException e) {
           throw new RuntimeException(e);
         }
@@ -523,8 +547,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   }
 
   public static TabletMetadata getRootMetadata(String zkRoot, ZooCache zc) {
-    return RootTabletMetadata.fromJson(zc.get(zkRoot + RootTable.ZROOT_TABLET))
-        .convertToTabletMetadata();
+    byte[] jsonBytes = zc.get(zkRoot + RootTable.ZROOT_TABLET);
+    return new RootTabletMetadata(new String(jsonBytes, UTF_8)).toTabletMetadata();
   }
 
   private final AutoCloseable closeable;

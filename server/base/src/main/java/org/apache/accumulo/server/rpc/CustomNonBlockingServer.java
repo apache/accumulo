@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -29,6 +29,8 @@ import org.apache.thrift.transport.TNonblockingServerTransport;
 import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TNonblockingTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class implements a custom non-blocking thrift server that stores the client address in
@@ -36,6 +38,7 @@ import org.apache.thrift.transport.TTransportException;
  */
 public class CustomNonBlockingServer extends THsHaServer {
 
+  private static final Logger log = LoggerFactory.getLogger(CustomNonBlockingServer.class);
   private final Field selectAcceptThreadField;
 
   public CustomNonBlockingServer(Args args) {
@@ -46,6 +49,16 @@ public class CustomNonBlockingServer extends THsHaServer {
       selectAcceptThreadField.setAccessible(true);
     } catch (Exception e) {
       throw new RuntimeException("Failed to access required field in Thrift code.", e);
+    }
+  }
+
+  @Override
+  public void stop() {
+    super.stop();
+    try {
+      getInvoker().shutdownNow();
+    } catch (Exception e) {
+      log.error("Unable to call shutdownNow", e);
     }
   }
 
@@ -115,6 +128,27 @@ public class CustomNonBlockingServer extends THsHaServer {
       }
       super.invoke();
     }
+
+    @Override
+    public boolean read() {
+      boolean result = super.read();
+      if (!result) {
+        log.trace("CustomFrameBuffer.read returned false when reading data from client: {}",
+            TServerUtils.clientAddress.get());
+      }
+      return result;
+    }
+
+    @Override
+    public boolean write() {
+      boolean result = super.write();
+      if (!result) {
+        log.trace("CustomFrameBuffer.write returned false when writing data to client: {}",
+            TServerUtils.clientAddress.get());
+      }
+      return result;
+    }
+
   }
 
 }

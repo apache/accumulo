@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,7 +19,9 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -36,8 +38,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -61,7 +63,10 @@ import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
 import org.apache.accumulo.core.dataImpl.thrift.TConditionalSession;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
@@ -75,8 +80,6 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
@@ -86,9 +89,6 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 
 class ConditionalWriterImpl implements ConditionalWriter {
-
-  private static ThreadPoolExecutor cleanupThreadPool = ThreadPools.createFixedThreadPool(1, 3,
-      TimeUnit.SECONDS, "Conditional Writer Cleanup Thread", true);
 
   private static final int MAX_SLEEP = 30000;
 
@@ -111,6 +111,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private Map<String,ServerQueue> serverQueues;
   private DelayQueue<QCMutation> failedMutations = new DelayQueue<>();
   private ScheduledThreadPoolExecutor threadPool;
+  private final ScheduledFuture<?> failureTaskFuture;
 
   private class RQIterator implements Iterator<Result> {
 
@@ -133,14 +134,14 @@ class ConditionalWriterImpl implements ConditionalWriter {
         throw new NoSuchElementException();
 
       try {
-        Result result = rq.poll(1, TimeUnit.SECONDS);
+        Result result = rq.poll(1, SECONDS);
         while (result == null) {
 
           if (threadPool.isShutdown()) {
             throw new NoSuchElementException("ConditionalWriter closed");
           }
 
-          result = rq.poll(1, TimeUnit.SECONDS);
+          result = rq.poll(1, SECONDS);
         }
         count--;
         return result;
@@ -188,7 +189,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
     @Override
     public long getDelay(TimeUnit unit) {
-      return unit.convert(delay - (System.currentTimeMillis() - resetTime), TimeUnit.MILLISECONDS);
+      return unit.convert(delay - (System.currentTimeMillis() - resetTime), MILLISECONDS);
     }
 
     void resetDelay() {
@@ -251,7 +252,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
       for (QCMutation qcm : mutations) {
         qcm.resetDelay();
-        if (time + qcm.getDelay(TimeUnit.MILLISECONDS) > qcm.entryTime + timeout) {
+        if (time + qcm.getDelay(MILLISECONDS) > qcm.entryTime + timeout) {
           TimedOutException toe;
           if (server != null)
             toe = new TimedOutException(Collections.singleton(server.toString()));
@@ -361,13 +362,13 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
-    this.threadPool = ThreadPools.createScheduledExecutorService(config.getMaxWriteThreads(),
-        this.getClass().getSimpleName(), false);
+    this.threadPool = context.threadPools().createScheduledExecutorService(
+        config.getMaxWriteThreads(), this.getClass().getSimpleName(), false);
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;
     this.tableName = tableName;
-    this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);
+    this.timeout = config.getTimeout(MILLISECONDS);
     this.durability = config.getDurability();
     this.classLoaderContext = config.getClassLoaderContext();
 
@@ -378,11 +379,14 @@ class ConditionalWriterImpl implements ConditionalWriter {
         queue(mutations);
     };
 
-    threadPool.scheduleAtFixedRate(failureHandler, 250, 250, TimeUnit.MILLISECONDS);
+    failureTaskFuture = threadPool.scheduleAtFixedRate(failureHandler, 250, 250, MILLISECONDS);
   }
 
   @Override
   public Iterator<Result> write(Iterator<ConditionalMutation> mutations) {
+
+    ThreadPools.ensureRunning(failureTaskFuture,
+        "Background task that re-queues failed mutations has exited.");
 
     BlockingQueue<Result> resultQueue = new LinkedBlockingQueue<>();
 
@@ -530,9 +534,9 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private TabletClientService.Iface getClient(HostAndPort location) throws TTransportException {
     TabletClientService.Iface client;
     if (timeout < context.getClientTimeoutInMillis())
-      client = ThriftUtil.getTServerClient(location, context, timeout);
+      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, context, timeout);
     else
-      client = ThriftUtil.getTServerClient(location, context);
+      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, context);
     return client;
   }
 
@@ -591,7 +595,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     } catch (ThriftSecurityException tse) {
       AccumuloSecurityException ase =
           new AccumuloSecurityException(context.getCredentials().getPrincipal(), tse.getCode(),
-              Tables.getPrintableTableInfoFromId(context, tableId), tse);
+              context.getPrintableTableInfoFromId(tableId), tse);
       queueException(location, cmidToCm, ase);
     } catch (TApplicationException tae) {
       queueException(location, cmidToCm, new AccumuloServerException(location.toString(), tae));
@@ -676,7 +680,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if ((System.currentTimeMillis() - startTime) + sleepTime > timeout)
         throw new TimedOutException(Collections.singleton(location.toString()));
 
-      sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(sleepTime, MILLISECONDS);
       sleepTime = Math.min(2 * sleepTime, MAX_SLEEP);
 
     }
@@ -796,7 +800,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   @Override
   public void close() {
     threadPool.shutdownNow();
-    cleanupThreadPool.execute(Threads.createNamedRunnable("ConditionalWriterCleanupTask",
+    context.executeCleanupTask(Threads.createNamedRunnable("ConditionalWriterCleanupTask",
         new CleanupTask(getActiveSessions())));
   }
 

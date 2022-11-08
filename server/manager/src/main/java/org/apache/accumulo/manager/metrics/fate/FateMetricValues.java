@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.ReadOnlyTStore;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -136,7 +136,7 @@ class FateMetricValues {
 
         // incr count for op type for for in_progress transactions.
         if (ReadOnlyTStore.TStatus.IN_PROGRESS.equals(tx.getStatus())) {
-          String opType = tx.getDebug();
+          String opType = tx.getTxName();
           if (opType == null || opType.isEmpty()) {
             opType = "UNKNOWN";
           }
@@ -170,7 +170,7 @@ class FateMetricValues {
 
   @Override
   public String toString() {
-    return "FateMetricValues{" + "updateTime=" + updateTime + ", currentFateOps=" + currentFateOps
+    return "FateMetricValues{updateTime=" + updateTime + ", currentFateOps=" + currentFateOps
         + ", zkFateChildOpsTotal=" + zkFateChildOpsTotal + ", zkConnectionErrors="
         + zkConnectionErrors + '}';
   }

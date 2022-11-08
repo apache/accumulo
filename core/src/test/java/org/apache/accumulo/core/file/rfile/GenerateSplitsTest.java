@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -23,9 +23,9 @@ import static org.apache.accumulo.core.file.rfile.GenerateSplits.main;
 import static org.apache.accumulo.core.file.rfile.RFileTest.newColFamByteSequence;
 import static org.apache.accumulo.core.file.rfile.RFileTest.newKey;
 import static org.apache.accumulo.core.file.rfile.RFileTest.newValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -38,10 +38,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,9 +50,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class GenerateSplitsTest {
   private static final Logger log = LoggerFactory.getLogger(GenerateSplitsTest.class);
 
-  @ClassRule
-  public static final TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
   private static final RFileTest.TestRFile trf = new RFileTest.TestRFile(null);
   private static String rfilePath;
@@ -62,7 +60,7 @@ public class GenerateSplitsTest {
   /**
    * Creates a test file with 84 bytes of data and 2 Locality groups.
    */
-  @BeforeClass
+  @BeforeAll
   public static void createFile() throws IOException {
     trf.openWriter(false);
     trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("cf1", "cf2"));
@@ -75,14 +73,16 @@ public class GenerateSplitsTest {
     trf.writer.append(newKey("r6", "cf4", "cq1", "L1", 55), newValue("foo6"));
     trf.closeWriter();
 
-    File file = tempFolder.newFile("testGenerateSplits.rf");
+    File file = new File(tempDir, "testGenerateSplits.rf");
+    assertTrue(file.createNewFile(), "Failed to create file: " + file);
     try (var fileOutputStream = new FileOutputStream(file)) {
       fileOutputStream.write(trf.baos.toByteArray());
     }
     rfilePath = "file:" + file.getAbsolutePath();
     log.info("Wrote to file {}", rfilePath);
 
-    File splitsFile = tempFolder.newFile("testSplitsFile");
+    File splitsFile = new File(tempDir, "testSplitsFile");
+    assertTrue(splitsFile.createNewFile(), "Failed to create file: " + splitsFile);
     splitsFilePath = splitsFile.getAbsolutePath();
   }
 
@@ -112,11 +112,11 @@ public class GenerateSplitsTest {
     String splitsFile = Files.readString(Paths.get(splitsFilePath));
     assertEquals(splits.length, splitsFile.split("\n").length);
     for (String s : splits)
-      assertTrue("Did not find " + s + " in: " + splitsFile, splitsFile.contains(s));
+      assertTrue(splitsFile.contains(s), "Did not find " + s + " in: " + splitsFile);
   }
 
   @Test
-  public void testErrors() throws Exception {
+  public void testErrors() {
     List<String> args = List.of("missingFile.rf", "-n", "2");
     log.info("Invoking GenerateSplits with {}", args);
     assertThrows(FileNotFoundException.class, () -> main(args.toArray(new String[0])));
@@ -124,18 +124,21 @@ public class GenerateSplitsTest {
     List<String> args2 = List.of(rfilePath);
     log.info("Invoking GenerateSplits with {}", args2);
     var e = assertThrows(IllegalArgumentException.class, () -> main(args2.toArray(new String[0])));
-    assertTrue(e.getMessage(), e.getMessage().contains("Required number of splits or"));
+    assertTrue(e.getMessage().contains("Required number of splits or"), e.getMessage());
 
     List<String> args3 = List.of(rfilePath, "-n", "2", "-ss", "40");
     log.info("Invoking GenerateSplits with {}", args3);
     e = assertThrows(IllegalArgumentException.class, () -> main(args3.toArray(new String[0])));
-    assertTrue(e.getMessage(), e.getMessage().contains("Requested number of splits and"));
+    assertTrue(e.getMessage().contains("Requested number of splits and"), e.getMessage());
 
-    List<String> args4 = List.of(tempFolder.newFolder("dir1").getAbsolutePath(),
-        tempFolder.newFolder("dir2").getAbsolutePath(), "-n", "2");
+    File dir1 = new File(tempDir, "dir1/");
+    File dir2 = new File(tempDir, "dir2/");
+    assertTrue(dir1.mkdir() && dir2.mkdir(), "Failed to make new sub-directories");
+
+    List<String> args4 = List.of(dir1.getAbsolutePath(), dir2.getAbsolutePath(), "-n", "2");
     log.info("Invoking GenerateSplits with {}", args4);
     e = assertThrows(IllegalArgumentException.class, () -> main(args4.toArray(new String[0])));
-    assertTrue(e.getMessage(), e.getMessage().contains("No files were found"));
+    assertTrue(e.getMessage().contains("No files were found"), e.getMessage());
   }
 
   @Test

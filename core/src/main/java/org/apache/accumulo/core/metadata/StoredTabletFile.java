@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -58,5 +58,18 @@ public class StoredTabletFile extends TabletFile {
    */
   public Text getMetaUpdateDeleteText() {
     return new Text(getMetaUpdateDelete());
+  }
+
+  /**
+   * Validate that the provided reference matches what is in the metadata table.
+   *
+   * @param reference
+   *          the relative path to check against
+   */
+  public void validate(String reference) {
+    if (!metadataEntry.equals(reference)) {
+      throw new IllegalStateException("The reference " + reference
+          + " does not match what was in the metadata: " + metadataEntry);
+    }
   }
 }

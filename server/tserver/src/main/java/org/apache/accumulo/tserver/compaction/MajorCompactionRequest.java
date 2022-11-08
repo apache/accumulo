@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.tserver.compaction;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -38,8 +37,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
-import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -166,7 +163,7 @@ public class MajorCompactionRequest implements Cloneable {
       Configuration conf = context.getHadoopConf();
       SummaryCollection fsc = SummaryReader
           .load(fs, conf, factory, file.getPath(), summarySelector, summaryCache, indexCache,
-              fileLenCache, context.getCryptoService())
+              fileLenCache, context.getTableConfiguration(extent.tableId()).getCryptoService())
           .getSummaries(Collections.singletonList(new Gatherer.RowRange(extent)));
       sc.merge(fsc, factory);
     }
@@ -176,19 +173,6 @@ public class MajorCompactionRequest implements Cloneable {
 
   public void setFiles(Map<StoredTabletFile,DataFileValue> update) {
     this.files = Collections.unmodifiableMap(update);
-  }
-
-  public FileSKVIterator openReader(TabletFile tabletFile) throws IOException {
-    Objects.requireNonNull(volumeManager,
-        "Opening files is not supported at this time. It's only supported when "
-            + "CompactionStrategy.gatherInformation() is called.");
-    // @TODO verify the file isn't some random file in HDFS
-    // @TODO ensure these files are always closed?
-    FileOperations fileFactory = FileOperations.getInstance();
-    FileSystem ns = volumeManager.getFileSystemByPath(tabletFile.getPath());
-    return fileFactory.newReaderBuilder()
-        .forFile(tabletFile.getPathStr(), ns, ns.getConf(), context.getCryptoService())
-        .withTableConfiguration(tableConfig).seekToBeginning().build();
   }
 
   public Map<String,String> getTableProperties() {

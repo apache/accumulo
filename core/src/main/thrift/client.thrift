@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -103,9 +103,18 @@ exception ThriftNotActiveServiceException {
   2:string description
 }
 
+exception ThriftConcurrentModificationException {
+  1:string description
+}
+
 struct TDiskUsage {
   1:list<string> tables
   2:i64 usage
+}
+
+struct TVersionedProperties {
+   1:i64 version
+   2:map<string, string> properties
 }
 
 service ClientService {
@@ -316,6 +325,22 @@ service ClientService {
     2:trace.TInfo tinfo
     3:security.TCredentials credentials
     1:ConfigurationType type
+  ) throws (
+    1:ThriftSecurityException sec
+  )
+
+  map<string, string> getSystemProperties(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+  ) throws (
+    1:ThriftSecurityException sec
+  )
+
+  TVersionedProperties getVersionedSystemProperties(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+  ) throws (
+    1:ThriftSecurityException sec
   )
 
   map<string, string> getTableConfiguration(
@@ -324,6 +349,25 @@ service ClientService {
     2:string tableName
   ) throws (
     1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
+  )
+
+  map<string, string> getTableProperties(
+    1:trace.TInfo tinfo
+    3:security.TCredentials credentials
+    2:string tableName
+  ) throws (
+    1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
+  )
+
+  TVersionedProperties getVersionedTableProperties(
+    1:trace.TInfo tinfo
+    3:security.TCredentials credentials
+    2:string tableName
+  ) throws (
+    1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   map<string, string> getNamespaceConfiguration(
@@ -332,6 +376,25 @@ service ClientService {
     3:string ns
   ) throws (
     1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
+  )
+
+  map<string, string> getNamespaceProperties(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string ns
+  ) throws (
+    1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
+  )
+
+  TVersionedProperties getVersionedNamespaceProperties(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string ns
+  ) throws (
+    1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   bool checkClass(

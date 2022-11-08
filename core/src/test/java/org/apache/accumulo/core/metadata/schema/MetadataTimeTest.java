@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MetadataTimeTest {
 
@@ -46,6 +46,17 @@ public class MetadataTimeTest {
   @Test
   public void testGetInstance_Millis_ParseFailure() {
     assertThrows(IllegalArgumentException.class, () -> MetadataTime.parse("MABCD"));
+  }
+
+  @Test
+  public void testGetInstance_nullArgument() {
+    assertThrows(IllegalArgumentException.class, () -> MetadataTime.parse(null));
+  }
+
+  @Test
+  public void testGetInstance_Invalid_timestr() {
+    assertThrows(IllegalArgumentException.class, () -> MetadataTime.parse(""));
+    assertThrows(IllegalArgumentException.class, () -> MetadataTime.parse("X"));
   }
 
   @Test

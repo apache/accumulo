@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,14 +18,15 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -37,16 +38,14 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -56,12 +55,13 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ExistingMacIT extends ConfigurableMacBase {
+
   @Override
-  public int defaultTimeoutSeconds() {
-    return 4 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
   }
 
   @Override
@@ -88,20 +88,21 @@ public class ExistingMacIT extends ConfigurableMacBase {
   @Test
   public void testExistingInstance() throws Exception {
 
+    final String rootUser = "root";
     AccumuloClient client =
-        getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
+        getCluster().createAccumuloClient(rootUser, new PasswordToken(ROOT_PASSWORD));
 
-    client.tableOperations().create("table1");
+    final String table = getUniqueNames(1)[0];
+    client.tableOperations().create(table);
 
-    try (BatchWriter bw = client.createBatchWriter("table1")) {
+    try (BatchWriter bw = client.createBatchWriter(table)) {
       Mutation m1 = new Mutation("00081");
       m1.put("math", "sqroot", "9");
       m1.put("math", "sq", "6560");
       bw.addMutation(m1);
     }
 
-    client.tableOperations().flush("table1", null, null, true);
-    // TODO use constants
+    client.tableOperations().flush(table, null, null, true);
     client.tableOperations().flush(MetadataTable.NAME, null, null, true);
     client.tableOperations().flush(RootTable.NAME, null, null, true);
 
@@ -114,13 +115,9 @@ public class ExistingMacIT extends ConfigurableMacBase {
         getCluster().killProcess(entry.getKey(), pr);
     }
 
-    final DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();
-    final long zkTimeout = ConfigurationTypeHelper.getTimeInMillis(
-        getCluster().getConfig().getSiteConfig().get(Property.INSTANCE_ZK_TIMEOUT.getKey()));
-    ZooReaderWriter zrw = new ZooReaderWriter(getCluster().getZooKeepers(), (int) zkTimeout,
-        defaultConfig.get(Property.INSTANCE_SECRET));
+    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
     final String zInstanceRoot =
-        Constants.ZROOT + "/" + client.instanceOperations().getInstanceID();
+        Constants.ZROOT + "/" + client.instanceOperations().getInstanceId();
     while (!AccumuloStatus.isAccumuloOffline(zrw, zInstanceRoot)) {
       log.debug("Accumulo services still have their ZK locks held");
       Thread.sleep(1000);
@@ -142,9 +139,9 @@ public class ExistingMacIT extends ConfigurableMacBase {
     MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     accumulo2.start();
 
-    client = accumulo2.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
+    client = accumulo2.createAccumuloClient(rootUser, new PasswordToken(ROOT_PASSWORD));
 
-    try (Scanner scanner = client.createScanner("table1", Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
       int sum = 0;
       for (Entry<Key,Value> entry : scanner) {
         sum += Integer.parseInt(entry.getValue().toString());
@@ -184,12 +181,11 @@ public class ExistingMacIT extends ConfigurableMacBase {
           "conf " + new File(getCluster().getConfig().getConfDir(), "accumulo.properties"));
 
       MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
-      try {
-        accumulo2.start();
-        fail("A 2nd MAC instance should not be able to start over an existing MAC instance");
-      } catch (RuntimeException e) {
-        // TODO check message or throw more explicit exception
-      }
+
+      RuntimeException e = assertThrows(RuntimeException.class, accumulo2::start,
+          "A 2nd MAC instance should not be able to start over an existing MAC instance");
+      assertEquals("The Accumulo instance being used is already running. Aborting.",
+          e.getMessage());
     }
   }
 }

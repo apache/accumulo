@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -23,11 +23,10 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,15 +153,15 @@ public class Validators {
   });
 
   public static final Validator<String> NOT_BUILTIN_TABLE = new Validator<>(t -> {
-    if (Namespace.ACCUMULO.name().equals(Tables.qualify(t).getFirst()))
+    if (Namespace.ACCUMULO.name().equals(TableNameUtil.qualify(t).getFirst()))
       return Optional.of("Table must not be in the '" + Namespace.ACCUMULO.name() + "' namespace");
     return Validator.OK;
   });
 
   public static Validator<String> sameNamespaceAs(String oldTableName) {
-    final String oldNamespace = Tables.qualify(oldTableName).getFirst();
+    final String oldNamespace = TableNameUtil.qualify(oldTableName).getFirst();
     return new Validator<>(newName -> {
-      if (!oldNamespace.equals(Tables.qualify(newName).getFirst()))
+      if (!oldNamespace.equals(TableNameUtil.qualify(newName).getFirst()))
         return Optional
             .of("Unable to move tables to a new namespace by renaming. The namespace for " + newName
                 + " does not match " + oldTableName);
@@ -177,7 +176,7 @@ public class Validators {
     if (id == null)
       return Optional.of("Table id must not be null");
     @SuppressWarnings("deprecation")
-    TableId replicationId = ReplicationTable.ID;
+    TableId replicationId = org.apache.accumulo.core.replication.ReplicationTable.ID;
     if (RootTable.ID.equals(id) || MetadataTable.ID.equals(id) || replicationId.equals(id)
         || VALID_ID_PATTERN.matcher(id.canonical()).matches())
       return Validator.OK;

@@ -8,7 +8,7 @@
 # "License"); you may not use this file except in compliance
 # with the License.  You may obtain a copy of the License at
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#   https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
@@ -18,25 +18,24 @@
 # under the License.
 #
 
-
 if [[ -z $1 ]]; then
-    echo "Usage: $(basename $0) TestClass1[,TestClass2,TestClass3] ..."
-    echo "       $(basename $0) \"Prefix*IT[,Prefix2*IT]\" ..."
-    echo "       $(basename $0) \"MyIT#method1+method2\" ..."
-    exit 1
+  echo "Usage: $(basename "$0") TestClass1[,TestClass2,TestClass3] ..."
+  echo "       $(basename "$0") \"Prefix*IT[,Prefix2*IT]\" ..."
+  echo "       $(basename "$0") \"MyIT#method1+method2\" ..."
+  exit 1
 fi
 
 # Start: Resolve Script Directory
 SOURCE="${BASH_SOURCE[0]}"
-while [[ -h "${SOURCE}" ]]; do # resolve $SOURCE until the file is no longer a symlink
-   bin=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
-   SOURCE=$(readlink "${SOURCE}")
-   [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+while [[ -L ${SOURCE} ]]; do # resolve $SOURCE until the file is no longer a symlink
+  bin=$(cd -P "$(dirname "${SOURCE}")" && pwd)
+  SOURCE=$(readlink "${SOURCE}")
+  [[ ${SOURCE} != /* ]] && SOURCE="${bin}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-bin=$( cd -P "$( dirname "${SOURCE}" )" && pwd )
+bin=$(cd -P "$(dirname "${SOURCE}")" && pwd)
 # Stop: Resolve Script Directory
 
-cd "$bin/.."
+cd "$bin/.." || exit 1
 
 tests=$1
 shift

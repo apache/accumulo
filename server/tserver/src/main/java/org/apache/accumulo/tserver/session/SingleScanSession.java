@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -39,8 +39,8 @@ public class SingleScanSession extends ScanSession {
   public final long readaheadThreshold;
 
   public SingleScanSession(TCredentials credentials, KeyExtent extent, ScanParameters scanParams,
-      long readaheadThreshold, Map<String,String> executionHints) {
-    super(credentials, scanParams, executionHints);
+      long readaheadThreshold, Map<String,String> executionHints, TabletResolver tabletResolver) {
+    super(credentials, scanParams, executionHints, tabletResolver);
     this.extent = extent;
     this.readaheadThreshold = readaheadThreshold;
   }

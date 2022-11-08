@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -46,6 +46,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -73,18 +74,18 @@ public class CompactionFinalizer {
     int max = this.context.getConfiguration()
         .getCount(Property.COMPACTION_COORDINATOR_FINALIZER_TSERVER_NOTIFIER_MAXTHREADS);
 
-    this.ntfyExecutor = ThreadPools.createThreadPool(3, max, 1, TimeUnit.MINUTES,
-        "Compaction Finalizer Notifier", true);
+    this.ntfyExecutor = ThreadPools.getServerThreadPools().createThreadPool(3, max, 1,
+        TimeUnit.MINUTES, "Compaction Finalizer Notifier", true);
 
-    this.backgroundExecutor =
-        ThreadPools.createFixedThreadPool(1, "Compaction Finalizer Background Task", true);
+    this.backgroundExecutor = ThreadPools.getServerThreadPools().createFixedThreadPool(1,
+        "Compaction Finalizer Background Task", true);
 
     backgroundExecutor.execute(() -> {
       processPending();
     });
 
-    schedExecutor.scheduleWithFixedDelay(() -> notifyTservers(), 0, tserverCheckInterval,
-        TimeUnit.MILLISECONDS);
+    ThreadPools.watchCriticalScheduledTask(schedExecutor.scheduleWithFixedDelay(
+        this::notifyTservers, 0, tserverCheckInterval, TimeUnit.MILLISECONDS));
   }
 
   public void commitCompaction(ExternalCompactionId ecid, KeyExtent extent, long fileSize,
@@ -120,8 +121,7 @@ public class CompactionFinalizer {
 
     TabletClientService.Client client = null;
     try {
-      client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), loc.getHostAndPort(),
-          context);
+      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, loc.getHostAndPort(), context);
       if (ecfs.getFinalState() == FinalState.FINISHED) {
         LOG.debug("Notifying tserver {} that compaction {} has finished.", loc, ecfs);
         client.compactionJobFinished(TraceUtil.traceInfo(), context.rpcCreds(),

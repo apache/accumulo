@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -20,9 +20,10 @@ package org.apache.accumulo.manager;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptySortedMap;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,9 +39,11 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -51,23 +54,31 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.AgeOffStore;
+import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService.Iface;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService.Processor;
+import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -93,18 +104,9 @@ import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.fate.AgeOffStore;
-import org.apache.accumulo.fate.Fate;
-import org.apache.accumulo.fate.util.Retry;
-import org.apache.accumulo.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
-import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
@@ -126,16 +128,14 @@ import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
-import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyManager;
-import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tables.TableObserver;
+import org.apache.accumulo.server.util.ScanServerMetadataEntries;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -208,7 +208,11 @@ public class Manager extends AbstractServer
 
   private ManagerState state = ManagerState.INITIAL;
 
-  Fate<Manager> fate;
+  // fateReadyLatch and fateRef go together; when this latch is ready, then the fate reference
+  // should already have been set; still need to use atomic reference or volatile for fateRef, so no
+  // thread's cached view shows that fateRef is still null after the latch is ready
+  private final CountDownLatch fateReadyLatch = new CountDownLatch(1);
+  private final AtomicReference<Fate<Manager>> fateRef = new AtomicReference<>(null);
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
   volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
@@ -224,6 +228,40 @@ public class Manager extends AbstractServer
 
   public boolean stillManager() {
     return getManagerState() != ManagerState.STOP;
+  }
+
+  /**
+   * Retrieve the Fate object, blocking until it is ready. This could cause problems if Fate
+   * operations are attempted to be used prior to the Manager being ready for them. If these
+   * operations are triggered by a client side request from a tserver or client, it should be safe
+   * to wait to handle those until Fate is ready, but if it occurs during an upgrade, or some other
+   * time in the Manager before Fate is started, that may result in a deadlock and will need to be
+   * fixed.
+   *
+   * @return the Fate object, only after the fate components are running and ready
+   */
+  Fate<Manager> fate() {
+    try {
+      // block up to 30 seconds until it's ready; if it's still not ready, introduce some logging
+      if (!fateReadyLatch.await(30, TimeUnit.SECONDS)) {
+        String msgPrefix = "Unexpected use of fate in thread " + Thread.currentThread().getName()
+            + " at time " + System.currentTimeMillis();
+        // include stack trace so we know where it's coming from, in case we need to troubleshoot it
+        log.warn("{} blocked until fate starts", msgPrefix,
+            new IllegalStateException("Attempted fate action before manager finished starting up; "
+                + "if this doesn't make progress, please report it as a bug to the developers"));
+        int minutes = 0;
+        while (!fateReadyLatch.await(5, TimeUnit.MINUTES)) {
+          minutes += 5;
+          log.warn("{} still blocked after {} minutes; this is getting weird", msgPrefix, minutes);
+        }
+        log.debug("{} no longer blocked", msgPrefix);
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Thread was interrupted; cannot proceed");
+    }
+    return fateRef.get();
   }
 
   static final boolean X = true;
@@ -252,11 +290,12 @@ public class Manager extends AbstractServer
     if (newState == ManagerState.STOP) {
       // Give the server a little time before shutdown so the client
       // thread requesting the stop can return
-      getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
+      ScheduledFuture<?> future = getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
         // This frees the main thread and will cause the manager to exit
         clientService.stop();
         Manager.this.nextEvent.event("stopped event loop");
       }, 100L, 1000L, TimeUnit.MILLISECONDS);
+      ThreadPools.watchNonCriticalScheduledTask(future);
     }
 
     if (oldState != newState && (newState == ManagerState.HAVE_LOCK)) {
@@ -264,7 +303,7 @@ public class Manager extends AbstractServer
     }
 
     if (oldState != newState && (newState == ManagerState.NORMAL)) {
-      if (fate != null) {
+      if (fateRef.get() != null) {
         throw new IllegalStateException("Access to Fate should not have been"
             + " initialized prior to the Manager finishing upgrades. Please save"
             + " all logs and file a bug.");
@@ -277,7 +316,8 @@ public class Manager extends AbstractServer
 
   private Future<Void> upgradeMetadataFuture;
 
-  private ManagerClientServiceHandler clientHandler;
+  private FateServiceHandler fateServiceHandler;
+  private ManagerClientServiceHandler managerClientHandler;
 
   private int assignedOrHosted(TableId tableId) {
     int result = 0;
@@ -353,8 +393,8 @@ public class Manager extends AbstractServer
 
   public void mustBeOnline(final TableId tableId) throws ThriftTableOperationException {
     ServerContext context = getContext();
-    Tables.clearCache(context);
-    if (Tables.getTableState(context, tableId) != TableState.ONLINE) {
+    context.clearTableListCache();
+    if (context.getTableState(tableId) != TableState.ONLINE) {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.MERGE,
           TableOperationExceptionType.OFFLINE, "table is not online");
     }
@@ -380,15 +420,12 @@ public class Manager extends AbstractServer
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", getInstanceID());
     timeKeeper = new ManagerTime(this, aconf);
-    context.getTransportPool().setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     tserverSet = new LiveTServerSet(context, this);
     initializeBalancer();
 
-    this.security = AuditedSecurityOperation.getInstance(context);
+    this.security = context.getSecurityOperation();
 
-    // Create the secret manager (can generate and verify delegation tokens)
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
-    context.setSecretManager(new AuthenticationTokenSecretManager(getInstanceID(), tokenLifetime));
 
     authenticationTokenKeyManager = null;
     keyDistributor = null;
@@ -409,7 +446,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  public String getInstanceID() {
+  public InstanceId getInstanceID() {
     return getContext().getInstanceID();
   }
 
@@ -680,7 +717,7 @@ public class Manager extends AbstractServer
     private void cleanupOfflineMigrations() {
       ServerContext context = getContext();
       TableManager manager = context.getTableManager();
-      for (TableId tableId : Tables.getIdToNameMap(context).keySet()) {
+      for (TableId tableId : context.getTableIdToNameMap().keySet()) {
         TableState state = manager.getTableState(tableId);
         if (state == TableState.OFFLINE) {
           clearMigrations(tableId);
@@ -917,8 +954,8 @@ public class Manager extends AbstractServer
       Set<TServerInstance> currentServers, SortedMap<TabletServerId,TServerStatus> balancerMap) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     int threads = getConfiguration().getCount(Property.MANAGER_STATUS_THREAD_POOL_SIZE);
-    ExecutorService tp = ThreadPools.createExecutorService(getConfiguration(),
-        Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
+    ExecutorService tp = ThreadPools.getServerThreadPools()
+        .createExecutorService(getConfiguration(), Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
@@ -930,7 +967,7 @@ public class Manager extends AbstractServer
         // unresponsive tservers.
         sleepUninterruptibly(Math.max(1, rpcTimeout / 120_000), TimeUnit.MILLISECONDS);
       }
-      tp.submit(() -> {
+      tp.execute(() -> {
         try {
           Thread t = Thread.currentThread();
           String oldName = t.getName();
@@ -1013,20 +1050,18 @@ public class Manager extends AbstractServer
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
     //
+    // Start the Manager's Fate Service
+    fateServiceHandler = new FateServiceHandler(this);
+    managerClientHandler = new ManagerClientServiceHandler(this);
     // Start the Manager's Client service
-    clientHandler = new ManagerClientServiceHandler(this);
     // Ensure that calls before the manager gets the lock fail
-    Iface haProxy = HighlyAvailableServiceWrapper.service(clientHandler, this);
-    Iface rpcProxy = TraceUtil.wrapService(haProxy);
-    final Processor<Iface> processor;
-    if (context.getThriftServerType() == ThriftServerType.SASL) {
-      Iface tcredsProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clientHandler.getClass(),
-          getConfiguration());
-      processor = new Processor<>(tcredsProxy);
-    } else {
-      processor = new Processor<>(rpcProxy);
-    }
+    ManagerClientService.Iface haProxy =
+        HighlyAvailableServiceWrapper.service(managerClientHandler, this);
+
     ServerAddress sa;
+    var processor =
+        ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy, getContext());
+
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
           "Manager", "Manager Client Service Handler", null, Property.MANAGER_MINTHREADS,
@@ -1055,7 +1090,9 @@ public class Manager extends AbstractServer
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
           sa.getAddress());
       ManagerMetrics.init(getConfiguration(), this);
-    } catch (Exception e1) {
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+        | SecurityException e1) {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
@@ -1141,17 +1178,25 @@ public class Manager extends AbstractServer
     }
 
     try {
-      final AgeOffStore<Manager> store = new AgeOffStore<>(new org.apache.accumulo.fate.ZooStore<>(
-          getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()), 1000 * 60 * 60 * 8);
+      final AgeOffStore<Manager> store =
+          new AgeOffStore<>(
+              new org.apache.accumulo.core.fate.ZooStore<>(getZooKeeperRoot() + Constants.ZFATE,
+                  context.getZooReaderWriter()),
+              TimeUnit.HOURS.toMillis(8), System::currentTimeMillis);
 
-      fate = new Fate<>(this, store, TraceRepo::toLogString);
-      fate.startTransactionRunners(getConfiguration());
+      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString);
+      f.startTransactionRunners(getConfiguration());
+      fateRef.set(f);
+      fateReadyLatch.countDown();
 
-      context.getScheduledExecutor().scheduleWithFixedDelay(store::ageOff, 63000, 63000,
-          TimeUnit.MILLISECONDS);
+      ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
+          .scheduleWithFixedDelay(store::ageOff, 63000, 63000, TimeUnit.MILLISECONDS));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
+
+    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
+        () -> ScanServerMetadataEntries.clean(context), 10, 10, TimeUnit.MINUTES));
 
     initializeZkForReplication(zReaderWriter, zroot);
 
@@ -1195,7 +1240,7 @@ public class Manager extends AbstractServer
 
     // if the replication name is ever set, then start replication services
     final AtomicReference<TServer> replServer = new AtomicReference<>();
-    context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
+    ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
         @SuppressWarnings("deprecation")
         Property p = Property.REPLICATION_NAME;
@@ -1207,6 +1252,7 @@ public class Manager extends AbstractServer
         log.error("Error occurred starting replication services. ", e);
       }
     }, 0, 5000, TimeUnit.MILLISECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
 
     // checking stored user hashes if any of them uses an outdated algorithm
     security.validateStoredUserCreditentials();
@@ -1218,7 +1264,7 @@ public class Manager extends AbstractServer
       sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }
     log.info("Shutting down fate.");
-    fate.shutdown();
+    fate().shutdown();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     try {
@@ -1232,7 +1278,10 @@ public class Manager extends AbstractServer
     } catch (InterruptedException e) {
       throw new IllegalStateException("Exception stopping replication workers", e);
     }
-    TServerUtils.stopTServer(replServer.get());
+    var nullableReplServer = replServer.get();
+    if (nullableReplServer != null) {
+      nullableReplServer.stop();
+    }
 
     // Signal that we want it to stop, and wait for it to do so.
     if (authenticationTokenKeyManager != null) {
@@ -1322,7 +1371,7 @@ public class Manager extends AbstractServer
 
     while (needTservers && tserverRetry.canRetry()) {
 
-      tserverRetry.waitForNextAttempt();
+      tserverRetry.waitForNextAttempt(log, "block until minimum tservers reached");
 
       needTservers = tserverSet.size() < minTserverCount;
 
@@ -1360,12 +1409,13 @@ public class Manager extends AbstractServer
     var impl = new org.apache.accumulo.manager.replication.ManagerReplicationCoordinator(this);
     ReplicationCoordinator.Iface haReplicationProxy =
         HighlyAvailableServiceWrapper.service(impl, this);
-    ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
-        new ReplicationCoordinator.Processor<>(TraceUtil.wrapService(haReplicationProxy));
+
+    var processor =
+        ThriftProcessorTypes.getReplicationCoordinatorTProcessor(haReplicationProxy, getContext());
+
     ServerAddress replAddress = TServerUtils.startServer(context, getHostname(),
-        Property.MANAGER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
-        "Manager Replication Coordinator", "Replication Coordinator", null,
-        Property.MANAGER_REPLICATION_COORDINATOR_MINTHREADS, null,
+        Property.MANAGER_REPLICATION_COORDINATOR_PORT, processor, "Manager Replication Coordinator",
+        "Replication Coordinator", null, Property.MANAGER_REPLICATION_COORDINATOR_MINTHREADS, null,
         Property.MANAGER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
 
     log.info("Started replication coordinator service at " + replAddress.address);
@@ -1590,7 +1640,7 @@ public class Manager extends AbstractServer
     ServerContext context = getContext();
     TableManager manager = context.getTableManager();
 
-    for (TableId tableId : Tables.getIdToNameMap(context).keySet()) {
+    for (TableId tableId : context.getTableIdToNameMap().keySet()) {
       TableState state = manager.getTableState(tableId);
       if ((state != null) && (state == TableState.ONLINE)) {
         result.add(tableId);
@@ -1607,7 +1657,7 @@ public class Manager extends AbstractServer
   @Override
   public Collection<MergeInfo> merges() {
     List<MergeInfo> result = new ArrayList<>();
-    for (TableId tableId : Tables.getIdToNameMap(getContext()).keySet()) {
+    for (TableId tableId : getContext().getTableIdToNameMap().keySet()) {
       result.add(getMergeInfo(tableId));
     }
     return result;

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,11 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -42,15 +43,19 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 public class CleanTmpIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(CleanTmpIT.class);
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -58,11 +63,6 @@ public class CleanTmpIT extends ConfigurableMacBase {
     cfg.setNumTservers(1);
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   @Test
@@ -91,14 +91,14 @@ public class CleanTmpIT extends ConfigurableMacBase {
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         s.setRange(Range.prefix(id));
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
-        Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+        Entry<Key,Value> entry = getOnlyElement(s);
         file = new Path(entry.getKey().getColumnQualifier().toString());
       }
 
       FileSystem fs = getCluster().getFileSystem();
-      assertTrue("Could not find file: " + file, fs.exists(file));
+      assertTrue(fs.exists(file), "Could not find file: " + file);
       Path tabletDir = file.getParent();
-      assertNotNull("Tablet dir should not be null", tabletDir);
+      assertNotNull(tabletDir, "Tablet dir should not be null");
       Path tmp = new Path(tabletDir, "junk.rf_tmp");
       // Make the file
       fs.create(tmp).close();
@@ -109,7 +109,7 @@ public class CleanTmpIT extends ConfigurableMacBase {
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         assertEquals(2, Iterators.size(scanner.iterator()));
         // If we performed log recovery, we should have cleaned up any stray files
-        assertFalse("File still exists: " + tmp, fs.exists(tmp));
+        assertFalse(fs.exists(tmp), "File still exists: " + tmp);
       }
     }
   }

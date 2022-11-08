@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,6 +19,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
+import java.util.Comparator;
+import java.util.Objects;
 
 /**
  * This class was copied from Guava release 23.0 to replace the older Guava 14 version that had been
@@ -58,7 +60,7 @@ import java.io.Serializable;
  * colons, and port numbers. Full validation of the host field (if desired) is the caller's
  * responsibility.
  */
-public final class HostAndPort implements Serializable {
+public final class HostAndPort implements Serializable, Comparable<HostAndPort> {
   /** Magic value indicating the absence of a port number. */
   private static final int NO_PORT = -1;
 
@@ -76,6 +78,9 @@ public final class HostAndPort implements Serializable {
     this.port = port;
     this.hasBracketlessColons = hasBracketlessColons;
   }
+
+  private static final Comparator<HostAndPort> COMPARATOR = Comparator.nullsFirst(
+      Comparator.comparing(HostAndPort::getHost).thenComparingInt(h -> h.getPortOrDefault(0)));
 
   /**
    * Returns the portion of this {@code HostAndPort} instance that should represent the hostname or
@@ -143,7 +148,7 @@ public final class HostAndPort implements Serializable {
    *           if nothing meaningful could be parsed.
    */
   public static HostAndPort fromString(String hostPortString) {
-    hostPortString = java.util.Objects.requireNonNull(hostPortString);
+    Objects.requireNonNull(hostPortString, "hostPortString variable was null!");
     String host;
     String portString = null;
     boolean hasBracketlessColons = false;
@@ -278,6 +283,15 @@ public final class HostAndPort implements Serializable {
    */
   public int getPortOrDefault(int defaultPort) {
     return hasPort() ? port : defaultPort;
+  }
+
+  /**
+   * HostAndPort must implement compareTo. This method orders HostAndPort values using a String
+   * compare on the Host value with a secondary integer compare on the Port value.
+   */
+  @Override
+  public int compareTo(HostAndPort other) {
+    return COMPARATOR.compare(this, other);
   }
 
 }

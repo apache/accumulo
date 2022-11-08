@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,23 +18,23 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.concurrent.TimeUnit;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DelegationTokenConfigSerializerTest {
 
   @Test
   public void test() {
     DelegationTokenConfig cfg = new DelegationTokenConfig();
-    cfg.setTokenLifetime(8323, TimeUnit.HOURS);
+    cfg.setTokenLifetime(8323, HOURS);
 
     TDelegationTokenConfig tCfg = DelegationTokenConfigSerializer.serialize(cfg);
-    assertEquals(tCfg.getLifetime(), cfg.getTokenLifetime(TimeUnit.MILLISECONDS));
+    assertEquals(tCfg.getLifetime(), cfg.getTokenLifetime(MILLISECONDS));
 
     assertEquals(cfg, DelegationTokenConfigSerializer.deserialize(tCfg));
   }

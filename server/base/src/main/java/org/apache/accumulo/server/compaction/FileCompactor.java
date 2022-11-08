@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -35,7 +35,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -46,6 +45,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
@@ -53,6 +53,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -106,6 +107,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   private final VolumeManager fs;
   protected final KeyExtent extent;
   private final List<IteratorSetting> iterators;
+  private final CryptoService cryptoService;
 
   // things to report
   private String currentLocalityGroup = "";
@@ -154,7 +156,8 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   public FileCompactor(ServerContext context, KeyExtent extent,
       Map<StoredTabletFile,DataFileValue> files, TabletFile outputFile, boolean propagateDeletes,
-      CompactionEnv env, List<IteratorSetting> iterators, AccumuloConfiguration tableConfiguation) {
+      CompactionEnv env, List<IteratorSetting> iterators, AccumuloConfiguration tableConfiguation,
+      CryptoService cs) {
     this.context = context;
     this.extent = extent;
     this.fs = context.getVolumeManager();
@@ -164,6 +167,7 @@ public class FileCompactor implements Callable<CompactionStats> {
     this.propagateDeletes = propagateDeletes;
     this.env = env;
     this.iterators = iterators;
+    this.cryptoService = cs;
 
     startTime = System.currentTimeMillis();
   }
@@ -209,7 +213,7 @@ public class FileCompactor implements Callable<CompactionStats> {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getFileSystemByPath(outputFile.getPath());
       mfw = fileFactory.newWriterBuilder()
-          .forFile(outputFile.getMetaInsert(), ns, ns.getConf(), context.getCryptoService())
+          .forFile(outputFile.getMetaInsert(), ns, ns.getConf(), cryptoService)
           .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter()).build();
 
       Map<String,Set<ByteSequence>> lGroups = getLocalityGroups(acuTableConf);
@@ -294,7 +298,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         FileSKVIterator reader;
 
         reader = fileFactory.newReaderBuilder()
-            .forFile(mapFile.getPathStr(), fs, fs.getConf(), context.getCryptoService())
+            .forFile(mapFile.getPathStr(), fs, fs.getConf(), cryptoService)
             .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter()).build();
 
         readers.add(reader);
@@ -358,7 +362,7 @@ public class FileCompactor implements Callable<CompactionStats> {
       SystemIteratorEnvironment iterEnv =
           env.createIteratorEnv(context, acuTableConf, getExtent().tableId());
 
-      SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IterConfigUtil
+      SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorConfigUtil
           .convertItersAndLoad(env.getIteratorScope(), cfsi, acuTableConf, iterators, iterEnv));
 
       itr.seek(extent.toDataRange(), columnFamilies, inclusive);

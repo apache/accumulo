@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,10 +18,11 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static com.google.common.collect.MoreCollectors.onlyElement;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -40,11 +41,14 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
-import org.apache.hadoop.shaded.com.google.common.collect.Iterables;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DefaultCompactionPlannerTest {
+
+  private static <T> T getOnlyElement(Collection<T> c) {
+    return c.stream().collect(onlyElement());
+  }
 
   @Test
   public void testFindFilesToCompact() {
@@ -146,7 +150,7 @@ public class DefaultCompactionPlannerTest {
 
     // The result of the running compaction would not be included in future compactions, so the
     // planner should compact.
-    var job = Iterables.getOnlyElement(plan.getJobs());
+    var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
   }
@@ -162,7 +166,7 @@ public class DefaultCompactionPlannerTest {
     var plan = planner.makePlan(params);
 
     // a running non-user compaction should not prevent a user compaction
-    var job = Iterables.getOnlyElement(plan.getJobs());
+    var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
 
@@ -180,7 +184,7 @@ public class DefaultCompactionPlannerTest {
     compacting = Set.of();
     params = createPlanningParams(all, all, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
-    job = Iterables.getOnlyElement(plan.getJobs());
+    job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "1M", "F2", "2M", "F3", "4M"), job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
 
@@ -190,7 +194,7 @@ public class DefaultCompactionPlannerTest {
         "FG", "32G", "FH", "64G");
     params = createPlanningParams(all, all, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
-    job = Iterables.getOnlyElement(plan.getJobs());
+    job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("huge"), job.getExecutor());
 
@@ -200,7 +204,7 @@ public class DefaultCompactionPlannerTest {
         "52M");
     params = createPlanningParams(all, all, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
-    job = Iterables.getOnlyElement(plan.getJobs());
+    job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M"), job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
 
@@ -209,7 +213,7 @@ public class DefaultCompactionPlannerTest {
     all = createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M", "F5", "50M");
     params = createPlanningParams(all, all, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
-    job = Iterables.getOnlyElement(plan.getJobs());
+    job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
 
@@ -223,14 +227,14 @@ public class DefaultCompactionPlannerTest {
     var plan = planner.makePlan(params);
 
     // should only compact files less than max size
-    var job = Iterables.getOnlyElement(plan.getJobs());
+    var job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "128M", "F2", "129M", "F3", "130M"), job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("large"), job.getExecutor());
 
     // user compaction can exceed the max size
     params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.USER);
     plan = planner.makePlan(params);
-    job = Iterables.getOnlyElement(plan.getJobs());
+    job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
     assertEquals(CompactionExecutorIdImpl.externalId("large"), job.getExecutor());
   }
@@ -251,9 +255,9 @@ public class DefaultCompactionPlannerTest {
     String executors = getExecutors("'type': 'internal','maxSize':'32M'",
         "'type': 'internal','maxSize':'128M','numThreads':2",
         "'type': 'internal','maxSize':'512M','numThreads':3");
-    var e = assertThrows("Failed to throw error", NullPointerException.class,
-        () -> planner.init(getInitParams(senv, executors)));
-    assertTrue("Error message didn't contain numThreads", e.getMessage().contains("numThreads"));
+    var e = assertThrows(NullPointerException.class,
+        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+    assertTrue(e.getMessage().contains("numThreads"), "Error message didn't contain numThreads");
   }
 
   /**
@@ -272,9 +276,9 @@ public class DefaultCompactionPlannerTest {
     String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
         "'type': 'internal','maxSize':'128M','numThreads':2",
         "'type': 'external','maxSize':'512M','numThreads':3");
-    var e = assertThrows("Failed to throw error", IllegalArgumentException.class,
-        () -> planner.init(getInitParams(senv, executors)));
-    assertTrue("Error message didn't contain numThreads", e.getMessage().contains("numThreads"));
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+    assertTrue(e.getMessage().contains("numThreads"), "Error message didn't contain numThreads");
   }
 
   /**
@@ -293,9 +297,9 @@ public class DefaultCompactionPlannerTest {
     String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
         "'type': 'internal','maxSize':'128M','numThreads':2",
         "'type': 'external','maxSize':'512M'");
-    var e = assertThrows("Failed to throw error", NullPointerException.class,
-        () -> planner.init(getInitParams(senv, executors)));
-    assertTrue("Error message didn't contain queue", e.getMessage().contains("queue"));
+    var e = assertThrows(NullPointerException.class,
+        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+    assertTrue(e.getMessage().contains("queue"), "Error message didn't contain queue");
   }
 
   /**
@@ -313,9 +317,9 @@ public class DefaultCompactionPlannerTest {
 
     String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
         "'type': 'internal','numThreads':2", "'type': 'external','queue':'q1'");
-    var e = assertThrows("Failed to throw error", IllegalArgumentException.class,
-        () -> planner.init(getInitParams(senv, executors)));
-    assertTrue("Error message didn't contain maxSize", e.getMessage().contains("maxSize"));
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+    assertTrue(e.getMessage().contains("maxSize"), "Error message didn't contain maxSize");
   }
 
   /**
@@ -334,9 +338,9 @@ public class DefaultCompactionPlannerTest {
     String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
         "'type': 'internal','maxSize':'128M','numThreads':2",
         "'type': 'external','maxSize':'128M','queue':'q1'");
-    var e = assertThrows("Failed to throw error", IllegalArgumentException.class,
-        () -> planner.init(getInitParams(senv, executors)));
-    assertTrue("Error message didn't contain maxSize", e.getMessage().contains("maxSize"));
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+    assertTrue(e.getMessage().contains("maxSize"), "Error message didn't contain maxSize");
   }
 
   private CompactionPlanner.InitParameters getInitParams(ServiceEnvironment senv,
@@ -377,7 +381,7 @@ public class DefaultCompactionPlannerTest {
   }
 
   private String getExecutors(String small, String medium, String large) {
-    String execBldr = "[{'name':'small'," + small + "}," + "{'name':'medium'," + medium + "},"
+    String execBldr = "[{'name':'small'," + small + "},{'name':'medium'," + medium + "},"
         + "{'name':'large'," + large + "}]";
     return execBldr.replaceAll("'", "\"");
   }

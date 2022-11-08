@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -111,7 +111,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
     IteratorOptions io = super.describeOptions();
     io.setName("visibilityFilter");
     io.setDescription("The VisibilityFilter allows you to filter for key/value"
-        + " pairs by a set of authorizations or filter invalid labels from corrupt" + " files.");
+        + " pairs by a set of authorizations or filter invalid labels from corrupt files.");
     io.addNamedOption(FILTER_INVALID_ONLY,
         "if 'true', the iterator is instructed to ignore the authorizations and"
             + " only filter invalid visibility labels (default: false)");

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -31,12 +31,15 @@ public enum ServerType {
   ZOOKEEPER("ZooKeeper"),
   TABLET_SERVER("TServer"),
   GARBAGE_COLLECTOR("GC"),
+  COMPACTION_COORDINATOR("CompactionCoordinator"),
+  COMPACTOR("Compactor"),
   /**
    * @deprecated Accumulo-managed Tracer service was removed
    */
   @Deprecated(since = "2.1.0", forRemoval = true)
   TRACER("Tracer"),
-  MONITOR("Monitor");
+  MONITOR("Monitor"),
+  SCAN_SERVER("SServer");
 
   private final String prettyPrint;
 

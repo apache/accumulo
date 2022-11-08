@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,18 +18,18 @@
  */
 package org.apache.accumulo.core.conf;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.ConfigCheckUtil.ConfigCheckException;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ConfigCheckUtilTest {
   private Map<String,String> m;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     m = new java.util.HashMap<>();
   }
@@ -76,15 +76,15 @@ public class ConfigCheckUtilTest {
   }
 
   @Test
-  public void testFail_badCryptoService() {
-    m.put(Property.INSTANCE_CRYPTO_SERVICE.getKey(), "DoesNotExistCryptoService");
+  public void testFail_badCryptoFactory() {
+    m.put(Property.INSTANCE_CRYPTO_FACTORY.getKey(), "DoesNotExistCryptoFactory");
     assertThrows(ConfigCheckException.class, () -> ConfigCheckUtil.validate(m.entrySet()));
   }
 
   @Test
-  public void testPass_defaultCryptoService() {
-    m.put(Property.INSTANCE_CRYPTO_SERVICE.getKey(),
-        Property.INSTANCE_CRYPTO_SERVICE.getDefaultValue());
+  public void testPass_defaultCryptoFactory() {
+    m.put(Property.INSTANCE_CRYPTO_FACTORY.getKey(),
+        Property.INSTANCE_CRYPTO_FACTORY.getDefaultValue());
     ConfigCheckUtil.validate(m.entrySet());
   }
 }

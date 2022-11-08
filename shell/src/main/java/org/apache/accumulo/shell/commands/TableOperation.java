@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -27,7 +27,6 @@ import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Namespaces;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.shell.Shell;
@@ -61,7 +60,7 @@ public abstract class TableOperation extends Command {
       NamespaceId namespaceId = Namespaces.getNamespaceId(shellState.getContext(),
           cl.getOptionValue(optNamespace.getOpt()));
       for (TableId tableId : Namespaces.getTableIds(shellState.getContext(), namespaceId)) {
-        tableSet.add(Tables.getTableName(shellState.getContext(), tableId));
+        tableSet.add(shellState.getContext().getTableName(tableId));
       }
     } else if (useCommandLine && cl.getArgs().length > 0) {
       Collections.addAll(tableSet, cl.getArgs());

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -34,7 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.stream.StreamSupport;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -44,8 +45,6 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -53,8 +52,13 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -69,24 +73,29 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.ZooConfiguration;
+import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
-import org.apache.accumulo.server.util.SystemPropUtil;
-import org.apache.accumulo.server.util.TablePropUtil;
+import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.zookeeper.ZKUtil;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Id;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,12 +133,57 @@ public class Upgrader9to10 implements Upgrader {
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
+    validateACLs(context);
+    upgradePropertyStorage(context);
     setMetaTableProps(context);
     upgradeRootTabletMetadata(context);
-    renameOldMasterPropsinZK(context);
     createExternalCompactionNodes(context);
     // special case where old files need to be deleted
     dropSortedMapWALFiles(context);
+    createScanServerNodes(context);
+  }
+
+  private void validateACLs(ServerContext context) {
+
+    final AtomicBoolean aclErrorOccurred = new AtomicBoolean(false);
+    final ZooReaderWriter zrw = context.getZooReaderWriter();
+    final ZooKeeper zk = zrw.getZooKeeper();
+    final String rootPath = context.getZooKeeperRoot();
+
+    final Id zkDigest =
+        ZooUtil.getZkDigestAuthId(context.getConfiguration().get(Property.INSTANCE_SECRET));
+    final List<ACL> privateWithAuth = new ArrayList<>();
+    privateWithAuth.add(new ACL(ZooDefs.Perms.ALL, zkDigest));
+    final List<ACL> publicWithAuth = new ArrayList<>(privateWithAuth);
+    publicWithAuth.add(new ACL(ZooDefs.Perms.READ, ZooDefs.Ids.ANYONE_ID_UNSAFE));
+
+    try {
+      ZKUtil.visitSubTreeDFS(zk, rootPath, false, (rc, path, ctx, name) -> {
+        try {
+          final Stat stat = new Stat();
+          final List<ACL> acls = zk.getACL(path, stat);
+
+          if (((path.equals(Constants.ZROOT) || path.equals(Constants.ZROOT + Constants.ZINSTANCES))
+              && !acls.equals(ZooDefs.Ids.OPEN_ACL_UNSAFE))
+              || (!privateWithAuth.equals(acls) && !publicWithAuth.equals(acls))) {
+            log.error("ZNode at {} has unexpected ACL: {}", path, acls);
+            aclErrorOccurred.set(true);
+          } else {
+            log.trace("ZNode at {} has expected ACL.", path);
+          }
+        } catch (KeeperException | InterruptedException e) {
+          log.error("Error getting ACL for path: {}", path, e);
+          aclErrorOccurred.set(true);
+        }
+      });
+      if (aclErrorOccurred.get()) {
+        throw new RuntimeException("Upgrade Failed! Error validating ZNode ACLs. "
+            + "Check the log for specific failed paths, check ZooKeeper troubleshooting in user documentation "
+            + "for instructions on how to fix.");
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Upgrade Failed! Error validating nodes under " + rootPath, e);
+    }
   }
 
   @Override
@@ -147,23 +201,46 @@ public class Upgrader9to10 implements Upgrader {
   }
 
   /**
+   * Convert system properties (if necessary) and all table properties to a single node
+   */
+  private void upgradePropertyStorage(ServerContext context) {
+    log.info("Starting property conversion");
+    ConfigPropertyUpgrader configUpgrader = new ConfigPropertyUpgrader();
+    configUpgrader.doUpgrade(context.getInstanceID(), context.getZooReaderWriter());
+    log.info("Completed property conversion");
+  }
+
+  /**
    * Setup properties for External compactions.
    */
   private void setMetaTableProps(ServerContext context) {
     try {
-      TablePropUtil.setTableProperty(context, RootTable.ID,
-          Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-          SimpleCompactionDispatcher.class.getName());
-      TablePropUtil.setTableProperty(context, RootTable.ID,
-          Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root");
+      // sets the compaction dispatcher props for the given table and service name
+      BiConsumer<TableId,String> setDispatcherProps =
+          (TableId tableId, String dispatcherService) -> {
+            var dispatcherPropsMap = Map.of(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+                SimpleCompactionDispatcher.class.getName(),
+                Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", dispatcherService);
+            PropUtil.setProperties(context, TablePropKey.of(context, tableId), dispatcherPropsMap);
+          };
 
-      TablePropUtil.setTableProperty(context, MetadataTable.ID,
-          Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-          SimpleCompactionDispatcher.class.getName());
-      TablePropUtil.setTableProperty(context, MetadataTable.ID,
-          Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
+      // root compaction props
+      setDispatcherProps.accept(RootTable.ID, "root");
+      // metadata compaction props
+      setDispatcherProps.accept(MetadataTable.ID, "meta");
+    } catch (IllegalStateException ex) {
+      throw new RuntimeException("Unable to set system table properties", ex);
+    }
+  }
+
+  private void createScanServerNodes(ServerContext context) {
+    final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    try {
+      context.getZooReaderWriter().putPersistentData(
+          context.getZooKeeperRoot() + Constants.ZSSERVERS, EMPTY_BYTE_ARRAY,
+          NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException("Unable to set system table properties", e);
+      throw new RuntimeException("Unable to create scan server paths", e);
     }
   }
 
@@ -243,31 +320,9 @@ public class Upgrader9to10 implements Upgrader {
     delete(context, ZROOT_TABLET_PATH);
   }
 
-  @SuppressWarnings("deprecation")
-  private void renameOldMasterPropsinZK(ServerContext context) {
-    // Rename all of the properties only set in ZooKeeper that start with "master." to rename and
-    // store them starting with "manager." instead.
-    var zooConfiguration =
-        new ZooConfiguration(context, context.getZooCache(), new ConfigurationCopy());
-    zooConfiguration.getAllPropertiesWithPrefix(Property.MASTER_PREFIX)
-        .forEach((original, value) -> {
-          DeprecatedPropertyUtil.getReplacementName(original, (log, replacement) -> {
-            log.info("Automatically renaming deprecated property '{}' with its replacement '{}'"
-                + " in ZooKeeper on upgrade.", original, replacement);
-            try {
-              // Set the property under the new name
-              SystemPropUtil.setSystemProperty(context, replacement, value);
-              SystemPropUtil.removePropWithoutDeprecationWarning(context, original);
-            } catch (KeeperException | InterruptedException e) {
-              throw new RuntimeException("Unable to upgrade system properties", e);
-            }
-          });
-        });
-  }
-
   private static class UpgradeMutator extends TabletMutatorBase {
 
-    private ServerContext context;
+    private final ServerContext context;
 
     UpgradeMutator(ServerContext context) {
       super(context, RootTable.EXTENT);
@@ -377,18 +432,16 @@ public class Upgrader9to10 implements Upgrader {
   MetadataTime computeRootTabletTime(ServerContext context, Collection<String> goodPaths) {
 
     try {
-      context.setupCrypto();
-
       long rtime = Long.MIN_VALUE;
       for (String good : goodPaths) {
         Path path = new Path(good);
 
         FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
+        var tableConf = context.getTableConfiguration(RootTable.ID);
         long maxTime = -1;
         try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-            .withTableConfiguration(context.getTableConfiguration(RootTable.ID)).seekToBeginning()
-            .build()) {
+            .forFile(path.toString(), ns, ns.getConf(), NoCryptoServiceFactory.NONE)
+            .withTableConfiguration(tableConf).seekToBeginning().build()) {
           while (reader.hasTop()) {
             maxTime = Math.max(maxTime, reader.getTopKey().getTimestamp());
             reader.next();
@@ -484,11 +537,10 @@ public class Upgrader9to10 implements Upgrader {
   public void upgradeFileDeletes(ServerContext context, Ample.DataLevel level) {
 
     String tableName = level.metaTable();
-    AccumuloClient c = context;
     Ample ample = context.getAmple();
 
     // find all deletes
-    try (BatchWriter writer = c.createBatchWriter(tableName)) {
+    try (BatchWriter writer = context.createBatchWriter(tableName)) {
       log.info("looking for candidates in table {}", tableName);
       Iterator<String> oldCandidates = getOldCandidates(context, tableName);
       String upgradeProp =
@@ -502,7 +554,7 @@ public class Upgrader9to10 implements Upgrader {
           log.trace("upgrading delete entry for {}", olddelete);
 
           Path absolutePath = resolveRelativeDelete(olddelete, upgradeProp);
-          String updatedDel = switchToAllVolumes(absolutePath);
+          ReferenceFile updatedDel = switchToAllVolumes(absolutePath);
 
           writer.addMutation(ample.createDeleteMutation(updatedDel));
         }
@@ -528,16 +580,29 @@ public class Upgrader9to10 implements Upgrader {
    * "tables/5a/t-0005/A0012.rf" depth = 4 will be returned as is.
    */
   @VisibleForTesting
-  static String switchToAllVolumes(Path olddelete) {
+  static ReferenceFile switchToAllVolumes(Path olddelete) {
     Path pathNoVolume = Objects.requireNonNull(VolumeManager.FileType.TABLE.removeVolume(olddelete),
         "Invalid delete marker. No volume in path: " + olddelete);
 
-    // a directory path with volume removed will have a depth of 3 so change volume to all volumes
-    if (pathNoVolume.depth() == 3 && !pathNoVolume.getName().startsWith(Constants.BULK_PREFIX)) {
-      return GcVolumeUtil.getDeleteTabletOnAllVolumesUri(
-          TableId.of(pathNoVolume.getParent().getName()), pathNoVolume.getName());
+    // a directory path with volume removed will have a depth of 3 like, "tables/5a/t-0005"
+    if (pathNoVolume.depth() == 3) {
+      String tabletDir = pathNoVolume.getName();
+      var tableId = TableId.of(pathNoVolume.getParent().getName());
+      // except bulk directories don't get an all volume prefix
+      if (pathNoVolume.getName().startsWith(Constants.BULK_PREFIX)) {
+        return new ReferenceFile(tableId, olddelete.toString());
+      } else {
+        return new AllVolumesDirectory(tableId, tabletDir);
+      }
     } else {
-      return olddelete.toString();
+      // depth of 4 should be a file like, "tables/5a/t-0005/A0012.rf"
+      if (pathNoVolume.depth() == 4) {
+        Path tabletDirPath = pathNoVolume.getParent();
+        var tableId = TableId.of(tabletDirPath.getParent().getName());
+        return new ReferenceFile(tableId, olddelete.toString());
+      } else {
+        throw new IllegalStateException("Invalid delete marker: " + olddelete);
+      }
     }
   }
 
@@ -549,8 +614,7 @@ public class Upgrader9to10 implements Upgrader {
     Range range = DeletesSection.getRange();
     Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(range);
-    return StreamSupport.stream(scanner.spliterator(), false)
-        .filter(entry -> !entry.getValue().equals(UPGRADED))
+    return scanner.stream().filter(entry -> !entry.getValue().equals(UPGRADED))
         .map(entry -> entry.getKey().getRow().toString().substring(OLD_DELETE_PREFIX.length()))
         .iterator();
   }
@@ -584,10 +648,9 @@ public class Upgrader9to10 implements Upgrader {
    */
   public void upgradeDirColumns(ServerContext context, Ample.DataLevel level) {
     String tableName = level.metaTable();
-    AccumuloClient c = context;
 
-    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-        BatchWriter writer = c.createBatchWriter(tableName)) {
+    try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
+        BatchWriter writer = context.createBatchWriter(tableName)) {
       DIRECTORY_COLUMN.fetch(scanner);
 
       for (Entry<Key,Value> entry : scanner) {
@@ -615,13 +678,12 @@ public class Upgrader9to10 implements Upgrader {
    */
   public static void upgradeRelativePaths(ServerContext context, Ample.DataLevel level) {
     String tableName = level.metaTable();
-    AccumuloClient c = context;
     VolumeManager fs = context.getVolumeManager();
     String upgradeProp = context.getConfiguration().get(Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE);
 
     // first pass check for relative paths - if any, check existence of the file path
     // constructed from the upgrade property + relative path
-    if (checkForRelativePaths(c, fs, tableName, upgradeProp)) {
+    if (checkForRelativePaths(context, fs, tableName, upgradeProp)) {
       log.info("Relative Tablet File paths exist in {}, replacing with absolute using {}",
           tableName, upgradeProp);
     } else {
@@ -630,7 +692,7 @@ public class Upgrader9to10 implements Upgrader {
     }
 
     // second pass, create atomic mutations to replace the relative path
-    replaceRelativePaths(c, fs, tableName, upgradeProp);
+    replaceRelativePaths(context, fs, tableName, upgradeProp);
   }
 
   /**

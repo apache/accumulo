@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -33,9 +33,10 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -106,7 +107,7 @@ public class CompactRange extends ManagerRepo {
         String[] tokens = cvs.split(",");
         long flushID = Long.parseLong(tokens[0]) + 1;
 
-        String txidString = String.format("%016x", tid);
+        String txidString = FastFormat.toHexString(tid);
 
         for (int i = 1; i < tokens.length; i++) {
           if (tokens[i].startsWith(txidString))
@@ -155,7 +156,7 @@ public class CompactRange extends ManagerRepo {
         String[] tokens = cvs.split(",");
         long flushID = Long.parseLong(tokens[0]);
 
-        String txidString = String.format("%016x", txid);
+        String txidString = FastFormat.toHexString(txid);
 
         StringBuilder encodedIterators = new StringBuilder();
         for (int i = 1; i < tokens.length; i++) {

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -264,7 +264,7 @@ public class VerifyIngest {
       System.out.printf(
           "%,12d records read | %,8d records/sec | %,12d bytes read |"
               + " %,8d bytes/sec | %6.3f secs   %n",
-          recsRead, (int) ((recsRead) / ((t2 - t1) / 1000.0)), bytesRead,
+          recsRead, (int) (recsRead / ((t2 - t1) / 1000.0)), bytesRead,
           (int) (bytesRead / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0);
     } else {
       throw new AccumuloException("Did not read expected number of rows. Saw "

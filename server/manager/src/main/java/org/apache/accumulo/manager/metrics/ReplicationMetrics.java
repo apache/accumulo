@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -25,11 +25,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
@@ -67,7 +67,7 @@ public class ReplicationMetrics implements MetricsProducer {
 
   protected void update() {
     // Only add these metrics if the replication table is online and there are peers
-    if (TableState.ONLINE == Tables.getTableState(manager.getContext(), ReplicationTable.ID)
+    if (TableState.ONLINE == manager.getContext().getTableState(ReplicationTable.ID)
         && !replicationUtil.getPeers().isEmpty()) {
       pendingFiles.set(getNumFilesPendingReplication());
       addReplicationQueueTimeMetrics();
@@ -162,12 +162,13 @@ public class ReplicationMetrics implements MetricsProducer {
     maxReplicationThreads = registry.gauge(METRICS_REPLICATION_THREADS, MetricsUtil.getCommonTags(),
         new AtomicInteger(0));
 
-    ScheduledExecutorService scheduler =
-        ThreadPools.createScheduledExecutorService(1, "replicationMetricsPoller", false);
+    ScheduledExecutorService scheduler = ThreadPools.getServerThreadPools()
+        .createScheduledExecutorService(1, "replicationMetricsPoller", false);
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
     long minimumRefreshDelay = TimeUnit.SECONDS.toMillis(5);
-    scheduler.scheduleAtFixedRate(this::update, minimumRefreshDelay, minimumRefreshDelay,
-        TimeUnit.MILLISECONDS);
+    ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(this::update, minimumRefreshDelay,
+        minimumRefreshDelay, TimeUnit.MILLISECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
 }

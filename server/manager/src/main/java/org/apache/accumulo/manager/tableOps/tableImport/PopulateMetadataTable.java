@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.tableImport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -39,12 +40,12 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -67,8 +68,9 @@ class PopulateMetadataTable extends ManagerRepo {
 
   static void readMappingFile(VolumeManager fs, ImportedTableInfo tableInfo, String importDir,
       Map<String,String> fileNameMappings) throws Exception {
-    try (BufferedReader in = new BufferedReader(
-        new InputStreamReader(fs.open(new Path(importDir, "mappings.txt")), UTF_8))) {
+    try (var fsDis = fs.open(new Path(importDir, IMPORT_MAPPINGS_FILE));
+        var isr = new InputStreamReader(fsDis, UTF_8);
+        BufferedReader in = new BufferedReader(isr)) {
       String line, prev;
       while ((line = in.readLine()) != null) {
         String[] sa = line.split(":", 2);

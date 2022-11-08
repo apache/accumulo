@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -17,6 +17,8 @@
  * under the License.
  */
 package org.apache.accumulo.test;
+
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -30,8 +32,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.util.MonitorUtil;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.manager.Manager;
@@ -40,10 +42,9 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.PortUtils;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +54,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Test class that verifies "HA-capable" servers put up their thrift servers before acquiring their
  * ZK lock.
  */
-@Category({MiniClusterOnlyTests.class})
+@Tag(MINI_CLUSTER_ONLY)
 public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarness {
   private static final Logger LOG =
       LoggerFactory.getLogger(ThriftServerBindsBeforeZooKeeperLockIT.class);
@@ -134,14 +135,13 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
   public void testManagerService() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      final String instanceID = client.instanceOperations().getInstanceID();
+      final InstanceId instanceID = client.instanceOperations().getInstanceId();
 
       // Wait for the Manager to grab its lock
       while (true) {
-        final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
         try {
-          List<String> locks =
-              reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMANAGER_LOCK);
+          List<String> locks = cluster.getServerContext().getZooReader()
+              .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMANAGER_LOCK);
           if (!locks.isEmpty()) {
             break;
           }
@@ -194,14 +194,13 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
   public void testGarbageCollectorPorts() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String instanceID = client.instanceOperations().getInstanceID();
+      InstanceId instanceID = client.instanceOperations().getInstanceId();
 
       // Wait for the Manager to grab its lock
       while (true) {
-        final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
         try {
-          List<String> locks =
-              reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
+          List<String> locks = cluster.getServerContext().getZooReader()
+              .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
           if (!locks.isEmpty()) {
             break;
           }

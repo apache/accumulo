@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -26,7 +26,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -53,8 +53,8 @@ public class TablesCommand extends Command {
     Map<String,String> tables = shellState.getAccumuloClient().tableOperations().tableIdMap();
 
     // filter only specified namespace
-    tables = Maps.filterKeys(tables,
-        tableName -> namespace == null || Tables.qualify(tableName).getFirst().equals(namespace));
+    tables = Maps.filterKeys(tables, tableName -> namespace == null
+        || TableNameUtil.qualify(tableName).getFirst().equals(namespace));
 
     final boolean sortByTableId = cl.hasOption(sortByTableIdOption.getOpt());
     tables = new TreeMap<>((sortByTableId ? MapUtils.invertMap(tables) : tables));
@@ -63,7 +63,7 @@ public class TablesCommand extends Command {
       String tableName = String.valueOf(sortByTableId ? entry.getValue() : entry.getKey());
       String tableId = String.valueOf(sortByTableId ? entry.getKey() : entry.getValue());
       if (namespace != null)
-        tableName = Tables.qualify(tableName).getSecond();
+        tableName = TableNameUtil.qualify(tableName).getSecond();
       if (cl.hasOption(tableIdOption.getOpt()))
         return String.format(NAME_AND_ID_FORMAT, tableName, tableId);
       else

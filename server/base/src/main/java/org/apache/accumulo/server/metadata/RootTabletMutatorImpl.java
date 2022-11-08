@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -103,7 +103,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
       // TODO examine implementation of getZooReaderWriter().mutate()
       context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
-        var rtm = RootTabletMetadata.fromJson(currJson);
+        var rtm = new RootTabletMetadata(currJson);
         rtm.update(mutation);
         String newJson = rtm.toJson();
         log.debug("mutation: from:[{}] to: [{}]", currJson, newJson);

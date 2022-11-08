@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -20,9 +20,8 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-
-import java.util.concurrent.TimeUnit;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -33,6 +32,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TDurability;
@@ -69,10 +69,9 @@ public class Writer {
 
     TabletClientService.Iface client = null;
     try {
-      client = ThriftUtil.getTServerClient(server, context);
+      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server, context);
       client.update(TraceUtil.traceInfo(), context.rpcCreds(), extent.toThrift(), m.toThrift(),
           TDurability.DEFAULT);
-      return;
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code);
     } finally {
@@ -93,7 +92,7 @@ public class Writer {
 
       if (tabLoc == null) {
         log.trace("No tablet location found for row {}", new String(m.getRow(), UTF_8));
-        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(500, MILLISECONDS);
         continue;
       }
 
@@ -114,7 +113,7 @@ public class Writer {
         TabletLocator.getLocator(context, tableId).invalidateCache(tabLoc.tablet_extent);
       }
 
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(500, MILLISECONDS);
     }
 
   }

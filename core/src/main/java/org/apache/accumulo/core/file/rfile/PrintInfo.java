@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -26,8 +26,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -36,7 +35,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
+import org.apache.accumulo.core.file.rfile.bcfile.PrintBCInfo;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -151,9 +153,8 @@ public class PrintInfo implements KeywordExecutable {
   protected Class<? extends BiFunction<Key,Value,String>> getFormatter(String formatterClazz)
       throws ClassNotFoundException {
     @SuppressWarnings("unchecked")
-    Class<? extends BiFunction<Key,Value,String>> clazz =
-        (Class<? extends BiFunction<Key,Value,String>>) this.getClass().getClassLoader()
-            .loadClass(formatterClazz).asSubclass(BiFunction.class);
+    var clazz = (Class<? extends BiFunction<Key,Value,String>>) this.getClass().getClassLoader()
+        .loadClass(formatterClazz).asSubclass(BiFunction.class);
     return clazz;
   }
 
@@ -194,8 +195,9 @@ public class PrintInfo implements KeywordExecutable {
 
       printCryptoParams(path, fs);
 
-      CachableBuilder cb = new CachableBuilder().fsPath(fs, path).conf(conf)
-          .cryptoService(CryptoServiceFactory.newInstance(siteConfig, ClassloaderType.JAVA));
+      CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
+          siteConfig.getAllCryptoProperties());
+      CachableBuilder cb = new CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(cs);
       Reader iter = new RFile.Reader(cb);
       MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
 
@@ -208,7 +210,9 @@ public class PrintInfo implements KeywordExecutable {
       String propsPath = opts.getPropertiesPath();
       String[] mainArgs =
           propsPath == null ? new String[] {arg} : new String[] {"-props", propsPath, arg};
-      org.apache.accumulo.core.file.rfile.bcfile.PrintInfo.main(mainArgs);
+      PrintBCInfo printBCInfo = new PrintBCInfo(mainArgs);
+      printBCInfo.setCryptoService(cs);
+      printBCInfo.printMetaBlockInfo();
 
       Map<String,ArrayList<ByteSequence>> localityGroupCF = null;
 
@@ -324,7 +328,7 @@ public class PrintInfo implements KeywordExecutable {
     byte[] noCryptoBytes = new NoFileEncrypter().getDecryptionParameters();
     try (FSDataInputStream fsDis = fs.open(path)) {
       long fileLength = fs.getFileStatus(path).getLen();
-      fsDis.seek(fileLength - 16 - Utils.Version.size() - (Long.BYTES));
+      fsDis.seek(fileLength - 16 - Utils.Version.size() - Long.BYTES);
       long cryptoParamOffset = fsDis.readLong();
       fsDis.seek(cryptoParamOffset);
       byte[] cryptoParams = CryptoUtils.readParams(fsDis);

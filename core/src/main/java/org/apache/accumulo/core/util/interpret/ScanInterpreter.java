@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -23,7 +23,10 @@ import org.apache.hadoop.io.Text;
 /**
  * A simple interface for creating shell plugins that translate the range and column arguments for
  * the shell's scan command.
+ *
+ * @deprecated since 2.1.0 This will be removed in a future version in favor of JShell
  */
+@Deprecated(since = "2.1.0")
 public interface ScanInterpreter {
 
   Text interpretRow(Text row);

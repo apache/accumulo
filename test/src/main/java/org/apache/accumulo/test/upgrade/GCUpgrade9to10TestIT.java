@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,12 +18,13 @@
  */
 package org.apache.accumulo.test.upgrade;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,24 +40,24 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.upgrade.Upgrader9to10;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessNotFoundException;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
   private static final String OUR_SECRET = "itsreallysecret";
@@ -64,8 +65,8 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
   private static final Upgrader9to10 upgrader = new Upgrader9to10();
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 5 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(5);
   }
 
   @Override
@@ -84,7 +85,7 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
         getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
     // delete lock in zookeeper if there, this will allow next GC to start quickly
     var path = ServiceLock.path(getServerContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
-    ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
+    ZooReaderWriter zk = getServerContext().getZooReaderWriter();
     try {
       ServiceLock.deleteLock(zk, path);
     } catch (IllegalStateException e) {
@@ -128,8 +129,8 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
     // ensure test quality by making sure we have enough candidates to
     // exceed the batch size at least ten times
     long numBatches = numberOfEntries * longpathname.length() / Upgrader9to10.CANDIDATE_BATCH_SIZE;
-    assertTrue("Expected numBatches between 10 and 15, but was " + numBatches,
-        numBatches > 10 && numBatches < 15);
+    assertTrue(numBatches > 10 && numBatches < 15,
+        "Expected numBatches between 10 and 15, but was " + numBatches);
 
     Ample.DataLevel level = Ample.DataLevel.USER;
 
@@ -240,7 +241,7 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
         Mutation delFlag = createOldDelMutation(longpath, "", "", "");
         bw.addMutation(delFlag);
         expected.put(
-            DeletesSection.encodeRow(GcVolumeUtil.getDeleteTabletOnAllVolumesUri(tableId, dirName)),
+            DeletesSection.encodeRow(new AllVolumesDirectory(tableId, dirName).getMetadataEntry()),
             Upgrader9to10.UPGRADED.toString());
       }
 

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.start.classloader.vfs;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
@@ -52,7 +53,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
 
   // set to 5 mins. The rationale behind this large time is to avoid a gazillion tservers all asking
   // the name node for info too frequently.
-  private static final int DEFAULT_TIMEOUT = 5 * 60 * 1000;
+  private static final long DEFAULT_TIMEOUT = MINUTES.toMillis(5);
 
   private volatile long maxWaitInterval = 60000;
 

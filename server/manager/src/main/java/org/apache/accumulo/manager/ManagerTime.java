@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -28,10 +28,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,9 +64,10 @@ public class ManagerTime {
       throw new IOException("Error updating manager time", ex);
     }
 
-    ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(
-        Threads.createNamedRunnable("Manager time keeper", () -> run()), 0,
-        MILLISECONDS.convert(10, SECONDS), MILLISECONDS);
+    ThreadPools.watchCriticalScheduledTask(
+        ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf)
+            .scheduleWithFixedDelay(Threads.createNamedRunnable("Manager time keeper", () -> run()),
+                0, SECONDS.toMillis(10), MILLISECONDS));
   }
 
   /**
@@ -75,7 +76,7 @@ public class ManagerTime {
    * @return Approximate total duration this cluster has had a Manager, in milliseconds.
    */
   public long getTime() {
-    return MILLISECONDS.convert(System.nanoTime() + skewAmount.get(), NANOSECONDS);
+    return NANOSECONDS.toMillis(System.nanoTime() + skewAmount.get());
   }
 
   public void run() {

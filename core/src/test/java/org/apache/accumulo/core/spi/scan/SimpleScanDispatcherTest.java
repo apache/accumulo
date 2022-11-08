@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -22,8 +22,8 @@ import static org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage.DISABLED
 import static org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage.ENABLED;
 import static org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage.OPPORTUNISTIC;
 import static org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage.TABLE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,7 +35,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParameters;
 import org.apache.accumulo.core.spi.scan.ScanInfo.Type;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SimpleScanDispatcherTest {
   @Test

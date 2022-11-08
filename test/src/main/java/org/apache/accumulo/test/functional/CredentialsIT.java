@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,13 +18,15 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.cluster.ClusterUser;
@@ -42,9 +44,9 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class CredentialsIT extends AccumuloClusterHarness {
 
@@ -53,11 +55,11 @@ public class CredentialsIT extends AccumuloClusterHarness {
   private String password;
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 2 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
-  @Before
+  @BeforeEach
   public void createLocalUser() throws AccumuloException, AccumuloSecurityException {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       ClusterUser user = getUser(0);
@@ -76,7 +78,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
     }
   }
 
-  @After
+  @AfterEach
   public void deleteLocalUser() throws Exception {
     if (saslEnabled) {
       ClusterUser root = getAdminUser();
@@ -94,12 +96,10 @@ public class CredentialsIT extends AccumuloClusterHarness {
     assertFalse(token.isDestroyed());
     token.destroy();
     assertTrue(token.isDestroyed());
-    try (AccumuloClient ignored = Accumulo.newClient().from(getClientInfo().getProperties())
-        .as("non_existent_user", token).build()) {
-      fail("should ignore " + ignored);
-    } catch (IllegalArgumentException e) {
-      assertEquals(e.getMessage(), "AuthenticationToken has been destroyed");
-    }
+    Properties props = getClientProps();
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> Accumulo.newClient().from(props).as("non_existent_user", token).build().close());
+    assertEquals(e.getMessage(), "AuthenticationToken has been destroyed");
   }
 
   @Test
@@ -114,17 +114,12 @@ public class CredentialsIT extends AccumuloClusterHarness {
         assertFalse(token.isDestroyed());
         token.destroy();
         assertTrue(token.isDestroyed());
-        try {
-          Iterator<Entry<Key,Value>> iter = scanner.iterator();
-          while (iter.hasNext())
-            fail();
-          fail();
-        } catch (Exception e) {
-          assertTrue(e instanceof RuntimeException);
-          assertTrue(e.getCause() instanceof AccumuloSecurityException);
-          assertEquals(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode(),
-              SecurityErrorCode.TOKEN_EXPIRED);
-        }
+
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+        var e = assertThrows(RuntimeException.class, iter::hasNext);
+        assertTrue(e.getCause() instanceof AccumuloSecurityException);
+        assertEquals(((AccumuloSecurityException) e.getCause()).getSecurityErrorCode(),
+            SecurityErrorCode.TOKEN_EXPIRED);
       }
     }
   }

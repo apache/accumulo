@@ -64,7 +64,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *
  * @see Filter The general behavior of a filter
  *
- * @see <a href="http://portal.acm.org/citation.cfm?id=362692&dl=ACM&coll=portal">Space/Time
+ * @see <a href="https://portal.acm.org/citation.cfm?id=362692&dl=ACM&coll=portal">Space/Time
  *      Trade-Offs in Hash Coding with Allowable Errors</a>
  */
 public class BloomFilter extends Filter {
@@ -76,9 +76,7 @@ public class BloomFilter extends Filter {
   BitSet bits;
 
   /** Default constructor - use with readFields */
-  public BloomFilter() {
-    super();
-  }
+  public BloomFilter() {}
 
   /**
    * Constructor
@@ -208,7 +206,7 @@ public class BloomFilter extends Filter {
     }
 
     if (super.getSerialVersion() == super.getVersion()) {
-      ObjectInputStream ois = new ObjectInputStream((DataInputStream) (in));
+      ObjectInputStream ois = new ObjectInputStream((DataInputStream) in);
       try {
         bits = (BitSet) ois.readObject();
       } catch (ClassNotFoundException e) {

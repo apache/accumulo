@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,6 +24,8 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -41,6 +43,17 @@ import org.apache.hadoop.io.Text;
  * This class hosts configuration methods that are shared between different types of scanners.
  */
 public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
+
+  /**
+   * Consistency level for the scanner. The default level is IMMEDIATE, which means that this
+   * scanner will see keys and values that have been successfully written to a TabletServer.
+   * EVENTUAL means that the scanner may not see the latest data that was written to a TabletServer,
+   * but may instead see an older version of data.
+   *
+   */
+  enum ConsistencyLevel {
+    IMMEDIATE, EVENTUAL
+  }
 
   /**
    * Add a server-side scan iterator.
@@ -370,4 +383,32 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
       keyValueConsumer.accept(entry.getKey(), entry.getValue());
     }
   }
+
+  /**
+   * Get the configured consistency level
+   *
+   * @return consistency level
+   * @since 2.1.0
+   */
+  public ConsistencyLevel getConsistencyLevel();
+
+  /**
+   * Set the desired consistency level for this scanner.
+   *
+   * @param level
+   *          consistency level
+   * @since 2.1.0
+   */
+  public void setConsistencyLevel(ConsistencyLevel level);
+
+  /**
+   * Stream the Scanner results sequentially from this scanner's iterator
+   *
+   * @return a Stream of the returned key-value pairs
+   * @since 2.1.0
+   */
+  default Stream<Entry<Key,Value>> stream() {
+    return StreamSupport.stream(this.spliterator(), false);
+  }
+
 }

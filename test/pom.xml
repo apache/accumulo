@@ -9,7 +9,7 @@
     "License"); you may not use this file except in compliance
     with the License.  You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+      https://www.apache.org/licenses/LICENSE-2.0
 
     Unless required by applicable law or agreed to in writing,
     software distributed under the License is distributed on an
@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>2.1.0-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-test</artifactId>
   <name>Apache Accumulo Testing</name>
@@ -36,6 +36,10 @@
     <dependency>
       <groupId>com.beust</groupId>
       <artifactId>jcommander</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.auto.service</groupId>
@@ -77,10 +81,6 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-context</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -199,6 +199,14 @@
       <artifactId>jline</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
@@ -212,9 +220,13 @@
       <artifactId>accumulo-iterator-test-harness</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- Even with the bug from https://issues.apache.org/jira/browse/LOG4J2-3601
+      log4j2-core is not needed to be listed because accumulo-monitor has a
+      transitive dependency already.
+    -->
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-slf4j-impl</artifactId>
+      <artifactId>log4j-slf4j2-impl</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -273,6 +285,20 @@
               <arguments>
                 <argument>-c</argument>
                 <argument>! find src/test/java -name '*IT.java' -exec echo '[ERROR] {} should be in src/main/java' \; | grep 'src/test/java'</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>check-for-misplaced-UTs</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>validate</phase>
+            <configuration>
+              <executable>bash</executable>
+              <arguments>
+                <argument>-c</argument>
+                <argument>! find src/main/java -name '*Test.java' -exec echo '[ERROR] {} should be in src/test/java' \; | grep 'src/main/java'</argument>
               </arguments>
             </configuration>
           </execution>

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -17,6 +17,8 @@
  * under the License.
  */
 package org.apache.accumulo.core.util;
+
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.util.concurrent.TimeUnit;
 
@@ -92,7 +94,7 @@ public class OpTimer {
    * @return truncated time in unit of specified time unit.
    */
   public long now(TimeUnit timeUnit) {
-    return timeUnit.convert(now(), TimeUnit.NANOSECONDS);
+    return timeUnit.convert(now(), NANOSECONDS);
   }
 
   /**
@@ -108,7 +110,7 @@ public class OpTimer {
    * @return the elapsed time of this instance scaled to the provided time unit.
    */
   public double scale(TimeUnit timeUnit) {
-    return (double) now() / TimeUnit.NANOSECONDS.convert(1L, timeUnit);
+    return (double) now() / NANOSECONDS.convert(1L, timeUnit);
   }
 
   /**

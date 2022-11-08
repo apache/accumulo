@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -22,6 +22,10 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
 
+/**
+ * @deprecated since 2.1.0 This will be removed in a future version
+ */
+@Deprecated(since = "2.1.0")
 public class InterpreterCommand extends ShellPluginConfigurationCommand {
 
   public InterpreterCommand() {

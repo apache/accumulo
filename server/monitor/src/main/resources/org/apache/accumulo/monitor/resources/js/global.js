@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+"use strict";
 
 /**
  * List of namespaces in Accumulo
@@ -26,3 +27,6 @@ var NAMESPACES = '';
  * Timer object
  */
 var TIMER;
+
+const EMPTY_CELL = "<td>-</td>";
+const EMPTY_ROW_THREE_CELLS = "<tr>" + EMPTY_CELL + EMPTY_CELL + EMPTY_CELL + "</tr>";

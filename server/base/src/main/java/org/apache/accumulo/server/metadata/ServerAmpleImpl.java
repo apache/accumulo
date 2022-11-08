@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,7 +24,11 @@ import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -36,10 +40,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFileUtil;
+import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
@@ -47,8 +53,8 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactionSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -86,7 +92,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     try {
       context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
-        RootGcCandidates rgcc = RootGcCandidates.fromJson(currJson);
+        RootGcCandidates rgcc = new RootGcCandidates(currJson);
         log.debug("Root GC candidates before change : {}", currJson);
         mutator.accept(rgcc);
         String newJson = rgcc.toJson();
@@ -108,7 +114,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
 
     if (RootTable.ID.equals(tableId)) {
-      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.iterator()));
+      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()));
       return;
     }
 
@@ -122,18 +128,18 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void putGcFileAndDirCandidates(TableId tableId, Collection<String> candidates) {
+  public void putGcFileAndDirCandidates(TableId tableId, Collection<ReferenceFile> candidates) {
 
     if (RootTable.ID.equals(tableId)) {
 
       // Directories are unexpected for the root tablet, so convert to stored tablet file
-      mutateRootGcCandidates(
-          rgcc -> rgcc.add(candidates.stream().map(StoredTabletFile::new).iterator()));
+      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()
+          .map(reference -> new StoredTabletFile(reference.getMetadataEntry()))));
       return;
     }
 
     try (BatchWriter writer = createWriter(tableId)) {
-      for (String fileOrDir : candidates) {
+      for (var fileOrDir : candidates) {
         writer.addMutation(createDeleteMutation(fileOrDir));
       }
     } catch (MutationsRejectedException e) {
@@ -145,7 +151,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public void deleteGcCandidates(DataLevel level, Collection<String> paths) {
 
     if (level == DataLevel.ROOT) {
-      mutateRootGcCandidates(rgcc -> rgcc.remove(paths));
+      mutateRootGcCandidates(rgcc -> rgcc.remove(paths.stream()));
       return;
     }
 
@@ -163,15 +169,15 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public Iterator<String> getGcCandidates(DataLevel level) {
     if (level == DataLevel.ROOT) {
-      var zooReader = new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
-      byte[] json;
+      var zooReader = context.getZooReader();
+      byte[] jsonBytes;
       try {
-        json = zooReader.getData(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_GC_CANDIDATES);
+        jsonBytes =
+            zooReader.getData(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_GC_CANDIDATES);
       } catch (KeeperException | InterruptedException e) {
         throw new RuntimeException(e);
       }
-      Stream<String> candidates = RootGcCandidates.fromJson(json).stream().sorted();
-      return candidates.iterator();
+      return new RootGcCandidates(new String(jsonBytes, UTF_8)).sortedStream().iterator();
     } else if (level == DataLevel.METADATA || level == DataLevel.USER) {
       Range range = DeletesSection.getRange();
 
@@ -182,8 +188,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         throw new RuntimeException(e);
       }
       scanner.setRange(range);
-      return StreamSupport.stream(scanner.spliterator(), false)
-          .filter(entry -> entry.getValue().equals(SkewedKeyValue.NAME))
+      return scanner.stream().filter(entry -> entry.getValue().equals(SkewedKeyValue.NAME))
           .map(entry -> DeletesSection.decodeRow(entry.getKey().getRow().toString())).iterator();
     } else {
       throw new IllegalArgumentException();
@@ -206,9 +211,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public Mutation createDeleteMutation(String tabletFilePathToRemove) {
-    String path = TabletFileUtil.validate(tabletFilePathToRemove);
-    return createDelMutation(path);
+  public Mutation createDeleteMutation(ReferenceFile tabletFilePathToRemove) {
+    return createDelMutation(ValidationUtil.validate(tabletFilePathToRemove).getMetadataEntry());
   }
 
   public Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
@@ -247,7 +251,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
     scanner.setRange(ExternalCompactionSection.getRange());
     int pLen = ExternalCompactionSection.getRowPrefix().length();
-    return StreamSupport.stream(scanner.spliterator(), false)
+    return scanner.stream()
         .map(e -> ExternalCompactionFinalState.fromJson(
             ExternalCompactionId.of(e.getKey().getRowData().toString().substring(pLen)),
             e.getValue().toString()));
@@ -269,4 +273,72 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       throw new RuntimeException(e);
     }
   }
+
+  @Override
+  public void putScanServerFileReferences(Collection<ScanServerRefTabletFile> scanRefs) {
+    try (BatchWriter writer = context.createBatchWriter(DataLevel.USER.metaTable())) {
+      String prefix = ScanServerFileReferenceSection.getRowPrefix();
+      for (ScanServerRefTabletFile ref : scanRefs) {
+        Mutation m = new Mutation(prefix + ref.getRowSuffix());
+        m.put(ref.getServerAddress(), ref.getServerLockUUID(), ref.getValue());
+        writer.addMutation(m);
+      }
+    } catch (MutationsRejectedException | TableNotFoundException e) {
+      throw new IllegalStateException(
+          "Error inserting scan server file references into " + DataLevel.USER.metaTable(), e);
+    }
+  }
+
+  @Override
+  public Stream<ScanServerRefTabletFile> getScanServerFileReferences() {
+    try {
+      Scanner scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY);
+      scanner.setRange(ScanServerFileReferenceSection.getRange());
+      int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
+      return StreamSupport.stream(scanner.spliterator(), false)
+          .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
+              e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()));
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException(DataLevel.USER.metaTable() + " not found!", e);
+    }
+  }
+
+  @Override
+  public void deleteScanServerFileReferences(String serverAddress, UUID scanServerLockUUID) {
+    Objects.requireNonNull(serverAddress, "Server address must be supplied");
+    Objects.requireNonNull(scanServerLockUUID, "Server uuid must be supplied");
+    try (
+        Scanner scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY)) {
+      scanner.setRange(ScanServerFileReferenceSection.getRange());
+      scanner.fetchColumn(new Text(serverAddress), new Text(scanServerLockUUID.toString()));
+
+      int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
+      Set<ScanServerRefTabletFile> refsToDelete = StreamSupport.stream(scanner.spliterator(), false)
+          .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
+              e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()))
+          .collect(Collectors.toSet());
+
+      if (!refsToDelete.isEmpty()) {
+        this.deleteScanServerFileReferences(refsToDelete);
+      }
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException(DataLevel.USER.metaTable() + " not found!", e);
+    }
+  }
+
+  @Override
+  public void deleteScanServerFileReferences(Collection<ScanServerRefTabletFile> refsToDelete) {
+    try (BatchWriter writer = context.createBatchWriter(DataLevel.USER.metaTable())) {
+      String prefix = ScanServerFileReferenceSection.getRowPrefix();
+      for (ScanServerRefTabletFile ref : refsToDelete) {
+        Mutation m = new Mutation(prefix + ref.getRowSuffix());
+        m.putDelete(ref.getServerAddress(), ref.getServerLockUUID());
+        writer.addMutation(m);
+      }
+      log.debug("Deleted scan server file reference entries for files: {}", refsToDelete);
+    } catch (MutationsRejectedException | TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
 }

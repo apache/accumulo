@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -37,19 +37,19 @@ import org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage;
  * {@link CacheUsage#TABLE} for index and data cache. This dispatcher supports the following
  * options.
  *
- * <UL>
- * <LI>{@code table.scan.dispatcher.opts.executor=<scan executor name>} : dispatches all scans to
- * the named executor.</LI>
- * <LI>{@code table.scan.dispatcher.opts.multi_executor=<scan executor name>} : dispatches batch
- * scans to the named executor.</LI>
- * <LI>{@code table.scan.dispatcher.opts.single_executor=<scan executor name>} : dispatches regular
- * scans to the named executor.</LI>
- * <LI>{@code table.scan.dispatcher.opts.executor.<type>=<scan executor name>} : dispatches scans
+ * <ul>
+ * <li>{@code table.scan.dispatcher.opts.executor=<scan executor name>} : dispatches all scans to
+ * the named executor.</li>
+ * <li>{@code table.scan.dispatcher.opts.multi_executor=<scan executor name>} : dispatches batch
+ * scans to the named executor.</li>
+ * <li>{@code table.scan.dispatcher.opts.single_executor=<scan executor name>} : dispatches regular
+ * scans to the named executor.</li>
+ * <li>{@code table.scan.dispatcher.opts.executor.<type>=<scan executor name>} : dispatches scans
  * that set the hint {@code scan_type=<type>} to the named executor. If this setting matches then it
- * takes precedence over all other settings. See {@link ScannerBase#setExecutionHints(Map)}</LI>
- * <LI>{@code table.scan.dispatcher.opts.cacheUsage.<type>[.index|.data]=enabled|disabled|opportunistic|table}
+ * takes precedence over all other settings. See {@link ScannerBase#setExecutionHints(Map)}</li>
+ * <li>{@code table.scan.dispatcher.opts.cacheUsage.<type>[.index|.data]=enabled|disabled|opportunistic|table}
  * : for scans that set the hint {@code scan_type=<type>} determines how the scan will use cache.
- * </UL>
+ * </ul>
  *
  * The {@code multi_executor} and {@code single_executor} options override the {@code executor}
  * option.

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -63,7 +63,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
@@ -369,13 +369,9 @@ public class SampleIT extends AccumuloClusterHarness {
         scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner, oScanner);
 
         for (ScannerBase s : scanners) {
-          try {
-            countEntries(s);
-            fail("Expected SampleNotPresentException, but it did not happen : "
-                + s.getClass().getSimpleName());
-          } catch (SampleNotPresentException e) {
-
-          }
+          assertThrows(SampleNotPresentException.class, () -> countEntries(s),
+              "Expected SampleNotPresentException, but it did not happen : "
+                  + s.getClass().getSimpleName());
         }
       } finally {
         if (scanner != null) {
@@ -487,20 +483,12 @@ public class SampleIT extends AccumuloClusterHarness {
 
       scanner.setSamplerConfiguration(sc);
 
-      try {
-        for (Entry<Key,Value> entry : scanner) {
-          entry.getKey();
-        }
-        fail("Expected SampleNotPresentException, but it did not happen : "
-            + scanner.getClass().getSimpleName());
-      } catch (SampleNotPresentException e) {
-
-      }
+      final String message = "Expected SampleNotPresentException, but it did not happen : "
+          + scanner.getClass().getSimpleName();
+      assertThrows(SampleNotPresentException.class, () -> scanner.iterator().next(), message);
 
       scanner.clearSamplerConfiguration();
-      for (Entry<Key,Value> entry : scanner) {
-        entry.getKey();
-      }
+      scanner.forEach((k, v) -> {});
 
       if (csc == null) {
         scanner.clearSamplerConfiguration();
@@ -517,8 +505,8 @@ public class SampleIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> entry : s) {
         actual.put(entry.getKey(), entry.getValue());
       }
-      assertEquals(String.format("Saw %d instead of %d entries using %s", actual.size(),
-          expected.size(), s.getClass().getSimpleName()), expected, actual);
+      assertEquals(expected, actual, String.format("Saw %d instead of %d entries using %s",
+          actual.size(), expected.size(), s.getClass().getSimpleName()));
     }
   }
 }

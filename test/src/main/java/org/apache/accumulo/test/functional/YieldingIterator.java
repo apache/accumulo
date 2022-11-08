@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -111,7 +111,9 @@ public class YieldingIterator extends WrappingIterator {
       resetCounters();
     } else {
       rebuilds.incrementAndGet();
+    }
 
+    if (range.getStartKey() != null) {
       // yield on every other seek call.
       yieldSeekKey.set(!yieldSeekKey.get());
       if (yield.isPresent() && yieldSeekKey.get()) {
@@ -119,8 +121,12 @@ public class YieldingIterator extends WrappingIterator {
         yieldSeeks.incrementAndGet();
         // since we are not actually skipping keys underneath, simply use the key following the
         // range start key
-        yield.get()
-            .yield(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
+        if (range.isStartKeyInclusive()) {
+          yield.get().yield(range.getStartKey());
+        } else {
+          yield.get()
+              .yield(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
+        }
         log.info("end YieldingIterator.next: yielded at " + range.getStartKey());
       }
     }

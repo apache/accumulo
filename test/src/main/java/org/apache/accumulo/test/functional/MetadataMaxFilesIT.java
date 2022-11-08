@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.time.Duration;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -29,23 +30,26 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ManagerClient;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService.Client;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MetadataMaxFilesIT extends ConfigurableMacBase {
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(5);
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -53,11 +57,6 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TSERV_SCAN_MAX_OPENFILES, "10");
     cfg.setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "100");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 5 * 60;
   }
 
   @Test
@@ -82,21 +81,9 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       }
 
       while (true) {
-        ManagerMonitorInfo stats;
-        Client client = null;
-        try {
-          ClientContext context = (ClientContext) c;
-          client = ManagerClient.getConnectionWithRetry(context);
-          log.info("Fetching stats");
-          stats = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
-        } catch (ThriftNotActiveServiceException e) {
-          // Let it loop, fetching a new location
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-          continue;
-        } finally {
-          if (client != null)
-            ManagerClient.close(client, (ClientContext) c);
-        }
+        ClientContext context = (ClientContext) c;
+        ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
+            client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
         int tablets = 0;
         for (TabletServerStatus tserver : stats.tServerInfo) {
           for (Entry<String,TableInfo> entry : tserver.tableMap.entrySet()) {

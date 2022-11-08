@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -22,7 +22,7 @@ import java.util.EnumMap;
 
 public class ServerServices implements Comparable<ServerServices> {
   public static enum Service {
-    TSERV_CLIENT, GC_CLIENT, COMPACTOR_CLIENT
+    TSERV_CLIENT, GC_CLIENT, COMPACTOR_CLIENT, SSERV_CLIENT;
   }
 
   public static final String SERVICE_SEPARATOR = ";";

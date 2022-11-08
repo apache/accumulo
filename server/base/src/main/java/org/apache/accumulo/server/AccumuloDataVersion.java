@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -38,7 +38,7 @@ public class AccumuloDataVersion {
 
   /**
    * version (10) reflects changes to how root tablet metadata is serialized in zookeeper starting
-   * with 2.1
+   * with 2.1. See {@link org.apache.accumulo.core.metadata.schema.RootTabletMetadata}.
    */
   public static final int ROOT_TABLET_META_CHANGES = 10;
 

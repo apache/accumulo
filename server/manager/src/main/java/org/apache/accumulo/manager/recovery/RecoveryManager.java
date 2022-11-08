@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -30,14 +30,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -72,8 +73,9 @@ public class RecoveryManager {
         CacheBuilder.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
             .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
 
-    executor = ThreadPools.createScheduledExecutorService(4, "Walog sort starter", false);
-    zooCache = new ZooCache(manager.getContext().getZooReaderWriter(), null);
+    executor = ThreadPools.getServerThreadPools().createScheduledExecutorService(4,
+        "Walog sort starter", false);
+    zooCache = new ZooCache(manager.getContext().getZooReader(), null);
     try {
       List<String> workIDs =
           new DistributedWorkQueue(manager.getZooKeeperRoot() + Constants.ZRECOVERY,
@@ -105,7 +107,8 @@ public class RecoveryManager {
             manager.getVolumeManager(), new Path(source));
 
         if (time > 0) {
-          executor.schedule(this, time, TimeUnit.MILLISECONDS);
+          ScheduledFuture<?> future = executor.schedule(this, time, TimeUnit.MILLISECONDS);
+          ThreadPools.watchNonCriticalScheduledTask(future);
           rescheduled = true;
         } else {
           initiateSort(sortId, source, destination);
@@ -210,8 +213,9 @@ public class RecoveryManager {
             log.info("Starting recovery of {} (in : {}s), tablet {} holds a reference", filename,
                 (delay / 1000), extent);
 
-            executor.schedule(new LogSortTask(closer, filename, dest, sortId), delay,
-                TimeUnit.MILLISECONDS);
+            ScheduledFuture<?> future = executor.schedule(
+                new LogSortTask(closer, filename, dest, sortId), delay, TimeUnit.MILLISECONDS);
+            ThreadPools.watchNonCriticalScheduledTask(future);
             closeTasksQueued.add(sortId);
             recoveryDelay.put(sortId, delay);
           }

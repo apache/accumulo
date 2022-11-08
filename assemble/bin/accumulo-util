@@ -8,7 +8,7 @@
 # "License"); you may not use this file except in compliance
 # with the License.  You may obtain a copy of the License at
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+#   https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
@@ -26,7 +26,6 @@ Commands:
   build-native        Builds Accumulo native libraries
   dump-zoo            Dumps data in ZooKeeper
   gen-monitor-cert    Generates Accumulo monitor certificate
-  load-jars-hdfs      Loads Accumulo jars in lib/ to HDFS for VFS classloader
   
 EOF
   exit 1
@@ -40,7 +39,7 @@ function build_native() {
   fi
 
   native_tarballs=("$basedir"/lib/accumulo-native-*.tar.gz)
-  if (( ${#native_tarballs[@]} > 1 )); then
+  if ((${#native_tarballs[@]} > 1)); then
     echo "Found multiple native tar.gz files: ${native_tarballs[*]}"
     exit 1
   fi
@@ -57,10 +56,9 @@ function build_native() {
   TMP_DIR=$(mktemp -d /tmp/accumulo-native.XXXXXX) || exit 1
 
   # Unpack the tarball to our temp directory
-  if ! tar xf "${native_tarballs[0]}" -C "${TMP_DIR}"
-  then
-      echo "Failed to unpack native tarball to ${TMP_DIR}"
-      exit 1
+  if ! tar xf "${native_tarballs[0]}" -C "${TMP_DIR}"; then
+    echo "Failed to unpack native tarball to ${TMP_DIR}"
+    exit 1
   fi
 
   # Move to the first (only) directory in our unpacked tarball
@@ -70,7 +68,10 @@ function build_native() {
 
   # Make the native library
   export USERFLAGS="$*"
-  make || { echo 'Make failed!'; exit 1; }
+  make || {
+    echo 'Make failed!'
+    exit 1
+  }
 
   # "install" the artifact
   cp libaccumulo.* "${final_native_target}" || exit 1
@@ -82,43 +83,43 @@ function build_native() {
 }
 
 function gen_monitor_cert() {
-  if [[ -z "$JAVA_HOME" || ! -d "$JAVA_HOME" ]]; then
+  if [[ -z $JAVA_HOME || ! -d $JAVA_HOME ]]; then
     echo "JAVA_HOME=${JAVA_HOME} must be set and exist"
     exit 1
   fi
 
   ALIAS="default"
-  KEYPASS=$(LC_CTYPE=C tr -dc '#-~' < /dev/urandom | tr -d '<>&' | head -c 20)
-  STOREPASS=$(LC_CTYPE=C tr -dc '#-~' < /dev/urandom | tr -d '<>&' | head -c 20)
+  KEYPASS=$(LC_CTYPE=C tr -dc '#-~' </dev/urandom | tr -d '<>&' | head -c 20)
+  STOREPASS=$(LC_CTYPE=C tr -dc '#-~' </dev/urandom | tr -d '<>&' | head -c 20)
   KEYSTOREPATH="${conf}/keystore.jks"
   TRUSTSTOREPATH="${conf}/cacerts.jks"
   CERTPATH="${conf}/server.cer"
 
-  if [[ -e "$KEYSTOREPATH" ]]; then
-     rm -i "$KEYSTOREPATH"
-     if [[ -e "$KEYSTOREPATH" ]]; then
-        echo "KeyStore already exists, exiting"
-        exit 1
-     fi
+  if [[ -e $KEYSTOREPATH ]]; then
+    rm -i "$KEYSTOREPATH"
+    if [[ -e $KEYSTOREPATH ]]; then
+      echo "KeyStore already exists, exiting"
+      exit 1
+    fi
   fi
-  if [[ -e "$TRUSTSTOREPATH" ]]; then
-     rm -i "$TRUSTSTOREPATH"
-     if [[ -e "$TRUSTSTOREPATH" ]]; then
-        echo "TrustStore already exists, exiting"
-        exit 2
-     fi
+  if [[ -e $TRUSTSTOREPATH ]]; then
+    rm -i "$TRUSTSTOREPATH"
+    if [[ -e $TRUSTSTOREPATH ]]; then
+      echo "TrustStore already exists, exiting"
+      exit 2
+    fi
   fi
-  if [[ -e "$CERTPATH" ]]; then
-     rm -i "$CERTPATH"
-     if [[ -e "$CERTPATH" ]]; then
-        echo "Certificate already exists, exiting"
-        exit 3
+  if [[ -e $CERTPATH ]]; then
+    rm -i "$CERTPATH"
+    if [[ -e $CERTPATH ]]; then
+      echo "Certificate already exists, exiting"
+      exit 3
     fi
   fi
 
   "${JAVA_HOME}/bin/keytool" -genkey -alias "$ALIAS" -keyalg RSA -keypass "$KEYPASS" -storepass "$KEYPASS" -keystore "$KEYSTOREPATH"
   "${JAVA_HOME}/bin/keytool" -export -alias "$ALIAS" -storepass "$KEYPASS" -file "$CERTPATH" -keystore "$KEYSTOREPATH"
-  "${JAVA_HOME}/bin/keytool" -import -v -trustcacerts -alias "$ALIAS" -file "$CERTPATH" -keystore "$TRUSTSTOREPATH" -storepass "$STOREPASS" <<< "yes"
+  "${JAVA_HOME}/bin/keytool" -import -v -trustcacerts -alias "$ALIAS" -file "$CERTPATH" -keystore "$TRUSTSTOREPATH" -storepass "$STOREPASS" <<<"yes"
 
   echo
   echo "keystore and truststore generated.  now add the following to accumulo.properties:"
@@ -130,71 +131,19 @@ function gen_monitor_cert() {
   echo
 }
 
-function load_jars_hdfs() {
-
-  if [[ -x "$HADOOP_HOME/bin/hadoop" ]]; then
-    HADOOP="$HADOOP_HOME/bin/hadoop"
-  else
-    HADOOP=$(which hadoop)
-  fi
-  if [[ ! -x "$HADOOP" ]]; then
-    echo "Could not find 'hadoop' command. Please set hadoop on your PATH or set HADOOP_HOME"
-    exit 1
-  fi
-
-  # Find the system context directory in HDFS
-  SYSTEM_CONTEXT_HDFS_DIR=$(grep "general.vfs.classpaths" "$conf/accumulo.properties" | cut -d '=' -f 2)
-
-  if [[ -z "$SYSTEM_CONTEXT_HDFS_DIR" ]]; then
-    echo "Your accumulo.properties file is not set up for the HDFS Classloader. Please add the following to your accumulo.properties file where ##CLASSPATH## is one of the following formats:"
-    echo "A single directory: hdfs://host:port/directory/"
-    echo "A single directory with a regex: hdfs://host:port/directory/.*.jar"
-    echo "Multiple directories: hdfs://host:port/directory/.*.jar,hdfs://host:port/directory2/"
-    echo ""
-    echo "general.vfs.classpaths=##CLASSPATH##"
-    exit 1
-  fi
-
-  # Create the system context directy in HDFS if it does not exist
-  if ! "$HADOOP" fs -ls "$SYSTEM_CONTEXT_HDFS_DIR" > /dev/null; then
-    if ! "$HADOOP" fs -mkdir "$SYSTEM_CONTEXT_HDFS_DIR" > /dev/null; then
-      echo "Unable to create classpath directory at $SYSTEM_CONTEXT_HDFS_DIR"
-      exit 1
-    fi
-  fi
-
-  # Replicate to all tservers to avoid network contention on startup
-  TSERVERS=${conf}/tservers
-  NUM_TSERVERS=$(grep -E -c -v '(^#|^\s*$)' "$TSERVERS")
-
-  #let each datanode service around 50 clients
-  REP=$(( NUM_TSERVERS / 50 ))
-  (( REP < 3 )) && REP=3
-
-  # Copy all jars in lib to the system context directory
-  "$HADOOP" fs -moveFromLocal "$lib"/*.jar "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
-  "$HADOOP" fs -setrep -R $REP "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
-
-  # We need some of the jars in lib, copy them back out and remove them from the system context dir
-  "$HADOOP" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2.jar" "$lib/."  > /dev/null
-  "$HADOOP" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2.jar"  > /dev/null
-  "$HADOOP" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar" "$lib/."  > /dev/null
-  "$HADOOP" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start.jar"  > /dev/null
-  "$HADOOP" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar" "$lib/."  > /dev/null
-  "$HADOOP" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar"  > /dev/null
-}
-
 function main() {
   SOURCE="${BASH_SOURCE[0]}"
   while [ -h "${SOURCE}" ]; do
-     bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-     SOURCE="$(readlink "${SOURCE}")"
-     [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}"
+    bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+    SOURCE="$(readlink "${SOURCE}")"
+    [[ ${SOURCE} != /* ]] && SOURCE="${bin}/${SOURCE}"
   done
-  bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-  basedir=$( cd -P "${bin}"/.. && pwd )
-  conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
-  lib="${basedir}/lib"
+  bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+  export bin
+  basedir=$(cd -P "${bin}"/.. && pwd)
+  export basedir
+  export conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
+  export lib="${basedir}/lib"
 
   case "$1" in
     build-native)
@@ -205,9 +154,6 @@ function main() {
       ;;
     gen-monitor-cert)
       gen_monitor_cert
-      ;;
-    load-jars-hdfs)
-      load_jars_hdfs
       ;;
     *)
       echo -e "'$1' is an invalid <command>\\n"

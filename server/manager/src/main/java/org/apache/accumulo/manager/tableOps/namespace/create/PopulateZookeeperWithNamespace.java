@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,23 +18,21 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
-import java.util.Map.Entry;
-
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
-import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.tables.TableManager;
-import org.apache.accumulo.server.util.NamespacePropUtil;
+import org.apache.accumulo.server.util.PropUtil;
 
 class PopulateZookeeperWithNamespace extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private NamespaceInfo namespaceInfo;
+  private final NamespaceInfo namespaceInfo;
 
   PopulateZookeeperWithNamespace(NamespaceInfo ti) {
     this.namespaceInfo = ti;
@@ -54,15 +52,14 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
       Utils.checkNamespaceDoesNotExist(manager.getContext(), namespaceInfo.namespaceName,
           namespaceInfo.namespaceId, TableOperation.CREATE);
 
-      TableManager.prepareNewNamespaceState(manager.getContext().getZooReaderWriter(),
-          manager.getInstanceID(), namespaceInfo.namespaceId, namespaceInfo.namespaceName,
-          NodeExistsPolicy.OVERWRITE);
+      TableManager.prepareNewNamespaceState(manager.getContext(), namespaceInfo.namespaceId,
+          namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
 
-      for (Entry<String,String> entry : namespaceInfo.props.entrySet())
-        NamespacePropUtil.setNamespaceProperty(manager.getContext(), namespaceInfo.namespaceId,
-            entry.getKey(), entry.getValue());
+      PropUtil.setProperties(manager.getContext(),
+          NamespacePropKey.of(manager.getContext(), namespaceInfo.namespaceId),
+          namespaceInfo.props);
 
-      Tables.clearCache(manager.getContext());
+      manager.getContext().clearTableListCache();
 
       return new FinishCreateNamespace(namespaceInfo);
     } finally {
@@ -73,7 +70,7 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
   @Override
   public void undo(long tid, Manager manager) throws Exception {
     manager.getTableManager().removeNamespace(namespaceInfo.namespaceId);
-    Tables.clearCache(manager.getContext());
+    manager.getContext().clearTableListCache();
     Utils.unreserveNamespace(manager, namespaceInfo.namespaceId, tid, true);
   }
 

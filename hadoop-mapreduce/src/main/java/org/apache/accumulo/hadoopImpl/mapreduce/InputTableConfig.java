@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -36,6 +36,7 @@ import java.util.Optional;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -65,6 +66,7 @@ public class InputTableConfig implements Writable {
   private boolean batchScan = false;
   private SamplerConfiguration samplerConfig = null;
   private Map<String,String> executionHints = Collections.emptyMap();
+  private ConsistencyLevel consistencyLevel = null;
 
   public InputTableConfig() {}
 
@@ -310,6 +312,14 @@ public class InputTableConfig implements Writable {
     this.context = Optional.of(context);
   }
 
+  public ConsistencyLevel getConsistencyLevel() {
+    return consistencyLevel;
+  }
+
+  public void setConsistencyLevel(ConsistencyLevel consistencyLevel) {
+    this.consistencyLevel = consistencyLevel;
+  }
+
   @Override
   public void write(DataOutput dataOutput) throws IOException {
     if (iterators != null) {
@@ -360,6 +370,12 @@ public class InputTableConfig implements Writable {
         dataOutput.writeUTF(entry.getKey());
         dataOutput.writeUTF(entry.getValue());
       }
+    }
+    if (this.consistencyLevel == null) {
+      dataOutput.writeBoolean(false);
+    } else {
+      dataOutput.writeBoolean(true);
+      dataOutput.writeUTF(this.consistencyLevel.name());
     }
   }
 
@@ -414,6 +430,9 @@ public class InputTableConfig implements Writable {
       String v = dataInput.readUTF();
       executionHints.put(k, v);
     }
+    if (dataInput.readBoolean()) {
+      this.consistencyLevel = ConsistencyLevel.valueOf(dataInput.readUTF());
+    }
   }
 
   @Override
@@ -441,6 +460,8 @@ public class InputTableConfig implements Writable {
       return false;
     if (!Objects.equals(executionHints, that.executionHints))
       return false;
+    if (!Objects.equals(consistencyLevel, that.consistencyLevel))
+      return false;
     return Objects.equals(samplerConfig, that.samplerConfig);
   }
 
@@ -455,6 +476,7 @@ public class InputTableConfig implements Writable {
     result = 31 * result + (offlineScan ? 1 : 0);
     result = 31 * result + (samplerConfig == null ? 0 : samplerConfig.hashCode());
     result = 31 * result + (executionHints == null ? 0 : executionHints.hashCode());
+    result = 31 * result + (consistencyLevel == null ? 0 : consistencyLevel.hashCode());
     return result;
   }
 }

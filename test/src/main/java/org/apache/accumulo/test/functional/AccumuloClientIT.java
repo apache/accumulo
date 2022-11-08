@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -43,14 +43,12 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.After;
-import org.junit.Test;
-
-import com.google.common.collect.Iterables;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public class AccumuloClientIT extends AccumuloClusterHarness {
 
-  @After
+  @AfterEach
   public void deleteUsers() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       Set<String> users = client.securityOperations().listLocalUsers();
@@ -69,13 +67,9 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     void check() throws Exception;
   }
 
-  private static void expectClosed(CloseCheck cc) throws Exception {
-    try {
-      cc.check();
-      fail();
-    } catch (IllegalStateException e) {
-      assertTrue(e.getMessage().toLowerCase().contains("closed"));
-    }
+  private static void expectClosed(CloseCheck cc) {
+    var e = assertThrows(IllegalStateException.class, cc::check);
+    assertTrue(e.getMessage().toLowerCase().contains("closed"));
   }
 
   @SuppressWarnings("deprecation")
@@ -190,7 +184,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     assertEquals(0, SingletonManager.getReservationCount());
     assertEquals(Mode.CLIENT, SingletonManager.getMode());
 
-    try (AccumuloClient c = Accumulo.newClient().from(getClientInfo().getProperties()).build()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       assertEquals(1, SingletonManager.getReservationCount());
 
       c.tableOperations().create(tableName);
@@ -209,12 +203,12 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
 
     assertEquals(0, SingletonManager.getReservationCount());
 
-    AccumuloClient c = Accumulo.newClient().from(getClientInfo().getProperties()).build();
+    AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();
     assertEquals(1, SingletonManager.getReservationCount());
 
     // ensure client created after everything was closed works
     Scanner scanner2 = c.createScanner(tableName, Authorizations.EMPTY);
-    Entry<Key,Value> e = Iterables.getOnlyElement(scanner2);
+    Entry<Key,Value> e = getOnlyElement(scanner2);
     assertEquals("0001", e.getKey().getRowData().toString());
     assertEquals("f007", e.getKey().getColumnFamilyData().toString());
     assertEquals("q4", e.getKey().getColumnQualifierData().toString());
@@ -235,7 +229,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     expectClosed(c::securityOperations);
     expectClosed(c::namespaceOperations);
     expectClosed(c::properties);
-    expectClosed(() -> c.instanceOperations().getInstanceID());
+    expectClosed(() -> c.instanceOperations().getInstanceId());
 
     // check a few table ops to ensure they fail
     expectClosed(() -> tops.create("expectFail"));

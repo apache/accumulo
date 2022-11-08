@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -56,7 +56,7 @@ public class CompactCommand extends TableOperation {
         + " specified, then all files will be compacted. Options that configure"
         + " output settings are only applied to this compaction and not later"
         + " compactions. If multiple concurrent user initiated compactions specify"
-        + " iterators or a compaction strategy, then all but one will fail to" + " start.";
+        + " iterators or a compaction strategy, then all but one will fail to start.";
   }
 
   @Override
@@ -294,7 +294,7 @@ public class CompactCommand extends TableOperation {
     opts.addOption(outIndexBlockSizeOpt);
     outCompressionOpt = newLAO("out-compress",
         "Compression to use for compaction output file. Either snappy, gz, bzip2, lzo,"
-            + "lz4, zstd, or none. Uses table settings if not specified.");
+            + " lz4, zstd, or none. Uses table settings if not specified.");
     opts.addOption(outCompressionOpt);
     outReplication =
         newLAO("out-replication", "HDFS replication to use for compaction output file. Uses table"

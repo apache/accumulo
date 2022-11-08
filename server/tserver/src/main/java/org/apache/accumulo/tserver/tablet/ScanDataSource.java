@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -26,14 +26,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.conf.IterConfigUtil;
-import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
@@ -53,13 +53,11 @@ import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 class ScanDataSource implements DataSource {
 
   private static final Logger log = LoggerFactory.getLogger(ScanDataSource.class);
   // data source state
-  private final Tablet tablet;
+  private final TabletBase tablet;
   private ScanFileManager fileManager;
   private SortedKeyValueIterator<Key,Value> iter;
   private long expectedDeletionCount;
@@ -72,7 +70,7 @@ class ScanDataSource implements DataSource {
   private final boolean loadIters;
   private final byte[] defaultLabels;
 
-  ScanDataSource(Tablet tablet, ScanParameters scanParams, boolean loadIters,
+  ScanDataSource(TabletBase tablet, ScanParameters scanParams, boolean loadIters,
       AtomicBoolean interruptFlag) {
     this.tablet = tablet;
     this.expectedDeletionCount = tablet.getDataSourceDeletions();
@@ -93,14 +91,14 @@ class ScanDataSource implements DataSource {
     else {
       // log.debug("Switching data sources during a scan");
       if (memIters != null) {
-        tablet.getTabletMemory().returnIterators(memIters);
+        tablet.returnMemIterators(memIters);
         memIters = null;
-        tablet.getDatafileManager().returnFilesForScan(fileReservationId);
+        tablet.returnFilesForScan(fileReservationId);
         fileReservationId = -1;
       }
 
       if (fileManager != null) {
-        tablet.getTabletServer().getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
+        tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
         fileManager.releaseOpenFiles(false);
       }
 
@@ -144,7 +142,7 @@ class ScanDataSource implements DataSource {
       // only acquire the file manager when we know the tablet is open
       if (fileManager == null) {
         fileManager = tablet.getTabletResources().newScanFileManager(scanParams.getScanDispatch());
-        tablet.getTabletServer().getScanMetrics().incrementOpenFiles(fileManager.getNumOpenFiles());
+        tablet.getScanMetrics().incrementOpenFiles(fileManager.getNumOpenFiles());
         tablet.addActiveScans(this);
       }
 
@@ -155,9 +153,8 @@ class ScanDataSource implements DataSource {
       // getIterators() throws an exception
       expectedDeletionCount = tablet.getDataSourceDeletions();
 
-      memIters = tablet.getTabletMemory().getIterators(samplerConfig);
-      Pair<Long,Map<TabletFile,DataFileValue>> reservation =
-          tablet.getDatafileManager().reserveFilesForScan();
+      memIters = tablet.getMemIterators(samplerConfig);
+      Pair<Long,Map<TabletFile,DataFileValue>> reservation = tablet.reserveFilesForScan();
       fileReservationId = reservation.getFirst();
       files = reservation.getSecond();
     }
@@ -165,8 +162,7 @@ class ScanDataSource implements DataSource {
     Collection<InterruptibleIterator> mapfiles =
         fileManager.openFiles(files, scanParams.isIsolated(), samplerConfig);
 
-    for (SortedKeyValueIterator<Key,Value> skvi : Iterables.concat(mapfiles, memIters))
-      ((InterruptibleIterator) skvi).setInterruptFlag(interruptFlag);
+    List.of(mapfiles, memIters).forEach(c -> c.forEach(ii -> ii.setInterruptFlag(interruptFlag)));
 
     List<SortedKeyValueIterator<Key,Value>> iters =
         new ArrayList<>(mapfiles.size() + memIters.size());
@@ -176,13 +172,12 @@ class ScanDataSource implements DataSource {
 
     MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());
 
-    TabletIteratorEnvironment iterEnv =
-        new TabletIteratorEnvironment(tablet.getTabletServer().getContext(), IteratorScope.scan,
-            tablet.getTableConfiguration(), tablet.getExtent().tableId(), fileManager, files,
-            scanParams.getAuthorizations(), samplerConfig, new ArrayList<>());
+    TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(tablet.getContext(),
+        IteratorScope.scan, tablet.getTableConfiguration(), tablet.getExtent().tableId(),
+        fileManager, files, scanParams.getAuthorizations(), samplerConfig, new ArrayList<>());
 
-    statsIterator =
-        new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter());
+    statsIterator = new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter(),
+        tablet.getScanMetrics().getScannedCounter());
 
     SortedKeyValueIterator<Key,Value> visFilter =
         SystemIteratorUtil.setupSystemScanIterators(statsIterator, scanParams.getColumnSet(),
@@ -204,8 +199,8 @@ class ScanDataSource implements DataSource {
         // iterator options.
         iterOpts = new HashMap<>(pic.getOpts().size() + scanParams.getSsio().size());
         iterInfos = new ArrayList<>(pic.getIterInfo().size() + scanParams.getSsiList().size());
-        IterConfigUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(), pic.getOpts(),
-            scanParams.getSsiList(), scanParams.getSsio());
+        IteratorConfigUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(),
+            pic.getOpts(), scanParams.getSsiList(), scanParams.getSsio());
       }
 
       String context;
@@ -223,20 +218,22 @@ class ScanDataSource implements DataSource {
         }
       }
 
-      IterLoad il = new IterLoad().iters(iterInfos).iterOpts(iterOpts).iterEnv(iterEnv)
-          .useAccumuloClassLoader(true).context(context);
-      return iterEnv.getTopLevelIterator(IterConfigUtil.loadIterators(visFilter, il));
+      var iteratorBuilder = IteratorBuilder.builder(iterInfos).opts(iterOpts).env(iterEnv)
+          .useClassLoader(context).build();
+      return iterEnv
+          .getTopLevelIterator(IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder));
     } else {
       return visFilter;
     }
   }
 
-  void close(boolean sawErrors) {
+  @Override
+  public void close(boolean sawErrors) {
 
     if (memIters != null) {
-      tablet.getTabletMemory().returnIterators(memIters);
+      tablet.returnMemIterators(memIters);
       memIters = null;
-      tablet.getDatafileManager().returnFilesForScan(fileReservationId);
+      tablet.returnFilesForScan(fileReservationId);
       fileReservationId = -1;
     }
 
@@ -246,7 +243,7 @@ class ScanDataSource implements DataSource {
     }
 
     if (fileManager != null) {
-      tablet.getTabletServer().getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
+      tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
       fileManager.releaseOpenFiles(sawErrors);
       fileManager = null;
     }

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,11 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -49,7 +50,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
@@ -59,8 +60,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
   private static final int NUM_THREADS = 3;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 90;
+  protected Duration defaultTimeout() {
+    return Duration.ofSeconds(90);
   }
 
   @Test
@@ -207,8 +208,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         allMuts.add(muts);
       }
 
-      ThreadPoolExecutor threads =
-          ThreadPools.createFixedThreadPool(NUM_THREADS, "ClientThreads", false);
+      ThreadPoolExecutor threads = ThreadPools.getServerThreadPools()
+          .createFixedThreadPool(NUM_THREADS, "ClientThreads", false);
       threads.allowCoreThreadTimeOut(false);
       threads.prestartAllCoreThreads();
 
@@ -247,7 +248,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
               break;
             }
           }
-          assertTrue("Mutation not found: " + m, found);
+          assertTrue(found, "Mutation not found: " + m);
         }
 
         for (int m = 0; m < NUM_THREADS; m++) {

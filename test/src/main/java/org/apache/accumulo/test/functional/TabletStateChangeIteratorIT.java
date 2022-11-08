@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,30 +47,27 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.state.CurrentState;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.accumulo.server.manager.state.TabletStateChangeIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,8 +81,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   private final static Logger log = LoggerFactory.getLogger(TabletStateChangeIteratorIT.class);
 
   @Override
-  public int defaultTimeoutSeconds() {
-    return 3 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
   }
 
   @Test
@@ -117,8 +115,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
         copyTable(client, MetadataTable.NAME, metaCopy1);
         tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, state);
       }
-      assertEquals("No tables should need attention", 0,
-          findTabletsNeedingAttention(client, metaCopy1, state));
+      assertEquals(0, findTabletsNeedingAttention(client, metaCopy1, state),
+          "No tables should need attention");
 
       // The metadata table stabilized and metaCopy1 contains a copy suitable for testing. Before
       // metaCopy1 is modified, copy it for subsequent test.
@@ -127,13 +125,13 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
       // test the assigned case (no location)
       removeLocation(client, metaCopy1, t3);
-      assertEquals("Should have two tablets without a loc", 2,
-          findTabletsNeedingAttention(client, metaCopy1, state));
+      assertEquals(2, findTabletsNeedingAttention(client, metaCopy1, state),
+          "Should have two tablets without a loc");
 
       // test the cases where the assignment is to a dead tserver
       reassignLocation(client, metaCopy2, t3);
-      assertEquals("Should have one tablet that needs to be unassigned", 1,
-          findTabletsNeedingAttention(client, metaCopy2, state));
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy2, state),
+          "Should have one tablet that needs to be unassigned");
 
       // test the cases where there is ongoing merges
       state = new State(client) {
@@ -144,14 +142,14 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
               new MergeInfo(new KeyExtent(tableIdToModify, null, null), MergeInfo.Operation.MERGE));
         }
       };
-      assertEquals("Should have 2 tablets that need to be chopped or unassigned", 1,
-          findTabletsNeedingAttention(client, metaCopy2, state));
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy2, state),
+          "Should have 2 tablets that need to be chopped or unassigned");
 
       // test the bad tablet location state case (inconsistent metadata)
       state = new State(client);
       addDuplicateLocation(client, metaCopy3, t3);
-      assertEquals("Should have 1 tablet that needs a metadata repair", 1,
-          findTabletsNeedingAttention(client, metaCopy3, state));
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy3, state),
+          "Should have 1 tablet that needs a metadata repair");
 
       // clean up
       dropTables(client, t1, t2, t3, metaCopy1, metaCopy2, metaCopy3);
@@ -271,7 +269,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
     // metadata should be stable with only 7 rows (1 replication + 2 for each table)
     log.debug("Gathered {} rows to create copy {}", mutations.size(), copy);
-    assertEquals("Metadata should have 7 rows (1 repl + 2 for each table)", 7, mutations.size());
+    assertEquals(7, mutations.size(), "Metadata should have 7 rows (1 repl + 2 for each table)");
     client.tableOperations().create(copy);
 
     try (BatchWriter writer = client.createBatchWriter(copy)) {
@@ -292,10 +290,10 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
   private static class State implements CurrentState {
 
-    final AccumuloClient client;
+    final ClientContext context;
 
     State(AccumuloClient client) {
-      this.client = client;
+      this.context = (ClientContext) client;
     }
 
     private Set<TServerInstance> tservers;
@@ -304,13 +302,11 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     @Override
     public Set<TServerInstance> onlineTabletServers() {
       HashSet<TServerInstance> tservers = new HashSet<>();
-      for (String tserver : client.instanceOperations().getTabletServers()) {
+      for (String tserver : context.instanceOperations().getTabletServers()) {
         try {
-          var zPath = ServiceLock.path(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+          var zPath = ServiceLock.path(ZooUtil.getRoot(context.instanceOperations().getInstanceId())
               + Constants.ZTSERVERS + "/" + tserver);
-          ClientInfo info = getClientInfo();
-          long sessionId = ServiceLock.getSessionId(
-              new ZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut()), zPath);
+          long sessionId = ServiceLock.getSessionId(context.getZooCache(), zPath);
           tservers.add(new TServerInstance(tserver, sessionId));
         } catch (Exception e) {
           throw new RuntimeException(e);
@@ -322,10 +318,9 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
     @Override
     public Set<TableId> onlineTables() {
-      ClientContext context = (ClientContext) client;
-      Set<TableId> onlineTables = Tables.getIdToNameMap(context).keySet();
-      this.onlineTables = Sets.filter(onlineTables,
-          tableId -> Tables.getTableState(context, tableId) == TableState.ONLINE);
+      Set<TableId> onlineTables = context.getTableIdToNameMap().keySet();
+      this.onlineTables =
+          Sets.filter(onlineTables, tableId -> context.getTableState(tableId) == TableState.ONLINE);
       return this.onlineTables;
     }
 

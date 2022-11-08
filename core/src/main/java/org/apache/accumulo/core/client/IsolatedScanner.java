@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.core.client;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.clientImpl.IsolationException;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
@@ -114,7 +114,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
           }
 
           // wait a moment before retrying
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+          sleepUninterruptibly(100, MILLISECONDS);
 
           source = newIterator(seekRange);
         }
@@ -125,13 +125,12 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
       synchronized (scanner) {
         scanner.enableIsolation();
         scanner.setBatchSize(batchSize);
-        scanner.setTimeout(timeout, TimeUnit.MILLISECONDS);
+        scanner.setTimeout(timeout, MILLISECONDS);
         scanner.setRange(r);
         scanner.setReadaheadThreshold(readaheadThreshold);
         setOptions((ScannerOptions) scanner, opts);
 
         return scanner.iterator();
-        // return new FaultyIterator(scanner.iterator());
       }
     }
 
@@ -228,8 +227,8 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   public IsolatedScanner(Scanner scanner, RowBufferFactory bufferFactory) {
     this.scanner = scanner;
     this.range = scanner.getRange();
-    this.timeOut = scanner.getTimeout(TimeUnit.MILLISECONDS);
-    this.batchTimeOut = scanner.getBatchTimeout(TimeUnit.MILLISECONDS);
+    this.timeOut = scanner.getTimeout(MILLISECONDS);
+    this.batchTimeOut = scanner.getBatchTimeout(MILLISECONDS);
     this.batchSize = scanner.getBatchSize();
     this.readaheadThreshold = scanner.getReadaheadThreshold();
     this.bufferFactory = bufferFactory;

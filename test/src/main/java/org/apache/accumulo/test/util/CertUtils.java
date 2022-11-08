@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -113,7 +113,7 @@ public class CertUtils {
     String issuerDirString = "o=Apache Accumulo";
 
     @Parameter(names = "--accumulo-props",
-        description = "Path to accumulo.properties to load " + "Accumulo configuration from")
+        description = "Path to accumulo.properties to load Accumulo configuration from")
     public String accumuloPropsFile = null;
 
     @Parameter(names = "--signing-algorithm", description = "Algorithm used to sign certificates")
@@ -181,7 +181,6 @@ public class CertUtils {
 
   public CertUtils(String keystoreType, String issuerDirString, String encryptionAlgorithm,
       int keysize, String signingAlgorithm) {
-    super();
     this.keystoreType = keystoreType;
     this.issuerDirString = issuerDirString;
     this.encryptionAlgorithm = encryptionAlgorithm;
@@ -281,7 +280,7 @@ public class CertUtils {
     Calendar endDate = Calendar.getInstance();
     endDate.add(Calendar.YEAR, 100);
 
-    BigInteger serialNumber = BigInteger.valueOf((startDate.getTimeInMillis()));
+    BigInteger serialNumber = BigInteger.valueOf(startDate.getTimeInMillis());
     X500Name issuer =
         new X500Name(IETFUtils.rDNsFromString(issuerDirString, RFC4519Style.INSTANCE));
     JcaX509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(issuer, serialNumber,

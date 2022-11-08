@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,9 +24,9 @@ import java.util.SortedSet;
 public class DiskUsage {
 
   protected final SortedSet<String> tables;
-  protected Long usage;
+  protected long usage;
 
-  public DiskUsage(SortedSet<String> tables, Long usage) {
+  public DiskUsage(SortedSet<String> tables, long usage) {
     this.tables = tables;
     this.usage = usage;
   }
@@ -35,7 +35,7 @@ public class DiskUsage {
     return tables;
   }
 
-  public Long getUsage() {
+  public long getUsage() {
     return usage;
   }
 
@@ -58,6 +58,6 @@ public class DiskUsage {
 
   @Override
   public String toString() {
-    return "DiskUsage{" + "tables=" + tables + ", usage=" + usage + '}';
+    return "DiskUsage{tables=" + tables + ", usage=" + usage + '}';
   }
 }

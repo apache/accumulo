@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -22,7 +22,7 @@ import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,7 +51,7 @@ import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TableLoadBalancerTest {
 
@@ -81,7 +81,7 @@ public class TableLoadBalancerTest {
     return new TServerStatusImpl(thriftStatus);
   }
 
-  static SortedMap<TabletServerId,TServerStatus> state;
+  private static final SortedMap<TabletServerId,TServerStatus> state = new TreeMap<>();
 
   static List<TabletStatistics> generateFakeTablets(TabletServerId tserver, TableId tableId) {
     List<TabletStatistics> result = new ArrayList<>();
@@ -133,7 +133,7 @@ public class TableLoadBalancerTest {
 
     String t1Id = TABLE_ID_MAP.get("t1"), t2Id = TABLE_ID_MAP.get("t2"),
         t3Id = TABLE_ID_MAP.get("t3");
-    state = new TreeMap<>();
+    state.clear();
     TabletServerId svr = mkts("10.0.0.1", 1234, "0x01020304");
     state.put(svr, status(t1Id, 10, t2Id, 10, t3Id, 10));
 

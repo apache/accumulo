@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.hadoop.its.mapred;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -52,8 +52,8 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.lib.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests the new MR API in the hadoop-mapreduce package.
@@ -72,7 +72,7 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
   private static AssertionError e1 = null;
   private static AssertionError e2 = null;
 
-  @BeforeClass
+  @BeforeAll
   public static void prepareRows() {
     row1 = new ArrayList<>();
     row1.add(new KeyValue(new Key(ROW1, COLF1, "colq1"), "v1".getBytes()));
@@ -89,8 +89,8 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
     int entryIndex = 0;
     while (second.hasNext()) {
       final Entry<Key,Value> entry = second.next();
-      assertEquals("Keys should be equal", first.get(entryIndex).getKey(), entry.getKey());
-      assertEquals("Values should be equal", first.get(entryIndex).getValue(), entry.getValue());
+      assertEquals(first.get(entryIndex).getKey(), entry.getKey(), "Keys should be equal");
+      assertEquals(first.get(entryIndex).getValue(), entry.getValue(), "Values should be equal");
       entryIndex++;
     }
   }
@@ -118,15 +118,15 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
         try {
           switch (count) {
             case 0:
-              assertEquals("Current key should be " + ROW1, new Text(ROW1), k);
+              assertEquals(new Text(ROW1), k, "Current key should be " + ROW1);
               checkLists(row1, v);
               break;
             case 1:
-              assertEquals("Current key should be " + ROW2, new Text(ROW2), k);
+              assertEquals(new Text(ROW2), k, "Current key should be " + ROW2);
               checkLists(row2, v);
               break;
             case 2:
-              assertEquals("Current key should be " + ROW3, new Text(ROW3), k);
+              assertEquals(new Text(ROW3), k, "Current key should be " + ROW3);
               checkLists(row3, v);
               break;
             default:
@@ -166,8 +166,8 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormat(AccumuloRowInputFormat.class);
 
-      AccumuloRowInputFormat.configure().clientProperties(getClientInfo().getProperties())
-          .table(table).auths(Authorizations.EMPTY).store(job);
+      AccumuloRowInputFormat.configure().clientProperties(getClientProps()).table(table)
+          .auths(Authorizations.EMPTY).store(job);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);

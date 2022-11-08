@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -228,7 +228,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
       keyPos++;
 
     // If we emptied out the transformed key map then transform the next key
-    // set from the source. It’s possible that transformation could produce keys
+    // set from the source. It's possible that transformation could produce keys
     // that are outside of our range or are not visible to the end user, so after the
     // call below we might not have added any keys to the map. Keep going until
     // we either get some keys in the map or exhaust the source iterator.
@@ -252,7 +252,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     // Range clipping could cause us to trim out all the keys we transformed.
     // Keep looping until we either have some keys in the output range, or have
     // exhausted the source iterator.
-    keyPos = -1; // “Clear” list so hasTop returns false to get us into the loop (transformKeys
+    keyPos = -1; // "Clear" list so hasTop returns false to get us into the loop (transformKeys
                  // actually clears)
     while (!hasTop() && super.hasTop()) {
       // Build up a sorted list of all keys for the same prefix. When

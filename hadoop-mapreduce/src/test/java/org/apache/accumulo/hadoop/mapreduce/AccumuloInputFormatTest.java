@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.hadoop.mapreduce;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -31,6 +31,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
@@ -42,14 +43,14 @@ import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class AccumuloInputFormatTest {
 
   static Properties clientProperties;
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() {
     clientProperties = setupClientProperties();
   }
@@ -247,9 +248,22 @@ public class AccumuloInputFormatTest {
         .auths(Authorizations.EMPTY);
     AccumuloInputFormat aif = new AccumuloInputFormat();
 
-    try {
-      aif.getSplits(job);
-      fail("IllegalStateException should have been thrown for not calling store");
-    } catch (IllegalStateException e) {}
+    assertThrows(IllegalStateException.class, () -> aif.getSplits(job),
+        "IllegalStateException should have been thrown for not calling store");
+  }
+
+  @Test
+  public void testConsistencyLevel() throws Exception {
+    Job job = Job.getInstance();
+
+    AccumuloInputFormat.configure().clientProperties(clientProperties).table("table")
+        .auths(Authorizations.EMPTY).consistencyLevel(ConsistencyLevel.EVENTUAL).store(job);
+
+    assertEquals(ConsistencyLevel.EVENTUAL,
+        InputConfigurator.getConsistencyLevel(AccumuloInputFormat.class, job.getConfiguration()));
+    assertNull(InputConfigurator
+        .getInputTableConfig(AccumuloInputFormat.class, job.getConfiguration(), "table")
+        .getConsistencyLevel());
+
   }
 }

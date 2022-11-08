@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,9 +19,9 @@
 package org.apache.accumulo.core.util.compaction;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -75,7 +75,7 @@ public class RunningCompactionInfo {
       startedMillis = firstEntry.getKey();
     }
     duration = nowMillis - startedMillis;
-    long durationMinutes = TimeUnit.MILLISECONDS.toMinutes(duration);
+    long durationMinutes = MILLISECONDS.toMinutes(duration);
     if (durationMinutes > 15) {
       log.warn("Compaction {} has been running for {} minutes", ecid, durationMinutes);
     }
@@ -92,7 +92,7 @@ public class RunningCompactionInfo {
       return;
     }
 
-    long sinceLastUpdateSeconds = TimeUnit.MILLISECONDS.toSeconds(nowMillis - updateMillis);
+    long sinceLastUpdateSeconds = MILLISECONDS.toSeconds(nowMillis - updateMillis);
     log.debug("Time since Last update {} - {} = {} seconds", nowMillis, updateMillis,
         sinceLastUpdateSeconds);
 

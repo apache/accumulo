@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -32,8 +32,8 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.monitor.rest.logs.LogResource;
 import org.apache.accumulo.monitor.rest.logs.SingleLogEvent;
 import org.apache.accumulo.server.ServerContext;
@@ -122,7 +122,8 @@ public class AccumuloMonitorAppender extends AbstractAppender {
 
         var req = HttpRequest.newBuilder(uri).POST(BodyPublishers.ofString(jsonEvent, UTF_8))
             .setHeader("Content-Type", "application/json").build();
-        httpClient.sendAsync(req, BodyHandlers.discarding());
+        @SuppressWarnings("unused")
+        var future = httpClient.sendAsync(req, BodyHandlers.discarding());
       } catch (final Exception e) {
         error("Unable to send HTTP in appender [" + getName() + "]", event, e);
       }
@@ -141,7 +142,7 @@ public class AccumuloMonitorAppender extends AbstractAppender {
 
   @Override
   public String toString() {
-    return "AccumuloMonitorAppender{" + "name=" + getName() + ", state=" + getState() + '}';
+    return "AccumuloMonitorAppender{name=" + getName() + ", state=" + getState() + '}';
   }
 
 }

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -22,8 +22,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.fate.util.Retry;
-import org.apache.accumulo.fate.util.Retry.NeedsRetryDelay;
+import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Retry.NeedsRetryDelay;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,9 +34,7 @@ public class RetryableThriftCall<T> {
 
     private static final long serialVersionUID = 1L;
 
-    public RetriesExceededException() {
-      super();
-    }
+    public RetriesExceededException() {}
 
     public RetriesExceededException(String message, Throwable cause, boolean enableSuppression,
         boolean writableStackTrace) {
@@ -112,7 +110,7 @@ public class RetryableThriftCall<T> {
         if (this.retry.canRetry()) {
           this.retry.useRetry();
           try {
-            this.retry.waitForNextAttempt();
+            this.retry.waitForNextAttempt(LOG, "making a thrift RPC");
           } catch (InterruptedException e) {
             LOG.error("Error waiting for next attempt: {}, retrying now.", e.getMessage(), e);
           }

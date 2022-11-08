@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -70,6 +70,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PreAllocatedArray;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -77,17 +78,16 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 public class InMemoryMap {
   private SimpleMap map = null;
 
   private static final Logger log = LoggerFactory.getLogger(InMemoryMap.class);
 
-  private ServerContext context;
+  private final ServerContext context;
   private volatile String memDumpFile = null;
   private final String memDumpDir;
   private final String mapType;
+  private final TableId tableId;
 
   private Map<String,Set<ByteSequence>> lggroups;
 
@@ -138,6 +138,7 @@ public class InMemoryMap {
 
     this.config = config;
     this.context = context;
+    this.tableId = tableId;
 
     SimpleMap allMap;
     SimpleMap sampleMap;
@@ -584,9 +585,10 @@ public class InMemoryMap {
         Configuration conf = context.getHadoopConf();
         FileSystem fs = FileSystem.getLocal(conf);
 
+        TableConfiguration tableConf = context.getTableConfiguration(tableId);
         reader = new RFileOperations().newReaderBuilder()
-            .forFile(memDumpFile, fs, conf, context.getCryptoService())
-            .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
+            .forFile(memDumpFile, fs, conf, tableConf.getCryptoService())
+            .withTableConfiguration(tableConf).seekToBeginning().build();
         if (iflag != null)
           reader.setInterruptFlag(iflag);
 
@@ -754,9 +756,10 @@ public class InMemoryMap {
           aconf = createSampleConfig(aconf);
         }
 
+        TableConfiguration tableConf = context.getTableConfiguration(tableId);
         FileSKVWriter out = new RFileOperations().newWriterBuilder()
-            .forFile(tmpFile, fs, newConf, context.getCryptoService()).withTableConfiguration(aconf)
-            .build();
+            .forFile(tmpFile, fs, newConf, tableConf.getCryptoService())
+            .withTableConfiguration(aconf).build();
 
         InterruptibleIterator iter = map.skvIterator(null);
 
@@ -810,8 +813,8 @@ public class InMemoryMap {
   }
 
   private AccumuloConfiguration createSampleConfig(AccumuloConfiguration siteConf) {
-    ConfigurationCopy confCopy = new ConfigurationCopy(Iterables.filter(siteConf,
-        input -> !input.getKey().startsWith(Property.TABLE_SAMPLER.getKey())));
+    ConfigurationCopy confCopy = new ConfigurationCopy(siteConf.stream()
+        .filter(input -> !input.getKey().startsWith(Property.TABLE_SAMPLER.getKey())));
 
     for (Entry<String,String> entry : samplerRef.get().getFirst().toTablePropertiesMap()
         .entrySet()) {

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,12 +19,12 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
@@ -104,7 +104,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
 
   private synchronized void ensureOpen() {
     if (closed)
-      throw new IllegalArgumentException("Scanner is closed");
+      throw new IllegalStateException("Scanner is closed");
   }
 
   public ScannerImpl(ClientContext context, TableId tableId, Authorizations authorizations) {
@@ -151,7 +151,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   public synchronized Iterator<Entry<Key,Value>> iterator() {
     ensureOpen();
     ScannerIterator iter = new ScannerIterator(context, tableId, authorizations, range, size,
-        getTimeout(TimeUnit.SECONDS), this, isolated, readaheadThreshold, new Reporter());
+        getTimeout(SECONDS), this, isolated, readaheadThreshold, new Reporter());
 
     iters.put(iter, iterCount++);
 

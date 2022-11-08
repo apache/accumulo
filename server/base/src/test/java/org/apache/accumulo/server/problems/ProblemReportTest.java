@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -24,28 +24,29 @@ import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.Encoding;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ProblemReportTest {
   private static final TableId TABLE_ID = TableId.of("table");
@@ -56,9 +57,9 @@ public class ProblemReportTest {
   private ZooReaderWriter zoorw;
   private ProblemReport r;
 
-  @Before
+  @BeforeEach
   public void setUp() {
-    context = MockServerContext.getWithZK("instance", "", 30_000);
+    context = MockServerContext.getWithZK(InstanceId.of("instance"), "", 30_000);
     zoorw = createMock(ZooReaderWriter.class);
     expect(context.getZooReaderWriter()).andReturn(zoorw).anyTimes();
     replay(context);
@@ -157,7 +158,7 @@ public class ProblemReportTest {
   public void testRemoveFromZooKeeper() throws Exception {
     r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     byte[] zpathFileName = makeZPathFileName(TABLE_ID, ProblemType.FILE_READ, RESOURCE);
-    String path = ZooUtil.getRoot("instance") + Constants.ZPROBLEMS + "/"
+    String path = ZooUtil.getRoot(InstanceId.of("instance")) + Constants.ZPROBLEMS + "/"
         + Encoding.encodeAsBase64FileName(new Text(zpathFileName));
     zoorw.recursiveDelete(path, NodeMissingPolicy.SKIP);
     replay(zoorw);
@@ -171,7 +172,7 @@ public class ProblemReportTest {
     long now = System.currentTimeMillis();
     r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null, now);
     byte[] zpathFileName = makeZPathFileName(TABLE_ID, ProblemType.FILE_READ, RESOURCE);
-    String path = ZooUtil.getRoot("instance") + Constants.ZPROBLEMS + "/"
+    String path = ZooUtil.getRoot(InstanceId.of("instance")) + Constants.ZPROBLEMS + "/"
         + Encoding.encodeAsBase64FileName(new Text(zpathFileName));
     byte[] encoded = encodeReportData(now, SERVER, null);
     expect(zoorw.putPersistentData(eq(path), aryEq(encoded), eq(NodeExistsPolicy.OVERWRITE)))
@@ -189,7 +190,8 @@ public class ProblemReportTest {
     long now = System.currentTimeMillis();
     byte[] encoded = encodeReportData(now, SERVER, "excmsg");
 
-    expect(zoorw.getData(ZooUtil.getRoot("instance") + Constants.ZPROBLEMS + "/" + node))
+    expect(zoorw
+        .getData(ZooUtil.getRoot(InstanceId.of("instance")) + Constants.ZPROBLEMS + "/" + node))
         .andReturn(encoded);
     replay(zoorw);
 

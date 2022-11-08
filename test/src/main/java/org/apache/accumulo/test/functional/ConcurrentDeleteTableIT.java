@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -42,14 +43,13 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
@@ -57,8 +57,8 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
   private final int NUM_TABLES = 2;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 7 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(7);
   }
 
   @Test
@@ -105,14 +105,11 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
           future.get();
         }
 
-        try {
-          c.createScanner(table, Authorizations.EMPTY);
-          fail("Expected table " + table + " to be gone.");
-        } catch (TableNotFoundException tnfe) {
-          // expected
-        }
+        assertThrows(TableNotFoundException.class,
+            () -> c.createScanner(table, Authorizations.EMPTY),
+            "Expected table " + table + " to be gone.");
 
-        FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
+        FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
       }
 
       es.shutdown();
@@ -213,14 +210,11 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
           future.get();
         }
 
-        try {
-          c.createScanner(table, Authorizations.EMPTY);
-          fail("Expected table " + table + " to be gone.");
-        } catch (TableNotFoundException tnfe) {
-          // expected
-        }
+        assertThrows(TableNotFoundException.class,
+            () -> c.createScanner(table, Authorizations.EMPTY),
+            "Expected table " + table + " to be gone.");
 
-        FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
+        FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
       }
 
       es.shutdown();

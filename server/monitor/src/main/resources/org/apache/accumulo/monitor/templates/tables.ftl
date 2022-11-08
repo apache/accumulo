@@ -8,7 +8,7 @@
     "License"); you may not use this file except in compliance
     with the License.  You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+      https://www.apache.org/licenses/LICENSE-2.0
 
     Unless required by applicable law or agreed to in writing,
     software distributed under the License is distributed on an
@@ -19,61 +19,63 @@
 
 -->
       <script>
-      var tableList;
+        var tableList;
         /**
          * Creates DataTables table
          *   - uses ajax call for data source and saves sort state in session
          *   - defines custom number formats
          */
-        $(document).ready(function() {
+        $(document).ready(function () {
 
-          tableList = $('#tableList').DataTable( {
-                "ajax": {
-                  "url": "/rest/tables",
-                  "dataSrc": "table"
-                },
-                "stateSave": true,
-                "columnDefs": [
-                    { "type": "num",
-                      "targets": "big-num",
-                      "render": function ( data, type, row ) {
-                        if(type === 'display')
-                          data = bigNumberForQuantity(data);
-                        return data;
-                      }
-                    },
-                    {
-                      "targets": "duration",
-                      "render": function (data, type, row) {
-                        if (type === 'display') data = timeDuration(data);
-                        return data;
-                      }
-                    }
-                  ],
-                "columns": [
-                    { "data": "tablename",
-                      "type": "html",
-                      "render": function ( data, type, row, meta ) {
-                        if(type === 'display'){
-                            data = '<a href="/tables/' + row.tableId + '">' + row.tablename + '</a>';
-                        }
-                        return data;
-                      }
-                    },
-                    { "data": "tableState" },
-                    { "data": "tablets", "orderSequence": [ "desc", "asc" ] },
-                    { "data": "offlineTablets", "orderSequence": [ "desc", "asc" ] },
-                    { "data": "recs", "orderSequence": [ "desc", "asc" ]  },
-                    { "data": "recsInMemory", "orderSequence": [ "desc", "asc" ] },
-                    { "data": "ingestRate", "orderSequence": [ "desc", "asc" ] },
-                    { "data": "entriesRead", "orderSequence": [ "desc", "asc" ] },
-                    { "data": "entriesReturned", "orderSequence": [ "desc", "asc" ] },
-                    { "data": "holdTime", "orderSequence": [ "desc", "asc" ] },
-                    { "data": "scansCombo", "orderSequence": [ "desc", "asc" ] },
-                    { "data": "minorCombo", "orderSequence": [ "desc", "asc" ] },
-                    { "data": "majorCombo", "orderSequence": [ "desc", "asc" ] }
-                  ]
-            } );
+          tableList = $('#tableList').DataTable({
+            "ajax": {
+              "url": "/rest/tables",
+              "dataSrc": "table"
+            },
+            "stateSave": true,
+            "columnDefs": [
+              {
+                "type": "num",
+                "targets": "big-num",
+                "render": function (data, type, row) {
+                  if (type === 'display')
+                    data = bigNumberForQuantity(data);
+                  return data;
+                }
+              },
+              {
+                "targets": "duration",
+                "render": function (data, type, row) {
+                  if (type === 'display') data = timeDuration(data);
+                  return data;
+                }
+              }
+            ],
+            "columns": [
+              {
+                "data": "tablename",
+                "type": "html",
+                "render": function (data, type, row, meta) {
+                  if (type === 'display') {
+                    data = '<a href="/tables/' + row.tableId + '">' + row.tablename + '</a>';
+                  }
+                  return data;
+                }
+              },
+              { "data": "tableState" },
+              { "data": "tablets", "orderSequence": ["desc", "asc"] },
+              { "data": "offlineTablets", "orderSequence": ["desc", "asc"] },
+              { "data": "recs", "orderSequence": ["desc", "asc"] },
+              { "data": "recsInMemory", "orderSequence": ["desc", "asc"] },
+              { "data": "ingestRate", "orderSequence": ["desc", "asc"] },
+              { "data": "entriesRead", "orderSequence": ["desc", "asc"] },
+              { "data": "entriesReturned", "orderSequence": ["desc", "asc"] },
+              { "data": "holdTime", "orderSequence": ["desc", "asc"] },
+              { "data": "scansCombo", "orderSequence": ["desc", "asc"] },
+              { "data": "minorCombo", "orderSequence": ["desc", "asc"] },
+              { "data": "majorCombo", "orderSequence": ["desc", "asc"] }
+            ]
+          });
         });
 
         /**
@@ -81,15 +83,20 @@
          */
         function refresh() {
           <#if js??>
-            refreshManager();
+            refreshManagerTables();
           </#if>
 
-          tableList.ajax.reload(null, false ); // user paging is not reset on reload
+          tableList.ajax.reload(null, false); // user paging is not reset on reload
         }
       </script>
-      <div><h3>${tablesTitle}</h3></div>
+      <div class="row">
+        <div class="col-xs-12">
+          <h3>Table Overview</h3>
+        </div>
+      </div>
       <div>
-        <table id="tableList" class="table table-bordered table-striped table-condensed">
+        <table id="tableList" class="table caption-top table-bordered table-striped table-condensed">
+          <caption><span class="table-caption">${tablesTitle}</span><br />
           <thead>
             <tr>
               <th>Table&nbsp;Name</th>

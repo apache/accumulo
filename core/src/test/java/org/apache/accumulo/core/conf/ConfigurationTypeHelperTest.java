@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,20 +18,24 @@
  */
 package org.apache.accumulo.core.conf;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.Arrays;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ConfigurationTypeHelperTest {
 
   @Test
   public void testGetMemoryInBytes() {
-    Arrays.<Function<String,Long>>asList(ConfigurationTypeHelper::getFixedMemoryAsBytes,
-        ConfigurationTypeHelper::getMemoryAsBytes).stream().forEach(memFunc -> {
+    Stream.<Function<String,Long>>of(ConfigurationTypeHelper::getFixedMemoryAsBytes,
+        ConfigurationTypeHelper::getMemoryAsBytes).forEach(memFunc -> {
           assertEquals(42L, memFunc.apply("42").longValue());
           assertEquals(42L, memFunc.apply("42b").longValue());
           assertEquals(42L, memFunc.apply("42B").longValue());
@@ -80,11 +84,11 @@ public class ConfigurationTypeHelperTest {
 
   @Test
   public void testGetTimeInMillis() {
-    assertEquals(42L * 24 * 60 * 60 * 1000, ConfigurationTypeHelper.getTimeInMillis("42d"));
-    assertEquals(42L * 60 * 60 * 1000, ConfigurationTypeHelper.getTimeInMillis("42h"));
-    assertEquals(42L * 60 * 1000, ConfigurationTypeHelper.getTimeInMillis("42m"));
-    assertEquals(42L * 1000, ConfigurationTypeHelper.getTimeInMillis("42s"));
-    assertEquals(42L * 1000, ConfigurationTypeHelper.getTimeInMillis("42"));
+    assertEquals(DAYS.toMillis(42), ConfigurationTypeHelper.getTimeInMillis("42d"));
+    assertEquals(HOURS.toMillis(42), ConfigurationTypeHelper.getTimeInMillis("42h"));
+    assertEquals(MINUTES.toMillis(42), ConfigurationTypeHelper.getTimeInMillis("42m"));
+    assertEquals(SECONDS.toMillis(42), ConfigurationTypeHelper.getTimeInMillis("42s"));
+    assertEquals(SECONDS.toMillis(42), ConfigurationTypeHelper.getTimeInMillis("42"));
     assertEquals(42L, ConfigurationTypeHelper.getTimeInMillis("42ms"));
   }
 

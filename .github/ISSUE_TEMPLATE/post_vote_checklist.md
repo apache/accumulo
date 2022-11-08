@@ -25,11 +25,12 @@ assignees: ''
   - [ ] In [Maven Central](https://repo1.maven.org/maven2/org/apache/accumulo/accumulo-core/)
   - [ ] In [ASF Downloads](https://downloads.apache.org/accumulo)
   - [ ] In [several mirrors](https://www.apache.org/dyn/closer.lua/accumulo)
-- Update the [staging website](http://accumulo.staged.apache.org/)
+- Update the [staging website](https://accumulo.staged.apache.org/)
   - [ ] Release notes
   - [ ] Add `LTM: true` to the release notes front-matter for LTM releases
   - [ ] Navigation
   - [ ] Downloads page
+  - [ ] If LTM release, update previous LTM release entry on downloads page and release notes with an EOL date 1 year from the current release date
   - [ ] DOAP file
   - [ ] Add manual/examples/javadoc (build javadoc from tag with `mvn clean package -DskipTests javadoc:aggregate -Paggregate-javadocs`)
   - [ ] If javadoc is built with Java 11, [patch it](https://github.com/apache/accumulo/blob/main/contrib/javadoc11.patch)
@@ -39,7 +40,7 @@ assignees: ''
   - [ ] [Publish to production](https://github.com/apache/accumulo-website#publishing-staging-to-production)
 - Announcement email
   - [ ] Prepare and get review on dev list (see examples [from previous announcement messages](https://lists.apache.org/list.html?announce@apache.org:gte=1d:accumulo))
-  - [ ] Send to announce@apache.org and user@accumulo.apache.org
+  - [ ] Send to announce@apache.org and user@accumulo.apache.org (use plain text mode only; html email will be rejected)
 - GitHub wrap-up
   - [ ] Close this issue
   - [ ] Create a new "Automated Kanban" [project](https://github.com/apache/accumulo/projects) for the next version (if necessary) and move any open issues not completed in this release to that project

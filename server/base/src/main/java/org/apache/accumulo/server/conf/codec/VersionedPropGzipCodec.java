@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -45,7 +45,7 @@ public class VersionedPropGzipCodec extends VersionedPropCodec {
   void encodePayload(final OutputStream out, final VersionedProperties vProps,
       final EncodingOptions encodingOpts) throws IOException {
 
-    Map<String,String> props = vProps.getProperties();
+    Map<String,String> props = vProps.asMap();
 
     if (getEncodingOpts().isCompressed()) {
       // Write the property map to the output stream, compressing the output using GZip
@@ -71,6 +71,7 @@ public class VersionedPropGzipCodec extends VersionedPropCodec {
     return encodingOpts.getEncodingVersion() == EncodingOptions.EncodingVersion_1_0;
   }
 
+  @Override
   Map<String,String> decodePayload(final InputStream inStream, final EncodingOptions encodingOpts)
       throws IOException {
     // read the property map keys, values

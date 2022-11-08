@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -84,9 +84,10 @@ public class TTimeoutTransport {
   TTransport createInternal(SocketAddress addr, long timeoutMillis) throws TTransportException {
     Socket socket = null;
     try {
-      socket = openSocket(addr);
+      socket = openSocket(addr, (int) timeoutMillis);
     } catch (IOException e) {
       // openSocket handles closing the Socket on error
+      ThriftUtil.checkIOExceptionCause(e);
       throw new TTransportException(e);
     }
 
@@ -100,6 +101,7 @@ public class TTimeoutTransport {
       return new TIOStreamTransport(input, output);
     } catch (IOException e) {
       closeSocket(socket, e);
+      ThriftUtil.checkIOExceptionCause(e);
       throw new TTransportException(e);
     } catch (TTransportException e) {
       closeSocket(socket, e);
@@ -112,6 +114,7 @@ public class TTimeoutTransport {
       if (socket != null)
         socket.close();
     } catch (IOException ioe) {
+      e.addSuppressed(ioe);
       log.error("Failed to close socket after unsuccessful I/O stream setup", e);
     }
   }
@@ -131,15 +134,17 @@ public class TTimeoutTransport {
    *
    * @param addr
    *          The address to connect the socket to
+   * @param timeoutMillis
+   *          The timeout in milliseconds to apply to the socket connect call
    * @return A socket connected to the given address, or null if the socket fails to connect
    */
-  Socket openSocket(SocketAddress addr) throws IOException {
+  Socket openSocket(SocketAddress addr, int timeoutMillis) throws IOException {
     Socket socket = null;
     try {
       socket = openSocketChannel();
       socket.setSoLinger(false, 0);
       socket.setTcpNoDelay(true);
-      socket.connect(addr);
+      socket.connect(addr, timeoutMillis);
       return socket;
     } catch (IOException e) {
       closeSocket(socket, e);

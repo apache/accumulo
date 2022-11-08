@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -105,7 +105,7 @@ public abstract class AbstractHashSampler implements Sampler {
 
     switch (hasherOpt) {
       case "murmur3_32":
-        hashFunction = Hashing.murmur3_32();
+        hashFunction = Hashing.murmur3_32_fixed();
         break;
       case "md5":
         @SuppressWarnings("deprecation")

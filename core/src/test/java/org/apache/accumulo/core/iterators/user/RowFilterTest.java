@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -41,7 +41,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class RowFilterTest {
 
@@ -269,7 +269,7 @@ public class RowFilterTest {
     // Because it's a copy, we should be able to safely seek this one without affecting the original
     copy.seek(new Range(), Collections.emptySet(), false);
 
-    assertTrue("deepCopy'ed RowFilter did not have a top key", copy.hasTop());
+    assertTrue(copy.hasTop(), "deepCopy'ed RowFilter did not have a top key");
 
     Key firstKeyFromCopy = copy.getTopKey();
     Value firstValueFromCopy = copy.getTopValue();
@@ -282,8 +282,8 @@ public class RowFilterTest {
     Key finalKeyRead = filter.getTopKey();
 
     // Make sure we got a Key that was greater than the last Key we read from the original RowFilter
-    assertTrue("Expected next key read to be greater than the previous after deepCopy",
-        lastKeyRead.compareTo(finalKeyRead) < 0);
+    assertTrue(lastKeyRead.compareTo(finalKeyRead) < 0,
+        "Expected next key read to be greater than the previous after deepCopy");
   }
 
   private HashSet<String> getRows(RowFilter filter) throws IOException {

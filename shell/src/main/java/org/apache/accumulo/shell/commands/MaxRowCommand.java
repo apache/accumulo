@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -20,7 +20,6 @@ package org.apache.accumulo.shell.commands;
 
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
@@ -36,7 +35,9 @@ public class MaxRowCommand extends ScanCommand {
       throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
-    final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
+    @SuppressWarnings("deprecation")
+    final org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter =
+        getInterpreter(cl, tableName, shellState);
 
     final Range range = getRange(cl, interpeter);
     final Authorizations auths = getAuths(cl, shellState);

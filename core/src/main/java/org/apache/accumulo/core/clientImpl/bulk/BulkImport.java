@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -46,7 +46,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -58,14 +57,13 @@ import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOption
 import org.apache.accumulo.core.clientImpl.AccumuloBulkMergeException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.LoadPlan;
@@ -77,9 +75,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.fate.util.Retry;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -129,7 +126,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   public void load()
       throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException {
 
-    TableId tableId = Tables.getTableId(context, tableName);
+    TableId tableId = context.getTableId(tableName);
 
     FileSystem fs = VolumeConfiguration.fileSystemForPath(dir, context.getHadoopConf());
 
@@ -137,23 +134,22 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     SortedMap<KeyExtent,Bulk.Files> mappings;
     TableOperationsImpl tableOps = new TableOperationsImpl(context);
+    Map<String,String> tableProps = tableOps.getConfiguration(tableName);
 
     int maxTablets = 0;
-    for (var prop : tableOps.getProperties(tableName)) {
-      if (prop.getKey().equals(Property.TABLE_BULK_MAX_TABLETS.getKey())) {
-        maxTablets = Integer.parseInt(prop.getValue());
-        break;
-      }
+    var propValue = tableProps.get(Property.TABLE_BULK_MAX_TABLETS.getKey());
+    if (propValue != null) {
+      maxTablets = Integer.parseInt(propValue);
     }
     Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
         .incrementBy(100, MILLISECONDS).maxWait(2, MINUTES).backOffFactor(1.5)
-        .logInterval(3, TimeUnit.MINUTES).createRetry();
+        .logInterval(3, MINUTES).createRetry();
 
     // retry if a merge occurs
     boolean shouldRetry = true;
     while (shouldRetry) {
       if (plan == null) {
-        mappings = computeMappingFromFiles(fs, tableId, srcPath, maxTablets);
+        mappings = computeMappingFromFiles(fs, tableId, tableProps, srcPath, maxTablets);
       } else {
         mappings = computeMappingFromPlan(fs, tableId, srcPath, maxTablets);
       }
@@ -181,7 +177,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
           checkPlanForSplits(ae);
         }
         try {
-          retry.waitForNextAttempt();
+          retry.waitForNextAttempt(log, String.format("bulk import to %s(%s)", tableName, tableId));
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
@@ -470,7 +466,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   private SortedMap<KeyExtent,Bulk.Files> computeMappingFromFiles(FileSystem fs, TableId tableId,
-      Path dirPath, int maxTablets) throws IOException {
+      Map<String,String> tableProps, Path dirPath, int maxTablets)
+      throws IOException, AccumuloException, AccumuloSecurityException {
 
     Executor executor;
     ExecutorService service = null;
@@ -478,15 +475,17 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     if (this.executor != null) {
       executor = this.executor;
     } else if (numThreads > 0) {
-      executor = service = ThreadPools.createFixedThreadPool(numThreads, "BulkImportThread", false);
+      executor = service =
+          context.threadPools().createFixedThreadPool(numThreads, "BulkImportThread", false);
     } else {
       String threads = context.getConfiguration().get(ClientProperty.BULK_LOAD_THREADS.getKey());
-      executor = service = ThreadPools.createFixedThreadPool(
+      executor = service = context.threadPools().createFixedThreadPool(
           ConfigurationTypeHelper.getNumThreads(threads), "BulkImportThread", false);
     }
 
     try {
-      return computeFileToTabletMappings(fs, tableId, dirPath, executor, context, maxTablets);
+      return computeFileToTabletMappings(fs, tableId, tableProps, dirPath, executor, context,
+          maxTablets);
     } finally {
       if (service != null) {
         service.shutdown();
@@ -524,7 +523,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   public SortedMap<KeyExtent,Bulk.Files> computeFileToTabletMappings(FileSystem fs, TableId tableId,
-      Path dirPath, Executor executor, ClientContext context, int maxTablets) throws IOException {
+      Map<String,String> tableProps, Path dirPath, Executor executor, ClientContext context,
+      int maxTablets) throws IOException, AccumuloException, AccumuloSecurityException {
 
     KeyExtentCache extentCache = new ConcurrentKeyExtentCache(tableId, context);
 
@@ -537,7 +537,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     List<CompletableFuture<Map<KeyExtent,Bulk.FileInfo>>> futures = new ArrayList<>();
 
-    CryptoService cs = CryptoServiceFactory.newDefaultInstance();
+    CryptoService cs = CryptoFactoryLoader.getServiceForClientWithTable(
+        context.instanceOperations().getSystemConfiguration(), tableProps, tableId);
 
     for (FileStatus fileStatus : files) {
       Path filePath = fileStatus.getPath();

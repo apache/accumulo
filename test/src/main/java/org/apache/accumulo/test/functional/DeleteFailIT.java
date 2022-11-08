@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
 
@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator.Behavior;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DeleteFailIT extends AccumuloClusterHarness {
 
@@ -52,9 +52,9 @@ public class DeleteFailIT extends AccumuloClusterHarness {
       }
 
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.forEach(e -> {});
-        fail("Expected scan to fail because  deletes are present.");
-      } catch (RuntimeException e) {}
+        assertThrows(RuntimeException.class, () -> scanner.forEach(e -> {}),
+            "Expected scan to fail because  deletes are present.");
+      }
     }
   }
 }

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -40,6 +40,8 @@ public final class MetadataTime implements Comparable<MetadataTime> {
    * @param timestr
    *          string representation of a metatdata time, ex. "M12345678"
    * @return a MetadataTime object represented by string
+   * @throws IllegalArgumentException
+   *           if {@code timesstr == null} or {@code timestr.length() <= 1)}
    */
 
   public static MetadataTime parse(String timestr) throws IllegalArgumentException {

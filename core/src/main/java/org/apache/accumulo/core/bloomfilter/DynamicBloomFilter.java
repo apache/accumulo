@@ -64,7 +64,7 @@ import org.apache.hadoop.util.bloom.Key;
  * @see BloomFilter A Bloom filter
  *
  * @see <a href=
- *      "http://www.cse.fau.edu/~jie/research/publications/Publication_files/infocom2006.pdf">Theory
+ *      "https://www.cse.fau.edu/~jie/research/publications/Publication_files/infocom2006.pdf">Theory
  *      and Network Applications of Dynamic Bloom Filters</a>
  */
 public class DynamicBloomFilter extends Filter {

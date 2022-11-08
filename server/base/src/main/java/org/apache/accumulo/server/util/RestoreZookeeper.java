@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -28,15 +28,12 @@ import java.util.Stack;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
-import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
-
-import com.beust.jcommander.Parameter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -107,24 +104,15 @@ public class RestoreZookeeper {
     }
   }
 
-  static class Opts extends Help {
-    @Parameter(names = "--overwrite")
-    boolean overwrite = false;
-    @Parameter(names = "--file")
-    String file;
-  }
-
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input")
-  public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(RestoreZookeeper.class.getName(), args);
-
-    var zoo = new ZooReaderWriter(SiteConfiguration.auto());
+  public static void execute(final AccumuloConfiguration conf, final String file,
+      final boolean overwrite) throws Exception {
+    var zoo = new ZooReaderWriter(conf);
 
     InputStream in = System.in;
-    if (opts.file != null) {
-      in = new FileInputStream(opts.file);
+    if (file != null) {
+      in = new FileInputStream(file);
     }
 
     SAXParserFactory factory = SAXParserFactory.newInstance();
@@ -132,7 +120,8 @@ public class RestoreZookeeper {
     // is a simple switch to remove any chance of external entities causing problems.
     factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
     SAXParser parser = factory.newSAXParser();
-    parser.parse(in, new Restore(zoo, opts.overwrite));
+    parser.parse(in, new Restore(zoo, overwrite));
     in.close();
   }
+
 }

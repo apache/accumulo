@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -36,7 +36,7 @@ public class MemValue {
     combinedBytes[0] = (byte) (kv >>> 24);
     combinedBytes[1] = (byte) (kv >>> 16);
     combinedBytes[2] = (byte) (kv >>> 8);
-    combinedBytes[3] = (byte) (kv);
+    combinedBytes[3] = (byte) kv;
     return new Value(combinedBytes);
   }
 

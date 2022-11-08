@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,8 @@
  */
 package org.apache.accumulo.core.util;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-
-import java.util.concurrent.TimeUnit;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
@@ -53,7 +52,7 @@ public class Halt {
     try {
       // give ourselves a little time to try and do something
       Threads.createThread("Halt Thread", () -> {
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
         Runtime.getRuntime().halt(status);
       }).start();
 

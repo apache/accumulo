@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.client;
 
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 
 /**
  * Thrown when the table specified doesn't exist when it was expected to
@@ -79,8 +79,8 @@ public class TableNotFoundException extends Exception {
    *          wasn't found
    */
   public TableNotFoundException(String tableName, NamespaceNotFoundException e) {
-    this(null, tableName, "Namespace " + Tables.qualify(tableName).getFirst() + " does not exist.",
-        e);
+    this(null, tableName,
+        "Namespace " + TableNameUtil.qualify(tableName).getFirst() + " does not exist.", e);
   }
 
   /**

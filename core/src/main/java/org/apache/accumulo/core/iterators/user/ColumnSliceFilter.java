@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -68,7 +68,7 @@ public class ColumnSliceFilter extends Filter {
     IteratorOptions io = super.describeOptions();
     io.setName("columnSlice");
     io.setDescription("The ColumnSliceFilter/Iterator allows you to filter for"
-        + " key/value pairs based on a lexicographic range of column qualifier" + " names");
+        + " key/value pairs based on a lexicographic range of column qualifier names");
     io.addNamedOption(START_BOUND, "start string in slice");
     io.addNamedOption(END_BOUND, "end string in slice");
     io.addNamedOption(START_INCLUSIVE, "include the start bound in the result set");

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -66,6 +66,7 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
@@ -109,11 +110,13 @@ public class CompactableUtils {
     final Map<StoredTabletFile,Pair<Key,Key>> result = new HashMap<>();
     final FileOperations fileFactory = FileOperations.getInstance();
     final VolumeManager fs = tablet.getTabletServer().getVolumeManager();
+    final TableConfiguration tableConf = tablet.getTableConfiguration();
+    final CryptoService cs = tableConf.getCryptoService();
     for (StoredTabletFile file : allFiles) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
-      try (FileSKVIterator openReader = fileFactory.newReaderBuilder()
-          .forFile(file.getPathStr(), ns, ns.getConf(), tablet.getContext().getCryptoService())
-          .withTableConfiguration(tablet.getTableConfiguration()).seekToBeginning().build()) {
+      try (FileSKVIterator openReader =
+          fileFactory.newReaderBuilder().forFile(file.getPathStr(), ns, ns.getConf(), cs)
+              .withTableConfiguration(tableConf).seekToBeginning().build()) {
         Key first = openReader.getFirstKey();
         Key last = openReader.getLastKey();
         result.put(file, new Pair<>(first, last));
@@ -319,16 +322,17 @@ public class CompactableUtils {
 
         var context = tablet.getContext();
         var tsrm = tablet.getTabletResources().getTabletServerResourceManager();
+        var tableConf = tablet.getTableConfiguration();
 
         SummaryCollection sc = new SummaryCollection();
-        SummarizerFactory factory = new SummarizerFactory(tablet.getTableConfiguration());
+        SummarizerFactory factory = new SummarizerFactory(tableConf);
         for (CompactableFile cf : files) {
           var file = CompactableFileImpl.toStoredTabletFile(cf);
           FileSystem fs = context.getVolumeManager().getFileSystemByPath(file.getPath());
           Configuration conf = context.getHadoopConf();
           SummaryCollection fsc = SummaryReader
               .load(fs, conf, factory, file.getPath(), summarySelector, tsrm.getSummaryCache(),
-                  tsrm.getIndexCache(), tsrm.getFileLenCache(), context.getCryptoService())
+                  tsrm.getIndexCache(), tsrm.getFileLenCache(), tableConf.getCryptoService())
               .getSummaries(Collections.singletonList(new Gatherer.RowRange(tablet.getExtent())));
           sc.merge(fsc, factory);
         }
@@ -348,9 +352,10 @@ public class CompactableUtils {
           FileOperations fileFactory = FileOperations.getInstance();
           Path path = new Path(file.getUri());
           FileSystem ns = tablet.getTabletServer().getVolumeManager().getFileSystemByPath(path);
+          var tableConf = tablet.getTableConfiguration();
           var fiter = fileFactory.newReaderBuilder()
-              .forFile(path.toString(), ns, ns.getConf(), tablet.getContext().getCryptoService())
-              .withTableConfiguration(tablet.getTableConfiguration()).seekToBeginning().build();
+              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+              .withTableConfiguration(tableConf).seekToBeginning().build();
           return Optional.ofNullable(fiter.getSample(new SamplerConfigurationImpl(sc)));
         } catch (IOException e) {
           throw new UncheckedIOException(e);
@@ -483,7 +488,7 @@ public class CompactableUtils {
 
       CompactionStrategyConfig stratCfg = null;
 
-      if (cselCfg == null && tconf.isPropertySet(Property.TABLE_COMPACTION_STRATEGY, true)) {
+      if (cselCfg == null && tconf.isPropertySet(Property.TABLE_COMPACTION_STRATEGY)) {
         var stratClassName = tconf.get(Property.TABLE_COMPACTION_STRATEGY);
 
         try {
@@ -550,12 +555,14 @@ public class CompactableUtils {
       CompactableImpl.CompactionInfo cInfo, CompactionEnv cenv,
       Map<StoredTabletFile,DataFileValue> compactFiles, TabletFile tmpFileName)
       throws IOException, CompactionCanceledException {
+    TableConfiguration tableConf = tablet.getTableConfiguration();
 
-    AccumuloConfiguration compactionConfig = getCompactionConfig(tablet.getTableConfiguration(),
+    AccumuloConfiguration compactionConfig = getCompactionConfig(tableConf,
         getOverrides(job.getKind(), tablet, cInfo.localHelper, job.getFiles()));
 
     FileCompactor compactor = new FileCompactor(tablet.getContext(), tablet.getExtent(),
-        compactFiles, tmpFileName, cInfo.propagateDeletes, cenv, cInfo.iters, compactionConfig);
+        compactFiles, tmpFileName, cInfo.propagateDeletes, cenv, cInfo.iters, compactionConfig,
+        tableConf.getCryptoService());
 
     return compactor.call();
   }
@@ -563,7 +570,7 @@ public class CompactableUtils {
   /**
    * Finish major compaction by bringing the new file online and returning the completed file.
    */
-  static StoredTabletFile bringOnline(DatafileManager datafileManager,
+  static Optional<StoredTabletFile> bringOnline(DatafileManager datafileManager,
       CompactableImpl.CompactionInfo cInfo, CompactionStats stats,
       Map<StoredTabletFile,DataFileValue> compactFiles,
       SortedMap<StoredTabletFile,DataFileValue> allFiles, CompactionKind kind,

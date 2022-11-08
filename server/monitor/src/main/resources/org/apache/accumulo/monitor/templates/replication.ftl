@@ -8,7 +8,7 @@
     "License"); you may not use this file except in compliance
     with the License.  You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+      https://www.apache.org/licenses/LICENSE-2.0
 
     Unless required by applicable law or agreed to in writing,
     software distributed under the License is distributed on an
@@ -25,10 +25,11 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
-          <table id="replicationStats" class="table table-bordered table-striped table-condensed">
+          <table id="replicationStats" class="table caption-top table-bordered table-striped table-condensed">
+            <caption><span class="table-caption">Replication Status</span><br />
             <thead>
               <tr>
-                <th class="firstcell">Table&nbsp;</th>
+                <th>Table&nbsp;</th>
                 <th>Peer&nbsp;</th>
                 <th>Remote&nbsp;Identifier&nbsp;</th>
                 <th>Replica&nbsp;System&nbsp;Type&nbsp;</th>

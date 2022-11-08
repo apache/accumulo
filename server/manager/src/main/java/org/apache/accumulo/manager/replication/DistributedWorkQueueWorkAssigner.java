@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.replication;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.Collection;
 import java.util.Map.Entry;
@@ -32,6 +32,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
@@ -39,8 +41,6 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.WorkAssigner;
@@ -91,7 +91,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
    */
   protected void initializeWorkQueue(AccumuloConfiguration conf) {
     workQueue =
-        new DistributedWorkQueue(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+        new DistributedWorkQueue(ZooUtil.getRoot(client.instanceOperations().getInstanceId())
             + ReplicationConstants.ZOO_WORK_QUEUE, conf, this.workQueue.getContext());
   }
 
@@ -110,7 +110,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
     initializeQueuedWork();
 
     if (zooCache == null) {
-      zooCache = new ZooCache(workQueue.getZooReaderWriter());
+      zooCache = new ZooCache(workQueue.getContext().getZooReader(), null);
     }
 
     // Get the maximum number of entries we want to queue work for (or the default)

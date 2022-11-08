@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -63,14 +63,16 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
   }
 
   public CompactionExecutorsMetrics() {
+    startUpdateThread();
+  }
 
-    ScheduledExecutorService scheduler =
-        ThreadPools.createScheduledExecutorService(1, "compactionExecutorsMetricsPoller", false);
+  protected void startUpdateThread() {
+    ScheduledExecutorService scheduler = ThreadPools.getServerThreadPools()
+        .createScheduledExecutorService(1, "compactionExecutorsMetricsPoller", false);
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
     long minimumRefreshDelay = TimeUnit.SECONDS.toMillis(5);
-    scheduler.scheduleAtFixedRate(this::update, minimumRefreshDelay, minimumRefreshDelay,
-        TimeUnit.MILLISECONDS);
-
+    ThreadPools.watchNonCriticalScheduledTask(scheduler.scheduleAtFixedRate(this::update,
+        minimumRefreshDelay, minimumRefreshDelay, TimeUnit.MILLISECONDS));
   }
 
   public synchronized AutoCloseable addExecutor(CompactionExecutorId ceid,

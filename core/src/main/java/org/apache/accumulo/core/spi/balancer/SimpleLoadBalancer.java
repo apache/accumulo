@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.core.spi.balancer;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,7 +31,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -244,31 +246,8 @@ public class SimpleLoadBalancer implements TabletBalancer {
     Map<TableId,Integer> tooLittleMap = tabletCountsPerTable(tooLittle.status);
 
     for (int i = 0; i < count; i++) {
-      TableId table;
-      Integer tooLittleCount;
-      if (tableToBalance == null) {
-        // find a table to migrate
-        // look for an uneven table count
-        int biggestDifference = 0;
-        TableId biggestDifferenceTable = null;
-        for (var tableEntry : tooMuchMap.entrySet()) {
-          TableId tableID = tableEntry.getKey();
-          tooLittleMap.putIfAbsent(tableID, 0);
-          int diff = tableEntry.getValue() - tooLittleMap.get(tableID);
-          if (diff > biggestDifference) {
-            biggestDifference = diff;
-            biggestDifferenceTable = tableID;
-          }
-        }
-        if (biggestDifference < 2) {
-          table = busiest(tooMuch.status.getTableMap());
-        } else {
-          table = biggestDifferenceTable;
-        }
-      } else {
-        // just balance the given table
-        table = tableToBalance;
-      }
+      TableId table = getTableToMigrate(tooMuch, tooMuchMap, tooLittleMap);
+
       Map<TabletId,TabletStatistics> onlineTabletsForTable = donerTabletStats.get(table);
       try {
         if (onlineTabletsForTable == null) {
@@ -296,16 +275,36 @@ public class SimpleLoadBalancer implements TabletBalancer {
        * is only one tabletserver that holds all of the tablets. Here we check to see if in fact
        * that is the case and if so set the value to 0.
        */
-      tooLittleCount = tooLittleMap.get(table);
-      if (tooLittleCount == null) {
-        tooLittleCount = 0;
-      }
+      Integer tooLittleCount = tooLittleMap.getOrDefault(table, 0);
       tooLittleMap.put(table, tooLittleCount + 1);
       tooMuch.count--;
       tooLittle.count++;
       result.add(new TabletMigration(tabletId, tooMuch.server, tooLittle.server));
     }
     return result;
+  }
+
+  private TableId getTableToMigrate(ServerCounts tooMuch, Map<TableId,Integer> tooMuchMap,
+      Map<TableId,Integer> tooLittleMap) {
+
+    if (tableToBalance != null) {
+      return tableToBalance;
+    }
+
+    // find a table to migrate
+    // look for an uneven table count
+    Entry<TableId,Integer> biggestEntry = tooMuchMap.entrySet().stream().map(entry -> {
+      TableId tableID = entry.getKey();
+      int diff = entry.getValue() - tooLittleMap.getOrDefault(tableID, 0);
+      return new SimpleEntry<>(tableID, diff); // map the table count to the difference
+    }).max(Entry.comparingByValue()) // get the largest difference
+        .orElseGet(() -> new SimpleEntry<>(null, 0));
+
+    if (biggestEntry.getValue() < 2) {
+      return busiest(tooMuch.status.getTableMap());
+    } else {
+      return biggestEntry.getKey();
+    }
   }
 
   protected List<TabletStatistics> getOnlineTabletsForTable(TabletServerId tabletServerId,
@@ -374,13 +373,13 @@ public class SimpleLoadBalancer implements TabletBalancer {
       if (params.currentMigrations().isEmpty()) {
         problemReporter.clearProblemReportTimes();
         if (getMigrations(params.currentStatus(), params.migrationsOut()))
-          return TimeUnit.SECONDS.toMillis(1);
+          return SECONDS.toMillis(1);
       } else {
         outstandingMigrationsProblem.setMigrations(params.currentMigrations());
         problemReporter.reportProblem(outstandingMigrationsProblem);
       }
     }
-    return 5 * 1000;
+    return 5_000;
   }
 
 }

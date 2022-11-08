@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -80,7 +80,7 @@ public abstract class SynchronizedServerFilter implements SortedKeyValueIterator
   private void findTop() throws IOException {
     while (source.hasTop()) {
       Key top = source.getTopKey();
-      if (top.isDeleted() || (accept(top, source.getTopValue()))) {
+      if (top.isDeleted() || accept(top, source.getTopValue())) {
         break;
       }
       source.next();

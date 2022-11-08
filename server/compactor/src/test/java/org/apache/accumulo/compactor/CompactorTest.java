@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.compactor;
 
+import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -35,24 +36,24 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.rpc.ServerAddress;
-import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
-import org.easymock.EasyMock;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.easymock.PowerMock;
@@ -60,7 +61,6 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.core.classloader.annotations.SuppressStaticInitializationFor;
 import org.powermock.modules.junit4.PowerMockRunner;
-import org.powermock.reflect.Whitebox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -161,7 +161,6 @@ public class CompactorTest {
 
     private final Logger LOG = LoggerFactory.getLogger(SuccessfulCompactor.class);
 
-    private final AccumuloConfiguration conf;
     private final Supplier<UUID> uuid;
     private final ServerAddress address;
     private final TExternalCompactionJob job;
@@ -172,9 +171,8 @@ public class CompactorTest {
     private TCompactionStatusUpdate latestState = null;
 
     SuccessfulCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
-        AccumuloConfiguration conf, ServerContext context, ExternalCompactionId eci) {
-      super(new CompactorServerOpts(), new String[] {"-q", "testQ"}, conf);
-      this.conf = conf;
+        ServerContext context, ExternalCompactionId eci) {
+      super(new CompactorServerOpts(), new String[] {"-q", "testQ"}, context.getConfiguration());
       this.uuid = uuid;
       this.address = address;
       this.job = job;
@@ -184,7 +182,7 @@ public class CompactorTest {
 
     @Override
     public AccumuloConfiguration getConfiguration() {
-      return conf;
+      return context.getConfiguration();
     }
 
     @Override
@@ -269,8 +267,8 @@ public class CompactorTest {
   public class FailedCompactor extends SuccessfulCompactor {
 
     FailedCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
-        AccumuloConfiguration conf, ServerContext context, ExternalCompactionId eci) {
-      super(uuid, address, job, conf, context, eci);
+        ServerContext context, ExternalCompactionId eci) {
+      super(uuid, address, job, context, eci);
     }
 
     @Override
@@ -284,8 +282,8 @@ public class CompactorTest {
   public class InterruptedCompactor extends SuccessfulCompactor {
 
     InterruptedCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
-        AccumuloConfiguration conf, ServerContext context, ExternalCompactionId eci) {
-      super(uuid, address, job, conf, context, eci);
+        ServerContext context, ExternalCompactionId eci) {
+      super(uuid, address, job, context, eci);
     }
 
     @Override
@@ -299,59 +297,51 @@ public class CompactorTest {
 
   @Test
   public void testCheckTime() throws Exception {
-    // Instantiates class without calling constructor
-    Compactor c = Whitebox.newInstance(Compactor.class);
-    assertEquals(1, c.calculateProgressCheckTime(1024));
-    assertEquals(1, c.calculateProgressCheckTime(1048576));
-    assertEquals(1, c.calculateProgressCheckTime(10485760));
-    assertEquals(10, c.calculateProgressCheckTime(104857600));
-    assertEquals(102, c.calculateProgressCheckTime(1024 * 1024 * 1024));
+    assertEquals(1, Compactor.calculateProgressCheckTime(1024));
+    assertEquals(1, Compactor.calculateProgressCheckTime(1048576));
+    assertEquals(1, Compactor.calculateProgressCheckTime(10485760));
+    assertEquals(10, Compactor.calculateProgressCheckTime(104857600));
+    assertEquals(102, Compactor.calculateProgressCheckTime(1024 * 1024 * 1024));
   }
 
   @Test
   public void testCompactionSucceeds() throws Exception {
     UUID uuid = UUID.randomUUID();
-    Supplier<UUID> supplier = new Supplier<>() {
-      @Override
-      public UUID get() {
-        return uuid;
-      }
-    };
+    Supplier<UUID> supplier = () -> uuid;
 
     ExternalCompactionId eci = ExternalCompactionId.generate(supplier.get());
 
     PowerMock.resetAll();
     PowerMock.suppress(PowerMock.methods(Halt.class, "halt"));
-    PowerMock.suppress(PowerMock.methods(TServerUtils.class, "stopTServer"));
     PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
     HostAndPort address = HostAndPort.fromString("localhost:10240");
-    EasyMock.expect(client.getAddress()).andReturn(address);
+    expect(client.getAddress()).andReturn(address);
 
     TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
     TKeyExtent extent = PowerMock.createNiceMock(TKeyExtent.class);
-    EasyMock.expect(job.isSetExternalCompactionId()).andReturn(true).anyTimes();
-    EasyMock.expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
-    EasyMock.expect(job.getExtent()).andReturn(extent).anyTimes();
-    EasyMock.expect(extent.getTable()).andReturn("testTable".getBytes()).anyTimes();
+    expect(job.isSetExternalCompactionId()).andReturn(true).anyTimes();
+    expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
+    expect(job.getExtent()).andReturn(extent).anyTimes();
+    expect(extent.getTable()).andReturn("testTable".getBytes()).anyTimes();
 
-    AccumuloConfiguration conf = PowerMock.createNiceMock(AccumuloConfiguration.class);
-    EasyMock.expect(conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT)).andReturn(86400000L);
+    var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    conf.set(Property.INSTANCE_ZK_TIMEOUT, "1d");
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
-    EasyMock.expect(context.getConfiguration()).andReturn(conf);
+    expect(context.getConfiguration()).andReturn(conf).anyTimes();
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
-    EasyMock.expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    EasyMock.expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
+    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
     VolumeManagerImpl vm = PowerMock.createNiceMock(VolumeManagerImpl.class);
-    EasyMock.expect(context.getVolumeManager()).andReturn(vm);
+    expect(context.getVolumeManager()).andReturn(vm);
     vm.close();
 
     PowerMock.replayAll();
 
-    SuccessfulCompactor c = new SuccessfulCompactor(supplier, client, job, conf, context, eci);
+    SuccessfulCompactor c = new SuccessfulCompactor(supplier, client, job, context, eci);
     c.run();
 
     PowerMock.verifyAll();
@@ -364,48 +354,42 @@ public class CompactorTest {
   @Test
   public void testCompactionFails() throws Exception {
     UUID uuid = UUID.randomUUID();
-    Supplier<UUID> supplier = new Supplier<>() {
-      @Override
-      public UUID get() {
-        return uuid;
-      }
-    };
+    Supplier<UUID> supplier = () -> uuid;
 
     ExternalCompactionId eci = ExternalCompactionId.generate(supplier.get());
 
     PowerMock.resetAll();
     PowerMock.suppress(PowerMock.methods(Halt.class, "halt"));
-    PowerMock.suppress(PowerMock.methods(TServerUtils.class, "stopTServer"));
     PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
     HostAndPort address = HostAndPort.fromString("localhost:10240");
-    EasyMock.expect(client.getAddress()).andReturn(address);
+    expect(client.getAddress()).andReturn(address);
 
     TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
     TKeyExtent extent = PowerMock.createNiceMock(TKeyExtent.class);
-    EasyMock.expect(extent.getTable()).andReturn("testTable".getBytes()).anyTimes();
+    expect(extent.getTable()).andReturn("testTable".getBytes()).anyTimes();
 
-    EasyMock.expect(job.isSetExternalCompactionId()).andReturn(true).anyTimes();
-    EasyMock.expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
-    EasyMock.expect(job.getExtent()).andReturn(extent).anyTimes();
+    expect(job.isSetExternalCompactionId()).andReturn(true).anyTimes();
+    expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
+    expect(job.getExtent()).andReturn(extent).anyTimes();
 
-    AccumuloConfiguration conf = PowerMock.createNiceMock(AccumuloConfiguration.class);
-    EasyMock.expect(conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT)).andReturn(86400000L);
+    var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    conf.set(Property.INSTANCE_ZK_TIMEOUT, "1d");
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
-    EasyMock.expect(context.getConfiguration()).andReturn(conf);
+    expect(context.getConfiguration()).andReturn(conf).anyTimes();
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
-    EasyMock.expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    EasyMock.expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
+    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
     VolumeManagerImpl vm = PowerMock.createNiceMock(VolumeManagerImpl.class);
-    EasyMock.expect(context.getVolumeManager()).andReturn(vm);
+    expect(context.getVolumeManager()).andReturn(vm);
     vm.close();
 
     PowerMock.replayAll();
 
-    FailedCompactor c = new FailedCompactor(supplier, client, job, conf, context, eci);
+    FailedCompactor c = new FailedCompactor(supplier, client, job, context, eci);
     c.run();
 
     PowerMock.verifyAll();
@@ -419,47 +403,41 @@ public class CompactorTest {
   @Test
   public void testCompactionInterrupted() throws Exception {
     UUID uuid = UUID.randomUUID();
-    Supplier<UUID> supplier = new Supplier<>() {
-      @Override
-      public UUID get() {
-        return uuid;
-      }
-    };
+    Supplier<UUID> supplier = () -> uuid;
 
     ExternalCompactionId eci = ExternalCompactionId.generate(supplier.get());
 
     PowerMock.resetAll();
     PowerMock.suppress(PowerMock.methods(Halt.class, "halt"));
-    PowerMock.suppress(PowerMock.methods(TServerUtils.class, "stopTServer"));
     PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
     HostAndPort address = HostAndPort.fromString("localhost:10240");
-    EasyMock.expect(client.getAddress()).andReturn(address);
+    expect(client.getAddress()).andReturn(address);
 
     TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
     TKeyExtent extent = PowerMock.createNiceMock(TKeyExtent.class);
-    EasyMock.expect(job.isSetExternalCompactionId()).andReturn(true).anyTimes();
-    EasyMock.expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
-    EasyMock.expect(job.getExtent()).andReturn(extent).anyTimes();
-    EasyMock.expect(extent.getTable()).andReturn("testTable".getBytes()).anyTimes();
+    expect(job.isSetExternalCompactionId()).andReturn(true).anyTimes();
+    expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
+    expect(job.getExtent()).andReturn(extent).anyTimes();
+    expect(extent.getTable()).andReturn("testTable".getBytes()).anyTimes();
 
-    AccumuloConfiguration conf = PowerMock.createNiceMock(AccumuloConfiguration.class);
-    EasyMock.expect(conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT)).andReturn(86400000L);
+    var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    conf.set(Property.INSTANCE_ZK_TIMEOUT, "1d");
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
-    EasyMock.expect(context.getConfiguration()).andReturn(conf);
+    expect(context.getConfiguration()).andReturn(conf).anyTimes();
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
-    EasyMock.expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    EasyMock.expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
+    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
     VolumeManagerImpl vm = PowerMock.createNiceMock(VolumeManagerImpl.class);
-    EasyMock.expect(context.getVolumeManager()).andReturn(vm);
+    expect(context.getVolumeManager()).andReturn(vm);
     vm.close();
 
     PowerMock.replayAll();
 
-    InterruptedCompactor c = new InterruptedCompactor(supplier, client, job, conf, context, eci);
+    InterruptedCompactor c = new InterruptedCompactor(supplier, client, job, context, eci);
     c.run();
 
     PowerMock.verifyAll();

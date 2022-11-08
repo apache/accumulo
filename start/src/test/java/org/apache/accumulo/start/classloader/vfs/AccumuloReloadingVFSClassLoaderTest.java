@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,44 +18,46 @@
  */
 package org.apache.accumulo.start.classloader.vfs;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.util.Objects;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Deprecated
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class AccumuloReloadingVFSClassLoaderTest {
+public class AccumuloReloadingVFSClassLoaderTest extends WithTestNames {
 
-  @Rule
-  public TemporaryFolder folder1 =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File folder1;
+
+  private File tmpDir;
+
   String folderPath;
   private FileSystemManager vfs;
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
+    tmpDir = new File(folder1, testName());
+
     vfs = ContextManagerTest.getVFS();
-
-    folderPath = folder1.getRoot().toURI() + ".*";
-
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
-        folder1.newFile("HelloWorld.jar"));
+    folderPath = tmpDir.toURI() + "/.*";
+    FileUtils.copyURLToFile(Objects.requireNonNull(this.getClass().getResource("/HelloWorld.jar")),
+        new File(tmpDir, "HelloWorld.jar"));
   }
 
   FileObject[] createFileSystems(FileObject[] fos) throws FileSystemException {
@@ -73,7 +75,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
   @Test
   public void testConstructor() throws Exception {
-    FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
+    FileObject testDir = vfs.resolveFile(tmpDir.toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
     AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
@@ -89,7 +91,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
   @Test
   public void testReloading() throws Exception {
-    FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
+    FileObject testDir = vfs.resolveFile(tmpDir.toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
     AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
@@ -109,14 +111,14 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     assertEquals(clazz1, clazz1_5);
 
-    assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
+    assertTrue(new File(tmpDir, "HelloWorld.jar").delete());
 
     // VFS-487 significantly wait to avoid failure
     Thread.sleep(7000);
 
     // Update the class
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
-        folder1.newFile("HelloWorld2.jar"));
+    FileUtils.copyURLToFile(Objects.requireNonNull(this.getClass().getResource("/HelloWorld.jar")),
+        new File(tmpDir, "HelloWorld2.jar"));
 
     // Wait for the monitor to notice
     // VFS-487 significantly wait to avoid failure
@@ -135,7 +137,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
   @Test
   public void testReloadingWithLongerTimeout() throws Exception {
-    FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
+    FileObject testDir = vfs.resolveFile(tmpDir.toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
 
     AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folderPath, vfs,
@@ -155,14 +157,14 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     assertEquals(clazz1, clazz1_5);
 
-    assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
+    assertTrue(new File(tmpDir, "HelloWorld.jar").delete());
 
     // VFS-487 significantly wait to avoid failure
     Thread.sleep(7000);
 
     // Update the class
-    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"),
-        folder1.newFile("HelloWorld2.jar"));
+    FileUtils.copyURLToFile(Objects.requireNonNull(this.getClass().getResource("/HelloWorld.jar")),
+        new File(tmpDir, "HelloWorld2.jar"));
 
     // Wait for the monitor to notice
     // VFS-487 significantly wait to avoid failure

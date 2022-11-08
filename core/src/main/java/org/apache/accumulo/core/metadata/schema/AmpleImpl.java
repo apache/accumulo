@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,14 +18,14 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
+
 import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata.Options;
-
-import com.google.common.collect.Iterables;
 
 public class AmpleImpl implements Ample {
   private final AccumuloClient client;
@@ -44,7 +44,7 @@ public class AmpleImpl implements Ample {
     builder.readConsistency(readConsistency);
 
     try (TabletsMetadata tablets = builder.build()) {
-      return Iterables.getOnlyElement(tablets);
+      return tablets.stream().collect(onlyElement());
     } catch (NoSuchElementException e) {
       return null;
     }

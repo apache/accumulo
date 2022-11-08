@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.core.rpc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier.createTAuthIdentifier;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
@@ -40,8 +41,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SaslConnectionParamsTest {
 
@@ -49,7 +50,7 @@ public class SaslConnectionParamsTest {
   private String username;
   private static final String primary = "accumulo";
 
-  @Before
+  @BeforeEach
   public void setup() {
     System.setProperty("java.security.krb5.realm", "accumulo");
     System.setProperty("java.security.krb5.kdc", "fake");
@@ -107,8 +108,9 @@ public class SaslConnectionParamsTest {
 
   @Test
   public void testDelegationTokenImpl() throws Exception {
-    final DelegationTokenImpl token = new DelegationTokenImpl(new byte[0],
-        new AuthenticationTokenIdentifier("user", 1, 10L, 20L, "instanceid"));
+    final DelegationTokenImpl token =
+        new DelegationTokenImpl(new byte[0], new AuthenticationTokenIdentifier(
+            createTAuthIdentifier("user", 1, 10L, 20L, "instanceid")));
     testUser.doAs((PrivilegedExceptionAction<Void>) () -> {
       final SaslConnectionParams saslParams = createSaslParams(token);
       assertEquals(primary, saslParams.getKerberosServerPrimary());
@@ -142,8 +144,9 @@ public class SaslConnectionParamsTest {
     assertEquals(params1, params2);
     assertEquals(params1.hashCode(), params2.hashCode());
 
-    final DelegationTokenImpl delToken1 = new DelegationTokenImpl(new byte[0],
-        new AuthenticationTokenIdentifier("user", 1, 10L, 20L, "instanceid"));
+    final DelegationTokenImpl delToken1 =
+        new DelegationTokenImpl(new byte[0], new AuthenticationTokenIdentifier(
+            createTAuthIdentifier("user", 1, 10L, 20L, "instanceid")));
     SaslConnectionParams params3 = testUser
         .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(delToken1));
 
@@ -152,8 +155,9 @@ public class SaslConnectionParamsTest {
     assertNotEquals(params2, params3);
     assertNotEquals(params2.hashCode(), params3.hashCode());
 
-    final DelegationTokenImpl delToken2 = new DelegationTokenImpl(new byte[0],
-        new AuthenticationTokenIdentifier("user", 1, 10L, 20L, "instanceid"));
+    final DelegationTokenImpl delToken2 =
+        new DelegationTokenImpl(new byte[0], new AuthenticationTokenIdentifier(
+            createTAuthIdentifier("user", 1, 10L, 20L, "instanceid")));
     SaslConnectionParams params4 = testUser
         .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(delToken2));
 

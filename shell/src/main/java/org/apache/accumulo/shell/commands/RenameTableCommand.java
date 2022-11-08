@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -25,7 +25,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.Token;
@@ -37,7 +37,7 @@ public class RenameTableCommand extends Command {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TableExistsException {
     shellState.getAccumuloClient().tableOperations().rename(cl.getArgs()[0], cl.getArgs()[1]);
-    if (shellState.getTableName().equals(Tables.qualified(cl.getArgs()[0]))) {
+    if (shellState.getTableName().equals(TableNameUtil.qualified(cl.getArgs()[0]))) {
       shellState.setTableName(cl.getArgs()[1]);
     }
     return 0;

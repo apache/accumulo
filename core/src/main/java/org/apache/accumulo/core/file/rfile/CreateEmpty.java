@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,14 +19,14 @@
 package org.apache.accumulo.core.file.rfile;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
+import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
+import org.apache.accumulo.core.spi.file.rfile.compression.NoCompression;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -58,10 +58,9 @@ public class CreateEmpty implements KeywordExecutable {
   public static class IsSupportedCompressionAlgorithm implements IParameterValidator {
     @Override
     public void validate(String name, String value) throws ParameterException {
-      String[] algorithms = Compression.getSupportedAlgorithms();
-      if (!((Arrays.asList(algorithms)).contains(value))) {
-        throw new ParameterException(
-            "Compression codec must be one of " + Arrays.toString(algorithms));
+      List<String> algorithms = Compression.getSupportedAlgorithms();
+      if (!algorithms.contains(value)) {
+        throw new ParameterException("Compression codec must be one of " + algorithms);
       }
     }
   }
@@ -69,7 +68,7 @@ public class CreateEmpty implements KeywordExecutable {
   static class Opts extends Help {
     @Parameter(names = {"-c", "--codec"}, description = "the compression codec to use.",
         validateWith = IsSupportedCompressionAlgorithm.class)
-    String codec = Compression.COMPRESSION_NONE;
+    String codec = new NoCompression().getName();
     @Parameter(
         description = " <path> { <path> ... } Each path given is a URL."
             + " Relative paths are resolved according to the default filesystem defined in"
@@ -102,8 +101,8 @@ public class CreateEmpty implements KeywordExecutable {
     for (String arg : opts.files) {
       Path path = new Path(arg);
       log.info("Writing to file '{}'", path);
-      FileSKVWriter writer = (new RFileOperations()).newWriterBuilder()
-          .forFile(arg, path.getFileSystem(conf), conf, CryptoServiceFactory.newDefaultInstance())
+      FileSKVWriter writer = new RFileOperations().newWriterBuilder()
+          .forFile(arg, path.getFileSystem(conf), conf, NoCryptoServiceFactory.NONE)
           .withTableConfiguration(DefaultConfiguration.getInstance()).withCompression(opts.codec)
           .build();
       writer.close();

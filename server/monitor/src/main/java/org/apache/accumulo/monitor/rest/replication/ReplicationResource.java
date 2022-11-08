@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -40,7 +40,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -119,7 +118,7 @@ public class ReplicationResource {
     // Number of files per target we have to replicate
     Map<ReplicationTarget,Long> targetCounts = new HashMap<>();
 
-    Map<String,TableId> tableNameToId = Tables.getNameToIdMap(monitor.getContext());
+    Map<String,TableId> tableNameToId = monitor.getContext().getTableNameToIdMap();
     Map<TableId,String> tableIdToName = invert(tableNameToId);
 
     for (String table : tops.list()) {
@@ -148,6 +147,12 @@ public class ReplicationResource {
           allConfiguredTargets.add(target);
         }
       });
+    }
+
+    // Ensure replication table is online before attempting to create BatchScanner
+    if (!ReplicationTable.isOnline(client)) {
+      log.debug("Replication page requested, but replication table is offline");
+      return Collections.emptyList();
     }
 
     // Read over the queued work

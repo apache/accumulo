@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,18 +18,21 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -39,21 +42,22 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.util.SlowOps;
 import org.apache.zookeeper.KeeperException;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,27 +90,27 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
   private SlowOps slowOps;
 
-  @Before
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
+  }
+
+  @BeforeEach
   public void setup() {
     client = Accumulo.newClient().from(getClientProps()).build();
     context = (ClientContext) client;
     secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
-    maxWaitMillis = Math.max(60_000, defaultTimeoutSeconds() * 1000 / 2);
+    maxWaitMillis = Math.max(MINUTES.toMillis(1), defaultTimeout().toMillis() / 2);
   }
 
-  @After
+  @AfterEach
   public void closeClient() {
     client.close();
   }
 
-  @AfterClass
+  @AfterAll
   public static void cleanup() {
     pool.shutdownNow();
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   /**
@@ -125,7 +129,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     SlowOps.setExpectedCompactions(client, 1);
     slowOps = new SlowOps(client, tableName, maxWaitMillis);
 
-    assertEquals("verify table online after created", TableState.ONLINE, getTableState(tableName));
+    assertEquals(TableState.ONLINE, getTableState(tableName), "verify table online after created");
 
     OnLineCallable onlineOp = new OnLineCallable(tableName);
 
@@ -133,15 +137,14 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing1 = task.get();
 
-    log.trace("Online 1 in {} ms",
-        TimeUnit.MILLISECONDS.convert(timing1.runningTime(), TimeUnit.NANOSECONDS));
+    log.trace("Online 1 in {} ms", NANOSECONDS.toMillis(timing1.runningTime()));
 
-    assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
+    assertEquals(TableState.ONLINE, getTableState(tableName), "verify table is still online");
 
     // verify that offline then online functions as expected.
 
     client.tableOperations().offline(tableName, true);
-    assertEquals("verify table is offline", TableState.OFFLINE, getTableState(tableName));
+    assertEquals(TableState.OFFLINE, getTableState(tableName), "verify table is offline");
 
     onlineOp = new OnLineCallable(tableName);
 
@@ -149,10 +152,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing2 = task.get();
 
-    log.trace("Online 2 in {} ms",
-        TimeUnit.MILLISECONDS.convert(timing2.runningTime(), TimeUnit.NANOSECONDS));
+    log.trace("Online 2 in {} ms", NANOSECONDS.toMillis(timing2.runningTime()));
 
-    assertEquals("verify table is back online", TableState.ONLINE, getTableState(tableName));
+    assertEquals(TableState.ONLINE, getTableState(tableName), "verify table is back online");
 
     // launch a full table compaction with the slow iterator to ensure table lock is acquired and
     // held by the compaction
@@ -167,23 +169,20 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing3 = task.get();
 
-    assertTrue("online should take less time than expected compaction time", timing3.runningTime()
-        < TimeUnit.NANOSECONDS.convert(NUM_ROWS * SLOW_SCAN_SLEEP_MS, TimeUnit.MILLISECONDS));
+    assertTrue(timing3.runningTime() < MILLISECONDS.toNanos(NUM_ROWS * SLOW_SCAN_SLEEP_MS),
+        "online should take less time than expected compaction time");
 
-    assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
+    assertEquals(TableState.ONLINE, getTableState(tableName), "verify table is still online");
 
-    assertTrue("Find FATE operation for table", findFate(tableName));
+    assertTrue(findFate(tableName), "Find FATE operation for table");
 
     // test complete, cancel compaction and move on.
     client.tableOperations().cancelCompaction(tableName);
 
     log.debug("Success: Timing results for online commands.");
-    log.debug("Time for unblocked online {} ms",
-        TimeUnit.MILLISECONDS.convert(timing1.runningTime(), TimeUnit.NANOSECONDS));
-    log.debug("Time for online when offline {} ms",
-        TimeUnit.MILLISECONDS.convert(timing2.runningTime(), TimeUnit.NANOSECONDS));
-    log.debug("Time for blocked online {} ms",
-        TimeUnit.MILLISECONDS.convert(timing3.runningTime(), TimeUnit.NANOSECONDS));
+    log.debug("Time for unblocked online {} ms", NANOSECONDS.toMillis(timing1.runningTime()));
+    log.debug("Time for online when offline {} ms", NANOSECONDS.toMillis(timing2.runningTime()));
+    log.debug("Time for blocked online {} ms", NANOSECONDS.toMillis(timing3.runningTime()));
 
     // block if compaction still running
     slowOps.blockWhileCompactionRunning();
@@ -213,7 +212,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Validate the the AdminUtil.getStatus works correctly after refactor and validate that
+   * Validate the AdminUtil.getStatus works correctly after refactor and validate that
    * getTransactionStatus can be called without lock map(s). The test starts a long running fate
    * transaction (slow compaction) and the calls AdminUtil functions to get the FATE.
    */
@@ -227,10 +226,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     try {
 
-      assertEquals("verify table online after created", TableState.ONLINE,
-          getTableState(tableName));
+      assertEquals(TableState.ONLINE, getTableState(tableName),
+          "verify table online after created");
 
-      tableId = Tables.getTableId(context, tableName);
+      tableId = context.getTableId(tableName);
 
       log.trace("tid: {}", tableId);
 
@@ -252,13 +251,13 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       try {
 
-        String instanceId = context.getInstanceID();
-        ZooReaderWriter zk = new ZooReaderWriter(context.getZooKeepers(),
-            context.getZooKeepersSessionTimeOut(), secret);
+        InstanceId instanceId = context.getInstanceID();
+        ZooReaderWriter zk = context.getZooReader().asWriter(secret);
         ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
+        var lockPath =
+            ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);
 
-        withLocks = admin.getStatus(zs, zk,
-            ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
+        withLocks = admin.getStatus(zs, zk, lockPath, null, null);
 
         // call method that does not use locks.
         noLocks = admin.getTransactionStatus(zs, null, null);
@@ -303,7 +302,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       }
     }
 
-    assertTrue("Number of fates matches should be > 0", matchCount > 0);
+    assertTrue(matchCount > 0, "Number of fates matches should be > 0");
 
     try {
 
@@ -340,16 +339,16 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     try {
 
-      TableId tableId = Tables.getTableId(context, tableName);
+      TableId tableId = context.getTableId(tableName);
 
       log.trace("tid: {}", tableId);
 
-      String instanceId = context.getInstanceID();
-      ZooReaderWriter zk = new ZooReaderWriter(context.getZooKeepers(),
-          context.getZooKeepersSessionTimeOut(), secret);
+      InstanceId instanceId = context.getInstanceID();
+      ZooReaderWriter zk = context.getZooReader().asWriter(secret);
       ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
-      AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk,
-          ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
+      var lockPath =
+          ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);
+      AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk, lockPath, null, null);
 
       log.trace("current fates: {}", fateStatus.getTransactions().size());
 
@@ -385,11 +384,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
 
     String top = tx.getTop();
-    String debug = tx.getDebug();
+    String txName = tx.getTxName();
 
-    return top != null && debug != null && top.contains("CompactionDriver")
-        && tx.getDebug().contains("CompactRange");
-
+    return top != null && txName != null && top.contains("CompactionDriver")
+        && tx.getTxName().equals("TABLE_COMPACT");
   }
 
   /**
@@ -403,9 +401,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    */
   private TableState getTableState(String tableName) throws TableNotFoundException {
 
-    TableId tableId = Tables.getTableId(context, tableName);
+    TableId tableId = context.getTableId(tableName);
 
-    TableState tstate = Tables.getTableState(context, tableId);
+    TableState tstate = context.getTableState(tableId);
 
     log.trace("tableName: '{}': tableId {}, current state: {}", tableName, tableId, tstate);
 
@@ -467,8 +465,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       // stop timing
       status.setComplete();
 
-      log.trace("Online completed in {} ms",
-          TimeUnit.MILLISECONDS.convert(status.runningTime(), TimeUnit.NANOSECONDS));
+      log.trace("Online completed in {} ms", NANOSECONDS.toMillis(status.runningTime()));
 
       return status;
     }

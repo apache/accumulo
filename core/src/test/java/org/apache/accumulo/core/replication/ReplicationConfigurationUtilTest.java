@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.replication;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,15 +32,15 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @Deprecated
 public class ReplicationConfigurationUtilTest {
 
   private AccumuloConfiguration conf;
 
-  @Before
+  @BeforeEach
   public void setupConfiguration() {
     Map<String,String> map = new HashMap<>();
     map.put(Property.TABLE_REPLICATION.getKey(), "true");
@@ -50,41 +50,44 @@ public class ReplicationConfigurationUtilTest {
   @Test
   public void rootTableExtent() {
     KeyExtent extent = new KeyExtent(RootTable.ID, null, null);
-    assertFalse("The root table should never be replicated",
-        ReplicationConfigurationUtil.isEnabled(extent, conf));
+    assertFalse(ReplicationConfigurationUtil.isEnabled(extent, conf),
+        "The root table should never be replicated");
   }
 
   @Test
   public void metadataTableExtent() {
     KeyExtent extent = new KeyExtent(MetadataTable.ID, null, null);
-    assertFalse("The metadata table should never be replicated",
-        ReplicationConfigurationUtil.isEnabled(extent, conf));
+    assertFalse(ReplicationConfigurationUtil.isEnabled(extent, conf),
+        "The metadata table should never be replicated");
   }
 
   @Test
   public void rootTableExtentEmptyConf() {
     KeyExtent extent = new KeyExtent(RootTable.ID, null, null);
-    assertFalse("The root table should never be replicated",
-        ReplicationConfigurationUtil.isEnabled(extent, new ConfigurationCopy(new HashMap<>())));
+    assertFalse(
+        ReplicationConfigurationUtil.isEnabled(extent, new ConfigurationCopy(new HashMap<>())),
+        "The root table should never be replicated");
   }
 
   @Test
   public void metadataTableExtentEmptyConf() {
     KeyExtent extent = new KeyExtent(MetadataTable.ID, null, null);
-    assertFalse("The metadata table should never be replicated",
-        ReplicationConfigurationUtil.isEnabled(extent, new ConfigurationCopy(new HashMap<>())));
+    assertFalse(
+        ReplicationConfigurationUtil.isEnabled(extent, new ConfigurationCopy(new HashMap<>())),
+        "The metadata table should never be replicated");
   }
 
   @Test
   public void regularTable() {
     KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("b"), new Text("a"));
-    assertTrue("Table should be replicated", ReplicationConfigurationUtil.isEnabled(extent, conf));
+    assertTrue(ReplicationConfigurationUtil.isEnabled(extent, conf), "Table should be replicated");
   }
 
   @Test
   public void regularNonEnabledTable() {
     KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("b"), new Text("a"));
-    assertFalse("Table should not be replicated",
-        ReplicationConfigurationUtil.isEnabled(extent, new ConfigurationCopy(new HashMap<>())));
+    assertFalse(
+        ReplicationConfigurationUtil.isEnabled(extent, new ConfigurationCopy(new HashMap<>())),
+        "Table should not be replicated");
   }
 }

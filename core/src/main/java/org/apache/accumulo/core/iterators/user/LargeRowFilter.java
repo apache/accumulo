@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -257,7 +257,7 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
   @Override
   public IteratorOptions describeOptions() {
     String description =
-        "This iterator suppresses rows that exceed a specified" + " number of columns. Once\n"
+        "This iterator suppresses rows that exceed a specified number of columns. Once\n"
             + "a row exceeds the threshold, a marker is emitted and the row is always\n"
             + "suppressed by this iterator after that point in time.\n"
             + " This iterator works in a similar way to the RowDeletingIterator. See its\n"

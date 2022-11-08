@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,12 +18,14 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -32,7 +34,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -60,6 +61,7 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -76,7 +78,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.bouncycastle.util.Arrays;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,6 +156,11 @@ public class CompactionIT extends AccumuloClusterHarness {
   private static final int MAX_DATA = 1000;
 
   @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
+  }
+
+  @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN, "4");
@@ -161,11 +168,6 @@ public class CompactionIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.TSERV_MAJC_MAXCONCURRENT, "1");
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   @Test
@@ -368,8 +370,8 @@ public class CompactionIT extends AccumuloClusterHarness {
           int v = Integer.parseInt(entry.getValue().toString());
           int modulus = v < MAX_DATA ? 17 : 19;
 
-          assertTrue(String.format("%s %s %d != 0", entry.getValue(), "%", modulus),
-              Integer.parseInt(entry.getValue().toString()) % modulus == 0);
+          assertEquals(0, Integer.parseInt(entry.getValue().toString()) % modulus,
+              String.format("%s %s %d != 0", entry.getValue(), "%", modulus));
           count++;
         }
 
@@ -410,8 +412,8 @@ public class CompactionIT extends AccumuloClusterHarness {
 
       // without compression, expect file to be large
       long sizes = CompactionExecutorIT.getFileSizes(client, tableName);
-      assertTrue("Unexpected files sizes : " + sizes,
-          sizes > data.length * 10 && sizes < data.length * 11);
+      assertTrue(sizes > data.length * 10 && sizes < data.length * 11,
+          "Unexpected files sizes : " + sizes);
 
       client.tableOperations().compact(tableName,
           new CompactionConfig().setWait(true)
@@ -421,15 +423,15 @@ public class CompactionIT extends AccumuloClusterHarness {
 
       // after compacting with compression, expect small file
       sizes = CompactionExecutorIT.getFileSizes(client, tableName);
-      assertTrue("Unexpected files sizes: data: " + data.length + ", file:" + sizes,
-          sizes < data.length);
+      assertTrue(sizes < data.length,
+          "Unexpected files sizes: data: " + data.length + ", file:" + sizes);
 
       client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
       // after compacting without compression, expect big files again
       sizes = CompactionExecutorIT.getFileSizes(client, tableName);
-      assertTrue("Unexpected files sizes : " + sizes,
-          sizes > data.length * 10 && sizes < data.length * 11);
+      assertTrue(sizes > data.length * 10 && sizes < data.length * 11,
+          "Unexpected files sizes : " + sizes);
 
     }
   }
@@ -473,9 +475,9 @@ public class CompactionIT extends AccumuloClusterHarness {
           executor.execute(r);
         }
         executor.shutdown();
-        executor.awaitTermination(defaultTimeoutSeconds(), TimeUnit.SECONDS);
-        assertFalse("Failed to successfully run all threads, Check the test output for error",
-            fail.get());
+        executor.awaitTermination(defaultTimeout().toSeconds(), SECONDS);
+        assertFalse(fail.get(),
+            "Failed to successfully run all threads, Check the test output for error");
       }
 
       int finalCount = countFiles(c);
@@ -490,6 +492,56 @@ public class CompactionIT extends AccumuloClusterHarness {
           getCluster().start();
         }
       }
+    }
+  }
+
+  @Test
+  public void testMultiStepCompactionThatDeletesAll() throws Exception {
+
+    // There was a bug where user compactions would never complete when : the tablet had to be
+    // compacted in multiple passes AND the intermediate passes produced no output.
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      final String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100.0");
+
+      var beforeCount = countFiles(c);
+
+      final int NUM_ENTRIES_AND_FILES = 60;
+
+      try (var writer = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < NUM_ENTRIES_AND_FILES; i++) {
+          Mutation m = new Mutation("r" + i);
+          m.put("f1", "q1", "v" + i);
+          writer.addMutation(m);
+          writer.flush();
+          c.tableOperations().flush(tableName, null, null, true);
+        }
+      }
+
+      try (var scanner = c.createScanner(tableName)) {
+        assertEquals(NUM_ENTRIES_AND_FILES, scanner.stream().count());
+      }
+
+      var afterCount = countFiles(c);
+
+      assertTrue(afterCount >= beforeCount + NUM_ENTRIES_AND_FILES);
+
+      CompactionConfig comactionConfig = new CompactionConfig();
+      // configure an iterator that drops all data
+      IteratorSetting iter = new IteratorSetting(100, GrepIterator.class);
+      GrepIterator.setTerm(iter, "keep");
+      comactionConfig.setIterators(List.of(iter));
+      comactionConfig.setWait(true);
+      c.tableOperations().compact(tableName, comactionConfig);
+
+      try (var scanner = c.createScanner(tableName)) {
+        assertEquals(0, scanner.stream().count());
+      }
+
+      var finalCount = countFiles(c);
+      assertTrue(finalCount <= beforeCount);
     }
   }
 

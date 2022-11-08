@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,13 +18,14 @@
  */
 package org.apache.accumulo.tserver.constraints;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createMockBuilder;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -37,10 +38,8 @@ import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.data.constraints.Constraint.Environment;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.google.common.collect.Iterables;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ConstraintCheckerTest {
 
@@ -51,7 +50,7 @@ public class ConstraintCheckerTest {
   private Mutation m;
   private Mutation m2;
 
-  @Before
+  @BeforeEach
   public void setup() throws SecurityException {
     cc = createMockBuilder(ConstraintChecker.class).addMockedMethod("getConstraints").createMock();
     constraints = new ArrayList<>();
@@ -113,7 +112,7 @@ public class ConstraintCheckerTest {
   public void testCheckMutationOutsideTablet() {
     replayAll();
     replay(m2);
-    ConstraintViolationSummary cvs = Iterables.getOnlyElement(cc.check(env, m2).asList());
+    ConstraintViolationSummary cvs = cc.check(env, m2).asList().stream().collect(onlyElement());
     assertEquals(SystemConstraint.class.getName(), cvs.getConstrainClass());
   }
 
@@ -134,7 +133,7 @@ public class ConstraintCheckerTest {
   public void testCheckException() {
     replayAll();
     constraints.add(makeExceptionConstraint());
-    ConstraintViolationSummary cvs = Iterables.getOnlyElement(cc.check(env, m).asList());
+    ConstraintViolationSummary cvs = cc.check(env, m).asList().stream().collect(onlyElement());
     assertEquals("CONSTRAINT FAILED : threw some Exception", cvs.getViolationDescription());
   }
 }

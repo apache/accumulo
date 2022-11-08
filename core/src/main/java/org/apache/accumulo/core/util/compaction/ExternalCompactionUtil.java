@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -33,16 +33,17 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooSession;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.fate.zookeeper.ZooSession;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -118,8 +119,7 @@ public class ExternalCompactionUtil {
     try {
       final Map<String,List<HostAndPort>> queuesAndAddresses = new HashMap<>();
       final String compactorQueuesPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
-      ZooReader zooReader =
-          new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+      ZooReader zooReader = context.getZooReader();
       List<String> queues = zooReader.getChildren(compactorQueuesPath);
       for (String queue : queues) {
         queuesAndAddresses.putIfAbsent(queue, new ArrayList<HostAndPort>());
@@ -163,7 +163,7 @@ public class ExternalCompactionUtil {
       ClientContext context) throws ThriftSecurityException {
     CompactorService.Client client = null;
     try {
-      client = ThriftUtil.getClient(new CompactorService.Client.Factory(), compactor, context);
+      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactor, context);
       return client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds());
     } catch (ThriftSecurityException e) {
       throw e;
@@ -189,7 +189,7 @@ public class ExternalCompactionUtil {
 
     CompactorService.Client client = null;
     try {
-      client = ThriftUtil.getClient(new CompactorService.Client.Factory(), compactorAddr, context);
+      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
       TExternalCompactionJob job =
           client.getRunningCompaction(TraceUtil.traceInfo(), context.rpcCreds());
       if (job.getExternalCompactionId() != null) {
@@ -208,7 +208,7 @@ public class ExternalCompactionUtil {
       ClientContext context) {
     CompactorService.Client client = null;
     try {
-      client = ThriftUtil.getClient(new CompactorService.Client.Factory(), compactorAddr, context);
+      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
       String secid = client.getRunningCompactionId(TraceUtil.traceInfo(), context.rpcCreds());
       if (!secid.isEmpty()) {
         return ExternalCompactionId.of(secid);
@@ -232,8 +232,8 @@ public class ExternalCompactionUtil {
    */
   public static List<RunningCompaction> getCompactionsRunningOnCompactors(ClientContext context) {
     final List<RunningCompactionFuture> rcFutures = new ArrayList<>();
-    final ExecutorService executor =
-        ThreadPools.createFixedThreadPool(16, "CompactorRunningCompactions", false);
+    final ExecutorService executor = ThreadPools.getServerThreadPools().createFixedThreadPool(16,
+        "CompactorRunningCompactions", false);
 
     getCompactorAddrs(context).forEach((q, hp) -> {
       hp.forEach(hostAndPort -> {
@@ -260,8 +260,8 @@ public class ExternalCompactionUtil {
 
   public static Collection<ExternalCompactionId>
       getCompactionIdsRunningOnCompactors(ClientContext context) {
-    final ExecutorService executor =
-        ThreadPools.createFixedThreadPool(16, "CompactorRunningCompactions", false);
+    final ExecutorService executor = ThreadPools.getServerThreadPools().createFixedThreadPool(16,
+        "CompactorRunningCompactions", false);
 
     List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
@@ -280,9 +280,7 @@ public class ExternalCompactionUtil {
         if (ceid != null) {
           runningIds.add(ceid);
         }
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      } catch (ExecutionException e) {
+      } catch (InterruptedException | ExecutionException e) {
         throw new RuntimeException(e);
       }
     });
@@ -312,7 +310,7 @@ public class ExternalCompactionUtil {
       String ecid) {
     CompactorService.Client client = null;
     try {
-      client = ThriftUtil.getClient(new CompactorService.Client.Factory(), compactorAddr, context);
+      client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
       client.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
     } catch (TException e) {
       LOG.debug("Failed to cancel compactor {} for {}", compactorAddr, ecid, e);

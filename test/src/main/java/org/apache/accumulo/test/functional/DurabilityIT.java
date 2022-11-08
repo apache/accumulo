@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,9 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -34,27 +36,26 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
-@Category({MiniClusterOnlyTests.class})
+@Tag(MINI_CLUSTER_ONLY)
 public class DurabilityIT extends ConfigurableMacBase {
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(4);
+  }
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setNumTservers(1);
-  }
-
-  @Override
-  protected int defaultTimeoutSeconds() {
-    return 4 * 60;
   }
 
   static final long N = 100000;
@@ -115,7 +116,7 @@ public class DurabilityIT extends ConfigurableMacBase {
       writeSome(client, tableNames[2], N);
       restartTServer();
       long numResults = readSome(client, tableNames[2]);
-      assertTrue("Expected " + N + " >= " + numResults, numResults <= N);
+      assertTrue(numResults <= N, "Expected " + N + " >= " + numResults);
       cleanup(client, tableNames);
     }
   }
@@ -128,7 +129,7 @@ public class DurabilityIT extends ConfigurableMacBase {
       writeSome(client, tableNames[3], N);
       restartTServer();
       long numResults = readSome(client, tableNames[3]);
-      assertTrue("Expected " + N + " >= " + numResults, numResults <= N);
+      assertTrue(numResults <= N, "Expected " + N + " >= " + numResults);
       cleanup(client, tableNames);
     }
   }
@@ -142,7 +143,7 @@ public class DurabilityIT extends ConfigurableMacBase {
       writeSome(c, tableName, N);
       restartTServer();
       long numResults = readSome(c, tableName);
-      assertTrue("Expected " + N + " >= " + numResults, numResults <= N);
+      assertTrue(numResults <= N, "Expected " + N + " >= " + numResults);
       c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
       writeSome(c, tableName, N);
       restartTServer();
@@ -182,7 +183,7 @@ public class DurabilityIT extends ConfigurableMacBase {
         Mutation m = new Mutation("" + i);
         m.put("", "", "");
         bw.addMutation(m);
-        if (i % (Math.max(1, count / 100)) == 0) {
+        if (i % Math.max(1, count / 100) == 0) {
           bw.flush();
         }
       }

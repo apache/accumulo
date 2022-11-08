@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -27,10 +27,9 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,19 +47,22 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
+import org.apache.accumulo.core.file.rfile.bcfile.CompressionAlgorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
+import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
+import org.apache.accumulo.tserver.WithTestNames;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -69,15 +71,14 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class SortedLogRecoveryTest {
+public class SortedLogRecoveryTest extends WithTestNames {
 
   static final int bufferSize = 5;
   static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
@@ -87,14 +88,12 @@ public class SortedLogRecoveryTest {
   static ServerContext context;
   static LogSorter logSorter;
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
-  @Before
+  @BeforeEach
   public void setup() {
     context = EasyMock.createMock(ServerContext.class);
-    logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
   }
 
   static class KeyValue implements Comparable<KeyValue> {
@@ -113,8 +112,7 @@ public class SortedLogRecoveryTest {
 
     @Override
     public boolean equals(Object obj) {
-      return this == obj
-          || (obj != null && obj instanceof KeyValue && 0 == compareTo((KeyValue) obj));
+      return this == obj || (obj instanceof KeyValue && 0 == compareTo((KeyValue) obj));
     }
 
     @Override
@@ -142,7 +140,7 @@ public class SortedLogRecoveryTest {
         result.key.tablet = (KeyExtent) fileExtentMutation;
         break;
       case MUTATION:
-        result.value.mutations = Arrays.asList((Mutation) fileExtentMutation);
+        result.value.mutations = List.of((Mutation) fileExtentMutation);
         break;
       case MANY_MUTATIONS:
         result.value.mutations = Arrays.asList((Mutation[]) fileExtentMutation);
@@ -167,13 +165,16 @@ public class SortedLogRecoveryTest {
   private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent,
       int bufferSize) throws IOException {
 
-    final String workdir = tempFolder.newFolder().getAbsolutePath();
+    final String workdir = new File(tempDir, testName()).getAbsolutePath();
     try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
+      CryptoServiceFactory cryptoFactory = new GenericCryptoServiceFactory();
+
       expect(context.getVolumeManager()).andReturn(fs).anyTimes();
-      expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-          .anyTimes();
+      expect(context.getCryptoFactory()).andReturn(cryptoFactory).anyTimes();
       expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
       replay(context);
+      logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
+
       final Path workdirPath = new Path("file://" + workdir);
       fs.deleteRecursively(workdirPath);
 
@@ -346,16 +347,15 @@ public class SortedLogRecoveryTest {
   }
 
   @Test
-  public void testMissingDefinition() {
+  public void testMissingDefinition() throws IOException {
     // Create a test log
     KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),};
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("testlog", entries);
     // Recover
-    try {
-      recover(logs, extent);
-      fail("tablet should not have been found");
-    } catch (Throwable t) {}
+    List<Mutation> mutations = recover(logs, extent);
+    // Verify recovered data
+    assertEquals(0, mutations.size());
   }
 
   @Test
@@ -820,8 +820,7 @@ public class SortedLogRecoveryTest {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
 
-    HashSet<String> filesSet = new HashSet<>();
-    filesSet.addAll(Arrays.asList(tabletFiles));
+    HashSet<String> filesSet = new HashSet<>(Arrays.asList(tabletFiles));
     List<Mutation> mutations = recover(logs, filesSet, extent, bufferSize);
 
     if (startMatches) {
@@ -892,7 +891,7 @@ public class SortedLogRecoveryTest {
   }
 
   @Test
-  public void testConsecutiveCompactionFinishEvents() throws IOException {
+  public void testConsecutiveCompactionFinishEvents() {
     Mutation m1 = new ServerMutation(new Text("r1"));
     m1.put("f1", "q1", "v1");
 
@@ -1048,7 +1047,7 @@ public class SortedLogRecoveryTest {
   }
 
   @Test
-  public void testFileWithoutOpen() throws IOException {
+  public void testFileWithoutOpen() {
     Mutation m1 = new ServerMutation(new Text("r1"));
     m1.put("f1", "q1", "v1");
 
@@ -1077,12 +1076,8 @@ public class SortedLogRecoveryTest {
     // test all the possible properties for tserver.sort.file. prefix
     String prop = Property.TSERV_WAL_SORT_FILE_PREFIX + "invalid";
     testConfig.set(prop, "snappy");
-    try {
-      new LogSorter(context, testConfig);
-      fail("Did not throw IllegalArgumentException for " + prop);
-    } catch (IllegalArgumentException e) {
-      // valid for test
-    }
+    assertThrows(IllegalArgumentException.class, () -> new LogSorter(context, testConfig),
+        "Did not throw IllegalArgumentException for " + prop);
   }
 
   @Test
@@ -1100,16 +1095,17 @@ public class SortedLogRecoveryTest {
     testConfig.set(prefix + "compress.blocksize.index", "56K");
     testConfig.set(prefix + "blocksize", "256B");
     testConfig.set(prefix + "replication", "3");
-    LogSorter sorter = new LogSorter(context, testConfig);
 
-    final String workdir = tempFolder.newFolder().getAbsolutePath();
+    final String workdir = new File(tempDir, testName()).getAbsolutePath();
 
     try (var vm = VolumeManagerImpl.getLocalForTesting(workdir)) {
+      CryptoServiceFactory cryptoFactory = new GenericCryptoServiceFactory();
+      expect(context.getCryptoFactory()).andReturn(cryptoFactory).anyTimes();
       expect(context.getVolumeManager()).andReturn(vm).anyTimes();
-      expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-          .anyTimes();
       expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
       replay(context);
+      LogSorter sorter = new LogSorter(context, testConfig);
+
       final Path workdirPath = new Path("file://" + workdir);
       vm.deleteRecursively(workdirPath);
 
@@ -1148,9 +1144,8 @@ public class SortedLogRecoveryTest {
    * Pulled from BCFile.Reader()
    */
   private final Utils.Version API_VERSION_3 = new Utils.Version((short) 3, (short) 0);
-  private final String defaultPrefix = "data:";
 
-  private Compression.Algorithm getCompressionFromRFile(FSDataInputStream fsin, long fileLength)
+  private CompressionAlgorithm getCompressionFromRFile(FSDataInputStream fsin, long fileLength)
       throws IOException {
     try (var in = new SeekableDataInputStream(fsin)) {
       int magicNumberSize = 16; // BCFile.Magic.size();
@@ -1170,6 +1165,7 @@ public class SortedLogRecoveryTest {
       assertTrue(count > 0);
 
       String fullMetaName = Utils.readString(in);
+      String defaultPrefix = "data:";
       if (fullMetaName != null && !fullMetaName.startsWith(defaultPrefix)) {
         throw new IOException("Corrupted Meta region Index");
       }

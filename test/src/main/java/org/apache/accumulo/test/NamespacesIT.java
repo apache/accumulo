@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,16 +18,18 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -53,13 +55,13 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -78,59 +80,59 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.constraints.NumericValueConstraint;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.function.ThrowingRunnable;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 /**
  * Test different namespace permissions
  */
-@Category(MiniClusterOnlyTests.class)
+@Tag(MINI_CLUSTER_ONLY)
 public class NamespacesIT extends SharedMiniClusterBase {
 
   private AccumuloClient c;
   private String namespace;
   private static final int MAX_NAMESPACE_LEN = 1024;
 
-  @BeforeClass
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
+  }
+
+  @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniCluster();
   }
 
-  @AfterClass
+  @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  @Override
-  public int defaultTimeoutSeconds() {
-    return 60;
-  }
-
-  @Before
+  @BeforeEach
   public void setupConnectorAndNamespace() {
     // prepare a unique namespace and get a new root client for each test
     c = Accumulo.newClient().from(getClientProps()).build();
     namespace = "ns_" + getUniqueNames(1)[0];
   }
 
-  @After
+  @AfterEach
   public void swingMjölnir() throws Exception {
     if (c == null) {
       return;
     }
     // clean up any added tables, namespaces, and users, after each test
     for (String t : c.tableOperations().list())
-      if (!Tables.qualify(t).getFirst().equals(Namespace.ACCUMULO.name()))
+      if (!TableNameUtil.qualify(t).getFirst().equals(Namespace.ACCUMULO.name()))
         c.tableOperations().delete(t);
     assertEquals(3, c.tableOperations().list().size());
     for (String n : c.namespaceOperations().list())
@@ -165,14 +167,14 @@ public class NamespacesIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void createTableInAccumuloNamespace() throws Exception {
+  public void createTableInAccumuloNamespace() {
     String tableName = Namespace.ACCUMULO.name() + ".1";
     assertFalse(c.tableOperations().exists(tableName));
     assertThrows(AccumuloException.class, () -> c.tableOperations().create(tableName));
   }
 
   @Test
-  public void deleteBuiltinNamespaces() throws Exception {
+  public void deleteBuiltinNamespaces() {
     assertThrows(AccumuloSecurityException.class,
         () -> c.namespaceOperations().delete(Namespace.DEFAULT.name()));
     assertThrows(AccumuloSecurityException.class,
@@ -257,6 +259,13 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
   @Test
   public void verifyPropertyInheritance() throws Exception {
+
+    try (AccumuloClient client =
+        getCluster().createAccumuloClient(getPrincipal(), new PasswordToken(getRootPassword()))) {
+      client.securityOperations().grantNamespacePermission(getPrincipal(), "",
+          NamespacePermission.ALTER_NAMESPACE);
+    }
+
     String t0 = "0";
     String t1 = namespace + ".1";
     String t2 = namespace + ".2";
@@ -324,6 +333,25 @@ public class NamespacesIT extends SharedMiniClusterBase {
     assertTrue(checkNamespaceHasProp(namespace, k2, v2));
     assertTrue(checkTableHasProp(t1, k2, v2));
     assertTrue(checkTableHasProp(t2, k2, table_v2));
+
+    // modify multiple at once
+    String k3 = Property.TABLE_FILE_BLOCK_SIZE.getKey();
+    String v3 = "52";
+    String table_v3 = "73";
+    c.namespaceOperations().modifyProperties(namespace, properties -> {
+      properties.remove(k2);
+      properties.put(k3, v3);
+    });
+    c.tableOperations().modifyProperties(t2, properties -> {
+      properties.remove(k2);
+      properties.put(k3, table_v3);
+    });
+    assertTrue(checkNamespaceHasProp(namespace, k3, v3));
+    assertTrue(checkTableHasProp(t1, k3, v3));
+    assertTrue(checkTableHasProp(t2, k3, table_v3));
+    assertFalse(checkNamespaceHasProp(namespace, k2, v2));
+    assertFalse(checkTableHasProp(t1, k2, v2));
+    assertFalse(checkTableHasProp(t2, k2, table_v2));
 
     c.tableOperations().delete(t1);
     c.tableOperations().delete(t2);
@@ -548,7 +576,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
       }
     }
 
-    assertNotNull("Namespace constraint ID should not be null", namespaceNum);
+    assertNotNull(namespaceNum, "Namespace constraint ID should not be null");
     c.namespaceOperations().removeConstraint(namespace, namespaceNum);
 
     // loop until constraint is removed from config (or until test timeout)
@@ -728,11 +756,17 @@ public class NamespacesIT extends SharedMiniClusterBase {
       loginAs(user1);
       assertSecurityException(SecurityErrorCode.PERMISSION_DENIED,
           () -> user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42"));
+      assertSecurityException(SecurityErrorCode.PERMISSION_DENIED,
+          () -> user1Con.tableOperations().modifyProperties(t3,
+              properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "55")));
 
       loginAs(root);
       c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
+      c.securityOperations().grantTablePermission(u1, t3, TablePermission.ALTER_TABLE);
       loginAs(user1);
       user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42");
+      user1Con.tableOperations().modifyProperties(t3,
+          properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "43"));
       user1Con.tableOperations().removeProperty(t3, Property.TABLE_FILE_MAX.getKey());
       loginAs(root);
       c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
@@ -740,11 +774,17 @@ public class NamespacesIT extends SharedMiniClusterBase {
       loginAs(user1);
       assertSecurityException(SecurityErrorCode.PERMISSION_DENIED, () -> user1Con
           .namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "55"));
+      assertSecurityException(SecurityErrorCode.PERMISSION_DENIED,
+          () -> user1Con.namespaceOperations().modifyProperties(n1,
+              properties -> properties.put(Property.TABLE_FILE_MAX.getKey(), "55")));
 
       loginAs(root);
       c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
       loginAs(user1);
       user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "42");
+      user1Con.namespaceOperations().modifyProperties(n1, properties -> {
+        properties.put(Property.TABLE_FILE_MAX.getKey(), "43");
+      });
       user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
       loginAs(root);
       c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
@@ -806,6 +846,15 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
   @Test
   public void verifySystemPropertyInheritance() throws Exception {
+
+    try (AccumuloClient client =
+        getCluster().createAccumuloClient(getPrincipal(), new PasswordToken(getRootPassword()))) {
+      client.securityOperations().grantNamespacePermission(getPrincipal(), "accumulo",
+          NamespacePermission.ALTER_NAMESPACE);
+      client.securityOperations().grantNamespacePermission(getPrincipal(), "",
+          NamespacePermission.ALTER_NAMESPACE);
+    }
+
     String t1 = "1";
     String t2 = namespace + "." + t1;
     c.tableOperations().create(t1);
@@ -1007,8 +1056,8 @@ public class NamespacesIT extends SharedMiniClusterBase {
         () -> ops.clone("a", tableName, true, Collections.emptyMap(), Collections.emptySet()));
     ops.offline("a", true);
     ops.exportTable("a", System.getProperty("user.dir") + "/target");
-    assertAccumuloExceptionNoNamespace(
-        () -> ops.importTable(tableName, Set.of(System.getProperty("user.dir") + "/target")));
+    assertAccumuloExceptionNoNamespace(() -> ops.importTable(tableName,
+        Set.of(System.getProperty("user.dir") + "/target"), ImportConfiguration.empty()));
 
     // table operations that should throw an AccumuloException caused by a TableNotFoundException
     // caused by a NamespaceNotFoundException
@@ -1121,31 +1170,31 @@ public class NamespacesIT extends SharedMiniClusterBase {
     }
   }
 
-  private void assertNamespaceExists(ThrowingRunnable runnable) {
+  private void assertNamespaceExists(Executable runnable) {
     assertThrows(NamespaceExistsException.class, runnable);
   }
 
-  private void assertNoNamespace(ThrowingRunnable runnable) {
+  private void assertNoNamespace(Executable runnable) {
     assertThrows(NamespaceNotFoundException.class, runnable);
   }
 
-  private void assertNoTableNoNamespace(ThrowingRunnable runnable) {
+  private void assertNoTableNoNamespace(Executable runnable) {
     var e = assertThrows(TableNotFoundException.class, runnable);
     assertEquals(NamespaceNotFoundException.class, e.getCause().getClass());
   }
 
-  private void assertAccumuloExceptionNoNamespace(ThrowingRunnable runnable) {
+  private void assertAccumuloExceptionNoNamespace(Executable runnable) {
     var e = assertThrows(AccumuloException.class, runnable);
     assertEquals(NamespaceNotFoundException.class, e.getCause().getClass());
   }
 
-  private void assertAccumuloExceptionNoTableNoNamespace(ThrowingRunnable runnable) {
+  private void assertAccumuloExceptionNoTableNoNamespace(Executable runnable) {
     var e = assertThrows(AccumuloException.class, runnable);
     assertEquals(TableNotFoundException.class, e.getCause().getClass());
     assertEquals(NamespaceNotFoundException.class, e.getCause().getCause().getClass());
   }
 
-  private void assertSecurityException(SecurityErrorCode code, ThrowingRunnable runnable) {
+  private void assertSecurityException(SecurityErrorCode code, Executable runnable) {
     var e = assertThrows(AccumuloSecurityException.class, runnable);
     assertSame(code, e.getSecurityErrorCode());
   }

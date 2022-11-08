@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -397,6 +397,34 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Gauge</td>
  * <td></td>
  * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_SCAN_START}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_SCAN_CONTINUE}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_SCAN_CLOSE}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_SCAN_BUSY_TIMEOUT}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
  * <!-- major compactions -->
  * <tr>
  * <td>{i|e}_{compactionServiceName}_{executor_name}_queued</td>
@@ -530,6 +558,42 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Distribution Summary</td>
  * <td></td>
  * </tr>
+ * <!-- ZooKeeper property cache -->
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_PROPSTORE_LOAD_TIMER}</td>
+ * <td>Timer</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_PROPSTORE_REFRESH_COUNT}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_PROPSTORE_REFRESH_LOAD_COUNT}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_PROPSTORE_EVICTION_COUNT}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_PROPSTORE_ZK_ERROR_COUNT}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
  * </table>
  *
  * @since 2.1.0
@@ -582,6 +646,10 @@ public interface MetricsProducer {
   String METRICS_SCAN_OPEN_FILES = METRICS_SCAN + ".files.open";
   String METRICS_SCAN_RESULTS = METRICS_SCAN + ".result";
   String METRICS_SCAN_YIELDS = METRICS_SCAN + ".yields";
+  String METRICS_SCAN_START = METRICS_SCAN + ".start";
+  String METRICS_SCAN_CONTINUE = METRICS_SCAN + ".continue";
+  String METRICS_SCAN_CLOSE = METRICS_SCAN + ".close";
+  String METRICS_SCAN_BUSY_TIMEOUT = METRICS_SCAN + ".busy_timeout";
 
   String METRICS_TSERVER_PREFIX = "accumulo.tserver.";
   String METRICS_TSERVER_ENTRIES = METRICS_TSERVER_PREFIX + "entries";
@@ -616,6 +684,13 @@ public interface MetricsProducer {
   String METRICS_UPDATE_COMMIT_PREP = METRICS_UPDATE_COMMIT + ".prep";
   String METRICS_UPDATE_WALOG_WRITE = METRICS_UPDATE_PREFIX + "walog.write";
   String METRICS_UPDATE_MUTATION_ARRAY_SIZE = METRICS_UPDATE_PREFIX + "mutation.arrays.size";
+
+  String METRICS_PROPSTORE_PREFIX = "accumulo.prop.store.";
+  String METRICS_PROPSTORE_LOAD_TIMER = METRICS_PROPSTORE_PREFIX + "load";
+  String METRICS_PROPSTORE_REFRESH_COUNT = METRICS_PROPSTORE_PREFIX + "refresh";
+  String METRICS_PROPSTORE_REFRESH_LOAD_COUNT = METRICS_PROPSTORE_PREFIX + "refresh.load";
+  String METRICS_PROPSTORE_EVICTION_COUNT = METRICS_PROPSTORE_PREFIX + "evictions";
+  String METRICS_PROPSTORE_ZK_ERROR_COUNT = METRICS_PROPSTORE_PREFIX + "zookeeper.error";
 
   /**
    * Build Micrometer Meter objects and register them with the registry

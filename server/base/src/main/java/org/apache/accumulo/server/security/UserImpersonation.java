@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -188,8 +188,9 @@ public class UserImpersonation {
         hostConfigString.trim().isEmpty() ? new String[] {""} : hostConfigString.split(";");
 
     if (userConfigs.length != hostConfigs.length) {
-      String msg = String.format("Should have equal number of user and host"
-          + " impersonation elements in configuration. Got %d and %d elements," + " respectively.",
+      String msg = String.format(
+          "Should have equal number of user and host"
+              + " impersonation elements in configuration. Got %d and %d elements, respectively.",
           userConfigs.length, hostConfigs.length);
       throw new IllegalArgumentException(msg);
     }

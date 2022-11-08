@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -31,8 +31,7 @@ import org.apache.accumulo.core.data.Mutation;
  * written.
  * <p>
  * In the event that an MutationsRejectedException exception is thrown by one of the methods on a
- * BatchWriter instance, the user should close the current instance and create a new instance. This
- * is a known limitation which will be addressed by ACCUMULO-2990 in the future.
+ * BatchWriter instance, the user should close the current instance and create a new instance.
  */
 public interface BatchWriter extends AutoCloseable {
 

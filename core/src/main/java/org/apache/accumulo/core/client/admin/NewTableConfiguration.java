@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -38,10 +38,10 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.TableOperationsHelper;
-import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -170,7 +170,7 @@ public class NewTableConfiguration {
     Map<String,String> propertyMap = new HashMap<>();
 
     if (limitVersion)
-      propertyMap.putAll(IterConfigUtil.generateInitialTableProperties(limitVersion));
+      propertyMap.putAll(IteratorConfigUtil.generateInitialTableProperties(limitVersion));
 
     propertyMap.putAll(summarizerProps);
     propertyMap.putAll(samplerProps);

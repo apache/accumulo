@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,15 +18,15 @@
  */
 package org.apache.accumulo.core.conf;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ClientPropertyTest {
 
@@ -41,15 +41,13 @@ public class ClientPropertyTest {
     assertEquals("testpass1", new String(((PasswordToken) token).getPassword()));
 
     ClientProperty.setAuthenticationToken(props, new PasswordToken("testpass2"));
-    assertEquals("AAAAHR+LCAAAAAAAAAArSS0uKUgsLjYCANxwRH4JAAAA",
-        ClientProperty.AUTH_TOKEN.getValue(props));
+    assertEquals("/////gAAAAl0ZXN0cGFzczI=", ClientProperty.AUTH_TOKEN.getValue(props));
     token = ClientProperty.getAuthenticationToken(props);
     assertTrue(token instanceof PasswordToken);
     assertEquals("testpass2", new String(((PasswordToken) token).getPassword()));
 
     ClientProperty.setAuthenticationToken(props, new PasswordToken("testpass3"));
-    assertEquals("AAAAHR+LCAAAAAAAAAArSS0uKUgsLjYGAEpAQwkJAAAA",
-        ClientProperty.AUTH_TOKEN.getValue(props));
+    assertEquals("/////gAAAAl0ZXN0cGFzczM=", ClientProperty.AUTH_TOKEN.getValue(props));
     token = ClientProperty.getAuthenticationToken(props);
     assertTrue(token instanceof PasswordToken);
     assertEquals("testpass3", new String(((PasswordToken) token).getPassword()));
@@ -79,5 +77,10 @@ public class ClientPropertyTest {
 
     assertThrows(IllegalStateException.class,
         () -> ClientProperty.BATCH_WRITER_LATENCY_MAX.getBytes(props));
+  }
+
+  @Test
+  public void validateThrowsNPEOnNullProperties() {
+    assertThrows(NullPointerException.class, () -> ClientProperty.validate(null));
   }
 }

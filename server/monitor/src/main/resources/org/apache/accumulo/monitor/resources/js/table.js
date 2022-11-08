@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+"use strict";
 
-var tableID;
+var tableServersTable;
+
 /**
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshTable() {
-  getTableServers(tableID).then(function() {
-    refreshTableServersTable();
-  });
+  ajaxReloadTable(tableServersTable);
 }
 
 /**
@@ -34,77 +34,109 @@ function refresh() {
   refreshTable();
 }
 
+function getQueuedAndRunning(data) {
+  return `${data.running}(${data.queued})`;
+}
+
 /**
- * Generates the table servers table
+ * Initialize the table
+ * 
+ * @param {String} tableID the accumulo table ID
  */
-function refreshTableServersTable() {
-  clearTableBody('participatingTServers');
+function initTableServerTable(tableID) {
 
-  var data = sessionStorage.tableServers === undefined ?
-      [] : JSON.parse(sessionStorage.tableServers);
+  const url = '/rest/tables/' + tableID;
+  console.debug('REST url used to fetch data for table.js DataTable: ' + url);
 
-  if (data.length === 0 || data.servers.length === 0) {
-    var items = [];
-    items.push(createEmptyRow(13, 'Empty'));
-    $('<tr/>', {
-      html: items.join('')
-    }).appendTo('#participatingTServers tbody');
-  } else {
+  tableServersTable = $('#participatingTServers').DataTable({
+    "ajax": {
+      "url": url,
+      "dataSrc": "servers"
+    },
+    "stateSave": true,
+    "columnDefs": [{
+        "targets": "big-num",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = bigNumberForQuantity(data);
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "duration",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = timeDuration(data);
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "percent",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = Math.round(data * 100) + '%';
+          }
+          return data;
+        }
+      }
+    ],
+    "columns": [{
+        "data": "hostname",
+        "type": "html",
+        "render": function (data, type, row) {
+          if (type === 'display') {
+            data = `<a href="/tservers?s=${row.id}">${data}</a>`;
+          }
+          return data;
+        }
+      },
+      {
+        "data": "tablets"
+      },
+      {
+        "data": "lastContact"
+      },
+      {
+        "data": "entries"
+      },
+      {
+        "data": "ingest"
+      },
+      {
+        "data": "query"
+      },
+      {
+        "data": "holdtime"
+      },
+      {
+        "data": function (row) {
+          return getQueuedAndRunning(row.compactions.scans);
+        }
+      },
+      {
+        "data": function (row) {
+          return getQueuedAndRunning(row.compactions.minor);
+        }
+      },
+      {
+        "data": function (row) {
+          return getQueuedAndRunning(row.compactions.major);
+        }
+      },
+      {
+        "data": "indexCacheHitRate"
+      },
+      {
+        "data": "dataCacheHitRate"
+      },
+      {
+        "data": "osload"
+      }
+    ]
+  });
 
-    $.each(data.servers, function(key, val) {
-      var items = [];
-      items.push(createFirstCell(val.hostname, '<a href="/tservers?s=' +
-          val.id + '">' + val.hostname + '</a>'));
+  refreshTable();
 
-      items.push(createRightCell(val.tablets,
-          bigNumberForQuantity(val.tablets)));
-
-      items.push(createRightCell(val.lastContact,
-          timeDuration(val.lastContact)));
-
-      items.push(createRightCell(val.entries,
-          bigNumberForQuantity(val.entries)));
-
-      items.push(createRightCell(val.ingest,
-          bigNumberForQuantity(Math.floor(val.ingest))));
-
-      items.push(createRightCell(val.query,
-          bigNumberForQuantity(Math.floor(val.query))));
-
-      items.push(createRightCell(val.holdtime,
-          timeDuration(val.holdtime)));
-
-      items.push(createRightCell((val.compactions.scans.running +
-          val.compactions.scans.queued),
-          bigNumberForQuantity(val.compactions.scans.running) +
-          '&nbsp;(' + bigNumberForQuantity(val.compactions.scans.queued) +
-          ')'));
-
-      items.push(createRightCell((val.compactions.minor.running +
-          val.compactions.minor.queued),
-          bigNumberForQuantity(val.compactions.minor.running) +
-          '&nbsp;(' + bigNumberForQuantity(val.compactions.minor.queued) +
-          ')'));
-
-      items.push(createRightCell((val.compactions.major.running +
-          val.compactions.major.queued),
-          bigNumberForQuantity(val.compactions.major.running) +
-          '&nbsp;(' + bigNumberForQuantity(val.compactions.major.queued) +
-          ')'));
-
-      items.push(createRightCell(val.indexCacheHitRate * 100,
-          Math.round(val.indexCacheHitRate * 100) + '%'));
-
-      items.push(createRightCell(val.dataCacheHitRate * 100,
-          Math.round(val.dataCacheHitRate * 100) + '%'));
-
-      items.push(createRightCell(val.osload,
-          bigNumberForQuantity(val.osload)));
-
-      $('<tr/>', {
-        html: items.join('')
-      }).appendTo('#participatingTServers tbody');
-
-    });
-  }
 }
