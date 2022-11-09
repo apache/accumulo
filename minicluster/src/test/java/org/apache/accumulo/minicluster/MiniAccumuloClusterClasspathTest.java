@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -92,48 +94,49 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
     accumulo.stop();
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   @Timeout(60)
   public void testPerTableClasspath() throws Exception {
-    org.apache.accumulo.core.client.Connector conn =
-        accumulo.getConnector(ROOT_USER, ROOT_PASSWORD);
+    try (AccumuloClient client = Accumulo.newClient().from(accumulo.getClientProperties())
+        .as(ROOT_USER, ROOT_PASSWORD).build()) {
 
-    final String tableName = testName();
+      final String tableName = testName();
 
-    var ntc = new NewTableConfiguration();
-    ntc.setProperties(Map.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "cx1"));
-    ntc.attachIterator(new IteratorSetting(100, "foocensor", "org.apache.accumulo.test.FooFilter"));
+      var ntc = new NewTableConfiguration();
+      ntc.setProperties(Map.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "cx1"));
+      ntc.attachIterator(
+          new IteratorSetting(100, "foocensor", "org.apache.accumulo.test.FooFilter"));
 
-    conn.tableOperations().create(tableName, ntc);
+      client.tableOperations().create(tableName, ntc);
 
-    try (BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig())) {
+      try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
 
-      Mutation m1 = new Mutation("foo");
-      m1.put("cf1", "cq1", "v2");
-      m1.put("cf1", "cq2", "v3");
+        Mutation m1 = new Mutation("foo");
+        m1.put("cf1", "cq1", "v2");
+        m1.put("cf1", "cq2", "v3");
 
-      bw.addMutation(m1);
+        bw.addMutation(m1);
 
-      Mutation m2 = new Mutation("bar");
-      m2.put("cf1", "cq1", "v6");
-      m2.put("cf1", "cq2", "v7");
+        Mutation m2 = new Mutation("bar");
+        m2.put("cf1", "cq1", "v6");
+        m2.put("cf1", "cq2", "v7");
 
-      bw.addMutation(m2);
+        bw.addMutation(m2);
 
-    }
-
-    int count = 0;
-    try (Scanner scanner = conn.createScanner(tableName, new Authorizations())) {
-      for (Entry<Key,Value> entry : scanner) {
-        assertFalse(entry.getKey().getRowData().toString().toLowerCase().contains("foo"));
-        count++;
       }
+
+      int count = 0;
+      try (Scanner scanner = client.createScanner(tableName, new Authorizations())) {
+        for (Entry<Key,Value> entry : scanner) {
+          assertFalse(entry.getKey().getRowData().toString().toLowerCase().contains("foo"));
+          count++;
+        }
+      }
+
+      assertEquals(2, count);
+
+      client.tableOperations().delete(tableName);
     }
-
-    assertEquals(2, count);
-
-    conn.tableOperations().delete(tableName);
   }
 
 }

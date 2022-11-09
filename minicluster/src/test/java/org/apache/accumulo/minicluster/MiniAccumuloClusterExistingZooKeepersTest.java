@@ -25,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -56,28 +58,29 @@ public class MiniAccumuloClusterExistingZooKeepersTest extends WithTestNames {
     config = new MiniAccumuloConfig(testDir, SECRET);
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void canConnectViaExistingZooKeeper() throws Exception {
     try (TestingServer zooKeeper = new TestingServer(); MiniAccumuloCluster accumulo =
         new MiniAccumuloCluster(config.setExistingZooKeepers(zooKeeper.getConnectString()))) {
       accumulo.start();
+      assertEquals(zooKeeper.getConnectString(), accumulo.getZooKeepers());
 
-      org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", SECRET);
-      assertEquals(zooKeeper.getConnectString(), conn.getInstance().getZooKeepers());
+      try (AccumuloClient client =
+          Accumulo.newClient().from(accumulo.getClientProperties()).as("root", SECRET).build()) {
 
-      String tableName = "foo";
-      conn.tableOperations().create(tableName);
-      Map<String,String> tableIds = conn.tableOperations().tableIdMap();
-      assertTrue(tableIds.containsKey(tableName));
+        String tableName = "foo";
+        client.tableOperations().create(tableName);
+        Map<String,String> tableIds = client.tableOperations().tableIdMap();
+        assertTrue(tableIds.containsKey(tableName));
 
-      String zkTablePath = String.format("/accumulo/%s/tables/%s/name",
-          conn.getInstance().getInstanceID(), tableIds.get(tableName));
-      try (CuratorFramework client =
-          CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(), new RetryOneTime(1))) {
-        client.start();
-        assertNotNull(client.checkExists().forPath(zkTablePath));
-        assertEquals(tableName, new String(client.getData().forPath(zkTablePath)));
+        String zkTablePath = String.format("/accumulo/%s/tables/%s/name",
+            client.instanceOperations().getInstanceId().canonical(), tableIds.get(tableName));
+        try (CuratorFramework curatorClient =
+            CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(), new RetryOneTime(1))) {
+          curatorClient.start();
+          assertNotNull(curatorClient.checkExists().forPath(zkTablePath));
+          assertEquals(tableName, new String(curatorClient.getData().forPath(zkTablePath)));
+        }
       }
     }
   }

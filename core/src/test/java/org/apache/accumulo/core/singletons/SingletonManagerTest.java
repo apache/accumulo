@@ -94,52 +94,21 @@ public class SingletonManagerTest {
   }
 
   @Test
-  public void testConnectorPreventsDisable() {
-
-    SingletonManager.setMode(Mode.CONNECTOR);
-    assertEquals(Mode.CONNECTOR, SingletonManager.getMode());
-
-    SingletonReservation resv1 = SingletonManager.getClientReservation();
-
-    assertEquals(1, SingletonManager.getReservationCount());
-
-    SingletonReservation resv2 = SingletonManager.getClientReservation();
-
-    assertEquals(2, SingletonManager.getReservationCount());
-
-    resv1.close();
-    resv2.close();
-
-    assertEquals(0, SingletonManager.getReservationCount());
-
-    assertEquals(new TestService(true, 0, 0), service1);
-    assertEquals(new TestService(true, 1, 0), service2);
-
-    SingletonManager.setMode(Mode.CLIENT);
-    assertEquals(Mode.CLIENT, SingletonManager.getMode());
-
-    assertEquals(new TestService(false, 0, 1), service1);
-    assertEquals(new TestService(false, 1, 1), service2);
-
-    assertThrows(IllegalStateException.class, () -> SingletonManager.setMode(Mode.CONNECTOR),
-        "Should only be able to set mode to CONNECTOR once");
-
-    assertEquals(Mode.CLIENT, SingletonManager.getMode());
-  }
-
-  @Test
-  public void testConnectorEnables() {
+  public void testConnectorRemoved() {
     SingletonReservation resv1 = SingletonManager.getClientReservation();
     resv1.close();
 
     assertEquals(new TestService(false, 0, 1), service1);
     assertEquals(new TestService(false, 1, 1), service2);
 
-    // this should enable services
-    SingletonManager.setMode(Mode.CONNECTOR);
+    // this should do nothing
+    @SuppressWarnings("deprecation")
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> SingletonManager.setMode(Mode.CONNECTOR));
+    assertTrue(e.getMessage().contains("CONNECTOR"));
 
-    assertEquals(new TestService(true, 1, 1), service1);
-    assertEquals(new TestService(true, 2, 1), service2);
+    assertEquals(new TestService(false, 0, 1), service1);
+    assertEquals(new TestService(false, 1, 1), service2);
   }
 
   @Test

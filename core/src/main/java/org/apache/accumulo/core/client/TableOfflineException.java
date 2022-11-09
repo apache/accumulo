@@ -25,14 +25,6 @@ public class TableOfflineException extends RuntimeException {
   private static final long serialVersionUID = 1L;
 
   /**
-   * @deprecated since 2.0.0, replaced by {@link #TableOfflineException(String)}
-   */
-  @Deprecated(since = "2.0.0")
-  public TableOfflineException(Instance instance, String tableId) {
-    super("Table with ID (" + tableId + ") is offline");
-  }
-
-  /**
    * @since 2.0.0
    */
   public TableOfflineException(String msg) {
