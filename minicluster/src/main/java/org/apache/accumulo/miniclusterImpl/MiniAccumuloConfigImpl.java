@@ -588,16 +588,6 @@ public class MiniAccumuloConfigImpl {
     this.useMiniDFS = useMiniDFS;
   }
 
-  /**
-   * @return location of client conf file containing connection parameters for connecting to this
-   *         minicluster
-   *
-   * @since 1.6.0
-   */
-  public File getClientConfFile() {
-    return new File(getConfDir(), "client.conf");
-  }
-
   public File getAccumuloPropsFile() {
     return new File(getConfDir(), "accumulo.properties");
   }

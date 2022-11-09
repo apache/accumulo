@@ -120,7 +120,7 @@ public class ServerContextTest {
 
       assertEquals(ThriftServerType.SASL, context.getThriftServerType());
       SaslServerConnectionParams saslParams = context.getSaslParams();
-      assertEquals(new SaslServerConnectionParams(conf, token), saslParams);
+      assertEquals(new SaslServerConnectionParams(conf, token, null), saslParams);
       assertEquals(username, saslParams.getPrincipal());
 
       verify(factory, context, siteConfig);
@@ -136,7 +136,7 @@ public class ServerContextTest {
     // decision and this check will ensure we don't overlook it
     final int oldestSupported = 8;
     final int currentVersion = AccumuloDataVersion.get();
-    IntConsumer shouldPass = v -> ServerContext.ensureDataVersionCompatible(v);
+    IntConsumer shouldPass = ServerContext::ensureDataVersionCompatible;
     IntConsumer shouldFail = v -> assertThrows(IllegalStateException.class,
         () -> ServerContext.ensureDataVersionCompatible(v));
     IntStream.rangeClosed(oldestSupported, currentVersion).forEach(shouldPass);

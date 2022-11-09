@@ -46,7 +46,7 @@ public class ClientConfConverterTest {
     before.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(), "primary");
     before.setProperty(ClientProperty.BATCH_WRITER_THREADS_MAX.getKey(), "5");
 
-    Properties after = ClientConfConverter.toProperties(ClientConfConverter.toClientConf(before));
+    Properties after = ClientConfConverter.toProperties(ClientConfConverter.toAccumuloConf(before));
     assertEquals(before, after);
   }
 
