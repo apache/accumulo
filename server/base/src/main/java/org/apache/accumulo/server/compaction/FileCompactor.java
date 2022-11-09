@@ -286,9 +286,9 @@ public class FileCompactor implements Callable<CompactionStats> {
         // If compaction was cancelled then this may happen due to an
         // InterruptedException etc so suppress logging
         if (!env.isCompactionEnabled()) {
-          log.warn("{}", e.getMessage(), e);
-        } else {
           log.debug("{}", e.getMessage(), e);
+        } else {
+          log.warn("{}", e.getMessage(), e);
         }
       }
     }
