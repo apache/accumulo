@@ -26,12 +26,16 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.HadoopCredentialProvider;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.hadoop.security.authentication.util.KerberosName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClientConfConverter {
 
+  private static final Logger log = LoggerFactory.getLogger(ClientConfConverter.class);
   private static final Map<String,String> accumuloConfToClientProps = new HashMap<>();
   private static final Map<String,String> clientPropsToAccumuloConf = new HashMap<>();
 
@@ -112,7 +116,23 @@ public class ClientConfConverter {
 
       @Override
       public String get(Property property) {
-        return convertedProps.getProperty(property.getKey(), defaults.get(property));
+        final String key = property.getKey();
+
+        // Attempt to load sensitive properties from a CredentialProvider, if configured
+        if (property.isSensitive()) {
+          org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
+          if (hadoopConf != null) {
+            char[] value = HadoopCredentialProvider.getValue(hadoopConf, key);
+            if (value != null) {
+              log.trace("Loaded sensitive value for {} from CredentialProvider", key);
+              return new String(value);
+            } else {
+              log.trace("Tried to load sensitive value for {} from CredentialProvider, "
+                  + "but none was found", key);
+            }
+          }
+        }
+        return convertedProps.getProperty(key, defaults.get(property));
       }
 
       @Override
@@ -123,6 +143,36 @@ public class ClientConfConverter {
             props.put(key, convertedProps.getProperty(key));
           }
         }
+
+        // Attempt to load sensitive properties from a CredentialProvider, if configured
+        org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
+        if (hadoopConf != null) {
+          for (String key : HadoopCredentialProvider.getKeys(hadoopConf)) {
+            if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) {
+              continue;
+            }
+            if (filter.test(key)) {
+              char[] value = HadoopCredentialProvider.getValue(hadoopConf, key);
+              if (value != null) {
+                props.put(key, new String(value));
+              }
+            }
+          }
+        }
+      }
+
+      private org.apache.hadoop.conf.Configuration getHadoopConfiguration() {
+        String credProviderPaths = convertedProps
+            .getProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+        if (credProviderPaths != null && !credProviderPaths.isEmpty()) {
+          org.apache.hadoop.conf.Configuration hConf = new org.apache.hadoop.conf.Configuration();
+          HadoopCredentialProvider.setPath(hConf, credProviderPaths);
+          return hConf;
+        }
+
+        log.trace("Did not find credential provider configuration in ClientConfiguration");
+
+        return null;
       }
 
     };
