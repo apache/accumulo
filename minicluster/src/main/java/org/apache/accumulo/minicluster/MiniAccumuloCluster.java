@@ -137,15 +137,6 @@ public class MiniAccumuloCluster implements AutoCloseable {
   }
 
   /**
-   * @since 1.6.0
-   * @deprecated since 2.0.0, replaced by {@link #getClientProperties()}
-   */
-  @Deprecated(since = "2.0.0")
-  public org.apache.accumulo.core.client.ClientConfiguration getClientConfig() {
-    return impl.getClientConfig();
-  }
-
-  /**
    * @return A copy of the connection properties for the cluster
    * @since 2.0.0
    */
