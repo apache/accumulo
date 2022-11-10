@@ -283,12 +283,17 @@ public class FileCompactor implements Callable<CompactionStats> {
           }
         }
       } catch (IOException | RuntimeException e) {
-        // If compaction was cancelled then this may happen due to an
-        // InterruptedException etc so suppress logging
-        if (!env.isCompactionEnabled()) {
-          log.debug("{}", e.getMessage(), e);
-        } else {
+        /*
+         * If compaction is enabled then the compaction didn't finish due to a real error condition
+         * so log any errors on the output file close as a warning. However, if not enabled, then
+         * the compaction was canceled due to something like tablet split, user cancellation, or
+         * table deletion which is not an error so log any errors on output file close as a debug as
+         * this may happen due to an InterruptedException thrown due to the cancellation.
+         */
+        if (env.isCompactionEnabled()) {
           log.warn("{}", e.getMessage(), e);
+        } else {
+          log.debug("{}", e.getMessage(), e);
         }
       }
     }
