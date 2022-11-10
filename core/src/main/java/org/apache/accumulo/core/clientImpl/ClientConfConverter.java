@@ -18,55 +18,86 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.HadoopCredentialProvider;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.hadoop.security.authentication.util.KerberosName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ClientConfConverter {
 
-  private static final Logger log = LoggerFactory.getLogger(ClientConfConverter.class);
+  private static final Map<String,String> accumuloConfToClientProps = new HashMap<>();
+  private static final Map<String,String> clientPropsToAccumuloConf = new HashMap<>();
+
+  static {
+    // mapping of ClientProperty equivalents in AccumuloConfiguration
+    Map<ClientProperty,Property> conversions = new HashMap<>();
+    conversions.put(ClientProperty.INSTANCE_ZOOKEEPERS, Property.INSTANCE_ZK_HOST);
+    conversions.put(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, Property.INSTANCE_ZK_TIMEOUT);
+
+    conversions.put(ClientProperty.SASL_ENABLED, Property.INSTANCE_RPC_SASL_ENABLED);
+    conversions.put(ClientProperty.SASL_QOP, Property.RPC_SASL_QOP);
+
+    conversions.put(ClientProperty.SSL_ENABLED, Property.INSTANCE_RPC_SSL_ENABLED);
+    conversions.put(ClientProperty.SSL_KEYSTORE_PASSWORD, Property.RPC_SSL_KEYSTORE_PASSWORD);
+    conversions.put(ClientProperty.SSL_KEYSTORE_PATH, Property.RPC_SSL_KEYSTORE_PATH);
+    conversions.put(ClientProperty.SSL_KEYSTORE_TYPE, Property.RPC_SSL_KEYSTORE_TYPE);
+    conversions.put(ClientProperty.SSL_TRUSTSTORE_PASSWORD, Property.RPC_SSL_TRUSTSTORE_PASSWORD);
+    conversions.put(ClientProperty.SSL_TRUSTSTORE_PATH, Property.RPC_SSL_TRUSTSTORE_PATH);
+    conversions.put(ClientProperty.SSL_TRUSTSTORE_TYPE, Property.RPC_SSL_TRUSTSTORE_TYPE);
+    conversions.put(ClientProperty.SSL_USE_JSSE, Property.RPC_USE_JSSE);
+
+    for (Map.Entry<ClientProperty,Property> entry : conversions.entrySet()) {
+      accumuloConfToClientProps.put(entry.getValue().getKey(), entry.getKey().getKey());
+      clientPropsToAccumuloConf.put(entry.getKey().getKey(), entry.getValue().getKey());
+    }
+  }
 
   public static Properties toProperties(AccumuloConfiguration config) {
-    Properties props = new Properties();
+    final var propsExtractedFromConfig = new Properties();
 
-    // Servers will only have the full principal in their configuration
-    // parse the primary and realm from it.
+    // Extract kerberos primary from the config
     final String serverPrincipal = config.get(Property.GENERAL_KERBEROS_PRINCIPAL);
     if (serverPrincipal != null && !serverPrincipal.isEmpty()) {
       var krbName = new KerberosName(serverPrincipal);
-      props.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(),
+      propsExtractedFromConfig.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(),
           krbName.getServiceName());
     }
 
-    // copy any client properties from the config into the props
-    Set<String> clientKeys = Arrays.stream(ClientProperty.values()).map(ClientProperty::getKey)
-        .collect(Collectors.toSet());
-    config.stream().filter(e -> clientKeys.contains(e.getKey()))
-        .forEach(e -> props.setProperty(e.getKey(), e.getValue()));
+    // Extract the remaining properties from the config
+    config.stream().filter(e -> accumuloConfToClientProps.keySet().contains(e.getKey()))
+        .forEach(e -> propsExtractedFromConfig.setProperty(e.getKey(), e.getValue()));
 
-    return props;
+    // For all the extracted properties, convert them to their ClientProperty names
+    final var convertedProps = new Properties();
+    propsExtractedFromConfig.forEach((k, v) -> {
+      String confKey = String.valueOf(k);
+      String val = String.valueOf(v);
+      String propKey = accumuloConfToClientProps.get(confKey);
+      convertedProps.setProperty(propKey == null ? confKey : propKey, val);
+    });
+    return convertedProps;
   }
 
   public static AccumuloConfiguration toAccumuloConf(Properties properties) {
-    final var propertiesCopy = new Properties(properties);
-    for (String propKey : propertiesCopy.stringPropertyNames()) {
-      String val = propertiesCopy.getProperty(propKey);
-      propertiesCopy.setProperty(propKey, val);
+    final var convertedProps = new Properties();
+    for (String propKey : properties.stringPropertyNames()) {
+      String val = properties.getProperty(propKey);
+      String confKey = clientPropsToAccumuloConf.get(propKey);
+      if (propKey.equals(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey())) {
+        confKey = Property.GENERAL_KERBEROS_PRINCIPAL.getKey();
+        // Avoid providing a realm since we don't know what it is...
+        val += "/_HOST@" + SaslConnectionParams.getDefaultRealm();
+      }
+      convertedProps.setProperty(confKey == null ? propKey : confKey, val);
       if (propKey.equals(ClientProperty.SSL_KEYSTORE_PATH.getKey())) {
-        propertiesCopy.setProperty(Property.INSTANCE_RPC_SSL_CLIENT_AUTH.getKey(), "true");
+        convertedProps.setProperty(Property.INSTANCE_RPC_SSL_CLIENT_AUTH.getKey(), "true");
       }
     }
 
@@ -76,97 +107,24 @@ public class ClientConfConverter {
 
       @Override
       public boolean isPropertySet(Property prop) {
-        return propertiesCopy.containsKey(prop.getKey());
+        return convertedProps.containsKey(prop.getKey());
       }
 
       @Override
       public String get(Property property) {
-        final String key = property.getKey();
-
-        // Attempt to load sensitive properties from a CredentialProvider, if configured
-        if (property.isSensitive()) {
-          org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
-          if (hadoopConf != null) {
-            char[] value = HadoopCredentialProvider.getValue(hadoopConf, key);
-            if (value != null) {
-              log.trace("Loaded sensitive value for {} from CredentialProvider", key);
-              return new String(value);
-            } else {
-              log.trace("Tried to load sensitive value for {} from CredentialProvider, "
-                  + "but none was found", key);
-            }
-          }
-        }
-
-        if (propertiesCopy.containsKey(key)) {
-          return propertiesCopy.getProperty(key);
-        } else {
-          // Reconstitute the server kerberos property from the client config
-          if (property == Property.GENERAL_KERBEROS_PRINCIPAL) {
-            if (propertiesCopy.containsKey(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey())) {
-              // Avoid providing a realm since we don't know what it is...
-              return propertiesCopy
-                  .getProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey()) + "/_HOST@"
-                  + SaslConnectionParams.getDefaultRealm();
-            }
-          }
-          return defaults.get(property);
-        }
+        return convertedProps.getProperty(property.getKey(), defaults.get(property));
       }
 
       @Override
       public void getProperties(Map<String,String> props, Predicate<String> filter) {
         defaults.getProperties(props, filter);
-
-        for (String key : propertiesCopy.stringPropertyNames()) {
+        for (String key : convertedProps.stringPropertyNames()) {
           if (filter.test(key)) {
-            props.put(key, propertiesCopy.getProperty(key));
-          }
-        }
-
-        // Two client props that don't exist on the server config. Client doesn't need to know about
-        // the Kerberos instance from the principle, but servers do
-        // Automatically reconstruct the server property when converting a client config.
-        if (props.containsKey(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey())) {
-          final String serverPrimary =
-              props.remove(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey());
-          if (filter.test(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
-            // Use the _HOST expansion. It should be unnecessary in "client land".
-            props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(),
-                serverPrimary + "/_HOST@" + SaslConnectionParams.getDefaultRealm());
-          }
-        }
-
-        // Attempt to load sensitive properties from a CredentialProvider, if configured
-        org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
-        if (hadoopConf != null) {
-          for (String key : HadoopCredentialProvider.getKeys(hadoopConf)) {
-            if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) {
-              continue;
-            }
-            if (filter.test(key)) {
-              char[] value = HadoopCredentialProvider.getValue(hadoopConf, key);
-              if (value != null) {
-                props.put(key, new String(value));
-              }
-            }
+            props.put(key, convertedProps.getProperty(key));
           }
         }
       }
 
-      private org.apache.hadoop.conf.Configuration getHadoopConfiguration() {
-        String credProviderPaths = propertiesCopy
-            .getProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
-        if (credProviderPaths != null && !credProviderPaths.isEmpty()) {
-          org.apache.hadoop.conf.Configuration hConf = new org.apache.hadoop.conf.Configuration();
-          HadoopCredentialProvider.setPath(hConf, credProviderPaths);
-          return hConf;
-        }
-
-        log.trace("Did not find credential provider configuration in ClientConfiguration");
-
-        return null;
-      }
     };
   }
 }

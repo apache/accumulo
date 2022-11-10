@@ -115,6 +115,7 @@ public class ServerContextTest {
       }).anyTimes();
 
       expect(siteConfig.iterator()).andAnswer(conf::iterator).anyTimes();
+      expect(siteConfig.stream()).andAnswer(conf::stream).anyTimes();
 
       replay(factory, context, siteConfig);
 
