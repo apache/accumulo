@@ -258,6 +258,9 @@ public class FileCompactor implements Callable<CompactionStats> {
 
       majCStats.setFileSize(mfwTmp.getLength());
       return majCStats;
+    } catch (CompactionCanceledException e) {
+      log.debug("Compaction canceled {}", extent);
+      throw e;
     } catch (IOException | RuntimeException e) {
       log.error("{}", e.getMessage(), e);
       throw e;
@@ -280,7 +283,18 @@ public class FileCompactor implements Callable<CompactionStats> {
           }
         }
       } catch (IOException | RuntimeException e) {
-        log.warn("{}", e.getMessage(), e);
+        /*
+         * If compaction is enabled then the compaction didn't finish due to a real error condition
+         * so log any errors on the output file close as a warning. However, if not enabled, then
+         * the compaction was canceled due to something like tablet split, user cancellation, or
+         * table deletion which is not an error so log any errors on output file close as a debug as
+         * this may happen due to an InterruptedException thrown due to the cancellation.
+         */
+        if (env.isCompactionEnabled()) {
+          log.warn("{}", e.getMessage(), e);
+        } else {
+          log.debug("{}", e.getMessage(), e);
+        }
       }
     }
   }
@@ -392,7 +406,8 @@ public class FileCompactor implements Callable<CompactionStats> {
             try {
               mfw.close();
             } catch (IOException e) {
-              log.error("{}", e.getMessage(), e);
+              log.warn("{}", e.getMessage());
+              log.debug("{}", e.getMessage(), e);
             }
             fs.deleteRecursively(outputFile.getPath());
           } catch (Exception e) {
