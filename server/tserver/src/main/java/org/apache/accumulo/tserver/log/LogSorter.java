@@ -147,7 +147,7 @@ public class LogSorter {
       try {
         input.setDropBehind(Boolean.TRUE);
       } catch (IOException | UnsupportedOperationException e) {
-        log.debug("setDropBehind writes not enabled for wal file: {}", input);
+        log.debug("setDropBehind reads not enabled for wal file: {}", input);
       }
 
       try {
