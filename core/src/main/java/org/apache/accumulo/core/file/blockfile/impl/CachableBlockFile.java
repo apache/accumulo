@@ -96,8 +96,11 @@ public class CachableBlockFile {
           // cache
           try {
             is.setDropBehind(Boolean.TRUE);
-          } catch (IOException | UnsupportedOperationException e) {
+          } catch (UnsupportedOperationException e) {
             log.debug("setDropBehind not enabled for wal file: {}", dataFile);
+          } catch (IOException e) {
+            log.debug("IOException setting drop behind for file: {}, msg: {}", dataFile,
+                e.getMessage());
           }
         }
         return is;
