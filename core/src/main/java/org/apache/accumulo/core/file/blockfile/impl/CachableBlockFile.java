@@ -41,6 +41,7 @@ import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.Seekable;
@@ -83,8 +84,24 @@ public class CachableBlockFile {
     }
 
     public CachableBuilder fsPath(FileSystem fs, Path dataFile) {
+      return fsPath(fs, dataFile, false);
+    }
+
+    public CachableBuilder fsPath(FileSystem fs, Path dataFile, boolean dropCacheBehind) {
       this.cacheId = pathToCacheId(dataFile);
-      this.inputSupplier = () -> fs.open(dataFile);
+      this.inputSupplier = () -> {
+        FSDataInputStream is = fs.open(dataFile);
+        if (dropCacheBehind) {
+          // Tell the DataNode that the write ahead log does not need to be cached in the OS page
+          // cache
+          try {
+            is.setDropBehind(Boolean.TRUE);
+          } catch (IOException | UnsupportedOperationException e) {
+            log.debug("setDropBehind not enabled for wal file: {}", dataFile);
+          }
+        }
+        return is;
+      };
       this.lengthSupplier = () -> fs.getFileStatus(dataFile).getLen();
       return this;
     }
