@@ -56,7 +56,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
@@ -168,9 +168,9 @@ class LoadFiles extends ManagerRepo {
                 tabletFiles.values().stream().mapToInt(Map::size).sum(), tabletFiles.size());
           }
 
-          TabletClientService.Client client = null;
+          Client client = null;
           try {
-            client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server,
+            client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, server,
                 manager.getContext(), timeInMillis);
             client.loadFiles(TraceUtil.traceInfo(), manager.getContext().rpcCreds(), tid,
                 bulkDir.toString(), tabletFiles, setTime);

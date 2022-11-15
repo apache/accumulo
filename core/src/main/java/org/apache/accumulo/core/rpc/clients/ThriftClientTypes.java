@@ -53,10 +53,16 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
       new ReplicationServicerThriftClient("replServ");
 
   public static final TabletServerThriftClient TABLET_SERVER =
-      new TabletServerThriftClient("tablet");
+      new TabletServerThriftClient("tserver");
 
   public static final TabletScanClientServiceThriftClient TABLET_SCAN =
       new TabletScanClientServiceThriftClient("scan");
+
+  public static final TabletIngestClientServiceThriftClient TABLET_INGEST =
+      new TabletIngestClientServiceThriftClient("ingest");
+
+  public static final TabletManagementClientServiceThriftClient TABLET_MGMT =
+      new TabletManagementClientServiceThriftClient("tablet");
 
   /**
    * execute method with supplied client returning object of type R

@@ -37,8 +37,8 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
+import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -66,7 +66,7 @@ public class ZombieTServer {
 
   public static class ZombieTServerThriftClientHandler
       extends org.apache.accumulo.test.performance.NullTserver.NullTServerTabletClientHandler
-      implements TabletClientService.Iface, TabletScanClientService.Iface {
+      implements TabletServerClientService.Iface, TabletScanClientService.Iface {
 
     int statusCount = 0;
 
@@ -113,12 +113,11 @@ public class ZombieTServer {
         ThriftProcessorTypes.CLIENT.getTProcessor(ClientService.Processor.class,
             ClientService.Iface.class, csh, context));
     muxProcessor.registerProcessor(ThriftClientTypes.TABLET_SERVER.getServiceName(),
-        ThriftProcessorTypes.TABLET_SERVER.getTProcessor(TabletClientService.Processor.class,
-            TabletClientService.Iface.class, tch, context));
-    muxProcessor.registerProcessor(ThriftProcessorTypes.TABLET_SERVER_SCAN.getServiceName(),
-        ThriftProcessorTypes.TABLET_SERVER_SCAN.getTProcessor(
-            TabletScanClientService.Processor.class, TabletScanClientService.Iface.class, tch,
-            context));
+        ThriftProcessorTypes.TABLET_SERVER.getTProcessor(TabletServerClientService.Processor.class,
+            TabletServerClientService.Iface.class, tch, context));
+    muxProcessor.registerProcessor(ThriftProcessorTypes.TABLET_SCAN.getServiceName(),
+        ThriftProcessorTypes.TABLET_SCAN.getTProcessor(TabletScanClientService.Processor.class,
+            TabletScanClientService.Iface.class, tch, context));
 
     ServerAddress serverPort =
         TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,

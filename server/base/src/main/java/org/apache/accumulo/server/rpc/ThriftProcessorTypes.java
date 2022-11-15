@@ -27,8 +27,10 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
+import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
+import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
+import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -88,12 +90,18 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
       new ThriftProcessorTypes<>(ThriftClientTypes.REPLICATION_SERVICER);
 
   @VisibleForTesting
-  public static final ThriftProcessorTypes<TabletClientService.Client> TABLET_SERVER =
+  public static final ThriftProcessorTypes<TabletServerClientService.Client> TABLET_SERVER =
       new ThriftProcessorTypes<>(ThriftClientTypes.TABLET_SERVER);
 
   @VisibleForTesting
-  public static final ThriftProcessorTypes<TabletScanClientService.Client> TABLET_SERVER_SCAN =
+  public static final ThriftProcessorTypes<TabletScanClientService.Client> TABLET_SCAN =
       new ThriftProcessorTypes<>(ThriftClientTypes.TABLET_SCAN);
+
+  public static final ThriftProcessorTypes<TabletIngestClientService.Client> TABLET_INGEST =
+      new ThriftProcessorTypes<>(ThriftClientTypes.TABLET_INGEST);
+
+  public static final ThriftProcessorTypes<TabletManagementClientService.Client> TABLET_MGMT =
+      new ThriftProcessorTypes<>(ThriftClientTypes.TABLET_MGMT);
 
   public static TMultiplexedProcessor getCompactorTProcessor(CompactorService.Iface serviceHandler,
       ServerContext context) {
@@ -152,24 +160,32 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   public static TMultiplexedProcessor
       getScanServerTProcessor(TabletScanClientService.Iface tserverHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
-    muxProcessor.registerProcessor(TABLET_SERVER_SCAN.getServiceName(),
-        TABLET_SERVER_SCAN.getTProcessor(TabletScanClientService.Processor.class,
+    muxProcessor.registerProcessor(TABLET_SCAN.getServiceName(),
+        TABLET_SCAN.getTProcessor(TabletScanClientService.Processor.class,
             TabletScanClientService.Iface.class, tserverHandler, context));
     return muxProcessor;
   }
 
   public static TMultiplexedProcessor getTabletServerTProcessor(ClientServiceHandler clientHandler,
-      TabletClientService.Iface tserverHandler, TabletScanClientService.Iface tserverScanHandler,
-      ServerContext context) {
+      TabletServerClientService.Iface tserverHandler,
+      TabletScanClientService.Iface tserverScanHandler,
+      TabletIngestClientService.Iface tserverIngestHandler,
+      TabletManagementClientService.Iface tserverMgmtHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(CLIENT.getServiceName(), CLIENT.getTProcessor(
         ClientService.Processor.class, ClientService.Iface.class, clientHandler, context));
     muxProcessor.registerProcessor(TABLET_SERVER.getServiceName(),
-        TABLET_SERVER.getTProcessor(TabletClientService.Processor.class,
-            TabletClientService.Iface.class, tserverHandler, context));
-    muxProcessor.registerProcessor(TABLET_SERVER_SCAN.getServiceName(),
-        TABLET_SERVER_SCAN.getTProcessor(TabletScanClientService.Processor.class,
+        TABLET_SERVER.getTProcessor(TabletServerClientService.Processor.class,
+            TabletServerClientService.Iface.class, tserverHandler, context));
+    muxProcessor.registerProcessor(TABLET_SCAN.getServiceName(),
+        TABLET_SCAN.getTProcessor(TabletScanClientService.Processor.class,
             TabletScanClientService.Iface.class, tserverScanHandler, context));
+    muxProcessor.registerProcessor(TABLET_INGEST.getServiceName(),
+        TABLET_INGEST.getTProcessor(TabletIngestClientService.Processor.class,
+            TabletIngestClientService.Iface.class, tserverIngestHandler, context));
+    muxProcessor.registerProcessor(TABLET_MGMT.getServiceName(),
+        TABLET_MGMT.getTProcessor(TabletManagementClientService.Processor.class,
+            TabletManagementClientService.Iface.class, tserverMgmtHandler, context));
     return muxProcessor;
   }
 

@@ -21,7 +21,7 @@ package org.apache.accumulo.test.compaction;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.TabletClientHandler;
@@ -30,7 +30,7 @@ import org.apache.accumulo.tserver.WriteTracker;
 import org.apache.thrift.TException;
 
 public class NonCommittingExternalCompactionTabletClientHandler extends TabletClientHandler
-    implements TabletClientService.Iface {
+    implements TabletServerClientService.Iface {
 
   public NonCommittingExternalCompactionTabletClientHandler(TabletServer server,
       TransactionWatcher watcher, WriteTracker writeTracker) {

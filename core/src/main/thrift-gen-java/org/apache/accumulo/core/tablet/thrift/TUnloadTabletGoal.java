@@ -22,16 +22,18 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.tabletserver.thrift;
+package org.apache.accumulo.core.tablet.thrift;
 
 
-public enum ScanType implements org.apache.thrift.TEnum {
-  SINGLE(0),
-  BATCH(1);
+public enum TUnloadTabletGoal implements org.apache.thrift.TEnum {
+  UNKNOWN(0),
+  UNASSIGNED(1),
+  SUSPENDED(2),
+  DELETED(3);
 
   private final int value;
 
-  private ScanType(int value) {
+  private TUnloadTabletGoal(int value) {
     this.value = value;
   }
 
@@ -48,12 +50,16 @@ public enum ScanType implements org.apache.thrift.TEnum {
    * @return null if the value is not found.
    */
   @org.apache.thrift.annotation.Nullable
-  public static ScanType findByValue(int value) { 
+  public static TUnloadTabletGoal findByValue(int value) { 
     switch (value) {
       case 0:
-        return SINGLE;
+        return UNKNOWN;
       case 1:
-        return BATCH;
+        return UNASSIGNED;
+      case 2:
+        return SUSPENDED;
+      case 3:
+        return DELETED;
       default:
         return null;
     }

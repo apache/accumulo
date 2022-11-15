@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.core.rpc.clients;
 
-import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService.Client;
+import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService.Client;
 
-public class TabletScanClientServiceThriftClient extends ThriftClientTypes<Client> {
+public class TabletIngestClientServiceThriftClient extends ThriftClientTypes<Client> {
 
-  TabletScanClientServiceThriftClient(String serviceName) {
+  public TabletIngestClientServiceThriftClient(String serviceName) {
     super(serviceName, new Client.Factory());
   }
 
