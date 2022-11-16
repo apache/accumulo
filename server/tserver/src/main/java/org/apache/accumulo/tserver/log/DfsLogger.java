@@ -420,8 +420,10 @@ public class DfsLogger implements Comparable<DfsLogger> {
       // Tell the DataNode that the write ahead log does not need to be cached in the OS page cache
       try {
         logFile.setDropBehind(Boolean.TRUE);
-      } catch (IOException | UnsupportedOperationException e) {
+      } catch (UnsupportedOperationException e) {
         log.debug("setDropBehind writes not enabled for wal file: {}", logFile);
+      } catch (IOException e) {
+        log.debug("IOException setting drop behind for file: {}, msg: {}", logFile, e.getMessage());
       }
 
       // check again that logfile can be sync'd

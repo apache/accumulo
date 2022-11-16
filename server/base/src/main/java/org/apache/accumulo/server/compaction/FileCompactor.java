@@ -313,7 +313,8 @@ public class FileCompactor implements Callable<CompactionStats> {
 
         reader = fileFactory.newReaderBuilder()
             .forFile(mapFile.getPathStr(), fs, fs.getConf(), cryptoService)
-            .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter()).build();
+            .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter())
+            .dropCachesBehind().build();
 
         readers.add(reader);
 
