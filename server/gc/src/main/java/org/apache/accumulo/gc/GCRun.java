@@ -40,9 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -69,7 +67,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
-import org.apache.accumulo.server.replication.proto.Replication;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
@@ -78,9 +75,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
-import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * A single garbage collection performed on a table (Root, MD) or all User tables.
@@ -363,30 +357,6 @@ public class GCRun implements GarbageCollectionEnvironment {
   @Override
   public void incrementInUseStat(long i) {
     inUse += i;
-  }
-
-  @Override
-  @Deprecated
-  public Iterator<Map.Entry<String,Replication.Status>> getReplicationNeededIterator() {
-    AccumuloClient client = context;
-    try {
-      Scanner s = org.apache.accumulo.core.replication.ReplicationTable.getScanner(client);
-      org.apache.accumulo.core.replication.ReplicationSchema.StatusSection.limit(s);
-      return Iterators.transform(s.iterator(), input -> {
-        String file = input.getKey().getRow().toString();
-        Replication.Status stat;
-        try {
-          stat = Replication.Status.parseFrom(input.getValue().get());
-        } catch (InvalidProtocolBufferException e) {
-          log.warn("Could not deserialize protobuf for: {}", input.getKey());
-          stat = null;
-        }
-        return Maps.immutableEntry(file, stat);
-      });
-    } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException e) {
-      // No elements that we need to preclude
-      return Collections.emptyIterator();
-    }
   }
 
   @VisibleForTesting

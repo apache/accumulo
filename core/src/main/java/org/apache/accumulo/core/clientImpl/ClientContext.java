@@ -146,8 +146,6 @@ public class ClientContext implements AccumuloClient {
   private final TableOperationsImpl tableops;
   private final NamespaceOperations namespaceops;
   private InstanceOperations instanceops = null;
-  @SuppressWarnings("deprecation")
-  private org.apache.accumulo.core.client.admin.ReplicationOperations replicationops = null;
   private final SingletonReservation singletonReservation;
   private final ThreadPools clientThreadPools;
   private ThreadPoolExecutor cleanupThreadPool;
@@ -826,18 +824,6 @@ public class ClientContext implements AccumuloClient {
       instanceops = new InstanceOperationsImpl(this);
 
     return instanceops;
-  }
-
-  @Override
-  @Deprecated
-  public synchronized org.apache.accumulo.core.client.admin.ReplicationOperations
-      replicationOperations() {
-    ensureOpen();
-    if (replicationops == null) {
-      replicationops = new ReplicationOperationsImpl(this);
-    }
-
-    return replicationops;
   }
 
   @Override

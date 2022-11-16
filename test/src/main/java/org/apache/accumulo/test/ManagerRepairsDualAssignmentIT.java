@@ -104,8 +104,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       cluster.killProcess(ServerType.TABLET_SERVER,
           cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
       Set<TServerInstance> replStates = new HashSet<>();
-      @SuppressWarnings("deprecation")
-      TableId repTable = org.apache.accumulo.core.replication.ReplicationTable.ID;
+      TableId repTable = TableId.of("+"); // just needs to be before the user created table
       // Find out which tablet server remains
       while (true) {
         UtilWaitThread.sleep(1000);

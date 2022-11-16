@@ -320,14 +320,6 @@ public interface AccumuloClient extends AutoCloseable {
   InstanceOperations instanceOperations();
 
   /**
-   * Retrieves a ReplicationOperations object to manage replication configuration.
-   *
-   * @return an object to modify replication configuration
-   */
-  @Deprecated(since = "2.1.0")
-  org.apache.accumulo.core.client.admin.ReplicationOperations replicationOperations();
-
-  /**
    * @return All {@link Properties} used to create client except 'auth.token'
    */
   Properties properties();

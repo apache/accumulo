@@ -46,12 +46,6 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
 
   public static final ManagerThriftClient MANAGER = new ManagerThriftClient("mgr");
 
-  public static final ReplicationCoordinatorThriftClient REPLICATION_COORDINATOR =
-      new ReplicationCoordinatorThriftClient("replCoord");
-
-  public static final ReplicationServicerThriftClient REPLICATION_SERVICER =
-      new ReplicationServicerThriftClient("replServ");
-
   public static final TabletServerThriftClient TABLET_SERVER =
       new TabletServerThriftClient("tablet");
 

@@ -36,7 +36,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
-import org.apache.accumulo.core.replication.ReplicationSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
@@ -50,13 +49,6 @@ import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
 public class GarbageCollectWriteAheadLogsTest {
-
-  @SuppressWarnings("deprecation")
-  private static final String REPL_TABLE_NAME =
-      org.apache.accumulo.core.replication.ReplicationTable.NAME;
-
-  @SuppressWarnings("deprecation")
-  private static final Text STATUS_SECTION_NAME = ReplicationSchema.StatusSection.NAME;
 
   private final TServerInstance server1 = new TServerInstance("localhost:1234[SESSION]");
   private final TServerInstance server2 = new TServerInstance("localhost:1234[OTHERSESS]");
@@ -111,12 +103,6 @@ public class GarbageCollectWriteAheadLogsTest {
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer1List) {
       @Override
-      @Deprecated
-      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
-        return 0;
-      }
-
-      @Override
       protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
       }
@@ -144,12 +130,6 @@ public class GarbageCollectWriteAheadLogsTest {
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer1List) {
       @Override
-      @Deprecated
-      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
-        return 0;
-      }
-
-      @Override
       protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
       }
@@ -165,7 +145,6 @@ public class GarbageCollectWriteAheadLogsTest {
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
     Scanner mscanner = EasyMock.createMock(Scanner.class);
-    Scanner rscanner = EasyMock.createMock(Scanner.class);
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
@@ -175,12 +154,6 @@ public class GarbageCollectWriteAheadLogsTest {
 
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers2).once();
     EasyMock.expect(marker.state(server2, id)).andReturn(new Pair<>(WalState.OPEN, path));
-
-    EasyMock.expect(context.createScanner(REPL_TABLE_NAME, Authorizations.EMPTY))
-        .andReturn(rscanner);
-    rscanner.fetchColumnFamily(STATUS_SECTION_NAME);
-    EasyMock.expectLastCall().once();
-    EasyMock.expect(rscanner.iterator()).andReturn(emptyKV);
 
     EasyMock.expect(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
         .andReturn(mscanner);
@@ -194,7 +167,7 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expectLastCall().once();
     marker.forget(server2);
     EasyMock.expectLastCall().once();
-    EasyMock.replay(context, fs, marker, tserverSet, rscanner, mscanner);
+    EasyMock.replay(context, fs, marker, tserverSet, mscanner);
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer1List) {
       @Override
@@ -203,7 +176,7 @@ public class GarbageCollectWriteAheadLogsTest {
       }
     };
     gc.collect(status);
-    EasyMock.verify(context, fs, marker, tserverSet, rscanner, mscanner);
+    EasyMock.verify(context, fs, marker, tserverSet, mscanner);
   }
 
   @Test
@@ -213,7 +186,6 @@ public class GarbageCollectWriteAheadLogsTest {
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
     Scanner mscanner = EasyMock.createMock(Scanner.class);
-    Scanner rscanner = EasyMock.createMock(Scanner.class);
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
@@ -224,12 +196,6 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers2).once();
     EasyMock.expect(marker.state(server2, id)).andReturn(new Pair<>(WalState.OPEN, path));
 
-    EasyMock.expect(context.createScanner(REPL_TABLE_NAME, Authorizations.EMPTY))
-        .andReturn(rscanner);
-    rscanner.fetchColumnFamily(STATUS_SECTION_NAME);
-    EasyMock.expectLastCall().once();
-    EasyMock.expect(rscanner.iterator()).andReturn(emptyKV);
-
     EasyMock.expect(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
         .andReturn(mscanner);
     mscanner.fetchColumnFamily(ReplicationSection.COLF);
@@ -237,7 +203,7 @@ public class GarbageCollectWriteAheadLogsTest {
     mscanner.setRange(ReplicationSection.getRange());
     EasyMock.expectLastCall().once();
     EasyMock.expect(mscanner.iterator()).andReturn(emptyKV);
-    EasyMock.replay(context, fs, marker, tserverSet, rscanner, mscanner);
+    EasyMock.replay(context, fs, marker, tserverSet, mscanner);
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer2List) {
       @Override
@@ -246,7 +212,7 @@ public class GarbageCollectWriteAheadLogsTest {
       }
     };
     gc.collect(status);
-    EasyMock.verify(context, fs, marker, tserverSet, rscanner, mscanner);
+    EasyMock.verify(context, fs, marker, tserverSet, mscanner);
   }
 
   @Test
@@ -256,7 +222,6 @@ public class GarbageCollectWriteAheadLogsTest {
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
     Scanner mscanner = EasyMock.createMock(Scanner.class);
-    Scanner rscanner = EasyMock.createMock(Scanner.class);
     String row = ReplicationSection.getRowPrefix() + path;
     String colf = ReplicationSection.COLF.toString();
     String colq = "1";
@@ -272,12 +237,6 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
     EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<>(WalState.UNREFERENCED, path));
 
-    EasyMock.expect(context.createScanner(REPL_TABLE_NAME, Authorizations.EMPTY))
-        .andReturn(rscanner);
-    rscanner.fetchColumnFamily(STATUS_SECTION_NAME);
-    EasyMock.expectLastCall().once();
-    EasyMock.expect(rscanner.iterator()).andReturn(emptyKV);
-
     EasyMock.expect(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
         .andReturn(mscanner);
     mscanner.fetchColumnFamily(ReplicationSection.COLF);
@@ -285,7 +244,7 @@ public class GarbageCollectWriteAheadLogsTest {
     mscanner.setRange(ReplicationSection.getRange());
     EasyMock.expectLastCall().once();
     EasyMock.expect(mscanner.iterator()).andReturn(replicationWork.entrySet().iterator());
-    EasyMock.replay(context, fs, marker, tserverSet, rscanner, mscanner);
+    EasyMock.replay(context, fs, marker, tserverSet, mscanner);
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer1List) {
       @Override
@@ -294,6 +253,6 @@ public class GarbageCollectWriteAheadLogsTest {
       }
     };
     gc.collect(status);
-    EasyMock.verify(context, fs, marker, tserverSet, rscanner, mscanner);
+    EasyMock.verify(context, fs, marker, tserverSet, mscanner);
   }
 }
