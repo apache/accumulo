@@ -417,6 +417,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
       else
         logFile = fs.create(logfilePath, true, 0, replication, blockSize);
 
+      // Tell the DataNode that the write ahead log does not need to be cached in the OS page cache
+      try {
+        logFile.setDropBehind(Boolean.TRUE);
+      } catch (IOException | UnsupportedOperationException e) {
+        log.debug("setDropBehind writes not enabled for wal file: {}", logFile);
+      }
+
       // check again that logfile can be sync'd
       if (!fs.canSyncAndFlush(logfilePath)) {
         log.warn("sync not supported for log file {}. Data loss may occur.", logPath);

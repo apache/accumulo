@@ -142,6 +142,14 @@ public class LogSorter {
       fs.deleteRecursively(new Path(destPath));
 
       input = fs.open(srcPath);
+
+      // Tell the DataNode that the write ahead log does not need to be cached in the OS page cache
+      try {
+        input.setDropBehind(Boolean.TRUE);
+      } catch (IOException | UnsupportedOperationException e) {
+        log.debug("setDropBehind reads not enabled for wal file: {}", input);
+      }
+
       try {
         decryptingInput = DfsLogger.getDecryptingStream(input, cryptoService);
       } catch (LogHeaderIncompleteException e) {
