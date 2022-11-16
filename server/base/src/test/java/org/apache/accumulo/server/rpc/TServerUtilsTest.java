@@ -178,11 +178,7 @@ public class TServerUtilsTest {
     conf.set(Property.MONITOR_PORT, Integer.toString(monitorPort));
 
     ports = findTwoFreeSequentialPorts(monitorPort + 1);
-    int managerReplCoordPort = ports[0];
-    @SuppressWarnings("deprecation")
-    Property p = Property.MANAGER_REPLICATION_COORDINATOR_PORT;
-    conf.set(p, Integer.toString(managerReplCoordPort));
-    int tserverFinalPort = ports[1];
+    int tserverFinalPort = ports[0];
 
     conf.set(Property.TSERV_PORTSEARCH, "true");
 
@@ -196,7 +192,6 @@ public class TServerUtilsTest {
     assertTrue(reservedPorts.containsKey(gcPort));
     assertTrue(reservedPorts.containsKey(managerPort));
     assertTrue(reservedPorts.containsKey(monitorPort));
-    assertTrue(reservedPorts.containsKey(managerReplCoordPort));
 
     InetAddress addr = InetAddress.getByName("localhost");
     try (ServerSocket s = new ServerSocket(tserverDefaultPort, 50, addr)) {

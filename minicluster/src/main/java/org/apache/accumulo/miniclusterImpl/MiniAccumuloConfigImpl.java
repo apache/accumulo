@@ -166,12 +166,6 @@ public class MiniAccumuloConfigImpl {
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
-      @SuppressWarnings("deprecation")
-      Property p = Property.REPLICATION_RECEIPT_SERVICE_PORT;
-      mergePropWithRandomPort(p.getKey());
-      @SuppressWarnings("deprecation")
-      Property p2 = Property.MANAGER_REPLICATION_COORDINATOR_PORT;
-      mergePropWithRandomPort(p2.getKey());
 
       if (isUseCredentialProvider()) {
         updateConfigForCredentialProvider();
