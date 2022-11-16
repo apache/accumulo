@@ -34,6 +34,9 @@
       <Package name="org.apache.accumulo.core.master.thrift" />
       <Package name="org.apache.accumulo.core.replication.thrift" />
       <Package name="org.apache.accumulo.core.securityImpl.thrift" />
+      <Package name="org.apache.accumulo.core.tablet.thrift" />
+      <Package name="org.apache.accumulo.core.tabletingest.thrift" />
+      <Package name="org.apache.accumulo.core.tabletscan.thrift" />
       <Package name="org.apache.accumulo.core.tabletserver.thrift" />
       <Package name="org.apache.accumulo.core.trace.thrift" />
     </Or>
