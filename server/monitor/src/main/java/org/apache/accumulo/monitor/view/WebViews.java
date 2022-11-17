@@ -352,23 +352,4 @@ public class WebViews {
     return model;
   }
 
-  /**
-   * Returns replication table template
-   *
-   * @return Replication model
-   */
-  @GET
-  @Path("replication")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getReplication() {
-
-    Map<String,Object> model = getModel();
-    model.put("title", "Replication Overview");
-
-    model.put("template", "replication.ftl");
-    model.put("js", "replication.js");
-
-    return model;
-  }
-
 }

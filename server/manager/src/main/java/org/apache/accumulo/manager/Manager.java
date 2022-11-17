@@ -189,8 +189,6 @@ public class Manager extends AbstractServer
       Collections.synchronizedSortedMap(new TreeMap<>());
   final EventCoordinator nextEvent = new EventCoordinator();
   private final Object mergeLock = new Object();
-  private Thread replicationWorkThread;
-  private Thread replicationAssignerThread;
   RecoveryManager recoveryManager = null;
   private final ManagerTime timeKeeper;
 
@@ -1249,14 +1247,8 @@ public class Manager extends AbstractServer
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     try {
       statusThread.join(remaining(deadline));
-      if (null != replicationAssignerThread) {
-        replicationAssignerThread.join(remaining(deadline));
-      }
-      if (null != replicationWorkThread) {
-        replicationWorkThread.join(remaining(deadline));
-      }
     } catch (InterruptedException e) {
-      throw new IllegalStateException("Exception stopping replication workers", e);
+      throw new IllegalStateException("Exception stopping status thread", e);
     }
 
     // Signal that we want it to stop, and wait for it to do so.

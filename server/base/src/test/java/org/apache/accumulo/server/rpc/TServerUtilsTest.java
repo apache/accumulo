@@ -157,14 +157,13 @@ public class TServerUtilsTest {
   public void testStartServerNonDefaultPorts() throws Exception {
     TServer server = null;
 
-    // This test finds 6 free ports in more-or-less a contiguous way and then
+    // This test finds 5 free ports in more-or-less a contiguous way and then
     // uses those port numbers to Accumulo services in the below (ascending) sequence
     // 0. TServer default client port (this test binds to this port to force a port search)
     // 1. GC
     // 2. Manager
     // 3. Monitor
-    // 4. Manager Replication Coordinator
-    // 5. One free port - this is the one that we expect the TServer to finally use
+    // 4. One free port - this is the one that we expect the TServer to finally use
     int[] ports = findTwoFreeSequentialPorts(1024);
     int tserverDefaultPort = ports[0];
     conf.set(Property.TSERV_CLIENTPORT, Integer.toString(tserverDefaultPort));
