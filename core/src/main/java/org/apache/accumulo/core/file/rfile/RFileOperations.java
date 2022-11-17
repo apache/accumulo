@@ -39,10 +39,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public class RFileOperations extends FileOperations {
+
+  private static final Logger LOG = LoggerFactory.getLogger(RFileOperations.class);
 
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
 
@@ -129,6 +133,20 @@ public class RFileOperations extends FileOperations {
       FileSystem fs = options.getFileSystem();
 
       outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
+    }
+
+    if (options.dropCacheBehind) {
+      // Tell the DataNode that the write ahead log does not need to be cached in the OS page
+      // cache
+      try {
+        outputStream.setDropBehind(Boolean.TRUE);
+        LOG.trace("Called setDropBehind(TRUE) for stream writing file {}", options.filename);
+      } catch (UnsupportedOperationException e) {
+        LOG.debug("setDropBehind not enabled for file: {}", options.filename);
+      } catch (IOException e) {
+        LOG.debug("IOException setting drop behind for file: {}, msg: {}", options.filename,
+            e.getMessage());
+      }
     }
 
     BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
