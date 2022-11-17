@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -383,7 +384,8 @@ public class GCRun implements GarbageCollectionEnvironment {
         }
         return Maps.immutableEntry(file, stat);
       });
-    } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException e) {
+    } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException
+        | TableOfflineException e) {
       // No elements that we need to preclude
       return Collections.emptyIterator();
     }
