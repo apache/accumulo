@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -103,19 +102,14 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       // Kill a tablet server... we don't care which one... wait for everything to be reassigned
       cluster.killProcess(ServerType.TABLET_SERVER,
           cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
-      Set<TServerInstance> replStates = new HashSet<>();
-      TableId repTable = TableId.of("+"); // just needs to be before the user created table
       // Find out which tablet server remains
       while (true) {
         UtilWaitThread.sleep(1000);
         states.clear();
-        replStates.clear();
         boolean allAssigned = true;
         for (TabletLocationState tls : store) {
           if (tls != null && tls.current != null) {
             states.add(tls.current);
-          } else if (tls != null && tls.extent.equals(new KeyExtent(repTable, null, null))) {
-            replStates.add(tls.current);
           } else {
             allAssigned = false;
           }
@@ -124,7 +118,6 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
         if (states.size() != 2 && allAssigned)
           break;
       }
-      assertEquals(1, replStates.size());
       assertEquals(1, states.size());
       // pick an assigned tablet and assign it to the old tablet
       TabletLocationState moved = null;

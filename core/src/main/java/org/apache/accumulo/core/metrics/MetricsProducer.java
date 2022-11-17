@@ -457,42 +457,6 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Timer</td>
  * <td></td>
  * </tr>
- * <!-- replication -->
- * <tr>
- * <td>ReplicationQueue</td>
- * <td>Stat</td>
- * <td>{@link #METRICS_REPLICATION_QUEUE}</td>
- * <td>Timer</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>ReplicationQueue10m</td>
- * <td>Quantiles</td>
- * <td>N/A</td>
- * <td>N/A</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>filesPendingReplication</td>
- * <td>Stat</td>
- * <td>{@link #METRICS_REPLICATION_PENDING_FILES}</td>
- * <td>Gauge</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>maxReplicationThreads</td>
- * <td>Stat</td>
- * <td>{@link #METRICS_REPLICATION_THREADS}</td>
- * <td>Gauge</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>numPeers</td>
- * <td>Stat</td>
- * <td>{@link #METRICS_REPLICATION_PEERS}</td>
- * <td>Gauge</td>
- * <td></td>
- * </tr>
  * <!-- Updates (ingest) -->
  * <tr>
  * <td>permissionErrors</td>
@@ -635,12 +599,6 @@ public interface MetricsProducer {
   String METRICS_MINC_PREFIX = "accumulo.tserver.compactions.minc.";
   String METRICS_MINC_QUEUED = METRICS_MINC_PREFIX + "queued";
   String METRICS_MINC_RUNNING = METRICS_MINC_PREFIX + "running";
-
-  String METRICS_REPLICATION_PREFIX = "accumulo.replication.";
-  String METRICS_REPLICATION_QUEUE = METRICS_REPLICATION_PREFIX + "queue";
-  String METRICS_REPLICATION_PENDING_FILES = METRICS_REPLICATION_PREFIX + "files.pending";
-  String METRICS_REPLICATION_PEERS = METRICS_REPLICATION_PREFIX + "peers";
-  String METRICS_REPLICATION_THREADS = METRICS_REPLICATION_PREFIX + "threads";
 
   String METRICS_SCAN = "accumulo.tserver.scans";
   String METRICS_SCAN_OPEN_FILES = METRICS_SCAN + ".files.open";
