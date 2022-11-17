@@ -47,11 +47,11 @@ public class RFileOperations extends FileOperations {
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
 
   private static RFile.Reader getReader(FileOptions options) throws IOException {
-    CachableBuilder cb =
-        new CachableBuilder().fsPath(options.getFileSystem(), new Path(options.getFilename()))
-            .conf(options.getConfiguration()).fileLen(options.getFileLenCache())
-            .cacheProvider(options.cacheProvider).readLimiter(options.getRateLimiter())
-            .cryptoService(options.getCryptoService());
+    CachableBuilder cb = new CachableBuilder()
+        .fsPath(options.getFileSystem(), new Path(options.getFilename()), options.dropCacheBehind)
+        .conf(options.getConfiguration()).fileLen(options.getFileLenCache())
+        .cacheProvider(options.cacheProvider).readLimiter(options.getRateLimiter())
+        .cryptoService(options.getCryptoService());
     return new RFile.Reader(cb);
   }
 
