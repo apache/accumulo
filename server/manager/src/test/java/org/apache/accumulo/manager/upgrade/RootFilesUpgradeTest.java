@@ -84,8 +84,9 @@ public class RootFilesUpgradeTest extends WithTestNames {
       // up later
       for (Path path : oldDatafiles) {
         Path deleteFile = new Path(location + "/delete+" + compactName + "+" + path.getName());
-        if (acuTableConf.getBoolean(Property.GC_TRASH_IGNORE) || !fs.moveToTrash(deleteFile))
+        if (acuTableConf.getBoolean(Property.GC_TRASH_IGNORE) || !fs.moveToTrash(deleteFile)) {
           fs.deleteRecursively(deleteFile);
+        }
       }
     }
 
@@ -129,8 +130,9 @@ public class RootFilesUpgradeTest extends WithTestNames {
           Upgrader9to10.cleanupRootTabletFiles(vm, rootTabletDir.toString()).keySet();
 
       HashSet<String> expected = new HashSet<>();
-      for (String efile : expectedFiles)
+      for (String efile : expectedFiles) {
         expected.add(new File(rootTabletDir, efile).toURI().toString());
+      }
 
       assertEquals(expected, new HashSet<>(ret));
 

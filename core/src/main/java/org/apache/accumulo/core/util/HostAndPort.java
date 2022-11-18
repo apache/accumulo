@@ -105,9 +105,8 @@ public final class HostAndPort implements Serializable, Comparable<HostAndPort> 
    * Get the current port number, failing if no port is defined.
    *
    * @return a validated port number, in the range [0..65535]
-   * @throws IllegalStateException
-   *           if no port is defined. You can use {@link #withDefaultPort(int)} to prevent this from
-   *           occurring.
+   * @throws IllegalStateException if no port is defined. You can use {@link #withDefaultPort(int)}
+   *         to prevent this from occurring.
    */
   public int getPort() {
     checkState(hasPort(), "the address does not include a port");
@@ -120,13 +119,11 @@ public final class HostAndPort implements Serializable, Comparable<HostAndPort> 
    * <p>
    * Note: Non-bracketed IPv6 literals are allowed. Use #requireBracketsForIPv6() to prohibit these.
    *
-   * @param host
-   *          the host string to parse. Must not contain a port number.
-   * @param port
-   *          a port number from [0..65535]
+   * @param host the host string to parse. Must not contain a port number.
+   * @param port a port number from [0..65535]
    * @return if parsing was successful, a populated HostAndPort object.
-   * @throws IllegalArgumentException
-   *           if {@code host} contains a port number, or {@code port} is out of range.
+   * @throws IllegalArgumentException if {@code host} contains a port number, or {@code port} is out
+   *         of range.
    */
   public static HostAndPort fromParts(String host, int port) {
     checkArgument(isValidPort(port), "Port out of range: %s", port);
@@ -141,11 +138,9 @@ public final class HostAndPort implements Serializable, Comparable<HostAndPort> 
    * Note that the host-only formats will leave the port field undefined. You can use
    * {@link #withDefaultPort(int)} to patch in a default value.
    *
-   * @param hostPortString
-   *          the input string to parse.
+   * @param hostPortString the input string to parse.
    * @return if parsing was successful, a populated HostAndPort object.
-   * @throws IllegalArgumentException
-   *           if nothing meaningful could be parsed.
+   * @throws IllegalArgumentException if nothing meaningful could be parsed.
    */
   public static HostAndPort fromString(String hostPortString) {
     Objects.requireNonNull(hostPortString, "hostPortString variable was null!");
@@ -189,11 +184,9 @@ public final class HostAndPort implements Serializable, Comparable<HostAndPort> 
   /**
    * Parses a bracketed host-port string, throwing IllegalArgumentException if parsing fails.
    *
-   * @param hostPortString
-   *          the full bracketed host-port specification. Post might not be specified.
+   * @param hostPortString the full bracketed host-port specification. Post might not be specified.
    * @return an array with 2 strings: host and port, in that order.
-   * @throws IllegalArgumentException
-   *           if parsing the bracketed host-port string fails.
+   * @throws IllegalArgumentException if parsing the bracketed host-port string fails.
    */
   private static String[] getHostAndPortFromBracketedHost(String hostPortString) {
     int colonIndex = 0;
@@ -225,8 +218,7 @@ public final class HostAndPort implements Serializable, Comparable<HostAndPort> 
    * You can chain this after {@link #fromString(String)} to include a port in case the port was
    * omitted from the input string. If a port was already provided, then this method is a no-op.
    *
-   * @param defaultPort
-   *          a port number, from [0..65535]
+   * @param defaultPort a port number, from [0..65535]
    * @return a HostAndPort instance, guaranteed to have a defined port.
    */
   public HostAndPort withDefaultPort(int defaultPort) {

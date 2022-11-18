@@ -121,8 +121,9 @@ public class AESCryptoService implements CryptoService {
     String keyLocation = Objects.requireNonNull(conf.get(KEY_URI_PROPERTY),
         "Config property " + KEY_URI_PROPERTY + " is required.");
     String enabledProp = conf.get(ENCRYPT_ENABLED_PROPERTY);
-    if (enabledProp != null)
+    if (enabledProp != null) {
       encryptEnabled = Boolean.parseBoolean(enabledProp);
+    }
 
     // get key from URI for now, keyMgr framework could be expanded on in the future
     String keyMgr = "uri";
@@ -168,8 +169,9 @@ public class AESCryptoService implements CryptoService {
     ensureInit();
     CryptoModule cm;
     var decryptionParams = environment.getDecryptionParams();
-    if (decryptionParams.isEmpty() || checkNoCrypto(decryptionParams.get()))
+    if (decryptionParams.isEmpty() || checkNoCrypto(decryptionParams.get())) {
       return new NoFileDecrypter();
+    }
 
     ParsedCryptoParameters parsed = parseCryptoParameters(decryptionParams.get());
     Key kek = loadDecryptionKek(parsed);
@@ -268,8 +270,9 @@ public class AESCryptoService implements CryptoService {
       int encFekLen = params.readInt();
       byte[] encFek = new byte[encFekLen];
       int bytesRead = params.read(encFek);
-      if (bytesRead != encFekLen)
+      if (bytesRead != encFekLen) {
         throw new CryptoException("Incorrect number of bytes read for encrypted FEK");
+      }
       parsed.setEncFek(encFek);
     } catch (IOException e) {
       throw new CryptoException("Error creating crypto params", e);
@@ -294,8 +297,9 @@ public class AESCryptoService implements CryptoService {
 
     this.decryptingKeys.put(keyTag, ret);
 
-    if (ret == null)
+    if (ret == null) {
       throw new CryptoException("Unable to load decryption KEK");
+    }
 
     return ret;
   }
@@ -400,17 +404,15 @@ public class AESCryptoService implements CryptoService {
        * Because IVs can be longer than longs, this increments arbitrarily sized byte arrays by 1,
        * with a roll over to 0 after the max value is reached.
        *
-       * @param iv
-       *          The iv to be incremented
-       * @param i
-       *          The current byte being incremented
+       * @param iv The iv to be incremented
+       * @param i The current byte being incremented
        */
       void incrementIV(byte[] iv, int i) {
         iv[i]++;
         if (iv[i] == 0) {
-          if (i == 0)
+          if (i == 0) {
             return;
-          else {
+          } else {
             incrementIV(iv, i - 1);
           }
         }

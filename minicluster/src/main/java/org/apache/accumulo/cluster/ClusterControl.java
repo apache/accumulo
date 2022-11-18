@@ -51,12 +51,9 @@ public interface ClusterControl {
   /**
    * Start instances of Compactors
    *
-   * @param compactor
-   *          compactor class
-   * @param limit
-   *          number of compactors to start
-   * @param queueName
-   *          name of queue
+   * @param compactor compactor class
+   * @param limit number of compactors to start
+   * @param queueName name of queue
    */
   void startCompactors(Class<? extends Compactor> compactor, int limit, String queueName)
       throws IOException;
@@ -64,8 +61,7 @@ public interface ClusterControl {
   /**
    * Start an instance of CompactionCoordinator
    *
-   * @param coordinator
-   *          compaction coordinator class
+   * @param coordinator compaction coordinator class
    */
   void startCoordinator(Class<? extends CompactionCoordinator> coordinator) throws IOException;
 

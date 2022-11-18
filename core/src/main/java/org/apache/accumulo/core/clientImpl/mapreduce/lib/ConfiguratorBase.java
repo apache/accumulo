@@ -97,10 +97,9 @@ public class ConfiguratorBase {
   /**
    * Provides a configuration key for a given feature enum, prefixed by the implementingClass
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param e
-   *          the enum used to provide the unique part of the configuration key
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param e the enum used to provide the unique part of the configuration key
    * @return the configuration key
    * @since 1.6.0
    */
@@ -112,8 +111,7 @@ public class ConfiguratorBase {
   /**
    * Provides a configuration key for a given feature enum.
    *
-   * @param e
-   *          the enum used to provide the unique part of the configuration key
+   * @param e the enum used to provide the unique part of the configuration key
    * @return the configuration key
    */
   protected static String enumToConfKey(Enum<?> e) {
@@ -129,14 +127,11 @@ public class ConfiguratorBase {
    * MapReduce tasks. It is BASE64 encoded to provide a charset safe conversion to a string, and is
    * not intended to be secure.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param principal
-   *          a valid Accumulo user name
-   * @param token
-   *          the user's password
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
+   * @param principal a valid Accumulo user name
+   * @param token the user's password
    * @since 1.6.0
    */
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf,
@@ -174,14 +169,11 @@ public class ConfiguratorBase {
    * attempt to be more secure than storing the password in the Configuration. Token file created
    * with "bin/accumulo create-token".
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param principal
-   *          a valid Accumulo user name
-   * @param tokenFile
-   *          the path to the token file in DFS
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
+   * @param principal a valid Accumulo user name
+   * @param tokenFile the path to the token file in DFS
    * @since 1.6.0
    */
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf,
@@ -205,10 +197,9 @@ public class ConfiguratorBase {
   /**
    * Determines if the connector info has already been set for this instance.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
    * @return true if the connector info has already been set, false otherwise
    * @since 1.6.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
@@ -220,10 +211,9 @@ public class ConfiguratorBase {
   /**
    * Gets the user name from the configuration.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
    * @return the principal
    * @since 1.6.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
@@ -236,10 +226,9 @@ public class ConfiguratorBase {
    * Gets the authenticated token from either the specified token file or directly from the
    * configuration, whichever was used when the job was configured.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
    * @return the principal's authentication token
    * @since 1.6.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
@@ -278,8 +267,7 @@ public class ConfiguratorBase {
    * Reads from the token file in distributed cache. Currently, the token file stores data separated
    * by colons e.g. principal:token_class:token
    *
-   * @param conf
-   *          the Hadoop context for the configured job
+   * @param conf the Hadoop context for the configured job
    * @return path to the token file as a String
    * @since 1.6.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
@@ -309,12 +297,11 @@ public class ConfiguratorBase {
   /**
    * Configures a ZooKeeperInstance for this job.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param clientConfig
-   *          client configuration for specifying connection timeouts, SSL connection options, etc.
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
+   * @param clientConfig client configuration for specifying connection timeouts, SSL connection
+   *        options, etc.
    * @since 1.6.0
    */
   public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf,
@@ -335,10 +322,9 @@ public class ConfiguratorBase {
   /**
    * Initializes an Accumulo Instance based on the configuration.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
    * @return an Accumulo instance
    * @since 1.6.0
    */
@@ -359,10 +345,9 @@ public class ConfiguratorBase {
   /**
    * Obtain a ClientConfiguration based on the configuration.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
    *
    * @return A ClientConfiguration
    * @since 1.7.0
@@ -391,12 +376,10 @@ public class ConfiguratorBase {
   /**
    * Sets the log level for this job.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param level
-   *          the logging level
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
+   * @param level the logging level
    * @since 1.6.0
    */
   public static void setLogLevel(Class<?> implementingClass, Configuration conf, Level level) {
@@ -408,10 +391,9 @@ public class ConfiguratorBase {
   /**
    * Gets the log level from this configuration.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
    * @return the log level
    * @since 1.6.0
    * @see #setLogLevel(Class, Configuration, Level)
@@ -424,10 +406,8 @@ public class ConfiguratorBase {
   /**
    * Sets the valid visibility count for this job.
    *
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param visibilityCacheSize
-   *          the LRU cache size
+   * @param conf the Hadoop configuration object to configure
+   * @param visibilityCacheSize the LRU cache size
    */
   public static void setVisibilityCacheSize(Configuration conf, int visibilityCacheSize) {
     conf.setInt(enumToConfKey(GeneralOpts.VISIBILITY_CACHE_SIZE), visibilityCacheSize);
@@ -436,8 +416,7 @@ public class ConfiguratorBase {
   /**
    * Gets the valid visibility count for this job.
    *
-   * @param conf
-   *          the Hadoop configuration object to configure
+   * @param conf the Hadoop configuration object to configure
    * @return the valid visibility count
    */
   public static int getVisibilityCacheSize(Configuration conf) {
@@ -449,10 +428,8 @@ public class ConfiguratorBase {
    * Unwraps the provided {@link AuthenticationToken} if it is an instance of DelegationTokenStub,
    * reconstituting it from the provided {@link JobConf}.
    *
-   * @param job
-   *          The job
-   * @param token
-   *          The authentication token
+   * @param job The job
+   * @param token The authentication token
    */
   public static AuthenticationToken unwrapAuthenticationToken(JobConf job,
       AuthenticationToken token) {
@@ -480,10 +457,8 @@ public class ConfiguratorBase {
    * Unwraps the provided {@link AuthenticationToken} if it is an instance of DelegationTokenStub,
    * reconstituting it from the provided {@link JobConf}.
    *
-   * @param job
-   *          The job
-   * @param token
-   *          The authentication token
+   * @param job The job
+   * @param token The authentication token
    */
   public static AuthenticationToken unwrapAuthenticationToken(JobContext job,
       AuthenticationToken token) {

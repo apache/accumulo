@@ -399,8 +399,9 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       SortedSet<Text> splits = new TreeSet<>();
-      for (String s : List.of("f", "m", "r", "t"))
+      for (String s : List.of("f", "m", "r", "t")) {
         splits.add(new Text(s));
+      }
 
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
       client.tableOperations().create(tableName, ntc);
@@ -619,10 +620,11 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     try (var writer = client.createBatchWriter(table)) {
       for (int i = startRow; i < endRow; i++) {
         Mutation mut = new Mutation(String.format("%09d", i));
-        if (delete)
+        if (delete) {
           mut.putDelete("f1", "q1");
-        else
+        } else {
           mut.put("f1", "q1", "v" + i);
+        }
         writer.addMutation(mut);
 
       }

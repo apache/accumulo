@@ -26,25 +26,29 @@ public enum TabletType {
   ROOT, METADATA, USER;
 
   public static TabletType type(KeyExtent ke) {
-    if (ke.isRootTablet())
+    if (ke.isRootTablet()) {
       return ROOT;
-    if (ke.isMeta())
+    }
+    if (ke.isMeta()) {
       return METADATA;
+    }
     return USER;
   }
 
   public static TabletType type(Collection<KeyExtent> extents) {
-    if (extents.isEmpty())
+    if (extents.isEmpty()) {
       throw new IllegalArgumentException();
+    }
 
     TabletType ttype = null;
 
     for (KeyExtent extent : extents) {
-      if (ttype == null)
+      if (ttype == null) {
         ttype = type(extent);
-      else if (ttype != type(extent))
+      } else if (ttype != type(extent)) {
         throw new IllegalArgumentException(
             "multiple extent types not allowed " + ttype + " " + type(extent));
+      }
     }
 
     return ttype;

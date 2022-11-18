@@ -43,8 +43,9 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
   }
 
   protected void createHeap(int maxSize) {
-    if (heap != null)
+    if (heap != null) {
       throw new IllegalStateException("heap already exist");
+    }
 
     heap = new PriorityQueue<>(maxSize == 0 ? 1 : maxSize,
         (si1, si2) -> si1.getTopKey().compareTo(si2.getTopKey()));

@@ -78,8 +78,9 @@ public class VisMetricsGatherer
     ByteSequence cf = new ArrayByteSequence(oneCF.toString());
     for (Entry<String,ArrayList<ByteSequence>> entry : localityGroupCF.entrySet()) {
       if (entry.getValue().contains(cf)) {
-        if (entry.getKey() != null)
+        if (entry.getKey() != null) {
           name = entry.getKey().toString();
+        }
         break;
       }
     }
@@ -97,8 +98,9 @@ public class VisMetricsGatherer
     String currLG = localityGroups.get(numLG - 1);
     if (metric.get(currLG).containsKey(myMetric)) {
       metric.get(currLG).getAndIncrement(myMetric);
-    } else
+    } else {
       metric.get(currLG).put(myMetric, 1);
+    }
 
     numEntries.set(numLG - 1, numEntries.get(numLG - 1) + 1);
 
@@ -123,10 +125,11 @@ public class VisMetricsGatherer
     for (int i = 0; i < numLG; i++) {
       String lGName = localityGroups.get(i);
       out.print("Locality Group: ");
-      if (lGName == null)
+      if (lGName == null) {
         out.println("<DEFAULT>");
-      else
+      } else {
         out.println(localityGroups.get(i));
+      }
       out.printf("%-27s", metricWord);
       out.println("Number of keys\t   Percent of keys\tNumber of blocks\tPercent of blocks");
       for (Entry<String,Long> entry : metric.get(lGName).asMap().entrySet()) {
@@ -141,8 +144,9 @@ public class VisMetricsGatherer
                 "Failed to convert key to " + KEY_HASH_ALGORITHM + " hash: " + e.getMessage());
           }
           out.printf("%-20s", encodedKey.substring(0, 8));
-        } else
+        } else {
           out.printf("%-20s", entry.getKey());
+        }
         out.print("\t\t" + entry.getValue() + "\t\t\t");
         out.printf("%.2f", ((double) entry.getValue() / numEntries.get(i)) * 100);
         out.print("%\t\t\t");

@@ -36,8 +36,9 @@ public class ClearCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException {
 
-    if (Terminal.TYPE_DUMB.equalsIgnoreCase(shellState.getTerminal().getType()))
+    if (Terminal.TYPE_DUMB.equalsIgnoreCase(shellState.getTerminal().getType())) {
       throw new IOException("Terminal does not support ANSI commands");
+    }
 
     shellState.getTerminal().puts(Capability.clear_screen);
     shellState.getTerminal().puts(Capability.cursor_address, 0, 1);

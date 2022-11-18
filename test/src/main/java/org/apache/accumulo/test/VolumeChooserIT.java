@@ -143,8 +143,9 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // Add 10 splits to the table
     SortedSet<Text> partitions = new TreeSet<>();
-    for (String s : alpha_rows)
+    for (String s : alpha_rows) {
       partitions.add(new Text(s));
+    }
     accumuloClient.tableOperations().addSplits(tableName, partitions);
   }
 
@@ -253,8 +254,9 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       for (Entry<Key,Value> entry : scanner) {
         boolean inVolume = false;
         for (String volume : volumes) {
-          if (entry.getKey().getColumnQualifier().toString().contains(volume))
+          if (entry.getKey().getColumnQualifier().toString().contains(volume)) {
             volumesSeen.add(volume);
+          }
           inVolume = true;
         }
         assertTrue(inVolume,

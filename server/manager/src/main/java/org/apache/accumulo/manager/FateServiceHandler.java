@@ -124,8 +124,9 @@ class FateServiceHandler implements FateService.Iface {
         validateArgumentCount(arguments, tableOp, 1);
         String namespace = validateName(arguments.get(0), tableOp, NEW_NAMESPACE_NAME);
 
-        if (!manager.security.canCreateNamespace(c))
+        if (!manager.security.canCreateNamespace(c)) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         goalMessage += "Create " + namespace + " namespace.";
         manager.fate().seedTransaction(op.toString(), opid,
@@ -142,8 +143,9 @@ class FateServiceHandler implements FateService.Iface {
 
         NamespaceId namespaceId =
             ClientServiceHandler.checkNamespaceId(manager.getContext(), oldName, tableOp);
-        if (!manager.security.canRenameNamespace(c, namespaceId))
+        if (!manager.security.canRenameNamespace(c, namespaceId)) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         goalMessage += "Rename " + oldName + " namespace to " + newName;
         manager.fate().seedTransaction(op.toString(), opid,
@@ -159,8 +161,9 @@ class FateServiceHandler implements FateService.Iface {
 
         NamespaceId namespaceId =
             ClientServiceHandler.checkNamespaceId(manager.getContext(), namespace, tableOp);
-        if (!manager.security.canDeleteNamespace(c, namespaceId))
+        if (!manager.security.canDeleteNamespace(c, namespaceId)) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         goalMessage += "Delete namespace Id: " + namespaceId;
         manager.fate().seedTransaction(op.toString(), opid,
@@ -206,8 +209,9 @@ class FateServiceHandler implements FateService.Iface {
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
         }
 
-        if (!manager.security.canCreateTable(c, tableName, namespaceId))
+        if (!manager.security.canCreateTable(c, tableName, namespaceId)) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         for (Map.Entry<String,String> entry : options.entrySet()) {
           if (!Property.isTablePropertyValid(entry.getKey(), entry.getValue())) {
@@ -248,8 +252,9 @@ class FateServiceHandler implements FateService.Iface {
           throw e;
         }
 
-        if (!canRename)
+        if (!canRename) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         goalMessage += "Rename table " + oldTableName + "(" + tableId + ") to " + oldTableName;
 
@@ -294,8 +299,9 @@ class FateServiceHandler implements FateService.Iface {
           throw e;
         }
 
-        if (!canCloneTable)
+        if (!canCloneTable) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         Map<String,String> propertiesToSet = new HashMap<>();
         Set<String> propertiesToExclude = new HashSet<>();
@@ -317,8 +323,9 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Clone table " + srcTableId + " to " + tableName;
-        if (keepOffline)
+        if (keepOffline) {
           goalMessage += " and keep offline.";
+        }
 
         manager.fate().seedTransaction(
             op.toString(), opid, new TraceRepo<>(new CloneTable(c.getPrincipal(), namespaceId,
@@ -345,8 +352,9 @@ class FateServiceHandler implements FateService.Iface {
           throw e;
         }
 
-        if (!canDeleteTable)
+        if (!canDeleteTable) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         goalMessage += "Delete table " + tableName + "(" + tableId + ")";
         manager.fate().seedTransaction(op.toString(), opid,
@@ -368,8 +376,9 @@ class FateServiceHandler implements FateService.Iface {
           throw e;
         }
 
-        if (!canOnlineOfflineTable)
+        if (!canOnlineOfflineTable) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         goalMessage += "Online table " + tableId;
         manager.fate().seedTransaction(op.toString(), opid,
@@ -392,8 +401,9 @@ class FateServiceHandler implements FateService.Iface {
           throw e;
         }
 
-        if (!canOnlineOfflineTable)
+        if (!canOnlineOfflineTable) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         goalMessage += "Offline table " + tableId;
         manager.fate().seedTransaction(op.toString(), opid,
@@ -420,8 +430,9 @@ class FateServiceHandler implements FateService.Iface {
           throw e;
         }
 
-        if (!canMerge)
+        if (!canMerge) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         String startRowStr = StringUtils.defaultIfBlank(startRow.toString(), "-inf");
         String endRowStr = StringUtils.defaultIfBlank(startRow.toString(), "+inf");
@@ -456,8 +467,9 @@ class FateServiceHandler implements FateService.Iface {
           throw e;
         }
 
-        if (!canDeleteRange)
+        if (!canDeleteRange) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         goalMessage +=
             "Delete table " + tableName + "(" + tableId + ") range " + startRow + " to " + endRow;
@@ -488,8 +500,9 @@ class FateServiceHandler implements FateService.Iface {
           throw e;
         }
 
-        if (!canBulkImport)
+        if (!canBulkImport) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         manager.updateBulkImportStatus(dir, BulkImportState.INITIAL);
         goalMessage +=
@@ -516,8 +529,9 @@ class FateServiceHandler implements FateService.Iface {
           throw e;
         }
 
-        if (!canCompact)
+        if (!canCompact) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         goalMessage += "Compact table (" + tableId + ") with config " + compactionConfig;
         manager.fate().seedTransaction(op.toString(), opid,
@@ -539,8 +553,9 @@ class FateServiceHandler implements FateService.Iface {
           throw e;
         }
 
-        if (!canCancelCompact)
+        if (!canCancelCompact) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         goalMessage += "Cancel compaction of table (" + tableId + ")";
         manager.fate().seedTransaction(op.toString(), opid,
@@ -579,8 +594,9 @@ class FateServiceHandler implements FateService.Iface {
           throw e;
         }
 
-        if (!canImport)
+        if (!canImport) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         goalMessage += "Import table with new name: " + tableName + " from " + exportDirs;
         manager.fate()
@@ -609,8 +625,9 @@ class FateServiceHandler implements FateService.Iface {
           throw e;
         }
 
-        if (!canExport)
+        if (!canExport) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         goalMessage += "Export table " + tableName + "(" + tableId + ") to " + exportDir;
         manager.fate().seedTransaction(op.toString(), opid,
@@ -643,8 +660,9 @@ class FateServiceHandler implements FateService.Iface {
               "Table no longer exists");
         }
 
-        if (!canBulkImport)
+        if (!canBulkImport) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
 
         manager.updateBulkImportStatus(dir, BulkImportState.INITIAL);
 
@@ -678,16 +696,12 @@ class FateServiceHandler implements FateService.Iface {
    * has a different {@link SecurityErrorCode}, this method does nothing and expects the caller to
    * properly handle the original exception.
    *
-   * @param e
-   *          A caught ThriftSecurityException
-   * @param tableId
-   *          Table ID being operated on, or null
-   * @param tableName
-   *          Table name being operated on, or null
-   * @param op
-   *          The TableOperation the Manager was attempting to perform
-   * @throws ThriftTableOperationException
-   *           Thrown if {@code e} was thrown because {@link SecurityErrorCode#TABLE_DOESNT_EXIST}
+   * @param e A caught ThriftSecurityException
+   * @param tableId Table ID being operated on, or null
+   * @param tableName Table name being operated on, or null
+   * @param op The TableOperation the Manager was attempting to perform
+   * @throws ThriftTableOperationException Thrown if {@code e} was thrown because
+   *         {@link SecurityErrorCode#TABLE_DOESNT_EXIST}
    */
   private void throwIfTableMissingSecurityException(ThriftSecurityException e, TableId tableId,
       String tableName, TableOperation op) throws ThriftTableOperationException {
@@ -706,19 +720,21 @@ class FateServiceHandler implements FateService.Iface {
     TStatus status = manager.fate().waitForCompletion(opid);
     if (status == TStatus.FAILED) {
       Exception e = manager.fate().getException(opid);
-      if (e instanceof ThriftTableOperationException)
+      if (e instanceof ThriftTableOperationException) {
         throw (ThriftTableOperationException) e;
-      else if (e instanceof ThriftSecurityException)
+      } else if (e instanceof ThriftSecurityException) {
         throw (ThriftSecurityException) e;
-      else if (e instanceof RuntimeException)
+      } else if (e instanceof RuntimeException) {
         throw (RuntimeException) e;
-      else
+      } else {
         throw new RuntimeException(e);
+      }
     }
 
     String ret = manager.fate().getReturn(opid);
-    if (ret == null)
+    if (ret == null) {
       ret = ""; // thrift does not like returning null
+    }
     return ret;
   }
 
@@ -733,9 +749,10 @@ class FateServiceHandler implements FateService.Iface {
     // this is a bit redundant, the credentials of the caller (the first arg) will throw an
     // exception if it fails to authenticate
     // before the second arg is checked (which would return true or false)
-    if (!manager.security.authenticateUser(credentials, credentials))
+    if (!manager.security.authenticateUser(credentials, credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.BAD_CREDENTIALS);
+    }
   }
 
   // Verify table name arguments are valid, and match any additional restrictions
@@ -808,8 +825,9 @@ class FateServiceHandler implements FateService.Iface {
     Volume vol = manager.getVolumeManager().getFirst();
     Path p = vol.prefixChild("/tmp/fate-" + FastFormat.toHexString(opid));
     FileSystem fs = vol.getFileSystem();
-    if (fs.exists(p))
+    if (fs.exists(p)) {
       fs.delete(p, true);
+    }
     fs.mkdirs(p);
     return p;
   }
@@ -818,9 +836,10 @@ class FateServiceHandler implements FateService.Iface {
   public boolean cancelFateOperation(TInfo tinfo, TCredentials credentials, long opid)
       throws ThriftSecurityException, ThriftNotActiveServiceException {
 
-    if (!manager.security.canPerformSystemActions(credentials))
+    if (!manager.security.canPerformSystemActions(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     return manager.fate().cancel(opid);
   }

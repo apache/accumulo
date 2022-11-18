@@ -54,19 +54,22 @@ public abstract class ScanTask<T> implements Runnable {
   }
 
   protected void addResult(Object o) {
-    if (state.compareAndSet(INITIAL, ADDED))
+    if (state.compareAndSet(INITIAL, ADDED)) {
       resultQueue.add(o);
-    else if (state.get() == ADDED)
+    } else if (state.get() == ADDED) {
       throw new IllegalStateException("Tried to add more than one result");
+    }
   }
 
   public boolean cancel(boolean mayInterruptIfRunning) {
-    if (!mayInterruptIfRunning)
+    if (!mayInterruptIfRunning) {
       throw new IllegalArgumentException(
           "Cancel will always attempt to interrupt running next batch task");
+    }
 
-    if (state.get() == CANCELED)
+    if (state.get() == CANCELED) {
       return true;
+    }
 
     if (state.compareAndSet(INITIAL, CANCELED)) {
       interruptFlag.set(true);
@@ -97,18 +100,18 @@ public abstract class ScanTask<T> implements Runnable {
   }
 
   /**
-   * @param busyTimeout
-   *          when this less than 0 it has no impact. When its greater than 0 and the task is
-   *          queued, then get() will sleep for the specified busyTimeout and if after sleeping its
-   *          still queued it will cancel the task. This behavior allows a scan to queue a scan task
-   *          and give it a short period to either start running or be canceled.
+   * @param busyTimeout when this less than 0 it has no impact. When its greater than 0 and the task
+   *        is queued, then get() will sleep for the specified busyTimeout and if after sleeping its
+   *        still queued it will cancel the task. This behavior allows a scan to queue a scan task
+   *        and give it a short period to either start running or be canceled.
    */
   public T get(long busyTimeout, long timeout, TimeUnit unit)
       throws InterruptedException, ExecutionException, TimeoutException {
     ArrayBlockingQueue<Object> localRQ = resultQueue;
 
-    if (isCancelled())
+    if (isCancelled()) {
       throw new CancellationException();
+    }
 
     if (localRQ == null) {
       int st = state.get();
@@ -141,21 +144,24 @@ public abstract class ScanTask<T> implements Runnable {
 
     // could have been canceled while waiting
     if (isCancelled()) {
-      if (r != null)
+      if (r != null) {
         throw new IllegalStateException("Nothing should have been added when in canceled state");
+      }
 
       throw new CancellationException();
     }
 
-    if (r == null)
+    if (r == null) {
       throw new TimeoutException();
+    }
 
     // make this method stop working now that something is being
     // returned
     resultQueue = null;
 
-    if (r instanceof Throwable)
+    if (r instanceof Throwable) {
       throw new ExecutionException((Throwable) r);
+    }
 
     @SuppressWarnings("unchecked")
     T rAsT = (T) r;

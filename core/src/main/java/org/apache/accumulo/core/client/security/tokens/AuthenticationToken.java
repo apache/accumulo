@@ -54,10 +54,8 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
      * The specified tokenType will be instantiated, and used to deserialize the decoded bytes. The
      * resulting object will then be returned to the caller.
      *
-     * @param tokenType
-     *          the token class to use to deserialize the bytes
-     * @param tokenBytes
-     *          the token-specific serialized bytes
+     * @param tokenType the token class to use to deserialize the bytes
+     * @param tokenBytes the token-specific serialized bytes
      * @return an {@link AuthenticationToken} instance of the type specified by tokenType
      * @see #serialize(AuthenticationToken)
      */
@@ -89,8 +87,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
      * An alternate version of {@link #deserialize(Class, byte[])} that accepts a token class name
      * rather than a token class.
      *
-     * @param tokenClassName
-     *          the fully-qualified class name to be returned
+     * @param tokenClassName the fully-qualified class name to be returned
      * @see #serialize(AuthenticationToken)
      */
     public static AuthenticationToken deserialize(String tokenClassName, byte[] tokenBytes) {
@@ -109,8 +106,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
      * The provided {@link AuthenticationToken} will be serialized to bytes by its own
      * implementation and returned to the caller.
      *
-     * @param token
-     *          the token to serialize
+     * @param token the token to serialize
      * @return a serialized representation of the provided {@link AuthenticationToken}
      * @see #deserialize(Class, byte[])
      */
@@ -130,15 +126,17 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     private HashMap<String,char[]> map = new HashMap<>();
 
     private void checkDestroyed() {
-      if (destroyed)
+      if (destroyed) {
         throw new IllegalStateException();
+      }
     }
 
     public char[] put(String key, CharSequence value) {
       checkDestroyed();
       char[] toPut = new char[value.length()];
-      for (int i = 0; i < value.length(); i++)
+      for (int i = 0; i < value.length(); i++) {
         toPut[i] = value.charAt(i);
+      }
       return map.put(key, toPut);
     }
 
@@ -275,8 +273,9 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof TokenProperty)
+      if (o instanceof TokenProperty) {
         return ((TokenProperty) o).key.equals(key);
+      }
       return false;
     }
 

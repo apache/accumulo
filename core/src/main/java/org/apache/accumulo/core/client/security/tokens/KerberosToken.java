@@ -56,10 +56,9 @@ public class KerberosToken implements AuthenticationToken {
    * (on top of another user). An {@link IllegalArgumentException} will be thrown for all other
    * cases.
    *
-   * @param principal
-   *          The user that is logged in
-   * @throws IllegalArgumentException
-   *           If the current user is not authentication via Kerberos or Proxy methods.
+   * @param principal The user that is logged in
+   * @throws IllegalArgumentException If the current user is not authentication via Kerberos or
+   *         Proxy methods.
    * @see UserGroupInformation#getCurrentUser()
    * @see UserGroupInformation#getAuthenticationMethod()
    */
@@ -82,10 +81,8 @@ public class KerberosToken implements AuthenticationToken {
    * <p>
    * This constructor does not have any side effects.
    *
-   * @param principal
-   *          The Kerberos principal
-   * @param keytab
-   *          A keytab file containing the principal's credentials.
+   * @param principal The Kerberos principal
+   * @param keytab A keytab file containing the principal's credentials.
    */
   public KerberosToken(String principal, File keytab) throws IOException {
     this.principal = requireNonNull(principal, "Principal was null");
@@ -97,8 +94,7 @@ public class KerberosToken implements AuthenticationToken {
    * Creates a token using the login user as returned by
    * {@link UserGroupInformation#getCurrentUser()}
    *
-   * @throws IOException
-   *           If the current logged in user cannot be computed.
+   * @throws IOException If the current logged in user cannot be computed.
    */
   public KerberosToken() throws IOException {
     this(UserGroupInformation.getCurrentUser().getUserName());
@@ -118,12 +114,15 @@ public class KerberosToken implements AuthenticationToken {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (!(obj instanceof KerberosToken))
+    }
+    if (!(obj instanceof KerberosToken)) {
       return false;
+    }
     KerberosToken other = (KerberosToken) obj;
 
     return principal.equals(other.principal);

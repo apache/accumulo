@@ -34,8 +34,7 @@ public class BadTabletServers {
   /**
    * Adds a new bad tserver to the list
    *
-   * @param badTabletServer
-   *          Bad tserver to add
+   * @param badTabletServer Bad tserver to add
    */
   public void addBadServer(BadTabletServerInformation badTabletServer) {
     this.badTabletServer.add(badTabletServer);

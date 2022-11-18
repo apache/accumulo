@@ -63,10 +63,8 @@ public interface NamespaceOperations {
    * Retrieve a list of namespaces in Accumulo.
    *
    * @return List of namespaces in accumulo
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
    * @since 1.6.0
    */
   SortedSet<String> list() throws AccumuloException, AccumuloSecurityException;
@@ -74,13 +72,10 @@ public interface NamespaceOperations {
   /**
    * A method to check if a namespace exists in Accumulo.
    *
-   * @param namespace
-   *          the name of the namespace
+   * @param namespace the name of the namespace
    * @return true if the namespace exists
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
    * @since 1.6.0
    */
   boolean exists(String namespace) throws AccumuloException, AccumuloSecurityException;
@@ -98,14 +93,10 @@ public interface NamespaceOperations {
    * }
    * </pre>
    *
-   * @param namespace
-   *          the name of the namespace
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceExistsException
-   *           if the specified namespace already exists
+   * @param namespace the name of the namespace
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceExistsException if the specified namespace already exists
    * @since 1.6.0
    */
   void create(String namespace)
@@ -114,16 +105,11 @@ public interface NamespaceOperations {
   /**
    * Delete an empty namespace
    *
-   * @param namespace
-   *          the name of the namespace
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
-   * @throws NamespaceNotEmptyException
-   *           if the namespaces still contains tables
+   * @param namespace the name of the namespace
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
+   * @throws NamespaceNotEmptyException if the namespaces still contains tables
    * @since 1.6.0
    */
   void delete(String namespace) throws AccumuloException, AccumuloSecurityException,
@@ -132,18 +118,12 @@ public interface NamespaceOperations {
   /**
    * Rename a namespace
    *
-   * @param oldNamespaceName
-   *          the old namespace name
-   * @param newNamespaceName
-   *          the new namespace name
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the old namespace does not exist
-   * @throws NamespaceExistsException
-   *           if the new namespace already exists
+   * @param oldNamespaceName the old namespace name
+   * @param newNamespaceName the new namespace name
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the old namespace does not exist
+   * @throws NamespaceExistsException if the new namespace already exists
    * @since 1.6.0
    */
   void rename(String oldNamespaceName, String newNamespaceName) throws AccumuloException,
@@ -153,18 +133,12 @@ public interface NamespaceOperations {
    * Sets a property on a namespace which applies to all tables in the namespace. Note that it may
    * take a few seconds to propagate the change everywhere.
    *
-   * @param namespace
-   *          the name of the namespace
-   * @param property
-   *          the name of a per-table property
-   * @param value
-   *          the value to set a per-table property to
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @param namespace the name of the namespace
+   * @param property the name of a per-table property
+   * @param value the value to set a per-table property to
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 1.6.0
    */
   void setProperty(String namespace, String property, String value)
@@ -181,12 +155,11 @@ public interface NamespaceOperations {
    * at this namespace's layer to the mapMutator.
    * </p>
    *
-   * @param mapMutator
-   *          This consumer should modify the passed in snapshot of namespace properties to contain
-   *          the desired keys and values. It should be safe for Accumulo to call this consumer
-   *          multiple times, this may be done automatically when certain retryable errors happen.
-   *          The consumer should probably avoid accessing the Accumulo client as that could lead to
-   *          undefined behavior.
+   * @param mapMutator This consumer should modify the passed in snapshot of namespace properties to
+   *        contain the desired keys and values. It should be safe for Accumulo to call this
+   *        consumer multiple times, this may be done automatically when certain retryable errors
+   *        happen. The consumer should probably avoid accessing the Accumulo client as that could
+   *        lead to undefined behavior.
    *
    * @return The map that became Accumulo's new properties for this namespace. This map is immutable
    *         and contains the snapshot passed to mapMutator and the changes made by mapMutator.
@@ -200,16 +173,11 @@ public interface NamespaceOperations {
    * Removes a property from a namespace. Note that it may take a few seconds to propagate the
    * change everywhere.
    *
-   * @param namespace
-   *          the name of the namespace
-   * @param property
-   *          the name of a per-table property
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @param namespace the name of the namespace
+   * @param property the name of a per-table property
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 1.6.0
    */
   void removeProperty(String namespace, String property)
@@ -220,16 +188,12 @@ public interface NamespaceOperations {
    * recently changed properties may not be available immediately. Method calls
    * {@link #getConfiguration(String)} and then calls .entrySet() on the map.
    *
-   * @param namespace
-   *          the name of the namespace
+   * @param namespace the name of the namespace
    * @return all properties visible by this namespace (system and per-table properties). Note that
    *         recently changed properties may not be visible immediately.
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 1.6.0
    */
   default Iterable<Entry<String,String>> getProperties(String namespace)
@@ -242,16 +206,12 @@ public interface NamespaceOperations {
    * recently changed properties may not be available immediately. This new method returns a Map
    * instead of an Iterable.
    *
-   * @param namespace
-   *          the name of the namespace
+   * @param namespace the name of the namespace
    * @return all properties visible by this namespace (system and per-table properties). Note that
    *         recently changed properties may not be visible immediately.
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 2.1.0
    */
   Map<String,String> getConfiguration(String namespace)
@@ -261,16 +221,12 @@ public interface NamespaceOperations {
    * Gets properties specific to this namespace. Note that recently changed properties may not be
    * available immediately. This new method returns a Map instead of an Iterable.
    *
-   * @param namespace
-   *          the name of the namespace
+   * @param namespace the name of the namespace
    * @return per-table properties specific to this namespace. Note that recently changed properties
    *         may not be visible immediately.
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 2.1.0
    */
   Map<String,String> getNamespaceProperties(String namespace)
@@ -280,10 +236,8 @@ public interface NamespaceOperations {
    * Get a mapping of namespace name to internal namespace id.
    *
    * @return the map from namespace name to internal namespace id
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
    * @since 1.6.0
    */
   Map<String,String> namespaceIdMap() throws AccumuloException, AccumuloSecurityException;
@@ -291,16 +245,11 @@ public interface NamespaceOperations {
   /**
    * Add an iterator to a namespace on all scopes.
    *
-   * @param namespace
-   *          the name of the namespace
-   * @param setting
-   *          object specifying the properties of the iterator
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @param namespace the name of the namespace
+   * @param setting object specifying the properties of the iterator
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 1.6.0
    */
   void attachIterator(String namespace, IteratorSetting setting)
@@ -309,18 +258,12 @@ public interface NamespaceOperations {
   /**
    * Add an iterator to a namespace on the given scopes.
    *
-   * @param namespace
-   *          the name of the namespace
-   * @param setting
-   *          object specifying the properties of the iterator
-   * @param scopes
-   *          the set of scopes the iterator should apply to
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @param namespace the name of the namespace
+   * @param setting object specifying the properties of the iterator
+   * @param scopes the set of scopes the iterator should apply to
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 1.6.0
    */
   void attachIterator(String namespace, IteratorSetting setting, EnumSet<IteratorScope> scopes)
@@ -329,18 +272,12 @@ public interface NamespaceOperations {
   /**
    * Remove an iterator from a namespace by name.
    *
-   * @param namespace
-   *          the name of the namespace
-   * @param name
-   *          the name of the iterator
-   * @param scopes
-   *          the scopes of the iterator
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @param namespace the name of the namespace
+   * @param name the name of the iterator
+   * @param scopes the scopes of the iterator
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 1.6.0
    */
   void removeIterator(String namespace, String name, EnumSet<IteratorScope> scopes)
@@ -349,19 +286,13 @@ public interface NamespaceOperations {
   /**
    * Get the settings for an iterator.
    *
-   * @param namespace
-   *          the name of the namespace
-   * @param name
-   *          the name of the iterator
-   * @param scope
-   *          the scope of the iterator
+   * @param namespace the name of the namespace
+   * @param name the name of the iterator
+   * @param scope the scope of the iterator
    * @return the settings for this iterator
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 1.6.0
    */
   IteratorSetting getIteratorSetting(String namespace, String name, IteratorScope scope)
@@ -370,15 +301,11 @@ public interface NamespaceOperations {
   /**
    * Get a list of iterators for this namespace.
    *
-   * @param namespace
-   *          the name of the namespace
+   * @param namespace the name of the namespace
    * @return a set of iterator names
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 1.6.0
    */
   Map<String,EnumSet<IteratorScope>> listIterators(String namespace)
@@ -389,18 +316,12 @@ public interface NamespaceOperations {
    * particular, determine if the name or priority are already in use for the specified scopes. If
    * so, an IllegalArgumentException is thrown, wrapped in an AccumuloException.
    *
-   * @param namespace
-   *          the name of the namespace
-   * @param setting
-   *          object specifying the properties of the iterator
-   * @param scopes
-   *          the scopes of the iterator
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @param namespace the name of the namespace
+   * @param setting object specifying the properties of the iterator
+   * @param scopes the scopes of the iterator
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 1.6.0
    */
   void checkIteratorConflicts(String namespace, IteratorSetting setting,
@@ -410,17 +331,12 @@ public interface NamespaceOperations {
   /**
    * Add a new constraint to a namespace.
    *
-   * @param namespace
-   *          the name of the namespace
-   * @param constraintClassName
-   *          the full name of the constraint class
+   * @param namespace the name of the namespace
+   * @param constraintClassName the full name of the constraint class
    * @return the unique id number assigned to the constraint
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 1.6.0
    */
   int addConstraint(String namespace, String constraintClassName)
@@ -429,16 +345,11 @@ public interface NamespaceOperations {
   /**
    * Remove a constraint from a namespace.
    *
-   * @param namespace
-   *          the name of the namespace
-   * @param id
-   *          the unique id number assigned to the constraint
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @param namespace the name of the namespace
+   * @param id the unique id number assigned to the constraint
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 1.6.0
    */
   void removeConstraint(String namespace, int id)
@@ -447,15 +358,11 @@ public interface NamespaceOperations {
   /**
    * List constraints on a namespace with their assigned numbers.
    *
-   * @param namespace
-   *          the name of the namespace
+   * @param namespace the name of the namespace
    * @return a map from constraint class name to assigned number
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 1.6.0
    */
   Map<String,Integer> listConstraints(String namespace)
@@ -465,19 +372,13 @@ public interface NamespaceOperations {
    * Test to see if the instance can load the given class as the given type. This check uses the
    * table classpath property if it is set.
    *
-   * @param namespace
-   *          the name of the namespace
-   * @param className
-   *          the class to try to load
-   * @param asTypeName
-   *          the interface or superclass the given class is attempted to load as
+   * @param namespace the name of the namespace
+   * @param className the class to try to load
+   * @param asTypeName the interface or superclass the given class is attempted to load as
    * @return true if the instance can load the given class as the given type, false otherwise
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws NamespaceNotFoundException
-   *           if the specified namespace doesn't exist
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws NamespaceNotFoundException if the specified namespace doesn't exist
    * @since 1.6.0
    */
   boolean testClassLoad(String namespace, String className, String asTypeName)

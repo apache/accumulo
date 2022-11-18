@@ -68,8 +68,9 @@ public class SourceSwitchingIteratorTest {
     assertTrue(rdi.hasTop());
     assertEquals(newKey(row, cf, cq, time), rdi.getTopKey());
     assertEquals(val, rdi.getTopValue().toString());
-    if (callNext)
+    if (callNext) {
       rdi.next();
+    }
   }
 
   class TestDataSource implements DataSource {
@@ -101,8 +102,9 @@ public class SourceSwitchingIteratorTest {
 
     @Override
     public SortedKeyValueIterator<Key,Value> iterator() {
-      if (iflag != null)
+      if (iflag != null) {
         ((InterruptibleIterator) iter).setInterruptFlag(iflag);
+      }
       return iter;
     }
 
@@ -115,8 +117,9 @@ public class SourceSwitchingIteratorTest {
       this.next = next;
 
       for (TestDataSource tds : copies) {
-        if (tds != this)
+        if (tds != this) {
           tds.next = new TestDataSource(next.iter.deepCopy(null), next.copies);
+        }
       }
     }
 

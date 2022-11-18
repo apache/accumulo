@@ -43,15 +43,14 @@ public class CachedBlockQueue implements HeapSize {
   private final long maxSize;
 
   /**
-   * @param maxSize
-   *          the target size of elements in the queue
-   * @param blockSize
-   *          expected average size of blocks
+   * @param maxSize the target size of elements in the queue
+   * @param blockSize expected average size of blocks
    */
   public CachedBlockQueue(long maxSize, long blockSize) {
     int initialSize = (int) Math.ceil(maxSize / (double) blockSize);
-    if (initialSize == 0)
+    if (initialSize == 0) {
       initialSize++;
+    }
     queue = new PriorityQueue<>(initialSize);
     heapSize = 0;
     this.maxSize = maxSize;
@@ -65,8 +64,7 @@ public class CachedBlockQueue implements HeapSize {
    * smallest element in the queue, the element will be added to the queue. Otherwise, there is no
    * side effect of this call.
    *
-   * @param cb
-   *          block to try to add to the queue
+   * @param cb block to try to add to the queue
    */
   public void add(CachedBlock cb) {
     if (heapSize < maxSize) {

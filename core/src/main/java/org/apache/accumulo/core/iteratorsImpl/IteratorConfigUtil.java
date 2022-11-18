@@ -77,9 +77,8 @@ public class IteratorConfigUtil {
   /**
    * Generate the initial (default) properties for a table
    *
-   * @param limitVersion
-   *          include a VersioningIterator at priority 20 that retains a single version of a given
-   *          K/V pair.
+   * @param limitVersion include a VersioningIterator at priority 20 that retains a single version
+   *        of a given K/V pair.
    * @return A map of Table properties
    */
   public static Map<String,String> generateInitialTableProperties(boolean limitVersion) {
@@ -220,8 +219,9 @@ public class IteratorConfigUtil {
 
         Map<String,String> options = iteratorBuilder.iterOpts.get(iterInfo.iterName);
 
-        if (options == null)
+        if (options == null) {
           options = Collections.emptyMap();
+        }
 
         skvi.init(prev, options, iteratorBuilder.iteratorEnvironment);
         prev = skvi;

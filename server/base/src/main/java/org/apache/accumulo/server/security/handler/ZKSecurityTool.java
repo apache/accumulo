@@ -88,8 +88,9 @@ class ZKSecurityTool {
 
   @Deprecated(since = "2.1.0")
   static boolean checkPass(byte[] password, byte[] zkData) {
-    if (zkData == null)
+    if (zkData == null) {
       return false;
+    }
 
     byte[] salt = new byte[SALT_LENGTH];
     System.arraycopy(zkData, 0, salt, 0, SALT_LENGTH);
@@ -165,8 +166,9 @@ class ZKSecurityTool {
     ByteArrayOutputStream bytes = new ByteArrayOutputStream(systempermissions.size());
     DataOutputStream out = new DataOutputStream(bytes);
     try {
-      for (SystemPermission sp : systempermissions)
+      for (SystemPermission sp : systempermissions) {
         out.writeByte(sp.getId());
+      }
     } catch (IOException e) {
       log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if
@@ -180,8 +182,9 @@ class ZKSecurityTool {
     DataInputStream in = new DataInputStream(bytes);
     Set<SystemPermission> toReturn = new HashSet<>();
     try {
-      while (in.available() > 0)
+      while (in.available() > 0) {
         toReturn.add(SystemPermission.getPermissionById(in.readByte()));
+      }
     } catch (IOException e) {
       log.error("User database is corrupt; error converting system permissions", e);
       toReturn.clear();
@@ -193,8 +196,9 @@ class ZKSecurityTool {
     ByteArrayOutputStream bytes = new ByteArrayOutputStream(tablepermissions.size());
     DataOutputStream out = new DataOutputStream(bytes);
     try {
-      for (TablePermission tp : tablepermissions)
+      for (TablePermission tp : tablepermissions) {
         out.writeByte(tp.getId());
+      }
     } catch (IOException e) {
       log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if
@@ -205,8 +209,9 @@ class ZKSecurityTool {
 
   public static Set<TablePermission> convertTablePermissions(byte[] tablepermissions) {
     Set<TablePermission> toReturn = new HashSet<>();
-    for (byte b : tablepermissions)
+    for (byte b : tablepermissions) {
       toReturn.add(TablePermission.getPermissionById(b));
+    }
     return toReturn;
   }
 
@@ -214,8 +219,9 @@ class ZKSecurityTool {
     ByteArrayOutputStream bytes = new ByteArrayOutputStream(namespacepermissions.size());
     DataOutputStream out = new DataOutputStream(bytes);
     try {
-      for (NamespacePermission tnp : namespacepermissions)
+      for (NamespacePermission tnp : namespacepermissions) {
         out.writeByte(tnp.getId());
+      }
     } catch (IOException e) {
       log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if
@@ -226,8 +232,9 @@ class ZKSecurityTool {
 
   public static Set<NamespacePermission> convertNamespacePermissions(byte[] namespacepermissions) {
     Set<NamespacePermission> toReturn = new HashSet<>();
-    for (byte b : namespacepermissions)
+    for (byte b : namespacepermissions) {
       toReturn.add(NamespacePermission.getPermissionById(b));
+    }
     return toReturn;
   }
 

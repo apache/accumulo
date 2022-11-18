@@ -32,11 +32,9 @@ public final class PropUtil {
   /**
    * Method to set provided properties for the provided AbstractId.
    *
-   * @throws IllegalStateException
-   *           if an underlying exception (KeeperException, InterruptException) or other failure to
-   *           read properties from the cache / backend store
-   * @throws IllegalArgumentException
-   *           if a provided property is not valid
+   * @throws IllegalStateException if an underlying exception (KeeperException, InterruptException)
+   *         or other failure to read properties from the cache / backend store
+   * @throws IllegalArgumentException if a provided property is not valid
    */
   public static void setProperties(final ServerContext context, final PropStoreKey<?> propStoreKey,
       final Map<String,String> properties) {

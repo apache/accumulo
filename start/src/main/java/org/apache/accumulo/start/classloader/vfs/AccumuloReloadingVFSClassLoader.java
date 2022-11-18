@@ -123,10 +123,11 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
           log.debug("Rebuilding dynamic classloader using files- {}", stringify(files));
 
           VFSClassLoader cl;
-          if (preDelegate)
+          if (preDelegate) {
             cl = new VFSClassLoader(files, vfs, parent.getClassLoader());
-          else
+          } else {
             cl = new PostDelegatingVFSClassLoader(files, vfs, parent.getClassLoader());
+          }
           updateClassloader(files, cl);
           return;
         } catch (Exception e) {
@@ -186,20 +187,21 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     ArrayList<FileObject> pathsToMonitor = new ArrayList<>();
     files = AccumuloVFSClassLoader.resolve(vfs, uris, pathsToMonitor);
 
-    if (preDelegate)
+    if (preDelegate) {
       cl = new VFSClassLoader(files, vfs, parent.getClassLoader()) {
         @Override
         public String getName() {
           return "AccumuloReloadingVFSClassLoader (loads everything defined by general.dynamic.classpaths)";
         }
       };
-    else
+    } else {
       cl = new PostDelegatingVFSClassLoader(files, vfs, parent.getClassLoader()) {
         @Override
         public String getName() {
           return "AccumuloReloadingVFSClassLoader (loads everything defined by general.dynamic.classpaths)";
         }
       };
+    }
 
     monitor = new DefaultFileMonitor(this);
     monitor.setDelay(monitorDelay);
@@ -215,14 +217,16 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
 
   private void addFileToMonitor(FileObject file) throws RuntimeException {
     try {
-      if (monitor != null)
+      if (monitor != null) {
         monitor.addFile(file);
+      }
     } catch (RuntimeException re) {
-      if (re.getMessage().contains("files-cache"))
+      if (re.getMessage().contains("files-cache")) {
         log.error("files-cache error adding {} to VFS monitor. "
             + "There is no implementation for files-cache in VFS2", file, re);
-      else
+      } else {
         log.error("Runtime error adding {} to VFS monitor", file, re);
+      }
 
       throw re;
     }
@@ -230,8 +234,9 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
 
   private void removeFile(FileObject file) throws RuntimeException {
     try {
-      if (monitor != null)
+      if (monitor != null) {
         monitor.removeFile(file);
+      }
     } catch (RuntimeException re) {
       log.error("Error removing file from VFS cache {}", file, re);
       throw re;
@@ -276,22 +281,25 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
 
   @Override
   public void fileCreated(FileChangeEvent event) throws Exception {
-    if (log.isDebugEnabled())
+    if (log.isDebugEnabled()) {
       log.debug("{} created, recreating classloader", event.getFileObject().getURL());
+    }
     scheduleRefresh();
   }
 
   @Override
   public void fileDeleted(FileChangeEvent event) throws Exception {
-    if (log.isDebugEnabled())
+    if (log.isDebugEnabled()) {
       log.debug("{} deleted, recreating classloader", event.getFileObject().getURL());
+    }
     scheduleRefresh();
   }
 
   @Override
   public void fileChanged(FileChangeEvent event) throws Exception {
-    if (log.isDebugEnabled())
+    if (log.isDebugEnabled()) {
       log.debug("{} changed, recreating classloader", event.getFileObject().getURL());
+    }
     scheduleRefresh();
   }
 

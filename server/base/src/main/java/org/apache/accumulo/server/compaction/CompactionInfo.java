@@ -76,15 +76,17 @@ public class CompactionInfo {
 
     TCompactionType type;
 
-    if (compactor.hasIMM())
-      if (!compactor.getFilesToCompact().isEmpty())
+    if (compactor.hasIMM()) {
+      if (!compactor.getFilesToCompact().isEmpty()) {
         type = TCompactionType.MERGE;
-      else
+      } else {
         type = TCompactionType.MINOR;
-    else if (!compactor.willPropagateDeletes())
+      }
+    } else if (!compactor.willPropagateDeletes()) {
       type = TCompactionType.FULL;
-    else
+    } else {
       type = TCompactionType.MAJOR;
+    }
 
     List<IterInfo> iiList = new ArrayList<>();
     Map<String,Map<String,String>> iterOptions = new HashMap<>();

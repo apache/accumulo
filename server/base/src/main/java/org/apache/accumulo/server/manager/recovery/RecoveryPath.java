@@ -36,8 +36,9 @@ public class RecoveryPath {
         walPath = walPath.getParent();
       }
 
-      if (!walPath.getName().equals(FileType.WAL.getDirectory()))
+      if (!walPath.getName().equals(FileType.WAL.getDirectory())) {
         throw new IllegalArgumentException("Bad path " + walPath);
+      }
 
       // drop wal
       walPath = walPath.getParent();

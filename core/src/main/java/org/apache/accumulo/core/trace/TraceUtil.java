@@ -116,12 +116,9 @@ public class TraceUtil {
   /**
    * Record that an Exception occurred in the code covered by a Span
    *
-   * @param span
-   *          the span
-   * @param e
-   *          the exception
-   * @param rethrown
-   *          whether the exception is subsequently re-thrown
+   * @param span the span
+   * @param e the exception
+   * @param rethrown whether the exception is subsequently re-thrown
    */
   public static void setException(Span span, Throwable e, boolean rethrown) {
     if (enabled) {
@@ -152,8 +149,7 @@ public class TraceUtil {
    * Span span = tracer.spanBuilder(name).setParent(remoteCtx).startSpan()
    * </pre>
    *
-   * @param tinfo
-   *          tracing information serialized over Thrift
+   * @param tinfo tracing information serialized over Thrift
    */
   private static Context getContext(TInfo tinfo) {
     return W3CTraceContextPropagator.getInstance().extract(Context.current(), tinfo,

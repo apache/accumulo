@@ -32,14 +32,10 @@ public interface ReplicaSystem {
   /**
    * Replicate the given status to the target peer
    *
-   * @param p
-   *          Path to the resource we're reading from
-   * @param status
-   *          Information to replicate
-   * @param target
-   *          The peer
-   * @param helper
-   *          Instance of ReplicaSystemHelper
+   * @param p Path to the resource we're reading from
+   * @param status Information to replicate
+   * @param target The peer
+   * @param helper Instance of ReplicaSystemHelper
    * @return A new Status for the progress that was made
    */
   Status replicate(Path p, Status status, ReplicationTarget target, ReplicaSystemHelper helper);

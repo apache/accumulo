@@ -399,8 +399,9 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   }
 
   public static String stringTopKey(SortedKeyValueIterator<Key,Value> iter) {
-    if (iter.hasTop())
+    if (iter.hasTop()) {
       return iter.getTopKey().toString();
+    }
     return "";
   }
 
@@ -425,10 +426,11 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   protected static String encodeBooleans(boolean[] flags) {
     byte[] bytes = new byte[flags.length];
     for (int i = 0; i < flags.length; i++) {
-      if (flags[i])
+      if (flags[i]) {
         bytes[i] = 1;
-      else
+      } else {
         bytes[i] = 0;
+      }
     }
     return Base64.getEncoder().encodeToString(bytes);
   }
@@ -447,8 +449,9 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    */
   protected static boolean[] decodeBooleans(String flags) {
     // return null of there were no flags
-    if (flags == null)
+    if (flags == null) {
       return null;
+    }
 
     byte[] bytes = Base64.getDecoder().decode(flags);
     boolean[] bFlags = new boolean[bytes.length];
@@ -474,8 +477,9 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     // And we are going to re-order such that the first term is not a ! term
     if (notFlag == null) {
       notFlag = new boolean[terms.length];
-      for (int i = 0; i < terms.length; i++)
+      for (int i = 0; i < terms.length; i++) {
         notFlag[i] = false;
+      }
     }
     if (notFlag[0]) {
       for (int i = 1; i < notFlag.length; i++) {
@@ -533,8 +537,9 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    * Encode the columns to be used when iterating.
    */
   public static void setColumnFamilies(IteratorSetting cfg, Text[] columns) {
-    if (columns.length < 1)
+    if (columns.length < 1) {
       throw new IllegalArgumentException("Must supply at least one term to intersect");
+    }
     cfg.addOption(IntersectingIterator.columnFamiliesOptionName,
         IntersectingIterator.encodeColumns(columns));
   }
@@ -544,10 +549,12 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    * excluded if matching negated columns, instead of included).
    */
   public static void setColumnFamilies(IteratorSetting cfg, Text[] columns, boolean[] notFlags) {
-    if (columns.length < 1)
+    if (columns.length < 1) {
       throw new IllegalArgumentException("Must supply at least one terms to intersect");
-    if (columns.length != notFlags.length)
+    }
+    if (columns.length != notFlags.length) {
       throw new IllegalArgumentException("columns and notFlags arrays must be the same length");
+    }
     setColumnFamilies(cfg, columns);
     cfg.addOption(IntersectingIterator.notFlagOptionName,
         IntersectingIterator.encodeBooleans(notFlags));

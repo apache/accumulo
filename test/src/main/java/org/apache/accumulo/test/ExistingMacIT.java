@@ -109,10 +109,12 @@ public class ExistingMacIT extends ConfigurableMacBase {
     Set<Entry<ServerType,Collection<ProcessReference>>> procs =
         getCluster().getProcesses().entrySet();
     for (Entry<ServerType,Collection<ProcessReference>> entry : procs) {
-      if (entry.getKey() == ServerType.ZOOKEEPER)
+      if (entry.getKey() == ServerType.ZOOKEEPER) {
         continue;
-      for (ProcessReference pr : entry.getValue())
+      }
+      for (ProcessReference pr : entry.getValue()) {
         getCluster().killProcess(entry.getKey(), pr);
+      }
     }
 
     ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();

@@ -41,8 +41,9 @@ public class ByteArraySet extends TreeSet<byte[]> {
 
   public static ByteArraySet fromStrings(Collection<String> c) {
     List<byte[]> lst = new ArrayList<>();
-    for (String s : c)
+    for (String s : c) {
       lst.add(s.getBytes(UTF_8));
+    }
     return new ByteArraySet(lst);
   }
 

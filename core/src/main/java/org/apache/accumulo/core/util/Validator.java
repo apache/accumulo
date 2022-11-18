@@ -43,8 +43,7 @@ public class Validator<T> {
    * valid, the mapping function should return an empty Optional. Otherwise, it should return an
    * Optional containing the error message to be set in the IllegalArgumentException.
    *
-   * @param validateFunction
-   *          the function that validates or returns an error message
+   * @param validateFunction the function that validates or returns an error message
    */
   public Validator(final Function<T,Optional<String>> validateFunction) {
     this.validateFunction = requireNonNull(validateFunction);
@@ -53,18 +52,17 @@ public class Validator<T> {
   /**
    * Validates the provided argument.
    *
-   * @param argument
-   *          argument to validate
+   * @param argument argument to validate
    * @return the argument, if validation passes
-   * @throws IllegalArgumentException
-   *           if validation fails
+   * @throws IllegalArgumentException if validation fails
    */
   public final T validate(final T argument) {
     // check if argument was recently validated, to short-circuit the check
     // this especially helps if an API validates, then calls another API that validates the same
     T lastValidatedSnapshot = lastValidated;
-    if (lastValidatedSnapshot != null && Objects.equals(argument, lastValidatedSnapshot))
+    if (lastValidatedSnapshot != null && Objects.equals(argument, lastValidatedSnapshot)) {
       return argument;
+    }
 
     validateFunction.apply(argument).ifPresent(msg -> {
       throw new IllegalArgumentException(msg);
@@ -80,13 +78,13 @@ public class Validator<T> {
    * passed to the returned validator is valid if only if it passes both validators. If the other
    * validator is null, the current validator is returned unchanged.
    *
-   * @param other
-   *          other validator
+   * @param other other validator
    * @return combined validator
    */
   public final Validator<T> and(final Validator<T> other) {
-    if (other == null)
+    if (other == null) {
       return this;
+    }
     return new Validator<>(
         arg -> validateFunction.apply(arg).or(() -> other.validateFunction.apply(arg)));
   }
@@ -96,13 +94,13 @@ public class Validator<T> {
    * passed to the returned validator is valid if and only if it passes at least one of the
    * validators. If the other validator is null, the current validator is returned unchanged.
    *
-   * @param other
-   *          other validator
+   * @param other other validator
    * @return combined validator
    */
   public final Validator<T> or(final Validator<T> other) {
-    if (other == null)
+    if (other == null) {
       return this;
+    }
     return new Validator<>(
         arg -> validateFunction.apply(arg).isEmpty() ? OK : other.validateFunction.apply(arg));
   }

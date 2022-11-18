@@ -120,8 +120,9 @@ public class CloneIT extends AccumuloClusterHarness {
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new KeyExtent(TableId.of("1"), null, null).toMetaRange());
         for (Entry<Key,Value> entry : scanner) {
-          if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME))
+          if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             files.add(entry.getKey().getColumnQualifier().toString());
+          }
         }
       }
       assertEquals(1, files.size());

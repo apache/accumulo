@@ -41,10 +41,12 @@ public class DiskUsage {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (!(o instanceof DiskUsage))
+    }
+    if (!(o instanceof DiskUsage)) {
       return false;
+    }
 
     DiskUsage diskUsage = (DiskUsage) o;
 

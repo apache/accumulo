@@ -36,12 +36,9 @@ public class Totals {
   /**
    * Initializes totals
    *
-   * @param ingestrate
-   *          Total ingest rate
-   * @param queryrate
-   *          Total query rate
-   * @param numentries
-   *          Total number of entries
+   * @param ingestrate Total ingest rate
+   * @param queryrate Total query rate
+   * @param numentries Total number of entries
    */
   public Totals(double ingestrate, double queryrate, long numentries) {
     this.ingestrate = ingestrate;

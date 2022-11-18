@@ -74,9 +74,10 @@ public class RemoveCompleteReplicationRecords implements Runnable {
       bs = ReplicationTable.getBatchScanner(client, 4);
       bw = ReplicationTable.getBatchWriter(client);
 
-      if (bs == null || bw == null)
+      if (bs == null || bw == null) {
         throw new AssertionError("Inconceivable; an exception should have been"
             + " thrown, but 'bs' or 'bw' was null instead");
+      }
     } catch (ReplicationTableOfflineException e) {
       log.trace("Not attempting to remove complete replication records as the"
           + " table ({}) isn't yet online", ReplicationTable.NAME);
@@ -113,12 +114,9 @@ public class RemoveCompleteReplicationRecords implements Runnable {
    * given {@code bw}, when that {@link Status} is fully replicated and closed, as defined by
    * {@link StatusUtil#isSafeForRemoval(org.apache.accumulo.server.replication.proto.Replication.Status)}.
    *
-   * @param client
-   *          Accumulo client
-   * @param bs
-   *          A BatchScanner to read replication status records from
-   * @param bw
-   *          A BatchWriter to write deletes to
+   * @param client Accumulo client
+   * @param bs A BatchScanner to read replication status records from
+   * @param bw A BatchWriter to write deletes to
    * @return Number of records removed
    */
   protected long removeCompleteRecords(AccumuloClient client, BatchScanner bs, BatchWriter bw) {

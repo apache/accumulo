@@ -111,10 +111,8 @@ public class TabletServerLogger {
   /**
    * Pattern taken from the documentation for ReentrantReadWriteLock
    *
-   * @param rwlock
-   *          lock to use
-   * @param code
-   *          a test/work pair
+   * @param rwlock lock to use
+   * @param code a test/work pair
    */
   private static void testLockAndRun(final ReadWriteLock rwlock, TestCallWithWriteLock code)
       throws IOException {
@@ -165,8 +163,9 @@ public class TabletServerLogger {
       @Override
       boolean test() {
         result.set(currentLog);
-        if (currentLog != null)
+        if (currentLog != null) {
           logIdOut.set(logId.get());
+        }
         return currentLog == null;
       }
 
@@ -174,10 +173,11 @@ public class TabletServerLogger {
       void withWriteLock() {
         createLogger();
         result.set(currentLog);
-        if (currentLog != null)
+        if (currentLog != null) {
           logIdOut.set(logId.get());
-        else
+        } else {
           logIdOut.set(-1);
+        }
       }
     });
     return result.get();
@@ -504,8 +504,9 @@ public class TabletServerLogger {
    * Log mutations. This method expects mutations that have a durability other than NONE.
    */
   public void logManyTablets(Map<CommitSession,TabletMutations> loggables) throws IOException {
-    if (loggables.isEmpty())
+    if (loggables.isEmpty()) {
       return;
+    }
 
     write(loggables.keySet(), false, logger -> logger.logManyTablets(loggables.values()),
         writeRetryFactory.createRetry());

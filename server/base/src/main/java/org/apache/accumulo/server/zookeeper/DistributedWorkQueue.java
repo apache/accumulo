@@ -67,18 +67,21 @@ public class DistributedWorkQueue {
   private AtomicInteger numTask = new AtomicInteger(0);
 
   private void lookForWork(final Processor processor, List<String> children) {
-    if (children.isEmpty())
+    if (children.isEmpty()) {
       return;
+    }
 
-    if (numTask.get() >= threadPool.getCorePoolSize())
+    if (numTask.get() >= threadPool.getCorePoolSize()) {
       return;
+    }
 
     Collections.shuffle(children, random);
     try {
       for (final String child : children) {
 
-        if (child.equals(LOCKS_NODE))
+        if (child.equals(LOCKS_NODE)) {
           continue;
+        }
 
         final String lockPath = path + "/locks/" + child;
 
@@ -197,7 +200,7 @@ public class DistributedWorkQueue {
       public void process(WatchedEvent event) {
         switch (event.getType()) {
           case NodeChildrenChanged:
-            if (event.getPath().equals(path))
+            if (event.getPath().equals(path)) {
               try {
                 lookForWork(processor, zoo.getChildren(path, this));
               } catch (KeeperException e) {
@@ -205,9 +208,10 @@ public class DistributedWorkQueue {
               } catch (InterruptedException e) {
                 log.info("Interrupted looking for work at path {}; {}", path, event, e);
               }
-            else
+            } else {
               log.info("Unexpected path for NodeChildrenChanged event watching path {}; {}", path,
                   event);
+            }
             break;
           default:
             log.info("Unexpected event watching path {}; {}", path, event);
@@ -244,8 +248,9 @@ public class DistributedWorkQueue {
 
   public void addWork(String workId, byte[] data) throws KeeperException, InterruptedException {
 
-    if (workId.equalsIgnoreCase(LOCKS_NODE))
+    if (workId.equalsIgnoreCase(LOCKS_NODE)) {
       throw new IllegalArgumentException("locks is reserved work id");
+    }
 
     zoo.mkdirs(path);
     zoo.putPersistentData(path + "/" + workId, data, NodeExistsPolicy.SKIP);

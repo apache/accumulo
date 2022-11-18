@@ -40,8 +40,9 @@ public class HexFormatter implements Formatter, ScanInterpreter {
   private void toHex(StringBuilder sb, byte[] bin) {
 
     for (int i = 0; i < bin.length; i++) {
-      if (i > 0 && i % 2 == 0)
+      if (i > 0 && i % 2 == 0) {
         sb.append('-');
+      }
       sb.append(chars[0x0f & (bin[i] >>> 4)]);
       sb.append(chars[0x0f & bin[i]]);
     }
@@ -65,8 +66,9 @@ public class HexFormatter implements Formatter, ScanInterpreter {
     int j = 0;
     for (int i = 0; i < bin.length; i++) {
       bin[i] = (byte) (fromChar(hex.charAt(j++)) << 4);
-      if (j >= hex.length())
+      if (j >= hex.length()) {
         break;
+      }
       bin[i] |= (byte) fromChar(hex.charAt(j++));
     }
 

@@ -30,8 +30,7 @@ public class MetaBlockDoesNotExist extends IOException {
   /**
    * Constructor
    *
-   * @param s
-   *          message.
+   * @param s message.
    */
   MetaBlockDoesNotExist(String s) {
     super(s);

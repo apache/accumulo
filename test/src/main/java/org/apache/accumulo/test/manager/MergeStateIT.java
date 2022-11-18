@@ -148,8 +148,9 @@ public class MergeStateIT extends ConfigurableMacBase {
           TabletStateStore.getStoreForLevel(DataLevel.USER, context, state);
       int count = 0;
       for (TabletLocationState tss : metaDataStateStore) {
-        if (tss != null)
+        if (tss != null) {
           count++;
+        }
       }
       assertEquals(0, count); // the normal case is to skip tablets in a good state
 

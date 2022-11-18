@@ -224,16 +224,18 @@ public abstract class TransformingIterator extends WrappingIterator implements O
   @Override
   public void next() throws IOException {
     // Move on to the next entry since we returned the entry at keyPos before
-    if (keyPos >= 0)
+    if (keyPos >= 0) {
       keyPos++;
+    }
 
     // If we emptied out the transformed key map then transform the next key
     // set from the source. It's possible that transformation could produce keys
     // that are outside of our range or are not visible to the end user, so after the
     // call below we might not have added any keys to the map. Keep going until
     // we either get some keys in the map or exhaust the source iterator.
-    while (!hasTop() && super.hasTop())
+    while (!hasTop() && super.hasTop()) {
       transformKeys();
+    }
   }
 
   @Override
@@ -290,8 +292,9 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     @Override
     public void next() throws IOException {
       // do not let user advance too far and try to avoid reexecuting hasTop()
-      if (!hasTop && !hasTop())
+      if (!hasTop && !hasTop()) {
         throw new NoSuchElementException();
+      }
       hasTop = false;
       source.next();
     }
@@ -336,8 +339,9 @@ public abstract class TransformingIterator extends WrappingIterator implements O
       @Override
       public void append(Key key, Value val) {
         // ensure the key provided by the user has the correct prefix
-        if (!key.equals(prefixKey, getKeyPrefix()))
+        if (!key.equals(prefixKey, getKeyPrefix())) {
           throw new IllegalArgumentException("Key prefixes are not equal " + key + " " + prefixKey);
+        }
 
         // Transformation could have produced a key that falls outside
         // of the seek range, or one that the user cannot see. Check
@@ -345,12 +349,14 @@ public abstract class TransformingIterator extends WrappingIterator implements O
         if (includeTransformedKey(key)) {
 
           // try to defend against a scan or compaction using all memory in a tablet server
-          if (appened > maxBufferSize)
+          if (appened > maxBufferSize) {
             throw new IllegalArgumentException(
                 "Exceeded buffer size of " + maxBufferSize + ", prefixKey: " + prefixKey);
+          }
 
-          if (getSource().hasTop() && key == getSource().getTopKey())
+          if (getSource().hasTop() && key == getSource().getTopKey()) {
             key = new Key(key);
+          }
           keys.add(new Pair<>(key, new Value(val)));
           appened += (key.getSize() + val.getSize() + 128);
         }
@@ -377,8 +383,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    * be in our transformed key space and we will never change the row so we can't produce keys that
    * would fall outside the tablet anyway.
    *
-   * @param transformedKey
-   *          the key to check
+   * @param transformedKey the key to check
    * @return {@code true} if the key should be included and {@code false} if not
    */
   protected boolean includeTransformedKey(Key transformedKey) {
@@ -396,8 +401,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    * authorizations, and the test result is returned. For performance, the test results are cached
    * so that the same visibility is not tested multiple times.
    *
-   * @param key
-   *          the key to test
+   * @param key the key to test
    * @return {@code true} if the key is visible or iterator is not scanning, and {@code false} if
    *         not
    */
@@ -421,22 +425,25 @@ public abstract class TransformingIterator extends WrappingIterator implements O
         }
       }
     } else if (!parsed) {
-      if (scanning)
+      if (scanning) {
         return false;
-      else
+      } else {
         throw new IllegalStateException();
+      }
     }
 
     Boolean visible = canSeeColumnFamily(key);
 
-    if (!scanning || !visible || ve == null || visibleCache == null || visibility.length() == 0)
+    if (!scanning || !visible || ve == null || visibleCache == null || visibility.length() == 0) {
       return visible;
+    }
 
     visible = visibleCache.get(visibility);
     if (visible == null) {
       try {
-        if (colVis == null)
+        if (colVis == null) {
           colVis = new ColumnVisibility(visibility.toArray());
+        }
         visible = ve.evaluate(colVis);
         visibleCache.put(visibility, visible);
       } catch (VisibilityParseException | BadArgumentException e) {
@@ -452,8 +459,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    * Indicates whether or not {@code key} can be seen, according to the fetched column families for
    * this iterator.
    *
-   * @param key
-   *          the key whose column family is to be tested
+   * @param key the key whose column family is to be tested
    * @return {@code true} if {@code key}'s column family is one of those fetched in the set passed
    *         to our {@link #seek(Range, Collection, boolean)} method
    */
@@ -461,10 +467,11 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     boolean visible = true;
     if (seekColumnFamilies != null) {
       ByteSequence columnFamily = key.getColumnFamilyData();
-      if (seekColumnFamiliesInclusive)
+      if (seekColumnFamiliesInclusive) {
         visible = seekColumnFamilies.contains(columnFamily);
-      else
+      } else {
         visible = !seekColumnFamilies.contains(columnFamily);
+      }
     }
     return visible;
   }
@@ -474,8 +481,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    * That is, if our prefix is ROW_COLFAM, then we need to expand the range so we're sure to include
    * all entries having the same row and column family as the start/end of the range.
    *
-   * @param range
-   *          the range to expand
+   * @param range the range to expand
    * @return the modified range
    */
   protected Range computeReseekRange(Range range) {
@@ -501,10 +507,8 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    * part is ROW_COLFAM_COLQUAL, then this method determines whether or not the column visibility,
    * timestamp, or delete flag is set on {@code key}.
    *
-   * @param key
-   *          the key to check
-   * @param part
-   *          the part of the key that doesn't need to be checked (everything after does)
+   * @param key the key to check
+   * @param part the part of the key that doesn't need to be checked (everything after does)
    * @return {@code true} if anything after {@code part} is set on {@code key}, and {@code false} if
    *         not
    */
@@ -538,10 +542,8 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    * example, if {@code part} is ROW_COLFAM_COLQUAL, then this method would copy the row, column
    * family, and column qualifier from {@code key} into a new key.
    *
-   * @param key
-   *          the key to copy
-   * @param part
-   *          the parts of {@code key} to copy
+   * @param key the key to copy
+   * @param part the parts of {@code key} to copy
    * @return the new key containing {@code part} of {@code key}
    */
   protected Key copyPartialKey(Key key, PartialKey part) {
@@ -657,8 +659,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    * fetch/seek will be performed in the transformed space, but when passing the column family set
    * on to the source, the column families need to be in the untransformed space.
    *
-   * @param columnFamilies
-   *          the column families that have been fetched at seek time
+   * @param columnFamilies the column families that have been fetched at seek time
    * @return the untransformed column families that would transform info {@code columnFamilies}
    */
   protected Collection<ByteSequence>
@@ -687,13 +688,10 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    * implementors should use one of the helper methods to produce the new key. See any of the
    * replaceKeyParts methods.
    *
-   * @param input
-   *          An iterator over a group of keys with the same prefix. This iterator provides an
-   *          efficient view, bounded by the prefix, of the underlying iterator and can not be
-   *          seeked.
-   * @param output
-   *          An output buffer that holds transformed key values. All key values added to the buffer
-   *          must have the same prefix as the input keys.
+   * @param input An iterator over a group of keys with the same prefix. This iterator provides an
+   *        efficient view, bounded by the prefix, of the underlying iterator and can not be seeked.
+   * @param output An output buffer that holds transformed key values. All key values added to the
+   *        buffer must have the same prefix as the input keys.
    * @see #replaceColumnFamily(Key, Text)
    * @see #replaceColumnQualifier(Key, Text)
    * @see #replaceColumnVisibility(Key, Text)
@@ -715,8 +713,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    * Configure the maximum amount of memory that can be used for transformation. If this memory is
    * exceeded an exception will be thrown.
    *
-   * @param maxBufferSize
-   *          size in bytes
+   * @param maxBufferSize size in bytes
    */
   public static void setMaxBufferSize(IteratorSetting config, long maxBufferSize) {
     config.addOption(MAX_BUFFER_SIZE_OPT, maxBufferSize + "");

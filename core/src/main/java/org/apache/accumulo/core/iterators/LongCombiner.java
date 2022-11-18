@@ -81,8 +81,9 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
 
   private void setEncoder(Map<String,String> options) {
     String type = options.get(TYPE);
-    if (type == null)
+    if (type == null) {
       throw new IllegalArgumentException("no type specified");
+    }
     if (type.startsWith(CLASS_PREFIX)) {
       setEncoder(type.substring(CLASS_PREFIX.length()));
       testEncoder(42L);
@@ -115,8 +116,9 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    if (!super.validateOptions(options))
+    if (!super.validateOptions(options)) {
       return false;
+    }
     try {
       setEncoder(options);
     } catch (Exception e) {
@@ -194,10 +196,11 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
 
     // refactor? it's public, so cannot remove
     public static long decode(byte[] b, int offset) {
-      if (b.length < offset + 8)
+      if (b.length < offset + 8) {
         throw new ValueFormatException(
             "trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8)
                 + " found " + b.length);
+      }
       return (((long) b[offset + 0] << 56) + ((long) (b[offset + 1] & 255) << 48)
           + ((long) (b[offset + 2] & 255) << 40) + ((long) (b[offset + 3] & 255) << 32)
           + ((long) (b[offset + 4] & 255) << 24) + ((b[offset + 5] & 255) << 16)
@@ -205,10 +208,11 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     }
 
     public static long decodeStatic(byte[] b, int offset, int len) {
-      if (b.length < offset + 8 || len < 8)
+      if (b.length < offset + 8 || len < 8) {
         throw new ValueFormatException(
             "trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8)
                 + " found " + len);
+      }
       return (((long) b[offset + 0] << 56) + ((long) (b[offset + 1] & 255) << 48)
           + ((long) (b[offset + 2] & 255) << 40) + ((long) (b[offset + 3] & 255) << 32)
           + ((long) (b[offset + 4] & 255) << 24) + ((b[offset + 5] & 255) << 16)
@@ -248,11 +252,13 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     long bSign = Long.signum(b);
     if ((aSign != 0) && (bSign != 0) && (aSign == bSign)) {
       if (aSign > 0) {
-        if (Long.MAX_VALUE - a < b)
+        if (Long.MAX_VALUE - a < b) {
           return Long.MAX_VALUE;
+        }
       } else {
-        if (Long.MIN_VALUE - a > b)
+        if (Long.MIN_VALUE - a > b) {
           return Long.MIN_VALUE;
+        }
       }
     }
     return a + b;
@@ -261,10 +267,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   /**
    * A convenience method for setting the long encoding type.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param type
-   *          LongCombiner.Type specifying the encoding type.
+   * @param is IteratorSetting object to configure.
+   * @param type LongCombiner.Type specifying the encoding type.
    */
   public static void setEncodingType(IteratorSetting is, LongCombiner.Type type) {
     is.addOption(TYPE, type.toString());
@@ -273,10 +277,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   /**
    * A convenience method for setting the long encoding type.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param encoderClass
-   *          {@code Class<? extends Encoder<Long>>} specifying the encoding type.
+   * @param is IteratorSetting object to configure.
+   * @param encoderClass {@code Class<? extends Encoder<Long>>} specifying the encoding type.
    */
   public static void setEncodingType(IteratorSetting is,
       Class<? extends Encoder<Long>> encoderClass) {
@@ -286,10 +288,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   /**
    * A convenience method for setting the long encoding type.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param encoderClassName
-   *          name of a class specifying the encoding type.
+   * @param is IteratorSetting object to configure.
+   * @param encoderClassName name of a class specifying the encoding type.
    */
   public static void setEncodingType(IteratorSetting is, String encoderClassName) {
     is.addOption(TYPE, CLASS_PREFIX + encoderClassName);

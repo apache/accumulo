@@ -37,10 +37,8 @@ public class DistributedWorkQueueWorkAssignerHelper {
    * Serialize a filename and a {@link ReplicationTarget} into the expected key format for use with
    * the {@link DistributedWorkQueue}
    *
-   * @param filename
-   *          Filename for data to be replicated
-   * @param replTarget
-   *          Information about replication peer
+   * @param filename Filename for data to be replicated
+   * @param replTarget Information about replication peer
    * @return Key for identifying work in queue
    */
   public static String getQueueKey(String filename, ReplicationTarget replTarget) {
@@ -49,8 +47,7 @@ public class DistributedWorkQueueWorkAssignerHelper {
   }
 
   /**
-   * @param queueKey
-   *          Key from the work queue
+   * @param queueKey Key from the work queue
    * @return Components which created the queue key
    */
   public static Entry<String,ReplicationTarget> fromQueueKey(String queueKey) {

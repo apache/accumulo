@@ -151,14 +151,16 @@ public class RFileTest {
 
     @Override
     public void seek(long pos) throws IOException {
-      if (mark != 0)
+      if (mark != 0) {
         throw new IllegalStateException();
+      }
 
       reset();
       long skipped = skip(pos);
 
-      if (skipped != pos)
+      if (skipped != pos) {
         throw new IOException();
+      }
     }
 
     @Override
@@ -169,12 +171,15 @@ public class RFileTest {
     @Override
     public int read(long position, byte[] buffer, int offset, int length) {
 
-      if (position >= buf.length)
+      if (position >= buf.length) {
         throw new IllegalArgumentException();
-      if (position + length > buf.length)
+      }
+      if (position + length > buf.length) {
         throw new IllegalArgumentException();
-      if (length > buffer.length)
+      }
+      if (length > buffer.length) {
         throw new IllegalArgumentException();
+      }
 
       System.arraycopy(buf, (int) position, buffer, offset, length);
       return length;
@@ -199,16 +204,18 @@ public class RFileTest {
     if (indexIter.hasTop()) {
       Key lastKey = new Key(indexIter.getTopKey());
 
-      if (reader.getFirstKey().compareTo(lastKey) > 0)
+      if (reader.getFirstKey().compareTo(lastKey) > 0) {
         throw new RuntimeException(
             "First key out of order " + reader.getFirstKey() + " " + lastKey);
+      }
 
       indexIter.next();
 
       while (indexIter.hasTop()) {
-        if (lastKey.compareTo(indexIter.getTopKey()) > 0)
+        if (lastKey.compareTo(indexIter.getTopKey()) > 0) {
           throw new RuntimeException(
               "Indext out of order " + lastKey + " " + indexIter.getTopKey());
+        }
 
         lastKey = new Key(indexIter.getTopKey());
         indexIter.next();
@@ -236,8 +243,9 @@ public class RFileTest {
 
     public TestRFile(AccumuloConfiguration accumuloConfiguration) {
       this.accumuloConfiguration = accumuloConfiguration;
-      if (this.accumuloConfiguration == null)
+      if (this.accumuloConfiguration == null) {
         this.accumuloConfiguration = DefaultConfiguration.getInstance();
+      }
     }
 
     public void openWriter(boolean startDLG) throws IOException {
@@ -262,8 +270,9 @@ public class RFileTest {
 
       writer = new RFile.Writer(_cbw, blockSize, 1000, samplerConfig, sampler);
 
-      if (startDLG)
+      if (startDLG) {
         writer.startDefaultLocalityGroup();
+      }
     }
 
     public void openWriter() throws IOException {
@@ -317,8 +326,9 @@ public class RFileTest {
       CachableBuilder cb = new CachableBuilder().input(in, "source-1").length(fileLength).conf(conf)
           .cacheProvider(new BasicCacheProvider(indexCache, dataCache)).cryptoService(cs);
       reader = new RFile.Reader(cb);
-      if (cfsi)
+      if (cfsi) {
         iter = new ColumnFamilySkippingIterator(reader);
+      }
 
       checkIndex(reader);
     }
@@ -1173,8 +1183,9 @@ public class RFileTest {
     for (int i = 0; i < 1024; i++) {
 
       int m10 = i % 10;
-      if (m10 == 3 || m10 == 5 || m10 == 7)
+      if (m10 == 3 || m10 == 5 || m10 == 7) {
         continue;
+      }
 
       trf.writer.append(newKey(formatString("i", i), m10 + "mod10", "", "", i + 2),
           newValue("" + i));
@@ -1212,14 +1223,16 @@ public class RFileTest {
       // test excluding an individual column family
       trf.iter.seek(new Range(new Key(), true, null, true), newColFamByteSequence(m + "mod10"),
           false);
-      if (m == 3)
+      if (m == 3) {
         assertEquals(2, trf.reader.getNumLocalityGroupsSeeked());
-      else
+      } else {
         assertEquals(3, trf.reader.getNumLocalityGroupsSeeked());
+      }
       for (int i = 0; i < 1024; i++) {
 
-        if (i % 10 == m)
+        if (i % 10 == m) {
           continue;
+        }
 
         assertTrue(trf.iter.hasTop());
         assertEquals(newKey(formatString("i", i), (i % 10) + "mod10", "", "", i + 2),
@@ -1516,30 +1529,35 @@ public class RFileTest {
     HashSet<ByteSequence> allCf = new HashSet<>();
 
     trf.writer.startNewLocalityGroup("lg1", t18newColFamByteSequence(0));
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 1; i++) {
       t18Append(trf, allCf, i);
+    }
 
     trf.writer.startNewLocalityGroup("lg2", t18newColFamByteSequence(1, 2));
-    for (int i = 1; i < 3; i++)
+    for (int i = 1; i < 3; i++) {
       t18Append(trf, allCf, i);
+    }
 
     trf.writer.startNewLocalityGroup("lg3", t18newColFamByteSequence(3, 4, 5));
-    for (int i = 3; i < 6; i++)
+    for (int i = 3; i < 6; i++) {
       t18Append(trf, allCf, i);
+    }
 
     trf.writer.startDefaultLocalityGroup();
 
     int max = 6 + RFile.Writer.MAX_CF_IN_DLG + 100;
-    for (int i = 6; i < max; i++)
+    for (int i = 6; i < max; i++) {
       t18Append(trf, allCf, i);
+    }
 
     trf.closeWriter();
 
     trf.openReader();
 
     t18Verify(t18newColFamByteSequence(0), trf.iter, trf.reader, allCf, 1, 3);
-    for (int i = 1; i < 10; i++)
+    for (int i = 1; i < 10; i++) {
       t18Verify(t18newColFamByteSequence(i), trf.iter, trf.reader, allCf, 1, 4);
+    }
 
     t18Verify(t18newColFamByteSequence(max + 1), trf.iter, trf.reader, allCf, 1, 4);
 
@@ -1699,8 +1717,9 @@ public class RFileTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     byte[] buf = new byte[1024];
     int read;
-    while ((read = in.read(buf)) > 0)
+    while ((read = in.read(buf)) > 0) {
       baos.write(buf, 0, read);
+    }
 
     byte[] data = baos.toByteArray();
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
@@ -1723,11 +1742,12 @@ public class RFileTest {
 
     for (int start : new int[] {0, 10, 100, 998}) {
       for (int cf = 1; cf <= 4; cf++) {
-        if (start == 0)
+        if (start == 0) {
           iter.seek(new Range(), newColFamByteSequence(formatString("cf_", cf)), true);
-        else
+        } else {
           iter.seek(new Range(formatString("r_", start), null),
               newColFamByteSequence(formatString("cf_", cf)), true);
+        }
 
         for (int i = start; i < 1000; i++) {
           assertTrue(iter.hasTop());
@@ -1740,10 +1760,11 @@ public class RFileTest {
         assertFalse(iter.hasTop());
       }
 
-      if (start == 0)
+      if (start == 0) {
         iter.seek(new Range(), newColFamByteSequence(), false);
-      else
+      } else {
         iter.seek(new Range(formatString("r_", start), null), newColFamByteSequence(), false);
+      }
 
       for (int i = start; i < 1000; i++) {
         for (int cf = 1; cf <= 4; cf++) {

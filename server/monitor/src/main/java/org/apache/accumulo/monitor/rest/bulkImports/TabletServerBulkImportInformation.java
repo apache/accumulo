@@ -37,12 +37,9 @@ public class TabletServerBulkImportInformation {
   /**
    * Creates a new tserver bulk import object
    *
-   * @param server
-   *          server name
-   * @param importSize
-   *          import size
-   * @param oldestAge
-   *          tserver bulk import age
+   * @param server server name
+   * @param importSize import size
+   * @param oldestAge tserver bulk import age
    */
   public TabletServerBulkImportInformation(TabletServerStatus server, int importSize,
       long oldestAge) {

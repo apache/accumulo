@@ -96,8 +96,7 @@ public class ProblemsResource {
   /**
    * REST call to clear problem reports from a table
    *
-   * @param tableID
-   *          Table ID to clear problems
+   * @param tableID Table ID to clear problems
    */
   @POST
   @Consumes(MediaType.TEXT_PLAIN)
@@ -148,12 +147,9 @@ public class ProblemsResource {
   /**
    * REST call to clear specific problem details
    *
-   * @param tableID
-   *          Table ID to clear
-   * @param resource
-   *          Resource to clear
-   * @param ptype
-   *          Problem type to clear
+   * @param tableID Table ID to clear
+   * @param resource Resource to clear
+   * @param ptype Problem type to clear
    */
   @POST
   @Consumes(MediaType.TEXT_PLAIN)

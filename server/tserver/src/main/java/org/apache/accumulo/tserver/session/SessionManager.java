@@ -106,11 +106,13 @@ public class SessionManager {
     Session session = sessions.get(sessionId);
     if (session != null) {
       synchronized (session) {
-        if (session.state == State.RESERVED)
+        if (session.state == State.RESERVED) {
           throw new IllegalStateException(
               "Attempted to reserved session that is already reserved " + sessionId);
-        if (session.state == State.REMOVED)
+        }
+        if (session.state == State.REMOVED) {
           return null;
+        }
         session.state = State.RESERVED;
       }
     }
@@ -124,8 +126,9 @@ public class SessionManager {
     if (session != null) {
       synchronized (session) {
 
-        if (session.state == State.REMOVED)
+        if (session.state == State.REMOVED) {
           return null;
+        }
 
         while (wait && session.state == State.RESERVED) {
           try {
@@ -135,11 +138,13 @@ public class SessionManager {
           }
         }
 
-        if (session.state == State.RESERVED)
+        if (session.state == State.RESERVED) {
           throw new IllegalStateException(
               "Attempted to reserved session that is already reserved " + sessionId);
-        if (session.state == State.REMOVED)
+        }
+        if (session.state == State.REMOVED) {
           return null;
+        }
         session.state = State.RESERVED;
       }
     }
@@ -150,10 +155,12 @@ public class SessionManager {
 
   public void unreserveSession(Session session) {
     synchronized (session) {
-      if (session.state == State.REMOVED)
+      if (session.state == State.REMOVED) {
         return;
-      if (session.state != State.RESERVED)
+      }
+      if (session.state != State.RESERVED) {
         throw new IllegalStateException("Cannon unreserve, state: " + session.state);
+      }
       session.notifyAll();
       session.state = State.UNRESERVED;
       session.lastAccessTime = System.currentTimeMillis();
@@ -242,10 +249,11 @@ public class SessionManager {
 
     // perform cleanup for all of the sessions
     for (Session session : sessionsToCleanup) {
-      if (!session.cleanup())
+      if (!session.cleanup()) {
         synchronized (idleSessions) {
           idleSessions.add(session);
         }
+      }
     }
   }
 

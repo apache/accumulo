@@ -689,10 +689,12 @@ public class AuditedSecurityOperation extends SecurityOperation {
       NamespaceId namespaceId) throws ThriftSecurityException {
     String tableName = getTableName(tableId);
     String operation = null;
-    if (op == FateOperation.TABLE_ONLINE)
+    if (op == FateOperation.TABLE_ONLINE) {
       operation = "onlineTable";
-    if (op == FateOperation.TABLE_OFFLINE)
+    }
+    if (op == FateOperation.TABLE_OFFLINE) {
       operation = "offlineTable";
+    }
     try {
       boolean result = super.canOnlineOfflineTable(credentials, tableId, op, namespaceId);
       audit(credentials, result, CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, operation, tableName,

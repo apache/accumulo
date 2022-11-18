@@ -41,8 +41,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
    * Creates a new sequence. The given byte array is used directly as the backing array, so later
    * changes made to the array reflect into the new sequence.
    *
-   * @param data
-   *          byte data
+   * @param data byte data
    */
   public ArrayByteSequence(byte[] data) {
     this.data = data;
@@ -55,14 +54,11 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
    * directly as the backing array, so later changes made to the (relevant portion of the) array
    * reflect into the new sequence.
    *
-   * @param data
-   *          byte data
-   * @param offset
-   *          starting offset in byte array (inclusive)
-   * @param length
-   *          number of bytes to include in sequence
-   * @throws IllegalArgumentException
-   *           if the offset or length are out of bounds for the given byte array
+   * @param data byte data
+   * @param offset starting offset in byte array (inclusive)
+   * @param length number of bytes to include in sequence
+   * @throws IllegalArgumentException if the offset or length are out of bounds for the given byte
+   *         array
    */
   public ArrayByteSequence(byte[] data, int offset, int length) {
 
@@ -81,8 +77,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
    * Creates a new sequence from the given string. The bytes are determined from the string using
    * the default platform encoding.
    *
-   * @param s
-   *          string to represent as bytes
+   * @param s string to represent as bytes
    */
   public ArrayByteSequence(String s) {
     this(s.getBytes(UTF_8));
@@ -94,8 +89,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
    * relative bulk get is performed to transfer the buffer's contents (starting at its current
    * position and not beyond its limit).
    *
-   * @param buffer
-   *          byte buffer
+   * @param buffer byte buffer
    */
   public ArrayByteSequence(ByteBuffer buffer) {
     if (buffer.hasArray()) {
@@ -173,8 +167,9 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
 
   @Override
   public byte[] toArray() {
-    if (offset == 0 && length == data.length)
+    if (offset == 0 && length == data.length) {
       return data;
+    }
 
     byte[] copy = new byte[length];
     System.arraycopy(data, offset, copy, 0, length);

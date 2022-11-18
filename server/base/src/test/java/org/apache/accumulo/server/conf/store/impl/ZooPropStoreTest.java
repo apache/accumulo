@@ -109,8 +109,7 @@ public class ZooPropStoreTest {
   /**
    * Simple get tests load from ZooKeeper and then retrieved from cache.
    *
-   * @throws Exception
-   *           any exception is a test error.
+   * @throws Exception any exception is a test error.
    */
   @Test
   public void getTest() throws Exception {
@@ -178,8 +177,7 @@ public class ZooPropStoreTest {
   /**
    * Test that putAll will add and also overwrite properties.
    *
-   * @throws Exception
-   *           any exception is a test error.
+   * @throws Exception any exception is a test error.
    */
   @Test
   public void putAllTest() throws Exception {
@@ -370,10 +368,8 @@ public class ZooPropStoreTest {
     /**
      * Create an instance of a ready monitor.
      *
-     * @param resourceName
-     *          the resource name guarded by this monitor (used by logging)
-     * @param timeout
-     *          the max time in milliseconds this will block waiting.
+     * @param resourceName the resource name guarded by this monitor (used by logging)
+     * @param timeout the max time in milliseconds this will block waiting.
      */
     public TestReadyMonitor(String resourceName, long timeout) {
       super(resourceName, timeout);

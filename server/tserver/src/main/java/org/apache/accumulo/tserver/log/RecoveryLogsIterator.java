@@ -144,8 +144,9 @@ public class RecoveryLogsIterator
     // always have the format 'part-r-XXXXX.rf', where XXXXX are one-up values.
     SortedSet<Path> logFiles = new TreeSet<>(Comparator.comparing(Path::getName));
     for (FileStatus child : fs.listStatus(directory)) {
-      if (child.getPath().getName().startsWith("_"))
+      if (child.getPath().getName().startsWith("_")) {
         continue;
+      }
       if (SortedLogState.isFinished(child.getPath().getName())) {
         foundFinish = true;
         continue;
@@ -157,9 +158,10 @@ public class RecoveryLogsIterator
       Path fullLogPath = ns.makeQualified(child.getPath());
       logFiles.add(fullLogPath);
     }
-    if (!foundFinish)
+    if (!foundFinish) {
       throw new IOException(
           "Sort '" + SortedLogState.FINISHED.getMarker() + "' flag not found in " + directory);
+    }
     return logFiles;
   }
 

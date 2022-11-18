@@ -86,15 +86,17 @@ public class MetadataIT extends AccumuloClusterHarness {
         rootScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
 
         Set<String> files1 = new HashSet<>();
-        for (Entry<Key,Value> entry : rootScanner)
+        for (Entry<Key,Value> entry : rootScanner) {
           files1.add(entry.getKey().getColumnQualifier().toString());
+        }
 
         c.tableOperations().create(tableNames[1]);
         c.tableOperations().flush(MetadataTable.NAME, null, null, true);
 
         Set<String> files2 = new HashSet<>();
-        for (Entry<Key,Value> entry : rootScanner)
+        for (Entry<Key,Value> entry : rootScanner) {
           files2.add(entry.getKey().getColumnQualifier().toString());
+        }
 
         // flush of metadata table should change file set in root table
         assertTrue(!files2.isEmpty());
@@ -103,8 +105,9 @@ public class MetadataIT extends AccumuloClusterHarness {
         c.tableOperations().compact(MetadataTable.NAME, null, null, false, true);
 
         Set<String> files3 = new HashSet<>();
-        for (Entry<Key,Value> entry : rootScanner)
+        for (Entry<Key,Value> entry : rootScanner) {
           files3.add(entry.getKey().getColumnQualifier().toString());
+        }
 
         // compaction of metadata table should change file set in root table
         assertNotEquals(files2, files3);

@@ -71,8 +71,9 @@ public class LogFileValue implements Writable {
   }
 
   public static String format(LogFileValue lfv, int maxMutations) {
-    if (lfv.mutations.isEmpty())
+    if (lfv.mutations.isEmpty()) {
       return "";
+    }
     StringBuilder builder = new StringBuilder();
     builder.append(lfv.mutations.size() + " mutations:\n");
     int i = 0;

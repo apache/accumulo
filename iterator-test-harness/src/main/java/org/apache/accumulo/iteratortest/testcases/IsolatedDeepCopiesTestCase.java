@@ -106,12 +106,14 @@ public class IsolatedDeepCopiesTestCase implements IteratorTestCase {
   }
 
   private <E> E getRandomElement(Collection<E> iterators) {
-    if (iterators == null || iterators.isEmpty())
+    if (iterators == null || iterators.isEmpty()) {
       throw new IllegalArgumentException("should not pass an empty collection");
+    }
     int num = random.nextInt(iterators.size());
     for (E e : iterators) {
-      if (num-- == 0)
+      if (num-- == 0) {
         return e;
+      }
     }
     throw new AssertionError();
   }

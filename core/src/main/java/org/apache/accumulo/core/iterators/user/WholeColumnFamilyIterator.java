@@ -69,13 +69,10 @@ public class WholeColumnFamilyIterator
    * Decode whole row/cf out of value. decode key value pairs that have been encoded into a single
    * // value
    *
-   * @param rowKey
-   *          the row key to decode
-   * @param rowValue
-   *          the value to decode
+   * @param rowKey the row key to decode
+   * @param rowValue the value to decode
    * @return the sorted map. After decoding the flattened data map
-   * @throws IOException
-   *           Signals that an I/O exception has occurred.
+   * @throws IOException Signals that an I/O exception has occurred.
    */
   public static final SortedMap<Key,Value> decodeColumnFamily(Key rowKey, Value rowValue)
       throws IOException {
@@ -122,13 +119,10 @@ public class WholeColumnFamilyIterator
    * Encode row/cf. Take a stream of keys and values and output a value that encodes everything but
    * their row and column families keys and values must be paired one for one
    *
-   * @param keys
-   *          the row keys to encode into value
-   * @param values
-   *          the value to encode
+   * @param keys the row keys to encode into value
+   * @param values the value to encode
    * @return the value. After encoding keys/values
-   * @throws IOException
-   *           Signals that an I/O exception has occurred.
+   * @throws IOException Signals that an I/O exception has occurred.
    */
   public static final Value encodeColumnFamily(List<Key> keys, List<Value> values)
       throws IOException {
@@ -155,14 +149,16 @@ public class WholeColumnFamilyIterator
   List<Value> values = new ArrayList<>();
 
   private void prepKeys() throws IOException {
-    if (topKey != null)
+    if (topKey != null) {
       return;
+    }
     Text currentRow;
     Text currentCf;
 
     do {
-      if (!sourceIter.hasTop())
+      if (!sourceIter.hasTop()) {
         return;
+      }
       currentRow = new Text(sourceIter.getTopKey().getRow());
       currentCf = new Text(sourceIter.getTopKey().getColumnFamily());
 
@@ -183,14 +179,11 @@ public class WholeColumnFamilyIterator
 
   /**
    *
-   * @param currentRow
-   *          All keys and cf have this in their row portion (do not modify!).
-   * @param keys
-   *          One key for each key and cf group in the row, ordered as they are given by the source
-   *          iterator (do not modify!).
-   * @param values
-   *          One value for each key in keys, ordered to correspond to the ordering in keys (do not
-   *          modify!).
+   * @param currentRow All keys and cf have this in their row portion (do not modify!).
+   * @param keys One key for each key and cf group in the row, ordered as they are given by the
+   *        source iterator (do not modify!).
+   * @param values One value for each key in keys, ordered to correspond to the ordering in keys (do
+   *        not modify!).
    * @return true if we want to keep the row, false if we want to skip it
    */
   protected boolean filter(Text currentRow, List<Key> keys, List<Value> values) {
@@ -199,8 +192,9 @@ public class WholeColumnFamilyIterator
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    if (sourceIter != null)
+    if (sourceIter != null) {
       return new WholeColumnFamilyIterator(sourceIter.deepCopy(env));
+    }
     return new WholeColumnFamilyIterator();
   }
 
@@ -247,8 +241,9 @@ public class WholeColumnFamilyIterator
       // this iterator
       // therefore go to the next row/cf
       Key followingRowKey = sk.followingKey(PartialKey.ROW_COLFAM);
-      if (range.getEndKey() != null && followingRowKey.compareTo(range.getEndKey()) > 0)
+      if (range.getEndKey() != null && followingRowKey.compareTo(range.getEndKey()) > 0) {
         return;
+      }
 
       range = new Range(sk.followingKey(PartialKey.ROW_COLFAM), true, range.getEndKey(),
           range.isEndKeyInclusive());

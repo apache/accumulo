@@ -78,15 +78,11 @@ public interface Instance {
   /**
    * Returns a connection to accumulo.
    *
-   * @param user
-   *          a valid accumulo user
-   * @param pass
-   *          A UTF-8 encoded password. The password may be cleared after making this call.
+   * @param user a valid accumulo user
+   * @param pass A UTF-8 encoded password. The password may be cleared after making this call.
    * @return the accumulo Connector
-   * @throws AccumuloException
-   *           when a generic exception occurs
-   * @throws AccumuloSecurityException
-   *           when a user's credentials are invalid
+   * @throws AccumuloException when a generic exception occurs
+   * @throws AccumuloSecurityException when a user's credentials are invalid
    * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with
    *             {@link PasswordToken}
    */
@@ -99,15 +95,11 @@ public interface Instance {
   /**
    * Returns a connection to accumulo.
    *
-   * @param user
-   *          a valid accumulo user
-   * @param pass
-   *          A UTF-8 encoded password. The password may be cleared after making this call.
+   * @param user a valid accumulo user
+   * @param pass A UTF-8 encoded password. The password may be cleared after making this call.
    * @return the accumulo Connector
-   * @throws AccumuloException
-   *           when a generic exception occurs
-   * @throws AccumuloSecurityException
-   *           when a user's credentials are invalid
+   * @throws AccumuloException when a generic exception occurs
+   * @throws AccumuloSecurityException when a user's credentials are invalid
    * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with
    *             {@link PasswordToken}
    */
@@ -120,15 +112,11 @@ public interface Instance {
   /**
    * Returns a connection to this instance of accumulo.
    *
-   * @param user
-   *          a valid accumulo user
-   * @param pass
-   *          If a mutable CharSequence is passed in, it may be cleared after this call.
+   * @param user a valid accumulo user
+   * @param pass If a mutable CharSequence is passed in, it may be cleared after this call.
    * @return the accumulo Connector
-   * @throws AccumuloException
-   *           when a generic exception occurs
-   * @throws AccumuloSecurityException
-   *           when a user's credentials are invalid
+   * @throws AccumuloException when a generic exception occurs
+   * @throws AccumuloSecurityException when a user's credentials are invalid
    * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with
    *             {@link PasswordToken}
    */
@@ -141,11 +129,9 @@ public interface Instance {
   /**
    * Returns a connection to this instance of accumulo.
    *
-   * @param principal
-   *          a valid accumulo user
-   * @param token
-   *          Use the token type configured for the Accumulo instance you are connecting to. An
-   *          Accumulo instance with default configurations will use {@link PasswordToken}
+   * @param principal a valid accumulo user
+   * @param token Use the token type configured for the Accumulo instance you are connecting to. An
+   *        Accumulo instance with default configurations will use {@link PasswordToken}
    * @since 1.5.0
    */
   Connector getConnector(String principal, AuthenticationToken token)

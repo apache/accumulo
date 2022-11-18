@@ -163,9 +163,8 @@ public class LoadPlan {
      * Specify the row range where a file should be loaded. Note that whether the startRow parameter
      * is inclusive or exclusive is determined by the {@link RangeType} parameter.
      *
-     * @param fileName
-     *          this should not be a path. Only a file name because loads are expected to happen
-     *          from a single directory.
+     * @param fileName this should not be a path. Only a file name because loads are expected to
+     *        happen from a single directory.
      */
     Builder loadFileTo(String fileName, RangeType rangeType, Text startRow, Text endRow);
 
@@ -173,9 +172,8 @@ public class LoadPlan {
      * Specify the row range where a file should be loaded. Note that whether the startRow parameter
      * is inclusive or exclusive is determined by the {@link RangeType} parameter.
      *
-     * @param fileName
-     *          this should not be a path. Only a file name because loads are expected to happen
-     *          from a single directory.
+     * @param fileName this should not be a path. Only a file name because loads are expected to
+     *        happen from a single directory.
      */
     Builder loadFileTo(String fileName, RangeType rangeType, byte[] startRow, byte[] endRow);
 
@@ -183,9 +181,8 @@ public class LoadPlan {
      * Specify the row range where a file should be loaded. Note that whether the startRow parameter
      * is inclusive or exclusive is determined by the {@link RangeType} parameter.
      *
-     * @param fileName
-     *          this should not be a path. Only a file name because loads are expected to happen
-     *          from a single directory.
+     * @param fileName this should not be a path. Only a file name because loads are expected to
+     *        happen from a single directory.
      */
     Builder loadFileTo(String fileName, RangeType rangeType, CharSequence startRow,
         CharSequence endRow);

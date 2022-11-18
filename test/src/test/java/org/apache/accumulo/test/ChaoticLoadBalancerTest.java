@@ -60,8 +60,9 @@ public class ChaoticLoadBalancerTest {
       for (TabletId extent : tablets) {
         TableId table = extent.getTable();
         TableInfo info = thriftStatus.tableMap.get(table.canonical());
-        if (info == null)
+        if (info == null) {
           thriftStatus.tableMap.put(table.canonical(), info = new TableInfo());
+        }
         info.onlineTablets++;
         info.recs = info.onlineTablets;
         info.ingestRate = 123.;
@@ -165,8 +166,9 @@ public class ChaoticLoadBalancerTest {
   }
 
   private static Text toText(String value) {
-    if (value != null)
+    if (value != null) {
       return new Text(value);
+    }
     return null;
   }
 

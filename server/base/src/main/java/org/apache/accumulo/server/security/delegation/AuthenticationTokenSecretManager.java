@@ -67,10 +67,9 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
   /**
    * Create a new secret manager instance for generating keys.
    *
-   * @param instanceID
-   *          Accumulo instance ID
-   * @param tokenMaxLifetime
-   *          Maximum age (in milliseconds) before a token expires and is no longer valid
+   * @param instanceID Accumulo instance ID
+   * @param tokenMaxLifetime Maximum age (in milliseconds) before a token expires and is no longer
+   *        valid
    */
   public AuthenticationTokenSecretManager(InstanceId instanceID, long tokenMaxLifetime) {
     requireNonNull(instanceID);
@@ -124,10 +123,12 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     identifier.setKeyId(secretKey.getKeyId());
     identifier.setInstanceId(instanceID);
 
-    if (!identifier.isSetIssueDate())
+    if (!identifier.isSetIssueDate()) {
       identifier.setIssueDate(System.currentTimeMillis());
-    if (!identifier.isSetExpirationDate())
+    }
+    if (!identifier.isSetExpirationDate()) {
       identifier.setExpirationDate(calculateExpirationDate());
+    }
     return createPassword(identifier.getBytes(), secretKey.getKey());
   }
 
@@ -157,10 +158,8 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
   /**
    * Generates a delegation token for the user with the provided {@code username}.
    *
-   * @param username
-   *          The client to generate the delegation token for.
-   * @param cfg
-   *          A configuration object for obtaining the delegation token
+   * @param username The client to generate the delegation token for.
+   * @param cfg A configuration object for obtaining the delegation token
    * @return A delegation token for {@code username} created using the {@link #currentKey}.
    */
   public Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier>
@@ -192,8 +191,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
   /**
    * Add the provided {@code key} to the in-memory copy of all {@link AuthenticationKey}s.
    *
-   * @param key
-   *          The key to add.
+   * @param key The key to add.
    */
   public synchronized void addKey(AuthenticationKey key) {
     requireNonNull(key);
@@ -210,8 +208,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
    * Removes the {@link AuthenticationKey} from the local cache of keys using the provided
    * {@code keyId}.
    *
-   * @param keyId
-   *          The unique ID for the {@link AuthenticationKey} to remove.
+   * @param keyId The unique ID for the {@link AuthenticationKey} to remove.
    * @return True if the key was removed, otherwise false.
    */
   synchronized boolean removeKey(Integer keyId) {
@@ -242,8 +239,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
    * For each removed local {@link AuthenticationKey}, the key is also removed from ZooKeeper using
    * the provided {@code keyDistributor} instance.
    *
-   * @param keyDistributor
-   *          ZooKeeper key distribution class
+   * @param keyDistributor ZooKeeper key distribution class
    */
   synchronized int removeExpiredKeys(ZooAuthenticationKeyDistributor keyDistributor) {
     long now = System.currentTimeMillis();

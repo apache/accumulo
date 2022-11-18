@@ -30,36 +30,31 @@ import org.apache.hadoop.io.Text;
 /**
  * Interface used to gather metrics from RFiles.
  *
- * @param <T>
- *          Type used to return metrics in getMetrics(). This does not impact collection of metrics
- *          at all, is only used in that method.
+ * @param <T> Type used to return metrics in getMetrics(). This does not impact collection of
+ *        metrics at all, is only used in that method.
  */
 public interface MetricsGatherer<T> {
 
   /**
    * Initialize the gatherer when it is registered with the RFile Reader
    *
-   * @param cf
-   *          Map of the LocalityGroup names to their column families
+   * @param cf Map of the LocalityGroup names to their column families
    */
   void init(Map<String,ArrayList<ByteSequence>> cf);
 
   /**
    * Start a new LocalityGroup. This method is used when the RFile seeks to the next LocalityGroup.
    *
-   * @param cf
-   *          Text object of the column family of the first entry in the locality group
+   * @param cf Text object of the column family of the first entry in the locality group
    */
   void startLocalityGroup(Text cf);
 
   /**
    * Collect and store metrics for the given entry.
    *
-   * @param key
-   *          Key object of the entry you are collecting metrics from
+   * @param key Key object of the entry you are collecting metrics from
    *
-   * @param val
-   *          Value object of the entry you are collecting metrics from
+   * @param val Value object of the entry you are collecting metrics from
    *
    */
   void addMetric(Key key, Value val);
@@ -74,12 +69,9 @@ public interface MetricsGatherer<T> {
    * Print the results of the metrics gathering by locality group in the format: Metric name Number
    * of keys Percentage of keys Number of blocks Percentage of blocks
    *
-   * @param hash
-   *          Boolean to determine whether the values being printed should be hashed
-   * @param metricWord
-   *          String of the name of the metric that was collected
-   * @param out
-   *          PrintStream of where the information should be written to
+   * @param hash Boolean to determine whether the values being printed should be hashed
+   * @param metricWord String of the name of the metric that was collected
+   * @param out PrintStream of where the information should be written to
    */
   void printMetrics(boolean hash, String metricWord, PrintStream out);
 

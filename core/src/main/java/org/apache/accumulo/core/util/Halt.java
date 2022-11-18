@@ -56,8 +56,9 @@ public class Halt {
         Runtime.getRuntime().halt(status);
       }).start();
 
-      if (runnable != null)
+      if (runnable != null) {
         runnable.run();
+      }
       Runtime.getRuntime().halt(status);
     } finally {
       // In case something else decides to throw a Runtime exception

@@ -38,10 +38,11 @@ class IndexIterator implements SortedKeyValueIterator<Key,Value> {
 
   IndexIterator(Iterator<IndexEntry> indexIter) {
     this.indexIter = indexIter;
-    if (indexIter.hasNext())
+    if (indexIter.hasNext()) {
       key = indexIter.next().getKey();
-    else
+    } else {
       key = null;
+    }
   }
 
   @Override
@@ -72,10 +73,11 @@ class IndexIterator implements SortedKeyValueIterator<Key,Value> {
 
   @Override
   public void next() throws IOException {
-    if (indexIter.hasNext())
+    if (indexIter.hasNext()) {
       key = indexIter.next().getKey();
-    else
+    } else {
       key = null;
+    }
   }
 
   @Override

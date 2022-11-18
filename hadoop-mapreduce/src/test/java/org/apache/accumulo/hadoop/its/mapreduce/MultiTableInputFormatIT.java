@@ -58,8 +58,9 @@ public class MultiTableInputFormatIT extends AccumuloClusterHarness {
       protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
         try {
           String tableName = ((RangeInputSplit) context.getInputSplit()).getTableName();
-          if (key != null)
+          if (key != null) {
             assertEquals(key.getRow().toString(), new String(v.get()));
+          }
           assertEquals(new Text(String.format("%s_%09x", tableName, count + 1)), k.getRow());
           assertEquals(String.format("%s_%09x", tableName, count), new String(v.get()));
         } catch (AssertionError e) {

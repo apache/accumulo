@@ -134,15 +134,17 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
 
   @Override
   public int getCompactionsRunning(CType ctype) {
-    if (ctype == CType.EXTERNAL)
+    if (ctype == CType.EXTERNAL) {
       throw new UnsupportedOperationException();
+    }
     return 0;
   }
 
   @Override
   public int getCompactionsQueued(CType ctype) {
-    if (ctype != CType.EXTERNAL)
+    if (ctype != CType.EXTERNAL) {
       return 0;
+    }
     return queuedJob.size();
   }
 

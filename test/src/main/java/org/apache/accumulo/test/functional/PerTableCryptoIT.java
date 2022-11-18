@@ -83,10 +83,11 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
       Path keyFile = new Path(keyPath);
       FileSystem fs = FileSystem.getLocal(new Configuration());
       fs.delete(keyFile, true);
-      if (fs.createNewFile(keyFile))
+      if (fs.createNewFile(keyFile)) {
         log.info("Created keyfile at {}", keyPath);
-      else
+      } else {
         log.error("Failed to create key file at {}", keyPath);
+      }
 
       try (FSDataOutputStream out = fs.create(keyFile)) {
         out.writeUTF("sixteenbytekey"); // 14 + 2 from writeUTF
@@ -173,8 +174,9 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
     try (var tm = getServerContext().getAmple().readTablets().forTable(tableId).build()) {
       for (var tabletMetadata : tm) {
         for (var f : tabletMetadata.getFiles()) {
-          if (!getFileSystem().exists(f.getPath()))
+          if (!getFileSystem().exists(f.getPath())) {
             continue;
+          }
           ByteArrayOutputStream baos = new ByteArrayOutputStream();
           PrintStream oldOut = System.out;
           try (PrintStream newOut = new PrintStream(baos)) {
@@ -232,8 +234,9 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
 
       if (!foundWal) {
         Thread.sleep(50);
-        if (attempts % 50 == 0)
+        if (attempts % 50 == 0) {
           log.debug("No open WALs found in {} attempts.", attempts);
+        }
       }
     }
 

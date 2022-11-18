@@ -87,8 +87,7 @@ public class FormatterConfig {
   /**
    * If given a negative number, throws an {@link IllegalArgumentException}
    *
-   * @param shownLength
-   *          maximum length of formatted output
+   * @param shownLength maximum length of formatted output
    * @return {@code this} to allow chaining of set methods
    */
   public FormatterConfig setShownLength(int shownLength) {

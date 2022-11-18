@@ -47,10 +47,9 @@ public abstract class AbstractEncoder<T> implements Encoder<T> {
    * Checks if the byte array is null, or if parameters exceed the bounds of the byte array, then
    * calls {@link #decodeUnchecked(byte[], int, int)}.
    *
-   * @throws java.lang.NullPointerException
-   *           if {@code b} is null
-   * @throws java.lang.IllegalArgumentException
-   *           if {@code offset + len} exceeds the length of {@code b}
+   * @throws java.lang.NullPointerException if {@code b} is null
+   * @throws java.lang.IllegalArgumentException if {@code offset + len} exceeds the length of
+   *         {@code b}
    */
   public T decode(byte[] b, int offset, int len) {
     requireNonNull(b, "cannot decode null byte array");

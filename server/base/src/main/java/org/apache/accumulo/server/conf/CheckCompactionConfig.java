@@ -87,8 +87,9 @@ public class CheckCompactionConfig implements KeywordExecutable {
     }
 
     Path path = Path.of(opts.filePath);
-    if (!path.toFile().exists())
+    if (!path.toFile().exists()) {
       throw new FileNotFoundException("File at given path could not be found");
+    }
 
     AccumuloConfiguration config = SiteConfiguration.fromFile(path.toFile()).build();
     var servicesConfig = new CompactionServicesConfig(config, log::warn);

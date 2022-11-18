@@ -54,8 +54,9 @@ class FinishCloneTable extends ManagerRepo {
     }
 
     Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false);
-    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
+    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) {
       Utils.unreserveNamespace(environment, cloneInfo.namespaceId, tid, false);
+    }
     Utils.unreserveTable(environment, cloneInfo.srcTableId, tid, false);
     Utils.unreserveTable(environment, cloneInfo.tableId, tid, true);
 

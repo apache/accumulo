@@ -37,8 +37,7 @@ public class DummyCodec implements Configurable, CompressionCodec {
   /**
    * Set the configuration to be used by this object.
    *
-   * @param conf
-   *          the configuration object.
+   * @param conf the configuration object.
    */
   @Override
   public void setConf(Configuration conf) {
@@ -58,11 +57,9 @@ public class DummyCodec implements Configurable, CompressionCodec {
   /**
    * Create a {@link CompressionOutputStream} that will write to the given {@link OutputStream}.
    *
-   * @param out
-   *          the location for the final output stream
+   * @param out the location for the final output stream
    * @return a stream the user can write uncompressed data to have it compressed
-   * @throws IOException
-   *           unsupported operation
+   * @throws IOException unsupported operation
    */
   @Override
   public CompressionOutputStream createOutputStream(OutputStream out) throws IOException {
@@ -73,13 +70,10 @@ public class DummyCodec implements Configurable, CompressionCodec {
    * Create a {@link CompressionOutputStream} that will write to the given {@link OutputStream} with
    * the given {@link Compressor}.
    *
-   * @param out
-   *          the location for the final output stream
-   * @param compressor
-   *          compressor to use
+   * @param out the location for the final output stream
+   * @param compressor compressor to use
    * @return a stream the user can write uncompressed data to have it compressed
-   * @throws IOException
-   *           unsupported operation
+   * @throws IOException unsupported operation
    */
   @Override
   public CompressionOutputStream createOutputStream(OutputStream out, Compressor compressor)
@@ -110,11 +104,9 @@ public class DummyCodec implements Configurable, CompressionCodec {
   /**
    * Create a {@link CompressionInputStream} that will read from the given input stream.
    *
-   * @param in
-   *          the stream to read compressed bytes from
+   * @param in the stream to read compressed bytes from
    * @return a stream to read uncompressed bytes from
-   * @throws IOException
-   *           unsupported operation
+   * @throws IOException unsupported operation
    */
   @Override
   public CompressionInputStream createInputStream(InputStream in) throws IOException {
@@ -125,13 +117,10 @@ public class DummyCodec implements Configurable, CompressionCodec {
    * Create a {@link CompressionInputStream} that will read from the given {@link InputStream} with
    * the given {@link Decompressor}.
    *
-   * @param in
-   *          the stream to read compressed bytes from
-   * @param decompressor
-   *          decompressor to use
+   * @param in the stream to read compressed bytes from
+   * @param decompressor decompressor to use
    * @return a stream to read uncompressed bytes from
-   * @throws IOException
-   *           unsupported operation
+   * @throws IOException unsupported operation
    */
   @Override
   public CompressionInputStream createInputStream(InputStream in, Decompressor decompressor)

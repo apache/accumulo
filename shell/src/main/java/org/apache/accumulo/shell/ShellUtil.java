@@ -45,10 +45,8 @@ public class ShellUtil {
    * lines. If decode is set to true, every line is decoded using {@link Base64} from the UTF-8
    * bytes of that line before inserting in the list.
    *
-   * @param filename
-   *          Path to the file that needs to be scanned
-   * @param decode
-   *          Whether to decode lines in the file
+   * @param filename Path to the file that needs to be scanned
+   * @param decode Whether to decode lines in the file
    * @return List of {@link Text} objects containing data in the given file
    */
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",

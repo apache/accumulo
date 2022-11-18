@@ -155,11 +155,12 @@ public class TableDiskUsage {
       List<TableId> externalKey = new ArrayList<>();
       List<Integer> key = entry.getKey();
       // table bitset
-      for (int i = 0; i < key.size(); i++)
+      for (int i = 0; i < key.size(); i++) {
         if (key.get(i) != 0) {
           // Convert by internal id to the table id
           externalKey.add(externalIds.get(i));
         }
+      }
 
       // list of table ids and size of files shared across the tables
       externalUsage.put(externalKey, entry.getValue());
@@ -183,22 +184,20 @@ public class TableDiskUsage {
    * Compute the estimated disk usage for the given set of tables by scanning the Metadata table for
    * file sizes. Optionally computes shared usage across tables.
    *
-   * @param tableIds
-   *          set of tables to compute an estimated disk usage for
-   * @param client
-   *          accumulo client used to scan
+   * @param tableIds set of tables to compute an estimated disk usage for
+   * @param client accumulo client used to scan
    * @return the computed estimated usage results
    *
-   * @throws TableNotFoundException
-   *           if the table(s) do not exist
+   * @throws TableNotFoundException if the table(s) do not exist
    */
   public static Map<SortedSet<String>,Long> getDiskUsage(Set<TableId> tableIds,
       AccumuloClient client) throws TableNotFoundException {
     final TableDiskUsage tdu = new TableDiskUsage();
 
     // Add each tableID
-    for (TableId tableId : tableIds)
+    for (TableId tableId : tableIds) {
       tdu.addTable(tableId);
+    }
 
     HashSet<TableId> emptyTableIds = new HashSet<>();
 

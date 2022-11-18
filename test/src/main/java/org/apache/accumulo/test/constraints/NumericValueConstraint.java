@@ -41,8 +41,9 @@ public class NumericValueConstraint implements Constraint {
   private boolean isNumeric(byte[] bytes) {
     for (byte b : bytes) {
       boolean ok = (b >= '0' && b <= '9');
-      if (!ok)
+      if (!ok) {
         return false;
+      }
     }
 
     return true;
@@ -53,8 +54,9 @@ public class NumericValueConstraint implements Constraint {
     Collection<ColumnUpdate> updates = mutation.getUpdates();
 
     for (ColumnUpdate columnUpdate : updates) {
-      if (!isNumeric(columnUpdate.getValue()))
+      if (!isNumeric(columnUpdate.getValue())) {
         return VIOLATION_LIST;
+      }
     }
 
     return null;

@@ -47,9 +47,9 @@ public class ShardedTableDistributionFormatter extends AggregatingFormatter {
       // Parse the day out of the row
       int semicolon = row.indexOf(";");
       String day = null;
-      if (semicolon == -1)
+      if (semicolon == -1) {
         day = "NULL    ";
-      else {
+      } else {
         semicolon++;
         day = row.substring(semicolon, semicolon + 8);
       }
@@ -63,8 +63,9 @@ public class ShardedTableDistributionFormatter extends AggregatingFormatter {
     StringBuilder buf = new StringBuilder();
     buf.append("DAY   \t\tSERVERS\n");
     buf.append("------\t\t-------\n");
-    for (String day : countsByDay.keySet())
+    for (String day : countsByDay.keySet()) {
       buf.append(day + "\t\t" + countsByDay.get(day).size() + "\n");
+    }
     return buf.toString();
   }
 

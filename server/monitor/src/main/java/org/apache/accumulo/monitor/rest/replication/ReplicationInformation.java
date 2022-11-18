@@ -39,16 +39,11 @@ public class ReplicationInformation {
   /**
    * Stores new replication information
    *
-   * @param tableName
-   *          Name of the table being replicated
-   * @param peerName
-   *          Name of the peer
-   * @param remoteIdentifier
-   *          Identifier of the remote
-   * @param replicaSystemType
-   *          System type replica
-   * @param filesNeedingReplication
-   *          Number of files needing replication
+   * @param tableName Name of the table being replicated
+   * @param peerName Name of the peer
+   * @param remoteIdentifier Identifier of the remote
+   * @param replicaSystemType System type replica
+   * @param filesNeedingReplication Number of files needing replication
    */
   public ReplicationInformation(String tableName, String peerName, String remoteIdentifier,
       String replicaSystemType, long filesNeedingReplication) {

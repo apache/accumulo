@@ -73,8 +73,9 @@ public class DefaultLoadBalancer extends TabletBalancer {
 
   public TServerInstance getAssignment(SortedMap<TServerInstance,TabletServerStatus> locations,
       TServerInstance last) {
-    if (locations.isEmpty())
+    if (locations.isEmpty()) {
       return null;
+    }
 
     if (last != null) {
       // Maintain locality
@@ -83,16 +84,18 @@ public class DefaultLoadBalancer extends TabletBalancer {
       Iterator<TServerInstance> find = locations.tailMap(simple).keySet().iterator();
       if (find.hasNext()) {
         TServerInstance current = find.next();
-        if (current.getHost().equals(last.getHost()))
+        if (current.getHost().equals(last.getHost())) {
           return current;
+        }
       }
     }
 
     // The strategy here is to walk through the locations and hand them back, one at a time
     // Grab an iterator off of the set of options; use a new iterator if it hands back something not
     // in the current list.
-    if (assignments == null || !assignments.hasNext())
+    if (assignments == null || !assignments.hasNext()) {
       assignments = randomize(locations.keySet()).iterator();
+    }
     TServerInstance result = assignments.next();
     if (!locations.containsKey(result)) {
       assignments = null;
@@ -126,8 +129,9 @@ public class DefaultLoadBalancer extends TabletBalancer {
     @Override
     public int compareTo(ServerCounts obj) {
       int result = count - obj.count;
-      if (result == 0)
+      if (result == 0) {
         return server.compareTo(obj.server);
+      }
       return result;
     }
   }
@@ -153,8 +157,9 @@ public class DefaultLoadBalancer extends TabletBalancer {
              * The check below was on entry.getKey(), but that resolves to a tabletserver not a
              * tablename. Believe it should be e.getKey() which is a tablename
              */
-            if (tableToBalance == null || tableToBalance.canonical().equals(e.getKey()))
+            if (tableToBalance == null || tableToBalance.canonical().equals(e.getKey())) {
               serverTotal += e.getValue().onlineTablets;
+            }
           }
         }
         totals.add(new ServerCounts(serverTotal, entry.getKey(), entry.getValue()));
@@ -260,8 +265,9 @@ public class DefaultLoadBalancer extends TabletBalancer {
             log.warn("Unable to find tablets to move");
             return result;
           }
-          for (TabletStats stat : stats)
+          for (TabletStats stat : stats) {
             onlineTabletsForTable.put(KeyExtent.fromThrift(stat.extent), stat);
+          }
           donerTabletStats.put(table, onlineTabletsForTable);
         }
       } catch (Exception ex) {
@@ -270,8 +276,9 @@ public class DefaultLoadBalancer extends TabletBalancer {
       }
       KeyExtent extent = selectTablet(onlineTabletsForTable);
       onlineTabletsForTable.remove(extent);
-      if (extent == null)
+      if (extent == null) {
         return result;
+      }
       tooMuchMap.put(table, tooMuchMap.get(table) - 1);
       /**
        * If a table grows from 1 tablet then tooLittleMap.get(table) can return a null, since there
@@ -302,15 +309,17 @@ public class DefaultLoadBalancer extends TabletBalancer {
   }
 
   static KeyExtent selectTablet(Map<KeyExtent,TabletStats> extents) {
-    if (extents.isEmpty())
+    if (extents.isEmpty()) {
       return null;
+    }
     KeyExtent mostRecentlySplit = null;
     long splitTime = 0;
-    for (Entry<KeyExtent,TabletStats> entry : extents.entrySet())
+    for (Entry<KeyExtent,TabletStats> entry : extents.entrySet()) {
       if (entry.getValue().splitCreationTime >= splitTime) {
         splitTime = entry.getValue().splitCreationTime;
         mostRecentlySplit = entry.getKey();
       }
+    }
     return mostRecentlySplit;
   }
 
@@ -351,8 +360,9 @@ public class DefaultLoadBalancer extends TabletBalancer {
       // Don't migrate if we have migrations in progress
       if (migrations.isEmpty()) {
         resetBalancerErrors();
-        if (getMigrations(current, migrationsOut))
+        if (getMigrations(current, migrationsOut)) {
           return 1_000;
+        }
       } else {
         outstandingMigrations.migrations = migrations;
         constraintNotMet(outstandingMigrations);

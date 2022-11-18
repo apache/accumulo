@@ -126,8 +126,9 @@ public class ColumnVisibility {
     }
 
     public void add(Node child) {
-      if (children == EMPTY)
+      if (children == EMPTY) {
         children = new ArrayList<>();
+      }
 
       children.add(child);
     }
@@ -149,8 +150,9 @@ public class ColumnVisibility {
     }
 
     public ByteSequence getTerm(byte[] expression) {
-      if (type != NodeType.TERM)
+      if (type != NodeType.TERM) {
         throw new RuntimeException();
+      }
 
       if (expression[start] == '"') {
         // its a quoted term
@@ -175,8 +177,7 @@ public class ColumnVisibility {
     /**
      * Creates a new comparator.
      *
-     * @param text
-     *          expression string, encoded in UTF-8
+     * @param text expression string, encoded in UTF-8
      */
     public NodeComparator(byte[] text) {
       this.text = text;
@@ -185,8 +186,9 @@ public class ColumnVisibility {
     @Override
     public int compare(Node a, Node b) {
       int diff = a.type.ordinal() - b.type.ordinal();
-      if (diff != 0)
+      if (diff != 0) {
         return diff;
+      }
       switch (a.type) {
         case EMPTY:
           return 0; // All empty nodes are the same
@@ -196,12 +198,14 @@ public class ColumnVisibility {
         case OR:
         case AND:
           diff = a.children.size() - b.children.size();
-          if (diff != 0)
+          if (diff != 0) {
             return diff;
+          }
           for (int i = 0; i < a.children.size(); i++) {
             diff = compare(a.children.get(i), b.children.get(i));
-            if (diff != 0)
+            if (diff != 0) {
               return diff;
+            }
           }
       }
       return 0;
@@ -260,11 +264,13 @@ public class ColumnVisibility {
       for (Node c : root.children) {
         out.append(sep);
         boolean parens = (c.type != NodeType.TERM && root.type != c.type);
-        if (parens)
+        if (parens) {
           out.append("(");
+        }
         stringify(c, expression, out);
-        if (parens)
+        if (parens) {
           out.append(")");
+        }
         sep = root.type == NodeType.AND ? "&" : "|";
       }
     }
@@ -307,13 +313,15 @@ public class ColumnVisibility {
 
     Node processTerm(int start, int end, Node expr, byte[] expression) {
       if (start != end) {
-        if (expr != null)
+        if (expr != null) {
           throw new BadArgumentException("expression needs | or &", new String(expression, UTF_8),
               start);
+        }
         return new Node(start, end);
       }
-      if (expr == null)
+      if (expr == null) {
         throw new BadArgumentException("empty term", new String(expression, UTF_8), start);
+      }
       return expr;
     }
 
@@ -329,9 +337,10 @@ public class ColumnVisibility {
           case '&':
             expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
-              if (!result.type.equals(NodeType.AND))
+              if (!result.type.equals(NodeType.AND)) {
                 throw new BadArgumentException("cannot mix & and |", new String(expression, UTF_8),
                     index - 1);
+              }
             } else {
               result = new Node(NodeType.AND, wholeTermStart);
             }
@@ -343,9 +352,10 @@ public class ColumnVisibility {
           case '|':
             expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
-              if (!result.type.equals(NodeType.OR))
+              if (!result.type.equals(NodeType.OR)) {
                 throw new BadArgumentException("cannot mix | and &", new String(expression, UTF_8),
                     index - 1);
+              }
             } else {
               result = new Node(NodeType.OR, wholeTermStart);
             }
@@ -356,9 +366,10 @@ public class ColumnVisibility {
             break;
           case '(':
             parens++;
-            if (subtermStart != index - 1 || expr != null)
+            if (subtermStart != index - 1 || expr != null) {
               throw new BadArgumentException("expression needs & or |",
                   new String(expression, UTF_8), index - 1);
+            }
             expr = parse_(expression);
             subtermStart = index;
             subtermComplete = false;
@@ -366,41 +377,49 @@ public class ColumnVisibility {
           case ')':
             parens--;
             Node child = processTerm(subtermStart, index - 1, expr, expression);
-            if (child == null && result == null)
+            if (child == null && result == null) {
               throw new BadArgumentException("empty expression not allowed",
                   new String(expression, UTF_8), index);
-            if (result == null)
+            }
+            if (result == null) {
               return child;
-            if (result.type == child.type)
-              for (Node c : child.children)
+            }
+            if (result.type == child.type) {
+              for (Node c : child.children) {
                 result.add(c);
-            else
+              }
+            } else {
               result.add(child);
+            }
             result.end = index - 1;
             return result;
           case '"':
-            if (subtermStart != index - 1)
+            if (subtermStart != index - 1) {
               throw new BadArgumentException("expression needs & or |",
                   new String(expression, UTF_8), index - 1);
+            }
 
             while (index < expression.length && expression[index] != '"') {
               if (expression[index] == '\\') {
                 index++;
                 if (index == expression.length
-                    || (expression[index] != '\\' && expression[index] != '"'))
+                    || (expression[index] != '\\' && expression[index] != '"')) {
                   throw new BadArgumentException("invalid escaping within quotes",
                       new String(expression, UTF_8), index - 1);
+                }
               }
               index++;
             }
 
-            if (index == expression.length)
+            if (index == expression.length) {
               throw new BadArgumentException("unclosed quote", new String(expression, UTF_8),
                   subtermStart);
+            }
 
-            if (subtermStart + 1 == index)
+            if (subtermStart + 1 == index) {
               throw new BadArgumentException("empty term", new String(expression, UTF_8),
                   subtermStart);
+            }
 
             index++;
 
@@ -408,25 +427,30 @@ public class ColumnVisibility {
 
             break;
           default:
-            if (subtermComplete)
+            if (subtermComplete) {
               throw new BadArgumentException("expression needs & or |",
                   new String(expression, UTF_8), index - 1);
+            }
 
             byte c = expression[index - 1];
-            if (!Authorizations.isValidAuthChar(c))
+            if (!Authorizations.isValidAuthChar(c)) {
               throw new BadArgumentException("bad character (" + c + ")",
                   new String(expression, UTF_8), index - 1);
+            }
         }
       }
       Node child = processTerm(subtermStart, index, expr, expression);
       if (result != null) {
         result.add(child);
         result.end = index;
-      } else
+      } else {
         result = child;
-      if (result.type != NodeType.TERM)
-        if (result.children.size() < 2)
+      }
+      if (result.type != NodeType.TERM) {
+        if (result.children.size() < 2) {
           throw new BadArgumentException("missing term", new String(expression, UTF_8), index);
+        }
+      }
       return result;
     }
   }
@@ -454,9 +478,8 @@ public class ColumnVisibility {
   /**
    * Creates a column visibility for a Mutation.
    *
-   * @param expression
-   *          An expression of the rights needed to see this mutation. The expression syntax is
-   *          defined at the class-level documentation
+   * @param expression An expression of the rights needed to see this mutation. The expression
+   *        syntax is defined at the class-level documentation
    */
   public ColumnVisibility(String expression) {
     this(expression.getBytes(UTF_8));
@@ -465,8 +488,7 @@ public class ColumnVisibility {
   /**
    * Creates a column visibility for a Mutation.
    *
-   * @param expression
-   *          visibility expression
+   * @param expression visibility expression
    * @see #ColumnVisibility(String)
    */
   public ColumnVisibility(Text expression) {
@@ -476,8 +498,7 @@ public class ColumnVisibility {
   /**
    * Creates a column visibility for a Mutation from a string already encoded in UTF-8 bytes.
    *
-   * @param expression
-   *          visibility expression, encoded as UTF-8 bytes
+   * @param expression visibility expression, encoded as UTF-8 bytes
    * @see #ColumnVisibility(String)
    */
   public ColumnVisibility(byte[] expression) {
@@ -494,8 +515,9 @@ public class ColumnVisibility {
    */
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof ColumnVisibility)
+    if (obj instanceof ColumnVisibility) {
       return equals((ColumnVisibility) obj);
+    }
     return false;
   }
 
@@ -503,8 +525,7 @@ public class ColumnVisibility {
    * Compares two ColumnVisibilities for string equivalence, not as a meaningful comparison of terms
    * and conditions.
    *
-   * @param otherLe
-   *          other column visibility
+   * @param otherLe other column visibility
    * @return true if this visibility equals the other via string comparison
    */
   public boolean equals(ColumnVisibility otherLe) {
@@ -541,8 +562,7 @@ public class ColumnVisibility {
    * ColumnVisibility cv = new ColumnVisibility(s);
    * </pre>
    *
-   * @param term
-   *          term to quote
+   * @param term term to quote
    * @return quoted term (unquoted if unnecessary)
    */
   public static String quote(String term) {
@@ -553,8 +573,7 @@ public class ColumnVisibility {
    * Properly quotes terms in a column visibility expression. If no quoting is needed, then nothing
    * is done.
    *
-   * @param term
-   *          term to quote, encoded as UTF-8 bytes
+   * @param term term to quote, encoded as UTF-8 bytes
    * @return quoted term (unquoted if unnecessary), encoded as UTF-8 bytes
    * @see #quote(String)
    */
@@ -568,8 +587,9 @@ public class ColumnVisibility {
       }
     }
 
-    if (!needsQuote)
+    if (!needsQuote) {
       return term;
+    }
 
     return VisibilityEvaluator.escape(term, true);
   }

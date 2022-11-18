@@ -86,11 +86,13 @@ public class SeekableByteArrayInputStream extends InputStream {
   @Override
   public long skip(long requestedSkip) {
     int actualSkip = max - cur;
-    if (requestedSkip < actualSkip)
-      if (requestedSkip < 0)
+    if (requestedSkip < actualSkip) {
+      if (requestedSkip < 0) {
         actualSkip = 0;
-      else
+      } else {
         actualSkip = (int) requestedSkip;
+      }
+    }
 
     cur += actualSkip;
     return actualSkip;
@@ -134,8 +136,9 @@ public class SeekableByteArrayInputStream extends InputStream {
   }
 
   public void seek(int position) {
-    if (position < 0 || position >= max)
+    if (position < 0 || position >= max) {
       throw new IllegalArgumentException("position = " + position + " maxOffset = " + max);
+    }
     this.cur = position;
   }
 

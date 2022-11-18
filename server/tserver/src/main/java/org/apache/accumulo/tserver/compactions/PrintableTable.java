@@ -37,8 +37,9 @@ public class PrintableTable {
 
     StringBuilder sb = new StringBuilder();
 
-    for (int i = 0; i < widestRow; i++)
+    for (int i = 0; i < widestRow; i++) {
       sb.append(" ");
+    }
 
     for (int i = 0; i < columns.length; i++) {
       sb.append("  C");
@@ -48,8 +49,9 @@ public class PrintableTable {
 
     sb.append("\n");
 
-    for (int i = 0; i < widestRow; i++)
+    for (int i = 0; i < widestRow; i++) {
       sb.append("-");
+    }
 
     for (int i = 0; i < columns.length; i++) {
       sb.append(" ---- ");
@@ -63,10 +65,11 @@ public class PrintableTable {
       int[] row = data[r];
 
       for (int c = 0; c < row.length; c++) {
-        if (row[c] == 0)
+        if (row[c] == 0) {
           sb.append("      ");
-        else
+        } else {
           sb.append(String.format(" %4d ", row[c]));
+        }
       }
       sb.append("\n");
     }

@@ -55,8 +55,7 @@ public interface ImportConfiguration {
      * The new table is normally brought online after the import process. This allows leaving the
      * new table offline
      *
-     * @param keepOffline
-     *          true if the new table is to be kept offline after importing.
+     * @param keepOffline true if the new table is to be kept offline after importing.
      */
     Builder setKeepOffline(boolean keepOffline);
 
@@ -68,9 +67,9 @@ public interface ImportConfiguration {
      * {@link #setKeepOffline(boolean)} is also set to true, allowing for validation/debugging
      * before bringing the new table online.
      *
-     * @param keepMappings
-     *          true if the {@link org.apache.accumulo.core.Constants#IMPORT_MAPPINGS_FILE} is to be
-     *          kept after importing.
+     * @param keepMappings true if the
+     *        {@link org.apache.accumulo.core.Constants#IMPORT_MAPPINGS_FILE} is to be kept after
+     *        importing.
      */
     Builder setKeepMappings(boolean keepMappings);
 

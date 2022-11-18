@@ -190,18 +190,12 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   /**
    * Perform replication, making a few attempts when an exception is returned.
    *
-   * @param p
-   *          Path of WAL to replicate
-   * @param status
-   *          Current status for the WAL
-   * @param target
-   *          Where we're replicating to
-   * @param helper
-   *          A helper for replication
-   * @param localConf
-   *          The local instance's configuration
-   * @param peerContext
-   *          The ClientContext to connect to the peer
+   * @param p Path of WAL to replicate
+   * @param status Current status for the WAL
+   * @param target Where we're replicating to
+   * @param helper A helper for replication
+   * @param localConf The local instance's configuration
+   * @param peerContext The ClientContext to connect to the peer
    * @return The new (or unchanged) Status for the WAL
    */
   private Status _replicate(final Path p, final Status status, final ReplicationTarget target,
@@ -751,8 +745,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     } catch (TException e) {
       throw new AccumuloException(e);
     } finally {
-      if (client != null)
+      if (client != null) {
         ThriftUtil.close(client, context);
+      }
     }
   }
 

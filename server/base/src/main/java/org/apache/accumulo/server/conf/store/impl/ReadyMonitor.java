@@ -44,10 +44,8 @@ public class ReadyMonitor {
   /**
    * Create an instance of a ready monitor.
    *
-   * @param resourceName
-   *          the resource name guarded by this monitor (used by logging)
-   * @param timeout
-   *          the max time in milliseconds this will block waiting.
+   * @param resourceName the resource name guarded by this monitor (used by logging)
+   * @param timeout the max time in milliseconds this will block waiting.
    */
   public ReadyMonitor(final String resourceName, final long timeout) {
     this.resourceName = resourceName;
@@ -71,8 +69,7 @@ public class ReadyMonitor {
    * Method blocks until the resource is ready. If the resource does not become ready within the
    * timeout an IllegalStateException is thrown.
    *
-   * @throws IllegalStateException
-   *           if the resource does not signal ready withing timeout.
+   * @throws IllegalStateException if the resource does not signal ready withing timeout.
    */
   public void isReady() {
 

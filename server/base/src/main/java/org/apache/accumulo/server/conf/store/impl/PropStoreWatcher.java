@@ -90,8 +90,7 @@ public class PropStoreWatcher implements Watcher {
    * then. This helps clean up watchers by not automatically re-adding the watcher on the event but
    * only if being used.
    *
-   * @param event
-   *          ZooKeeper event.
+   * @param event ZooKeeper event.
    */
   @Override
   public void process(final WatchedEvent event) {
@@ -164,8 +163,7 @@ public class PropStoreWatcher implements Watcher {
    * notification from ZooKeeper and should be updated. The process can be initiated either by a
    * ZooKeeper notification or a change detected in the cache based on a ZooKeeper event.
    *
-   * @param propStoreKey
-   *          the cache id
+   * @param propStoreKey the cache id
    */
   public void signalZkChangeEvent(@NonNull final PropStoreKey<?> propStoreKey) {
     log.trace("signal ZooKeeper change event: {}", propStoreKey);
@@ -181,8 +179,7 @@ public class PropStoreWatcher implements Watcher {
    * Execute a task to notify registered listeners that the propStoreKey node change was detected
    * should be updated.
    *
-   * @param propStoreKey
-   *          the cache id
+   * @param propStoreKey the cache id
    */
   public void signalCacheChangeEvent(final PropStoreKey<?> propStoreKey) {
     log.trace("cache change event: {}", propStoreKey);
@@ -197,8 +194,7 @@ public class PropStoreWatcher implements Watcher {
    * Clean-up the active listeners set when an entry is removed from the cache, remove it from the
    * active listeners.
    *
-   * @param propStoreKey
-   *          the cache id
+   * @param propStoreKey the cache id
    */
   public void listenerCleanup(final PropStoreKey<?> propStoreKey) {
     listenerWriteLock.lock();
@@ -213,8 +209,7 @@ public class PropStoreWatcher implements Watcher {
    * Get an immutable snapshot of the listeners for a prop cache id. The set is intended for
    * notification of changes for a specific prop cache id.
    *
-   * @param propStoreKey
-   *          the prop cache id
+   * @param propStoreKey the prop cache id
    * @return an immutable copy of listeners.
    */
   private Set<PropChangeListener> getListenerSnapshot(final PropStoreKey<?> propStoreKey) {

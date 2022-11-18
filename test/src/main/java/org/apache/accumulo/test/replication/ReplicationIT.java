@@ -729,10 +729,11 @@ public class ReplicationIT extends ConfigurableMacBase {
         client.tableOperations().flush(table, null, null, true);
       }
 
-      for (String table : Arrays.asList(MetadataTable.NAME, table1, table2, table3))
+      for (String table : Arrays.asList(MetadataTable.NAME, table1, table2, table3)) {
         try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
           scanner.forEach((k, v) -> {});
         }
+      }
     }
   }
 

@@ -137,10 +137,12 @@ public class IndexedDocIterator extends IntersectingIterator {
   public synchronized void init(SortedKeyValueIterator<Key,Value> source,
       Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    if (options.containsKey(indexFamilyOptionName))
+    if (options.containsKey(indexFamilyOptionName)) {
       indexColf = new Text(options.get(indexFamilyOptionName));
-    if (options.containsKey(docFamilyOptionName))
+    }
+    if (options.containsKey(docFamilyOptionName)) {
       docColf = new Text(options.get(docFamilyOptionName));
+    }
     docSource = source.deepCopy(env);
     indexColfSet = Collections
         .singleton(new ArrayByteSequence(indexColf.getBytes(), 0, indexColf.getLength()));
@@ -165,10 +167,12 @@ public class IndexedDocIterator extends IntersectingIterator {
   @Override
   protected void advanceToIntersection() throws IOException {
     super.advanceToIntersection();
-    if (topKey == null)
+    if (topKey == null) {
       return;
-    if (log.isTraceEnabled())
+    }
+    if (log.isTraceEnabled()) {
       log.trace("using top key to seek for doc: {}", topKey);
+    }
     Key docKey = buildDocKey();
     docSource.seek(new Range(docKey, true, null, false), docColfSet, true);
     log.debug("got doc key: {}", docSource.getTopKey());
@@ -179,32 +183,34 @@ public class IndexedDocIterator extends IntersectingIterator {
   }
 
   protected Key buildDocKey() {
-    if (log.isTraceEnabled())
+    if (log.isTraceEnabled()) {
       log.trace("building doc key for {} {}", currentPartition, currentDocID);
+    }
     int zeroIndex = currentDocID.find("\0");
-    if (zeroIndex < 0)
+    if (zeroIndex < 0) {
       throw new IllegalArgumentException("bad current docID");
+    }
     Text colf = new Text(docColf);
     colf.append(nullByte, 0, 1);
     colf.append(currentDocID.getBytes(), 0, zeroIndex);
     docColfSet = Collections.singleton(new ArrayByteSequence(colf.getBytes(), 0, colf.getLength()));
-    if (log.isTraceEnabled())
+    if (log.isTraceEnabled()) {
       log.trace("{} {}", zeroIndex, currentDocID.getLength());
+    }
     Text colq = new Text();
     colq.set(currentDocID.getBytes(), zeroIndex + 1, currentDocID.getLength() - zeroIndex - 1);
     Key k = new Key(currentPartition, colf, colq);
-    if (log.isTraceEnabled())
+    if (log.isTraceEnabled()) {
       log.trace("built doc key for seek: {}", k);
+    }
     return k;
   }
 
   /**
    * A convenience method for setting the index column family.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param indexColf
-   *          the index column family
+   * @param is IteratorSetting object to configure.
+   * @param indexColf the index column family
    */
   public static void setIndexColf(IteratorSetting is, String indexColf) {
     is.addOption(indexFamilyOptionName, indexColf);
@@ -213,11 +219,9 @@ public class IndexedDocIterator extends IntersectingIterator {
   /**
    * A convenience method for setting the document column family prefix.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param docColfPrefix
-   *          the prefix of the document column family (colf will be of the form
-   *          docColfPrefix\0doctype)
+   * @param is IteratorSetting object to configure.
+   * @param docColfPrefix the prefix of the document column family (colf will be of the form
+   *        docColfPrefix\0doctype)
    */
   public static void setDocColfPrefix(IteratorSetting is, String docColfPrefix) {
     is.addOption(docFamilyOptionName, docColfPrefix);
@@ -226,13 +230,10 @@ public class IndexedDocIterator extends IntersectingIterator {
   /**
    * A convenience method for setting the index column family and document column family prefix.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param indexColf
-   *          the index column family
-   * @param docColfPrefix
-   *          the prefix of the document column family (colf will be of the form
-   *          docColfPrefix\0doctype)
+   * @param is IteratorSetting object to configure.
+   * @param indexColf the index column family
+   * @param docColfPrefix the prefix of the document column family (colf will be of the form
+   *        docColfPrefix\0doctype)
    */
   public static void setColfs(IteratorSetting is, String indexColf, String docColfPrefix) {
     setIndexColf(is, indexColf);

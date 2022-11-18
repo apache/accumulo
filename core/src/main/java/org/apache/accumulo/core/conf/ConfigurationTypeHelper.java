@@ -42,8 +42,7 @@ public class ConfigurationTypeHelper {
    * Interprets a string specifying bytes. A bytes type is specified as a long integer followed by
    * an optional B (bytes), K (KB), M (MB), or G (GB).
    *
-   * @param str
-   *          String value
+   * @param str String value
    * @return interpreted memory size in bytes
    */
   public static long getFixedMemoryAsBytes(String str) {
@@ -84,8 +83,7 @@ public class ConfigurationTypeHelper {
    * Interprets a string specifying a Memory type which is specified as a long integer followed by
    * an optional B (bytes), K (KB), M (MB), G (GB) or % (percentage).
    *
-   * @param str
-   *          String value
+   * @param str String value
    * @return interpreted memory size in bytes
    */
   public static long getMemoryAsBytes(String str) {
@@ -111,8 +109,7 @@ public class ConfigurationTypeHelper {
    * followed by an optional d (days), h (hours), m (minutes), s (seconds), or ms (milliseconds). A
    * value without a unit is interpreted as seconds.
    *
-   * @param str
-   *          string value
+   * @param str string value
    * @return interpreted time duration in milliseconds
    */
   public static long getTimeInMillis(String str) {
@@ -147,13 +144,13 @@ public class ConfigurationTypeHelper {
    * Interprets a string specifying a fraction. A fraction is specified as a double. An optional %
    * at the end signifies a percentage.
    *
-   * @param str
-   *          string value
+   * @param str string value
    * @return interpreted fraction as a decimal value
    */
   public static double getFraction(String str) {
-    if (!str.isEmpty() && str.charAt(str.length() - 1) == '%')
+    if (!str.isEmpty() && str.charAt(str.length() - 1) == '%') {
       return Double.parseDouble(str.substring(0, str.length() - 1)) / 100.0;
+    }
     return Double.parseDouble(str);
   }
 
@@ -164,14 +161,10 @@ public class ConfigurationTypeHelper {
    * Loads a class in the given classloader context, suppressing any exceptions, and optionally
    * providing a default instance to use.
    *
-   * @param context
-   *          the per-table context, can be null
-   * @param clazzName
-   *          the name of the class to load
-   * @param base
-   *          the type of the class
-   * @param defaultInstance
-   *          a default instance if the class cannot be loaded
+   * @param context the per-table context, can be null
+   * @param clazzName the name of the class to load
+   * @param base the type of the class
+   * @param defaultInstance a default instance if the class cannot be loaded
    * @return a new instance of the class, or the defaultInstance
    */
   public static <T> T getClassInstance(String context, String clazzName, Class<T> base,
@@ -194,12 +187,9 @@ public class ConfigurationTypeHelper {
   /**
    * Loads a class in the given classloader context.
    *
-   * @param context
-   *          the per-table context, can be null
-   * @param clazzName
-   *          the name of the class to load
-   * @param base
-   *          the type of the class
+   * @param context the per-table context, can be null
+   * @param clazzName the name of the class to load
+   * @param base the type of the class
    * @return a new instance of the class
    */
   public static <T> T getClassInstance(String context, String clazzName, Class<T> base)
@@ -208,8 +198,9 @@ public class ConfigurationTypeHelper {
 
     Class<? extends T> clazz = ClassLoaderUtil.loadClass(context, clazzName, base);
     instance = clazz.getDeclaredConstructor().newInstance();
-    if (loaded.put(clazzName, clazz) != clazz)
+    if (loaded.put(clazzName, clazz) != clazz) {
       log.debug("Loaded class : {}", clazzName);
+    }
 
     return instance;
   }

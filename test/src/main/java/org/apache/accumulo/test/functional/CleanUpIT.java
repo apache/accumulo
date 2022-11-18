@@ -157,12 +157,14 @@ public class CleanUpIT extends SharedMiniClusterBase {
     for (Thread thread : threads) {
 
       if (thread.getName().toLowerCase().contains("sendthread")
-          || thread.getName().toLowerCase().contains("eventthread"))
+          || thread.getName().toLowerCase().contains("eventthread")) {
         count++;
+      }
 
       if (thread.getName().toLowerCase().contains("thrift")
-          && thread.getName().toLowerCase().contains("pool"))
+          && thread.getName().toLowerCase().contains("pool")) {
         count++;
+      }
     }
 
     return count;

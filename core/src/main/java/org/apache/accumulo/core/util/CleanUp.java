@@ -50,8 +50,7 @@ public class CleanUp {
    * kills all threads created by internal Accumulo singleton resources. After this method is
    * called, no Connector will work in the current classloader.
    *
-   * @param conn
-   *          If available, Connector object to close resources on. Will accept null otherwise.
+   * @param conn If available, Connector object to close resources on. Will accept null otherwise.
    */
   public static void shutdownNow(Connector conn) {
     SingletonManager.setMode(Mode.CLIENT);

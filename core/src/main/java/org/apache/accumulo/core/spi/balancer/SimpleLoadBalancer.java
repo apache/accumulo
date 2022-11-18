@@ -94,8 +94,9 @@ public class SimpleLoadBalancer implements TabletBalancer {
 
   public TabletServerId getAssignment(SortedMap<TabletServerId,TServerStatus> locations,
       TabletServerId last) {
-    if (locations.isEmpty())
+    if (locations.isEmpty()) {
       return null;
+    }
 
     if (last != null) {
       // Maintain locality
@@ -104,16 +105,18 @@ public class SimpleLoadBalancer implements TabletBalancer {
       Iterator<TabletServerId> find = locations.tailMap(simple).keySet().iterator();
       if (find.hasNext()) {
         TabletServerId current = find.next();
-        if (current.getHost().equals(last.getHost()))
+        if (current.getHost().equals(last.getHost())) {
           return current;
+        }
       }
     }
 
     // The strategy here is to walk through the locations and hand them back, one at a time
     // Grab an iterator off of the set of options; use a new iterator if it hands back something not
     // in the current list.
-    if (assignments == null || !assignments.hasNext())
+    if (assignments == null || !assignments.hasNext()) {
       assignments = randomize(locations.keySet()).iterator();
+    }
     TabletServerId result = assignments.next();
     if (!locations.containsKey(result)) {
       assignments = null;
@@ -146,8 +149,9 @@ public class SimpleLoadBalancer implements TabletBalancer {
     @Override
     public int compareTo(ServerCounts obj) {
       int result = count - obj.count;
-      if (result == 0)
+      if (result == 0) {
         return server.compareTo(obj.server);
+      }
       return result;
     }
   }
@@ -173,8 +177,9 @@ public class SimpleLoadBalancer implements TabletBalancer {
              * The check below was on entry.getKey(), but that resolves to a tabletserver not a
              * tablename. Believe it should be e.getKey() which is a tablename
              */
-            if (tableToBalance == null || tableToBalance.canonical().equals(e.getKey()))
+            if (tableToBalance == null || tableToBalance.canonical().equals(e.getKey())) {
               serverTotal += e.getValue().getOnlineTabletCount();
+            }
           }
         }
         totals.add(new ServerCounts(serverTotal, entry.getKey(), entry.getValue()));
@@ -257,8 +262,9 @@ public class SimpleLoadBalancer implements TabletBalancer {
             log.warn("Unable to find tablets to move");
             return result;
           }
-          for (TabletStatistics stat : stats)
+          for (TabletStatistics stat : stats) {
             onlineTabletsForTable.put(stat.getTabletId(), stat);
+          }
           donerTabletStats.put(table, onlineTabletsForTable);
         }
       } catch (Exception ex) {
@@ -267,8 +273,9 @@ public class SimpleLoadBalancer implements TabletBalancer {
       }
       TabletId tabletId = selectTablet(onlineTabletsForTable);
       onlineTabletsForTable.remove(tabletId);
-      if (tabletId == null)
+      if (tabletId == null) {
         return result;
+      }
       tooMuchMap.put(table, tooMuchMap.get(table) - 1);
       /*
        * If a table grows from 1 tablet then tooLittleMap.get(table) can return a null, since there
@@ -324,15 +331,17 @@ public class SimpleLoadBalancer implements TabletBalancer {
   }
 
   static TabletId selectTablet(Map<TabletId,TabletStatistics> extents) {
-    if (extents.isEmpty())
+    if (extents.isEmpty()) {
       return null;
+    }
     TabletId mostRecentlySplit = null;
     long splitTime = 0;
-    for (Entry<TabletId,TabletStatistics> entry : extents.entrySet())
+    for (Entry<TabletId,TabletStatistics> entry : extents.entrySet()) {
       if (entry.getValue().getSplitCreationTime() >= splitTime) {
         splitTime = entry.getValue().getSplitCreationTime();
         mostRecentlySplit = entry.getKey();
       }
+    }
     return mostRecentlySplit;
   }
 
@@ -372,8 +381,9 @@ public class SimpleLoadBalancer implements TabletBalancer {
       // Don't migrate if we have migrations in progress
       if (params.currentMigrations().isEmpty()) {
         problemReporter.clearProblemReportTimes();
-        if (getMigrations(params.currentStatus(), params.migrationsOut()))
+        if (getMigrations(params.currentStatus(), params.migrationsOut())) {
           return SECONDS.toMillis(1);
+        }
       } else {
         outstandingMigrationsProblem.setMigrations(params.currentMigrations());
         problemReporter.reportProblem(outstandingMigrationsProblem);

@@ -65,8 +65,9 @@ public class RenameNamespace extends ManagerRepo {
 
       zoo.mutateExisting(tap, current -> {
         final String currentName = new String(current, UTF_8);
-        if (currentName.equals(newName))
+        if (currentName.equals(newName)) {
           return null; // assume in this case the operation is running again, so we are done
+        }
         if (!currentName.equals(oldName)) {
           throw new AcceptableThriftTableOperationException(null, oldName, TableOperation.RENAME,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "Name changed while processing");

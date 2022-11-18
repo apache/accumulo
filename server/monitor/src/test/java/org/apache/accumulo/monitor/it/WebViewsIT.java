@@ -122,8 +122,7 @@ public class WebViewsIT extends JerseyTest {
    * a registered MessageBodyWriter capable of serializing/writing the object returned from your
    * endpoint. We're using a simple stubbed out inner class HashMapWriter for this.
    *
-   * @throws Exception
-   *           not expected
+   * @throws Exception not expected
    */
   @Test
   public void testGetTablesConstraintPassing() throws Exception {

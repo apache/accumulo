@@ -163,8 +163,9 @@ public class SortedLogRecovery {
 
   private String getPathSuffix(String pathString) {
     Path path = new Path(pathString);
-    if (path.depth() < 2)
+    if (path.depth() < 2) {
       throw new IllegalArgumentException("Bad path " + pathString);
+    }
     return path.getParent().getName() + "/" + path.getName();
   }
 
@@ -197,8 +198,9 @@ public class SortedLogRecovery {
   private long findRecoverySeq(List<Path> recoveryLogs, Set<String> tabletFiles, int tabletId)
       throws IOException {
     HashSet<String> suffixes = new HashSet<>();
-    for (String path : tabletFiles)
+    for (String path : tabletFiles) {
       suffixes.add(getPathSuffix(path));
+    }
 
     long lastStart = 0;
     long lastFinish = 0;

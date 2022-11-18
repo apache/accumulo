@@ -135,8 +135,7 @@ public class ZooPropLoaderTest {
   /**
    * Verify that first call loads from ZooKeeper, then second call returns from the cache.
    *
-   * @throws Exception
-   *           any exception is a test failure.
+   * @throws Exception any exception is a test failure.
    */
   @Test
   public void loadAndCacheTest() throws Exception {
@@ -250,8 +249,7 @@ public class ZooPropLoaderTest {
    * Test that a ZooKeeper exception on an async reload task is correctly handed and that the value
    * is removed from the cache when the refresh fails and the next get.
    *
-   * @throws Exception
-   *           if a test error occurs.
+   * @throws Exception if a test error occurs.
    */
   @Test
   public void reloadExceptionTest() throws Exception {

@@ -152,8 +152,9 @@ public class FileManager {
 
   public FileManager(ServerContext context, int maxOpen, Cache<String,Long> fileLenCache) {
 
-    if (maxOpen <= 0)
+    if (maxOpen <= 0) {
       throw new IllegalArgumentException("maxOpen <= 0");
+    }
     this.context = context;
     this.fileLenCache = fileLenCache;
 
@@ -298,8 +299,9 @@ public class FileManager {
     // open any files that need to be opened
     for (String file : filesToOpen) {
       try {
-        if (!file.contains(":"))
+        if (!file.contains(":")) {
           throw new IllegalArgumentException("Expected uri, got : " + file);
+        }
         Path path = new Path(file);
         FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
         // log.debug("Opening "+file + " path " + path);
@@ -365,14 +367,16 @@ public class FileManager {
 
       for (FileSKVIterator reader : readers) {
         String fileName = reservedReaders.remove(reader);
-        if (!sawIOException)
+        if (!sawIOException) {
           openFiles.computeIfAbsent(fileName, k -> new ArrayList<>())
               .add(new OpenReader(fileName, reader));
+        }
       }
     }
 
-    if (sawIOException)
+    if (sawIOException) {
       closeReaders(readers);
+    }
 
     // decrement the semaphore
     if (!tablet.isMeta()) {
@@ -546,13 +550,15 @@ public class FileManager {
       releaseReaders(tablet, tabletReservedReaders, false);
       tabletReservedReaders.clear();
 
-      for (FileDataSource fds : dataSources)
+      for (FileDataSource fds : dataSources) {
         fds.unsetIterator();
+      }
     }
 
     public synchronized void reattach(SamplerConfigurationImpl samplerConfig) throws IOException {
-      if (!tabletReservedReaders.isEmpty())
+      if (!tabletReservedReaders.isEmpty()) {
         throw new IllegalStateException();
+      }
 
       List<String> files = dataSources.stream().map(x -> x.file).collect(Collectors.toList());
       Map<FileSKVIterator,String> newlyReservedReaders = openFiles(files);

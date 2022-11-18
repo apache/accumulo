@@ -77,12 +77,9 @@ public class GarbageCollectWriteAheadLogs {
   /**
    * Creates a new GC WAL object.
    *
-   * @param context
-   *          the collection server's context
-   * @param fs
-   *          volume manager to use
-   * @param useTrash
-   *          true to move files to trash rather than delete them
+   * @param context the collection server's context
+   * @param fs volume manager to use
+   * @param useTrash true to move files to trash rather than delete them
    */
   GarbageCollectWriteAheadLogs(final ServerContext context, final VolumeManager fs,
       final LiveTServerSet liveServers, boolean useTrash) {
@@ -100,14 +97,10 @@ public class GarbageCollectWriteAheadLogs {
   /**
    * Creates a new GC WAL object. Meant for testing -- allows mocked objects.
    *
-   * @param context
-   *          the collection server's context
-   * @param fs
-   *          volume manager to use
-   * @param useTrash
-   *          true to move files to trash rather than delete them
-   * @param liveTServerSet
-   *          a started LiveTServerSet instance
+   * @param context the collection server's context
+   * @param fs volume manager to use
+   * @param useTrash true to move files to trash rather than delete them
+   * @param liveTServerSet a started LiveTServerSet instance
    */
   @VisibleForTesting
   GarbageCollectWriteAheadLogs(ServerContext context, VolumeManager fs, boolean useTrash,
@@ -391,8 +384,7 @@ public class GarbageCollectWriteAheadLogs {
   /**
    * Scans log markers. The map passed in is populated with the log ids.
    *
-   * @param logsByServer
-   *          map of dead server to log file entries
+   * @param logsByServer map of dead server to log file entries
    * @return total number of log files
    */
   private long getCurrent(Map<TServerInstance,Set<UUID>> logsByServer,

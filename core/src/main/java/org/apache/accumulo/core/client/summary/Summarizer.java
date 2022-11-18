@@ -199,8 +199,7 @@ public interface Summarizer {
      * table property {@code table.file.summary.maxSize}. The number of files that exceeded the
      * summary size is reported by {@link Summary.FileStatistics#getLarge()}.
      *
-     * @param sc
-     *          Emit statistics to this Object.
+     * @param sc Emit statistics to this Object.
      */
     void summarize(StatisticConsumer sc);
   }

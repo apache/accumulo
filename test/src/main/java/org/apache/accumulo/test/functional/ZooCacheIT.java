@@ -75,8 +75,9 @@ public class ZooCacheIT extends ConfigurableMacBase {
         exec(CacheTestWriter.class, pathName, testDir.getAbsolutePath(), "3", "50").waitFor());
     for (Thread t : threads) {
       t.join();
-      if (ref.get() != null)
+      if (ref.get() != null) {
         throw ref.get();
+      }
     }
   }
 

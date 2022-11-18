@@ -73,10 +73,12 @@ public class ColumnFQ implements Comparable<ColumnFQ> {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof ColumnFQ))
+    if (!(o instanceof ColumnFQ)) {
       return false;
-    if (this == o)
+    }
+    if (this == o) {
       return true;
+    }
     ColumnFQ ocfq = (ColumnFQ) o;
     return ocfq.colf.equals(colf) && ocfq.colq.equals(colq);
   }
@@ -98,8 +100,9 @@ public class ColumnFQ implements Comparable<ColumnFQ> {
   public int compareTo(ColumnFQ o) {
     int cmp = colf.compareTo(o.colf);
 
-    if (cmp == 0)
+    if (cmp == 0) {
       cmp = colq.compareTo(o.colq);
+    }
 
     return cmp;
   }

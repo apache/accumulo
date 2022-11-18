@@ -141,12 +141,14 @@ public class TableManager {
     try {
       zoo.mutateOrCreate(statePath, newState.name().getBytes(UTF_8), oldData -> {
         TableState oldState = TableState.UNKNOWN;
-        if (oldData != null)
+        if (oldData != null) {
           oldState = TableState.valueOf(new String(oldData, UTF_8));
+        }
 
         // this check makes the transition operation idempotent
-        if (oldState == newState)
+        if (oldState == newState) {
           return null; // already at desired state, so nothing to do
+        }
 
         boolean transition = true;
         // +--------+
@@ -166,8 +168,9 @@ public class TableManager {
             transition = false;
             break;
         }
-        if (!transition)
+        if (!transition) {
           throw new IllegalTableTransitionException(oldState, newState);
+        }
         log.debug("Transitioning state for table {} from {} to {}", tableId, oldState, newState);
         return newState.name().getBytes(UTF_8);
       });
@@ -179,10 +182,12 @@ public class TableManager {
 
   private void updateTableStateCache() {
     synchronized (tableStateCache) {
-      for (String tableId : zooStateCache.getChildren(zkRoot + Constants.ZTABLES))
+      for (String tableId : zooStateCache.getChildren(zkRoot + Constants.ZTABLES)) {
         if (zooStateCache.get(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE)
-            != null)
+            != null) {
           updateTableStateCache(TableId.of(tableId));
+        }
+      }
     }
   }
 
@@ -263,8 +268,9 @@ public class TableManager {
         String suffix = zPath.substring(tablesPrefix.length() + 1);
         if (suffix.contains("/")) {
           String[] sa = suffix.split("/", 2);
-          if (Constants.ZTABLE_STATE.equals("/" + sa[1]))
+          if (Constants.ZTABLE_STATE.equals("/" + sa[1])) {
             tableId = TableId.of(sa[0]);
+          }
         }
         if (tableId == null) {
           log.warn("Unknown path in {}", event);
@@ -286,24 +292,27 @@ public class TableManager {
           TableState tState = updateTableStateCache(tableId);
           log.debug("State transition to {} @ {}", tState, event);
           synchronized (observers) {
-            for (TableObserver to : observers)
+            for (TableObserver to : observers) {
               to.stateChanged(tableId, tState);
+            }
           }
           break;
         case NodeDeleted:
           if (zPath != null && tableId != null
               && (zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_STATE)
                   || zPath.equals(tablesPrefix + "/" + tableId + Constants.ZCONFIG)
-                  || zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_NAME)))
+                  || zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_NAME))) {
             tableStateCache.remove(tableId);
+          }
           break;
         case None:
           switch (event.getState()) {
             case Expired:
               log.trace("Session expired; {}", event);
               synchronized (observers) {
-                for (TableObserver to : observers)
+                for (TableObserver to : observers) {
                   to.sessionExpired();
+                }
               }
               break;
             case SyncConnected:

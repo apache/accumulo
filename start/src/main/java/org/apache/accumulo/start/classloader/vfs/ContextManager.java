@@ -46,8 +46,9 @@ class ContextManager {
     }
 
     synchronized ClassLoader getClassLoader() throws FileSystemException {
-      if (closed)
+      if (closed) {
         return null;
+      }
 
       if (loader == null) {
         log.debug(
@@ -151,8 +152,9 @@ class ContextManager {
    * configuration must be injected for ContextManager to work
    */
   public synchronized void setContextConfig(ContextsConfig config) {
-    if (this.config != null)
+    if (this.config != null) {
       throw new IllegalStateException("Context manager config already set");
+    }
     this.config = config;
   }
 
@@ -160,8 +162,9 @@ class ContextManager {
 
     ContextConfig cconfig = config.getContextConfig(contextName);
 
-    if (cconfig == null)
+    if (cconfig == null) {
       throw new IllegalArgumentException("Unknown context " + contextName);
+    }
 
     Context context = null;
     Context contextToClose = null;
@@ -182,8 +185,9 @@ class ContextManager {
       }
     }
 
-    if (contextToClose != null)
+    if (contextToClose != null) {
       contextToClose.close();
+    }
 
     ClassLoader loader = context.getClassLoader();
     if (loader == null) {

@@ -79,15 +79,18 @@ public class Scanner {
 
       // sawException may have occurred within close, so we cannot assume that an interrupted
       // exception was its cause
-      if (sawException)
+      if (sawException) {
         throw new IllegalStateException("Tried to use scanner after exception occurred.");
+      }
 
-      if (scanClosed)
+      if (scanClosed) {
         throw new IllegalStateException("Tried to use scanner after it was closed.");
+      }
 
       if (scanParams.isIsolated()) {
-        if (isolatedDataSource == null)
+        if (isolatedDataSource == null) {
           isolatedDataSource = tablet.createDataSource(scanParams, true, interruptFlag);
+        }
         dataSource = isolatedDataSource;
       } else {
         dataSource = tablet.createDataSource(scanParams, true, interruptFlag);
@@ -96,10 +99,11 @@ public class Scanner {
       SortedKeyValueIterator<Key,Value> iter;
 
       if (scanParams.isIsolated()) {
-        if (isolatedIter == null)
+        if (isolatedIter == null) {
           isolatedIter = new SourceSwitchingIterator(dataSource, true);
-        else
+        } else {
           isolatedDataSource.reattachFileManager();
+        }
         iter = isolatedIter;
       } else {
         iter = new SourceSwitchingIterator(dataSource, false);
@@ -120,10 +124,11 @@ public class Scanner {
 
     } catch (IterationInterruptedException iie) {
       sawException = true;
-      if (tablet.isClosed())
+      if (tablet.isClosed()) {
         throw new TabletClosedException(iie);
-      else
+      } else {
         throw iie;
+      }
     } catch (IOException ioe) {
       if (ShutdownUtil.wasCausedByHadoopShutdown(ioe)) {
         log.debug("IOException while shutdown in progress ", ioe);
@@ -151,8 +156,9 @@ public class Scanner {
         dataSource.detachFileManager();
       }
 
-      if (results != null && results.getResults() != null)
+      if (results != null && results.getResults() != null) {
         tablet.updateQueryStats(results.getResults().size(), results.getNumBytes());
+      }
 
       scannerSemaphore.release();
     }
@@ -168,17 +174,20 @@ public class Scanner {
     boolean obtainedLock = false;
     try {
       obtainedLock = scannerSemaphore.tryAcquire(10, TimeUnit.MILLISECONDS);
-      if (!obtainedLock)
+      if (!obtainedLock) {
         return false;
+      }
 
       scanClosed = true;
-      if (isolatedDataSource != null)
+      if (isolatedDataSource != null) {
         isolatedDataSource.close(false);
+      }
     } catch (InterruptedException e) {
       return false;
     } finally {
-      if (obtainedLock)
+      if (obtainedLock) {
         scannerSemaphore.release();
+      }
     }
     return true;
   }

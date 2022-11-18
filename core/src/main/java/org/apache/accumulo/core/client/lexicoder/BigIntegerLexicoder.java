@@ -47,8 +47,9 @@ public class BigIntegerLexicoder extends AbstractLexicoder<BigInteger> {
       bytes[0] = (byte) (0x80 ^ bytes[0]);
 
       int len = bytes.length;
-      if (v.signum() < 0)
+      if (v.signum() < 0) {
         len = -len;
+      }
 
       len = len ^ 0x80000000;
 

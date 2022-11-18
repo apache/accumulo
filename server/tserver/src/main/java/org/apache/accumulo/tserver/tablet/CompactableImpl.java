@@ -393,8 +393,9 @@ public class CompactableImpl implements Compactable {
 
       switch (kind) {
         case SYSTEM: {
-          if (isCompactionStratConfigured)
+          if (isCompactionStratConfigured) {
             return Set.of();
+          }
 
           return handleSystemCompaction(currFiles);
         }
@@ -418,14 +419,16 @@ public class CompactableImpl implements Compactable {
           return Set.of();
         case SELECTED: {
           if (selectStatus == FileSelectionStatus.NEW
-              || selectStatus == FileSelectionStatus.SELECTING)
+              || selectStatus == FileSelectionStatus.SELECTING) {
             return Set.of();
+          }
 
           var filesToChop = getFilesToChop(currFiles);
           filesToChop.removeAll(allCompactingFiles);
           if (selectStatus == FileSelectionStatus.SELECTED
-              || selectStatus == FileSelectionStatus.RESERVED)
+              || selectStatus == FileSelectionStatus.RESERVED) {
             filesToChop.removeAll(selectedFiles);
+          }
           return Collections.unmodifiableSet(filesToChop);
         }
         default:
@@ -573,8 +576,7 @@ public class CompactableImpl implements Compactable {
     /**
      * Releases a set of files that were previously reserved for compaction.
      *
-     * @param newFile
-     *          The file produced by a compaction. If the compaction failed, this can be null.
+     * @param newFile The file produced by a compaction. If the compaction failed, this can be null.
      */
     void completed(CompactionJob job, Set<StoredTabletFile> jobFiles,
         Optional<StoredTabletFile> newFile) {
@@ -824,8 +826,9 @@ public class CompactableImpl implements Compactable {
   }
 
   private void initiateSelection(CompactionKind kind) {
-    if (kind != CompactionKind.SELECTOR)
+    if (kind != CompactionKind.SELECTOR) {
       return;
+    }
 
     initiateSelection(CompactionKind.SELECTOR, null, null);
   }
@@ -833,8 +836,9 @@ public class CompactableImpl implements Compactable {
   private void checkIfUserCompactionCanceled() {
 
     synchronized (this) {
-      if (closed)
+      if (closed) {
         return;
+      }
 
       if (!fileMgr.isSelected(CompactionKind.USER)) {
         return;
@@ -991,8 +995,9 @@ public class CompactableImpl implements Compactable {
       return Optional.empty();
     }
 
-    if (extKind != null)
+    if (extKind != null) {
       return Optional.of(new SelectedInfo(initiallySelAll, tmpSelectedFiles, extKind));
+    }
 
     return Optional.empty();
   }
@@ -1003,12 +1008,14 @@ public class CompactableImpl implements Compactable {
 
     var localHelper = CompactableUtils.getHelper(kind, tablet, compactionId, compactionConfig);
 
-    if (localHelper == null)
+    if (localHelper == null) {
       return;
+    }
 
     synchronized (this) {
-      if (closed)
+      if (closed) {
         return;
+      }
 
       if (fileMgr.initiateSelection(kind)) {
         this.chelper = localHelper;
@@ -1089,8 +1096,9 @@ public class CompactableImpl implements Compactable {
   @Override
   public Optional<Files> getFiles(CompactionServiceId service, CompactionKind kind) {
 
-    if (!service.equals(getConfiguredService(kind)))
+    if (!service.equals(getConfiguredService(kind))) {
       return Optional.empty();
+    }
 
     servicesUsed.add(service);
 
@@ -1099,13 +1107,15 @@ public class CompactableImpl implements Compactable {
     // very important to call following outside of lock
     initiateSelection(kind);
 
-    if (kind == CompactionKind.USER)
+    if (kind == CompactionKind.USER) {
       checkIfUserCompactionCanceled();
+    }
 
     synchronized (this) {
 
-      if (closed)
+      if (closed) {
         return Optional.empty();
+      }
 
       var runningJobsCopy = Set.copyOf(runningJobs);
 
@@ -1133,8 +1143,9 @@ public class CompactableImpl implements Compactable {
       }, 3, TimeUnit.SECONDS);
       this.inexpensiveCheck = Suppliers.memoizeWithExpiration(() -> {
         if (closed
-            || (kind == CompactionKind.USER && lastSeenCompactionCancelId.get() >= compactionId))
+            || (kind == CompactionKind.USER && lastSeenCompactionCancelId.get() >= compactionId)) {
           return false;
+        }
         return true;
       }, 50, TimeUnit.MILLISECONDS);
     }
@@ -1168,21 +1179,26 @@ public class CompactableImpl implements Compactable {
     cInfo.jobFiles = job.getFiles().stream()
         .map(cf -> ((CompactableFileImpl) cf).getStoredTabletFile()).collect(Collectors.toSet());
 
-    if (job.getKind() == CompactionKind.USER)
+    if (job.getKind() == CompactionKind.USER) {
       checkIfUserCompactionCanceled();
+    }
 
     synchronized (this) {
-      if (closed)
+      if (closed) {
         return Optional.empty();
+      }
 
-      if (runningJobs.contains(job))
+      if (runningJobs.contains(job)) {
         return Optional.empty();
+      }
 
-      if (!service.equals(getConfiguredService(job.getKind())))
+      if (!service.equals(getConfiguredService(job.getKind()))) {
         return Optional.empty();
+      }
 
-      if (!fileMgr.reserveFiles(job, cInfo.jobFiles))
+      if (!fileMgr.reserveFiles(job, cInfo.jobFiles)) {
         return Optional.empty();
+      }
 
       if (!addJob(job)) {
         throw new AssertionError();
@@ -1258,8 +1274,9 @@ public class CompactableImpl implements Compactable {
       RateLimiter writeLimiter, long queuedTime) {
 
     Optional<CompactionInfo> ocInfo = reserveFilesForCompaction(service, job);
-    if (ocInfo.isEmpty())
+    if (ocInfo.isEmpty()) {
       return;
+    }
 
     var cInfo = ocInfo.get();
     Optional<StoredTabletFile> newFile = Optional.empty();
@@ -1307,8 +1324,9 @@ public class CompactableImpl implements Compactable {
     Preconditions.checkState(!tablet.getExtent().isMeta());
 
     Optional<CompactionInfo> ocInfo = reserveFilesForCompaction(service, job);
-    if (ocInfo.isEmpty())
+    if (ocInfo.isEmpty()) {
       return null;
+    }
 
     var cInfo = ocInfo.get();
 
@@ -1354,8 +1372,9 @@ public class CompactableImpl implements Compactable {
       long entries) {
 
     synchronized (this) {
-      if (closed)
+      if (closed) {
         return;
+      }
 
       // defend against multiple threads trying to commit the same ECID and force tablet close to
       // wait on any pending commits
@@ -1407,8 +1426,9 @@ public class CompactableImpl implements Compactable {
   public void externalCompactionFailed(ExternalCompactionId ecid) {
 
     synchronized (this) {
-      if (closed)
+      if (closed) {
         return;
+      }
 
       if (!externalCompactionsCommitting.add(ecid)) {
         return;
@@ -1523,8 +1543,9 @@ public class CompactableImpl implements Compactable {
    */
   public synchronized void close() {
     synchronized (this) {
-      if (closed)
+      if (closed) {
         return;
+      }
 
       closed = true;
 

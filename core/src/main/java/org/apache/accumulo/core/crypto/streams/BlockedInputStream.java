@@ -37,12 +37,14 @@ public class BlockedInputStream extends InputStream {
   boolean finished = false;
 
   public BlockedInputStream(InputStream in, int blockSize, int maxSize) {
-    if (blockSize == 0)
+    if (blockSize == 0) {
       throw new RuntimeException("Invalid block size");
-    if (in instanceof DataInputStream)
+    }
+    if (in instanceof DataInputStream) {
       this.in = (DataInputStream) in;
-    else
+    } else {
       this.in = new DataInputStream(in);
+    }
 
     array = new byte[maxSize];
     readPos = 0;
@@ -53,19 +55,21 @@ public class BlockedInputStream extends InputStream {
 
   @Override
   public int read() throws IOException {
-    if (remaining() > 0)
+    if (remaining() > 0) {
       return (array[readAndIncrement(1)] & 0xFF);
+    }
     return -1;
   }
 
   private int readAndIncrement(int toAdd) {
     int toRet = readPos;
     readPos += toAdd;
-    if (readPos == array.length)
+    if (readPos == array.length) {
       readPos = 0;
-    else if (readPos > array.length)
+    } else if (readPos > array.length) {
       throw new RuntimeException(
           "Unexpected state, this should only ever increase or cycle on the boundary!");
+    }
     return toRet;
   }
 
@@ -80,10 +84,12 @@ public class BlockedInputStream extends InputStream {
   }
 
   private int remaining() throws IOException {
-    if (finished)
+    if (finished) {
       return -1;
-    if (available() == 0)
+    }
+    if (available() == 0) {
       refill();
+    }
 
     return available();
   }
@@ -92,14 +98,16 @@ public class BlockedInputStream extends InputStream {
   @Override
   public int available() {
     int toRet = writePos + 1 - readPos;
-    if (toRet < 0)
+    if (toRet < 0) {
       toRet += array.length;
+    }
     return Math.min(array.length - readPos, toRet);
   }
 
   private boolean refill() throws IOException {
-    if (finished)
+    if (finished) {
       return false;
+    }
     int size;
     try {
       size = in.readInt();
@@ -112,9 +120,10 @@ public class BlockedInputStream extends InputStream {
     if (size < 0 || size > array.length) {
       finished = true;
       return false;
-    } else if (size == 0)
+    } else if (size == 0) {
       throw new RuntimeException(
           "Empty block written, this shouldn't happen with this BlockedOutputStream.");
+    }
 
     // We have already checked, not concerned with looping the buffer here
     int bufferAvailable = array.length - readPos;
@@ -125,8 +134,9 @@ public class BlockedInputStream extends InputStream {
       in.readFully(array, writePos + 1, size);
     }
     writePos += size;
-    if (writePos >= array.length - 1)
+    if (writePos >= array.length - 1) {
       writePos -= array.length;
+    }
 
     // Skip the cruft
     int remainder = blockSize - ((size + 4) % blockSize);
@@ -144,8 +154,9 @@ public class BlockedInputStream extends InputStream {
 
   private void undoWrite(int size) {
     writePos = writePos - size;
-    if (writePos < -1)
+    if (writePos < -1) {
       writePos += array.length;
+    }
   }
 
   @Override

@@ -44,9 +44,10 @@ class CloneZookeeper extends ManagerRepo {
   @Override
   public long isReady(long tid, Manager environment) throws Exception {
     long val = 0;
-    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
+    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) {
       val += Utils.reserveNamespace(environment, cloneInfo.namespaceId, tid, false, true,
           TableOperation.CLONE);
+    }
     val +=
         Utils.reserveTable(environment, cloneInfo.tableId, tid, true, false, TableOperation.CLONE);
     return val;
@@ -75,8 +76,9 @@ class CloneZookeeper extends ManagerRepo {
   @Override
   public void undo(long tid, Manager environment) throws Exception {
     environment.getTableManager().removeTable(cloneInfo.tableId);
-    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
+    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) {
       Utils.unreserveNamespace(environment, cloneInfo.namespaceId, tid, false);
+    }
     Utils.unreserveTable(environment, cloneInfo.tableId, tid, true);
     environment.getContext().clearTableListCache();
   }

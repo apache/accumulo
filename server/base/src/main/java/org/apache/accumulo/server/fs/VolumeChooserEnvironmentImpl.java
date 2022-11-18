@@ -77,8 +77,9 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
    */
   @Override
   public Text getEndRow() {
-    if (scope != Scope.TABLE && scope != Scope.INIT)
+    if (scope != Scope.TABLE && scope != Scope.INIT) {
       throw new IllegalStateException("Can only request end row for tables, not for " + scope);
+    }
     return endRow;
   }
 

@@ -362,8 +362,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
   }
 
   /**
-   * @param rows
-   *          Array of strings
+   * @param rows Array of strings
    * @return A TreeSet of the given Strings mapped to {@link Text}
    */
   private SortedSet<Text> getSplits(String... rows) {

@@ -131,17 +131,23 @@ public class NamespacesIT extends SharedMiniClusterBase {
       return;
     }
     // clean up any added tables, namespaces, and users, after each test
-    for (String t : c.tableOperations().list())
-      if (!TableNameUtil.qualify(t).getFirst().equals(Namespace.ACCUMULO.name()))
+    for (String t : c.tableOperations().list()) {
+      if (!TableNameUtil.qualify(t).getFirst().equals(Namespace.ACCUMULO.name())) {
         c.tableOperations().delete(t);
+      }
+    }
     assertEquals(3, c.tableOperations().list().size());
-    for (String n : c.namespaceOperations().list())
-      if (!n.equals(Namespace.ACCUMULO.name()) && !n.equals(Namespace.DEFAULT.name()))
+    for (String n : c.namespaceOperations().list()) {
+      if (!n.equals(Namespace.ACCUMULO.name()) && !n.equals(Namespace.DEFAULT.name())) {
         c.namespaceOperations().delete(n);
+      }
+    }
     assertEquals(2, c.namespaceOperations().list().size());
-    for (String u : c.securityOperations().listLocalUsers())
-      if (!getAdminPrincipal().equals(u))
+    for (String u : c.securityOperations().listLocalUsers()) {
+      if (!getAdminPrincipal().equals(u)) {
         c.securityOperations().dropLocalUser(u);
+      }
+    }
     assertEquals(1, c.securityOperations().listLocalUsers().size());
 
     c.close();
@@ -477,8 +483,9 @@ public class NamespacesIT extends SharedMiniClusterBase {
     assertTrue(checkTableHasProp(t1, k2, k2v2));
 
     // clone twice, once in same namespace, once in another
-    for (String t : Arrays.asList(t2, t3))
+    for (String t : Arrays.asList(t2, t3)) {
       c.tableOperations().clone(t1, t, false, null, null);
+    }
 
     assertTrue(c.namespaceOperations().exists(namespace2));
     assertTrue(c.tableOperations().exists(t1));
@@ -1157,9 +1164,11 @@ public class NamespacesIT extends SharedMiniClusterBase {
       throws Exception {
     Map<String,String> props = nameIsTable ? c.tableOperations().getConfiguration(name)
         : c.namespaceOperations().getConfiguration(name);
-    for (Entry<String,String> e : props.entrySet())
-      if (propKey.equals(e.getKey()))
+    for (Entry<String,String> e : props.entrySet()) {
+      if (propKey.equals(e.getKey())) {
         return propVal.equals(e.getValue());
+      }
+    }
     return false;
   }
 

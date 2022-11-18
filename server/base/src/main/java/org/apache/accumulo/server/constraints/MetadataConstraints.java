@@ -102,25 +102,29 @@ public class MetadataConstraints implements Constraint {
 
   private static boolean isValidColumn(ColumnUpdate cu) {
 
-    if (validColumnFams.contains(new Text(cu.getColumnFamily())))
+    if (validColumnFams.contains(new Text(cu.getColumnFamily()))) {
       return true;
+    }
 
     return validColumnQuals.contains(new ColumnFQ(cu));
   }
 
   private static ArrayList<Short> addViolation(ArrayList<Short> lst, int violation) {
-    if (lst == null)
+    if (lst == null) {
       lst = new ArrayList<>();
+    }
     lst.add((short) violation);
     return lst;
   }
 
   private static ArrayList<Short> addIfNotPresent(ArrayList<Short> lst, int intViolation) {
-    if (lst == null)
+    if (lst == null) {
       return addViolation(null, intViolation);
+    }
     short violation = (short) intViolation;
-    if (!lst.contains(violation))
+    if (!lst.contains(violation)) {
       return addViolation(lst, intViolation);
+    }
     return lst;
   }
 
@@ -138,18 +142,21 @@ public class MetadataConstraints implements Constraint {
     byte[] row = mutation.getRow();
 
     // always allow rows that fall within reserved areas
-    if (row.length > 0 && row[0] == '~')
+    if (row.length > 0 && row[0] == '~') {
       return null;
-    if (row.length > 2 && row[0] == '!' && row[1] == '!' && row[2] == '~')
+    }
+    if (row.length > 2 && row[0] == '!' && row[1] == '!' && row[2] == '~') {
       return null;
+    }
 
     for (byte b : row) {
       if (b == ';') {
         containsSemiC = true;
       }
 
-      if (b == ';' || b == '<')
+      if (b == ';' || b == '<') {
         break;
+      }
 
       if (!validTableNameChars[0xff & b]) {
         violations = addIfNotPresent(violations, 4);

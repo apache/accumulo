@@ -45,16 +45,11 @@ public class ProblemSummaryInformation {
   /**
    * Stores a single problem summary object
    *
-   * @param tableName
-   *          Name of the table with a problem
-   * @param tableId
-   *          ID of the table with a problem
-   * @param fileRead
-   *          Number of files read
-   * @param fileWrite
-   *          Number of files written
-   * @param tableLoad
-   *          Number of table loads
+   * @param tableName Name of the table with a problem
+   * @param tableId ID of the table with a problem
+   * @param fileRead Number of files read
+   * @param fileWrite Number of files written
+   * @param tableLoad Number of table loads
    */
   public ProblemSummaryInformation(String tableName, TableId tableId, Integer fileRead,
       Integer fileWrite, Integer tableLoad) {

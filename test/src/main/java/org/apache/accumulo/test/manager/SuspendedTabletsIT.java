@@ -239,8 +239,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   /**
    * Main test body for suspension tests.
    *
-   * @param serverStopper
-   *          callback which shuts down some tablet servers.
+   * @param serverStopper callback which shuts down some tablet servers.
    */
   private void suspensionTestBody(TServerKiller serverStopper) throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {

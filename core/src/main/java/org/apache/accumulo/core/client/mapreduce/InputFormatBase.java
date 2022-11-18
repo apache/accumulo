@@ -66,8 +66,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   /**
    * Gets the table name from the configuration.
    *
-   * @param context
-   *          the Hadoop context for the configured job
+   * @param context the Hadoop context for the configured job
    * @return the table name
    * @since 1.5.0
    * @see #setInputTableName(Job, String)
@@ -79,10 +78,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   /**
    * Sets the name of the input table, over which this job will scan.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param tableName
-   *          the table to use when the tablename is null in the write call
+   * @param job the Hadoop job instance to be configured
+   * @param tableName the table to use when the tablename is null in the write call
    * @since 1.5.0
    */
   public static void setInputTableName(Job job, String tableName) {
@@ -92,10 +89,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   /**
    * Sets the input ranges to scan for the single input table associated with this job.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param ranges
-   *          the ranges that will be mapped over
+   * @param job the Hadoop job instance to be configured
+   * @param ranges the ranges that will be mapped over
    * @see TableOperations#splitRangeByTablets(String, Range, int)
    * @since 1.5.0
    */
@@ -106,8 +101,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   /**
    * Gets the ranges to scan over from a job.
    *
-   * @param context
-   *          the Hadoop context for the configured job
+   * @param context the Hadoop context for the configured job
    * @return the ranges
    * @since 1.5.0
    * @see #setRanges(Job, Collection)
@@ -119,12 +113,10 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   /**
    * Restricts the columns that will be mapped over for this job for the default input table.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param columnFamilyColumnQualifierPairs
-   *          a pair of {@link Text} objects corresponding to column family and column qualifier. If
-   *          the column qualifier is null, the entire column family is selected. An empty set is
-   *          the default and is equivalent to scanning the all columns.
+   * @param job the Hadoop job instance to be configured
+   * @param columnFamilyColumnQualifierPairs a pair of {@link Text} objects corresponding to column
+   *        family and column qualifier. If the column qualifier is null, the entire column family
+   *        is selected. An empty set is the default and is equivalent to scanning the all columns.
    * @since 1.5.0
    */
   public static void fetchColumns(Job job,
@@ -135,8 +127,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   /**
    * Gets the columns to be mapped over from this job.
    *
-   * @param context
-   *          the Hadoop context for the configured job
+   * @param context the Hadoop context for the configured job
    * @return a set of columns
    * @since 1.5.0
    * @see #fetchColumns(Job, Collection)
@@ -148,10 +139,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   /**
    * Encode an iterator on the single input table for this job.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param cfg
-   *          the configuration of the iterator
+   * @param job the Hadoop job instance to be configured
+   * @param cfg the configuration of the iterator
    * @since 1.5.0
    */
   public static void addIterator(Job job, IteratorSetting cfg) {
@@ -162,8 +151,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * Gets a list of the iterator settings (for iterators to apply to a scanner) from this
    * configuration.
    *
-   * @param context
-   *          the Hadoop context for the configured job
+   * @param context the Hadoop context for the configured job
    * @return a list of iterators
    * @since 1.5.0
    * @see #addIterator(Job, IteratorSetting)
@@ -180,10 +168,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * <p>
    * By default, this feature is <b>enabled</b>.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param enableFeature
-   *          the feature is enabled if true, disabled otherwise
+   * @param job the Hadoop job instance to be configured
+   * @param enableFeature the feature is enabled if true, disabled otherwise
    * @see #setRanges(Job, Collection)
    * @since 1.5.0
    */
@@ -195,8 +181,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * Determines whether a configuration has auto-adjust ranges enabled. Must be enabled when
    * {@link #setBatchScan(Job, boolean)} is true.
    *
-   * @param context
-   *          the Hadoop context for the configured job
+   * @param context the Hadoop context for the configured job
    * @return false if the feature is disabled, true otherwise
    * @since 1.5.0
    * @see #setAutoAdjustRanges(Job, boolean)
@@ -211,10 +196,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * <p>
    * By default, this feature is <b>disabled</b>.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param enableFeature
-   *          the feature is enabled if true, disabled otherwise
+   * @param job the Hadoop job instance to be configured
+   * @param enableFeature the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
   public static void setScanIsolation(Job job, boolean enableFeature) {
@@ -224,8 +207,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   /**
    * Determines whether a configuration has isolation enabled.
    *
-   * @param context
-   *          the Hadoop context for the configured job
+   * @param context the Hadoop context for the configured job
    * @return true if the feature is enabled, false otherwise
    * @since 1.5.0
    * @see #setScanIsolation(Job, boolean)
@@ -243,10 +225,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * <p>
    * By default, this feature is <b>disabled</b>.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param enableFeature
-   *          the feature is enabled if true, disabled otherwise
+   * @param job the Hadoop job instance to be configured
+   * @param enableFeature the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
   public static void setLocalIterators(Job job, boolean enableFeature) {
@@ -256,8 +236,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   /**
    * Determines whether a configuration uses local iterators.
    *
-   * @param context
-   *          the Hadoop context for the configured job
+   * @param context the Hadoop context for the configured job
    * @return true if the feature is enabled, false otherwise
    * @since 1.5.0
    * @see #setLocalIterators(Job, boolean)
@@ -295,10 +274,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * <p>
    * By default, this feature is <b>disabled</b>.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param enableFeature
-   *          the feature is enabled if true, disabled otherwise
+   * @param job the Hadoop job instance to be configured
+   * @param enableFeature the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
   public static void setOfflineTableScan(Job job, boolean enableFeature) {
@@ -308,8 +285,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   /**
    * Determines whether a configuration has the offline table scan feature enabled.
    *
-   * @param context
-   *          the Hadoop context for the configured job
+   * @param context the Hadoop context for the configured job
    * @return true if the feature is enabled, false otherwise
    * @since 1.5.0
    * @see #setOfflineTableScan(Job, boolean)
@@ -339,10 +315,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * <p>
    * By default, this feature is <b>disabled</b>.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param enableFeature
-   *          the feature is enabled if true, disabled otherwise
+   * @param job the Hadoop job instance to be configured
+   * @param enableFeature the feature is enabled if true, disabled otherwise
    * @since 1.7.0
    */
   public static void setBatchScan(Job job, boolean enableFeature) {
@@ -352,8 +326,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   /**
    * Determines whether a configuration has the {@link BatchScanner} feature enabled.
    *
-   * @param context
-   *          the Hadoop context for the configured job
+   * @param context the Hadoop context for the configured job
    * @since 1.7.0
    * @see #setBatchScan(Job, boolean)
    */
@@ -367,11 +340,9 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * format will throw an error.
    *
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param samplerConfig
-   *          The sampler configuration that sample must have been created with inorder for reading
-   *          sample data to succeed.
+   * @param job the Hadoop job instance to be configured
+   * @param samplerConfig The sampler configuration that sample must have been created with inorder
+   *        for reading sample data to succeed.
    *
    * @since 1.8.0
    * @see ScannerBase#setSamplerConfiguration(SamplerConfiguration)
@@ -391,10 +362,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
     /**
      * Apply the configured iterators from the configuration to the scanner.
      *
-     * @param context
-     *          the Hadoop context for the configured job
-     * @param scanner
-     *          the scanner to configure
+     * @param context the Hadoop context for the configured job
+     * @param scanner the scanner to configure
      * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
      */
     @Deprecated(since = "1.7.0")

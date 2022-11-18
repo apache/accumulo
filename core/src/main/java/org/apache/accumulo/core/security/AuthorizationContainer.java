@@ -27,8 +27,7 @@ public interface AuthorizationContainer {
   /**
    * Checks whether this object contains the given authorization.
    *
-   * @param auth
-   *          authorization, as a string encoded in UTF-8
+   * @param auth authorization, as a string encoded in UTF-8
    * @return true if authorization is in this collection
    */
   boolean contains(ByteSequence auth);

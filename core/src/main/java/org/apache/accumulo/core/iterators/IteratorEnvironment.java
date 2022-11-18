@@ -110,8 +110,7 @@ public interface IteratorEnvironment {
    * </code>
    * </pre>
    *
-   * @throws SampleNotPresentException
-   *           when sampling is not configured for table.
+   * @throws SampleNotPresentException when sampling is not configured for table.
    * @since 1.8.0
    */
   default IteratorEnvironment cloneWithSamplingEnabled() {

@@ -81,12 +81,9 @@ public class BloomFilter extends Filter {
   /**
    * Constructor
    *
-   * @param vectorSize
-   *          The vector size of <i>this</i> filter.
-   * @param nbHash
-   *          The number of hash function to consider.
-   * @param hashType
-   *          type of the hashing function (see {@link org.apache.hadoop.util.hash.Hash}).
+   * @param vectorSize The vector size of <i>this</i> filter.
+   * @param nbHash The number of hash function to consider.
+   * @param hashType type of the hashing function (see {@link org.apache.hadoop.util.hash.Hash}).
    */
   public BloomFilter(final int vectorSize, final int nbHash, final int hashType) {
     super(vectorSize, nbHash, hashType);
