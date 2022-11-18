@@ -1037,14 +1037,14 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
           case 3: // FILES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list54 = iprot.readListBegin();
-                struct.files = new java.util.ArrayList<InputFile>(_list54.size);
-                @org.apache.thrift.annotation.Nullable InputFile _elem55;
-                for (int _i56 = 0; _i56 < _list54.size; ++_i56)
+                org.apache.thrift.protocol.TList _list116 = iprot.readListBegin();
+                struct.files = new java.util.ArrayList<InputFile>(_list116.size);
+                @org.apache.thrift.annotation.Nullable InputFile _elem117;
+                for (int _i118 = 0; _i118 < _list116.size; ++_i118)
                 {
-                  _elem55 = new InputFile();
-                  _elem55.read(iprot);
-                  struct.files.add(_elem55);
+                  _elem117 = new InputFile();
+                  _elem117.read(iprot);
+                  struct.files.add(_elem117);
                 }
                 iprot.readListEnd();
               }
@@ -1097,15 +1097,15 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
           case 9: // OVERRIDES
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map57 = iprot.readMapBegin();
-                struct.overrides = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map57.size);
-                @org.apache.thrift.annotation.Nullable java.lang.String _key58;
-                @org.apache.thrift.annotation.Nullable java.lang.String _val59;
-                for (int _i60 = 0; _i60 < _map57.size; ++_i60)
+                org.apache.thrift.protocol.TMap _map119 = iprot.readMapBegin();
+                struct.overrides = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map119.size);
+                @org.apache.thrift.annotation.Nullable java.lang.String _key120;
+                @org.apache.thrift.annotation.Nullable java.lang.String _val121;
+                for (int _i122 = 0; _i122 < _map119.size; ++_i122)
                 {
-                  _key58 = iprot.readString();
-                  _val59 = iprot.readString();
-                  struct.overrides.put(_key58, _val59);
+                  _key120 = iprot.readString();
+                  _val121 = iprot.readString();
+                  struct.overrides.put(_key120, _val121);
                 }
                 iprot.readMapEnd();
               }
@@ -1144,9 +1144,9 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
         oprot.writeFieldBegin(FILES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.files.size()));
-          for (InputFile _iter61 : struct.files)
+          for (InputFile _iter123 : struct.files)
           {
-            _iter61.write(oprot);
+            _iter123.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1177,10 +1177,10 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
         oprot.writeFieldBegin(OVERRIDES_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.overrides.size()));
-          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter62 : struct.overrides.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter124 : struct.overrides.entrySet())
           {
-            oprot.writeString(_iter62.getKey());
-            oprot.writeString(_iter62.getValue());
+            oprot.writeString(_iter124.getKey());
+            oprot.writeString(_iter124.getValue());
           }
           oprot.writeMapEnd();
         }
@@ -1242,9 +1242,9 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
       if (struct.isSetFiles()) {
         {
           oprot.writeI32(struct.files.size());
-          for (InputFile _iter63 : struct.files)
+          for (InputFile _iter125 : struct.files)
           {
-            _iter63.write(oprot);
+            _iter125.write(oprot);
           }
         }
       }
@@ -1266,10 +1266,10 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
       if (struct.isSetOverrides()) {
         {
           oprot.writeI32(struct.overrides.size());
-          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter64 : struct.overrides.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter126 : struct.overrides.entrySet())
           {
-            oprot.writeString(_iter64.getKey());
-            oprot.writeString(_iter64.getValue());
+            oprot.writeString(_iter126.getKey());
+            oprot.writeString(_iter126.getValue());
           }
         }
       }
@@ -1290,14 +1290,14 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
       }
       if (incoming.get(2)) {
         {
-          org.apache.thrift.protocol.TList _list65 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.files = new java.util.ArrayList<InputFile>(_list65.size);
-          @org.apache.thrift.annotation.Nullable InputFile _elem66;
-          for (int _i67 = 0; _i67 < _list65.size; ++_i67)
+          org.apache.thrift.protocol.TList _list127 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.files = new java.util.ArrayList<InputFile>(_list127.size);
+          @org.apache.thrift.annotation.Nullable InputFile _elem128;
+          for (int _i129 = 0; _i129 < _list127.size; ++_i129)
           {
-            _elem66 = new InputFile();
-            _elem66.read(iprot);
-            struct.files.add(_elem66);
+            _elem128 = new InputFile();
+            _elem128.read(iprot);
+            struct.files.add(_elem128);
           }
         }
         struct.setFilesIsSet(true);
@@ -1325,15 +1325,15 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
       }
       if (incoming.get(8)) {
         {
-          org.apache.thrift.protocol.TMap _map68 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
-          struct.overrides = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map68.size);
-          @org.apache.thrift.annotation.Nullable java.lang.String _key69;
-          @org.apache.thrift.annotation.Nullable java.lang.String _val70;
-          for (int _i71 = 0; _i71 < _map68.size; ++_i71)
+          org.apache.thrift.protocol.TMap _map130 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+          struct.overrides = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map130.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _key131;
+          @org.apache.thrift.annotation.Nullable java.lang.String _val132;
+          for (int _i133 = 0; _i133 < _map130.size; ++_i133)
           {
-            _key69 = iprot.readString();
-            _val70 = iprot.readString();
-            struct.overrides.put(_key69, _val70);
+            _key131 = iprot.readString();
+            _val132 = iprot.readString();
+            struct.overrides.put(_key131, _val132);
           }
         }
         struct.setOverridesIsSet(true);
