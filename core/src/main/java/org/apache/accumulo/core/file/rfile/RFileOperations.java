@@ -136,8 +136,7 @@ public class RFileOperations extends FileOperations {
     }
 
     if (options.dropCacheBehind) {
-      // Tell the DataNode that the write ahead log does not need to be cached in the OS page
-      // cache
+      // Tell the DataNode that the file does not need to be cached in the OS page cache
       try {
         outputStream.setDropBehind(Boolean.TRUE);
         LOG.trace("Called setDropBehind(TRUE) for stream writing file {}", options.filename);
