@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
 
 /**
  * Enables dynamically overriding of per table properties used to create the output file for a
@@ -49,6 +50,12 @@ public interface CompactionConfigurer {
    */
   public interface InputParameters {
     TableId getTableId();
+
+    /**
+     * @return the id of the tablet being compacted
+     * @since 2.1.1
+     */
+    TabletId getTabletId();
 
     public Collection<CompactableFile> getInputFiles();
 
