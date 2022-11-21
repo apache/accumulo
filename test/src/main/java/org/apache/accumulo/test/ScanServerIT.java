@@ -329,7 +329,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
   /**
    * Create a table with the given name and the given client. Then, ingest into the table using
-   * {@link #ingest(AccumuloClient, String, int, int, int, String, boolean)}
+   * {@link #ingest(AccumuloClient, String, int, int, int, String, boolean, int)}
    *
    * @param client used to create the table
    * @param tableName used to create the table
