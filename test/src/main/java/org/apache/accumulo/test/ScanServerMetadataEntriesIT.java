@@ -149,7 +149,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
       // Make multiple files
       final int fileCount = 3;
       for (int i = 0; i < fileCount; i++) {
-        ingest(client, tableName, 10, 10, 0, "colf", true);
+        ingest(client, tableName, 10, 10, 0, "colf", true, 1);
       }
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
@@ -184,7 +184,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
       // Make multiple files
       final int fileCount = 3;
       for (int i = 0; i < fileCount; i++) {
-        ingest(client, tableName, 10, 10, 0, "colf", true);
+        ingest(client, tableName, 10, 10, 0, "colf", true, 1);
       }
 
       try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
@@ -220,7 +220,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
       // Make multiple files
       final int fileCount = 3;
       for (int i = 0; i < fileCount; i++) {
-        ingest(client, tableName, 10, 10, 0, "colf", true);
+        ingest(client, tableName, 10, 10, 0, "colf", true, 1);
       }
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {

@@ -58,6 +58,8 @@ import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -293,66 +295,89 @@ public class ThriftScanner {
           throw new ScanTimedOutException();
         }
 
-        while (loc == null) {
-          long currentTime = System.currentTimeMillis();
-          if ((currentTime - startTime) / 1000.0 > timeOut) {
-            throw new ScanTimedOutException();
+        boolean tableOnline =
+            context.tableOperations().isOnline(context.getTableName(scanState.tableId));
+
+        if (scanState.runOnScanServer && !tableOnline) {
+          // The TabletLocator only caches the location of tablets for online tables. The ScanServer
+          // can scan online and offline tables, but does not require the location of the tablet. It
+          // only requires the KeyExtent. Find the first extent for the table that matches the
+          // startRow provided in the scanState. If no startRow is provided, use the first KeyExtent
+          // for the table
+          Text endRow = scanState.range != null && scanState.range.getEndKey() != null
+              ? scanState.range.getEndKey().getRow() : null;
+          TabletsMetadata tm = context.getAmple().readTablets().forTable(scanState.tableId)
+              .overlapping(scanState.startRow, !scanState.skipStartRow, endRow).build();
+          for (TabletMetadata t : tm) {
+            if (t.getExtent().endRow() == null || t.getExtent().endRow() != null && !scanState.range
+                .afterEndKey(new Key(t.getExtent().endRow()).followingKey(PartialKey.ROW))) {
+              loc = new TabletLocation(t.getExtent(), "scan_server", "scan_server");
+              break;
+            }
           }
+          if (loc == null) {
+            throw new RuntimeException("Could not find tablet in metadata table");
+          }
+        } else {
+          while (loc == null) {
+            long currentTime = System.currentTimeMillis();
+            if ((currentTime - startTime) / 1000.0 > timeOut)
+              throw new ScanTimedOutException();
 
-          Span child1 = TraceUtil.startSpan(ThriftScanner.class, "scan::locateTablet");
-          try (Scope locateSpan = child1.makeCurrent()) {
-            loc = TabletLocator.getLocator(context, scanState.tableId).locateTablet(context,
-                scanState.startRow, scanState.skipStartRow, false);
+            Span child1 = TraceUtil.startSpan(ThriftScanner.class, "scan::locateTablet");
+            try (Scope locateSpan = child1.makeCurrent()) {
+              loc = TabletLocator.getLocator(context, scanState.tableId).locateTablet(context,
+                  scanState.startRow, scanState.skipStartRow, false);
 
-            if (loc == null) {
-              context.requireNotDeleted(scanState.tableId);
-              context.requireNotOffline(scanState.tableId, null);
+              if (loc == null) {
+                context.requireNotDeleted(scanState.tableId);
+                context.requireNotOffline(scanState.tableId, null);
 
-              error = "Failed to locate tablet for table : " + scanState.tableId + " row : "
-                  + scanState.startRow;
+                error = "Failed to locate tablet for table : " + scanState.tableId + " row : "
+                    + scanState.startRow;
+                if (!error.equals(lastError))
+                  log.debug("{}", error);
+                else if (log.isTraceEnabled())
+                  log.trace("{}", error);
+                lastError = error;
+                sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
+              } else {
+                // when a tablet splits we do want to continue scanning the low child
+                // of the split if we are already passed it
+                Range dataRange = loc.tablet_extent.toDataRange();
+
+                if (scanState.range.getStartKey() != null
+                    && dataRange.afterEndKey(scanState.range.getStartKey())) {
+                  // go to the next tablet
+                  scanState.startRow = loc.tablet_extent.endRow();
+                  scanState.skipStartRow = true;
+                  loc = null;
+                } else if (scanState.range.getEndKey() != null
+                    && dataRange.beforeStartKey(scanState.range.getEndKey())) {
+                  // should not happen
+                  throw new RuntimeException("Unexpected tablet, extent : " + loc.tablet_extent
+                      + "  range : " + scanState.range + " startRow : " + scanState.startRow);
+                }
+              }
+            } catch (AccumuloServerException e) {
+              TraceUtil.setException(child1, e, true);
+              log.debug("Scan failed, server side exception : {}", e.getMessage());
+              throw e;
+            } catch (AccumuloException e) {
+              error = "exception from tablet loc " + e.getMessage();
               if (!error.equals(lastError)) {
                 log.debug("{}", error);
               } else if (log.isTraceEnabled()) {
                 log.trace("{}", error);
               }
+
+              TraceUtil.setException(child1, e, false);
+
               lastError = error;
               sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
-            } else {
-              // when a tablet splits we do want to continue scanning the low child
-              // of the split if we are already passed it
-              Range dataRange = loc.tablet_extent.toDataRange();
-
-              if (scanState.range.getStartKey() != null
-                  && dataRange.afterEndKey(scanState.range.getStartKey())) {
-                // go to the next tablet
-                scanState.startRow = loc.tablet_extent.endRow();
-                scanState.skipStartRow = true;
-                loc = null;
-              } else if (scanState.range.getEndKey() != null
-                  && dataRange.beforeStartKey(scanState.range.getEndKey())) {
-                // should not happen
-                throw new RuntimeException("Unexpected tablet, extent : " + loc.tablet_extent
-                    + "  range : " + scanState.range + " startRow : " + scanState.startRow);
-              }
+            } finally {
+              child1.end();
             }
-          } catch (AccumuloServerException e) {
-            TraceUtil.setException(child1, e, true);
-            log.debug("Scan failed, server side exception : {}", e.getMessage());
-            throw e;
-          } catch (AccumuloException e) {
-            error = "exception from tablet loc " + e.getMessage();
-            if (!error.equals(lastError)) {
-              log.debug("{}", error);
-            } else if (log.isTraceEnabled()) {
-              log.trace("{}", error);
-            }
-
-            TraceUtil.setException(child1, e, false);
-
-            lastError = error;
-            sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
-          } finally {
-            child1.end();
           }
         }
 
@@ -559,6 +584,11 @@ public class ThriftScanner {
               "For tablet {} scan server selector chose scan_server:{} delay:{} busyTimeout:{}",
               loc.tablet_extent, scanServer, delay, scanState.busyTimeout);
         } else {
+          try {
+            context.requireNotOffline(scanState.tableId, context.getTableName(scanState.tableId));
+          } catch (TableNotFoundException e) {
+            throw new RuntimeException("Error scanning for table: }" + scanState.tableId, e);
+          }
           newLoc = loc;
           delay = actions.getDelay();
           scanState.busyTimeout = Duration.ZERO;

@@ -47,10 +47,12 @@ import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -62,6 +64,8 @@ import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -90,6 +94,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private final ClientContext context;
   private final TableId tableId;
   private final String tableName;
+  private final boolean tableOnline;
   private Authorizations authorizations = Authorizations.EMPTY;
   private final int numThreads;
   private final ExecutorService queryThreadPool;
@@ -161,6 +166,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     };
 
     try {
+      this.tableOnline = context.tableOperations().isOnline(tableName);
       lookup(ranges, rr);
     } catch (RuntimeException re) {
       throw re;
@@ -248,39 +254,59 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     int lastFailureSize = Integer.MAX_VALUE;
 
-    while (true) {
+    binnedRanges.clear();
+    if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL) && !this.tableOnline) {
 
-      binnedRanges.clear();
-      List<Range> failures = tabletLocator.binRanges(context, ranges, binnedRanges);
-
-      if (failures.isEmpty()) {
-        break;
-      } else {
-        // tried to only do table state checks when failures.size() == ranges.size(), however this
-        // did
-        // not work because nothing ever invalidated entries in the tabletLocator cache... so even
-        // though
-        // the table was deleted the tablet locator entries for the deleted table were not
-        // cleared... so
-        // need to always do the check when failures occur
-        if (failures.size() >= lastFailureSize) {
-          context.requireNotDeleted(tableId);
-          context.requireNotOffline(tableId, tableName);
+      // The TabletLocator only caches the location of tablets for online tables. The ScanServer
+      // can scan online and offline tables, but does not require the location of the tablet. It
+      // only requires the KeyExtent. Find the first extent for the table that matches the
+      // startRow provided in the scanState. If no startRow is provided, use the first KeyExtent
+      // for the table
+      Map<KeyExtent,List<Range>> map = new HashMap<>();
+      ranges.forEach(r -> {
+        TabletsMetadata tm = context.getAmple().readTablets().forTable(this.tableId)
+            .overlapping(r.getStartKey() == null ? null : r.getStartKey().getRow(),
+                r.isStartKeyInclusive(), r.getEndKey() == null ? null : r.getEndKey().getRow())
+            .build();
+        for (TabletMetadata t : tm) {
+          if (t.getExtent().endRow() == null || t.getExtent().endRow() != null
+              && !r.afterEndKey(new Key(t.getExtent().endRow()).followingKey(PartialKey.ROW))) {
+            map.computeIfAbsent(t.getExtent(), k -> new ArrayList<>()).add(r);
+          }
         }
-        lastFailureSize = failures.size();
+        ;
+      });
+      binnedRanges.put("scan_server", map);
+    } else {
+      while (true) {
 
-        if (log.isTraceEnabled()) {
-          log.trace("Failed to bin {} ranges, tablet locations were null, retrying in 100ms",
-              failures.size());
+        List<Range> failures = tabletLocator.binRanges(context, ranges, binnedRanges);
+
+        if (failures.isEmpty()) {
+          break;
+        } else {
+          // tried to only do table state checks when failures.size() == ranges.size(), however this
+          // did not work because nothing ever invalidated entries in the tabletLocator cache... so
+          // even though the table was deleted the tablet locator entries for the deleted table were
+          // not cleared... so need to always do the check when failures occur
+          if (failures.size() >= lastFailureSize) {
+            context.requireNotDeleted(tableId);
+          }
+          lastFailureSize = failures.size();
+
+          if (log.isTraceEnabled()) {
+            log.trace("Failed to bin {} ranges, tablet locations were null, retrying in 100ms",
+                failures.size());
+          }
+
+          try {
+            Thread.sleep(100);
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+          }
         }
 
-        try {
-          Thread.sleep(100);
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e);
-        }
       }
-
     }
 
     // truncate the ranges to within the tablets... this makes it easier to know what work
@@ -334,8 +360,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
 
     // since the first call to binRanges clipped the ranges to within a tablet, we should not get
-    // only
-    // bin to the set of failed tablets
+    // only bin to the set of failed tablets
     binRanges(locator, allRanges, binnedRanges);
 
     doLookups(binnedRanges, receiver, columns);
@@ -643,6 +668,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       String serverToUse = actions.getScanServer(tabletId);
       if (serverToUse == null) {
         // no scan server was given so use the tablet server
+        if (!this.tableOnline) {
+          throw new TableOfflineException(this.tableId, this.tableName);
+        }
         serverToUse = extentToTserverMap.get(extent);
         log.trace("For tablet {} scan server selector chose tablet_server", tabletId);
       } else {

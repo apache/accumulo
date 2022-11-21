@@ -121,7 +121,8 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
 
-      final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
+      final int ingestedEntryCount =
+          createTableAndIngest(client, tableName, null, 10, 10, "colf", false);
 
       final CountDownLatch latch = new CountDownLatch(1);
 
@@ -161,7 +162,8 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints);
 
-      final int ingestedEntryCount = createTableAndIngest(client, tableName, ntc, 10, 10, "colf");
+      final int ingestedEntryCount =
+          createTableAndIngest(client, tableName, ntc, 10, 10, "colf", false);
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
@@ -181,7 +183,8 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints);
 
-      final int ingestedEntryCount = createTableAndIngest(client, tableName, ntc, 10, 10, "colf");
+      final int ingestedEntryCount =
+          createTableAndIngest(client, tableName, ntc, 10, 10, "colf", false);
 
       Collection<Text> splitsFound = client.tableOperations().listSplits(tableName);
       assertEquals(splitPoints, new TreeSet<>(splitsFound));
@@ -243,7 +246,8 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
 
-      final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
+      final int ingestedEntryCount =
+          createTableAndIngest(client, tableName, null, 10, 10, "colf", false);
 
       final CountDownLatch latch = new CountDownLatch(1);
 
@@ -283,7 +287,8 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints);
 
-      final int ingestedEntryCount = createTableAndIngest(client, tableName, ntc, 10, 10, "colf");
+      final int ingestedEntryCount =
+          createTableAndIngest(client, tableName, ntc, 10, 10, "colf", false);
 
       try (BatchScanner scanner =
           client.createBatchScanner(tableName, Authorizations.EMPTY, NUM_SCANS)) {
@@ -304,7 +309,8 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints);
 
-      final int ingestedEntryCount = createTableAndIngest(client, tableName, ntc, 10, 10, "colf");
+      final int ingestedEntryCount =
+          createTableAndIngest(client, tableName, ntc, 10, 10, "colf", false);
 
       Collection<Text> splitsFound = client.tableOperations().listSplits(tableName);
       assertEquals(splitPoints, new TreeSet<>(splitsFound));

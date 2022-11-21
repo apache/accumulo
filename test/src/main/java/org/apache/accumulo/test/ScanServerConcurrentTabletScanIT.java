@@ -114,7 +114,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
 
       // Create table and ingest 1000 k/v
       final int firstBatchOfEntriesCount =
-          createTableAndIngest(client, tableName, null, 10, 100, "COLA");
+          createTableAndIngest(client, tableName, null, 10, 100, "COLA", false);
 
       Scanner scanner1 = client.createScanner(tableName, Authorizations.EMPTY);
       scanner1.setRange(new Range());
@@ -133,7 +133,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
       }
 
       // Ingest another 100 k/v with a different column family
-      final int secondBatchOfEntriesCount = ingest(client, tableName, 10, 10, 0, "COLB", true);
+      final int secondBatchOfEntriesCount = ingest(client, tableName, 10, 10, 0, "COLB", true, 1);
 
       // iter2 should read 1000 k/v because the tablet metadata is cached.
       Iterator<Entry<Key,Value>> iter2 = scanner1.iterator();
@@ -180,7 +180,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
 
       // Create table and ingest 1000 k/v
       final int firstBatchOfEntriesCount =
-          createTableAndIngest(client, tableName, null, 10, 100, "COLA");
+          createTableAndIngest(client, tableName, null, 10, 100, "COLA", false);
 
       try (Scanner scanner1 = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner1.setRange(new Range());
@@ -199,7 +199,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
         }
 
         // Ingest another 100 k/v with a different column family
-        final int secondBatchOfEntriesCount = ingest(client, tableName, 10, 10, 0, "COLB", true);
+        final int secondBatchOfEntriesCount = ingest(client, tableName, 10, 10, 0, "COLB", true, 1);
 
         // iter2 should read 1100 k/v because the tablet metadata is not cached.
         Iterator<Entry<Key,Value>> iter2 = scanner1.iterator();
