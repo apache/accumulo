@@ -91,7 +91,7 @@ public class Mutation implements Writable {
    * Formats available for serializing Mutations. The formats are described in a
    * <a href="doc-files/mutation-serialization.html">separate document</a>.
    */
-  public static enum SERIALIZED_FORMAT {
+  public enum SERIALIZED_FORMAT {
     VERSION1, VERSION2
   }
 
@@ -1507,6 +1507,7 @@ public class Mutation implements Writable {
    *          the peer to add
    * @since 1.7.0
    */
+  @Deprecated(since = "2.1.1")
   public void addReplicationSource(String peer) {
     if (replicationSources == null || replicationSources == EMPTY) {
       replicationSources = new HashSet<>();
@@ -1522,6 +1523,7 @@ public class Mutation implements Writable {
    *          Set of peer names which have processed this update
    * @since 1.7.0
    */
+  @Deprecated(since = "2.1.1")
   public void setReplicationSources(Set<String> sources) {
     requireNonNull(sources);
     this.replicationSources = sources;
@@ -1532,6 +1534,7 @@ public class Mutation implements Writable {
    *
    * @return An unmodifiable view of the replication sources
    */
+  @Deprecated(since = "2.1.1")
   public Set<String> getReplicationSources() {
     if (replicationSources == null) {
       return EMPTY;
