@@ -22,19 +22,19 @@ VERSION="1"
 IMAGE="accumulo-build-environment-${VERSION}"
 M2_DIR="${HOME}/.m2"
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-cd $SCRIPT_DIR
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+cd "$SCRIPT_DIR" || exit 1
 
 # Build the image if needed
 if [[ $(docker images -q $IMAGE) == "" ]]; then
-  cd docker
-  docker build --build-arg uid=$(id -u ${USER}) --build-arg gid=$(id -g ${USER}) -t $IMAGE .
-  cd $SCRIPT_DIR
+  cd docker || exit 1
+  docker build --build-arg uid="$(id -u "${USER}")" --build-arg gid="$(id -g "${USER}")" -t $IMAGE .
+  cd "$SCRIPT_DIR" || exit 1
 fi
 
 # Need absolute paths for Docker volume mounts
-cd ..
-SOURCE_DIR=`pwd`
-cd $SCRIPT_DIR
+cd .. || exit 1
+SOURCE_DIR=$(pwd)
+cd "$SCRIPT_DIR" || exit 1
 
-docker run --rm -v $M2_DIR:/home/builder/.m2 -v $SOURCE_DIR:/SOURCES $IMAGE /bin/bash -c 'cd /SOURCES && rm -rf core/src/main/thrift-gen-java && mvn -Pthrift generate-sources && mvn clean package'
+docker run --rm -v "$M2_DIR":/home/builder/.m2 -v "$SOURCE_DIR":/SOURCES $IMAGE /bin/bash -c 'cd /SOURCES && rm -rf core/src/main/thrift-gen-java && mvn -Pthrift generate-sources && mvn clean package'
