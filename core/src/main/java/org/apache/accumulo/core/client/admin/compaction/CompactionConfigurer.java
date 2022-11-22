@@ -22,6 +22,8 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.PluginEnvironment;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 
 /**
@@ -31,6 +33,13 @@ import org.apache.accumulo.core.data.TableId;
  * @since 2.1.0
  */
 public interface CompactionConfigurer {
+
+  /**
+   * Property that can be set on the table, or provided by the override method below for this
+   * compaction. When true, we will call setDropBehind on the majc output files.
+   */
+  String TABLE_MAJC_OUTPUT_DROP_CACHE = "table.custom.majc.output.drop.cache";
+
   /**
    * @since 2.1.0
    */
@@ -76,4 +85,17 @@ public interface CompactionConfigurer {
   }
 
   Overrides override(InputParameters params);
+
+  /**
+   *
+   * @param overrides
+   * @return true if we should call setDropBehind on majc output file
+   *
+   * @since 2.1.1
+   */
+  static boolean dropCacheBehindMajcOutput(AccumuloConfiguration tablePropertiesWithOverrides) {
+    Map<String,String> customProps = tablePropertiesWithOverrides
+        .getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
+    return Boolean.valueOf(customProps.getOrDefault(TABLE_MAJC_OUTPUT_DROP_CACHE, "false"));
+  }
 }

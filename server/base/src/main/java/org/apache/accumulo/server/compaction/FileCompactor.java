@@ -34,8 +34,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -220,7 +220,7 @@ public class FileCompactor implements Callable<CompactionStats> {
       boolean dropCacheBehindMajcOutput = false;
       if (!RootTable.ID.equals(this.extent.tableId())
           && !MetadataTable.ID.equals(this.extent.tableId())
-          && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE)) {
+          && CompactionConfigurer.dropCacheBehindMajcOutput(acuTableConf)) {
         dropCacheBehindMajcOutput = true;
       }
 
