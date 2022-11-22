@@ -22,7 +22,7 @@ VERSION="1"
 IMAGE="accumulo-build-environment-${VERSION}"
 M2_DIR="${HOME}/.m2"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd )"
 cd "$SCRIPT_DIR" || exit 1
 
 # Build the image if needed
