@@ -17,7 +17,7 @@
 # under the License.
 #
 
-ARG DOCKER_PROXY=artifactory.adv.evoforge.org/docker-remote/
+ARG DOCKER_PROXY=""
 FROM ${DOCKER_PROXY}rockylinux:9
 
 ARG GRADLE_VERSION=7.5.1 THRIFT_VERSION=0.17.0 MAVEN_VERSION=3.8.6
