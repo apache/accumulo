@@ -163,10 +163,13 @@ public class ScanServerNoSServersIT extends SharedMiniClusterBase {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName, new NewTableConfiguration().createOffline());
       assertFalse(client.tableOperations().isOnline(tableName));
-      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new Range());
-        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-      } // when the scanner is closed, all open sessions should be closed
+      assertThrows(TableOfflineException.class, () -> {
+        try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+          scanner.setRange(new Range());
+          scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+          assertEquals(0, Iterables.size(scanner));
+        } // when the scanner is closed, all open sessions should be closed
+      });
     }
   }
 
@@ -200,10 +203,13 @@ public class ScanServerNoSServersIT extends SharedMiniClusterBase {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName, new NewTableConfiguration().createOffline());
       assertFalse(client.tableOperations().isOnline(tableName));
-      try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRanges(Collections.singletonList(new Range()));
-        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-      } // when the scanner is closed, all open sessions should be closed
+      assertThrows(TableOfflineException.class, () -> {
+        try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
+          scanner.setRanges(Collections.singletonList(new Range()));
+          scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+          assertEquals(0, Iterables.size(scanner));
+        } // when the scanner is closed, all open sessions should be closed
+      });
     }
   }
 
