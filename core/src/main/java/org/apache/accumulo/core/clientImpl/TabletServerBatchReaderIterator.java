@@ -254,7 +254,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     int lastFailureSize = Integer.MAX_VALUE;
 
-    binnedRanges.clear();
     if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL) && !this.tableOnline) {
 
       // The TabletLocator only caches the location of tablets for online tables. The ScanServer
@@ -262,6 +261,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       // only requires the KeyExtent. Find the first extent for the table that matches the
       // startRow provided in the scanState. If no startRow is provided, use the first KeyExtent
       // for the table
+      binnedRanges.clear();
       Map<KeyExtent,List<Range>> map = new HashMap<>();
       ranges.forEach(r -> {
         TabletsMetadata tm = context.getAmple().readTablets().forTable(this.tableId)
@@ -280,6 +280,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     } else {
       while (true) {
 
+        binnedRanges.clear();
         List<Range> failures = tabletLocator.binRanges(context, ranges, binnedRanges);
 
         if (failures.isEmpty()) {

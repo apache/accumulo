@@ -194,7 +194,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   public static void ingest(AccumuloClient accumuloClient, int rows, int cols, int width,
       int offset, String colf, String tableName) throws Exception {
-    ingest(accumuloClient, rows, cols, width, offset, COLF, tableName, 1);
+    ingest(accumuloClient, rows, cols, width, offset, colf, tableName, 1);
   }
 
   public static void ingest(AccumuloClient accumuloClient, int rows, int cols, int width,

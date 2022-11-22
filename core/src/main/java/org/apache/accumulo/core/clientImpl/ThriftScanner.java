@@ -587,7 +587,7 @@ public class ThriftScanner {
           try {
             context.requireNotOffline(scanState.tableId, context.getTableName(scanState.tableId));
           } catch (TableNotFoundException e) {
-            throw new RuntimeException("Error scanning for table: }" + scanState.tableId, e);
+            throw new RuntimeException("Error scanning for table: " + scanState.tableId, e);
           }
           newLoc = loc;
           delay = actions.getDelay();
