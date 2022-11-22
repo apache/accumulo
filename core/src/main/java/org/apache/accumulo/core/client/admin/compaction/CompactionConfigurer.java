@@ -89,14 +89,17 @@ public interface CompactionConfigurer {
 
   /**
    *
-   * @param tablePropertiesWithOverrides table properties with overrides
+   * @param tablePropertiesWithOverrides
+   *          table properties with overrides
    * @return true if we should call setDropBehind on majc output file
    *
    * @since 2.1.1
    */
-  static boolean dropCacheBehindMajcOutput(Iterable<Entry<String,String>> tablePropertiesWithOverrides) {
+  static boolean
+      dropCacheBehindMajcOutput(Iterable<Entry<String,String>> tablePropertiesWithOverrides) {
     ConfigurationCopy cc = new ConfigurationCopy(tablePropertiesWithOverrides);
-    Map<String,String> customProps = cc.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
+    Map<String,String> customProps =
+        cc.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
     return Boolean.valueOf(customProps.getOrDefault(TABLE_MAJC_OUTPUT_DROP_CACHE, "false"));
   }
 }
