@@ -20,35 +20,25 @@
 ARG DOCKER_PROXY=""
 FROM ${DOCKER_PROXY}rockylinux:9
 
-ARG GRADLE_VERSION=7.5.1 THRIFT_VERSION=0.17.0 MAVEN_VERSION=3.8.6
+ARG THRIFT_VERSION=0.17.0
 ARG uid
 ARG gid
 
 RUN yum -y groupinstall "Development Tools" && \
-    yum install -y ant wget unzip java-11-openjdk-devel && \
+    yum install -y wget maven java-11-openjdk-devel && \
     cd /tmp && \
-    wget -O gradle.zip https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip && \
-    mkdir /opt/gradle && \
-    unzip -d /opt/gradle gradle.zip && \
     wget -O thrift.tar.gz https://archive.apache.org/dist/thrift/${THRIFT_VERSION}/thrift-${THRIFT_VERSION}.tar.gz && \
     tar zxf thrift.tar.gz && \
     cd thrift-${THRIFT_VERSION} && \
     export JAVA_HOME=/usr/lib/jvm/java-11-openjdk && \
-    PATH=/opt/gradle/gradle-${GRADLE_VERSION}/bin:${PATH} ./configure --without-kotlin --without-python --without-py3 && \
+    ./configure --without-libs --without-kotlin --without-python --without-py3 && \
     make && \
     make install && \
-    cd / && \
-    wget -O maven.tar.gz https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz && \
-    mkdir /opt/maven && \
-    tar zxf maven.tar.gz -C /opt/maven && \
-    rm -f gradle.zip thrift.tar.gz maven.tar.gz && \
     yum clean all && \
     rm -rf /var/cache/yum && \
     groupadd -r -g ${gid} builder && \
     useradd -d /home/builder -l -m -r -g builder -u ${uid} builder -s /bin/bash
 
-ENV MAVEN_HOME=/opt/maven/apache-maven-${MAVEN_VERSION}
 ENV JAVA_HOME=/etc/alternatives/java_sdk_11_openjdk
-ENV PATH=$MAVEN_HOME/bin:$PATH
 USER builder
 

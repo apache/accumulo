@@ -18,23 +18,40 @@
 # under the License.
 #
 
+# Image name and version. The version needs to be incremented
+# when the Dockerfile is changed
+#
 VERSION="1"
-IMAGE="accumulo-build-environment-${VERSION}"
+IMAGE="accumulo-build-environment:${VERSION}"
+
+# User's local .m2 directory
 M2_DIR="${HOME}/.m2"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 cd "$SCRIPT_DIR" || exit 1
 
-# Build the image if needed
+# If the image does not exist locally, then we need to create it. The
+# user's uid and gid are baked into the image so that we don't run
+# into permission issues reading/writing from the filesystem during
+# the build phase
+#
 if [[ $(docker images -q $IMAGE) == "" ]]; then
   cd docker || exit 1
   docker build --build-arg uid="$(id -u "${USER}")" --build-arg gid="$(id -g "${USER}")" -t $IMAGE .
   cd "$SCRIPT_DIR" || exit 1
 fi
 
-# Need absolute paths for Docker volume mounts
+# Need absolute path to the accumulo source directory for Docker volume mounts
+#
 cd .. || exit 1
 SOURCE_DIR=$(pwd)
 cd "$SCRIPT_DIR" || exit 1
 
-docker run --rm -v "$M2_DIR":/home/builder/.m2 -v "$SOURCE_DIR":/SOURCES $IMAGE /bin/bash -c 'cd /SOURCES && rm -rf core/src/main/thrift-gen-java && mvn -Pthrift generate-sources && mvn clean package'
+# Create a container from the image, mounting the user's local .m2 directory and the accumulo
+# source code directory into the image, using Maven to run the build with the thrift profile.
+# The build output is written to the local accumulo source code directory
+#
+docker run --rm \
+  -v "$M2_DIR":/home/builder/.m2 \
+  -v "$SOURCE_DIR":/SOURCES \
+   $IMAGE /bin/bash -c 'cd /SOURCES && mvn clean package -Pthrift'
