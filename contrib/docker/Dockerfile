@@ -21,11 +21,11 @@ ARG DOCKER_PROXY=""
 FROM ${DOCKER_PROXY}rockylinux:9
 
 ARG THRIFT_VERSION=0.17.0
-ARG uid
-ARG gid
+
+ADD entrypoint.sh /
 
 RUN yum -y groupinstall "Development Tools" && \
-    yum install -y wget maven java-11-openjdk-devel && \
+    yum install -y sudo wget maven java-11-openjdk-devel && \
     cd /tmp && \
     wget -O thrift.tar.gz https://archive.apache.org/dist/thrift/${THRIFT_VERSION}/thrift-${THRIFT_VERSION}.tar.gz && \
     tar zxf thrift.tar.gz && \
@@ -36,9 +36,9 @@ RUN yum -y groupinstall "Development Tools" && \
     make install && \
     yum clean all && \
     rm -rf /var/cache/yum && \
-    groupadd -r -g ${gid} builder && \
-    useradd -d /home/builder -l -m -r -g builder -u ${uid} builder -s /bin/bash
+    groupadd -r builder && \
+    useradd -d /home/builder -l -m -r -g builder builder -s /bin/bash
 
 ENV JAVA_HOME=/etc/alternatives/java_sdk_11_openjdk
-USER builder
 
+ENTRYPOINT ["/entrypoint.sh"]

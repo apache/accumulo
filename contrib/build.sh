@@ -37,7 +37,7 @@ cd "$SCRIPT_DIR" || exit 1
 #
 if [[ $(docker images -q $IMAGE) == "" ]]; then
   cd docker || exit 1
-  docker build --build-arg uid="$(id -u "${USER}")" --build-arg gid="$(id -g "${USER}")" -t $IMAGE .
+  docker build -t $IMAGE .
   cd "$SCRIPT_DIR" || exit 1
 fi
 
@@ -52,6 +52,8 @@ cd "$SCRIPT_DIR" || exit 1
 # The build output is written to the local accumulo source code directory
 #
 docker run --rm \
+  -e HOST_UID="$(id -u "${USER}")" \
+  -e HOST_GID="$(id -g "${USER}")" \
   -v "$M2_DIR":/home/builder/.m2 \
   -v "$SOURCE_DIR":/SOURCES \
-   $IMAGE /bin/bash -c 'cd /SOURCES && mvn clean package -Pthrift'
+   $IMAGE bash -c 'cd /SOURCES && mvn clean package -Pthrift'
