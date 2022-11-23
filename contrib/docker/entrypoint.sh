@@ -31,8 +31,8 @@ if [[ -z "$HOST_GID" ]]; then
 fi
 
 # Modify the uid and gid for builder user
-groupmod --gid "$HOST_GID" builder
-usermod --uid "$HOST_UID" builder
+groupmod --gid "$HOST_GID" builder || { groupdel -f $(getent group "$HOST_GID" | cut -d: -f1) && groupmod --gid "$HOST_GID" builder }
+usermod --uid "$HOST_UID" builder || { userdel $(id -nu "$HOST_UID") && usermod --uid "$HOST_UID" builder }
 
 # Run the commands or bash if none supplied
 if [[ $# -gt 0 ]]; then
