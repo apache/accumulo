@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -217,12 +218,11 @@ public class FileCompactor implements Callable<CompactionStats> {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getFileSystemByPath(outputFile.getPath());
 
-      boolean dropCacheBehindMajcOutput = false;
-      if (!RootTable.ID.equals(this.extent.tableId())
+      boolean dropCacheBehindMajcOutput = !RootTable.ID.equals(this.extent.tableId())
           && !MetadataTable.ID.equals(this.extent.tableId())
-          && CompactionConfigurer.dropCacheBehindMajcOutput(acuTableConf)) {
-        dropCacheBehindMajcOutput = true;
-      }
+          && Boolean
+              .valueOf(acuTableConf.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX)
+                  .getOrDefault(CompactionConfigurer.TABLE_MAJC_OUTPUT_DROP_CACHE, "false"));
 
       WriterBuilder outBuilder = fileFactory.newWriterBuilder()
           .forFile(outputFile.getMetaInsert(), ns, ns.getConf(), cryptoService)
