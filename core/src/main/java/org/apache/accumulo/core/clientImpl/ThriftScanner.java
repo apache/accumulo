@@ -58,8 +58,6 @@ import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -304,16 +302,11 @@ public class ThriftScanner {
           // only requires the KeyExtent. Find the first extent for the table that matches the
           // startRow provided in the scanState. If no startRow is provided, use the first KeyExtent
           // for the table
-          Text endRow = scanState.range != null && scanState.range.getEndKey() != null
-              ? scanState.range.getEndKey().getRow() : null;
-          TabletsMetadata tm = context.getAmple().readTablets().forTable(scanState.tableId)
-              .overlapping(scanState.startRow, !scanState.skipStartRow, endRow).build();
-          for (TabletMetadata t : tm) {
-            if (t.getExtent().endRow() == null || t.getExtent().endRow() != null && !scanState.range
-                .afterEndKey(new Key(t.getExtent().endRow()).followingKey(PartialKey.ROW))) {
-              loc = new TabletLocation(t.getExtent(), "scan_server", "scan_server");
-              break;
-            }
+          List<KeyExtent> ke =
+              context.getKeyExtentCache().lookup(scanState.tableId, scanState.range);
+          log.trace("Found extents: {}", ke);
+          if (ke != null && ke.size() > 0) {
+            loc = new TabletLocation(ke.get(0), "scan_server", "scan_server");
           }
           if (loc == null) {
             throw new RuntimeException("Could not find tablet in metadata table");

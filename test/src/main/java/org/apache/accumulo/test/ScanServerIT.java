@@ -179,13 +179,13 @@ public class ScanServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName, new NewTableConfiguration().createOffline());
+      assertFalse(client.tableOperations().isOnline(tableName));
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         assertEquals(0, Iterables.size(scanner),
             "Unexpected entries seen when scanning empty table");
       } // when the scanner is closed, all open sessions should be closed
-      assertFalse(client.tableOperations().isOnline(tableName));
     }
   }
 
@@ -240,6 +240,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
       final int ingestedEntryCount =
           createTableAndIngest(client, tableName, null, 10, 10, "colf", false);
       client.tableOperations().offline(tableName, true);
+      assertFalse(client.tableOperations().isOnline(tableName));
 
       TabletLocator.getLocator((ClientContext) client,
           TableId.of(client.tableOperations().tableIdMap().get(tableName))).invalidateCache();
@@ -262,6 +263,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
       final int ingestedEntryCount =
           createTableAndIngest(client, tableName, null, 10, 10, "colf", true);
       client.tableOperations().offline(tableName, true);
+      assertFalse(client.tableOperations().isOnline(tableName));
 
       TabletLocator.getLocator((ClientContext) client,
           TableId.of(client.tableOperations().tableIdMap().get(tableName))).invalidateCache();

@@ -52,7 +52,6 @@ import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -64,8 +63,6 @@ import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -263,19 +260,12 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       // for the table
       binnedRanges.clear();
       Map<KeyExtent,List<Range>> map = new HashMap<>();
-      ranges.forEach(r -> {
-        TabletsMetadata tm = context.getAmple().readTablets().forTable(this.tableId)
-            .overlapping(r.getStartKey() == null ? null : r.getStartKey().getRow(),
-                r.isStartKeyInclusive(), r.getEndKey() == null ? null : r.getEndKey().getRow())
-            .build();
-        for (TabletMetadata t : tm) {
-          if (t.getExtent().endRow() == null || t.getExtent().endRow() != null
-              && !r.afterEndKey(new Key(t.getExtent().endRow()).followingKey(PartialKey.ROW))) {
-            map.computeIfAbsent(t.getExtent(), k -> new ArrayList<>()).add(r);
-          }
-        }
-        ;
+      context.getKeyExtentCache().lookup(this.tableId, ranges).forEach((pair, kes) -> {
+        kes.forEach(ke -> {
+          map.computeIfAbsent(ke, k -> new ArrayList<>()).add(pair.getSecond());
+        });
       });
+      log.trace("Found extents: {}", map);
       binnedRanges.put("scan_server", map);
     } else {
       while (true) {

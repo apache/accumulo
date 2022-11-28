@@ -150,6 +150,7 @@ public class ClientContext implements AccumuloClient {
   private final ThreadPools clientThreadPools;
   private ThreadPoolExecutor cleanupThreadPool;
   private ThreadPoolExecutor scannerReadaheadPool;
+  private KeyExtentCache keyExtentCache;
 
   private void ensureOpen() {
     if (closed) {
@@ -1095,6 +1096,14 @@ public class ClientContext implements AccumuloClient {
       thriftTransportPool = ThriftTransportPool.startNew(this::getTransportPoolMaxAgeMillis);
     }
     return thriftTransportPool;
+  }
+
+  public synchronized KeyExtentCache getKeyExtentCache() {
+    ensureOpen();
+    if (this.keyExtentCache == null) {
+      keyExtentCache = new KeyExtentCache(this);
+    }
+    return this.keyExtentCache;
   }
 
 }
