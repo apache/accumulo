@@ -182,7 +182,8 @@ public class ScanServerIT extends SharedMiniClusterBase {
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(0, Iterables.size(scanner), "Unexpected entries seen when scanning empty table");
+        assertEquals(0, Iterables.size(scanner),
+            "Unexpected entries seen when scanning empty table");
       } // when the scanner is closed, all open sessions should be closed
       assertFalse(client.tableOperations().isOnline(tableName));
     }
@@ -223,7 +224,8 @@ public class ScanServerIT extends SharedMiniClusterBase {
       try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRanges(Collections.singletonList(new Range()));
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(0, Iterables.size(scanner), "Unexpected entries seen when scanning empty table");
+        assertEquals(0, Iterables.size(scanner),
+            "Unexpected entries seen when scanning empty table");
       } // when the scanner is closed, all open sessions should be closed
       assertFalse(client.tableOperations().isOnline(tableName));
     }
