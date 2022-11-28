@@ -77,5 +77,4 @@ public interface CompactionConfigurer {
   }
 
   Overrides override(InputParameters params);
-
 }
