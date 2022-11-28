@@ -104,6 +104,7 @@ public final class BCFile {
    * BCFile writer, the entry point for creating a new BCFile.
    */
   public static class Writer implements Closeable {
+    private final FSDataOutputStream fout;
     private final RateLimitedOutputStream out;
     private final Configuration conf;
     private FileEncrypter encrypter;
@@ -119,6 +120,7 @@ public final class BCFile {
     // reusable buffers.
     private BytesWritable fsOutputBuffer;
     private long length = 0;
+    private boolean sync = false;
 
     public long getLength() {
       return this.length;
@@ -319,6 +321,7 @@ public final class BCFile {
         throw new IOException("Output file not at zero offset.");
       }
 
+      this.fout = fout;
       this.out = new RateLimitedOutputStream(fout, writeLimiter);
       this.conf = conf;
       dataIndex = new DataIndex(compressionName);
@@ -327,6 +330,14 @@ public final class BCFile {
       Magic.write(this.out);
       this.cryptoEnvironment = new CryptoEnvironmentImpl(Scope.TABLE, null, null);
       this.encrypter = cryptoService.getFileEncrypter(this.cryptoEnvironment);
+    }
+
+    /**
+     * Call FSDataOutputStream.hsync before closing the file to write the changes to disk on the
+     * DataNode. This is used in conjunction with FSDataOutputStream.setDropBehind
+     */
+    public void syncOnClose() {
+      this.sync = true;
     }
 
     /**
@@ -365,6 +376,13 @@ public final class BCFile {
           Magic.write(out);
           out.flush();
           length = out.position();
+          if (this.sync) {
+            try {
+              fout.hsync();
+            } catch (IOException e) {
+              LOG.trace("Error calling hsync on BCFile", e);
+            }
+          }
           out.close();
         }
       } finally {

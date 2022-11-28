@@ -135,11 +135,16 @@ public class RFileOperations extends FileOperations {
       outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
     }
 
+    BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
+        conf, options.cryptoService);
+
     if (options.dropCacheBehind) {
-      // Tell the DataNode that the file does not need to be cached in the OS page cache
       try {
+        // Tell the DataNode that the file does not need to be cached in the OS page cache
         outputStream.setDropBehind(Boolean.TRUE);
         LOG.trace("Called setDropBehind(TRUE) for stream writing file {}", options.filename);
+        // Sync the BCFile on close
+        _cbw.syncOnClose();
       } catch (UnsupportedOperationException e) {
         LOG.debug("setDropBehind not enabled for file: {}", options.filename);
       } catch (IOException e) {
@@ -147,9 +152,6 @@ public class RFileOperations extends FileOperations {
             e.getMessage());
       }
     }
-
-    BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
-        conf, options.cryptoService);
 
     return new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
   }

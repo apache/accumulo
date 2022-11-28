@@ -33,12 +33,6 @@ import org.apache.accumulo.core.data.TableId;
 public interface CompactionConfigurer {
 
   /**
-   * Property that can be set on the table, or provided by the override method below for this
-   * compaction. When true, we will call setDropBehind on the majc output files.
-   */
-  String TABLE_MAJC_OUTPUT_DROP_CACHE = "table.custom.majc.output.drop.cache";
-
-  /**
    * @since 2.1.0
    */
   public interface InitParameters {
