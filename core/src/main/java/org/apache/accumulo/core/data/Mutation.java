@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -1488,39 +1487,6 @@ public class Mutation implements Writable {
    */
   public int size() {
     return entries;
-  }
-
-  /**
-   * Non-functional API; do not use
-   *
-   * @since 1.7.0
-   * @deprecated old, no longer functional API for replication feature removed in 3.0
-   */
-  @Deprecated(since = "3.0.0")
-  public void addReplicationSource(String peer) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Non-functional API; do not use
-   *
-   * @since 1.7.0
-   * @deprecated old, no longer functional API for replication feature removed in 3.0
-   */
-  @Deprecated(since = "3.0.0")
-  public void setReplicationSources(Set<String> sources) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Non-functional API; do not use
-   *
-   * @since 1.7.0
-   * @deprecated old, no longer functional API for replication feature removed in 3.0
-   */
-  @Deprecated(since = "3.0.0")
-  public Set<String> getReplicationSources() {
-    throw new UnsupportedOperationException();
   }
 
   @Override

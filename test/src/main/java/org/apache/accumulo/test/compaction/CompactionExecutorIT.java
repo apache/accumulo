@@ -51,6 +51,7 @@ import org.apache.accumulo.core.client.admin.compaction.CompressionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.TooManyDeletesSelector;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -177,7 +178,9 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
   public void cleanup() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().list().stream()
-          .filter(tableName -> !tableName.startsWith("accumulo.")).forEach(tableName -> {
+          .filter(
+              tableName -> !tableName.startsWith(Namespace.ACCUMULO.name() + Namespace.SEPARATOR))
+          .forEach(tableName -> {
             try {
               client.tableOperations().delete(tableName);
             } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
