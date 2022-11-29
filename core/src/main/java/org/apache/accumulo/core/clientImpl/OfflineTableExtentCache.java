@@ -71,8 +71,9 @@ public class OfflineTableExtentCache {
       List<KeyExtent> result = new ArrayList<>();
       for (TabletMetadata t : tm) {
         LOG.trace("Evaluating: {}", t.getExtent());
-        if (t.getExtent().endRow() == null || r.getEndKey() == null || t.getExtent().endRow() != null
-            && r.getEndKey().compareTo(new Key(t.getExtent().endRow()), PartialKey.ROW) >= 0) {
+        if (t.getExtent().endRow() == null || r.getEndKey() == null
+            || t.getExtent().endRow() != null
+                && r.getEndKey().compareTo(new Key(t.getExtent().endRow()), PartialKey.ROW) >= 0) {
           LOG.trace("Adding: {}", t.getExtent());
           result.add(t.getExtent());
         }

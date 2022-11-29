@@ -69,7 +69,7 @@ public class OfflineTableIT extends SharedMiniClusterBase {
   public static void stop() throws Exception {
     SharedMiniClusterBase.stopMiniCluster();
   }
-  
+
   @Test
   public void testScanOffline() throws Exception {
 
