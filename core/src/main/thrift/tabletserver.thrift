@@ -265,6 +265,8 @@ service TabletScanClientService {
     1:client.ThriftSecurityException sec
     2:TSampleNotPresentException tsnpe
     3:ScanServerBusyException ssbe
+    4:NotServingTabletException nste
+    5:TooManyFilesException tmfe    
   )
 
   data.MultiScanResult continueMultiScan(

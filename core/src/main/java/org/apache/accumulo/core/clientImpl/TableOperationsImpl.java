@@ -615,6 +615,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         successful = true;
       }
     }
+    context.getOfflineKeyExtentCache().invalidate(env.tableId);
   }
 
   @Override

@@ -303,7 +303,7 @@ public class ThriftScanner {
           // startRow provided in the scanState. If no startRow is provided, use the first KeyExtent
           // for the table
           List<KeyExtent> ke =
-              context.getKeyExtentCache().lookup(scanState.tableId, scanState.range);
+              context.getOfflineKeyExtentCache().lookup(scanState.tableId, scanState.range);
           log.trace("Found extents: {}", ke);
           if (ke != null && ke.size() > 0) {
             loc = new TabletLocation(ke.get(0), "scan_server", "scan_server");
@@ -402,6 +402,7 @@ public class ThriftScanner {
           lastError = error;
 
           TabletLocator.getLocator(context, scanState.tableId).invalidateCache(loc.tablet_extent);
+          context.getOfflineKeyExtentCache().invalidate(scanState.tableId, scanState.range);
           loc = null;
 
           // no need to try the current scan id somewhere else
@@ -475,6 +476,7 @@ public class ThriftScanner {
           TraceUtil.setException(child2, e, false);
           sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
         } catch (TException e) {
+          context.getOfflineKeyExtentCache().invalidate(scanState.tableId, scanState.range);
           TabletLocator.getLocator(context, scanState.tableId).invalidateCache(context,
               loc.tablet_location);
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage()

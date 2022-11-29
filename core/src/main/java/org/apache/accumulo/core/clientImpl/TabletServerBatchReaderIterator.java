@@ -71,6 +71,7 @@ import org.apache.accumulo.core.spi.scan.ScanServerAttempt;
 import org.apache.accumulo.core.spi.scan.ScanServerSelections;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
+import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.ScanServerBusyException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
@@ -260,7 +261,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       // for the table
       binnedRanges.clear();
       Map<KeyExtent,List<Range>> map = new HashMap<>();
-      context.getKeyExtentCache().lookup(this.tableId, ranges).forEach((pair, kes) -> {
+      context.getOfflineKeyExtentCache().lookup(this.tableId, ranges).forEach((pair, kes) -> {
         kes.forEach(ke -> {
           map.computeIfAbsent(ke, k -> new ArrayList<>()).add(pair.getSecond());
         });
@@ -411,6 +412,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         if (!tsFailures.isEmpty()) {
           locator.invalidateCache(tsFailures.keySet());
+          tsFailures.forEach((ke, r) -> {
+            context.getOfflineKeyExtentCache().invalidate(ke.tableId(), r);
+          });
           synchronized (failures) {
             failures.putAll(tsFailures);
           }
@@ -943,6 +947,12 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       }
       String message = "Table " + tableInfo + " does not have sampling configured or built";
       throw new SampleNotPresentException(message, e);
+    } catch (NotServingTabletException e) {
+      KeyExtent ke = KeyExtent.fromThrift(e.getExtent());
+      TabletLocator.getLocator(context, ke.tableId()).invalidateCache(context, server);
+      context.getOfflineKeyExtentCache().invalidate(ke.tableId(),
+          new Range(ke.endRow(), ke.prevEndRow()));
+      throw new IOException(e);
     } catch (TException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       timeoutTracker.errorOccured();

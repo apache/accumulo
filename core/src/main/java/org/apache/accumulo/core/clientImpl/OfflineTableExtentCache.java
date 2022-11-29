@@ -21,6 +21,7 @@ package org.apache.accumulo.core.clientImpl;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -37,7 +38,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.Pair;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,12 +46,12 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
 
-public class KeyExtentCache {
+public class OfflineTableExtentCache {
+
+  private static final Logger LOG = LoggerFactory.getLogger(OfflineTableExtentCache.class);
 
   private static class KeyExtentCacheLoader
       implements CacheLoader<Pair<TableId,Range>,List<KeyExtent>> {
-
-    private static final Logger LOG = LoggerFactory.getLogger(KeyExtentCacheLoader.class);
 
     private final ClientContext ctx;
 
@@ -60,7 +60,7 @@ public class KeyExtentCache {
     }
 
     @Override
-    public @Nullable List<KeyExtent> load(Pair<TableId,Range> pair) throws Exception {
+    public List<KeyExtent> load(Pair<TableId,Range> pair) throws Exception {
       final TableId tid = pair.getFirst();
       final Range r = pair.getSecond();
       LOG.trace("Loading extents for tid: {} and range: {}", tid, r);
@@ -70,8 +70,10 @@ public class KeyExtentCache {
           .build();
       List<KeyExtent> result = new ArrayList<>();
       for (TabletMetadata t : tm) {
-        if (t.getExtent().endRow() == null || t.getExtent().endRow() != null
-            && !r.afterEndKey(new Key(t.getExtent().endRow()).followingKey(PartialKey.ROW))) {
+        LOG.trace("Evaluating: {}", t.getExtent());
+        if (t.getExtent().endRow() == null || r.getEndKey() == null || t.getExtent().endRow() != null
+            && r.getEndKey().compareTo(new Key(t.getExtent().endRow()), PartialKey.ROW) >= 0) {
+          LOG.trace("Adding: {}", t.getExtent());
           result.add(t.getExtent());
         }
       }
@@ -110,7 +112,7 @@ public class KeyExtentCache {
   private final LoadingCache<Pair<TableId,Range>,List<KeyExtent>> cache;
   private final ClientContext ctx;
 
-  KeyExtentCache(ClientContext ctx) {
+  OfflineTableExtentCache(ClientContext ctx) {
     this.ctx = ctx;
     cache = Caffeine.newBuilder().scheduler(Scheduler.systemScheduler())
         .expireAfterAccess(Duration.ofMinutes(3)).build(new KeyExtentCacheLoader(this.ctx));
@@ -126,6 +128,25 @@ public class KeyExtentCache {
 
   public List<KeyExtent> lookup(TableId tid, Range r) {
     return cache.get(new Pair<TableId,Range>(tid, r));
+  }
+
+  public void invalidate(TableId tid) {
+    Set<Pair<TableId,Range>> removals = new HashSet<>();
+    cache.asMap().keySet().forEach(pair -> {
+      if (pair.getFirst().equals(tid)) {
+        removals.add(pair);
+      }
+    });
+    cache.invalidateAll(removals);
+  }
+
+  public void invalidate(TableId tid, List<Range> ranges) {
+    ranges.forEach(r -> invalidate(tid, r));
+  }
+
+  public void invalidate(TableId tid, Range r) {
+    cache.invalidate(new Pair<>(tid, r));
+    LOG.trace("Invalidated cache entry for table {}, range: {}", tid, r);
   }
 
 }

@@ -867,8 +867,8 @@ public class ScanServer extends AbstractServer
       Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       TSamplerConfiguration tSamplerConfig, long batchTimeOut, String contextArg,
-      Map<String,String> executionHints, long busyTimeout)
-      throws ThriftSecurityException, TSampleNotPresentException, TException {
+      Map<String,String> executionHints, long busyTimeout) throws ThriftSecurityException,
+      TSampleNotPresentException, NotServingTabletException, TooManyFilesException, TException {
 
     if (tbatch.size() == 0) {
       throw new TException("Scan Server batch must include at least one extent");
