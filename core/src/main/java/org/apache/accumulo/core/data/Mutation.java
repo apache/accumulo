@@ -91,7 +91,7 @@ public class Mutation implements Writable {
    * Formats available for serializing Mutations. The formats are described in a
    * <a href="doc-files/mutation-serialization.html">separate document</a>.
    */
-  public static enum SERIALIZED_FORMAT {
+  public enum SERIALIZED_FORMAT {
     VERSION1, VERSION2
   }
 
@@ -1506,7 +1506,12 @@ public class Mutation implements Writable {
    * @param peer
    *          the peer to add
    * @since 1.7.0
+   * @deprecated The feature pertaining to this method was deprecated in 2.1.0, but this method was
+   *             overlooked when annotating the code. It is being marked as deprecated in 2.1.1 in
+   *             order to correct that oversight, and will be removed in 3.0.0 with the rest of the
+   *             code pertaining to this feature.
    */
+  @Deprecated(since = "2.1.1")
   public void addReplicationSource(String peer) {
     if (replicationSources == null || replicationSources == EMPTY) {
       replicationSources = new HashSet<>();
@@ -1521,7 +1526,12 @@ public class Mutation implements Writable {
    * @param sources
    *          Set of peer names which have processed this update
    * @since 1.7.0
+   * @deprecated The feature pertaining to this method was deprecated in 2.1.0, but this method was
+   *             overlooked when annotating the code. It is being marked as deprecated in 2.1.1 in
+   *             order to correct that oversight, and will be removed in 3.0.0 with the rest of the
+   *             code pertaining to this feature.
    */
+  @Deprecated(since = "2.1.1")
   public void setReplicationSources(Set<String> sources) {
     requireNonNull(sources);
     this.replicationSources = sources;
@@ -1531,7 +1541,12 @@ public class Mutation implements Writable {
    * Return the replication sources for this Mutation
    *
    * @return An unmodifiable view of the replication sources
+   * @deprecated The feature pertaining to this method was deprecated in 2.1.0, but this method was
+   *             overlooked when annotating the code. It is being marked as deprecated in 2.1.1 in
+   *             order to correct that oversight, and will be removed in 3.0.0 with the rest of the
+   *             code pertaining to this feature.
    */
+  @Deprecated(since = "2.1.1")
   public Set<String> getReplicationSources() {
     if (replicationSources == null) {
       return EMPTY;
