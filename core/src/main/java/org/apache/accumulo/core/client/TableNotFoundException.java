@@ -33,12 +33,9 @@ public class TableNotFoundException extends Exception {
   private String tableName;
 
   /**
-   * @param tableId
-   *          the internal id of the table that was sought
-   * @param tableName
-   *          the visible name of the table that was sought
-   * @param description
-   *          the specific reason why it failed
+   * @param tableId the internal id of the table that was sought
+   * @param tableName the visible name of the table that was sought
+   * @param description the specific reason why it failed
    */
   public TableNotFoundException(String tableId, String tableName, String description) {
     super("Table" + (tableName != null && !tableName.isEmpty() ? " " + tableName : "")
@@ -48,14 +45,10 @@ public class TableNotFoundException extends Exception {
   }
 
   /**
-   * @param tableId
-   *          the internal id of the table that was sought
-   * @param tableName
-   *          the visible name of the table that was sought
-   * @param description
-   *          the specific reason why it failed
-   * @param cause
-   *          the exception that caused this failure
+   * @param tableId the internal id of the table that was sought
+   * @param tableName the visible name of the table that was sought
+   * @param description the specific reason why it failed
+   * @param cause the exception that caused this failure
    */
   public TableNotFoundException(String tableId, String tableName, String description,
       Throwable cause) {
@@ -64,19 +57,16 @@ public class TableNotFoundException extends Exception {
   }
 
   /**
-   * @param e
-   *          constructs an exception from a thrift exception
+   * @param e constructs an exception from a thrift exception
    */
   public TableNotFoundException(ThriftTableOperationException e) {
     this(e.getTableId(), e.getTableName(), e.getDescription(), e);
   }
 
   /**
-   * @param tableName
-   *          the original specified table
-   * @param e
-   *          indicates that a table wasn't found because the namespace specified in the table name
-   *          wasn't found
+   * @param tableName the original specified table
+   * @param e indicates that a table wasn't found because the namespace specified in the table name
+   *        wasn't found
    */
   public TableNotFoundException(String tableName, NamespaceNotFoundException e) {
     this(null, tableName,

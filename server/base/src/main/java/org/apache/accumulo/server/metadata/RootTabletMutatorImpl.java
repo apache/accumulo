@@ -113,8 +113,9 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
       // TODO this is racy...
       context.getZooCache().clear(zpath);
 
-      if (closeAfterMutate != null)
+      if (closeAfterMutate != null) {
         closeAfterMutate.close();
+      }
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

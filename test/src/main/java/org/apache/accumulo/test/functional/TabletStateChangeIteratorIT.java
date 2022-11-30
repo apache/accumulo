@@ -256,8 +256,9 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
         while (row.hasNext()) {
           Entry<Key,Value> entry = row.next();
           Key k = entry.getKey();
-          if (m == null)
+          if (m == null) {
             m = new Mutation(k.getRow());
+          }
 
           m.put(k.getColumnFamily(), k.getColumnQualifier(), k.getColumnVisibilityParsed(),
               k.getTimestamp(), entry.getValue());

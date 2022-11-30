@@ -85,8 +85,9 @@ class LoadFiles extends ManagerRepo {
 
   @Override
   public long isReady(long tid, Manager manager) {
-    if (manager.onlineTabletServers().isEmpty())
+    if (manager.onlineTabletServers().isEmpty()) {
       return 500;
+    }
     return 0;
   }
 
@@ -112,24 +113,27 @@ class LoadFiles extends ManagerRepo {
     if (!fs.createNewFile(writable)) {
       // Maybe this is a re-try... clear the flag and try again
       fs.delete(writable);
-      if (!fs.createNewFile(writable))
+      if (!fs.createNewFile(writable)) {
         throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
             TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY,
             "Unable to write to " + this.errorDir);
+      }
     }
     fs.delete(writable);
 
     final Set<String> filesToLoad = Collections.synchronizedSet(new HashSet<>());
-    for (FileStatus f : files)
+    for (FileStatus f : files) {
       filesToLoad.add(f.getPath().toString());
+    }
 
     final int RETRIES = Math.max(1, conf.getCount(Property.MANAGER_BULK_RETRIES));
     for (int attempt = 0; attempt < RETRIES && !filesToLoad.isEmpty(); attempt++) {
       List<Future<Void>> results = new ArrayList<>();
 
-      if (manager.onlineTabletServers().isEmpty())
+      if (manager.onlineTabletServers().isEmpty()) {
         log.warn("There are no tablet server to process bulk import, waiting (tid = "
             + FateTxId.formatTid(tid) + ")");
+      }
 
       while (manager.onlineTabletServers().isEmpty()) {
         sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
@@ -224,8 +228,9 @@ class LoadFiles extends ManagerRepo {
       }
       i++;
     }
-    if (i < max)
+    if (i < max) {
       result.delete(result.length() - 2, result.length());
+    }
     result.append("]");
     return result.toString();
   }

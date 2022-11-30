@@ -87,8 +87,9 @@ class ActiveScanIterator implements Iterator<String> {
   public String next() {
     final String next = scansIter.next();
 
-    if (!scansIter.hasNext())
+    if (!scansIter.hasNext()) {
       readNext();
+    }
 
     return next;
   }

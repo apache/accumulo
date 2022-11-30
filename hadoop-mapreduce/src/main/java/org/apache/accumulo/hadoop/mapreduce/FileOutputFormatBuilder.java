@@ -51,8 +51,7 @@ public interface FileOutputFormatBuilder {
      * Sets the compression type to use for data blocks, overriding the default. Specifying a
      * compression may require additional libraries to be available to your Job.
      *
-     * @param compressionType
-     *          one of "none", "gz", "bzip2", "lzo", "lz4", "snappy", or "zstd"
+     * @param compressionType one of "none", "gz", "bzip2", "lzo", "lz4", "snappy", or "zstd"
      */
     OutputOptions<T> compression(String compressionType);
 
@@ -65,8 +64,7 @@ public interface FileOutputFormatBuilder {
      * Making this value smaller may increase seek performance, but at the cost of increasing the
      * size of the indexes (which can also affect seek performance).
      *
-     * @param dataBlockSize
-     *          the block size, in bytes
+     * @param dataBlockSize the block size, in bytes
      */
     OutputOptions<T> dataBlockSize(long dataBlockSize);
 
@@ -74,8 +72,7 @@ public interface FileOutputFormatBuilder {
      * Sets the size for file blocks in the file system; file blocks are managed, and replicated, by
      * the underlying file system.
      *
-     * @param fileBlockSize
-     *          the block size, in bytes
+     * @param fileBlockSize the block size, in bytes
      */
     OutputOptions<T> fileBlockSize(long fileBlockSize);
 
@@ -84,8 +81,7 @@ public interface FileOutputFormatBuilder {
      * hierarchy within the file, while larger blocks mean a more shallow index hierarchy within the
      * file. This can affect the performance of queries.
      *
-     * @param indexBlockSize
-     *          the block size, in bytes
+     * @param indexBlockSize the block size, in bytes
      */
     OutputOptions<T> indexBlockSize(long indexBlockSize);
 
@@ -93,8 +89,7 @@ public interface FileOutputFormatBuilder {
      * Sets the file system replication factor for the resulting file, overriding the file system
      * default.
      *
-     * @param replication
-     *          the number of replicas for produced files
+     * @param replication the number of replicas for produced files
      */
     OutputOptions<T> replication(int replication);
 
@@ -102,8 +97,7 @@ public interface FileOutputFormatBuilder {
      * Specify a sampler to be used when writing out data. This will result in the output file
      * having sample data.
      *
-     * @param samplerConfig
-     *          The configuration for creating sample data in the output file.
+     * @param samplerConfig The configuration for creating sample data in the output file.
      */
     OutputOptions<T> sampler(SamplerConfiguration samplerConfig);
 
@@ -112,8 +106,7 @@ public interface FileOutputFormatBuilder {
      * Key Value written will be passed to the configured
      * {@link org.apache.accumulo.core.client.summary.Summarizer}'s.
      *
-     * @param summarizerConfigs
-     *          summarizer configurations
+     * @param summarizerConfigs summarizer configurations
      */
     OutputOptions<T> summarizers(SummarizerConfiguration... summarizerConfigs);
 

@@ -38,14 +38,10 @@ public class TabletServerSummary {
   /**
    * Generates tserver information
    *
-   * @param details
-   *          TServer details
-   * @param allTimeResults
-   *          TServer all time results
-   * @param currentResults
-   *          TServer current results
-   * @param currentOperations
-   *          TServer current operations
+   * @param details TServer details
+   * @param allTimeResults TServer all time results
+   * @param currentResults TServer current results
+   * @param currentOperations TServer current operations
    */
   public TabletServerSummary(TabletServerDetailInformation details,
       List<AllTimeTabletResults> allTimeResults, CurrentTabletResults currentResults,
@@ -59,8 +55,7 @@ public class TabletServerSummary {
   /**
    * Adds new current operations for the tserver
    *
-   * @param currentOperations
-   *          Current Operation to add
+   * @param currentOperations Current Operation to add
    */
   public void addcurrentOperations(CurrentOperations currentOperations) {
     this.currentOperations.add(currentOperations);

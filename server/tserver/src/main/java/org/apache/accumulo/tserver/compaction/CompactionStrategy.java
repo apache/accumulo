@@ -80,8 +80,7 @@ public abstract class CompactionStrategy {
    * collected during this method will be available during the call the
    * {@link #getCompactionPlan(MajorCompactionRequest)}.
    *
-   * @param request
-   *          basic details about the tablet
+   * @param request basic details about the tablet
    */
   public void gatherInformation(MajorCompactionRequest request) throws IOException {}
 
@@ -93,8 +92,7 @@ public abstract class CompactionStrategy {
    * Since no blocking should be done in this method, then its unexpected that this method will
    * throw IOException. However since its in the API, it can not be easily removed.
    *
-   * @param request
-   *          basic details about the tablet
+   * @param request basic details about the tablet
    * @return the plan for a major compaction, or null to cancel the compaction.
    */
   public abstract CompactionPlan getCompactionPlan(MajorCompactionRequest request)

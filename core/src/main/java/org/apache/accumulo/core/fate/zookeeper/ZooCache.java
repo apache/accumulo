@@ -203,10 +203,8 @@ public class ZooCache {
   /**
    * Creates a new cache. The given watcher is called whenever a watched node changes.
    *
-   * @param reader
-   *          ZooKeeper reader
-   * @param watcher
-   *          watcher object
+   * @param reader ZooKeeper reader
+   * @param watcher watcher object
    */
   public ZooCache(ZooReader reader, Watcher watcher) {
     this.zReader = reader;
@@ -282,8 +280,7 @@ public class ZooCache {
   /**
    * Gets the children of the given node. A watch is established by this call.
    *
-   * @param zPath
-   *          path of node
+   * @param zPath path of node
    * @return children list, or null if node has no children or does not exist
    */
   public List<String> getChildren(final String zPath) {
@@ -334,8 +331,7 @@ public class ZooCache {
    * Gets data at the given path. Status information is not returned. A watch is established by this
    * call.
    *
-   * @param zPath
-   *          path to get
+   * @param zPath path to get
    * @return path data, or null if non-existent
    */
   public byte[] get(final String zPath) {
@@ -346,10 +342,8 @@ public class ZooCache {
    * Gets data at the given path, filling status information into the given <code>Stat</code>
    * object. A watch is established by this call.
    *
-   * @param zPath
-   *          path to get
-   * @param status
-   *          status object to populate
+   * @param zPath path to get
+   * @param status status object to populate
    * @return path data, or null if non-existent
    */
   public byte[] get(final String zPath, final ZcStat status) {
@@ -415,10 +409,8 @@ public class ZooCache {
   /**
    * Helper method to copy stats from the cached stat into userStat
    *
-   * @param userStat
-   *          user Stat object
-   * @param cachedStat
-   *          cached statistic, that is or will be cached
+   * @param userStat user Stat object
+   * @param cachedStat cached statistic, that is or will be cached
    */
   protected void copyStats(ZcStat userStat, ZcStat cachedStat) {
     Preconditions.checkState(!closed);
@@ -485,8 +477,7 @@ public class ZooCache {
   /**
    * Checks if a data value (or lack of one) is cached.
    *
-   * @param zPath
-   *          path of node
+   * @param zPath path of node
    * @return true if data value is cached
    */
   @VisibleForTesting
@@ -502,8 +493,7 @@ public class ZooCache {
   /**
    * Checks if children of a node (or lack of them) are cached.
    *
-   * @param zPath
-   *          path of node
+   * @param zPath path of node
    * @return true if children are cached
    */
   @VisibleForTesting
@@ -519,8 +509,7 @@ public class ZooCache {
   /**
    * Clears this cache of all information about nodes rooted at the given path.
    *
-   * @param zPath
-   *          path of top node
+   * @param zPath path of top node
    */
   public void clear(String zPath) {
     Preconditions.checkState(!closed);

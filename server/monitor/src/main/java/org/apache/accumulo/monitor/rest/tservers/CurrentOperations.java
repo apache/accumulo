@@ -52,30 +52,18 @@ public class CurrentOperations {
   /**
    * Stores the current operations of the tablet
    *
-   * @param name
-   *          Table name
-   * @param tableId
-   *          Table ID
-   * @param tablet
-   *          Tablet string
-   * @param entries
-   *          Number of entries
-   * @param ingest
-   *          Number of ingest
-   * @param query
-   *          Number of queries
-   * @param minorAvg
-   *          Minor compaction average
-   * @param minorStdDev
-   *          Minor compaction standard deviation
-   * @param minorAvgES
-   *          Minor compaction average ES
-   * @param majorAvg
-   *          Major compaction average
-   * @param majorStdDev
-   *          Major compaction standard deviation
-   * @param majorAvgES
-   *          Major compaction average ES
+   * @param name Table name
+   * @param tableId Table ID
+   * @param tablet Tablet string
+   * @param entries Number of entries
+   * @param ingest Number of ingest
+   * @param query Number of queries
+   * @param minorAvg Minor compaction average
+   * @param minorStdDev Minor compaction standard deviation
+   * @param minorAvgES Minor compaction average ES
+   * @param majorAvg Major compaction average
+   * @param majorStdDev Major compaction standard deviation
+   * @param majorAvgES Major compaction average ES
    */
   public CurrentOperations(String name, TableId tableId, String tablet, long entries, double ingest,
       double query, Double minorAvg, Double minorStdDev, Double minorAvgES, Double majorAvg,

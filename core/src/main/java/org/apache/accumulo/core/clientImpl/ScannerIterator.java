@@ -96,8 +96,9 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   @Override
   public boolean hasNext() {
-    if (finished)
+    if (finished) {
       return false;
+    }
 
     if (iter != null && iter.hasNext()) {
       return true;
@@ -115,8 +116,9 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   @Override
   public Entry<Key,Value> next() {
-    if (hasNext())
+    if (hasNext()) {
       return iter.next();
+    }
     throw new NoSuchElementException();
   }
 
@@ -199,16 +201,19 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     // lose the stack trace for the user thread calling the scanner. Wrapping the exception with the
     // same type preserves the type and stack traces (foreground and background thread traces) that
     // are critical for debugging.
-    if (ee.getCause() instanceof IsolationException)
+    if (ee.getCause() instanceof IsolationException) {
       throw new IsolationException(ee);
+    }
     if (ee.getCause() instanceof TableDeletedException) {
       TableDeletedException cause = (TableDeletedException) ee.getCause();
       throw new TableDeletedException(cause.getTableId(), cause);
     }
-    if (ee.getCause() instanceof TableOfflineException)
+    if (ee.getCause() instanceof TableOfflineException) {
       throw new TableOfflineException(ee);
-    if (ee.getCause() instanceof SampleNotPresentException)
+    }
+    if (ee.getCause() instanceof SampleNotPresentException) {
       throw new SampleNotPresentException(ee.getCause().getMessage(), ee);
+    }
   }
 
 }

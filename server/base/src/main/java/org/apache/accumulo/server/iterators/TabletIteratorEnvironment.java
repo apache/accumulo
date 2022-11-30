@@ -63,8 +63,9 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
       AccumuloConfiguration tableConfig, TableId tableId) {
-    if (scope == IteratorScope.majc)
+    if (scope == IteratorScope.majc) {
       throw new IllegalArgumentException("must set if compaction is full");
+    }
 
     this.context = context;
     this.serviceEnvironment = new ServiceEnvironmentImpl(context);
@@ -83,8 +84,9 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
       Map<TabletFile,DataFileValue> files, Authorizations authorizations,
       SamplerConfigurationImpl samplerConfig,
       ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators) {
-    if (scope == IteratorScope.majc)
+    if (scope == IteratorScope.majc) {
       throw new IllegalArgumentException("must set if compaction is full");
+    }
 
     this.context = context;
     this.serviceEnvironment = new ServiceEnvironmentImpl(context);
@@ -107,9 +109,10 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope, boolean fullMajC,
       AccumuloConfiguration tableConfig, TableId tableId, CompactionKind kind) {
-    if (scope != IteratorScope.majc)
+    if (scope != IteratorScope.majc) {
       throw new IllegalArgumentException(
           "Tried to set maj compaction type when scope was " + scope);
+    }
 
     this.context = context;
     this.serviceEnvironment = new ServiceEnvironmentImpl(context);
@@ -136,16 +139,18 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
 
   @Override
   public boolean isFullMajorCompaction() {
-    if (scope != IteratorScope.majc)
+    if (scope != IteratorScope.majc) {
       throw new IllegalStateException("Asked about major compaction type when scope is " + scope);
+    }
     return fullMajorCompaction;
   }
 
   @Override
   public boolean isUserCompaction() {
-    if (scope != IteratorScope.majc)
+    if (scope != IteratorScope.majc) {
       throw new IllegalStateException(
           "Asked about user initiated compaction type when scope is " + scope);
+    }
     return userCompaction;
   }
 
@@ -165,17 +170,19 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
 
   @Override
   public Authorizations getAuthorizations() {
-    if (scope != IteratorScope.scan)
+    if (scope != IteratorScope.scan) {
       throw new UnsupportedOperationException(
           "Authorizations may only be supplied when scope is scan but scope is " + scope);
+    }
     return authorizations;
   }
 
   @Override
   public SortedKeyValueIterator<Key,Value>
       getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
-    if (topLevelIterators.isEmpty())
+    if (topLevelIterators.isEmpty()) {
       return iter;
+    }
     ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<>(topLevelIterators);
     allIters.add(iter);
     return new MultiIterator(allIters, false);

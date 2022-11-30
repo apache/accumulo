@@ -133,25 +133,30 @@ public class ChaoticLoadBalancer implements TabletBalancer {
     for (Entry<TabletServerId,TServerStatus> e : params.currentStatus().entrySet()) {
       for (String tableId : e.getValue().getTableMap().keySet()) {
         TableId id = TableId.of(tableId);
-        if (!moveMetadata && MetadataTable.ID.equals(id))
+        if (!moveMetadata && MetadataTable.ID.equals(id)) {
           continue;
+        }
         try {
           for (TabletStatistics ts : getOnlineTabletsForTable(e.getKey(), id)) {
             int index = random.nextInt(underCapacityTServer.size());
             TabletServerId dest = underCapacityTServer.get(index);
-            if (dest.equals(e.getKey()))
+            if (dest.equals(e.getKey())) {
               continue;
+            }
             params.migrationsOut().add(new TabletMigration(ts.getTabletId(), e.getKey(), dest));
-            if (numTablets.put(dest, numTablets.get(dest) + 1) > avg)
+            if (numTablets.put(dest, numTablets.get(dest) + 1) > avg) {
               underCapacityTServer.remove(index);
+            }
             if (numTablets.put(e.getKey(), numTablets.get(e.getKey()) - 1) <= avg
-                && !underCapacityTServer.contains(e.getKey()))
+                && !underCapacityTServer.contains(e.getKey())) {
               underCapacityTServer.add(e.getKey());
+            }
 
             // We can get some craziness with only 1 tserver, so lets make sure there's always an
             // option!
-            if (underCapacityTServer.isEmpty())
+            if (underCapacityTServer.isEmpty()) {
               underCapacityTServer.addAll(numTablets.keySet());
+            }
           }
         } catch (AccumuloSecurityException e1) {
           // Shouldn't happen, but carry on if it does

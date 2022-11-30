@@ -63,19 +63,22 @@ public class CacheTestReader {
 
       for (int i = 0; i < numData; i++) {
         byte[] v = zc.get(rootDir + "/data" + i);
-        if (v != null)
+        if (v != null) {
           readData.put(rootDir + "/data" + i, new String(v, UTF_8));
+        }
       }
 
       byte[] v = zc.get(rootDir + "/dataS");
-      if (v != null)
+      if (v != null) {
         readData.put(rootDir + "/dataS", new String(v, UTF_8));
+      }
 
       List<String> children = zc.getChildren(rootDir + "/dir");
-      if (children != null)
+      if (children != null) {
         for (String child : children) {
           readData.put(rootDir + "/dir/" + child, "");
         }
+      }
 
       FileOutputStream fos = new FileOutputStream(myfile);
       ObjectOutputStream oos = new ObjectOutputStream(fos);

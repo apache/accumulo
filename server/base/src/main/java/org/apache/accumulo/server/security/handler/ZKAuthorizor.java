@@ -56,8 +56,9 @@ public class ZKAuthorizor implements Authorizor {
   @Override
   public Authorizations getCachedUserAuthorizations(String user) {
     byte[] authsBytes = zooCache.get(ZKUserPath + "/" + user + ZKUserAuths);
-    if (authsBytes != null)
+    if (authsBytes != null) {
       return ZKSecurityTool.convertAuthorizations(authsBytes);
+    }
     return Authorizations.EMPTY;
   }
 
@@ -74,8 +75,9 @@ public class ZKAuthorizor implements Authorizor {
     // create the root user with no record-level authorizations
     try {
       // prep parent node of users with root username
-      if (!zoo.exists(ZKUserPath))
+      if (!zoo.exists(ZKUserPath)) {
         zoo.putPersistentData(ZKUserPath, rootuser.getBytes(UTF_8), NodeExistsPolicy.FAIL);
+      }
 
       initUser(rootuser);
       zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserAuths,
@@ -113,8 +115,9 @@ public class ZKAuthorizor implements Authorizor {
       throw new RuntimeException(e);
     } catch (KeeperException e) {
       log.error("{}", e.getMessage(), e);
-      if (e.code().equals(KeeperException.Code.NONODE))
+      if (e.code().equals(KeeperException.Code.NONODE)) {
         throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST, e);
+      }
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
 
     }

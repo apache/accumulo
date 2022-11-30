@@ -106,16 +106,15 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * already been encoded as UTF-8 bytes. Warning: This method does not verify that each encoded
    * string is valid UTF-8.
    *
-   * @param authorizations
-   *          collection of authorizations, as strings encoded in UTF-8
-   * @throws IllegalArgumentException
-   *           if authorizations is null
+   * @param authorizations collection of authorizations, as strings encoded in UTF-8
+   * @throws IllegalArgumentException if authorizations is null
    * @see #Authorizations(String...)
    */
   public Authorizations(Collection<byte[]> authorizations) {
     checkArgument(authorizations != null, "authorizations is null");
-    for (byte[] auth : authorizations)
+    for (byte[] auth : authorizations) {
       auths.add(new ArrayByteSequence(auth));
+    }
     checkAuths();
   }
 
@@ -124,10 +123,8 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * been encoded as UTF-8 bytes. Warning: This method does not verify that each encoded string is
    * valid UTF-8.
    *
-   * @param authorizations
-   *          list of authorizations, as strings encoded in UTF-8 and placed in buffers
-   * @throws IllegalArgumentException
-   *           if authorizations is null
+   * @param authorizations list of authorizations, as strings encoded in UTF-8 and placed in buffers
+   * @throws IllegalArgumentException if authorizations is null
    * @see #Authorizations(String...)
    */
   public Authorizations(List<ByteBuffer> authorizations) {
@@ -143,11 +140,9 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * of authorizations of size one. Warning: This method does not verify that the encoded serialized
    * form is valid UTF-8.
    *
-   * @param authorizations
-   *          a serialized authorizations string produced by {@link #getAuthorizationsArray()} or
-   *          {@link #serialize()}, converted to UTF-8 bytes
-   * @throws IllegalArgumentException
-   *           if authorizations is null
+   * @param authorizations a serialized authorizations string produced by
+   *        {@link #getAuthorizationsArray()} or {@link #serialize()}, converted to UTF-8 bytes
+   * @throws IllegalArgumentException if authorizations is null
    */
   public Authorizations(byte[] authorizations) {
 
@@ -166,8 +161,9 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
       }
     } else {
       // it's the old format
-      if (authorizations.length > 0)
+      if (authorizations.length > 0) {
         setAuthorizations(authsString.split(","));
+      }
     }
   }
 
@@ -181,10 +177,8 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   /**
    * Constructs an authorizations object from a set of human-readable authorizations.
    *
-   * @param authorizations
-   *          array of authorizations
-   * @throws IllegalArgumentException
-   *           if authorizations is null
+   * @param authorizations array of authorizations
+   * @throws IllegalArgumentException if authorizations is null
    */
   public Authorizations(String... authorizations) {
     setAuthorizations(authorizations);
@@ -258,8 +252,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   /**
    * Checks whether this object contains the given authorization.
    *
-   * @param auth
-   *          authorization, as a string encoded in UTF-8
+   * @param auth authorization, as a string encoded in UTF-8
    * @return true if authorization is in this collection
    */
   public boolean contains(byte[] auth) {
@@ -270,8 +263,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * Checks whether this object contains the given authorization. Warning: This method does not
    * verify that the encoded string is valid UTF-8.
    *
-   * @param auth
-   *          authorization, as a string encoded in UTF-8
+   * @param auth authorization, as a string encoded in UTF-8
    * @return true if authorization is in this collection
    */
   @Override
@@ -282,8 +274,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   /**
    * Checks whether this object contains the given authorization.
    *
-   * @param auth
-   *          authorization
+   * @param auth authorization
    * @return true if authorization is in this collection
    */
   public boolean contains(String auth) {
@@ -308,8 +299,9 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   @Override
   public int hashCode() {
     int result = 0;
-    for (ByteSequence b : auths)
+    for (ByteSequence b : auths) {
       result += b.hashCode();
+    }
     return result;
   }
 

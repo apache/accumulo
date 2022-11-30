@@ -49,12 +49,9 @@ public class Condition {
    * column visibility is empty. Characters in the column family and column qualifier are encoded as
    * bytes in the condition using UTF-8.
    *
-   * @param cf
-   *          column family
-   * @param cq
-   *          column qualifier
-   * @throws IllegalArgumentException
-   *           if any argument is null
+   * @param cf column family
+   * @param cq column qualifier
+   * @throws IllegalArgumentException if any argument is null
    */
   public Condition(CharSequence cf, CharSequence cq) {
     checkArgument(cf != null, "cf is null");
@@ -68,12 +65,9 @@ public class Condition {
    * Creates a new condition. The initial column value and timestamp are null, and the initial
    * column visibility is empty.
    *
-   * @param cf
-   *          column family
-   * @param cq
-   *          column qualifier
-   * @throws IllegalArgumentException
-   *           if any argument is null
+   * @param cf column family
+   * @param cq column qualifier
+   * @throws IllegalArgumentException if any argument is null
    */
   public Condition(byte[] cf, byte[] cq) {
     checkArgument(cf != null, "cf is null");
@@ -87,12 +81,9 @@ public class Condition {
    * Creates a new condition. The initial column value and timestamp are null, and the initial
    * column visibility is empty.
    *
-   * @param cf
-   *          column family
-   * @param cq
-   *          column qualifier
-   * @throws IllegalArgumentException
-   *           if any argument is null
+   * @param cf column family
+   * @param cq column qualifier
+   * @throws IllegalArgumentException if any argument is null
    */
   public Condition(Text cf, Text cq) {
     checkArgument(cf != null, "cf is null");
@@ -106,12 +97,9 @@ public class Condition {
    * Creates a new condition. The initial column value and timestamp are null, and the initial
    * column visibility is empty.
    *
-   * @param cf
-   *          column family
-   * @param cq
-   *          column qualifier
-   * @throws IllegalArgumentException
-   *           if any argument is null
+   * @param cf column family
+   * @param cq column qualifier
+   * @throws IllegalArgumentException if any argument is null
    */
   public Condition(ByteSequence cf, ByteSequence cq) {
     checkArgument(cf != null, "cf is null");
@@ -143,8 +131,7 @@ public class Condition {
    * Sets the version for the column to check. If this is not set then the latest column will be
    * checked, unless iterators do something different.
    *
-   * @param ts
-   *          timestamp
+   * @param ts timestamp
    * @return this condition
    */
   public Condition setTimestamp(long ts) {
@@ -167,11 +154,9 @@ public class Condition {
    * condition to pass. The passed-in character sequence is encoded as UTF-8. See
    * {@link #setValue(byte[])}.
    *
-   * @param value
-   *          value
+   * @param value value
    * @return this condition
-   * @throws IllegalArgumentException
-   *           if value is null
+   * @throws IllegalArgumentException if value is null
    */
   public Condition setValue(CharSequence value) {
     checkArgument(value != null, "value is null");
@@ -184,11 +169,9 @@ public class Condition {
    * must exist and have this value. If a value is not set, then the column must be absent for the
    * condition to pass.
    *
-   * @param value
-   *          value
+   * @param value value
    * @return this condition
-   * @throws IllegalArgumentException
-   *           if value is null
+   * @throws IllegalArgumentException if value is null
    */
   public Condition setValue(byte[] value) {
     checkArgument(value != null, "value is null");
@@ -201,11 +184,9 @@ public class Condition {
    * must exist and have this value. If a value is not set, then the column must be absent for the
    * condition to pass. See {@link #setValue(byte[])}.
    *
-   * @param value
-   *          value
+   * @param value value
    * @return this condition
-   * @throws IllegalArgumentException
-   *           if value is null
+   * @throws IllegalArgumentException if value is null
    */
   public Condition setValue(Text value) {
     checkArgument(value != null, "value is null");
@@ -218,11 +199,9 @@ public class Condition {
    * must exist and have this value. If a value is not set, then the column must be absent for the
    * condition to pass. See {@link #setValue(byte[])}.
    *
-   * @param value
-   *          value
+   * @param value value
    * @return this condition
-   * @throws IllegalArgumentException
-   *           if value is null
+   * @throws IllegalArgumentException if value is null
    */
   public Condition setValue(ByteSequence value) {
     checkArgument(value != null, "value is null");
@@ -242,10 +221,8 @@ public class Condition {
   /**
    * Sets the visibility for the column to check. If not set it defaults to empty visibility.
    *
-   * @param cv
-   *          column visibility
-   * @throws IllegalArgumentException
-   *           if cv is null
+   * @param cv column visibility
+   * @throws IllegalArgumentException if cv is null
    */
   public Condition setVisibility(ColumnVisibility cv) {
     checkArgument(cv != null, "cv is null");
@@ -270,12 +247,10 @@ public class Condition {
    * timestamp is set then it will be used to narrow the range). Value equality will be tested using
    * the first entry returned by the iterator stack.
    *
-   * @param iterators
-   *          iterators
+   * @param iterators iterators
    * @return this condition
-   * @throws IllegalArgumentException
-   *           if iterators or any of its elements are null, or if any two iterators share the same
-   *           name or priority
+   * @throws IllegalArgumentException if iterators or any of its elements are null, or if any two
+   *         iterators share the same name or priority
    */
   public Condition setIterators(IteratorSetting... iterators) {
     checkArgument(iterators != null, "iterators is null");
@@ -285,12 +260,14 @@ public class Condition {
       HashSet<Integer> prios = new HashSet<>();
 
       for (IteratorSetting iteratorSetting : iterators) {
-        if (!names.add(iteratorSetting.getName()))
+        if (!names.add(iteratorSetting.getName())) {
           throw new IllegalArgumentException(
               "iterator name used more than once " + iteratorSetting.getName());
-        if (!prios.add(iteratorSetting.getPriority()))
+        }
+        if (!prios.add(iteratorSetting.getPriority())) {
           throw new IllegalArgumentException(
               "iterator priority used more than once " + iteratorSetting.getPriority());
+        }
       }
     }
 
@@ -309,10 +286,12 @@ public class Condition {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (!(o instanceof Condition))
+    }
+    if (!(o instanceof Condition)) {
       return false;
+    }
     Condition condition = (Condition) o;
     return Objects.equals(cf, condition.cf) && Objects.equals(cq, condition.cq)
         && Objects.equals(cv, condition.cv) && Objects.equals(val, condition.val)

@@ -38,8 +38,9 @@ public class AmpleImpl implements Ample {
   public TabletMetadata readTablet(KeyExtent extent, ReadConsistency readConsistency,
       ColumnType... colsToFetch) {
     Options builder = TabletsMetadata.builder(client).forTablet(extent);
-    if (colsToFetch.length > 0)
+    if (colsToFetch.length > 0) {
       builder.fetch(colsToFetch);
+    }
 
     builder.readConsistency(readConsistency);
 

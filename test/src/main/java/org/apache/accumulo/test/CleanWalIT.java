@@ -84,8 +84,9 @@ public class CleanWalIT extends AccumuloClusterHarness {
 
       getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
 
-      for (String table : new String[] {MetadataTable.NAME, RootTable.NAME})
+      for (String table : new String[] {MetadataTable.NAME, RootTable.NAME}) {
         client.tableOperations().flush(table, null, null, true);
+      }
       log.debug("Checking entries for {}", tableName);
       assertEquals(1, count(tableName, client));
       for (String table : new String[] {MetadataTable.NAME, RootTable.NAME}) {

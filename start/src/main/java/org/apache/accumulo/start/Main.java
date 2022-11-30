@@ -187,8 +187,7 @@ public class Main {
   /**
    * Print a stack trace to stderr and exit with a non-zero status.
    *
-   * @param t
-   *          The {@link Throwable} containing a stack trace to print.
+   * @param t The {@link Throwable} containing a stack trace to print.
    */
   private static void die(final Throwable t, String msg) {
     String message =

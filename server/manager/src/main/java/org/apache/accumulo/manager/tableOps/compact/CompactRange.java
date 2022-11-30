@@ -77,10 +77,11 @@ public class CompactRange extends ManagerRepo {
     }
 
     if (compactionConfig.getStartRow() != null && compactionConfig.getEndRow() != null
-        && compactionConfig.getStartRow().compareTo(compactionConfig.getEndRow()) >= 0)
+        && compactionConfig.getStartRow().compareTo(compactionConfig.getEndRow()) >= 0) {
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.BAD_RANGE,
           "start row must be less than end row");
+    }
 
     this.startRow =
         Optional.ofNullable(compactionConfig.getStartRow()).map(TextUtil::getBytes).orElse(null);
@@ -110,8 +111,9 @@ public class CompactRange extends ManagerRepo {
         String txidString = FastFormat.toHexString(tid);
 
         for (int i = 1; i < tokens.length; i++) {
-          if (tokens[i].startsWith(txidString))
+          if (tokens[i].startsWith(txidString)) {
             continue; // skip self
+          }
 
           log.debug("txidString : {}", txidString);
           log.debug("tokens[{}] : {}", i, tokens[i]);
@@ -160,8 +162,9 @@ public class CompactRange extends ManagerRepo {
 
         StringBuilder encodedIterators = new StringBuilder();
         for (int i = 1; i < tokens.length; i++) {
-          if (tokens[i].startsWith(txidString))
+          if (tokens[i].startsWith(txidString)) {
             continue;
+          }
           encodedIterators.append(",");
           encodedIterators.append(tokens[i]);
         }

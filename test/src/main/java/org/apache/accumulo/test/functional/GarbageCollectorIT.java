@@ -137,8 +137,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       while (true) {
         sleepUninterruptibly(1, TimeUnit.SECONDS);
         int more = countFiles(pathString);
-        if (more <= before)
+        if (more <= before) {
           break;
+        }
         before = more;
       }
 

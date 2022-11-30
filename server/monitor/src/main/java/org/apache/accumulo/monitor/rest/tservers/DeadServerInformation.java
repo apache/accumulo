@@ -42,12 +42,9 @@ public class DeadServerInformation {
   /**
    * Stores a new dead tserver
    *
-   * @param server
-   *          Location of the tserver
-   * @param lastStatus
-   *          Last know status of the tserver
-   * @param status
-   *          Current status of the tserver
+   * @param server Location of the tserver
+   * @param lastStatus Last know status of the tserver
+   * @param status Current status of the tserver
    */
   public DeadServerInformation(String server, long lastStatus, String status) {
     this.server = server;

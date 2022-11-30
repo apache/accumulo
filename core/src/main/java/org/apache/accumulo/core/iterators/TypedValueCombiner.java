@@ -60,14 +60,11 @@ public abstract class TypedValueCombiner<V> extends Combiner {
     /**
      * Constructs an {@code Iterator<V>} from an {@code Iterator<Value>}
      *
-     * @param iter
-     *          The source iterator
+     * @param iter The source iterator
      *
-     * @param encoder
-     *          The Encoder whose decode method is used to translate from Value to V
+     * @param encoder The Encoder whose decode method is used to translate from Value to V
      *
-     * @param lossy
-     *          Determines whether to error on failure to decode or ignore and move on
+     * @param lossy Determines whether to error on failure to decode or ignore and move on
      */
     VIterator(Iterator<Value> iter, Encoder<V> encoder, boolean lossy) {
       this.source = iter;
@@ -80,26 +77,30 @@ public abstract class TypedValueCombiner<V> extends Combiner {
 
     @Override
     public boolean hasNext() {
-      if (hasNext)
+      if (hasNext) {
         return true;
+      }
 
       while (true) {
-        if (!source.hasNext())
+        if (!source.hasNext()) {
           return false;
+        }
         try {
           next = encoder.decode(source.next().get());
           return hasNext = true;
         } catch (ValueFormatException vfe) {
-          if (!lossy)
+          if (!lossy) {
             throw vfe;
+          }
         }
       }
     }
 
     @Override
     public V next() {
-      if (!hasNext && !hasNext())
+      if (!hasNext && !hasNext()) {
         throw new NoSuchElementException();
+      }
       V toRet = next;
       next = null;
       hasNext = false;
@@ -122,8 +123,8 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   /**
    * Instantiates and sets the {@code Encoder<V>} used to translate Values to V and back.
    *
-   * @throws IllegalArgumentException
-   *           if ClassNotFoundException, InstantiationException, or IllegalAccessException occurs
+   * @throws IllegalArgumentException if ClassNotFoundException, InstantiationException, or
+   *         IllegalAccessException occurs
    */
   protected void setEncoder(String encoderClass) {
     try {
@@ -139,28 +140,27 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   /**
    * Tests whether v remains the same when encoded and decoded with the current encoder.
    *
-   * @throws IllegalStateException
-   *           if an encoder has not been set.
-   * @throws IllegalArgumentException
-   *           if the test fails.
+   * @throws IllegalStateException if an encoder has not been set.
+   * @throws IllegalArgumentException if the test fails.
    */
   protected void testEncoder(V v) {
-    if (encoder == null)
+    if (encoder == null) {
       throw new IllegalStateException("encoder has not been initialized");
+    }
     testEncoder(encoder, v);
   }
 
   /**
    * Tests whether v remains the same when encoded and decoded with the given encoder.
    *
-   * @throws IllegalArgumentException
-   *           if the test fails.
+   * @throws IllegalArgumentException if the test fails.
    */
   public static <V> void testEncoder(Encoder<V> encoder, V v) {
     try {
-      if (!v.equals(encoder.decode(encoder.encode(v))))
+      if (!v.equals(encoder.decode(encoder.encode(v)))) {
         throw new IllegalArgumentException("something wrong with " + encoder.getClass().getName()
             + " -- doesn't encode and decode " + v + " properly");
+      }
     } catch (ClassCastException e) {
       throw new IllegalArgumentException(
           encoder.getClass().getName() + " doesn't encode " + v.getClass().getName());
@@ -202,8 +202,9 @@ public abstract class TypedValueCombiner<V> extends Combiner {
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    if (!super.validateOptions(options))
+    if (!super.validateOptions(options)) {
       return false;
+    }
     try {
       setLossyness(options);
     } catch (Exception e) {
@@ -217,10 +218,8 @@ public abstract class TypedValueCombiner<V> extends Combiner {
    * will ignore any values which fail to decode. Otherwise, the combiner will throw an error which
    * will interrupt the action (and prevent potential data loss). False is the default behavior.
    *
-   * @param is
-   *          iterator settings object to configure
-   * @param lossy
-   *          if true the combiner will ignored values which fail to decode; otherwise error.
+   * @param is iterator settings object to configure
+   * @param lossy if true the combiner will ignored values which fail to decode; otherwise error.
    */
   public static void setLossyness(IteratorSetting is, boolean lossy) {
     is.addOption(LOSSY, Boolean.toString(lossy));
@@ -229,11 +228,9 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   /**
    * Reduces a list of V into a single V.
    *
-   * @param key
-   *          The most recent version of the Key being reduced.
+   * @param key The most recent version of the Key being reduced.
    *
-   * @param iter
-   *          An iterator over the V for different versions of the key.
+   * @param iter An iterator over the V for different versions of the key.
    *
    * @return The combined V.
    */

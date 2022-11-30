@@ -45,8 +45,7 @@ public class OpTimer {
    * Start the timer instance.
    *
    * @return this instance for fluent chaining.
-   * @throws IllegalStateException
-   *           if start is called on running instance.
+   * @throws IllegalStateException if start is called on running instance.
    */
   public OpTimer start() throws IllegalStateException {
     if (isStarted) {
@@ -61,8 +60,7 @@ public class OpTimer {
    * Stop the timer instance.
    *
    * @return this instance for fluent chaining.
-   * @throws IllegalStateException
-   *           if stop is called on instance that is not running.
+   * @throws IllegalStateException if stop is called on instance that is not running.
    */
   public OpTimer stop() throws IllegalStateException {
     if (!isStarted) {
@@ -89,8 +87,7 @@ public class OpTimer {
    * Converts current timer value to specific unit. The conversion to courser granularities truncate
    * with loss of precision.
    *
-   * @param timeUnit
-   *          the time unit that will converted to.
+   * @param timeUnit the time unit that will converted to.
    * @return truncated time in unit of specified time unit.
    */
   public long now(TimeUnit timeUnit) {
@@ -105,8 +102,7 @@ public class OpTimer {
    * Note: this method is not included in the hadoop 2.7 org.apache.hadoop.util.StopWatch class. If
    * that class is adopted, then provisions will be required to replace this method.
    *
-   * @param timeUnit
-   *          the time unit to scale the elapsed time to.
+   * @param timeUnit the time unit to scale the elapsed time to.
    * @return the elapsed time of this instance scaled to the provided time unit.
    */
   public double scale(TimeUnit timeUnit) {

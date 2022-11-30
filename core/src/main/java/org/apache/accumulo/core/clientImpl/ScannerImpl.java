@@ -104,8 +104,9 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   }
 
   private synchronized void ensureOpen() {
-    if (closed)
+    if (closed) {
       throw new IllegalStateException("Scanner is closed");
+    }
   }
 
   public ScannerImpl(ClientContext context, TableId tableId, Authorizations authorizations) {
@@ -136,10 +137,11 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   @Override
   public synchronized void setBatchSize(int size) {
     ensureOpen();
-    if (size > 0)
+    if (size > 0) {
       this.size = size;
-    else
+    } else {
       throw new IllegalArgumentException("size must be greater than zero");
+    }
   }
 
   @Override

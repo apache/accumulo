@@ -34,8 +34,7 @@ public class DeadServerList {
   /**
    * Adds a new dead tserver to the list
    *
-   * @param deadTabletServer
-   *          Dead tserver to add
+   * @param deadTabletServer Dead tserver to add
    */
   public void addDeadServer(DeadServerInformation deadTabletServer) {
     this.deadTabletServer.add(deadTabletServer);

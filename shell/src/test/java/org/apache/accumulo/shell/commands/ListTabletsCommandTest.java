@@ -59,8 +59,9 @@ public class ListTabletsCommandTest {
     @Override
     protected void printResults(CommandLine cl, Shell shellState, List<String> lines) {
       log.debug("Command run successfully. Output below...");
-      for (String line : lines)
+      for (String line : lines) {
         log.debug(line);
+      }
       assertEquals(TabletRowInfo.header, lines.get(0));
       assertTrue(lines.get(1).startsWith("TABLE:"));
       // first table info

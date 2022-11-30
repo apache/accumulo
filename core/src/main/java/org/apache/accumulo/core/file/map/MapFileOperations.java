@@ -80,15 +80,17 @@ public class MapFileOperations extends FileOperations {
 
     @Override
     public Key getTopKey() {
-      if (!hasTop)
+      if (!hasTop) {
         throw new IllegalStateException();
+      }
       return reader.getTopKey();
     }
 
     @Override
     public Value getTopValue() {
-      if (!hasTop)
+      if (!hasTop) {
         throw new IllegalStateException();
+      }
       return reader.getTopValue();
     }
 
@@ -105,8 +107,9 @@ public class MapFileOperations extends FileOperations {
 
     @Override
     public void next() throws IOException {
-      if (!hasTop)
+      if (!hasTop) {
         throw new IllegalStateException();
+      }
       reader.next();
       hasTop = reader.hasTop() && !range.afterEndKey(reader.getTopKey());
     }

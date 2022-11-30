@@ -44,10 +44,11 @@ public abstract class LexicoderTest {
       encList.add(new Text(lexicoder.encode(d)));
     }
 
-    if (comp != null)
+    if (comp != null) {
       list.sort(comp);
-    else
+    } else {
       Collections.sort(list);
+    }
 
     Collections.sort(encList);
 

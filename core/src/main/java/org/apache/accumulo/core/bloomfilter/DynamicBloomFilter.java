@@ -93,14 +93,10 @@ public class DynamicBloomFilter extends Filter {
    * <p>
    * Builds an empty Dynamic Bloom filter.
    *
-   * @param vectorSize
-   *          The number of bits in the vector.
-   * @param nbHash
-   *          The number of hash function to consider.
-   * @param hashType
-   *          type of the hashing function (see {@link org.apache.hadoop.util.hash.Hash}).
-   * @param nr
-   *          The threshold for the maximum number of keys to record in a dynamic Bloom filter row.
+   * @param vectorSize The number of bits in the vector.
+   * @param nbHash The number of hash function to consider.
+   * @param hashType type of the hashing function (see {@link org.apache.hadoop.util.hash.Hash}).
+   * @param nr The threshold for the maximum number of keys to record in a dynamic Bloom filter row.
    */
   public DynamicBloomFilter(final int vectorSize, final int nbHash, final int hashType,
       final int nr) {
@@ -129,8 +125,9 @@ public class DynamicBloomFilter extends Filter {
 
     boolean added = bf.add(key);
 
-    if (added)
+    if (added) {
       currentNbRecord++;
+    }
 
     return added;
   }

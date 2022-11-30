@@ -86,8 +86,9 @@ public class CryptoFactoryLoader {
       Map<String,String> tableProps, TableId tableId) {
     String factoryKey = Property.INSTANCE_CRYPTO_FACTORY.getKey();
     String clazzName = systemConfig.get(factoryKey);
-    if (clazzName == null || clazzName.trim().isEmpty())
+    if (clazzName == null || clazzName.trim().isEmpty()) {
       return NoCryptoServiceFactory.NONE;
+    }
 
     var env = new CryptoEnvironmentImpl(TABLE, tableId, null);
     CryptoServiceFactory factory = loadCryptoFactory(JAVA, clazzName);

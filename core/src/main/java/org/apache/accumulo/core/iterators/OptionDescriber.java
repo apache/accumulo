@@ -44,31 +44,30 @@ public interface OptionDescriber {
     /**
      * IteratorOptions holds the name, description, and option information for an iterator.
      *
-     * @param name
-     *          is the distinguishing name for the iterator or filter
-     * @param description
-     *          is a description of the iterator or filter
-     * @param namedOptions
-     *          is a map from specifically named options to their descriptions (null if unused)
-     *          e.g., the AgeOffFilter requires a parameter called "ttl", so its namedOptions =
-     *          Collections.singletonMap("ttl", "time to live (milliseconds)")
-     * @param unnamedOptionDescriptions
-     *          is a list of descriptions of additional options that don't have fixed names (null if
-     *          unused). The descriptions are intended to describe a category, and the user will
-     *          provide parameter names and values in that category; e.g., the FilteringIterator
-     *          needs a list of Filters intended to be named by their priority numbers, so it's<br>
-     *          {@code unnamedOptionDescriptions = Collections}<br>
-     *          {@code .singletonList("<filterPriorityNumber> <ageoff|regex|filterClass>")}
+     * @param name is the distinguishing name for the iterator or filter
+     * @param description is a description of the iterator or filter
+     * @param namedOptions is a map from specifically named options to their descriptions (null if
+     *        unused) e.g., the AgeOffFilter requires a parameter called "ttl", so its namedOptions
+     *        = Collections.singletonMap("ttl", "time to live (milliseconds)")
+     * @param unnamedOptionDescriptions is a list of descriptions of additional options that don't
+     *        have fixed names (null if unused). The descriptions are intended to describe a
+     *        category, and the user will provide parameter names and values in that category; e.g.,
+     *        the FilteringIterator needs a list of Filters intended to be named by their priority
+     *        numbers, so it's<br>
+     *        {@code unnamedOptionDescriptions = Collections}<br>
+     *        {@code .singletonList("<filterPriorityNumber> <ageoff|regex|filterClass>")}
      */
     public IteratorOptions(String name, String description, Map<String,String> namedOptions,
         List<String> unnamedOptionDescriptions) {
       this.name = name;
       this.namedOptions = null;
-      if (namedOptions != null)
+      if (namedOptions != null) {
         this.namedOptions = new LinkedHashMap<>(namedOptions);
+      }
       this.unnamedOptionDescriptions = null;
-      if (unnamedOptionDescriptions != null)
+      if (unnamedOptionDescriptions != null) {
         this.unnamedOptionDescriptions = new ArrayList<>(unnamedOptionDescriptions);
+      }
       this.description = description;
     }
 
@@ -105,14 +104,16 @@ public interface OptionDescriber {
     }
 
     public void addNamedOption(String name, String description) {
-      if (namedOptions == null)
+      if (namedOptions == null) {
         namedOptions = new LinkedHashMap<>();
+      }
       namedOptions.put(name, description);
     }
 
     public void addUnnamedOption(String description) {
-      if (unnamedOptionDescriptions == null)
+      if (unnamedOptionDescriptions == null) {
         unnamedOptionDescriptions = new ArrayList<>();
+      }
       unnamedOptionDescriptions.add(description);
     }
   }
@@ -130,11 +131,9 @@ public interface OptionDescriber {
    * Check to see if an options map contains all options required by an iterator and that the option
    * values are in the expected formats.
    *
-   * @param options
-   *          a map of option names to option values
+   * @param options a map of option names to option values
    * @return true if options are valid, false otherwise (IllegalArgumentException preferred)
-   * @exception IllegalArgumentException
-   *              if there are problems with the options
+   * @exception IllegalArgumentException if there are problems with the options
    */
   boolean validateOptions(Map<String,String> options);
 }

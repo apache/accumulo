@@ -44,8 +44,7 @@ public class TableId extends AbstractId<TableId> {
   /**
    * Get a TableId object for the provided canonical string. This is guaranteed to be non-null.
    *
-   * @param canonical
-   *          table ID string
+   * @param canonical table ID string
    * @return TableId object
    */
   public static TableId of(final String canonical) {

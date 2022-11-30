@@ -68,12 +68,15 @@ public class MergeStats {
 
   public MergeStats(MergeInfo info) {
     this.info = info;
-    if (info.getState().equals(MergeState.NONE))
+    if (info.getState().equals(MergeState.NONE)) {
       return;
-    if (info.getExtent().endRow() == null)
+    }
+    if (info.getExtent().endRow() == null) {
       upperSplit = true;
-    if (info.getExtent().prevEndRow() == null)
+    }
+    if (info.getExtent().prevEndRow() == null) {
       lowerSplit = true;
+    }
   }
 
   public MergeInfo getMergeInfo() {
@@ -81,8 +84,9 @@ public class MergeStats {
   }
 
   public void update(KeyExtent ke, TabletState state, boolean chopped, boolean hasWALs) {
-    if (info.getState().equals(MergeState.NONE))
+    if (info.getState().equals(MergeState.NONE)) {
       return;
+    }
     if (!upperSplit && info.getExtent().endRow().equals(ke.prevEndRow())) {
       log.info("Upper split found: {}", ke.prevEndRow());
       upperSplit = true;
@@ -91,8 +95,9 @@ public class MergeStats {
       log.info("Lower split found: {}", ke.endRow());
       lowerSplit = true;
     }
-    if (!info.overlaps(ke))
+    if (!info.overlaps(ke)) {
       return;
+    }
     if (info.needsToBeChopped(ke)) {
       this.needsToBeChopped++;
       if (chopped) {
@@ -102,17 +107,20 @@ public class MergeStats {
       }
     }
     this.total++;
-    if (state.equals(TabletState.HOSTED))
+    if (state.equals(TabletState.HOSTED)) {
       this.hosted++;
-    if (state.equals(TabletState.UNASSIGNED) || state.equals(TabletState.SUSPENDED))
+    }
+    if (state.equals(TabletState.UNASSIGNED) || state.equals(TabletState.SUSPENDED)) {
       this.unassigned++;
+    }
   }
 
   public MergeState nextMergeState(AccumuloClient accumuloClient, CurrentState manager)
       throws Exception {
     MergeState state = info.getState();
-    if (state == MergeState.NONE)
+    if (state == MergeState.NONE) {
       return state;
+    }
     if (total == 0) {
       log.trace("failed to see any tablets for this range, ignoring {}", info.getExtent());
       return state;
@@ -129,12 +137,13 @@ public class MergeStats {
         state = MergeState.COMPLETE;
       } else if (hosted == total) {
         if (info.isDelete()) {
-          if (!lowerSplit)
+          if (!lowerSplit) {
             log.info("Waiting for {} lower split to occur {}", info, info.getExtent());
-          else if (!upperSplit)
+          } else if (!upperSplit) {
             log.info("Waiting for {} upper split to occur {}", info, info.getExtent());
-          else
+          } else {
             state = MergeState.WAITING_FOR_CHOPPED;
+          }
         } else {
           state = MergeState.WAITING_FOR_CHOPPED;
         }
@@ -156,10 +165,11 @@ public class MergeStats {
         log.info("{} tablets are chopped, {} are offline {}", chopped, unassigned,
             info.getExtent());
         if (unassigned == total) {
-          if (verifyMergeConsistency(accumuloClient, manager))
+          if (verifyMergeConsistency(accumuloClient, manager)) {
             state = MergeState.MERGING;
-          else
+          } else {
             log.info("Merge consistency check failed {}", info.getExtent());
+          }
         } else {
           log.info("Waiting for {} unassigned tablets to be {} {}", unassigned, total,
               info.getExtent());

@@ -59,10 +59,8 @@ public class ZooKeeperInitializer {
    * encoded_props to a default, empty node if it does not exist. If any of the paths or the
    * encoded_props node exist, the are skipped and not modified.
    *
-   * @param instanceId
-   *          the instance id
-   * @param zoo
-   *          a ZooReaderWriter
+   * @param instanceId the instance id
+   * @param zoo a ZooReaderWriter
    */
   void initializeConfig(final InstanceId instanceId, final ZooReaderWriter zoo) {
     try {

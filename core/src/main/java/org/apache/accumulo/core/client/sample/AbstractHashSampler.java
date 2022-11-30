@@ -69,13 +69,15 @@ public abstract class AbstractHashSampler implements Sampler {
     for (Map.Entry<String,String> entry : config.entrySet()) {
       checkArgument(VALID_OPTIONS.contains(entry.getKey()), "Unknown option: %s", entry.getKey());
 
-      if (entry.getKey().equals("hasher"))
+      if (entry.getKey().equals("hasher")) {
         checkArgument(VALID_VALUES_HASHER.contains(entry.getValue()),
             "Unknown value for hasher: %s", entry.getValue());
+      }
 
-      if (entry.getKey().equals("modulus"))
+      if (entry.getKey().equals("modulus")) {
         checkArgument(Integer.parseInt(entry.getValue()) > 0,
             "Improper Integer value for modulus: %s", entry.getValue());
+      }
     }
   }
 
@@ -127,8 +129,7 @@ public abstract class AbstractHashSampler implements Sampler {
   /**
    * Subclass must override this method and hash some portion of the key.
    *
-   * @param hasher
-   *          Data written to this will be used to compute the hash for the key.
+   * @param hasher Data written to this will be used to compute the hash for the key.
    */
   protected abstract void hash(DataOutput hasher, Key k) throws IOException;
 

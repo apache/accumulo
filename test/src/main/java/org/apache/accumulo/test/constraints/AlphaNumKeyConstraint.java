@@ -44,8 +44,9 @@ public class AlphaNumKeyConstraint implements Constraint {
   private boolean isAlphaNum(byte[] bytes) {
     for (byte b : bytes) {
       boolean ok = ((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9'));
-      if (!ok)
+      if (!ok) {
         return false;
+      }
     }
 
     return true;
@@ -65,16 +66,19 @@ public class AlphaNumKeyConstraint implements Constraint {
   public List<Short> check(Environment env, Mutation mutation) {
     Set<Short> violations = null;
 
-    if (!isAlphaNum(mutation.getRow()))
+    if (!isAlphaNum(mutation.getRow())) {
       violations = addViolation(violations, NON_ALPHA_NUM_ROW);
+    }
 
     Collection<ColumnUpdate> updates = mutation.getUpdates();
     for (ColumnUpdate columnUpdate : updates) {
-      if (!isAlphaNum(columnUpdate.getColumnFamily()))
+      if (!isAlphaNum(columnUpdate.getColumnFamily())) {
         violations = addViolation(violations, NON_ALPHA_NUM_COLF);
+      }
 
-      if (!isAlphaNum(columnUpdate.getColumnQualifier()))
+      if (!isAlphaNum(columnUpdate.getColumnQualifier())) {
         violations = addViolation(violations, NON_ALPHA_NUM_COLQ);
+      }
     }
 
     return violations == null ? null : new ArrayList<>(violations);

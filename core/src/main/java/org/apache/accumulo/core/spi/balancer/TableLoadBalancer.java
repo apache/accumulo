@@ -60,8 +60,9 @@ public class TableLoadBalancer implements TabletBalancer {
   }
 
   protected String getLoadBalancerClassNameForTable(TableId table) {
-    if (environment.isTableOnline(table))
+    if (environment.isTableOnline(table)) {
       return environment.getConfiguration(table).get(Property.TABLE_LOAD_BALANCER.getKey());
+    }
     return null;
   }
 
@@ -70,8 +71,9 @@ public class TableLoadBalancer implements TabletBalancer {
 
     String clazzName = getLoadBalancerClassNameForTable(tableId);
 
-    if (clazzName == null)
+    if (clazzName == null) {
       clazzName = SimpleLoadBalancer.class.getName();
+    }
     if (balancer != null) {
       if (!clazzName.equals(balancer.getClass().getName())) {
         // the balancer class for this table does not match the class specified in the configuration
@@ -126,8 +128,9 @@ public class TableLoadBalancer implements TabletBalancer {
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
       long tableBalanceTime = getBalancerForTable(tableId).balance(
           new BalanceParamsImpl(params.currentStatus(), params.currentMigrations(), newMigrations));
-      if (tableBalanceTime < minBalanceTime)
+      if (tableBalanceTime < minBalanceTime) {
         minBalanceTime = tableBalanceTime;
+      }
       params.migrationsOut().addAll(newMigrations);
     }
     return minBalanceTime;

@@ -35,8 +35,7 @@ public class BulkImport {
   /**
    * Adds a new bulk import to the array
    *
-   * @param bulkImport
-   *          new bulk import to add
+   * @param bulkImport new bulk import to add
    */
   public void addBulkImport(BulkImportInformation bulkImport) {
     this.bulkImport.add(bulkImport);
@@ -45,8 +44,7 @@ public class BulkImport {
   /**
    * Adds a new tserver bulk import to the array
    *
-   * @param tabletServerBulkImport
-   *          new tserver bulk import to add
+   * @param tabletServerBulkImport new tserver bulk import to add
    */
   public void addTabletServerBulkImport(TabletServerBulkImportInformation tabletServerBulkImport) {
     this.tabletServerBulkImport.add(tabletServerBulkImport);

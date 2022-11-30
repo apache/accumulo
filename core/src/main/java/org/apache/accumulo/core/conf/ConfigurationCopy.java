@@ -36,8 +36,7 @@ public class ConfigurationCopy extends AccumuloConfiguration {
   /**
    * Creates a new configuration.
    *
-   * @param config
-   *          configuration property key/value pairs to copy
+   * @param config configuration property key/value pairs to copy
    */
   public ConfigurationCopy(Map<String,String> config) {
     this(config.entrySet());
@@ -46,8 +45,7 @@ public class ConfigurationCopy extends AccumuloConfiguration {
   /**
    * Creates a new configuration.
    *
-   * @param config
-   *          configuration property stream to use for copying
+   * @param config configuration property stream to use for copying
    */
   public ConfigurationCopy(Stream<Entry<String,String>> config) {
     this(config::iterator);
@@ -56,8 +54,7 @@ public class ConfigurationCopy extends AccumuloConfiguration {
   /**
    * Creates a new configuration.
    *
-   * @param config
-   *          configuration property iterable to use for copying
+   * @param config configuration property iterable to use for copying
    */
   public ConfigurationCopy(Iterable<Entry<String,String>> config) {
     config.forEach(e -> copy.put(e.getKey(), e.getValue()));
@@ -87,10 +84,8 @@ public class ConfigurationCopy extends AccumuloConfiguration {
   /**
    * Sets a property in this configuration.
    *
-   * @param prop
-   *          property to set
-   * @param value
-   *          property value
+   * @param prop property to set
+   * @param value property value
    */
   public void set(Property prop, String value) {
     synchronized (copy) {
@@ -102,10 +97,8 @@ public class ConfigurationCopy extends AccumuloConfiguration {
   /**
    * Sets a property in this configuration.
    *
-   * @param key
-   *          key of property to set
-   * @param value
-   *          property value
+   * @param key key of property to set
+   * @param value property value
    */
   public void set(String key, String value) {
     synchronized (copy) {

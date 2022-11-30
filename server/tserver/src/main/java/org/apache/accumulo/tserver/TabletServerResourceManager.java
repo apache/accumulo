@@ -127,12 +127,9 @@ public class TabletServerResourceManager {
    * This method creates a task that changes the number of core and maximum threads on the thread
    * pool executor
    *
-   * @param maxThreads
-   *          max threads
-   * @param name
-   *          name of thread pool
-   * @param tp
-   *          executor
+   * @param maxThreads max threads
+   * @param name name of thread pool
+   * @param tp executor
    */
   private void modifyThreadPoolSizesAtRuntime(IntSupplier maxThreads, String name,
       final ThreadPoolExecutor tp) {

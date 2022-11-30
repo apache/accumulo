@@ -70,16 +70,19 @@ public class GarbageCollectionAlgorithm {
     String relPath = path;
 
     // remove prefixed old relative path
-    if (relPath.startsWith("../"))
+    if (relPath.startsWith("../")) {
       relPath = relPath.substring(3);
+    }
 
     // remove trailing slash
-    while (relPath.endsWith("/"))
+    while (relPath.endsWith("/")) {
       relPath = relPath.substring(0, relPath.length() - 1);
+    }
 
     // remove beginning slash
-    while (relPath.startsWith("/"))
+    while (relPath.startsWith("/")) {
       relPath = relPath.substring(1);
+    }
 
     // Handle paths like a//b///c by dropping the empty tokens.
     String[] tokens = stream(relPath.split("/")).filter(not(""::equals)).toArray(String[]::new);
@@ -149,8 +152,9 @@ public class GarbageCollectionAlgorithm {
 
         dir = makeRelative(dir, 2);
 
-        if (candidateMap.remove(dir) != null)
+        if (candidateMap.remove(dir) != null) {
           log.debug("Candidate was still in use: {}", dir);
+        }
       } else {
         String reference = ref.getMetadataEntry();
         if (reference.startsWith("/")) {
@@ -165,12 +169,14 @@ public class GarbageCollectionAlgorithm {
 
         // WARNING: This line is EXTREMELY IMPORTANT.
         // You MUST REMOVE candidates that are still in use
-        if (candidateMap.remove(relativePath) != null)
+        if (candidateMap.remove(relativePath) != null) {
           log.debug("Candidate was still in use: {}", relativePath);
+        }
 
         String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
-        if (candidateMap.remove(dir) != null)
+        if (candidateMap.remove(dir) != null) {
           log.debug("Candidate was still in use: {}", relativePath);
+        }
       }
     }
     Set<TableId> tableIdsAfter = gce.getCandidateTableIDs();

@@ -57,8 +57,9 @@ public class ScanRangeIT extends AccumuloClusterHarness {
       String table2 = tableNames[1];
       TreeSet<Text> splitRows = new TreeSet<>();
       int splits = 3;
-      for (int i = (ROW_LIMIT / splits); i < ROW_LIMIT; i += (ROW_LIMIT / splits))
+      for (int i = (ROW_LIMIT / splits); i < ROW_LIMIT; i += (ROW_LIMIT / splits)) {
         splitRows.add(createRow(i));
+      }
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitRows);
       c.tableOperations().create(table2, ntc);
 

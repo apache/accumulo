@@ -31,8 +31,7 @@ public class DelegationTokenConfigSerializer {
   /**
    * Serialize the delegation token config into the thrift variant
    *
-   * @param config
-   *          The configuration
+   * @param config The configuration
    */
   public static TDelegationTokenConfig serialize(DelegationTokenConfig config) {
     TDelegationTokenConfig tconfig = new TDelegationTokenConfig();
@@ -43,8 +42,7 @@ public class DelegationTokenConfigSerializer {
   /**
    * Deserialize the Thrift delegation token config into the non-thrift variant
    *
-   * @param tconfig
-   *          The thrift configuration
+   * @param tconfig The thrift configuration
    */
   public static DelegationTokenConfig deserialize(TDelegationTokenConfig tconfig) {
     DelegationTokenConfig config = new DelegationTokenConfig();

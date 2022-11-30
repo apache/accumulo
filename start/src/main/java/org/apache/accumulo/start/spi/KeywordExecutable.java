@@ -74,8 +74,7 @@ public interface KeywordExecutable {
   /**
    * Execute the item with the given arguments.
    *
-   * @param args
-   *          command-line arguments to pass to the executed class
+   * @param args command-line arguments to pass to the executed class
    */
   void execute(final String[] args) throws Exception;
 

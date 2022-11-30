@@ -54,15 +54,17 @@ public class TestMultiTableIngest {
     int i = 0;
     for (String table : tableNames) {
       // wait for table to exist
-      while (!client.tableOperations().exists(table))
+      while (!client.tableOperations().exists(table)) {
         UtilWaitThread.sleep(100);
+      }
       try (Scanner scanner = client.createScanner(table, opts.auths)) {
         int count = i;
         for (Entry<Key,Value> elt : scanner) {
           String expected = String.format("%06d", count);
-          if (!elt.getKey().getRow().toString().equals(expected))
+          if (!elt.getKey().getRow().toString().equals(expected)) {
             throw new RuntimeException(
                 "entry " + elt + " does not match expected " + expected + " in table " + table);
+          }
           count += tableNames.size();
         }
         i++;
@@ -82,8 +84,9 @@ public class TestMultiTableIngest {
       }
 
       if (!opts.readonly) {
-        for (String table : tableNames)
+        for (String table : tableNames) {
           client.tableOperations().create(table);
+        }
 
         MultiTableBatchWriter b;
         try {

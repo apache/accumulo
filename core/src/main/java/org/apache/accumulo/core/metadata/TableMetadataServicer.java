@@ -110,30 +110,35 @@ abstract class TableMetadataServicer extends MetadataServicer {
     SortedSet<KeyExtent> tabletsKeys = (SortedSet<KeyExtent>) tablets.keySet();
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
-    if (tabletsKeys.isEmpty())
+    if (tabletsKeys.isEmpty()) {
       throw new AccumuloException(
           "No entries found in metadata table for table " + getServicedTableId());
+    }
 
-    if (tabletsKeys.first().prevEndRow() != null)
+    if (tabletsKeys.first().prevEndRow() != null) {
       throw new AccumuloException("Problem with metadata table, first entry for table "
           + getServicedTableId() + "- " + tabletsKeys.first() + " - has non null prev end row");
+    }
 
-    if (tabletsKeys.last().endRow() != null)
+    if (tabletsKeys.last().endRow() != null) {
       throw new AccumuloException("Problem with metadata table, last entry for table "
           + getServicedTableId() + "- " + tabletsKeys.first() + " - has non null end row");
+    }
 
     Iterator<KeyExtent> tabIter = tabletsKeys.iterator();
     Text lastEndRow = tabIter.next().endRow();
     while (tabIter.hasNext()) {
       KeyExtent tabke = tabIter.next();
 
-      if (tabke.prevEndRow() == null)
+      if (tabke.prevEndRow() == null) {
         throw new AccumuloException(
             "Problem with metadata table, it has null prev end row in middle of table " + tabke);
+      }
 
-      if (!tabke.prevEndRow().equals(lastEndRow))
+      if (!tabke.prevEndRow().equals(lastEndRow)) {
         throw new AccumuloException("Problem with metadata table, it has a hole "
             + tabke.prevEndRow() + " != " + lastEndRow);
+      }
 
       lastEndRow = tabke.endRow();
     }

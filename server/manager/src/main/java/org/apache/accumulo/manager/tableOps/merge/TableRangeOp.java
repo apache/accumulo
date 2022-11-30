@@ -74,11 +74,13 @@ public class TableRangeOp extends ManagerRepo {
     Text start = startRow.length == 0 ? null : new Text(startRow);
     Text end = endRow.length == 0 ? null : new Text(endRow);
 
-    if (start != null && end != null)
-      if (start.compareTo(end) >= 0)
+    if (start != null && end != null) {
+      if (start.compareTo(end) >= 0) {
         throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
             TableOperation.MERGE, TableOperationExceptionType.BAD_RANGE,
             "start row must be less than end row");
+      }
+    }
 
     env.mustBeOnline(tableId);
 
@@ -96,8 +98,9 @@ public class TableRangeOp extends ManagerRepo {
   public void undo(long tid, Manager env) throws Exception {
     // Not sure this is a good thing to do. The Manager state engine should be the one to remove it.
     MergeInfo mergeInfo = env.getMergeInfo(tableId);
-    if (mergeInfo.getState() != MergeState.NONE)
+    if (mergeInfo.getState() != MergeState.NONE) {
       log.info("removing merge information {}", mergeInfo);
+    }
     env.clearMergeState(tableId);
     Utils.unreserveNamespace(env, namespaceId, tid, false);
     Utils.unreserveTable(env, tableId, tid, true);

@@ -64,14 +64,10 @@ public class RetryableThriftCall<T> {
   /**
    * RetryableThriftCall constructor
    *
-   * @param start
-   *          initial wait time
-   * @param maxWaitTime
-   *          max wait time
-   * @param maxNumRetries
-   *          number of times to retry, 0 to retry forever
-   * @param function
-   *          function to execute
+   * @param start initial wait time
+   * @param maxWaitTime max wait time
+   * @param maxNumRetries number of times to retry, 0 to retry forever
+   * @param function function to execute
    */
   public RetryableThriftCall(long start, long maxWaitTime, int maxNumRetries,
       RetryableThriftFunction<T> function) {
@@ -94,9 +90,8 @@ public class RetryableThriftCall<T> {
    * RuntimeException is thrown when it has exceeded he maxNumRetries parameter.
    *
    * @return T
-   * @throws RetriesExceededException
-   *           when maximum number of retries has been exceeded and the cause is set to the last
-   *           TException
+   * @throws RetriesExceededException when maximum number of retries has been exceeded and the cause
+   *         is set to the last TException
    */
   public T run() throws RetriesExceededException {
     T result = null;

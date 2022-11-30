@@ -61,8 +61,9 @@ public class SplitUtils {
       diff <<= Byte.SIZE;
     }
 
-    if (startRow.getLength() != stopRow.getLength())
+    if (startRow.getLength() != stopRow.getLength()) {
       diff |= 0xff;
+    }
 
     return diff + 1;
   }
@@ -71,10 +72,11 @@ public class SplitUtils {
     byte[] bytes = new byte[numBytes + 1];
     bytes[0] = 0;
     for (int i = 0; i < numBytes; i++) {
-      if (i >= seq.length())
+      if (i >= seq.length()) {
         bytes[i + 1] = 0;
-      else
+      } else {
         bytes[i + 1] = seq.byteAt(i);
+      }
     }
     return bytes;
   }

@@ -43,10 +43,8 @@ public interface TStore<T> extends ReadOnlyTStore<T> {
   /**
    * Update the given transaction with the next operation
    *
-   * @param tid
-   *          the transaction id
-   * @param repo
-   *          the operation
+   * @param tid the transaction id
+   * @param repo the operation
    */
   void push(long tid, Repo<T> repo) throws StackOverflowException;
 
@@ -58,38 +56,31 @@ public interface TStore<T> extends ReadOnlyTStore<T> {
   /**
    * Update the state of a given transaction
    *
-   * @param tid
-   *          transaction id
-   * @param status
-   *          execution status
+   * @param tid transaction id
+   * @param status execution status
    */
   void setStatus(long tid, TStatus status);
 
   /**
    * Set transaction-specific information.
    *
-   * @param tid
-   *          transaction id
-   * @param txInfo
-   *          name of attribute of a transaction to set.
-   * @param val
-   *          transaction data to store
+   * @param tid transaction id
+   * @param txInfo name of attribute of a transaction to set.
+   * @param val transaction data to store
    */
   void setTransactionInfo(long tid, Fate.TxInfo txInfo, Serializable val);
 
   /**
    * Remove the transaction from the store.
    *
-   * @param tid
-   *          the transaction id
+   * @param tid the transaction id
    */
   void delete(long tid);
 
   /**
    * Attempt to reserve transaction
    *
-   * @param tid
-   *          transaction id
+   * @param tid transaction id
    * @return true if reserved by this call, false if already reserved
    */
   boolean tryReserve(long tid);

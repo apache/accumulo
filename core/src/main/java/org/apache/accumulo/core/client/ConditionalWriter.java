@@ -59,15 +59,17 @@ public interface ConditionalWriter extends AutoCloseable {
 
     public Status getStatus() throws AccumuloException, AccumuloSecurityException {
       if (status == null) {
-        if (exception instanceof AccumuloException)
+        if (exception instanceof AccumuloException) {
           throw new AccumuloException(exception);
+        }
         if (exception instanceof AccumuloSecurityException) {
           AccumuloSecurityException ase = (AccumuloSecurityException) exception;
           throw new AccumuloSecurityException(ase.getUser(),
               SecurityErrorCode.valueOf(ase.getSecurityErrorCode().name()), ase.getTableInfo(),
               ase);
-        } else
+        } else {
           throw new AccumuloException(exception);
+        }
       }
 
       return status;

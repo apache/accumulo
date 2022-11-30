@@ -102,8 +102,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throws ThriftSecurityException, ThriftTableOperationException {
     TableId tableId = TableId.of(tableIdStr);
     NamespaceId namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
-    if (!manager.security.canFlush(c, tableId, namespaceId))
+    if (!manager.security.canFlush(c, tableId, namespaceId)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     String zTablePath = Constants.ZROOT + "/" + manager.getInstanceID() + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_FLUSH_ID;
@@ -132,15 +133,17 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throws ThriftSecurityException, ThriftTableOperationException {
     TableId tableId = TableId.of(tableIdStr);
     NamespaceId namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
-    if (!manager.security.canFlush(c, tableId, namespaceId))
+    if (!manager.security.canFlush(c, tableId, namespaceId)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     Text startRow = ByteBufferUtil.toText(startRowBB);
     Text endRow = ByteBufferUtil.toText(endRowBB);
 
-    if (endRow != null && startRow != null && startRow.compareTo(endRow) >= 0)
+    if (endRow != null && startRow != null && startRow.compareTo(endRow) >= 0) {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
           TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
+    }
 
     Set<TServerInstance> serversToFlush = new HashSet<>(manager.tserverSet.getCurrentServers());
 
@@ -149,19 +152,22 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       for (TServerInstance instance : serversToFlush) {
         try {
           final TServerConnection server = manager.tserverSet.getConnection(instance);
-          if (server != null)
+          if (server != null) {
             server.flush(manager.managerLock, tableId, ByteBufferUtil.toBytes(startRowBB),
                 ByteBufferUtil.toBytes(endRowBB));
+          }
         } catch (TException ex) {
           Manager.log.error(ex.toString());
         }
       }
 
-      if (tableId.equals(RootTable.ID))
+      if (tableId.equals(RootTable.ID)) {
         break; // this code does not properly handle the root tablet. See #798
+      }
 
-      if (l == maxLoops - 1)
+      if (l == maxLoops - 1) {
         break;
+      }
 
       sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
 
@@ -178,21 +184,24 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           // when tablet is not online and has no logs, there is no reason to wait for it
           if ((tablet.hasCurrent() || logs > 0) && tablet.getFlushId().orElse(-1) < flushID) {
             tabletsToWaitFor++;
-            if (tablet.hasCurrent())
+            if (tablet.hasCurrent()) {
               serversToFlush.add(tablet.getLocation());
+            }
           }
 
           tabletCount++;
         }
 
-        if (tabletsToWaitFor == 0)
+        if (tabletsToWaitFor == 0) {
           break;
+        }
 
         // TODO detect case of table offline AND tablets w/ logs? - ACCUMULO-1296
 
-        if (tabletCount == 0 && !manager.getContext().tableNodeExists(tableId))
+        if (tabletCount == 0 && !manager.getContext().tableNodeExists(tableId)) {
           throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
               TableOperationExceptionType.NOTFOUND, null);
+        }
 
       } catch (TabletDeletedException e) {
         Manager.log.debug("Failed to scan {} table to wait for flush {}", MetadataTable.NAME,
@@ -265,8 +274,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   @Override
   public void shutdown(TInfo info, TCredentials c, boolean stopTabletServers)
       throws ThriftSecurityException {
-    if (!manager.security.canPerformSystemActions(c))
+    if (!manager.security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
     if (stopTabletServers) {
       manager.setManagerGoalState(ManagerGoalState.CLEAN_STOP);
       EventCoordinator.Listener eventListener = manager.nextEvent.getListener();
@@ -280,8 +290,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   @Override
   public void shutdownTabletServer(TInfo info, TCredentials c, String tabletServer, boolean force)
       throws ThriftSecurityException {
-    if (!manager.security.canPerformSystemActions(c))
+    if (!manager.security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     final TServerInstance doomed = manager.tserverSet.find(tabletServer);
     if (doomed == null) {
@@ -312,9 +323,10 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   @Override
   public void reportSplitExtent(TInfo info, TCredentials credentials, String serverName,
       TabletSplit split) throws ThriftSecurityException {
-    if (!manager.security.canPerformSystemActions(credentials))
+    if (!manager.security.canPerformSystemActions(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     KeyExtent oldTablet = KeyExtent.fromThrift(split.oldTablet);
     if (manager.migrations.remove(oldTablet) != null) {
@@ -334,9 +346,10 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   @Override
   public void reportTabletStatus(TInfo info, TCredentials credentials, String serverName,
       TabletLoadState status, TKeyExtent ttablet) throws ThriftSecurityException {
-    if (!manager.security.canPerformSystemActions(credentials))
+    if (!manager.security.canPerformSystemActions(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     KeyExtent tablet = KeyExtent.fromThrift(ttablet);
 
@@ -368,8 +381,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   @Override
   public void setManagerGoalState(TInfo info, TCredentials c, ManagerGoalState state)
       throws ThriftSecurityException {
-    if (!manager.security.canPerformSystemActions(c))
+    if (!manager.security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     manager.setManagerGoalState(state);
   }
@@ -377,8 +391,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   @Override
   public void removeSystemProperty(TInfo info, TCredentials c, String property)
       throws ThriftSecurityException {
-    if (!manager.security.canPerformSystemActions(c))
+    if (!manager.security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     try {
       SystemPropUtil.removeSystemProperty(manager.getContext(), property);
@@ -392,8 +407,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   @Override
   public void setSystemProperty(TInfo info, TCredentials c, String property, String value)
       throws TException {
-    if (!manager.security.canPerformSystemActions(c))
+    if (!manager.security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     try {
       SystemPropUtil.setSystemProperty(manager.getContext(), property, value);
@@ -410,8 +426,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   @Override
   public void modifySystemProperties(TInfo info, TCredentials c, TVersionedProperties properties)
       throws TException {
-    if (!manager.security.canPerformSystemActions(c))
+    if (!manager.security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     try {
       SystemPropUtil.modifyProperties(manager.getContext(), properties.getVersion(),
@@ -478,8 +495,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     NamespaceId namespaceId =
         ClientServiceHandler.checkNamespaceId(manager.getContext(), namespace, op);
 
-    if (!manager.security.canAlterNamespace(c, namespaceId))
+    if (!manager.security.canAlterNamespace(c, namespaceId)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     try {
       if (value == null) {
@@ -503,8 +521,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       TableOperation op) throws ThriftSecurityException, ThriftTableOperationException {
     final TableId tableId = ClientServiceHandler.checkTableId(manager.getContext(), tableName, op);
     NamespaceId namespaceId = getNamespaceIdFromTableId(op, tableId);
-    if (!manager.security.canAlterTable(c, tableId, namespaceId))
+    if (!manager.security.canAlterTable(c, tableId, namespaceId)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     try {
       if (value == null || value.isEmpty()) {
@@ -543,9 +562,10 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   @Override
   public List<String> getActiveTservers(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException {
-    if (!manager.security.canPerformSystemActions(credentials))
+    if (!manager.security.canPerformSystemActions(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     Set<TServerInstance> tserverInstances = manager.onlineTabletServers();
     List<String> servers = new ArrayList<>();

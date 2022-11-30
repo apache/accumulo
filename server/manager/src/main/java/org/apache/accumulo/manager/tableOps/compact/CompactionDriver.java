@@ -120,23 +120,27 @@ class CompactionDriver extends ManagerRepo {
     long scanTime = System.currentTimeMillis() - t1;
 
     manager.getContext().clearTableListCache();
-    if (tabletCount == 0 && !manager.getContext().tableNodeExists(tableId))
+    if (tabletCount == 0 && !manager.getContext().tableNodeExists(tableId)) {
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
+    }
 
     if (serversToFlush.size() == 0
-        && manager.getContext().getTableState(tableId) == TableState.OFFLINE)
+        && manager.getContext().getTableState(tableId) == TableState.OFFLINE) {
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, null);
+    }
 
-    if (tabletsToWaitFor == 0)
+    if (tabletsToWaitFor == 0) {
       return 0;
+    }
 
     for (TServerInstance tsi : serversToFlush.keySet()) {
       try {
         final TServerConnection server = manager.getConnection(tsi);
-        if (server != null)
+        if (server != null) {
           server.compact(manager.getManagerLock(), tableId.canonical(), startRow, endRow);
+        }
       } catch (TException ex) {
         LoggerFactory.getLogger(CompactionDriver.class).error(ex.toString());
       }
@@ -145,8 +149,9 @@ class CompactionDriver extends ManagerRepo {
     long sleepTime = 500;
 
     // make wait time depend on the server with the most to compact
-    if (serversToFlush.size() > 0)
+    if (serversToFlush.size() > 0) {
       sleepTime = serversToFlush.max() * sleepTime;
+    }
 
     sleepTime = Math.max(2 * scanTime, sleepTime);
 

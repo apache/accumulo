@@ -76,8 +76,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       @Override
       public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter) {
         try {
-          if (key != null)
+          if (key != null) {
             assertEquals(key.getRow().toString(), new String(v.get()));
+          }
           assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
           assertEquals(new String(v.get()), String.format("%09x", count));
         } catch (AssertionError e) {

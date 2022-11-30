@@ -29,8 +29,9 @@ public class Help {
   public void parseArgs(String programName, String[] args, Object... others) {
     JCommander commander = new JCommander();
     commander.addObject(this);
-    for (Object other : others)
+    for (Object other : others) {
       commander.addObject(other);
+    }
     commander.setProgramName(programName);
     try {
       commander.parse(args);

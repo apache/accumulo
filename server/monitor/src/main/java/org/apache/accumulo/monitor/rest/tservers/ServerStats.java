@@ -34,8 +34,7 @@ public class ServerStats {
   /**
    * Adds a new stat to the list
    *
-   * @param stat
-   *          Stat to add
+   * @param stat Stat to add
    */
   public void addStats(ServerStat stat) {
     serverStats.add(stat);

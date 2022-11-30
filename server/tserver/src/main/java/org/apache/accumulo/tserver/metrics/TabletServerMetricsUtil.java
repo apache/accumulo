@@ -84,8 +84,9 @@ public class TabletServerMetricsUtil {
   public int getMinorCompactions() {
     int result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      if (tablet.isMinorCompactionRunning())
+      if (tablet.isMinorCompactionRunning()) {
         result++;
+      }
     }
     return result;
   }
@@ -93,8 +94,9 @@ public class TabletServerMetricsUtil {
   public int getMinorCompactionsQueued() {
     int result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      if (tablet.isMinorCompactionQueued())
+      if (tablet.isMinorCompactionQueued()) {
         result++;
+      }
     }
     return result;
   }
@@ -130,8 +132,9 @@ public class TabletServerMetricsUtil {
       result += tablet.getDatafiles().size();
       count++;
     }
-    if (count == 0)
+    if (count == 0) {
       return 0;
+    }
     return result / (double) count;
   }
 }

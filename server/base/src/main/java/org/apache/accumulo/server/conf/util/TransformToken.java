@@ -68,13 +68,12 @@ public class TransformToken {
    * already exists, the lock is unlocked and the caller can decide to either wait for the resource
    * to be created by the thread that created the lock, or try calling to {@code lock} to succeed
    *
-   * @param path
-   *          the parent node of the legacy properties and the associated property children nodes.
-   * @param zrw
-   *          a ZooReaderWriter
+   * @param path the parent node of the legacy properties and the associated property children
+   *        nodes.
+   * @param zrw a ZooReaderWriter
    * @return an TransformLock instance.
-   * @throws IllegalStateException
-   *           is the lock creation fails due to an underlying ZooKeeper exception.
+   * @throws IllegalStateException is the lock creation fails due to an underlying ZooKeeper
+   *         exception.
    */
   public static TransformToken createToken(final @NonNull String path, final ZooReaderWriter zrw) {
     return new TransformToken(path, zrw);
@@ -172,10 +171,12 @@ public class TransformToken {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
+    }
     TransformToken that = (TransformToken) o;
     return path.equals(that.path) && Arrays.equals(tokenUUID.asBytes(), that.tokenUUID.asBytes());
   }

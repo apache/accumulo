@@ -54,8 +54,9 @@ public class RowIteratorTest {
     while (riter.hasNext()) {
       final Iterator<Entry<Key,Value>> row = riter.next();
       final List<Entry<Key,Value>> rlist = new ArrayList<>();
-      while (row.hasNext())
+      while (row.hasNext()) {
         rlist.add(row.next());
+      }
       result.add(rlist);
     }
     return result;

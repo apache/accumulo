@@ -97,8 +97,9 @@ public class Fate<T> {
                   store.setStatus(tid, IN_PROGRESS);
                 }
                 op = op.call(tid, environment);
-              } else
+              } else {
                 continue;
+              }
 
             } catch (Exception e) {
               blockIfHadoopShutdown(tid, e);
@@ -109,8 +110,9 @@ public class Fate<T> {
             if (op == null) {
               // transaction is finished
               String ret = prevOp.getReturn();
-              if (ret != null)
+              if (ret != null) {
                 store.setTransactionInfo(tid, TxInfo.RETURN_VALUE, ret);
+              }
               store.setStatus(tid, SUCCESSFUL);
               doCleanUp(tid);
             } else {
@@ -199,8 +201,9 @@ public class Fate<T> {
       } else {
         // no longer need persisted operations, so delete them to save space in case
         // TX is never cleaned up...
-        while (store.top(tid) != null)
+        while (store.top(tid) != null) {
           store.pop(tid);
+        }
       }
     }
 
@@ -220,8 +223,7 @@ public class Fate<T> {
    * Note: Users of this class should call {@link #startTransactionRunners(AccumuloConfiguration)}
    * to launch the worker threads after creating a Fate object.
    *
-   * @param toLogStrFunc
-   *          A function that converts Repo to Strings that are suitable for logging
+   * @param toLogStrFunc A function that converts Repo to Strings that are suitable for logging
    */
   public Fate(T environment, TStore<T> store, Function<Repo<T>,String> toLogStrFunc) {
     this.store = FateLogger.wrap(store, toLogStrFunc);
@@ -284,8 +286,9 @@ public class Fate<T> {
           }
         }
 
-        if (autoCleanUp)
+        if (autoCleanUp) {
           store.setTransactionInfo(tid, TxInfo.AUTO_CLEAN, autoCleanUp);
+        }
 
         store.setTransactionInfo(tid, TxInfo.TX_NAME, txName);
 
@@ -305,8 +308,7 @@ public class Fate<T> {
   /**
    * Attempts to cancel a running Fate transaction
    *
-   * @param tid
-   *          transaction id
+   * @param tid transaction id
    * @return true if transaction transitioned to a failed state or already in a completed state,
    *         false otherwise
    */
@@ -367,9 +369,10 @@ public class Fate<T> {
   public String getReturn(long tid) {
     store.reserve(tid);
     try {
-      if (store.getStatus(tid) != SUCCESSFUL)
+      if (store.getStatus(tid) != SUCCESSFUL) {
         throw new IllegalStateException("Tried to get exception when transaction "
             + FateTxId.formatTid(tid) + " not in successful state");
+      }
       return (String) store.getTransactionInfo(tid, TxInfo.RETURN_VALUE);
     } finally {
       store.unreserve(tid, 0);
@@ -380,9 +383,10 @@ public class Fate<T> {
   public Exception getException(long tid) {
     store.reserve(tid);
     try {
-      if (store.getStatus(tid) != FAILED)
+      if (store.getStatus(tid) != FAILED) {
         throw new IllegalStateException("Tried to get exception when transaction "
             + FateTxId.formatTid(tid) + " not in failed state");
+      }
       return (Exception) store.getTransactionInfo(tid, TxInfo.EXCEPTION);
     } finally {
       store.unreserve(tid, 0);

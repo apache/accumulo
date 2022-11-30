@@ -55,8 +55,9 @@ public class SslConnectionParams {
   private SslConnectionParams() {}
 
   public static SslConnectionParams forConfig(AccumuloConfiguration conf, boolean server) {
-    if (!conf.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED))
+    if (!conf.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED)) {
       return null;
+    }
 
     SslConnectionParams result = new SslConnectionParams();
     boolean requireClientAuth = conf.getBoolean(Property.INSTANCE_RPC_SSL_CLIENT_AUTH);
@@ -98,9 +99,10 @@ public class SslConnectionParams {
     if (keystorePassword.isEmpty()) {
       keystorePassword = defaultPassword;
     } else {
-      if (log.isTraceEnabled())
+      if (log.isTraceEnabled()) {
         log.trace("Using explicit SSL private key password from {}",
             passwordOverrideProperty.getKey());
+      }
     }
     return keystorePassword;
   }
@@ -139,15 +141,17 @@ public class SslConnectionParams {
     try {
       // first just try the file
       File file = new File(keystorePath);
-      if (file.exists())
+      if (file.exists()) {
         return file.getAbsolutePath();
+      }
       if (!file.isAbsolute()) {
         // try classpath
         URL url = SslConnectionParams.class.getClassLoader().getResource(keystorePath);
         if (url != null) {
           file = new File(url.toURI());
-          if (file.exists())
+          if (file.exists()) {
             return file.getAbsolutePath();
+          }
         }
       }
     } catch (Exception e) {
@@ -227,8 +231,9 @@ public class SslConnectionParams {
   }
 
   public TSSLTransportParameters getTTransportParams() {
-    if (useJsse)
+    if (useJsse) {
       throw new IllegalStateException("Cannot get TTransportParams for JSEE configuration.");
+    }
 
     TSSLTransportParameters params;
     if (cipherSuites != null) {
@@ -252,8 +257,9 @@ public class SslConnectionParams {
     int hash = 0;
     hash = 31 * hash + (clientAuth ? 0 : 1);
     hash = 31 * hash + (useJsse ? 0 : 1);
-    if (useJsse)
+    if (useJsse) {
       return hash;
+    }
     hash = 31 * hash + (keyStoreSet ? 0 : 1);
     hash = 31 * hash + (trustStoreSet ? 0 : 1);
     if (keyStoreSet) {
@@ -269,28 +275,35 @@ public class SslConnectionParams {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof SslConnectionParams))
+    if (!(obj instanceof SslConnectionParams)) {
       return false;
+    }
 
     SslConnectionParams other = (SslConnectionParams) obj;
-    if (clientAuth != other.clientAuth)
+    if (clientAuth != other.clientAuth) {
       return false;
-    if (useJsse)
+    }
+    if (useJsse) {
       return other.useJsse;
+    }
     if (keyStoreSet) {
-      if (!other.keyStoreSet)
+      if (!other.keyStoreSet) {
         return false;
+      }
       if (!keyStorePath.equals(other.keyStorePath) || !keyStorePass.equals(other.keyStorePass)
-          || !keyStoreType.equals(other.keyStoreType))
+          || !keyStoreType.equals(other.keyStoreType)) {
         return false;
+      }
     }
     if (trustStoreSet) {
-      if (!other.trustStoreSet)
+      if (!other.trustStoreSet) {
         return false;
+      }
       if (!trustStorePath.equals(other.trustStorePath)
           || !trustStorePass.equals(other.trustStorePass)
-          || !trustStoreType.equals(other.trustStoreType))
+          || !trustStoreType.equals(other.trustStoreType)) {
         return false;
+      }
     }
     if (!Arrays.equals(serverProtocols, other.serverProtocols)) {
       return false;

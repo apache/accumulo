@@ -1288,8 +1288,7 @@ public class Manager extends AbstractServer
    * less, will block indefinitely.</li>
    * </ul>
    *
-   * @throws InterruptedException
-   *           if interrupted while blocking, propagated for caller to handle.
+   * @throws InterruptedException if interrupted while blocking, propagated for caller to handle.
    */
   private void blockForTservers() throws InterruptedException {
 

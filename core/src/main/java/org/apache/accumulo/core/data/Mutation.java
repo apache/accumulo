@@ -132,8 +132,7 @@ public class Mutation implements Writable {
   /**
    * Creates a new mutation. A defensive copy is made.
    *
-   * @param row
-   *          row ID
+   * @param row row ID
    * @since 1.5.0
    */
   public Mutation(byte[] row) {
@@ -143,10 +142,8 @@ public class Mutation implements Writable {
   /**
    * Creates a new mutation. A defensive copy is made.
    *
-   * @param row
-   *          row ID
-   * @param initialBufferSize
-   *          the initial size, in bytes, of the internal buffer for serializing
+   * @param row row ID
+   * @param initialBufferSize the initial size, in bytes, of the internal buffer for serializing
    * @since 1.7.0
    */
   public Mutation(byte[] row, int initialBufferSize) {
@@ -156,14 +153,10 @@ public class Mutation implements Writable {
   /**
    * Creates a new mutation. A defensive copy is made.
    *
-   * @param row
-   *          byte array containing row ID
-   * @param start
-   *          starting index of row ID in byte array
-   * @param length
-   *          length of row ID in byte array
-   * @throws IndexOutOfBoundsException
-   *           if start or length is invalid
+   * @param row byte array containing row ID
+   * @param start starting index of row ID in byte array
+   * @param length length of row ID in byte array
+   * @throws IndexOutOfBoundsException if start or length is invalid
    * @since 1.5.0
    */
   public Mutation(byte[] row, int start, int length) {
@@ -173,16 +166,11 @@ public class Mutation implements Writable {
   /**
    * Creates a new mutation. A defensive copy is made.
    *
-   * @param row
-   *          byte array containing row ID
-   * @param start
-   *          starting index of row ID in byte array
-   * @param length
-   *          length of row ID in byte array
-   * @param initialBufferSize
-   *          the initial size, in bytes, of the internal buffer for serializing
-   * @throws IndexOutOfBoundsException
-   *           if start or length is invalid
+   * @param row byte array containing row ID
+   * @param start starting index of row ID in byte array
+   * @param length length of row ID in byte array
+   * @param initialBufferSize the initial size, in bytes, of the internal buffer for serializing
+   * @throws IndexOutOfBoundsException if start or length is invalid
    * @since 1.7.0
    */
   public Mutation(byte[] row, int start, int length, int initialBufferSize) {
@@ -195,8 +183,7 @@ public class Mutation implements Writable {
   /**
    * Creates a new mutation. A defensive copy is made.
    *
-   * @param row
-   *          row ID
+   * @param row row ID
    */
   public Mutation(Text row) {
     this(row.getBytes(), 0, row.getLength());
@@ -205,10 +192,8 @@ public class Mutation implements Writable {
   /**
    * Creates a new mutation. A defensive copy is made.
    *
-   * @param row
-   *          row ID
-   * @param initialBufferSize
-   *          the initial size, in bytes, of the internal buffer for serializing
+   * @param row row ID
+   * @param initialBufferSize the initial size, in bytes, of the internal buffer for serializing
    * @since 1.7.0
    */
   public Mutation(Text row, int initialBufferSize) {
@@ -218,8 +203,7 @@ public class Mutation implements Writable {
   /**
    * Creates a new mutation.
    *
-   * @param row
-   *          row ID
+   * @param row row ID
    */
   public Mutation(CharSequence row) {
     this(new Text(row.toString()));
@@ -228,10 +212,8 @@ public class Mutation implements Writable {
   /**
    * Creates a new mutation.
    *
-   * @param row
-   *          row ID
-   * @param initialBufferSize
-   *          the initial size, in bytes, of the internal buffer for serializing
+   * @param row row ID
+   * @param initialBufferSize the initial size, in bytes, of the internal buffer for serializing
    * @since 1.7.0
    */
   public Mutation(CharSequence row, int initialBufferSize) {
@@ -246,8 +228,7 @@ public class Mutation implements Writable {
   /**
    * Creates a new mutation from a Thrift mutation.
    *
-   * @param tmutation
-   *          Thrift mutation
+   * @param tmutation Thrift mutation
    */
   public Mutation(TMutation tmutation) {
     this.row = ByteBufferUtil.toBytes(tmutation.row);
@@ -266,8 +247,7 @@ public class Mutation implements Writable {
   /**
    * Creates a new mutation by copying another.
    *
-   * @param m
-   *          mutation to copy
+   * @param m mutation to copy
    */
   public Mutation(Mutation m) {
     m.serialize();
@@ -377,12 +357,9 @@ public class Mutation implements Writable {
    * Puts a modification in this mutation. Column visibility is empty; timestamp is not set. All
    * parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param value cell value
    * @see #at()
    */
   public void put(Text columnFamily, Text columnQualifier, Value value) {
@@ -393,14 +370,10 @@ public class Mutation implements Writable {
    * Puts a modification in this mutation. Timestamp is not set. All parameters are defensively
    * copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param columnVisibility
-   *          column visibility
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param value cell value
    * @see #at()
    */
   public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
@@ -413,14 +386,10 @@ public class Mutation implements Writable {
    * Puts a modification in this mutation. Column visibility is empty. All appropriate parameters
    * are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param timestamp
-   *          timestamp
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param timestamp timestamp
+   * @param value cell value
    * @see #at()
    */
   public void put(Text columnFamily, Text columnQualifier, long timestamp, Value value) {
@@ -430,16 +399,11 @@ public class Mutation implements Writable {
   /**
    * Puts a modification in this mutation. All appropriate parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param columnVisibility
-   *          column visibility
-   * @param timestamp
-   *          timestamp
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param timestamp timestamp
+   * @param value cell value
    * @see #at()
    */
   public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
@@ -452,10 +416,8 @@ public class Mutation implements Writable {
    * Puts a deletion in this mutation. Matches empty column visibility; timestamp is not set. All
    * parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
    * @see #at()
    */
   public void putDelete(Text columnFamily, Text columnQualifier) {
@@ -465,12 +427,9 @@ public class Mutation implements Writable {
   /**
    * Puts a deletion in this mutation. Timestamp is not set. All parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param columnVisibility
-   *          column visibility
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
    * @see #at()
    */
   public void putDelete(Text columnFamily, Text columnQualifier,
@@ -483,12 +442,9 @@ public class Mutation implements Writable {
    * Puts a deletion in this mutation. Matches empty column visibility. All appropriate parameters
    * are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param timestamp
-   *          timestamp
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param timestamp timestamp
    * @see #at()
    */
   public void putDelete(Text columnFamily, Text columnQualifier, long timestamp) {
@@ -498,14 +454,10 @@ public class Mutation implements Writable {
   /**
    * Puts a deletion in this mutation. All appropriate parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param columnVisibility
-   *          column visibility
-   * @param timestamp
-   *          timestamp
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param timestamp timestamp
    * @see #at()
    */
   public void putDelete(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
@@ -518,10 +470,8 @@ public class Mutation implements Writable {
    * Puts a modification in this mutation. Column visibility is empty; timestamp is not set. All
    * parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
    * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, Value value) {
@@ -532,14 +482,10 @@ public class Mutation implements Writable {
    * Puts a modification in this mutation. Timestamp is not set. All parameters are defensively
    * copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param columnVisibility
-   *          column visibility
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param value cell value
    * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
@@ -552,14 +498,10 @@ public class Mutation implements Writable {
    * Puts a modification in this mutation. Column visibility is empty. All appropriate parameters
    * are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param timestamp
-   *          timestamp
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param timestamp timestamp
+   * @param value cell value
    * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp,
@@ -570,16 +512,11 @@ public class Mutation implements Writable {
   /**
    * Puts a modification in this mutation. All appropriate parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param columnVisibility
-   *          column visibility
-   * @param timestamp
-   *          timestamp
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param timestamp timestamp
+   * @param value cell value
    * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
@@ -592,10 +529,8 @@ public class Mutation implements Writable {
    * Puts a deletion in this mutation. Matches empty column visibility; timestamp is not set. All
    * parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
    * @see #at()
    */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier) {
@@ -606,12 +541,9 @@ public class Mutation implements Writable {
    * Puts a deletion in this mutation. Timestamp is not set. All appropriate parameters are
    * defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param columnVisibility
-   *          column visibility
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
    * @see #at()
    */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier,
@@ -624,12 +556,9 @@ public class Mutation implements Writable {
    * Puts a deletion in this mutation. Matches empty column visibility. All appropriate parameters
    * are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param timestamp
-   *          timestamp
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param timestamp timestamp
    * @see #at()
    */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier, long timestamp) {
@@ -639,14 +568,10 @@ public class Mutation implements Writable {
   /**
    * Puts a deletion in this mutation. All appropriate parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param columnVisibility
-   *          column visibility
-   * @param timestamp
-   *          timestamp
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param timestamp timestamp
    * @see #at()
    */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier,
@@ -659,12 +584,9 @@ public class Mutation implements Writable {
    * Puts a modification in this mutation. Column visibility is empty; timestamp is not set. All
    * parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param value cell value
    * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, CharSequence value) {
@@ -675,14 +597,10 @@ public class Mutation implements Writable {
    * Puts a modification in this mutation. Timestamp is not set. All parameters are defensively
    * copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param columnVisibility
-   *          column visibility
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param value cell value
    * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
@@ -694,14 +612,10 @@ public class Mutation implements Writable {
    * Puts a modification in this mutation. Column visibility is empty. All appropriate parameters
    * are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param timestamp
-   *          timestamp
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param timestamp timestamp
+   * @param value cell value
    * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp,
@@ -712,16 +626,11 @@ public class Mutation implements Writable {
   /**
    * Puts a modification in this mutation. All appropriate parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param columnVisibility
-   *          column visibility
-   * @param timestamp
-   *          timestamp
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param timestamp timestamp
+   * @param value cell value
    * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
@@ -734,12 +643,9 @@ public class Mutation implements Writable {
    * Puts a modification in this mutation. Column visibility is empty; timestamp is not set. All
    * parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param value cell value
    * @since 1.5.0
    * @see #at()
    */
@@ -751,14 +657,10 @@ public class Mutation implements Writable {
    * Puts a modification in this mutation. Timestamp is not set. All parameters are defensively
    * copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param columnVisibility
-   *          column visibility
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param value cell value
    * @since 1.5.0
    * @see #at()
    */
@@ -771,14 +673,10 @@ public class Mutation implements Writable {
    * Puts a modification in this mutation. Column visibility is empty. All appropriate parameters
    * are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param timestamp
-   *          timestamp
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param timestamp timestamp
+   * @param value cell value
    * @since 1.5.0
    * @see #at()
    */
@@ -789,16 +687,11 @@ public class Mutation implements Writable {
   /**
    * Puts a modification in this mutation. All appropriate parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param columnVisibility
-   *          column visibility
-   * @param timestamp
-   *          timestamp
-   * @param value
-   *          cell value
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param timestamp timestamp
+   * @param value cell value
    * @since 1.5.0
    * @see #at()
    */
@@ -812,10 +705,8 @@ public class Mutation implements Writable {
    * Puts a deletion in this mutation. Matches empty column visibility; timestamp is not set. All
    * parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
    * @since 1.5.0
    * @see #at()
    */
@@ -826,12 +717,9 @@ public class Mutation implements Writable {
   /**
    * Puts a deletion in this mutation. Timestamp is not set. All parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param columnVisibility
-   *          column visibility
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
    * @since 1.5.0
    * @see #at()
    */
@@ -845,12 +733,9 @@ public class Mutation implements Writable {
    * Puts a deletion in this mutation. Matches empty column visibility. All appropriate parameters
    * are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param timestamp
-   *          timestamp
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param timestamp timestamp
    * @since 1.5.0
    * @see #at()
    */
@@ -861,14 +746,10 @@ public class Mutation implements Writable {
   /**
    * Puts a deletion in this mutation. All appropriate parameters are defensively copied.
    *
-   * @param columnFamily
-   *          column family
-   * @param columnQualifier
-   *          column qualifier
-   * @param columnVisibility
-   *          column visibility
-   * @param timestamp
-   *          timestamp
+   * @param columnFamily column family
+   * @param columnQualifier column qualifier
+   * @param columnVisibility column visibility
+   * @param timestamp timestamp
    * @since 1.5.0
    * @see #at()
    */
@@ -1027,10 +908,8 @@ public class Mutation implements Writable {
     /**
      * Sets the column family of a mutation.
      *
-     * @param colFam
-     *          column family
-     * @param colFamLength
-     *          column family length
+     * @param colFam column family
+     * @param colFamLength column family length
      * @return a QualifierOptions object, advancing the method chain
      */
     private QualifierOptions family(byte[] colFam, int colFamLength) {
@@ -1042,8 +921,7 @@ public class Mutation implements Writable {
     /**
      * Sets the column family of a mutation.
      *
-     * @param colFam
-     *          column family
+     * @param colFam column family
      * @return a QualifierOptions object, advancing the method chain
      */
     @Override
@@ -1054,8 +932,7 @@ public class Mutation implements Writable {
     /**
      * Sets the column family of a mutation.
      *
-     * @param colFam
-     *          column family
+     * @param colFam column family
      * @return a QualifierOptions object, advancing the method chain
      */
     @Override
@@ -1066,8 +943,7 @@ public class Mutation implements Writable {
     /**
      * Sets the column family of a mutation.
      *
-     * @param colFam
-     *          column family
+     * @param colFam column family
      * @return a QualifierOptions object, advancing the method chain
      */
     @Override
@@ -1078,8 +954,7 @@ public class Mutation implements Writable {
     /**
      * Sets the column family of a mutation.
      *
-     * @param colFam
-     *          column family
+     * @param colFam column family
      * @return a QualifierOptions object, advancing the method chain
      */
     @Override
@@ -1090,10 +965,8 @@ public class Mutation implements Writable {
     /**
      * Sets the column qualifier of a mutation.
      *
-     * @param colQual
-     *          column qualifier
-     * @param colQualLength
-     *          column qualifier
+     * @param colQual column qualifier
+     * @param colQualLength column qualifier
      * @return a VisibilityOptions object, advancing the method chain
      */
     private VisibilityOptions qualifier(byte[] colQual, int colQualLength) {
@@ -1105,8 +978,7 @@ public class Mutation implements Writable {
     /**
      * Sets the column qualifier of a mutation.
      *
-     * @param colQual
-     *          column qualifier
+     * @param colQual column qualifier
      * @return a VisibilityOptions object, advancing the method chain
      */
     @Override
@@ -1117,8 +989,7 @@ public class Mutation implements Writable {
     /**
      * Sets the column qualifier of a mutation.
      *
-     * @param colQual
-     *          column qualifier
+     * @param colQual column qualifier
      * @return a VisibilityOptions object, advancing the method chain
      */
     @Override
@@ -1129,8 +1000,7 @@ public class Mutation implements Writable {
     /**
      * Sets the column qualifier of a mutation.
      *
-     * @param colQual
-     *          column qualifier
+     * @param colQual column qualifier
      * @return a VisibilityOptions object, advancing the method chain
      */
     @Override
@@ -1141,8 +1011,7 @@ public class Mutation implements Writable {
     /**
      * Sets the column qualifier of a mutation.
      *
-     * @param colQual
-     *          column qualifier
+     * @param colQual column qualifier
      * @return a VisibilityOptions object, advancing the method chain
      */
     @Override
@@ -1153,10 +1022,8 @@ public class Mutation implements Writable {
     /**
      * Sets the column visibility of a mutation.
      *
-     * @param colVis
-     *          column visibility
-     * @param colVisLen
-     *          column visibility length
+     * @param colVis column visibility
+     * @param colVisLen column visibility length
      * @return a TimestampOptions object, advancing the method chain
      */
     private TimestampOptions visibility(byte[] colVis, int colVisLen) {
@@ -1168,8 +1035,7 @@ public class Mutation implements Writable {
     /**
      * Sets the column visibility of a mutation.
      *
-     * @param colVis
-     *          column visibility
+     * @param colVis column visibility
      * @return a TimestampOptions object, advancing the method chain
      */
     @Override
@@ -1180,8 +1046,7 @@ public class Mutation implements Writable {
     /**
      * Sets the column visibility of a mutation.
      *
-     * @param colVis
-     *          column visibility
+     * @param colVis column visibility
      * @return a TimestampOptions object, advancing the method chain
      */
     @Override
@@ -1192,8 +1057,7 @@ public class Mutation implements Writable {
     /**
      * Sets the column visibility of a mutation.
      *
-     * @param colVis
-     *          column visibility
+     * @param colVis column visibility
      * @return a TimestampOptions object, advancing the method chain
      */
     @Override
@@ -1204,8 +1068,7 @@ public class Mutation implements Writable {
     /**
      * Sets the column visibility of a mutation.
      *
-     * @param colVis
-     *          column visibility
+     * @param colVis column visibility
      * @return a TimestampOptions object, advancing the method chain
      */
     @Override
@@ -1216,8 +1079,7 @@ public class Mutation implements Writable {
     /**
      * Sets the column visibility of a mutation.
      *
-     * @param colVis
-     *          column visibility
+     * @param colVis column visibility
      * @return a TimestampOptions object, advancing the method chain
      */
     @Override
@@ -1228,8 +1090,7 @@ public class Mutation implements Writable {
     /**
      * Sets the timestamp of a mutation.
      *
-     * @param ts
-     *          timestamp
+     * @param ts timestamp
      * @return a MutationOptions object, advancing the method chain
      */
     @Override
@@ -1242,10 +1103,8 @@ public class Mutation implements Writable {
     /**
      * Finalizes the method chain by filling the buffer with the gathered Mutation configuration
      *
-     * @param val
-     *          value
-     * @param delete
-     *          deletion flag
+     * @param val value
+     * @param delete deletion flag
      */
     private Mutation put(byte[] val, boolean delete) {
       if (buffer == null) {
@@ -1297,8 +1156,7 @@ public class Mutation implements Writable {
     /**
      * Ends method chain with a put of a byte[] value
      *
-     * @param val
-     *          value
+     * @param val value
      */
     @Override
     public Mutation put(byte[] val) {
@@ -1308,8 +1166,7 @@ public class Mutation implements Writable {
     /**
      * Ends method chain with a put of a ByteBuffer value
      *
-     * @param val
-     *          value
+     * @param val value
      */
     @Override
     public Mutation put(ByteBuffer val) {
@@ -1319,8 +1176,7 @@ public class Mutation implements Writable {
     /**
      * Ends method chain with a put of a CharSequence value
      *
-     * @param val
-     *          value
+     * @param val value
      */
     @Override
     public Mutation put(CharSequence val) {
@@ -1330,8 +1186,7 @@ public class Mutation implements Writable {
     /**
      * Ends method chain with a put of a Text value
      *
-     * @param val
-     *          value
+     * @param val value
      */
     @Override
     public Mutation put(Text val) {
@@ -1341,8 +1196,7 @@ public class Mutation implements Writable {
     /**
      * Ends method chain with a put of a Value object
      *
-     * @param val
-     *          value
+     * @param val value
      */
     @Override
     public Mutation put(Value val) {
@@ -1360,8 +1214,9 @@ public class Mutation implements Writable {
 
   private byte[] oldReadBytes(UnsynchronizedBuffer.Reader in) {
     int len = in.readInt();
-    if (len == 0)
+    if (len == 0) {
       return EMPTY_BYTES;
+    }
 
     byte[] bytes = new byte[len];
     in.readBytes(bytes);
@@ -1370,8 +1225,9 @@ public class Mutation implements Writable {
 
   private byte[] readBytes(UnsynchronizedBuffer.Reader in) {
     int len = (int) in.readVLong();
-    if (len == 0)
+    if (len == 0) {
       return EMPTY_BYTES;
+    }
 
     byte[] bytes = new byte[len];
     in.readBytes(bytes);
@@ -1396,8 +1252,9 @@ public class Mutation implements Writable {
       } else {
         ColumnUpdate[] tmpUpdates = new ColumnUpdate[entries];
 
-        for (int i = 0; i < entries; i++)
+        for (int i = 0; i < entries; i++) {
           tmpUpdates[i] = deserializeColumnUpdate(in);
+        }
 
         updates = Arrays.asList(tmpUpdates);
       }
@@ -1417,8 +1274,9 @@ public class Mutation implements Writable {
     byte[] cv = readBytes(in);
     boolean hasts = in.readBoolean();
     long ts = 0;
-    if (hasts)
+    if (hasts) {
       ts = in.readVLong();
+    }
     boolean deleted = in.readBoolean();
 
     byte[] val;
@@ -1445,13 +1303,15 @@ public class Mutation implements Writable {
    * @see #VALUE_SIZE_COPY_CUTOFF
    */
   long getValueLengths() {
-    if (values == null)
+    if (values == null) {
       return 0;
+    }
 
     if (cachedValLens == -1) {
       int tmpCVL = 0;
-      for (byte[] val : values)
+      for (byte[] val : values) {
         tmpCVL += val.length;
+      }
 
       cachedValLens = tmpCVL;
     }
@@ -1593,8 +1453,9 @@ public class Mutation implements Writable {
       }
 
       put(cf, cq, cv, hasts, ts, deleted, val);
-      if (!hasts)
+      if (!hasts) {
         droppingOldTimestamp(ts);
+      }
     }
 
     serialize();
@@ -1648,8 +1509,7 @@ public class Mutation implements Writable {
    * have the same modifications and deletions, in order. This method may be removed in a future API
    * revision in favor of {@link #equals(Object)}. See ACCUMULO-1627 for more information.
    *
-   * @param m
-   *          mutation to compare
+   * @param m mutation to compare
    * @return true if this mutation equals the other, false otherwise
    */
   public boolean equals(Mutation m) {
@@ -1661,13 +1521,15 @@ public class Mutation implements Writable {
     ByteBuffer otherData = m.serializedSnapshot();
     if (Arrays.equals(row, m.row) && entries == m.entries && myData.equals(otherData)) {
       // If two mutations don't have the same
-      if (values == null && m.values == null)
+      if (values == null && m.values == null) {
         return true;
+      }
 
       if (values != null && m.values != null && values.size() == m.values.size()) {
         for (int i = 0; i < values.size(); i++) {
-          if (!Arrays.equals(values.get(i), m.values.get(i)))
+          if (!Arrays.equals(values.get(i), m.values.get(i))) {
             return false;
+          }
         }
 
         return true;

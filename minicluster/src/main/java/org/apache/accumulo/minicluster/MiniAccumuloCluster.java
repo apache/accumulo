@@ -49,20 +49,17 @@ public class MiniAccumuloCluster implements AutoCloseable {
 
   /**
    *
-   * @param dir
-   *          An empty or nonexistent temp directory that Accumulo and Zookeeper can store data in.
-   *          Creating the directory is left to the user. Java 7, Guava, and Junit provide methods
-   *          for creating temporary directories.
-   * @param rootPassword
-   *          Initial root password for instance.
+   * @param dir An empty or nonexistent temp directory that Accumulo and Zookeeper can store data
+   *        in. Creating the directory is left to the user. Java 7, Guava, and Junit provide methods
+   *        for creating temporary directories.
+   * @param rootPassword Initial root password for instance.
    */
   public MiniAccumuloCluster(File dir, String rootPassword) throws IOException {
     this(new MiniAccumuloConfigImpl(dir, rootPassword));
   }
 
   /**
-   * @param config
-   *          initial configuration
+   * @param config initial configuration
    */
   public MiniAccumuloCluster(MiniAccumuloConfig config) throws IOException {
     this(config.getImpl());
@@ -147,8 +144,7 @@ public class MiniAccumuloCluster implements AutoCloseable {
   /**
    * Construct client {@link Properties} using a {@link MiniAccumuloCluster} directory
    *
-   * @param directory
-   *          MiniAccumuloCluster directory
+   * @param directory MiniAccumuloCluster directory
    * @return {@link Properties} for that directory
    * @since 2.0.0
    */

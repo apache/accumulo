@@ -73,12 +73,9 @@ public abstract class Filter implements Writable {
   /**
    * Constructor.
    *
-   * @param vectorSize
-   *          The vector size of <i>this</i> filter.
-   * @param nbHash
-   *          The number of hash functions to consider.
-   * @param hashType
-   *          type of the hashing function (see {@link Hash}).
+   * @param vectorSize The vector size of <i>this</i> filter.
+   * @param nbHash The number of hash functions to consider.
+   * @param hashType type of the hashing function (see {@link Hash}).
    */
   protected Filter(final int vectorSize, final int nbHash, final int hashType) {
     this.vectorSize = vectorSize;
@@ -90,8 +87,7 @@ public abstract class Filter implements Writable {
   /**
    * Adds a key to <i>this</i> filter.
    *
-   * @param key
-   *          The key to add.
+   * @param key The key to add.
    * @return true if the key was added, false otherwise.
    */
   public abstract boolean add(Key key);
@@ -99,8 +95,7 @@ public abstract class Filter implements Writable {
   /**
    * Determines whether a specified key belongs to <i>this</i> filter.
    *
-   * @param key
-   *          The key to test.
+   * @param key The key to test.
    * @return boolean True if the specified key belongs to <i>this</i> filter. False otherwise.
    */
   public abstract boolean membershipTest(Key key);
@@ -110,8 +105,7 @@ public abstract class Filter implements Writable {
    * <p>
    * <b>Invariant</b>: The result is assigned to <i>this</i> filter.
    *
-   * @param filter
-   *          The filter to AND with.
+   * @param filter The filter to AND with.
    */
   public abstract void and(Filter filter);
 
@@ -120,8 +114,7 @@ public abstract class Filter implements Writable {
    * <p>
    * <b>Invariant</b>: The result is assigned to <i>this</i> filter.
    *
-   * @param filter
-   *          The filter to OR with.
+   * @param filter The filter to OR with.
    */
   public abstract void or(Filter filter);
 
@@ -130,8 +123,7 @@ public abstract class Filter implements Writable {
    * <p>
    * <b>Invariant</b>: The result is assigned to <i>this</i> filter.
    *
-   * @param filter
-   *          The filter to XOR with.
+   * @param filter The filter to XOR with.
    */
   public abstract void xor(Filter filter);
 

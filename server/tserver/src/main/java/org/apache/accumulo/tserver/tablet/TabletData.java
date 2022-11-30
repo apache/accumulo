@@ -62,8 +62,9 @@ public class TabletData {
     this.logEntries.addAll(meta.getLogs());
     scanFiles.addAll(meta.getScans());
 
-    if (meta.getLast() != null)
+    if (meta.getLast() != null) {
       this.lastLocation = meta.getLast();
+    }
 
     dataFiles.putAll(meta.getFilesMap());
 

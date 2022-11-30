@@ -74,8 +74,9 @@ public class CloseScannerIT extends AccumuloClusterHarness {
   private static Scanner createScanner(AccumuloClient client, String tableName, int i)
       throws Exception {
     Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
-    if (i % 2 == 0)
+    if (i % 2 == 0) {
       scanner = new IsolatedScanner(scanner);
+    }
     return scanner;
   }
 }

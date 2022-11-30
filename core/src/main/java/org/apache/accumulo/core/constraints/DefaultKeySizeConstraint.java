@@ -58,8 +58,9 @@ public class DefaultKeySizeConstraint extends
   public List<Short> check(Constraint.Environment env, Mutation mutation) {
 
     // fast size check
-    if (mutation.numBytes() < maxSize)
+    if (mutation.numBytes() < maxSize) {
       return NO_VIOLATIONS;
+    }
 
     List<Short> violations = new ArrayList<>();
 
@@ -69,8 +70,9 @@ public class DefaultKeySizeConstraint extends
       size += cu.getColumnQualifier().length;
       size += cu.getColumnVisibility().length;
 
-      if (size > maxSize)
+      if (size > maxSize) {
         violations.add(MAX__KEY_SIZE_EXCEEDED_VIOLATION);
+      }
     }
 
     return violations;

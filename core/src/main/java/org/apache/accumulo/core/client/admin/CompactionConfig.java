@@ -54,9 +54,8 @@ public class CompactionConfig {
   private PluginConfig configurerConfig = UserCompactionUtils.DEFAULT_CONFIGURER;
 
   /**
-   * @param start
-   *          First tablet to be compacted contains the row after this row, null means the first
-   *          tablet in table. The default is null.
+   * @param start First tablet to be compacted contains the row after this row, null means the first
+   *        tablet in table. The default is null.
    * @return this
    */
 
@@ -74,9 +73,8 @@ public class CompactionConfig {
 
   /**
    *
-   * @param end
-   *          Last tablet to be compacted contains this row, null means the last tablet in table.
-   *          The default is null.
+   * @param end Last tablet to be compacted contains this row, null means the last tablet in table.
+   *        The default is null.
    * @return this
    */
   public CompactionConfig setEndRow(Text end) {
@@ -92,9 +90,8 @@ public class CompactionConfig {
   }
 
   /**
-   * @param flush
-   *          If set to true, will flush in memory data of all tablets in range before compacting.
-   *          If not set, the default is true.
+   * @param flush If set to true, will flush in memory data of all tablets in range before
+   *        compacting. If not set, the default is true.
    * @return this
    */
   public CompactionConfig setFlush(boolean flush) {
@@ -110,9 +107,8 @@ public class CompactionConfig {
   }
 
   /**
-   * @param wait
-   *          If set to true, will cause compact operation to wait for all tablets in range to
-   *          compact. If not set, the default is true.
+   * @param wait If set to true, will cause compact operation to wait for all tablets in range to
+   *        compact. If not set, the default is true.
    * @return this
    */
 
@@ -130,9 +126,8 @@ public class CompactionConfig {
   }
 
   /**
-   * @param iterators
-   *          configures the iterators that will be used when compacting tablets. These iterators
-   *          are merged with current iterators configured for the table.
+   * @param iterators configures the iterators that will be used when compacting tablets. These
+   *        iterators are merged with current iterators configured for the table.
    * @return this
    */
   public CompactionConfig setIterators(List<IteratorSetting> iterators) {
@@ -149,9 +144,8 @@ public class CompactionConfig {
   }
 
   /**
-   * @param csConfig
-   *          configures the strategy that will be used by each tablet to select files. If no
-   *          strategy is set, then all files will be compacted.
+   * @param csConfig configures the strategy that will be used by each tablet to select files. If no
+   *        strategy is set, then all files will be compacted.
    * @return this
    * @deprecated since 2.1.0 use {@link #setSelector(PluginConfig)} and
    *             {@link #setConfigurer(PluginConfig)} instead. See {@link CompactionStrategyConfig}
@@ -203,8 +197,9 @@ public class CompactionConfig {
    * @since 2.1.0
    */
   public CompactionConfig setExecutionHints(Map<String,String> hints) {
-    if (!hints.isEmpty())
+    if (!hints.isEmpty()) {
       Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
+    }
     this.hints = Map.copyOf(hints);
     return this;
   }

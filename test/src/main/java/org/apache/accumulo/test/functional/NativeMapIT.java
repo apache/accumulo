@@ -455,18 +455,22 @@ public class NativeMapIT {
         Entry<Key,Value> e = iter1.next();
         Pair<Key,Value> p = iter2.next();
 
-        if (!e.getKey().equals(p.getFirst()))
+        if (!e.getKey().equals(p.getFirst())) {
           throw new RuntimeException("Keys not equal");
+        }
 
-        if (!e.getValue().equals(p.getSecond()))
+        if (!e.getValue().equals(p.getSecond())) {
           throw new RuntimeException("Values not equal");
+        }
       }
 
-      if (iter1.hasNext())
+      if (iter1.hasNext()) {
         throw new RuntimeException("Not all of native map consumed");
+      }
 
-      if (iter2.hasNext())
+      if (iter2.hasNext()) {
         throw new RuntimeException("Not all of test data consumed");
+      }
 
       System.out.println("test 11 nm mem " + nm.getMemoryUsed());
 

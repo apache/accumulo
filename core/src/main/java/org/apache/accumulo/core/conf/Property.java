@@ -1533,8 +1533,7 @@ public enum Property {
    * Checks if a property with the given key is sensitive. The key must be for a valid property, and
    * must either itself be annotated as sensitive or have a prefix annotated as sensitive.
    *
-   * @param key
-   *          property key
+   * @param key property key
    * @return true if property is sensitive
    */
   public static boolean isSensitive(String key) {
@@ -1575,10 +1574,8 @@ public enum Property {
    * valid see {@link #isValidTablePropertyKey} and that the value is a valid format for the type
    * see {@link PropertyType#isValidFormat}.
    *
-   * @param key
-   *          property key
-   * @param value
-   *          property value
+   * @param key property key
+   * @param value property value
    * @return true if key is valid (recognized, or has a recognized prefix)
    */
   public static boolean isTablePropertyValid(final String key, final String value) {
@@ -1590,8 +1587,7 @@ public enum Property {
    * Checks if the given property key is valid. A valid property key is either equal to the key of
    * some defined property or has a prefix matching some prefix defined in this class.
    *
-   * @param key
-   *          property key
+   * @param key property key
    * @return true if key is valid (recognized, or has a recognized prefix)
    */
   public static boolean isValidPropertyKey(String key) {
@@ -1602,8 +1598,7 @@ public enum Property {
   /**
    * Checks if the given property key is a valid property and is of type boolean.
    *
-   * @param key
-   *          property key
+   * @param key property key
    * @return true if key is valid and is of type boolean, false otherwise
    */
   public static boolean isValidBooleanPropertyKey(String key) {
@@ -1616,8 +1611,7 @@ public enum Property {
    * {@link #TABLE_PREFIX}) or has a prefix matching {@link #TABLE_CONSTRAINT_PREFIX},
    * {@link #TABLE_ITERATOR_PREFIX}, or {@link #TABLE_LOCALITY_GROUP_PREFIX}.
    *
-   * @param key
-   *          property key
+   * @param key property key
    * @return true if key is valid for a table property (recognized, or has a recognized prefix)
    */
   public static boolean isValidTablePropertyKey(String key) {
@@ -1651,8 +1645,7 @@ public enum Property {
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
    * of some relevant daemon.
    *
-   * @param key
-   *          property key
+   * @param key property key
    * @return true if property may be changed via Zookeeper but only heeded upon some restart
    */
   public static boolean isFixedZooPropertyKey(Property key) {
@@ -1662,8 +1655,7 @@ public enum Property {
   /**
    * Checks if the given property key is valid for a property that may be changed via Zookeeper.
    *
-   * @param key
-   *          property key
+   * @param key property key
    * @return true if key's property may be changed via Zookeeper
    */
   public static boolean isValidZooPropertyKey(String key) {
@@ -1680,8 +1672,7 @@ public enum Property {
   /**
    * Gets a {@link Property} instance with the given key.
    *
-   * @param key
-   *          property key
+   * @param key property key
    * @return property, or null if not found
    */
   public static Property getPropertyByKey(String key) {
@@ -1707,14 +1698,10 @@ public enum Property {
    * Creates a new instance of a class specified in a configuration property. The table classpath
    * context is used if set.
    *
-   * @param conf
-   *          configuration containing property
-   * @param property
-   *          property specifying class name
-   * @param base
-   *          base class of type
-   * @param defaultInstance
-   *          instance to use if creation fails
+   * @param conf configuration containing property
+   * @param property property specifying class name
+   * @param base base class of type
+   * @param defaultInstance instance to use if creation fails
    * @return new class instance, or default instance if creation failed
    */
   public static <T> T createTableInstanceFromPropertyName(AccumuloConfiguration conf,
@@ -1727,14 +1714,10 @@ public enum Property {
   /**
    * Creates a new instance of a class specified in a configuration property.
    *
-   * @param conf
-   *          configuration containing property
-   * @param property
-   *          property specifying class name
-   * @param base
-   *          base class of type
-   * @param defaultInstance
-   *          instance to use if creation fails
+   * @param conf configuration containing property
+   * @param property property specifying class name
+   * @param base base class of type
+   * @param defaultInstance instance to use if creation fails
    * @return new class instance, or default instance if creation failed
    */
   public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property,
@@ -1753,8 +1736,9 @@ public enum Property {
         .peek(p -> propertiesByKey.put(p.getKey(), p))
         // save all the prefix properties
         .peek(p -> {
-          if (isPrefix.test(p))
+          if (isPrefix.test(p)) {
             validPrefixes.add(p.getKey());
+          }
         })
         // only use the keys for the non-prefix properties from here on
         .filter(isPrefix.negate()).map(Property::getKey)

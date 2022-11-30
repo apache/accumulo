@@ -91,10 +91,8 @@ public class ZooCacheFactory {
    * Gets a {@link ZooCache}. The same object may be returned for multiple calls with the same
    * arguments.
    *
-   * @param zooKeepers
-   *          comma-separated list of ZooKeeper host[:port]s
-   * @param sessionTimeout
-   *          session timeout
+   * @param zooKeepers comma-separated list of ZooKeeper host[:port]s
+   * @param sessionTimeout session timeout
    * @return cache object
    */
   public ZooCache getZooCache(String zooKeepers, int sessionTimeout) {
@@ -111,10 +109,8 @@ public class ZooCacheFactory {
   /**
    * Always return a new {@link ZooCache}.
    *
-   * @param zooKeepers
-   *          comma-separated list of ZooKeeper host[:port]s
-   * @param sessionTimeout
-   *          session timeout
+   * @param zooKeepers comma-separated list of ZooKeeper host[:port]s
+   * @param sessionTimeout session timeout
    * @return a new instance
    */
   public ZooCache getNewZooCache(String zooKeepers, int sessionTimeout) {

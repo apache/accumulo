@@ -30,9 +30,10 @@ public class FastFormat {
     Preconditions.checkArgument(num >= 0);
     String strNum = Long.toString(num, radix);
     byte[] ret = new byte[Math.max(strNum.length(), width) + prefix.length];
-    if (toZeroPaddedString(ret, 0, strNum, width, prefix) != ret.length)
+    if (toZeroPaddedString(ret, 0, strNum, width, prefix) != ret.length) {
       throw new RuntimeException(" Did not format to expected width " + num + " " + width + " "
           + radix + " " + new String(prefix, UTF_8));
+    }
     return ret;
   }
 
@@ -60,8 +61,9 @@ public class FastFormat {
 
     int end = width - strNum.length() + index;
 
-    while (index < end)
+    while (index < end) {
       output[index++] = '0';
+    }
 
     for (int i = 0; i < strNum.length(); i++) {
       output[index++] = (byte) strNum.charAt(i);

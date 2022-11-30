@@ -86,9 +86,9 @@ class ScanDataSource implements DataSource {
 
   @Override
   public DataSource getNewDataSource() {
-    if (isCurrent())
+    if (isCurrent()) {
       return this;
-    else {
+    } else {
       // log.debug("Switching data sources during a scan");
       if (memIters != null) {
         tablet.returnMemIterators(memIters);
@@ -116,8 +116,9 @@ class ScanDataSource implements DataSource {
 
   @Override
   public SortedKeyValueIterator<Key,Value> iterator() throws IOException {
-    if (iter == null)
+    if (iter == null) {
       iter = createIterator();
+    }
     return iter;
   }
 
@@ -129,15 +130,18 @@ class ScanDataSource implements DataSource {
 
     synchronized (tablet) {
 
-      if (memIters != null)
+      if (memIters != null) {
         throw new IllegalStateException("Tried to create new scan iterator w/o releasing memory");
+      }
 
-      if (tablet.isClosed())
+      if (tablet.isClosed()) {
         throw new TabletClosedException();
+      }
 
-      if (interruptFlag.get())
+      if (interruptFlag.get()) {
         throw new IterationInterruptedException(
             tablet.getExtent() + " " + interruptFlag.hashCode());
+      }
 
       // only acquire the file manager when we know the tablet is open
       if (fileManager == null) {
@@ -146,8 +150,9 @@ class ScanDataSource implements DataSource {
         tablet.addActiveScans(this);
       }
 
-      if (fileManager.getNumOpenFiles() != 0)
+      if (fileManager.getNumOpenFiles() != 0) {
         throw new IllegalStateException("Tried to create new scan iterator w/o releasing files");
+      }
 
       // set this before trying to get iterators in case
       // getIterators() throws an exception
@@ -238,8 +243,9 @@ class ScanDataSource implements DataSource {
     }
 
     synchronized (tablet) {
-      if (tablet.removeScan(this) == 0)
+      if (tablet.removeScan(this) == 0) {
         tablet.notifyAll();
+      }
     }
 
     if (fileManager != null) {
@@ -264,13 +270,15 @@ class ScanDataSource implements DataSource {
   }
 
   public void reattachFileManager() throws IOException {
-    if (fileManager != null)
+    if (fileManager != null) {
       fileManager.reattach(scanParams.getSamplerConfigurationImpl());
+    }
   }
 
   public void detachFileManager() {
-    if (fileManager != null)
+    if (fileManager != null) {
       fileManager.detach();
+    }
   }
 
   @Override

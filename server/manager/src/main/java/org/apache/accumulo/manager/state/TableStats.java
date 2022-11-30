@@ -63,14 +63,16 @@ public class TableStats {
 
   public synchronized TableCounts getLast(TableId tableId) {
     TableCounts result = last.get(tableId);
-    if (result == null)
+    if (result == null) {
       return new TableCounts();
+    }
     return result;
   }
 
   public synchronized long getScanTime() {
-    if (endScan <= startScan)
+    if (endScan <= startScan) {
       return System.currentTimeMillis() - startScan;
+    }
     return endScan - startScan;
   }
 

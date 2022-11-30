@@ -199,8 +199,7 @@ public class MetadataSchema {
       }
 
       /**
-       * @throws IllegalArgumentException
-       *           when {@link #isValidDirCol(String)} returns false.
+       * @throws IllegalArgumentException when {@link #isValidDirCol(String)} returns false.
        */
       public static void validateDirCol(String dirName) {
         Preconditions.checkArgument(isValidDirCol(dirName), "Invalid dir name %s", dirName);

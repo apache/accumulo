@@ -152,10 +152,12 @@ public class SingletonManager {
    * Change how singletons are managed. The default mode is {@link Mode#CLIENT}
    */
   public static synchronized void setMode(Mode mode) {
-    if (SingletonManager.mode == mode)
+    if (SingletonManager.mode == mode) {
       return;
-    if (SingletonManager.mode == Mode.CLOSED)
+    }
+    if (SingletonManager.mode == Mode.CLOSED) {
       throw new IllegalStateException("Cannot leave closed mode once entered");
+    }
     if (mode == Mode.CONNECTOR) {
       throw new IllegalArgumentException("CONNECTOR mode was removed");
     }

@@ -118,8 +118,9 @@ public class InternalCompactionExecutor implements CompactionExecutor {
         canceled = status.compareAndSet(expectedStatus, Status.CANCELED);
       }
 
-      if (canceled)
+      if (canceled) {
         queuedJob.remove(this);
+      }
 
       if (canceled && cancelCount.incrementAndGet() % 1024 == 0) {
         // Occasionally clean the queue of canceled jobs that have hung around because of their low
@@ -189,15 +190,17 @@ public class InternalCompactionExecutor implements CompactionExecutor {
 
   @Override
   public int getCompactionsRunning(CType ctype) {
-    if (ctype != CType.INTERNAL)
+    if (ctype != CType.INTERNAL) {
       return 0;
+    }
     return threadPool.getActiveCount();
   }
 
   @Override
   public int getCompactionsQueued(CType ctype) {
-    if (ctype != CType.INTERNAL)
+    if (ctype != CType.INTERNAL) {
       return 0;
+    }
     return queuedJob.size();
   }
 

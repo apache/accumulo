@@ -31,12 +31,14 @@ public class SecurityErrorCodeTest {
     HashSet<String> secNames1 = new HashSet<>();
     HashSet<String> secNames2 = new HashSet<>();
 
-    for (SecurityErrorCode sec : SecurityErrorCode.values())
+    for (SecurityErrorCode sec : SecurityErrorCode.values()) {
       secNames1.add(sec.name());
+    }
 
     for (org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode sec : org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode
-        .values())
+        .values()) {
       secNames2.add(sec.name());
+    }
 
     assertEquals(secNames1, secNames2);
   }

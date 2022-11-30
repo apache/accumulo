@@ -103,8 +103,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
      * Constructs an iterator over Values whose Keys are versions of the current topKey of the
      * source SortedKeyValueIterator.
      *
-     * @param source
-     *          The {@code SortedKeyValueIterator<Key,Value>} from which to read data.
+     * @param source The {@code SortedKeyValueIterator<Key,Value>} from which to read data.
      */
     public ValueIterator(SortedKeyValueIterator<Key,Value> source) {
       this.source = source;
@@ -124,8 +123,9 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
     @Override
     public Value next() {
-      if (!hasNext)
+      if (!hasNext) {
         throw new NoSuchElementException();
+      }
       Value topValue = new Value(source.getTopValue());
       try {
         source.next();
@@ -139,8 +139,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     /**
      * This method is unsupported in this iterator.
      *
-     * @throws UnsupportedOperationException
-     *           when called
+     * @throws UnsupportedOperationException when called
      */
     @Override
     public void remove() {
@@ -153,15 +152,17 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   @Override
   public Key getTopKey() {
-    if (topKey == null)
+    if (topKey == null) {
       return super.getTopKey();
+    }
     return topKey;
   }
 
   @Override
   public Value getTopValue() {
-    if (topKey == null)
+    if (topKey == null) {
       return super.getTopValue();
+    }
     return topValue;
   }
 
@@ -224,8 +225,9 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
         topKey = workKey;
         Iterator<Value> viter = new ValueIterator(getSource());
         topValue = reduce(topKey, viter);
-        while (viter.hasNext())
+        while (viter.hasNext()) {
           viter.next();
+        }
       }
     }
   }
@@ -258,11 +260,9 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   /**
    * Reduces a list of Values into a single Value.
    *
-   * @param key
-   *          The most recent version of the Key being reduced.
+   * @param key The most recent version of the Key being reduced.
    *
-   * @param iter
-   *          An iterator over the Values for different versions of the key.
+   * @param iter An iterator over the Values for different versions of the key.
    *
    * @return The combined Value.
    */
@@ -282,12 +282,14 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     }
 
     if (!combineAllColumns) {
-      if (!options.containsKey(COLUMNS_OPTION))
+      if (!options.containsKey(COLUMNS_OPTION)) {
         throw new IllegalArgumentException("Must specify " + COLUMNS_OPTION + " option");
+      }
 
       String encodedColumns = options.get(COLUMNS_OPTION);
-      if (encodedColumns.isEmpty())
+      if (encodedColumns.isEmpty()) {
         throw new IllegalArgumentException("The " + COLUMNS_OPTION + " must not be empty");
+      }
 
       combiners = new ColumnSet(Lists.newArrayList(Splitter.on(",").split(encodedColumns)));
     }
@@ -349,20 +351,24 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
         throw new IllegalArgumentException(
             "bad boolean " + ALL_OPTION + ":" + options.get(ALL_OPTION));
       }
-      if (combineAllColumns)
+      if (combineAllColumns) {
         return true;
+      }
     }
-    if (!options.containsKey(COLUMNS_OPTION))
+    if (!options.containsKey(COLUMNS_OPTION)) {
       throw new IllegalArgumentException(
           "options must include " + ALL_OPTION + " or " + COLUMNS_OPTION);
+    }
 
     String encodedColumns = options.get(COLUMNS_OPTION);
-    if (encodedColumns.isEmpty())
+    if (encodedColumns.isEmpty()) {
       throw new IllegalArgumentException("empty columns specified in option " + COLUMNS_OPTION);
+    }
 
     for (String columns : Splitter.on(",").split(encodedColumns)) {
-      if (!ColumnSet.isValidEncoding(columns))
+      if (!ColumnSet.isValidEncoding(columns)) {
         throw new IllegalArgumentException("invalid column encoding " + encodedColumns);
+      }
     }
 
     return true;
@@ -374,10 +380,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
    * combined individually in each row. This method is likely to be used in conjunction with
    * {@link ScannerBase#fetchColumnFamily(Text)} or {@link ScannerBase#fetchColumn(Text,Text)}.
    *
-   * @param is
-   *          iterator settings object to configure
-   * @param columns
-   *          a list of columns to encode as the value for the combiner column configuration
+   * @param is iterator settings object to configure
+   * @param columns a list of columns to encode as the value for the combiner column configuration
    */
   public static void setColumns(IteratorSetting is, List<IteratorSetting.Column> columns) {
     String sep = "";
@@ -396,10 +400,9 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
    * A convenience method to set the "all columns" option on a Combiner. This will combine all
    * columns individually within each row.
    *
-   * @param is
-   *          iterator settings object to configure
-   * @param combineAllColumns
-   *          if true, the columns option is ignored and the Combiner will be applied to all columns
+   * @param is iterator settings object to configure
+   * @param combineAllColumns if true, the columns option is ignored and the Combiner will be
+   *        applied to all columns
    */
   public static void setCombineAllColumns(IteratorSetting is, boolean combineAllColumns) {
     is.addOption(ALL_OPTION, Boolean.toString(combineAllColumns));

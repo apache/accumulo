@@ -91,8 +91,9 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
   int countInUse(Collection<WalState> bools) {
     int result = 0;
     for (WalState b : bools) {
-      if (b != WalState.UNREFERENCED)
+      if (b != WalState.UNREFERENCED) {
         result++;
+      }
     }
     return result;
   }

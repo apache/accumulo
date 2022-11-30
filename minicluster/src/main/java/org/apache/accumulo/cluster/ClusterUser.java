@@ -78,8 +78,7 @@ public class ClusterUser {
    * May not yet be created in Accumulo.
    *
    * @return the correct {@link AuthenticationToken} to use with Accumulo for this user
-   * @throws IOException
-   *           if performing necessary login failed
+   * @throws IOException if performing necessary login failed
    */
   public AuthenticationToken getToken() throws IOException {
     if (password != null) {

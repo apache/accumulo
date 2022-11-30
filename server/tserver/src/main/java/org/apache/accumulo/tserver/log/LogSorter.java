@@ -90,8 +90,9 @@ public class LogSorter {
       log.debug("Sorting {} to {} using sortId {}", src, dest, sortId);
 
       synchronized (currentWork) {
-        if (currentWork.containsKey(sortId))
+        if (currentWork.containsKey(sortId)) {
           return;
+        }
         currentWork.put(sortId, this);
       }
 
@@ -207,8 +208,9 @@ public class LogSorter {
 
     public synchronized long getSortTime() {
       if (sortStart > 0) {
-        if (sortStop > 0)
+        if (sortStop > 0) {
           return sortStop - sortStart;
+        }
         return System.currentTimeMillis() - sortStart;
       }
       return 0;

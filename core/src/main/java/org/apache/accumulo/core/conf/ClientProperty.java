@@ -341,10 +341,8 @@ public enum ClientProperty {
   }
 
   /**
-   * @throws IllegalArgumentException
-   *           if Properties does not contain all required
-   * @throws NullPointerException
-   *           if {@code properties == null}
+   * @throws IllegalArgumentException if Properties does not contain all required
+   * @throws NullPointerException if {@code properties == null}
    */
   public static void validate(Properties properties) {
     validate(properties, true);

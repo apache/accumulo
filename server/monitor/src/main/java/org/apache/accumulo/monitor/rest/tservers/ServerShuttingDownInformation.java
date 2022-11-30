@@ -36,8 +36,7 @@ public class ServerShuttingDownInformation {
   /**
    * Stores ID of the tserver shutting down
    *
-   * @param id
-   *          ID of the tserver shutting down
+   * @param id ID of the tserver shutting down
    */
   public ServerShuttingDownInformation(String id) {
     this.id = id;

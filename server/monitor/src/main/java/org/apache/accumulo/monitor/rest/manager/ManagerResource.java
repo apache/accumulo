@@ -236,8 +236,9 @@ public class ManagerResource {
   public static ServersShuttingDown getServersShuttingDown(Monitor monitor) {
     ManagerMonitorInfo mmi = monitor.getMmi();
     ServersShuttingDown servers = new ServersShuttingDown();
-    if (mmi == null)
+    if (mmi == null) {
       return servers;
+    }
 
     // Add new servers to the list
     for (String server : mmi.serversShuttingDown) {

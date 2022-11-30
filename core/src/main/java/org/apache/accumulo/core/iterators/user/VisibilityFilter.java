@@ -76,8 +76,9 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
     ByteSequence testVis = k.getColumnVisibilityData();
     if (filterInvalid) {
       Boolean b = cache.get(testVis);
-      if (b != null)
+      if (b != null) {
         return b;
+      }
       try {
         new ColumnVisibility(testVis.toArray());
         cache.put(testVis, true);
@@ -92,8 +93,9 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
       }
 
       Boolean b = cache.get(testVis);
-      if (b != null)
+      if (b != null) {
         return b;
+      }
 
       try {
         boolean bb = ve.evaluate(new ColumnVisibility(testVis.toArray()));

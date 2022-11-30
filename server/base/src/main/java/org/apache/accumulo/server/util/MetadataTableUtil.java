@@ -151,8 +151,9 @@ public class MetadataTableUtil {
 
   public static void update(ServerContext context, Writer t, ServiceLock zooLock, Mutation m,
       KeyExtent extent) {
-    if (zooLock != null)
+    if (zooLock != null) {
       putLockID(context, zooLock, m);
+    }
     while (true) {
       try {
         t.update(m);
@@ -393,21 +394,24 @@ public class MetadataTableUtil {
 
         if (m == null) {
           m = new Mutation(key.getRow());
-          if (lock != null)
+          if (lock != null) {
             putLockID(context, lock, m);
+          }
         }
 
         if (key.getRow().compareTo(m.getRow(), 0, m.getRow().length) != 0) {
           bw.addMutation(m);
           m = new Mutation(key.getRow());
-          if (lock != null)
+          if (lock != null) {
             putLockID(context, lock, m);
+          }
         }
         m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
       }
 
-      if (m != null)
+      if (m != null) {
         bw.addMutation(m);
+      }
     }
   }
 
@@ -446,8 +450,9 @@ public class MetadataTableUtil {
     for (Entry<Key,Value> entry : tablet.entrySet()) {
       if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
         String cf = entry.getKey().getColumnQualifier().toString();
-        if (!cf.startsWith("../") && !cf.contains(":"))
+        if (!cf.startsWith("../") && !cf.contains(":")) {
           cf = "../" + srcTableId + entry.getKey().getColumnQualifier();
+        }
         m.put(entry.getKey().getColumnFamily(), new Text(cf), entry.getValue());
       } else if (entry.getKey().getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
         m.put(LastLocationColumnFamily.NAME, entry.getKey().getColumnQualifier(), entry.getValue());
@@ -489,11 +494,13 @@ public class MetadataTableUtil {
 
     Iterator<TabletMetadata> ti = createCloneScanner(testTableName, srcTableId, client).iterator();
 
-    if (!ti.hasNext())
+    if (!ti.hasNext()) {
       throw new RuntimeException(" table deleted during clone?  srcTableId = " + srcTableId);
+    }
 
-    while (ti.hasNext())
+    while (ti.hasNext()) {
       bw.addMutation(createCloneMutation(srcTableId, tableId, ti.next().getKeyValues()));
+    }
 
     bw.flush();
   }
@@ -513,9 +520,10 @@ public class MetadataTableUtil {
     Iterator<TabletMetadata> cloneIter =
         createCloneScanner(testTableName, tableId, client).iterator();
 
-    if (!cloneIter.hasNext() || !srcIter.hasNext())
+    if (!cloneIter.hasNext() || !srcIter.hasNext()) {
       throw new RuntimeException(
           " table deleted during clone?  srcTableId = " + srcTableId + " tableId=" + tableId);
+    }
 
     int rewrites = 0;
 
@@ -526,8 +534,9 @@ public class MetadataTableUtil {
 
       boolean cloneSuccessful = cloneTablet.getCloned() != null;
 
-      if (!cloneSuccessful)
+      if (!cloneSuccessful) {
         cloneFiles.addAll(cloneTablet.getFiles());
+      }
 
       List<TabletMetadata> srcTablets = new ArrayList<>();
       TabletMetadata srcTablet = srcIter.next();
@@ -535,29 +544,34 @@ public class MetadataTableUtil {
 
       Text srcEndRow = srcTablet.getEndRow();
       int cmp = compareEndRows(cloneEndRow, srcEndRow);
-      if (cmp < 0)
+      if (cmp < 0) {
         throw new TabletDeletedException(
             "Tablets deleted from src during clone : " + cloneEndRow + " " + srcEndRow);
+      }
 
       HashSet<TabletFile> srcFiles = new HashSet<>();
-      if (!cloneSuccessful)
+      if (!cloneSuccessful) {
         srcFiles.addAll(srcTablet.getFiles());
+      }
 
       while (cmp > 0) {
         srcTablet = srcIter.next();
         srcTablets.add(srcTablet);
         srcEndRow = srcTablet.getEndRow();
         cmp = compareEndRows(cloneEndRow, srcEndRow);
-        if (cmp < 0)
+        if (cmp < 0) {
           throw new TabletDeletedException(
               "Tablets deleted from src during clone : " + cloneEndRow + " " + srcEndRow);
+        }
 
-        if (!cloneSuccessful)
+        if (!cloneSuccessful) {
           srcFiles.addAll(srcTablet.getFiles());
+        }
       }
 
-      if (cloneSuccessful)
+      if (cloneSuccessful) {
         continue;
+      }
 
       if (srcFiles.containsAll(cloneFiles)) {
         // write out marker that this tablet was successfully cloned
@@ -575,8 +589,9 @@ public class MetadataTableUtil {
 
         bw.addMutation(m);
 
-        for (TabletMetadata st : srcTablets)
+        for (TabletMetadata st : srcTablets) {
           bw.addMutation(createCloneMutation(srcTableId, tableId, st.getKeyValues()));
+        }
 
         rewrites++;
       }
@@ -602,8 +617,9 @@ public class MetadataTableUtil {
           while (true) {
             int rewrites = checkClone(null, srcTableId, tableId, context, bw);
 
-            if (rewrites == 0)
+            if (rewrites == 0) {
               break;
+            }
           }
 
           bw.flush();

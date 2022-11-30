@@ -64,8 +64,9 @@ public class MultiScanSession extends ScanSession {
 
   @Override
   public boolean cleanup() {
-    if (lookupTask != null)
+    if (lookupTask != null) {
       lookupTask.cancel(true);
+    }
     // the cancellation should provide us the safety to return true here
     return super.cleanup();
   }

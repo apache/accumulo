@@ -70,8 +70,9 @@ public class TableLoadBalancer extends TabletBalancer {
 
   protected String getLoadBalancerClassNameForTable(TableId table) {
     TableState tableState = context.getTableManager().getTableState(table);
-    if (tableState == TableState.ONLINE)
+    if (tableState == TableState.ONLINE) {
       return this.context.getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
+    }
     return null;
   }
 
@@ -80,8 +81,9 @@ public class TableLoadBalancer extends TabletBalancer {
 
     String clazzName = getLoadBalancerClassNameForTable(tableId);
 
-    if (clazzName == null)
+    if (clazzName == null) {
       clazzName = DefaultLoadBalancer.class.getName();
+    }
     if (balancer != null) {
       if (!clazzName.equals(balancer.getClass().getName())) {
         // the balancer class for this table does not match the class specified in the configuration
@@ -135,8 +137,9 @@ public class TableLoadBalancer extends TabletBalancer {
   private TableOperations tops = null;
 
   protected TableOperations getTableOperations() {
-    if (tops == null)
+    if (tops == null) {
       tops = this.context.tableOperations();
+    }
     return tops;
   }
 
@@ -146,14 +149,16 @@ public class TableLoadBalancer extends TabletBalancer {
     long minBalanceTime = 5_000;
     // Iterate over the tables and balance each of them
     TableOperations t = getTableOperations();
-    if (t == null)
+    if (t == null) {
       return minBalanceTime;
+    }
     for (String s : t.tableIdMap().values()) {
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
       long tableBalanceTime =
           getBalancerForTable(TableId.of(s)).balance(current, migrations, newMigrations);
-      if (tableBalanceTime < minBalanceTime)
+      if (tableBalanceTime < minBalanceTime) {
         minBalanceTime = tableBalanceTime;
+      }
       migrationsOut.addAll(newMigrations);
     }
     return minBalanceTime;

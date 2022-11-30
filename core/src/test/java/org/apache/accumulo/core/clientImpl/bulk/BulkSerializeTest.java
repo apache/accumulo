@@ -60,8 +60,9 @@ public class BulkSerializeTest {
   public void writeReadRenames() throws Exception {
 
     Map<String,String> renames = new HashMap<>();
-    for (String f : "f1 f2 f3 f4 f5".split(" "))
+    for (String f : "f1 f2 f3 f4 f5".split(" ")) {
       renames.put("old_" + f + ".rf", "new_" + f + ".rf");
+    }
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
 

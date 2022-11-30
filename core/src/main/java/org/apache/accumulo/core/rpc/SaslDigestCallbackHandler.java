@@ -35,8 +35,7 @@ public abstract class SaslDigestCallbackHandler implements CallbackHandler {
   /**
    * Encode the serialized {@link TokenIdentifier} into a {@link String}.
    *
-   * @param identifier
-   *          The serialized identifier
+   * @param identifier The serialized identifier
    * @see #decodeIdentifier(String)
    */
   public String encodeIdentifier(byte[] identifier) {
@@ -46,8 +45,7 @@ public abstract class SaslDigestCallbackHandler implements CallbackHandler {
   /**
    * Encode the token password into a character array.
    *
-   * @param password
-   *          The token password
+   * @param password The token password
    * @see #getPassword(SecretManager, TokenIdentifier)
    */
   public char[] encodePassword(byte[] password) {
@@ -57,10 +55,8 @@ public abstract class SaslDigestCallbackHandler implements CallbackHandler {
   /**
    * Generate the password from the provided {@link SecretManager} and {@link TokenIdentifier}.
    *
-   * @param secretManager
-   *          The server SecretManager
-   * @param tokenid
-   *          The TokenIdentifier from the client
+   * @param secretManager The server SecretManager
+   * @param tokenid The TokenIdentifier from the client
    * @see #encodePassword(byte[])
    */
   public <T extends TokenIdentifier> char[] getPassword(SecretManager<T> secretManager, T tokenid)
@@ -71,8 +67,7 @@ public abstract class SaslDigestCallbackHandler implements CallbackHandler {
   /**
    * Decode the encoded {@link TokenIdentifier} into bytes suitable to reconstitute the identifier.
    *
-   * @param identifier
-   *          The encoded, serialized {@link TokenIdentifier}
+   * @param identifier The encoded, serialized {@link TokenIdentifier}
    * @see #encodeIdentifier(byte[])
    */
   public byte[] decodeIdentifier(String identifier) {

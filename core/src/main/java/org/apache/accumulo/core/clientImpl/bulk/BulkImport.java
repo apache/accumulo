@@ -210,10 +210,11 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         throw new AccumuloException("Bulk import directory " + dir + " is not a directory!");
       }
       Path tmpFile = new Path(ret, "isWritable");
-      if (fs.createNewFile(tmpFile))
+      if (fs.createNewFile(tmpFile)) {
         fs.delete(tmpFile, true);
-      else
+      } else {
         throw new AccumuloException("Bulk import directory " + dir + " is not writable.");
+      }
     } catch (FileNotFoundException fnf) {
       throw new AccumuloException(
           "Bulk import directory " + dir + " does not exist or has bad permissions", fnf);
@@ -270,8 +271,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     long totalIndexEntries = 0;
     Map<KeyExtent,MLong> counts = new TreeMap<>();
-    for (KeyExtent keyExtent : extents)
+    for (KeyExtent keyExtent : extents) {
       counts.put(keyExtent, new MLong(0));
+    }
 
     Text row = new Text();
 
@@ -286,16 +288,19 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         key.getRow(row);
 
         // TODO this could use a binary search
-        for (Entry<KeyExtent,MLong> entry : counts.entrySet())
-          if (entry.getKey().contains(row))
+        for (Entry<KeyExtent,MLong> entry : counts.entrySet()) {
+          if (entry.getKey().contains(row)) {
             entry.getValue().l++;
+          }
+        }
 
         index.next();
       }
     } finally {
       try {
-        if (index != null)
+        if (index != null) {
           index.close();
+        }
       } catch (IOException e) {
         log.debug("Failed to close " + mapFile, e);
       }
@@ -304,8 +309,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     Map<KeyExtent,Long> results = new TreeMap<>();
     for (KeyExtent keyExtent : extents) {
       double numEntries = counts.get(keyExtent).l;
-      if (numEntries == 0)
+      if (numEntries == 0) {
         numEntries = 1;
+      }
       long estSize = (long) ((numEntries / totalIndexEntries) * fileSize);
       results.put(keyExtent, estSize);
     }
@@ -333,8 +339,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       row = extent.endRow();
       if (row != null) {
         row = nextRow(row);
-      } else
+      } else {
         break;
+      }
     }
 
     return result;
@@ -611,8 +618,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   private void checkTabletCount(int tabletMaxSize, int tabletCount, String file) {
-    if (tabletMaxSize > 0 && tabletCount > tabletMaxSize)
+    if (tabletMaxSize > 0 && tabletCount > tabletMaxSize) {
       throw new IllegalArgumentException("The file " + file + " attempted to import to "
           + tabletCount + " tablets. Max tablets allowed set to " + tabletMaxSize);
+    }
   }
 }

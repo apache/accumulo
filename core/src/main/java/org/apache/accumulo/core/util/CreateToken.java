@@ -39,8 +39,9 @@ public class CreateToken implements KeywordExecutable {
 
   private Console getConsoleReader() {
 
-    if (reader == null)
+    if (reader == null) {
       reader = System.console();
+    }
     return reader;
   }
 

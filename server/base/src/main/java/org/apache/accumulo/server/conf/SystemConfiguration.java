@@ -40,8 +40,9 @@ public class SystemConfiguration extends ZooBasedConfiguration {
   @Override
   public String get(Property property) {
     log.trace("system config get() - property request for {}", property);
-    if (Property.isFixedZooPropertyKey(property))
+    if (Property.isFixedZooPropertyKey(property)) {
       return runtimeFixedProps.get(property);
+    }
 
     String key = property.getKey();
     String value = null;

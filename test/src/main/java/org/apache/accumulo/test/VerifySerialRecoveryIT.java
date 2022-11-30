@@ -104,8 +104,9 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
         }
       }
       // kill the tserver
-      for (ProcessReference ref : getCluster().getProcesses().get(ServerType.TABLET_SERVER))
+      for (ProcessReference ref : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
         getCluster().killProcess(ServerType.TABLET_SERVER, ref);
+      }
       final ProcessInfo ts = cluster.exec(TabletServer.class);
 
       // wait for recovery
@@ -126,8 +127,10 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
           Pattern.compile(".*recovered \\d+ mutations creating \\d+ entries from \\d+ walogs.*");
       for (String line : result.split("\n")) {
         // ignore metadata tables
-        if (line.contains(MetadataTable.ID.canonical()) || line.contains(RootTable.ID.canonical()))
+        if (line.contains(MetadataTable.ID.canonical())
+            || line.contains(RootTable.ID.canonical())) {
           continue;
+        }
         if (line.contains("recovering data from walogs")) {
           assertFalse(started);
           started = true;

@@ -111,8 +111,7 @@ public interface ScanServerSelector {
    * Uses the {@link SelectorParameters} to determine which, if any, ScanServer should be used for
    * scanning a tablet.
    *
-   * @param params
-   *          parameters for the calculation
+   * @param params parameters for the calculation
    * @return results
    */
   ScanServerSelections selectServers(SelectorParameters params);

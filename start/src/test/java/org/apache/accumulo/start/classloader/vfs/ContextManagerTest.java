@@ -78,10 +78,11 @@ public class ContextManagerTest {
   FileObject[] createFileSystems(FileObject[] fos) throws FileSystemException {
     FileObject[] rfos = new FileObject[fos.length];
     for (int i = 0; i < fos.length; i++) {
-      if (vfs.canCreateFileSystem(fos[i]))
+      if (vfs.canCreateFileSystem(fos[i])) {
         rfos[i] = vfs.createFileSystem(fos[i]);
-      else
+      } else {
         rfos[i] = fos[i];
+      }
     }
 
     return rfos;

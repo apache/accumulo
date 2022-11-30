@@ -84,8 +84,7 @@ public class LogReader implements KeywordExecutable {
   /**
    * Dump a Log File to stdout. Will read from HDFS or local file system.
    *
-   * @param args
-   *          - first argument is the file to print
+   * @param args - first argument is the file to print
    */
   public static void main(String[] args) throws Exception {
     new LogReader().execute(args);
@@ -192,9 +191,10 @@ public class LogReader implements KeywordExecutable {
     byte[] magic3 = DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8);
     byte[] noCryptoBytes = new NoFileEncrypter().getDecryptionParameters();
 
-    if (magic4.length != magic3.length)
+    if (magic4.length != magic3.length) {
       throw new AssertionError("Always expect log file headers to be same length : " + magic4.length
           + " != " + magic3.length);
+    }
 
     byte[] magicBuffer = new byte[magic4.length];
     try {

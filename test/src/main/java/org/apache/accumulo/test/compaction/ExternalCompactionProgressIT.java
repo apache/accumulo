@@ -140,14 +140,15 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
                 rci.progress);
           } else {
             log.debug("{} progressed from {} to {}", ecid, previousRci.progress, rci.progress);
-            if (rci.progress > 0 && rci.progress <= 25)
+            if (rci.progress > 0 && rci.progress <= 25) {
               progressList.add(EC_PROGRESS.STARTED);
-            else if (rci.progress > 25 && rci.progress <= 50)
+            } else if (rci.progress > 25 && rci.progress <= 50) {
               progressList.add(EC_PROGRESS.QUARTER);
-            else if (rci.progress > 50 && rci.progress <= 75)
+            } else if (rci.progress > 50 && rci.progress <= 75) {
               progressList.add(EC_PROGRESS.HALF);
-            else if (rci.progress > 75 && rci.progress <= 100)
+            } else if (rci.progress > 75 && rci.progress <= 100) {
               progressList.add(EC_PROGRESS.THREE_QUARTERS);
+            }
           }
           if (!rci.status.equals(TCompactionState.IN_PROGRESS.name())) {
             log.debug("Saw status other than IN_PROGRESS: {}", rci.status);

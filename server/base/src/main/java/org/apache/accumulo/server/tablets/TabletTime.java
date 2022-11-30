@@ -52,14 +52,16 @@ public abstract class TabletTime {
       return new LogicalTime(metadataTime.getTime());
     } else if (metadataTime.getType().equals(TimeType.MILLIS)) {
       return new MillisTime(metadataTime.getTime());
-    } else // this should really never happen here
+    } else {
       throw new IllegalArgumentException("Time type unknown : " + metadataTime);
+    }
   }
 
   public static MetadataTime maxMetadataTime(MetadataTime mv1, MetadataTime mv2) {
     // null value will sort lower
-    if (mv1 == null || mv2 == null)
+    if (mv1 == null || mv2 == null) {
       return mv1 == null ? (mv2 == null ? null : mv2) : mv1;
+    }
 
     return mv1.compareTo(mv2) < 0 ? mv2 : mv1;
   }
@@ -85,8 +87,9 @@ public abstract class TabletTime {
 
     @Override
     public void useMaxTimeFromWALog(long time) {
-      if (time > lastTime)
+      if (time > lastTime) {
         lastTime = time;
+      }
     }
 
     @Override
@@ -95,14 +98,16 @@ public abstract class TabletTime {
       long currTime = RelativeTime.currentTimeMillis();
 
       synchronized (this) {
-        if (mutations.isEmpty())
+        if (mutations.isEmpty()) {
           return lastTime;
+        }
 
         currTime = updateTime(currTime);
       }
 
-      for (Mutation mutation : mutations)
+      for (Mutation mutation : mutations) {
         setSystemTimes(mutation, currTime);
+      }
 
       return currTime;
     }
@@ -170,12 +175,14 @@ public abstract class TabletTime {
 
     @Override
     public long setUpdateTimes(List<Mutation> mutations) {
-      if (mutations.isEmpty())
+      if (mutations.isEmpty()) {
         return getTime();
+      }
 
       long time = nextTime.getAndAdd(mutations.size());
-      for (Mutation mutation : mutations)
+      for (Mutation mutation : mutations) {
         setSystemTimes(mutation, time++);
+      }
 
       return time - 1;
     }

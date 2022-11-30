@@ -52,8 +52,9 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     }
 
     public ParsedLock(byte[] lockData) {
-      if (lockData == null || lockData.length < 1)
+      if (lockData == null || lockData.length < 1) {
         throw new IllegalArgumentException();
+      }
 
       int split = -1;
       for (int i = 0; i < lockData.length; i++) {
@@ -63,8 +64,9 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
         }
       }
 
-      if (split == -1)
+      if (split == -1) {
         throw new IllegalArgumentException();
+      }
 
       this.type = LockType.valueOf(new String(lockData, 0, split, UTF_8));
       this.userData = Arrays.copyOfRange(lockData, split + 1, lockData.length);
@@ -131,8 +133,9 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     public void lock() {
       while (true) {
         try {
-          if (tryLock(1, DAYS))
+          if (tryLock(1, DAYS)) {
             return;
+          }
         } catch (InterruptedException ex) {
           // ignored
         }
@@ -142,8 +145,9 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     @Override
     public void lockInterruptibly() throws InterruptedException {
       while (!Thread.currentThread().isInterrupted()) {
-        if (tryLock(100, MILLISECONDS))
+        if (tryLock(100, MILLISECONDS)) {
           return;
+        }
       }
     }
 
@@ -157,10 +161,12 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
       for (Entry<Long,byte[]> entry : entries.entrySet()) {
         ParsedLock parsed = new ParsedLock(entry.getValue());
-        if (entry.getKey().equals(this.entry))
+        if (entry.getKey().equals(this.entry)) {
           return true;
-        if (parsed.type == LockType.WRITE)
+        }
+        if (parsed.type == LockType.WRITE) {
           return false;
+        }
       }
       throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry
           + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
@@ -171,8 +177,9 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       long now = System.currentTimeMillis();
       long returnTime = now + MILLISECONDS.convert(time, unit);
       while (returnTime > now) {
-        if (tryLock())
+        if (tryLock()) {
           return true;
+        }
         // TODO: do something better than poll - ACCUMULO-1310
         UtilWaitThread.sleep(100);
         now = System.currentTimeMillis();
@@ -182,8 +189,9 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
     @Override
     public void unlock() {
-      if (entry == -1)
+      if (entry == -1) {
         return;
+      }
       log.debug("Removing lock entry {} userData {} lockType {}", entry,
           new String(this.userData, UTF_8), lockType());
       qlock.removeEntry(entry);
@@ -220,9 +228,10 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       }
       SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
       Iterator<Entry<Long,byte[]>> iterator = entries.entrySet().iterator();
-      if (!iterator.hasNext())
+      if (!iterator.hasNext()) {
         throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry
             + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
+      }
       return iterator.next().getKey().equals(entry);
     }
   }

@@ -93,8 +93,9 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
               offline++;
             } else {
               Integer count = counts.get(location);
-              if (count == null)
+              if (count == null) {
                 count = 0;
+              }
               count = count + 1;
               counts.put(location, count);
             }

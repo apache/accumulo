@@ -48,8 +48,7 @@ public class UnsynchronizedBuffer {
     /**
      * Creates a new writer.
      *
-     * @param initialCapacity
-     *          initial byte capacity
+     * @param initialCapacity initial byte capacity
      */
     public Writer(int initialCapacity) {
       data = new byte[initialCapacity];
@@ -69,14 +68,10 @@ public class UnsynchronizedBuffer {
     /**
      * Adds bytes to this writer's buffer.
      *
-     * @param bytes
-     *          byte array
-     * @param off
-     *          offset into array to start copying bytes
-     * @param length
-     *          number of bytes to add
-     * @throws IndexOutOfBoundsException
-     *           if off or length are invalid
+     * @param bytes byte array
+     * @param off offset into array to start copying bytes
+     * @param length number of bytes to add
+     * @throws IndexOutOfBoundsException if off or length are invalid
      */
     public void add(byte[] bytes, int off, int length) {
       reserve(length);
@@ -87,15 +82,15 @@ public class UnsynchronizedBuffer {
     /**
      * Adds a Boolean value to this writer's buffer.
      *
-     * @param b
-     *          Boolean value
+     * @param b Boolean value
      */
     public void add(boolean b) {
       reserve(1);
-      if (b)
+      if (b) {
         data[offset++] = 1;
-      else
+      } else {
         data[offset++] = 0;
+      }
     }
 
     /**
@@ -122,8 +117,7 @@ public class UnsynchronizedBuffer {
      * Adds an integer value to this writer's buffer. The integer is encoded as a variable-length
      * list of bytes. See {@link #writeVLong(long)} for a description of the encoding.
      *
-     * @param i
-     *          integer value
+     * @param i integer value
      */
     public void writeVInt(int i) {
       writeVLong(i);
@@ -135,8 +129,7 @@ public class UnsynchronizedBuffer {
      * in the Hadoop API. [<a href=
      * "https://hadoop.apache.org/docs/stable/api/org/apache/hadoop/io/WritableUtils.html#writeVLong%28java.io.DataOutput,%20long%29">link</a>]
      *
-     * @param i
-     *          long value
+     * @param i long value
      */
     public void writeVLong(long i) {
       reserve(9);
@@ -158,8 +151,7 @@ public class UnsynchronizedBuffer {
     /**
      * Creates a new reader.
      *
-     * @param b
-     *          bytes to read
+     * @param b bytes to read
      */
     public Reader(byte[] b) {
       this.data = b;
@@ -168,8 +160,7 @@ public class UnsynchronizedBuffer {
     /**
      * Creates a new reader.
      *
-     * @param buffer
-     *          byte buffer containing bytes to read
+     * @param buffer byte buffer containing bytes to read
      */
     public Reader(ByteBuffer buffer) {
       if (buffer.hasArray() && buffer.array().length == buffer.arrayOffset() + buffer.limit()) {
@@ -206,8 +197,7 @@ public class UnsynchronizedBuffer {
     /**
      * Reads bytes from this reader's buffer, filling the given byte array.
      *
-     * @param b
-     *          byte array to fill
+     * @param b byte array to fill
      */
     public void readBytes(byte[] b) {
       System.arraycopy(data, offset, b, 0, b.length);
@@ -258,15 +248,14 @@ public class UnsynchronizedBuffer {
   /**
    * Determines what next array size should be by rounding up to next power of two.
    *
-   * @param i
-   *          current array size
+   * @param i current array size
    * @return next array size
-   * @throws IllegalArgumentException
-   *           if i is negative
+   * @throws IllegalArgumentException if i is negative
    */
   public static int nextArraySize(int i) {
-    if (i < 0)
+    if (i < 0) {
       throw new IllegalArgumentException();
+    }
 
     if (i > (1 << 30)) {
       // this is the next power of 2 minus 8... a special case taken from ArrayList limits
@@ -325,12 +314,9 @@ public class UnsynchronizedBuffer {
    * Writes a variable long directly to a byte array. Is compatible with {@link WritableUtils} as it
    * will write the same data.
    *
-   * @param dest
-   *          The destination array for the long to be written to
-   * @param offset
-   *          The location where to write the long to
-   * @param value
-   *          The long value being written into byte array
+   * @param dest The destination array for the long to be written to
+   * @param offset The location where to write the long to
+   * @param value The long value being written into byte array
    * @return Returns the new offset location
    */
   public static int writeVLong(byte[] dest, int offset, long value) {

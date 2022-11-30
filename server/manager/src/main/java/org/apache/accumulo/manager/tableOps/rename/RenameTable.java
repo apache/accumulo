@@ -65,11 +65,12 @@ public class RenameTable extends ManagerRepo {
     Pair<String,String> qualifiedNewTableName = TableNameUtil.qualify(newTableName);
 
     // ensure no attempt is made to rename across namespaces
-    if (newTableName.contains(".") && !namespaceId
-        .equals(Namespaces.getNamespaceId(manager.getContext(), qualifiedNewTableName.getFirst())))
+    if (newTableName.contains(".") && !namespaceId.equals(
+        Namespaces.getNamespaceId(manager.getContext(), qualifiedNewTableName.getFirst()))) {
       throw new AcceptableThriftTableOperationException(tableId.canonical(), oldTableName,
           TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
           "Namespace in new table name does not match the old table name");
+    }
 
     ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
 
@@ -86,8 +87,9 @@ public class RenameTable extends ManagerRepo {
 
       zoo.mutateExisting(tap, current -> {
         final String currentName = new String(current, UTF_8);
-        if (currentName.equals(newName))
+        if (currentName.equals(newName)) {
           return null; // assume in this case the operation is running again, so we are done
+        }
         if (!currentName.equals(oldName)) {
           throw new AcceptableThriftTableOperationException(null, oldTableName,
               TableOperation.RENAME, TableOperationExceptionType.NOTFOUND,

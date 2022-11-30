@@ -34,8 +34,7 @@ public class TabletServersRecovery {
   /**
    * Adds a new tserver recovery to the list
    *
-   * @param tabletServerRecovery
-   *          TServer recovery to add
+   * @param tabletServerRecovery TServer recovery to add
    */
   public void addRecovery(TabletServerRecoveryInformation tabletServerRecovery) {
     this.recoveryList.add(tabletServerRecovery);

@@ -99,9 +99,8 @@ public abstract class BlockCacheManager {
      * loadFactor=.55
      * </pre>
      *
-     * @param prefix
-     *          A unique identifier that corresponds to a particular BlockCacheManager
-     *          implementation.
+     * @param prefix A unique identifier that corresponds to a particular BlockCacheManager
+     *        implementation.
      */
     Map<String,String> getProperties(String prefix, CacheType type);
   }
@@ -109,8 +108,7 @@ public abstract class BlockCacheManager {
   /**
    * Initialize the caches for each CacheType based on the configuration
    *
-   * @param conf
-   *          accumulo configuration
+   * @param conf accumulo configuration
    */
   public void start(Configuration conf) {
     for (CacheType type : CacheType.values()) {
@@ -129,8 +127,7 @@ public abstract class BlockCacheManager {
   /**
    * Get the block cache of the given type
    *
-   * @param type
-   *          block cache type
+   * @param type block cache type
    * @return BlockCache or null if not enabled
    */
   public BlockCache getBlockCache(CacheType type) {
@@ -140,8 +137,7 @@ public abstract class BlockCacheManager {
   /**
    * Create a block cache using the supplied configuration
    *
-   * @param conf
-   *          cache configuration
+   * @param conf cache configuration
    * @return configured block cache
    */
   protected abstract BlockCache createCache(Configuration conf, CacheType type);
@@ -151,8 +147,8 @@ public abstract class BlockCacheManager {
    * {@code tserver.cache.config.<prefix>.default.} this method is useful for configuring a cache
    * manager.
    *
-   * @param prefix
-   *          A unique identifier that corresponds to a particular BlockCacheManager implementation.
+   * @param prefix A unique identifier that corresponds to a particular BlockCacheManager
+   *        implementation.
    * @see Configuration#getProperties(String, CacheType)
    * @deprecated since 2.1.0 because this method does not support scan servers, only tservers. Use
    *             {@link Configuration#getProperties(String, CacheType)} instead.
@@ -167,8 +163,8 @@ public abstract class BlockCacheManager {
    * {@code tserver.cache.config.<prefix>.<type>.} this method is useful for configuring a cache
    * manager.
    *
-   * @param prefix
-   *          A unique identifier that corresponds to a particular BlockCacheManager implementation.
+   * @param prefix A unique identifier that corresponds to a particular BlockCacheManager
+   *        implementation.
    * @see Configuration#getProperties(String, CacheType)
    *
    * @deprecated since 2.1.0 because this method does not support scan servers, only tservers. Use

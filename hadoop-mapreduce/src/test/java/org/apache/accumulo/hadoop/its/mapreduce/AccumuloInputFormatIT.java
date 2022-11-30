@@ -121,8 +121,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     // split table
     TreeSet<Text> splitsToAdd = new TreeSet<>();
-    for (int i = 0; i < 10000; i += 1000)
+    for (int i = 0; i < 10000; i += 1000) {
       splitsToAdd.add(new Text(String.format("%09d", i)));
+    }
     client.tableOperations().addSplits(table, splitsToAdd);
     sleepUninterruptibly(500, TimeUnit.MILLISECONDS); // wait for splits to be propagated
 
@@ -134,8 +135,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     // set ranges and get splits
     List<Range> ranges = new ArrayList<>();
-    for (Text text : actualSplits)
+    for (Text text : actualSplits) {
       ranges.add(new Range(text));
+    }
     AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table)
         .auths(Authorizations.EMPTY).ranges(ranges).store(job);
     splits = inputFormat.getSplits(job);
@@ -152,9 +154,10 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     // auto adjust ranges
     ranges = new ArrayList<>();
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 5; i++) {
       // overlapping ranges
       ranges.add(new Range(String.format("%09d", i), String.format("%09d", i + 2)));
+    }
 
     AccumuloInputFormat.configure().clientProperties(getClientProps()).table(table)
         .auths(Authorizations.EMPTY).ranges(ranges).offlineScan(true).store(job);
@@ -201,8 +204,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     // Check we are getting back correct type pf split
     splits = inputFormat.getSplits(job);
-    for (InputSplit split : splits)
+    for (InputSplit split : splits) {
       assert (split instanceof BatchInputSplit);
+    }
 
     // We should split along the tablet lines
     assertEquals(2, splits.size());
@@ -238,8 +242,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
         String table = context.getConfiguration().get("MRTester_tableName");
         assertNotNull(table);
         try {
-          if (key != null)
+          if (key != null) {
             assertEquals(key.getRow().toString(), new String(v.get()));
+          }
           assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
           assertEquals(new String(v.get()), String.format("%09x", count));
         } catch (AssertionError e) {
@@ -294,8 +299,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       InputFormatOptions<Job> opts = AccumuloInputFormat.configure()
           .clientProperties(getClientProps()).table(table).auths(Authorizations.EMPTY);
-      if (sample)
+      if (sample) {
         opts = opts.samplerConfiguration(SAMPLER_CONFIG);
+      }
 
       opts.batchScan(batchScan).store(job);
 

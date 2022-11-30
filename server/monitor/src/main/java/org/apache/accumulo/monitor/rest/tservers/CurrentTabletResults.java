@@ -36,14 +36,10 @@ public class CurrentTabletResults {
   /**
    * Stores new current results for the tablet
    *
-   * @param currentMinorAvg
-   *          minor compaction average
-   * @param currentMinorStdDev
-   *          minor compaction standard deviation
-   * @param currentMajorAvg
-   *          major compaction average
-   * @param currentMajorStdDev
-   *          major compaction standard deviation
+   * @param currentMinorAvg minor compaction average
+   * @param currentMinorStdDev minor compaction standard deviation
+   * @param currentMajorAvg major compaction average
+   * @param currentMajorStdDev major compaction standard deviation
    */
   public CurrentTabletResults(Double currentMinorAvg, Double currentMinorStdDev,
       Double currentMajorAvg, Double currentMajorStdDev) {

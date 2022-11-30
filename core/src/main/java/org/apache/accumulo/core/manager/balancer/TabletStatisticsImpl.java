@@ -67,10 +67,12 @@ public class TabletStatisticsImpl implements TabletStatistics {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
+    }
     TabletStatisticsImpl that = (TabletStatisticsImpl) o;
     return thriftStats.equals(that.thriftStats);
   }

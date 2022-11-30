@@ -55,10 +55,8 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
   /**
    * execute method with supplied client returning object of type R
    *
-   * @param <R>
-   *          return type
-   * @param <C>
-   *          client type
+   * @param <R> return type
+   * @param <C> client type
    */
   public interface Exec<R,C> {
     R execute(C client) throws TException;
@@ -67,8 +65,7 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
   /**
    * execute method with supplied client
    *
-   * @param <C>
-   *          client type
+   * @param <C> client type
    */
   public interface ExecVoid<C> {
     void execute(C client) throws TException;
@@ -102,8 +99,9 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
   public C getConnectionWithRetry(ClientContext context) {
     while (true) {
       C result = getConnection(context);
-      if (result != null)
+      if (result != null) {
         return result;
+      }
       sleepUninterruptibly(250, MILLISECONDS);
     }
   }

@@ -104,8 +104,9 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 100000; i++) {
           Mutation m = new Mutation(new Text(String.format("%08d", i)));
-          for (int j = 0; j < 3; j++)
+          for (int j = 0; j < 3; j++) {
             m.put("cf1", "cq" + j, i + "_" + j);
+          }
 
           bw.addMutation(m);
         }

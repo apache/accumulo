@@ -34,10 +34,8 @@ public class CompactionsList {
   /**
    * Generate a compaction list
    *
-   * @param running
-   *          Number of running compactions
-   * @param queued
-   *          Number of queued compactions
+   * @param running Number of running compactions
+   * @param queued Number of queued compactions
    */
   public CompactionsList(Integer running, Integer queued) {
     this.running = running;

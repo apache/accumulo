@@ -53,10 +53,12 @@ public class TabletMigration {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
+    }
     TabletMigration that = (TabletMigration) o;
     return tabletId.equals(that.tabletId) && oldTabletServer.equals(that.oldTabletServer)
         && newTabletServer.equals(that.newTabletServer);

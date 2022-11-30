@@ -634,8 +634,9 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       String split;
       while ((split = reader.readLine()) != null) {
         Text unencodedString = decode(split);
-        if (unencodedString != null)
+        if (unencodedString != null) {
           splits.add(unencodedString);
+        }
       }
     }
     return splits;
@@ -650,28 +651,33 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     Collection<Text> sortedSplits = null;
     Collection<Text> randomSplits;
 
-    if (binarySplits)
+    if (binarySplits) {
       randomSplits = generateBinarySplits(numItems, len);
-    else
+    } else {
       randomSplits = generateNonBinarySplits(numItems, len);
+    }
 
-    if (sort)
+    if (sort) {
       sortedSplits = new TreeSet<>(randomSplits);
+    }
 
     try (BufferedWriter writer = Files.newBufferedWriter(splitsPath, UTF_8)) {
       int cnt = 0;
       Collection<Text> splits;
-      if (sort)
+      if (sort) {
         splits = sortedSplits;
-      else
+      } else {
         splits = randomSplits;
+      }
 
       for (Text text : splits) {
-        if (addBlankLine && cnt++ == insertAt)
+        if (addBlankLine && cnt++ == insertAt) {
           writer.write('\n');
+        }
         writer.write(encode(text, encoded) + '\n');
-        if (repeat)
+        if (repeat) {
           writer.write(encode(text, encoded) + '\n');
+        }
       }
     }
   }
@@ -701,14 +707,16 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
   }
 
   private static String encode(final Text text, final boolean encode) {
-    if (text.toString().isBlank())
+    if (text.toString().isBlank()) {
       return null;
+    }
     return encode ? Base64.getEncoder().encodeToString(TextUtil.getBytes(text)) : text.toString();
   }
 
   private Text decode(final String text) {
-    if (requireNonNull(text).isBlank())
+    if (requireNonNull(text).isBlank()) {
       return null;
+    }
     return new Text(text);
   }
 }

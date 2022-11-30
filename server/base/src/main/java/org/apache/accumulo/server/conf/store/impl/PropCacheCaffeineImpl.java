@@ -105,8 +105,7 @@ public class PropCacheCaffeineImpl implements PropCache {
    * processing so there is no reason to store them in the cache at this time. If they are used, a
    * normal cache get will load the property into the cache.
    *
-   * @param propStoreKey
-   *          the property id
+   * @param propStoreKey the property id
    * @return the version properties if cached, otherwise return null.
    */
   public @Nullable VersionedProperties getIfCached(PropStoreKey<?> propStoreKey) {

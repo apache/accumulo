@@ -163,8 +163,9 @@ public class ColumnFamilySkippingIteratorTest {
     colfams.add(new ArrayByteSequence(String.format("%06d", 61)));
     runTest(cfi, 30000, 90, allColfams, colfams);
 
-    for (int i = 62; i < 100; i++)
+    for (int i = 62; i < 100; i++) {
       colfams.add(new ArrayByteSequence(String.format("%06d", i)));
+    }
 
     runTest(cfi, 30000, 1230, allColfams, colfams);
 

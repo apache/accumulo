@@ -71,8 +71,9 @@ class MemKeyConversionIterator extends WrappingIterator implements Interruptible
   @Override
   public void next() throws IOException {
     super.next();
-    if (hasTop())
+    if (hasTop()) {
       getTopKeyVal();
+    }
   }
 
   @Override
@@ -80,13 +81,15 @@ class MemKeyConversionIterator extends WrappingIterator implements Interruptible
       throws IOException {
     super.seek(range, columnFamilies, inclusive);
 
-    if (hasTop())
+    if (hasTop()) {
       getTopKeyVal();
+    }
 
     Key k = range.getStartKey();
     if (k instanceof MemKey && hasTop()) {
-      while (hasTop() && currKey.compareTo(k) < 0)
+      while (hasTop() && currKey.compareTo(k) < 0) {
         next();
+      }
     }
   }
 
