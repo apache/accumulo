@@ -237,24 +237,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           log.info(String.format("Collect cycle took %.2f seconds",
               (TimeUnit.NANOSECONDS.toMillis(tStop - tStart) / 1000.0)));
 
-          /*
-           * We want to prune references to fully-replicated WALs from the replication table which
-           * are no longer referenced in the metadata table before running
-           * GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
-           */
-          Span replSpan = TraceUtil.startSpan(this.getClass(), "replicationClose");
-          try (Scope replScope = replSpan.makeCurrent()) {
-            @SuppressWarnings("deprecation")
-            Runnable closeWals =
-                new org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences(getContext());
-            closeWals.run();
-          } catch (Exception e) {
-            TraceUtil.setException(replSpan, e, false);
-            log.error("Error trying to close write-ahead logs for replication table", e);
-          } finally {
-            replSpan.end();
-          }
-
           // Clean up any unused write-ahead logs
           Span walSpan = TraceUtil.startSpan(this.getClass(), "walogs");
           try (Scope walScope = walSpan.makeCurrent()) {

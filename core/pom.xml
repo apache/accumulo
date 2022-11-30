@@ -58,10 +58,6 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>com.google.protobuf</groupId>
-      <artifactId>protobuf-java</artifactId>
-    </dependency>
-    <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
     </dependency>
@@ -433,6 +429,7 @@
                   <exclude>**/TestCfCqSliceSeekingFilter.java</exclude>
                   <exclude>**/core/constraints/DefaultKeySizeConstraintTest.java</exclude>
                   <exclude>**/core/rpc/SaslConnectionParamsTest.java</exclude>
+                  <exclude>**/core/clientImpl/ThriftTransportKeyTest.java</exclude>
                 </excludes>
               </configuration>
               <executions>
@@ -454,6 +451,7 @@
                       <include>**/TestCfCqSliceSeekingFilter.java</include>
                       <include>**/core/constraints/DefaultKeySizeConstraintTest.java</include>
                       <include>**/core/rpc/SaslConnectionParamsTest.java</include>
+                      <include>**/core/clientImpl/ThriftTransportKeyTest.java</include>
                     </includes>
                   </configuration>
                 </execution>

@@ -41,12 +41,11 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This class governs the space in Zookeeper that advertises the status of Write-Ahead Logs in use
- * by tablet servers and the replication machinery.
+ * by tablet servers.
  *
  * <p>
  * The Accumulo Manager needs to know the state of the WALs to mark tablets during recovery. The GC
- * needs to know when a log is no longer needed so it can be removed. The replication mechanism
- * needs to know when a log is closed and can be forwarded to the destination table.
+ * needs to know when a log is no longer needed so it can be removed.
  *
  * <p>
  * The state of the WALs is kept in Zookeeper under /accumulo/&lt;instanceid&gt;/wals. For each
@@ -63,9 +62,6 @@ import org.slf4j.LoggerFactory;
  * update the tablets assigned to that server with log references. Once all tablets have been
  * reassigned and the log references are removed, the log will be eligible for deletion.
  *
- * <p>
- * Even when a log is UNREFERENCED by the tablet server, the replication mechanism may still need
- * the log. The GC will defer log removal until replication is finished with it.
  */
 public class WalStateManager {
 
@@ -256,7 +252,7 @@ public class WalStateManager {
     }
   }
 
-  // tablet server can mark the log as closed (but still needed), for replication to begin
+  // tablet server can mark the log as closed (but still needed)
   // manager can mark a log as unreferenced after it has made log recovery markers on the tablets
   // that need to be recovered
   public void closeWal(TServerInstance instance, Path path) throws WalMarkerException {

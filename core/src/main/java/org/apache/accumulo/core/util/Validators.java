@@ -175,9 +175,7 @@ public class Validators {
   public static final Validator<TableId> VALID_TABLE_ID = new Validator<>(id -> {
     if (id == null)
       return Optional.of("Table id must not be null");
-    @SuppressWarnings("deprecation")
-    TableId replicationId = org.apache.accumulo.core.replication.ReplicationTable.ID;
-    if (RootTable.ID.equals(id) || MetadataTable.ID.equals(id) || replicationId.equals(id)
+    if (RootTable.ID.equals(id) || MetadataTable.ID.equals(id)
         || VALID_ID_PATTERN.matcher(id.canonical()).matches())
       return Validator.OK;
     return Optional

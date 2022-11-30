@@ -134,7 +134,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
     for (String t : c.tableOperations().list())
       if (!TableNameUtil.qualify(t).getFirst().equals(Namespace.ACCUMULO.name()))
         c.tableOperations().delete(t);
-    assertEquals(3, c.tableOperations().list().size());
+    assertEquals(2, c.tableOperations().list().size());
     for (String n : c.namespaceOperations().list())
       if (!n.equals(Namespace.ACCUMULO.name()) && !n.equals(Namespace.DEFAULT.name()))
         c.namespaceOperations().delete(n);

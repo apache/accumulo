@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Stream;
@@ -35,7 +34,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
 
 public interface GarbageCollectionEnvironment {
 
@@ -129,10 +127,4 @@ public interface GarbageCollectionEnvironment {
    */
   void incrementInUseStat(long i);
 
-  /**
-   * Determine if the given absolute file is still pending replication
-   *
-   * @return True if the file still needs to be replicated
-   */
-  Iterator<Entry<String,Status>> getReplicationNeededIterator();
 }

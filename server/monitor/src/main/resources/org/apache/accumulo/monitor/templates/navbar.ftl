@@ -53,7 +53,6 @@
                 <li><a class="dropdown-item" href="/scans">Active&nbsp;Scans</a></li>
                 <li><a class="dropdown-item" href="/bulkImports">Bulk&nbsp;Imports</a></li>
                 <li><a class="dropdown-item" href="/ec">External&nbsp;Compactions</a></li>
-                <li><a class="dropdown-item" href="/replication">Replication</a></li>
               </ul>
             </li>
             <li class="dropdown">

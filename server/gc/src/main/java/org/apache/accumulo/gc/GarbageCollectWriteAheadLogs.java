@@ -29,20 +29,12 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.TableOfflineException;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
@@ -54,7 +46,6 @@ import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -176,21 +167,6 @@ public class GarbageCollectWriteAheadLogs {
       long logEntryScanStop = System.currentTimeMillis();
       log.info(String.format("%d log entries scanned in %.2f seconds", count,
           (logEntryScanStop - fileScanStop) / 1000.));
-
-      Span span3 = TraceUtil.startSpan(this.getClass(), "removeReplicationEntries");
-      try (Scope scope = span3.makeCurrent()) {
-        count = removeReplicationEntries(uuidToTServer);
-      } catch (Exception ex) {
-        log.error("Unable to scan replication table", ex);
-        TraceUtil.setException(span3, ex, false);
-        return;
-      } finally {
-        span3.end();
-      }
-
-      long replicationEntryScanStop = System.currentTimeMillis();
-      log.info(String.format("%d replication entries scanned in %.2f seconds", count,
-          (replicationEntryScanStop - logEntryScanStop) / 1000.));
 
       long removeStop;
       Span span4 = TraceUtil.startSpan(this.getClass(), "removeFiles");
@@ -352,40 +328,6 @@ public class GarbageCollectWriteAheadLogs {
       }
     }
     return result;
-  }
-
-  @Deprecated
-  protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
-    try {
-      try {
-        final Scanner s = org.apache.accumulo.core.replication.ReplicationTable.getScanner(context);
-        org.apache.accumulo.core.replication.ReplicationSchema.StatusSection.limit(s);
-        for (Entry<Key,Value> entry : s) {
-          UUID id = path2uuid(new Path(entry.getKey().getRow().toString()));
-          candidates.remove(id);
-          log.info("Ignore closed log " + id + " because it is being replicated");
-        }
-      } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException
-          | TableOfflineException ex) {
-        return candidates.size();
-      }
-
-      final Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      scanner.fetchColumnFamily(ReplicationSection.COLF);
-      scanner.setRange(ReplicationSection.getRange());
-      for (Entry<Key,Value> entry : scanner) {
-        Text file = new Text();
-        ReplicationSection.getFile(entry.getKey(), file);
-        UUID id = path2uuid(new Path(file.toString()));
-        candidates.remove(id);
-        log.info("Ignore closed log " + id + " because it is being replicated");
-      }
-
-      return candidates.size();
-    } catch (TableNotFoundException e) {
-      log.error("Failed to scan metadata table", e);
-      throw new IllegalArgumentException(e);
-    }
   }
 
   /**

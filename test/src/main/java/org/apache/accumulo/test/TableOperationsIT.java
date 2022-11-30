@@ -346,11 +346,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     timeType = accumuloClient.tableOperations().getTimeType(MetadataTable.NAME);
     assertEquals(TimeType.LOGICAL, timeType);
 
-    @SuppressWarnings("deprecation")
-    var REPL_TABLE_NAME = org.apache.accumulo.core.replication.ReplicationTable.NAME;
-    timeType = accumuloClient.tableOperations().getTimeType(REPL_TABLE_NAME);
-    assertEquals(TimeType.LOGICAL, timeType);
-
     timeType = accumuloClient.tableOperations().getTimeType(RootTable.NAME);
     assertEquals(TimeType.LOGICAL, timeType);
 

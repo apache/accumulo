@@ -38,15 +38,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Retry.RetryFactory;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.log.DfsLogger.LoggerOperation;
@@ -226,7 +223,6 @@ public class TabletServerLogger {
         }
 
         this.createTime = System.currentTimeMillis();
-        return;
       } else {
         throw new RuntimeException("Error: unexpected type seen: " + next);
       }
@@ -264,90 +260,87 @@ public class TabletServerLogger {
     }
     nextLogMaker =
         ThreadPools.getServerThreadPools().createFixedThreadPool(1, "WALog creator", true);
-    nextLogMaker.execute(new Runnable() {
-      @Override
-      public void run() {
-        final ServerResources conf = tserver.getServerConfig();
-        final VolumeManager fs = conf.getVolumeManager();
-        while (!nextLogMaker.isShutdown()) {
-          log.debug("Creating next WAL");
-          DfsLogger alog = null;
+    nextLogMaker.execute(() -> {
+      final ServerResources conf = tserver.getServerConfig();
+      final VolumeManager fs = conf.getVolumeManager();
+      while (!nextLogMaker.isShutdown()) {
+        log.debug("Creating next WAL");
+        DfsLogger alog = null;
 
-          try {
-            alog = new DfsLogger(tserver.getContext(), conf, syncCounter, flushCounter);
-            alog.open(tserver.getClientAddressString());
-          } catch (Exception t) {
-            log.error("Failed to open WAL", t);
-            // the log is not advertised in ZK yet, so we can just delete it if it exists
-            if (alog != null) {
-              try {
-                alog.close();
-              } catch (Exception e) {
-                log.error("Failed to close WAL after it failed to open", e);
-              }
-
-              try {
-                Path path = alog.getPath();
-                if (fs.exists(path)) {
-                  fs.delete(path);
-                }
-              } catch (Exception e) {
-                log.warn("Failed to delete a WAL that failed to open", e);
-              }
-            }
-
+        try {
+          alog = new DfsLogger(tserver.getContext(), conf, syncCounter, flushCounter);
+          alog.open(tserver.getClientAddressString());
+        } catch (Exception t) {
+          log.error("Failed to open WAL", t);
+          // the log is not advertised in ZK yet, so we can just delete it if it exists
+          if (alog != null) {
             try {
-              nextLog.offer(t, 12, TimeUnit.HOURS);
-            } catch (InterruptedException ex) {
-              // ignore
-            }
-
-            continue;
-          }
-
-          String fileName = alog.getFileName();
-          log.debug("Created next WAL {}", fileName);
-
-          try {
-            tserver.addNewLogMarker(alog);
-          } catch (Exception t) {
-            log.error("Failed to add new WAL marker for " + fileName, t);
-
-            try {
-              // Intentionally not deleting walog because it may have been advertised in ZK. See
-              // #949
               alog.close();
             } catch (Exception e) {
               log.error("Failed to close WAL after it failed to open", e);
             }
 
-            // it's possible the log was advertised in ZK even though we got an
-            // exception. If there's a chance the WAL marker may have been created,
-            // this will ensure it's closed. Either the close will be written and
-            // the GC will clean it up, or the tserver is about to die due to sesson
-            // expiration and the GC will also clean it up.
             try {
-              tserver.walogClosed(alog);
+              Path path = alog.getPath();
+              if (fs.exists(path)) {
+                fs.delete(path);
+              }
             } catch (Exception e) {
-              log.error("Failed to close WAL that failed to open: " + fileName, e);
+              log.warn("Failed to delete a WAL that failed to open", e);
             }
-
-            try {
-              nextLog.offer(t, 12, TimeUnit.HOURS);
-            } catch (InterruptedException ex) {
-              // ignore
-            }
-
-            continue;
           }
 
           try {
-            while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
-              log.info("Our WAL was not used for 12 hours: {}", fileName);
-            }
-          } catch (InterruptedException e) {
-            // ignore - server is shutting down
+            nextLog.offer(t, 12, TimeUnit.HOURS);
+          } catch (InterruptedException ex) {
+            // ignore
           }
+
+          continue;
+        }
+
+        String fileName = alog.getFileName();
+        log.debug("Created next WAL {}", fileName);
+
+        try {
+          tserver.addNewLogMarker(alog);
+        } catch (Exception t) {
+          log.error("Failed to add new WAL marker for " + fileName, t);
+
+          try {
+            // Intentionally not deleting walog because it may have been advertised in ZK. See
+            // #949
+            alog.close();
+          } catch (Exception e) {
+            log.error("Failed to close WAL after it failed to open", e);
+          }
+
+          // it's possible the log was advertised in ZK even though we got an
+          // exception. If there's a chance the WAL marker may have been created,
+          // this will ensure it's closed. Either the close will be written and
+          // the GC will clean it up, or the tserver is about to die due to sesson
+          // expiration and the GC will also clean it up.
+          try {
+            tserver.walogClosed(alog);
+          } catch (Exception e) {
+            log.error("Failed to close WAL that failed to open: " + fileName, e);
+          }
+
+          try {
+            nextLog.offer(t, 12, TimeUnit.HOURS);
+          } catch (InterruptedException ex) {
+            // ignore
+          }
+
+          continue;
+        }
+
+        try {
+          while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
+            log.info("Our WAL was not used for 12 hours: {}", fileName);
+          }
+        } catch (InterruptedException e) {
+          // ignore - server is shutting down
         }
       }
     });
@@ -405,23 +398,6 @@ public class TabletServerLogger {
                     logger -> logger.defineTablet(commitSession), writeRetry);
               } finally {
                 commitSession.finishUpdatingLogsUsed();
-              }
-
-              // Need to release
-              KeyExtent extent = commitSession.getExtent();
-              @SuppressWarnings("deprecation")
-              boolean replicationEnabled =
-                  org.apache.accumulo.core.replication.ReplicationConfigurationUtil
-                      .isEnabled(extent, tserver.getTableConfiguration(extent));
-              if (replicationEnabled) {
-                @SuppressWarnings("deprecation")
-                Status status = org.apache.accumulo.server.replication.StatusUtil
-                    .openWithUnknownLength(System.currentTimeMillis());
-                log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for "
-                    + copy.getFileName());
-                // Got some new WALs, note this in the metadata table
-                ReplicationTableUtil.updateFiles(tserver.getContext(), commitSession.getExtent(),
-                    copy.getFileName(), status);
               }
             }
           }

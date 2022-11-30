@@ -157,14 +157,13 @@ public class TServerUtilsTest {
   public void testStartServerNonDefaultPorts() throws Exception {
     TServer server = null;
 
-    // This test finds 6 free ports in more-or-less a contiguous way and then
+    // This test finds 5 free ports in more-or-less a contiguous way and then
     // uses those port numbers to Accumulo services in the below (ascending) sequence
     // 0. TServer default client port (this test binds to this port to force a port search)
     // 1. GC
     // 2. Manager
     // 3. Monitor
-    // 4. Manager Replication Coordinator
-    // 5. One free port - this is the one that we expect the TServer to finally use
+    // 4. One free port - this is the one that we expect the TServer to finally use
     int[] ports = findTwoFreeSequentialPorts(1024);
     int tserverDefaultPort = ports[0];
     conf.set(Property.TSERV_CLIENTPORT, Integer.toString(tserverDefaultPort));
@@ -178,11 +177,7 @@ public class TServerUtilsTest {
     conf.set(Property.MONITOR_PORT, Integer.toString(monitorPort));
 
     ports = findTwoFreeSequentialPorts(monitorPort + 1);
-    int managerReplCoordPort = ports[0];
-    @SuppressWarnings("deprecation")
-    Property p = Property.MANAGER_REPLICATION_COORDINATOR_PORT;
-    conf.set(p, Integer.toString(managerReplCoordPort));
-    int tserverFinalPort = ports[1];
+    int tserverFinalPort = ports[0];
 
     conf.set(Property.TSERV_PORTSEARCH, "true");
 
@@ -196,7 +191,6 @@ public class TServerUtilsTest {
     assertTrue(reservedPorts.containsKey(gcPort));
     assertTrue(reservedPorts.containsKey(managerPort));
     assertTrue(reservedPorts.containsKey(monitorPort));
-    assertTrue(reservedPorts.containsKey(managerReplCoordPort));
 
     InetAddress addr = InetAddress.getByName("localhost");
     try (ServerSocket s = new ServerSocket(tserverDefaultPort, 50, addr)) {
