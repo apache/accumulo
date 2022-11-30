@@ -290,9 +290,11 @@ public class FileCompactor implements Callable<CompactionStats> {
           try {
             mfw.close();
           } finally {
-            if (!fs.deleteRecursively(outputFile.getPath()))
-              if (fs.exists(outputFile.getPath()))
+            if (!fs.deleteRecursively(outputFile.getPath())) {
+              if (fs.exists(outputFile.getPath())) {
                 log.error("Unable to delete {}", outputFile);
+              }
+            }
           }
         }
       } catch (IOException | RuntimeException e) {
@@ -357,8 +359,9 @@ public class FileCompactor implements Callable<CompactionStats> {
 
         readers.clear();
 
-        if (e instanceof IOException)
+        if (e instanceof IOException) {
           throw (IOException) e;
+        }
         throw new IOException("Failed to open map data files", e);
       }
     }

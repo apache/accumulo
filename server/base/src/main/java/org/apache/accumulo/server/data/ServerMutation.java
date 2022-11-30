@@ -54,8 +54,9 @@ public class ServerMutation extends Mutation {
   public void readFields(DataInput in) throws IOException {
     super.readFields(in);
     // new format writes system time with the mutation
-    if (getSerializedFormat() == SERIALIZED_FORMAT.VERSION2)
+    if (getSerializedFormat() == SERIALIZED_FORMAT.VERSION2) {
       systemTime = WritableUtils.readVLong(in);
+    }
   }
 
   @Override

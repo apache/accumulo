@@ -70,14 +70,16 @@ public class DistributedReadWriteLockTest {
     private AtomicInteger counter = new AtomicInteger();
 
     void read() {
-      for (int i = 0; i < data.length(); i++)
+      for (int i = 0; i < data.length(); i++) {
         assertEquals(counter.get(), data.get(i));
+      }
     }
 
     void write() {
       int nextCount = counter.incrementAndGet();
-      for (int i = data.length() - 1; i >= 0; i--)
+      for (int i = data.length() - 1; i >= 0; i--) {
         data.set(i, nextCount);
+      }
     }
   }
 

@@ -146,10 +146,11 @@ public class ECAdmin implements KeywordExecutable {
 
   private void listCompactorsByQueue(ServerContext context) {
     var queueToCompactorsMap = ExternalCompactionUtil.getCompactorAddrs(context);
-    if (queueToCompactorsMap.isEmpty())
+    if (queueToCompactorsMap.isEmpty()) {
       System.out.println("No Compactors found.");
-    else
+    } else {
       queueToCompactorsMap.forEach((q, compactors) -> System.out.println(q + ": " + compactors));
+    }
   }
 
   private void runningCompactions(ServerContext context, boolean details) {

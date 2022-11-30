@@ -82,8 +82,9 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {
-        if (client != null)
+        if (client != null) {
           ThriftUtil.close(client, context);
+        }
       }
     }
   }
@@ -129,8 +130,9 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {
-        if (client != null)
+        if (client != null) {
           ThriftUtil.close(client, context);
+        }
       }
     }
   }

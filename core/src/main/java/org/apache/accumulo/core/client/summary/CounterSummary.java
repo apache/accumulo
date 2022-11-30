@@ -46,14 +46,12 @@ public class CounterSummary {
   }
 
   /**
-   * @param summary
-   *          a summary
-   * @param checkType
-   *          If true will try to ensure the classname from
-   *          {@link Summary#getSummarizerConfiguration()} is an instance of
-   *          {@link CountingSummarizer}. However this check can only succeed if the class is on the
-   *          classpath. For cases where the summary data needs to be used and the class is not on
-   *          the classpath, set this to false.
+   * @param summary a summary
+   * @param checkType If true will try to ensure the classname from
+   *        {@link Summary#getSummarizerConfiguration()} is an instance of
+   *        {@link CountingSummarizer}. However this check can only succeed if the class is on the
+   *        classpath. For cases where the summary data needs to be used and the class is not on the
+   *        classpath, set this to false.
    */
   public CounterSummary(Summary summary, boolean checkType) {
     if (checkType) {

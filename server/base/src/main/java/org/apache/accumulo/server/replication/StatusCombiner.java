@@ -141,10 +141,8 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
   /**
    * Update a {@link Builder} with another {@link Status}
    *
-   * @param combined
-   *          The Builder to combine into
-   * @param status
-   *          The Status we're combining
+   * @param combined The Builder to combine into
+   * @param status The Status we're combining
    */
   public void combine(Builder combined, Status status) {
     if (log.isTraceEnabled()) {

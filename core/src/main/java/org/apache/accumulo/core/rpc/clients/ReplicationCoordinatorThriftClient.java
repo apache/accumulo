@@ -101,8 +101,9 @@ public class ReplicationCoordinatorThriftClient extends ThriftClientTypes<Client
     for (int attempts = 1; attempts <= 10; attempts++) {
 
       Client result = getConnection(context);
-      if (result != null)
+      if (result != null) {
         return result;
+      }
       LOG.debug("Could not get ReplicationCoordinator connection to {}, will retry",
           context.getInstanceName());
       try {
@@ -136,8 +137,9 @@ public class ReplicationCoordinatorThriftClient extends ThriftClientTypes<Client
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {
-        if (client != null)
+        if (client != null) {
           ThriftUtil.close(client, context);
+        }
       }
     }
 

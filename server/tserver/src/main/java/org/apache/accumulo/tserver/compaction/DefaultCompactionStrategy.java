@@ -69,8 +69,9 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
     }
 
     void pop() {
-      if (first >= last)
+      if (first >= last) {
         throw new IllegalStateException("Can not pop");
+      }
 
       sum -= files.get(first).size;
       first++;
@@ -81,8 +82,9 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
     }
 
     boolean slideUp() {
-      if (first == 0)
+      if (first == 0) {
         return false;
+      }
 
       first--;
       last--;
@@ -144,8 +146,9 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
     CompactionPlan result = new CompactionPlan();
 
     List<StoredTabletFile> toCompact = findMapFilesToCompact(request);
-    if (toCompact == null || toCompact.isEmpty())
+    if (toCompact == null || toCompact.isEmpty()) {
       return result;
+    }
     result.inputFiles.addAll(toCompact);
     return result;
   }
@@ -179,8 +182,9 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
       return new ArrayList<>(request.getFiles().keySet());
     }
 
-    if (request.getFiles().size() <= 1)
+    if (request.getFiles().size() <= 1) {
       return null;
+    }
 
     double ratio = Double.parseDouble(request.getTableConfig(Property.TABLE_MAJC_RATIO.getKey()));
     int maxFilesToCompact =
@@ -188,8 +192,9 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
     int maxFilesPerTablet = request.getMaxFilesPerTablet();
 
     int minFilesToCompact = 0;
-    if (request.getFiles().size() > maxFilesPerTablet)
+    if (request.getFiles().size() > maxFilesPerTablet) {
       minFilesToCompact = request.getFiles().size() - maxFilesPerTablet + 1;
+    }
 
     minFilesToCompact = Math.min(minFilesToCompact, maxFilesToCompact);
 

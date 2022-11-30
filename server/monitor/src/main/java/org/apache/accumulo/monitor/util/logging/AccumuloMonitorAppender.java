@@ -133,8 +133,9 @@ public class AccumuloMonitorAppender extends AbstractAppender {
   @SuppressFBWarnings(value = "INFORMATION_EXPOSURE_THROUGH_AN_ERROR_MESSAGE",
       justification = "throwable is intended to be printed to output stream, to send to monitor")
   private static String throwableToStacktrace(Throwable t) {
-    if (t == null)
+    if (t == null) {
       return null;
+    }
     StringWriter writer = new StringWriter();
     t.printStackTrace(new PrintWriter(writer));
     return writer.toString();

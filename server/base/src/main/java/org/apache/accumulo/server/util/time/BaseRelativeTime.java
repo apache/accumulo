@@ -43,8 +43,9 @@ public class BaseRelativeTime implements ProvidesTime {
   public synchronized long currentTime() {
     long localNow = local.currentTime();
     long result = localNow + diff;
-    if (result < lastReportedTime)
+    if (result < lastReportedTime) {
       return lastReportedTime;
+    }
     lastReportedTime = result;
     return result;
   }

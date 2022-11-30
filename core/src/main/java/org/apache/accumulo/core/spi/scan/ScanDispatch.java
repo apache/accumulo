@@ -68,9 +68,8 @@ public interface ScanDispatch {
      * If this is not called, then {@value SimpleScanDispatcher#DEFAULT_SCAN_EXECUTOR_NAME} should
      * be used.
      *
-     * @param name
-     *          a non null name of an existing scan executor to use for this scan from the key set
-     *          of {@link ScanDispatcher.DispatchParameters#getScanExecutors()}
+     * @param name a non null name of an existing scan executor to use for this scan from the key
+     *        set of {@link ScanDispatcher.DispatchParameters#getScanExecutors()}
      * @return may return self or a new object
      */
     public Builder setExecutorName(String name);
@@ -78,9 +77,8 @@ public interface ScanDispatch {
     /**
      * If this is not called, then {@link CacheUsage#TABLE} should be used.
      *
-     * @param usage
-     *          a non null usage indicating how the scan should use cache for file metadata (like
-     *          the index tree within a file)
+     * @param usage a non null usage indicating how the scan should use cache for file metadata
+     *        (like the index tree within a file)
      * @return may return self or a new object
      */
     public Builder setIndexCacheUsage(CacheUsage usage);
@@ -88,8 +86,7 @@ public interface ScanDispatch {
     /**
      * If this is not called, then {@link CacheUsage#TABLE} should be used.
      *
-     * @param usage
-     *          a non null usage indicating how the scan should use cache for file data
+     * @param usage a non null usage indicating how the scan should use cache for file data
      * @return may return self or a new object
      */
     public Builder setDataCacheUsage(CacheUsage usage);

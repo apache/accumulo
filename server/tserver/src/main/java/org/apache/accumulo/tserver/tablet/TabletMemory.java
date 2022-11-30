@@ -147,10 +147,11 @@ class TabletMemory implements Closeable {
 
   public void updateMemoryUsageStats() {
     long other = 0;
-    if (otherMemTable != null)
+    if (otherMemTable != null) {
       other = otherMemTable.estimatedSizeInBytes();
-    else if (deletingMemTable != null)
+    } else if (deletingMemTable != null) {
       other = deletingMemTable.estimatedSizeInBytes();
+    }
 
     tablet.updateMemoryUsageStats(memTable.estimatedSizeInBytes(), other);
   }
@@ -158,8 +159,9 @@ class TabletMemory implements Closeable {
   public List<MemoryIterator> getIterators(SamplerConfigurationImpl samplerConfig) {
     List<MemoryIterator> toReturn = new ArrayList<>(2);
     toReturn.add(memTable.skvIterator(samplerConfig));
-    if (otherMemTable != null)
+    if (otherMemTable != null) {
       toReturn.add(otherMemTable.skvIterator(samplerConfig));
+    }
     return toReturn;
   }
 
@@ -170,8 +172,9 @@ class TabletMemory implements Closeable {
   }
 
   public long getNumEntries() {
-    if (otherMemTable != null)
+    if (otherMemTable != null) {
       return memTable.getNumEntries() + otherMemTable.getNumEntries();
+    }
     return memTable.getNumEntries();
   }
 

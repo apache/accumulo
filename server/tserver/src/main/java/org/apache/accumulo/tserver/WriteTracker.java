@@ -56,15 +56,17 @@ public class WriteTracker {
   }
 
   synchronized void finishWrite(long operationId) {
-    if (operationId == -1)
+    if (operationId == -1) {
       return;
+    }
 
     boolean removed = false;
 
     for (TabletType ttype : TabletType.values()) {
       removed = inProgressWrites.get(ttype).remove(operationId);
-      if (removed)
+      if (removed) {
         break;
+      }
     }
 
     if (!removed) {
@@ -87,13 +89,15 @@ public class WriteTracker {
   }
 
   public long startWrite(Set<Tablet> keySet) {
-    if (keySet.isEmpty())
+    if (keySet.isEmpty()) {
       return -1;
+    }
 
     List<KeyExtent> extents = new ArrayList<>(keySet.size());
 
-    for (Tablet tablet : keySet)
+    for (Tablet tablet : keySet) {
       extents.add(tablet.getExtent());
+    }
 
     return startWrite(TabletType.type(extents));
   }

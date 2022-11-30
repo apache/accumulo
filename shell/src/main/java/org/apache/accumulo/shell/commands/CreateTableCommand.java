@@ -182,16 +182,19 @@ public class CreateTableCommand extends Command {
     String[] options = cl.getOptionValues(createTableOptLocalityProps.getOpt());
     for (String localityInfo : options) {
       final String[] parts = localityInfo.split("=", 2);
-      if (parts.length < 2)
+      if (parts.length < 2) {
         throw new IllegalArgumentException("Missing '=' or there are spaces between entries");
+      }
       final String groupName = parts[0];
       final HashSet<Text> colFams = new HashSet<>();
-      for (String family : parts[1].split(","))
+      for (String family : parts[1].split(",")) {
         colFams.add(new Text(family.getBytes(Shell.CHARSET)));
+      }
       // check that group names are not duplicated on usage line
-      if (localityGroupMap.put(groupName, colFams) != null)
+      if (localityGroupMap.put(groupName, colFams) != null) {
         throw new IllegalArgumentException(
             "Duplicate locality group name found. Group names must be unique");
+      }
     }
     ntc.setLocalityGroups(localityGroupMap);
     return ntc;
@@ -207,8 +210,9 @@ public class CreateTableCommand extends Command {
       final Shell shellState, NewTableConfiguration ntc) {
     EnumSet<IteratorScope> scopeEnumSet;
     IteratorSetting iteratorSetting;
-    if (shellState.iteratorProfiles.isEmpty())
+    if (shellState.iteratorProfiles.isEmpty()) {
       throw new IllegalArgumentException("No shell iterator profiles have been created.");
+    }
     String[] options = cl.getOptionValues(createTableOptIteratorProps.getOpt());
     for (String profileInfo : options) {
       String[] parts = profileInfo.split(":", 2);
@@ -232,14 +236,16 @@ public class CreateTableCommand extends Command {
         // user provided scope arguments exist, parse them
         List<String> scopeArgs = Arrays.asList(parts[1].split(","));
         // there are only three allowable scope values
-        if (scopeArgs.size() > 3)
+        if (scopeArgs.size() > 3) {
           throw new IllegalArgumentException("Too many scope arguments supplied");
+        }
         // handle the 'all' argument separately since it is not an allowable enum value for
         // IteratorScope
         // if 'all' is used, it should be the only scope provided
         if (scopeArgs.contains("all")) {
-          if (scopeArgs.size() > 1)
+          if (scopeArgs.size() > 1) {
             throw new IllegalArgumentException("Cannot use 'all' in conjunction with other scopes");
+          }
           scopeEnumSet = EnumSet.allOf(IteratorScope.class);
         } else {
           // 'all' is not involved, examine the scope arguments and populate iterator scope EnumSet
@@ -262,8 +268,9 @@ public class CreateTableCommand extends Command {
     for (String scopeStr : scopeList) {
       try {
         IteratorScope scope = IteratorScope.valueOf(scopeStr);
-        if (!scopes.add(scope))
+        if (!scopes.add(scope)) {
           throw new IllegalArgumentException("duplicate scope arguments found");
+        }
       } catch (IllegalArgumentException ex) {
         throw new IllegalArgumentException("illegal scope arguments: " + ex.getMessage(), ex);
       }

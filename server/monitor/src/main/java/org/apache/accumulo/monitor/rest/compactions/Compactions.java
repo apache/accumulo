@@ -34,8 +34,7 @@ public class Compactions {
   /**
    * Adds a new compactionInfo to the list
    *
-   * @param compactionInfo
-   *          Compaction info to add
+   * @param compactionInfo Compaction info to add
    */
   public void addCompaction(CompactionInfo compactionInfo) {
     compactions.add(compactionInfo);

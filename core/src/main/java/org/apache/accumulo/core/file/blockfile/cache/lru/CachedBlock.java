@@ -103,8 +103,9 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
 
   @Override
   public int compareTo(CachedBlock that) {
-    if (this.accessTime == that.accessTime)
+    if (this.accessTime == that.accessTime) {
       return 0;
+    }
     return this.accessTime < that.accessTime ? 1 : -1;
   }
 

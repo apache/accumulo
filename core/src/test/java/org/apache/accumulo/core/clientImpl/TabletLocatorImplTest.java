@@ -142,10 +142,11 @@ public class TabletLocatorImplTest {
     TreeMap<Text,TabletLocation> mc = new TreeMap<>(TabletLocatorImpl.END_ROW_COMPARATOR);
 
     for (Entry<KeyExtent,TabletLocation> entry : mcke.entrySet()) {
-      if (entry.getKey().endRow() == null)
+      if (entry.getKey().endRow() == null) {
         mc.put(TabletLocatorImpl.MAX_TEXT, entry.getValue());
-      else
+      } else {
         mc.put(entry.getKey().endRow(), entry.getValue());
+      }
     }
 
     return mc;
@@ -535,10 +536,11 @@ public class TabletLocatorImplTest {
         List<Range> ranges = entry.getValue();
         for (Range range : ranges) {
           SortedMap<Key,Value> tm;
-          if (range.getStartKey() == null)
+          if (range.getStartKey() == null) {
             tm = tabletData;
-          else
+          } else {
             tm = tabletData.tailMap(range.getStartKey());
+          }
 
           for (Entry<Key,Value> de : tm.entrySet()) {
             if (range.afterEndKey(de.getKey())) {
@@ -552,8 +554,9 @@ public class TabletLocatorImplTest {
         }
       }
 
-      if (!failures.isEmpty())
+      if (!failures.isEmpty()) {
         parent.invalidateCache(failures);
+      }
 
       return MetadataLocationObtainer.getMetadataLocationEntries(results).getLocations();
 
@@ -624,8 +627,9 @@ public class TabletLocatorImplTest {
     Value per = TabletColumnFamily.encodePrevEndRow(ke.prevEndRow());
 
     if (location != null) {
-      if (instance == null)
+      if (instance == null) {
         instance = "";
+      }
       Key lk = new Key(mr, CurrentLocationColumnFamily.NAME, new Text(instance));
       tabletData.put(lk, new Value(location));
     }
@@ -650,8 +654,9 @@ public class TabletLocatorImplTest {
     TabletLocation tl = cache.locateTablet(context, new Text(row), skipRow, false);
 
     if (expected == null) {
-      if (tl != null)
+      if (tl != null) {
         System.out.println("tl = " + tl);
+      }
       assertNull(tl);
     } else {
       assertNotNull(tl);
@@ -1216,8 +1221,9 @@ public class TabletLocatorImplTest {
       Map<String,Map<KeyExtent,List<String>>> emb =
           createServerExtentMap(createServerExtent("a", "l1", ke1),
               createServerExtent("m", "l1", ke1), createServerExtent("z", "l1", ke1));
-      if (i == 0 || i == 2)
+      if (i == 0 || i == 2) {
         runTest(metaCache, ml, emb);
+      }
 
       List<Range> ranges = createNewRangeList(new Range(new Text("a")), new Range(new Text("m")),
           new Range(new Text("z")));
@@ -1225,8 +1231,9 @@ public class TabletLocatorImplTest {
       Map<String,Map<KeyExtent,List<Range>>> expected1 = createExpectedBinnings(
           createRangeLocation("l1", createNewKeyExtent("foo", null, null), ranges));
 
-      if (i == 1 || i == 2)
+      if (i == 1 || i == 2) {
         runTest(ranges, metaCache, expected1);
+      }
 
       KeyExtent ke11 = createNewKeyExtent("foo", "n", null);
       KeyExtent ke12 = createNewKeyExtent("foo", null, "n");
@@ -1236,22 +1243,25 @@ public class TabletLocatorImplTest {
       metaCache.invalidateCache(ke1);
 
       emb = createServerExtentMap(createServerExtent("z", "l2", ke12));
-      if (i == 0 || i == 2)
+      if (i == 0 || i == 2) {
         runTest(metaCache, ml, emb, "a", "m");
+      }
 
       Map<String,Map<KeyExtent,List<Range>>> expected2 =
           createExpectedBinnings(createRangeLocation("l2", createNewKeyExtent("foo", null, "n"),
               createNewRangeList(new Range(new Text("z")))));
 
-      if (i == 1 || i == 2)
+      if (i == 1 || i == 2) {
         runTest(ranges, metaCache, expected2,
             createNewRangeList(new Range(new Text("a")), new Range(new Text("m"))));
+      }
 
       setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke11, "l3");
       emb = createServerExtentMap(createServerExtent("a", "l3", ke11),
           createServerExtent("m", "l3", ke11), createServerExtent("z", "l2", ke12));
-      if (i == 0 || i == 2)
+      if (i == 0 || i == 2) {
         runTest(metaCache, ml, emb);
+      }
 
       Map<String,
           Map<KeyExtent,List<Range>>> expected3 = createExpectedBinnings(
@@ -1262,8 +1272,9 @@ public class TabletLocatorImplTest {
 
       );
 
-      if (i == 1 || i == 2)
+      if (i == 1 || i == 2) {
         runTest(ranges, metaCache, expected3);
+      }
     }
   }
 

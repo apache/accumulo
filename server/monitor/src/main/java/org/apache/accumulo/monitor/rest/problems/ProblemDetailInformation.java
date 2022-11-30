@@ -48,20 +48,13 @@ public class ProblemDetailInformation {
   /**
    * Stores a problem detail
    *
-   * @param tableName
-   *          Table name of the problem
-   * @param tableId
-   *          Table ID of the problem
-   * @param type
-   *          Type of problem
-   * @param server
-   *          Location of the problem
-   * @param time
-   *          Time of the problem
-   * @param resource
-   *          Resource with the problem
-   * @param exception
-   *          Exception of the problem
+   * @param tableName Table name of the problem
+   * @param tableId Table ID of the problem
+   * @param type Type of problem
+   * @param server Location of the problem
+   * @param time Time of the problem
+   * @param resource Resource with the problem
+   * @param exception Exception of the problem
    */
   public ProblemDetailInformation(String tableName, TableId tableId, String type, String server,
       Long time, String resource, String exception) {

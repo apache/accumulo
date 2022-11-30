@@ -39,18 +39,12 @@ public class StatusInformation {
   /**
    * Generate the status report for the services
    *
-   * @param managerStatus
-   *          Status for the manager
-   * @param gcStatus
-   *          Status for the GC
-   * @param tServerStatus
-   *          Status for the tserver
-   * @param logNumber
-   *          Number of log reports
-   * @param logsHaveError
-   *          Check if log reports include errors
-   * @param problemNumber
-   *          Number of problems per table
+   * @param managerStatus Status for the manager
+   * @param gcStatus Status for the GC
+   * @param tServerStatus Status for the tserver
+   * @param logNumber Number of log reports
+   * @param logsHaveError Check if log reports include errors
+   * @param problemNumber Number of problems per table
    */
   public StatusInformation(String managerStatus, String gcStatus, String tServerStatus,
       Integer logNumber, boolean logsHaveError, Integer problemNumber) {

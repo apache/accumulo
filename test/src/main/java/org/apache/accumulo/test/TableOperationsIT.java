@@ -288,8 +288,9 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
     try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
       Map<Key,Value> actual = new TreeMap<>();
-      for (Map.Entry<Key,Value> entry : scanner)
+      for (Map.Entry<Key,Value> entry : scanner) {
         actual.put(entry.getKey(), entry.getValue());
+      }
       assertTrue(actual.isEmpty(), "Should be empty. Actual is " + actual);
       accumuloClient.tableOperations().delete(tableName);
     }

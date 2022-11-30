@@ -61,8 +61,9 @@ public class ExternalCompactionId extends AbstractId<ExternalCompactionId> {
    */
   public static ExternalCompactionId from(String ecid) {
     ecid = ecid.replace(PREFIX.toLowerCase(), PREFIX);
-    if (!ecid.startsWith(PREFIX))
+    if (!ecid.startsWith(PREFIX)) {
       ecid = PREFIX + ecid;
+    }
     return of(ecid);
   }
 

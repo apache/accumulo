@@ -59,8 +59,7 @@ public class AdminUtil<T> {
   /**
    * Constructor
    *
-   * @param exitOnError
-   *          <code>System.exit(1)</code> on error if true
+   * @param exitOnError <code>System.exit(1)</code> on error if true
    */
   public AdminUtil(boolean exitOnError) {
     this.exitOnError = exitOnError;
@@ -213,12 +212,9 @@ public class AdminUtil<T> {
    * method does not process lock information, if lock information is desired, use
    * {@link #getStatus(ReadOnlyTStore, ZooReader, ServiceLockPath, Set, EnumSet)}
    *
-   * @param zs
-   *          read-only zoostore
-   * @param filterTxid
-   *          filter results to include for provided transaction ids.
-   * @param filterStatus
-   *          filter results to include only provided status types
+   * @param zs read-only zoostore
+   * @param filterTxid filter results to include for provided transaction ids.
+   * @param filterStatus filter results to include only provided status types
    * @return list of FATE transactions that match filter criteria
    */
   public List<TransactionStatus> getTransactionStatus(ReadOnlyTStore<T> zs, Set<Long> filterTxid,
@@ -234,21 +230,14 @@ public class AdminUtil<T> {
    * Get the FATE transaction status and lock information stored in zookeeper, optionally filtered
    * by transaction id and filter status.
    *
-   * @param zs
-   *          read-only zoostore
-   * @param zk
-   *          zookeeper reader.
-   * @param lockPath
-   *          the zookeeper path for locks
-   * @param filterTxid
-   *          filter results to include for provided transaction ids.
-   * @param filterStatus
-   *          filter results to include only provided status types
+   * @param zs read-only zoostore
+   * @param zk zookeeper reader.
+   * @param lockPath the zookeeper path for locks
+   * @param filterTxid filter results to include for provided transaction ids.
+   * @param filterStatus filter results to include only provided status types
    * @return a summary container of the fate transactions.
-   * @throws KeeperException
-   *           if zookeeper exception occurs
-   * @throws InterruptedException
-   *           if process is interrupted.
+   * @throws KeeperException if zookeeper exception occurs
+   * @throws InterruptedException if process is interrupted.
    */
   public FateStatus getStatus(ReadOnlyTStore<T> zs, ZooReader zk,
       ServiceLock.ServiceLockPath lockPath, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
@@ -264,18 +253,12 @@ public class AdminUtil<T> {
   /**
    * Walk through the lock nodes in zookeeper to find and populate held locks and waiting locks.
    *
-   * @param zk
-   *          zookeeper reader
-   * @param lockPath
-   *          the zookeeper path for locks
-   * @param heldLocks
-   *          map for returning transactions with held locks
-   * @param waitingLocks
-   *          map for returning transactions with waiting locks
-   * @throws KeeperException
-   *           if initial lock list cannot be read.
-   * @throws InterruptedException
-   *           if thread interrupt detected while processing.
+   * @param zk zookeeper reader
+   * @param lockPath the zookeeper path for locks
+   * @param heldLocks map for returning transactions with held locks
+   * @param waitingLocks map for returning transactions with waiting locks
+   * @throws KeeperException if initial lock list cannot be read.
+   * @throws InterruptedException if thread interrupt detected while processing.
    */
   private void findLocks(ZooReader zk, final ServiceLock.ServiceLockPath lockPath,
       final Map<Long,List<String>> heldLocks, final Map<Long,List<String>> waitingLocks)
@@ -300,8 +283,9 @@ public class AdminUtil<T> {
             byte[] data = zk.getData(lockPath + "/" + id + "/" + node);
             String[] lda = new String(data, UTF_8).split(":");
 
-            if (lda[0].charAt(0) == 'W')
+            if (lda[0].charAt(0) == 'W') {
               sawWriteLock = true;
+            }
 
             Map<Long,List<String>> locks;
 
@@ -339,18 +323,13 @@ public class AdminUtil<T> {
   /**
    * Returns fate status, possibly filtered
    *
-   * @param zs
-   *          read-only access to a populated transaction store.
-   * @param filterTxid
-   *          Optional. List of transactions to filter results - if null, all transactions are
-   *          returned
-   * @param filterStatus
-   *          Optional. List of status types to filter results - if null, all transactions are
-   *          returned.
-   * @param heldLocks
-   *          populated list of locks held by transaction - or an empty map if none.
-   * @param waitingLocks
-   *          populated list of locks held by transaction - or an empty map if none.
+   * @param zs read-only access to a populated transaction store.
+   * @param filterTxid Optional. List of transactions to filter results - if null, all transactions
+   *        are returned
+   * @param filterStatus Optional. List of status types to filter results - if null, all
+   *        transactions are returned.
+   * @param heldLocks populated list of locks held by transaction - or an empty map if none.
+   * @param waitingLocks populated list of locks held by transaction - or an empty map if none.
    * @return current fate and lock status
    */
   private FateStatus getTransactionStatus(ReadOnlyTStore<T> zs, Set<Long> filterTxid,
@@ -380,8 +359,9 @@ public class AdminUtil<T> {
 
       String top = null;
       ReadOnlyRepo<T> repo = zs.top(tid);
-      if (repo != null)
+      if (repo != null) {
         top = repo.getName();
+      }
 
       TStatus status = zs.getStatus(tid);
 
@@ -427,11 +407,13 @@ public class AdminUtil<T> {
     if (!fateStatus.getDanglingHeldLocks().isEmpty()
         || !fateStatus.getDanglingWaitingLocks().isEmpty()) {
       fmt.format("%nThe following locks did not have an associated FATE operation%n");
-      for (Entry<String,List<String>> entry : fateStatus.getDanglingHeldLocks().entrySet())
+      for (Entry<String,List<String>> entry : fateStatus.getDanglingHeldLocks().entrySet()) {
         fmt.format("txid: %s  locked: %s%n", entry.getKey(), entry.getValue());
+      }
 
-      for (Entry<String,List<String>> entry : fateStatus.getDanglingWaitingLocks().entrySet())
+      for (Entry<String,List<String>> entry : fateStatus.getDanglingWaitingLocks().entrySet()) {
         fmt.format("txid: %s  locking: %s%n", entry.getKey(), entry.getValue());
+      }
     }
   }
 
@@ -527,8 +509,9 @@ public class AdminUtil<T> {
         String lockPath = path + "/" + id + "/" + node;
         byte[] data = zk.getData(path + "/" + id + "/" + node);
         String[] lda = new String(data, UTF_8).split(":");
-        if (lda[1].equals(txidStr))
+        if (lda[1].equals(txidStr)) {
           zk.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
+        }
       }
     }
   }
@@ -540,23 +523,26 @@ public class AdminUtil<T> {
     try {
       if (ServiceLock.getLockData(zk.getZooKeeper(), zLockManagerPath) != null) {
         System.err.println("ERROR: Manager lock is held, not running");
-        if (this.exitOnError)
+        if (this.exitOnError) {
           System.exit(1);
-        else
+        } else {
           return false;
+        }
       }
     } catch (KeeperException e) {
       System.err.println("ERROR: Could not read manager lock, not running " + e.getMessage());
-      if (this.exitOnError)
+      if (this.exitOnError) {
         System.exit(1);
-      else
+      } else {
         return false;
+      }
     } catch (InterruptedException e) {
       System.err.println("ERROR: Could not read manager lock, not running" + e.getMessage());
-      if (this.exitOnError)
+      if (this.exitOnError) {
         System.exit(1);
-      else
+      } else {
         return false;
+      }
     }
     return true;
   }

@@ -76,8 +76,9 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   // this is only ever called immediately after getting "next" entry
   @Override
   protected void consume() throws IOException {
-    if (finished || lastRowFound == null)
+    if (finished || lastRowFound == null) {
       return;
+    }
     int count = 0;
     SortedKeyValueIterator<Key,Value> source = getSource();
     while (source.hasTop() && lastRowFound.equals(source.getTopKey().getRow())) {
@@ -95,10 +96,11 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
         if (latestRange.afterEndKey(nextKey)) {
           finished = true;
           break;
-        } else
+        } else {
           source.seek(
               new Range(nextKey, true, latestRange.getEndKey(), latestRange.isEndKeyInclusive()),
               latestColumnFamilies, latestInclusive);
+        }
       }
     }
     lastRowFound = source.hasTop() ? source.getTopKey().getRow(lastRowFound) : null;
@@ -128,8 +130,9 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
 
     if (getSource().hasTop()) {
       lastRowFound = getSource().getTopKey().getRow();
-      if (range.beforeStartKey(getSource().getTopKey()))
+      if (range.beforeStartKey(getSource().getTopKey())) {
         consume();
+      }
     }
   }
 
@@ -145,9 +148,10 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   @Override
   public boolean validateOptions(Map<String,String> options) {
     String o = options.get(NUM_SCANS_STRING_NAME);
-    if (o != null && !NumberUtils.isParsable(o))
+    if (o != null && !NumberUtils.isParsable(o)) {
       throw new IllegalArgumentException(
           "bad integer " + NUM_SCANS_STRING_NAME + ":" + options.get(NUM_SCANS_STRING_NAME));
+    }
     return true;
   }
 

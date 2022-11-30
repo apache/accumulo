@@ -73,8 +73,7 @@ public class InputTableConfig implements Writable {
   /**
    * Creates a batch scan config object out of a previously serialized batch scan config object.
    *
-   * @param input
-   *          the data input of the serialized batch scan config
+   * @param input the data input of the serialized batch scan config
    */
   public InputTableConfig(DataInput input) throws IOException {
     readFields(input);
@@ -84,8 +83,7 @@ public class InputTableConfig implements Writable {
    * Sets the input ranges to scan for all tables associated with this job. This will be added to
    * any per-table ranges that have been set using
    *
-   * @param ranges
-   *          the ranges that will be mapped over
+   * @param ranges the ranges that will be mapped over
    * @since 1.6.0
    */
   public InputTableConfig setRanges(List<Range> ranges) {
@@ -103,10 +101,9 @@ public class InputTableConfig implements Writable {
   /**
    * Restricts the columns that will be mapped over for this job for the default input table.
    *
-   * @param columns
-   *          a pair of {@link Text} objects corresponding to column family and column qualifier. If
-   *          the column qualifier is null, the entire column family is selected. An empty set is
-   *          the default and is equivalent to scanning the all columns.
+   * @param columns a pair of {@link Text} objects corresponding to column family and column
+   *        qualifier. If the column qualifier is null, the entire column family is selected. An
+   *        empty set is the default and is equivalent to scanning the all columns.
    * @since 1.6.0
    */
   public InputTableConfig fetchColumns(Collection<IteratorSetting.Column> columns) {
@@ -122,8 +119,9 @@ public class InputTableConfig implements Writable {
   }
 
   public void addIterator(IteratorSetting cfg) {
-    if (this.iterators.isEmpty())
+    if (this.iterators.isEmpty()) {
       this.iterators = new LinkedHashMap<>();
+    }
     this.iterators.put(cfg.getName(), cfg);
   }
 
@@ -142,8 +140,7 @@ public class InputTableConfig implements Writable {
    * <p>
    * By default, this feature is <b>enabled</b>.
    *
-   * @param autoAdjustRanges
-   *          the feature is enabled if true, disabled otherwise
+   * @param autoAdjustRanges the feature is enabled if true, disabled otherwise
    * @see #setRanges(java.util.List)
    * @since 1.6.0
    */
@@ -172,8 +169,7 @@ public class InputTableConfig implements Writable {
    * <p>
    * By default, this feature is <b>disabled</b>.
    *
-   * @param useLocalIterators
-   *          the feature is enabled if true, disabled otherwise
+   * @param useLocalIterators the feature is enabled if true, disabled otherwise
    * @since 1.6.0
    */
   public InputTableConfig setUseLocalIterators(boolean useLocalIterators) {
@@ -223,8 +219,7 @@ public class InputTableConfig implements Writable {
    * <p>
    * By default, this feature is <b>disabled</b>.
    *
-   * @param offlineScan
-   *          the feature is enabled if true, disabled otherwise
+   * @param offlineScan the feature is enabled if true, disabled otherwise
    */
   public InputTableConfig setOfflineScan(boolean offlineScan) {
     this.offlineScan = offlineScan;
@@ -247,8 +242,7 @@ public class InputTableConfig implements Writable {
    * <p>
    * By default, this feature is <b>disabled</b>.
    *
-   * @param useIsolatedScanners
-   *          the feature is enabled if true, disabled otherwise
+   * @param useIsolatedScanners the feature is enabled if true, disabled otherwise
    */
   public InputTableConfig setUseIsolatedScanners(boolean useIsolatedScanners) {
     this.useIsolatedScanners = useIsolatedScanners;
@@ -324,15 +318,17 @@ public class InputTableConfig implements Writable {
   public void write(DataOutput dataOutput) throws IOException {
     if (iterators != null) {
       dataOutput.writeInt(iterators.size());
-      for (IteratorSetting setting : getIterators())
+      for (IteratorSetting setting : getIterators()) {
         setting.write(dataOutput);
+      }
     } else {
       dataOutput.writeInt(0);
     }
     if (ranges != null) {
       dataOutput.writeInt(ranges.size());
-      for (Range range : ranges)
+      for (Range range : ranges) {
         range.write(dataOutput);
+      }
     } else {
       dataOutput.writeInt(0);
     }
@@ -383,16 +379,18 @@ public class InputTableConfig implements Writable {
   public void readFields(DataInput dataInput) throws IOException {
     // load iterators
     long iterSize = dataInput.readInt();
-    if (iterSize > 0)
+    if (iterSize > 0) {
       iterators = new LinkedHashMap<>();
+    }
     for (int i = 0; i < iterSize; i++) {
       IteratorSetting newIter = new IteratorSetting(dataInput);
       iterators.put(newIter.getName(), newIter);
     }
     // load ranges
     long rangeSize = dataInput.readInt();
-    if (rangeSize > 0)
+    if (rangeSize > 0) {
       ranges = new ArrayList<>();
+    }
     for (int i = 0; i < rangeSize; i++) {
       Range range = new Range();
       range.readFields(dataInput);
@@ -400,8 +398,9 @@ public class InputTableConfig implements Writable {
     }
     // load columns
     long columnSize = dataInput.readInt();
-    if (columnSize > 0)
+    if (columnSize > 0) {
       columns = new HashSet<>();
+    }
     for (int i = 0; i < columnSize; i++) {
       long numPairs = dataInput.readInt();
       Text colFam = new Text();
@@ -437,31 +436,42 @@ public class InputTableConfig implements Writable {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
+    }
 
     InputTableConfig that = (InputTableConfig) o;
 
-    if (autoAdjustRanges != that.autoAdjustRanges)
+    if (autoAdjustRanges != that.autoAdjustRanges) {
       return false;
-    if (offlineScan != that.offlineScan)
+    }
+    if (offlineScan != that.offlineScan) {
       return false;
-    if (useIsolatedScanners != that.useIsolatedScanners)
+    }
+    if (useIsolatedScanners != that.useIsolatedScanners) {
       return false;
-    if (useLocalIterators != that.useLocalIterators)
+    }
+    if (useLocalIterators != that.useLocalIterators) {
       return false;
-    if (!Objects.equals(columns, that.columns))
+    }
+    if (!Objects.equals(columns, that.columns)) {
       return false;
-    if (!Objects.equals(iterators, that.iterators))
+    }
+    if (!Objects.equals(iterators, that.iterators)) {
       return false;
-    if (!Objects.equals(ranges, that.ranges))
+    }
+    if (!Objects.equals(ranges, that.ranges)) {
       return false;
-    if (!Objects.equals(executionHints, that.executionHints))
+    }
+    if (!Objects.equals(executionHints, that.executionHints)) {
       return false;
-    if (!Objects.equals(consistencyLevel, that.consistencyLevel))
+    }
+    if (!Objects.equals(consistencyLevel, that.consistencyLevel)) {
       return false;
+    }
     return Objects.equals(samplerConfig, that.samplerConfig);
   }
 

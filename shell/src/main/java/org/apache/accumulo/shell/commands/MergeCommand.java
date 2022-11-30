@@ -56,10 +56,12 @@ public class MergeCommand extends Command {
       shellState.getWriter().flush();
       String line = shellState.getReader()
           .readLine("Merge the entire table { " + tableName + " } into one tablet (yes|no)? ");
-      if (line == null)
+      if (line == null) {
         return 0;
-      if (!line.equalsIgnoreCase("y") && !line.equalsIgnoreCase("yes"))
+      }
+      if (!line.equalsIgnoreCase("y") && !line.equalsIgnoreCase("yes")) {
         return 0;
+      }
     }
     if (size < 0) {
       shellState.getAccumuloClient().tableOperations().merge(tableName, startRow, endRow);

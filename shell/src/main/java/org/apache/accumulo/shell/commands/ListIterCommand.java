@@ -71,8 +71,9 @@ public class ListIterCommand extends Command {
     final boolean allScopes = cl.hasOption(allScopesOpt.getOpt());
     Set<IteratorScope> desiredScopes = new HashSet<>();
     for (IteratorScope scope : IteratorScope.values()) {
-      if (allScopes || cl.hasOption(scopeOpts.get(scope).getOpt()))
+      if (allScopes || cl.hasOption(scopeOpts.get(scope).getOpt())) {
         desiredScopes.add(scope);
+      }
     }
     if (desiredScopes.isEmpty()) {
       throw new IllegalArgumentException("You must select at least one scope to configure");

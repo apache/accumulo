@@ -681,21 +681,24 @@ public class ClientContext implements AccumuloClient {
   // use cases overlap with requireNotDeleted, but this throws a checked exception
   public TableId requireTableExists(TableId tableId, String tableName)
       throws TableNotFoundException {
-    if (!tableNodeExists(tableId))
+    if (!tableNodeExists(tableId)) {
       throw new TableNotFoundException(tableId.canonical(), tableName, "Table no longer exists");
+    }
     return tableId;
   }
 
   // use cases overlap with requireTableExists, but this throws a runtime exception
   public TableId requireNotDeleted(TableId tableId) {
-    if (!tableNodeExists(tableId))
+    if (!tableNodeExists(tableId)) {
       throw new TableDeletedException(tableId.canonical());
+    }
     return tableId;
   }
 
   public TableId requireNotOffline(TableId tableId, String tableName) {
-    if (getTableState(tableId) == TableState.OFFLINE)
+    if (getTableState(tableId) == TableState.OFFLINE) {
       throw new TableOfflineException(tableId, tableName);
+    }
     return tableId;
   }
 
@@ -704,8 +707,8 @@ public class ClientContext implements AccumuloClient {
       int numQueryThreads) throws TableNotFoundException {
     ensureOpen();
     checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchReader(this, requireNotOffline(getTableId(tableName), tableName),
-        tableName, authorizations, numQueryThreads);
+    return new TabletServerBatchReader(this, getTableId(tableName), tableName, authorizations,
+        numQueryThreads);
   }
 
   @Override
@@ -792,8 +795,7 @@ public class ClientContext implements AccumuloClient {
       throws TableNotFoundException {
     ensureOpen();
     checkArgument(authorizations != null, "authorizations is null");
-    Scanner scanner =
-        new ScannerImpl(this, requireNotOffline(getTableId(tableName), tableName), authorizations);
+    Scanner scanner = new ScannerImpl(this, getTableId(tableName), authorizations);
     Integer batchSize = ClientProperty.SCANNER_BATCH_SIZE.getInteger(getProperties());
     if (batchSize != null) {
       scanner.setBatchSize(batchSize);
@@ -829,8 +831,9 @@ public class ClientContext implements AccumuloClient {
   @Override
   public synchronized SecurityOperations securityOperations() {
     ensureOpen();
-    if (secops == null)
+    if (secops == null) {
       secops = new SecurityOperationsImpl(this);
+    }
 
     return secops;
   }
@@ -838,8 +841,9 @@ public class ClientContext implements AccumuloClient {
   @Override
   public synchronized InstanceOperations instanceOperations() {
     ensureOpen();
-    if (instanceops == null)
+    if (instanceops == null) {
       instanceops = new InstanceOperationsImpl(this);
+    }
 
     return instanceops;
   }

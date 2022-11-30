@@ -58,7 +58,7 @@ public class ColumnFamilySkippingIterator extends ServerSkippingIterator
   protected void consume() throws IOException {
     int count = 0;
 
-    if (inclusive)
+    if (inclusive) {
       while (source.hasTop() && !colFamSet.contains(source.getTopKey().getColumnFamilyData())) {
         if (count < 10) {
           // it is quicker to call next if we are close, but we never know if we are close
@@ -79,7 +79,7 @@ public class ColumnFamilySkippingIterator extends ServerSkippingIterator
           count = 0;
         }
       }
-    else if (colFamSet != null && !colFamSet.isEmpty())
+    } else if (colFamSet != null && !colFamSet.isEmpty()) {
       while (source.hasTop() && colFamSet.contains(source.getTopKey().getColumnFamilyData())) {
         if (count < 10) {
           source.next();
@@ -90,6 +90,7 @@ public class ColumnFamilySkippingIterator extends ServerSkippingIterator
           count = 0;
         }
       }
+    }
   }
 
   private void reseek(Key key) throws IOException {

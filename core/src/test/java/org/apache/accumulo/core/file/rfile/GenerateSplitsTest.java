@@ -111,8 +111,9 @@ public class GenerateSplitsTest {
   private void verifySplitsFile(String... splits) throws IOException {
     String splitsFile = Files.readString(Paths.get(splitsFilePath));
     assertEquals(splits.length, splitsFile.split("\n").length);
-    for (String s : splits)
+    for (String s : splits) {
       assertTrue(splitsFile.contains(s), "Did not find " + s + " in: " + splitsFile);
+    }
   }
 
   @Test
@@ -160,8 +161,9 @@ public class GenerateSplitsTest {
    */
   private Iterator<String> numSplits(int num) {
     TreeSet<String> splits = new TreeSet<>();
-    for (int i = 0; i < num; i++)
+    for (int i = 0; i < num; i++) {
       splits.add(String.format("%03d", i));
+    }
     return splits.iterator();
   }
 }

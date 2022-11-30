@@ -349,8 +349,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
    * throwing an exception.
    *
    * @return true if the file was moved to trash
-   * @throws IOException
-   *           if the volume manager encountered a problem
+   * @throws IOException if the volume manager encountered a problem
    */
   boolean moveToTrash(Path path) throws IOException {
     final VolumeManager fs = getContext().getVolumeManager();
@@ -411,8 +410,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   /**
    * Checks if the given string is a directory.
    *
-   * @param delete
-   *          possible directory
+   * @param delete possible directory
    * @return true if string is a directory
    */
   static boolean isDir(String delete) {

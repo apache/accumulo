@@ -53,22 +53,25 @@ public class AgeOffStore<T> implements TStore<T> {
     minTime = Long.MAX_VALUE;
 
     for (Long time : candidates.values()) {
-      if (time < minTime)
+      if (time < minTime) {
         minTime = time;
+      }
     }
   }
 
   private synchronized void addCandidate(long txid) {
     long time = timeSource.currentTimeMillis();
     candidates.put(txid, time);
-    if (time < minTime)
+    if (time < minTime) {
       minTime = time;
+    }
   }
 
   private synchronized void removeCandidate(long txid) {
     Long time = candidates.remove(txid);
-    if (time != null && time <= minTime)
+    if (time != null && time <= minTime) {
       updateMinTime();
+    }
   }
 
   public void ageOff() {

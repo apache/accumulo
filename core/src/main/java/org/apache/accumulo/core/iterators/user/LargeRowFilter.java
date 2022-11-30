@@ -226,11 +226,13 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
 
       // it is possible that all or some of the data read for the current
       // row is before the start of the range
-      while (currentPosition < keys.size() && range.beforeStartKey(keys.get(currentPosition)))
+      while (currentPosition < keys.size() && range.beforeStartKey(keys.get(currentPosition))) {
         currentPosition++;
+      }
 
-      if (currentPosition == keys.size())
+      if (currentPosition == keys.size()) {
         readNextRow();
+      }
 
     } else {
       source.seek(range, columnFamilies, inclusive);
@@ -273,9 +275,10 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
           "Bad # of options, must supply: " + MAX_COLUMNS + " as value");
     }
 
-    if (!options.containsKey(MAX_COLUMNS))
+    if (!options.containsKey(MAX_COLUMNS)) {
       throw new IllegalArgumentException(
           "Bad # of options, must supply: " + MAX_COLUMNS + " as value");
+    }
     try {
       maxColumns = Integer.parseInt(options.get(MAX_COLUMNS));
     } catch (Exception e) {
@@ -289,10 +292,8 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
   /**
    * A convenience method for setting the maximum number of columns to keep.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param maxColumns
-   *          number of columns to keep.
+   * @param is IteratorSetting object to configure.
+   * @param maxColumns number of columns to keep.
    */
   public static void setMaxColumns(IteratorSetting is, int maxColumns) {
     is.addOption(MAX_COLUMNS, Integer.toString(maxColumns));

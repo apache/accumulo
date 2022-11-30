@@ -169,8 +169,9 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       Map<?,?> map = getStats();
       map.forEach((k, v) -> {
         try {
-          if (v != null && Double.parseDouble(v.toString()) > 0.0)
+          if (v != null && Double.parseDouble(v.toString()) > 0.0) {
             log.debug("{}:{}", k, v);
+          }
         } catch (NumberFormatException e) {
           // only looking for numbers
         }

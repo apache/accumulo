@@ -83,10 +83,8 @@ public class TServerUtils {
 
   /**
    *
-   * @param hostname
-   *          name of the host
-   * @param ports
-   *          array of ports
+   * @param hostname name of the host
+   * @param ports array of ports
    * @return array of HostAndPort objects
    */
   public static HostAndPort[] getHostAndPorts(String hostname, IntStream ports) {
@@ -96,8 +94,7 @@ public class TServerUtils {
 
   /**
    *
-   * @param config
-   *          Accumulo configuration
+   * @param config Accumulo configuration
    * @return A Map object with reserved port numbers as keys and Property objects as values
    */
   static Map<Integer,Property> getReservedPorts(AccumuloConfiguration config,
@@ -111,27 +108,19 @@ public class TServerUtils {
   /**
    * Start a server, at the given port, or higher, if that port is not available.
    *
-   * @param context
-   *          RPC configuration
-   * @param portHintProperty
-   *          the port to attempt to open, can be zero, meaning "any available port"
-   * @param processor
-   *          the service to be started
-   * @param serverName
-   *          the name of the class that is providing the service
-   * @param threadName
-   *          name this service's thread for better debugging
-   * @param portSearchProperty
-   *          A boolean Property to control if port-search should be used, or null to disable
-   * @param minThreadProperty
-   *          A Property to control the minimum number of threads in the pool
-   * @param timeBetweenThreadChecksProperty
-   *          A Property to control the amount of time between checks to resize the thread pool
-   * @param maxMessageSizeProperty
-   *          A Property to control the maximum Thrift message size accepted
+   * @param context RPC configuration
+   * @param portHintProperty the port to attempt to open, can be zero, meaning "any available port"
+   * @param processor the service to be started
+   * @param serverName the name of the class that is providing the service
+   * @param threadName name this service's thread for better debugging
+   * @param portSearchProperty A boolean Property to control if port-search should be used, or null
+   *        to disable
+   * @param minThreadProperty A Property to control the minimum number of threads in the pool
+   * @param timeBetweenThreadChecksProperty A Property to control the amount of time between checks
+   *        to resize the thread pool
+   * @param maxMessageSizeProperty A Property to control the maximum Thrift message size accepted
    * @return the server object created, and the port actually used
-   * @throws UnknownHostException
-   *           when we don't know our own address
+   * @throws UnknownHostException when we don't know our own address
    */
   public static ServerAddress startServer(ServerContext context, String hostname,
       Property portHintProperty, TProcessor processor, String serverName, String threadName,
@@ -294,17 +283,13 @@ public class TServerUtils {
    * core pool size and number of active threads of the {@link ThreadPoolExecutor} and increase or
    * decrease the core pool size based on activity (excessive or lack thereof).
    *
-   * @param serverName
-   *          A name to describe the thrift server this executor will service
-   * @param executorThreads
-   *          The minimum number of threads for the executor
-   * @param threadTimeOut
-   *          The time after which threads are allowed to terminate including core threads. If set
-   *          to 0, the core threads will indefinitely stay running waiting for work.
-   * @param conf
-   *          Accumulo Configuration
-   * @param timeBetweenThreadChecks
-   *          The amount of time, in millis, between attempts to resize the executor thread pool
+   * @param serverName A name to describe the thrift server this executor will service
+   * @param executorThreads The minimum number of threads for the executor
+   * @param threadTimeOut The time after which threads are allowed to terminate including core
+   *        threads. If set to 0, the core threads will indefinitely stay running waiting for work.
+   * @param conf Accumulo Configuration
+   * @param timeBetweenThreadChecks The amount of time, in millis, between attempts to resize the
+   *        executor thread pool
    * @return A {@link ThreadPoolExecutor} which will resize itself automatically
    */
   private static ThreadPoolExecutor createSelfResizingThreadPool(final String serverName,
@@ -333,12 +318,9 @@ public class TServerUtils {
    * Creates a TThreadPoolServer for normal unsecure operation. Useful for comparing performance
    * against SSL or SASL transports.
    *
-   * @param address
-   *          Address to bind to
-   * @param processor
-   *          TProcessor for the server
-   * @param maxMessageSize
-   *          Maximum size of a Thrift message allowed
+   * @param address Address to bind to
+   * @param processor TProcessor for the server
+   * @param maxMessageSize Maximum size of a Thrift message allowed
    * @return A configured TThreadPoolServer and its bound address information
    */
   private static ServerAddress createBlockingServer(HostAndPort address, TProcessor processor,
@@ -368,12 +350,9 @@ public class TServerUtils {
    * Create a {@link TThreadPoolServer} with the provided server transport, processor and transport
    * factory.
    *
-   * @param transport
-   *          TServerTransport for the server
-   * @param processor
-   *          TProcessor for the server
-   * @param transportFactory
-   *          TTransportFactory for the server
+   * @param transport TServerTransport for the server
+   * @param processor TProcessor for the server
+   * @param transportFactory TTransportFactory for the server
    */
   private static TThreadPoolServer createTThreadPoolServer(TServerTransport transport,
       TProcessor processor, TTransportFactory transportFactory, TProtocolFactory protocolFactory,
@@ -391,14 +370,10 @@ public class TServerUtils {
   /**
    * Create the Thrift server socket for RPC running over SSL.
    *
-   * @param port
-   *          Port of the server socket to bind to
-   * @param timeout
-   *          Socket timeout
-   * @param address
-   *          Address to bind the socket to
-   * @param params
-   *          SSL parameters
+   * @param port Port of the server socket to bind to
+   * @param timeout Socket timeout
+   * @param address Address to bind the socket to
+   * @param params SSL parameters
    * @return A configured TServerSocket configured to use SSL
    */
   private static TServerSocket getSslServerSocket(int port, int timeout, InetAddress address,
@@ -442,14 +417,10 @@ public class TServerUtils {
   /**
    * Create a Thrift SSL server.
    *
-   * @param address
-   *          host and port to bind to
-   * @param processor
-   *          TProcessor for the server
-   * @param socketTimeout
-   *          Socket timeout
-   * @param sslParams
-   *          SSL parameters
+   * @param address host and port to bind to
+   * @param processor TProcessor for the server
+   * @param socketTimeout Socket timeout
+   * @param sslParams SSL parameters
    * @return A ServerAddress with the bound-socket information and the Thrift server
    */
   private static ServerAddress createSslThreadPoolServer(HostAndPort address, TProcessor processor,

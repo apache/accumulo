@@ -277,8 +277,7 @@ public class PropStoreZooKeeperIT {
    * that should only be coordinating via ZooKeeper events. When a node is deleted, the ZooKeeper
    * node deleted event should also clear the node from all caches.
    *
-   * @throws InterruptedException
-   *           Any exception is a test failure.
+   * @throws InterruptedException Any exception is a test failure.
    */
   @Test
   public void deleteThroughWatcher() throws InterruptedException {

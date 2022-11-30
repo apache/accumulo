@@ -34,8 +34,7 @@ public class ProblemSummary {
   /**
    * Adds a new problem summary to the list
    *
-   * @param problemSummary
-   *          problem summary to add
+   * @param problemSummary problem summary to add
    */
   public void addProblemSummary(ProblemSummaryInformation problemSummary) {
     this.problemSummary.add(problemSummary);

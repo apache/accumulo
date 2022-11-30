@@ -283,14 +283,17 @@ public class Upgrader9to10 implements Upgrader {
 
       tabletMutator.putDirName(upgradeDirColumn(dir));
 
-      if (last != null)
+      if (last != null) {
         tabletMutator.putLocation(last, LocationType.LAST);
+      }
 
-      if (future != null)
+      if (future != null) {
         tabletMutator.putLocation(future, LocationType.FUTURE);
+      }
 
-      if (current != null)
+      if (current != null) {
         tabletMutator.putLocation(current, LocationType.CURRENT);
+      }
 
       logs.forEach(tabletMutator::putWal);
 
@@ -409,8 +412,9 @@ public class Upgrader9to10 implements Upgrader {
   private String getFromZK(ServerContext context, String relpath) {
     try {
       byte[] data = context.getZooReaderWriter().getData(context.getZooKeeperRoot() + relpath);
-      if (data == null)
+      if (data == null) {
         return null;
+      }
 
       return new String(data, UTF_8);
     } catch (NoNodeException e) {
@@ -489,8 +493,9 @@ public class Upgrader9to10 implements Upgrader {
               path.substring(0, path.lastIndexOf("/delete+")) + "/" + filename.split("\\+")[1];
           if (fs.exists(new Path(expectedCompactedFile))) {
             // compaction finished, but did not finish deleting compacted files.. so delete it
-            if (!fs.deleteRecursively(file.getPath()))
+            if (!fs.deleteRecursively(file.getPath())) {
               log.warn("Delete of file: {} return false", file.getPath());
+            }
             continue;
           }
           // compaction did not finish, so put files back
@@ -508,8 +513,9 @@ public class Upgrader9to10 implements Upgrader {
 
         if (filename.endsWith("_tmp")) {
           log.warn("cleaning up old tmp file: {}", path);
-          if (!fs.deleteRecursively(file.getPath()))
+          if (!fs.deleteRecursively(file.getPath())) {
             log.warn("Delete of tmp file: {} return false", file.getPath());
+          }
 
           continue;
         }
@@ -801,8 +807,9 @@ public class Upgrader9to10 implements Upgrader {
 
     // if the volume was removed properly, the path is absolute so return, otherwise
     // it is a relative path so proceed with more checks
-    if (pathNoVolume != null)
+    if (pathNoVolume != null) {
       return pathToCheck;
+    }
 
     // A relative path directory of the form "/tableId/tabletDir" will have depth == 2
     // A relative path file of the form "/tableId/tabletDir/file" will have depth == 3

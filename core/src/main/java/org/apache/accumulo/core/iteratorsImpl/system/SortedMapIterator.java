@@ -93,19 +93,22 @@ public class SortedMapIterator implements InterruptibleIterator {
   @Override
   public void next() throws IOException {
 
-    if (entry == null)
+    if (entry == null) {
       throw new IllegalStateException();
+    }
 
-    if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get())
+    if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get()) {
       throw new IterationInterruptedException();
+    }
 
     if (iter.hasNext()) {
       entry = iter.next();
       if (range.afterEndKey(entry.getKey())) {
         entry = null;
       }
-    } else
+    } else {
       entry = null;
+    }
 
   }
 
@@ -113,8 +116,9 @@ public class SortedMapIterator implements InterruptibleIterator {
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
 
-    if (interruptFlag != null && interruptFlag.get())
+    if (interruptFlag != null && interruptFlag.get()) {
       throw new IterationInterruptedException();
+    }
 
     this.range = range;
 
@@ -129,8 +133,9 @@ public class SortedMapIterator implements InterruptibleIterator {
       if (range.afterEndKey(entry.getKey())) {
         entry = null;
       }
-    } else
+    } else {
       entry = null;
+    }
 
     while (hasTop() && range.beforeStartKey(getTopKey())) {
       next();

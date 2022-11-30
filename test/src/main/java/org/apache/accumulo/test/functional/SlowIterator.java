@@ -72,11 +72,13 @@ public class SlowIterator extends WrappingIterator {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    if (options.containsKey(SLEEP_TIME))
+    if (options.containsKey(SLEEP_TIME)) {
       sleepTime = Long.parseLong(options.get(SLEEP_TIME));
+    }
 
-    if (options.containsKey(SEEK_SLEEP_TIME))
+    if (options.containsKey(SEEK_SLEEP_TIME)) {
       seekSleepTime = Long.parseLong(options.get(SEEK_SLEEP_TIME));
+    }
   }
 
 }

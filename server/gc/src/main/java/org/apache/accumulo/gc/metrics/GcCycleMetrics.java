@@ -52,8 +52,7 @@ public class GcCycleMetrics {
    * Set the last gc run statistics. Makes a defensive deep copy so that if the gc implementation
    * modifies the values.
    *
-   * @param lastCollect
-   *          the last gc run statistics.
+   * @param lastCollect the last gc run statistics.
    */
   public void setLastCollect(final GcCycleStats lastCollect) {
     this.lastCollect.set(new GcCycleStats(lastCollect));
@@ -71,8 +70,7 @@ public class GcCycleMetrics {
   /**
    * Set the lost wal collection statistics
    *
-   * @param lastWalCollect
-   *          last wal statistics
+   * @param lastWalCollect last wal statistics
    */
   public void setLastWalCollect(final GcCycleStats lastWalCollect) {
     this.lastWalCollect.set(new GcCycleStats(lastWalCollect));
@@ -90,8 +88,7 @@ public class GcCycleMetrics {
   /**
    * Set the duration of post operation (compact, flush, none) in nanoseconds.
    *
-   * @param postOpDurationNanos
-   *          the duration, in nanoseconds.
+   * @param postOpDurationNanos the duration, in nanoseconds.
    */
   public void setPostOpDurationNanos(long postOpDurationNanos) {
     this.postOpDurationNanos.set(postOpDurationNanos);

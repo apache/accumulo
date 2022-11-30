@@ -82,11 +82,9 @@ public class ZooKeeperInstance implements Instance {
 
   /**
    *
-   * @param instanceName
-   *          The name of specific accumulo instance. This is set at initialization time.
-   * @param zooKeepers
-   *          A comma separated list of zoo keeper server locations. Each location can contain an
-   *          optional port, of the format host:port.
+   * @param instanceName The name of specific accumulo instance. This is set at initialization time.
+   * @param zooKeepers A comma separated list of zoo keeper server locations. Each location can
+   *        contain an optional port, of the format host:port.
    */
   public ZooKeeperInstance(String instanceName, String zooKeepers) {
     this(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
@@ -99,10 +97,11 @@ public class ZooKeeperInstance implements Instance {
     this.clientConf = config;
     this.instanceId = clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_ID);
     this.instanceName = clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_NAME);
-    if ((instanceId == null) == (instanceName == null))
+    if ((instanceId == null) == (instanceName == null)) {
       throw new IllegalArgumentException(
           "Expected exactly one of instanceName and instanceId to be set; "
               + (instanceName == null ? "neither" : "both") + " were set");
+    }
     this.zooKeepers = clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST);
     this.zooKeepersSessionTimeOut = (int) ConfigurationTypeHelper
         .getTimeInMillis(clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT));
@@ -114,10 +113,9 @@ public class ZooKeeperInstance implements Instance {
   }
 
   /**
-   * @param config
-   *          Client configuration for specifying connection options. See
-   *          {@link ClientConfiguration} which extends Configuration with convenience methods
-   *          specific to Accumulo.
+   * @param config Client configuration for specifying connection options. See
+   *        {@link ClientConfiguration} which extends Configuration with convenience methods
+   *        specific to Accumulo.
    * @since 1.9.0
    */
   public ZooKeeperInstance(ClientConfiguration config) {
@@ -166,9 +164,10 @@ public class ZooKeeperInstance implements Instance {
 
   @Override
   public String getInstanceName() {
-    if (instanceName == null)
+    if (instanceName == null) {
       instanceName =
           InstanceOperationsImpl.lookupInstanceName(zooCache, InstanceId.of(getInstanceID()));
+    }
 
     return instanceName;
   }

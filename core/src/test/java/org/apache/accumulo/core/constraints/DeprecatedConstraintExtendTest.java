@@ -92,8 +92,9 @@ public class DeprecatedConstraintExtendTest {
     @Override
     public List<Short> check(Constraint.Environment env, Mutation mutation) {
       List<Short> violations = super.check(env, mutation);
-      if (!violations.isEmpty())
+      if (!violations.isEmpty()) {
         return violations;
+      }
 
       for (ColumnUpdate cu : mutation.getUpdates()) {
         int size = mutation.getRow().length;
@@ -101,8 +102,9 @@ public class DeprecatedConstraintExtendTest {
         size += cu.getColumnQualifier().length;
         size += cu.getColumnVisibility().length;
 
-        if (size < minSize)
+        if (size < minSize) {
           violations.add(MIN_KEY_SIZE_EXCEEDED_VIOLATION);
+        }
       }
       return violations;
     }

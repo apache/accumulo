@@ -63,8 +63,7 @@ public class StoredTabletFile extends TabletFile {
   /**
    * Validate that the provided reference matches what is in the metadata table.
    *
-   * @param reference
-   *          the relative path to check against
+   * @param reference the relative path to check against
    */
   public void validate(String reference) {
     if (!metadataEntry.equals(reference)) {

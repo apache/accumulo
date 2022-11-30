@@ -48,12 +48,9 @@ public class ReplicaSystemHelper {
   /**
    * Record the updated Status for this file and target
    *
-   * @param filePath
-   *          Path to file being replicated
-   * @param status
-   *          Updated Status after replication
-   * @param target
-   *          Peer that was replicated to
+   * @param filePath Path to file being replicated
+   * @param status Updated Status after replication
+   * @param target Peer that was replicated to
    */
   public void recordNewStatus(Path filePath, Status status, ReplicationTarget target)
       throws AccumuloException, TableNotFoundException {

@@ -220,8 +220,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           }
 
           // ignore entries for tables that do not exist in zookeeper
-          if (manager.getTableManager().getTableState(tls.extent.tableId()) == null)
+          if (manager.getTableManager().getTableState(tls.extent.tableId()) == null) {
             continue;
+          }
 
           // Don't overwhelm the tablet servers with work
           if (tLists.unassigned.size() + unloaded
@@ -265,12 +266,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
           if (goal == TabletGoalState.HOSTED) {
             if ((state != TabletState.HOSTED && !tls.walogs.isEmpty())
-                && manager.recoveryManager.recoverLogs(tls.extent, tls.walogs))
+                && manager.recoveryManager.recoverLogs(tls.extent, tls.walogs)) {
               continue;
+            }
             switch (state) {
               case HOSTED:
-                if (location.equals(manager.migrations.get(tls.extent)))
+                if (location.equals(manager.migrations.get(tls.extent))) {
                   manager.migrations.remove(tls.extent);
+                }
                 break;
               case ASSIGNED_TO_DEAD_SERVER:
                 hostDeadTablet(tLists, tls, location, wals);
@@ -425,8 +428,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private void hostDeadTablet(TabletLists tLists, TabletLocationState tls, TServerInstance location,
       WalStateManager wals) throws WalMarkerException {
     tLists.assignedToDeadServers.add(tls);
-    if (location.equals(manager.migrations.get(tls.extent)))
+    if (location.equals(manager.migrations.get(tls.extent))) {
       manager.migrations.remove(tls.extent);
+    }
     TServerInstance tserver = tls.futureOrCurrent();
     if (!tLists.logsForDeadServers.containsKey(tserver)) {
       tLists.logsForDeadServers.put(tserver, wals.getWalsInUse(tserver));
@@ -451,8 +455,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       Map<Key,Value> assigned = new HashMap<>();
       KeyExtent extent = KeyExtent.fromMetaRow(row);
       String table = MetadataTable.NAME;
-      if (extent.isMeta())
+      if (extent.isMeta()) {
         table = RootTable.NAME;
+      }
       Scanner scanner = manager.getContext().createScanner(table, Authorizations.EMPTY);
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
@@ -508,26 +513,33 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private void sendSplitRequest(MergeInfo info, TabletState state, TabletLocationState tls) {
     // Already split?
-    if (!info.getState().equals(MergeState.SPLITTING))
+    if (!info.getState().equals(MergeState.SPLITTING)) {
       return;
+    }
     // Merges don't split
-    if (!info.isDelete())
+    if (!info.isDelete()) {
       return;
+    }
     // Online and ready to split?
-    if (!state.equals(TabletState.HOSTED))
+    if (!state.equals(TabletState.HOSTED)) {
       return;
+    }
     // Does this extent cover the end points of the delete?
     KeyExtent range = info.getExtent();
     if (tls.extent.overlaps(range)) {
       for (Text splitPoint : new Text[] {range.prevEndRow(), range.endRow()}) {
-        if (splitPoint == null)
+        if (splitPoint == null) {
           continue;
-        if (!tls.extent.contains(splitPoint))
+        }
+        if (!tls.extent.contains(splitPoint)) {
           continue;
-        if (splitPoint.equals(tls.extent.endRow()))
+        }
+        if (splitPoint.equals(tls.extent.endRow())) {
           continue;
-        if (splitPoint.equals(tls.extent.prevEndRow()))
+        }
+        if (splitPoint.equals(tls.extent.prevEndRow())) {
           continue;
+        }
         try {
           TServerConnection conn;
           conn = manager.tserverSet.getConnection(tls.current);
@@ -548,14 +560,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private void sendChopRequest(MergeInfo info, TabletState state, TabletLocationState tls) {
     // Don't bother if we're in the wrong state
-    if (!info.getState().equals(MergeState.WAITING_FOR_CHOPPED))
+    if (!info.getState().equals(MergeState.WAITING_FOR_CHOPPED)) {
       return;
+    }
     // Tablet must be online
-    if (!state.equals(TabletState.HOSTED))
+    if (!state.equals(TabletState.HOSTED)) {
       return;
+    }
     // Tablet isn't already chopped
-    if (tls.chopped)
+    if (tls.chopped) {
       return;
+    }
     // Tablet ranges intersect
     if (info.needsToBeChopped(tls.extent)) {
       TServerConnection conn;
@@ -581,8 +596,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         // starting the merge... the verification check that is done before
         // moving into the merging state could fail if merge starts but does
         // not finish
-        if (update == MergeState.COMPLETE)
+        if (update == MergeState.COMPLETE) {
           update = MergeState.NONE;
+        }
         if (update != stats.getMergeInfo().getState()) {
           manager.setMergeState(stats.getMergeInfo(), update);
         }
@@ -759,8 +775,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
       }
 
-      if (maxLogicalTime != null)
+      if (maxLogicalTime != null) {
         ServerColumnFamily.TIME_COLUMN.put(m, new Value(maxLogicalTime.encode()));
+      }
 
       // delete any entries for external compactions
       extCompIds.forEach(ecid -> m.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid));
@@ -818,8 +835,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         Entry<Key,Value> entry = row.next();
         Key key = entry.getKey();
 
-        if (m == null)
+        if (m == null) {
           m = new Mutation(key.getRow());
+        }
 
         m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
         Manager.log.debug("deleting entry {}", key);
@@ -906,8 +924,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
       }
 
-      if (!unassigned.isEmpty() && assignedOut.isEmpty())
+      if (!unassigned.isEmpty() && assignedOut.isEmpty()) {
         Manager.log.warn("Load balancer failed to assign any tablets");
+      }
     }
   }
 

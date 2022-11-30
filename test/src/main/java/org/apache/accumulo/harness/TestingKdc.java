@@ -60,8 +60,9 @@ public class TestingKdc {
 
   public static File computeKdcDir() {
     File targetDir = new File(System.getProperty("user.dir"), "target");
-    if (!targetDir.exists())
+    if (!targetDir.exists()) {
       assertTrue(targetDir.mkdirs());
+    }
     assertTrue(targetDir.isDirectory(), "Could not find Maven target directory: " + targetDir);
 
     // Create the directories: target/kerberos/minikdc
@@ -182,8 +183,7 @@ public class TestingKdc {
   /**
    * The {@link ClusterUser} corresponding to the given offset. Represents an unprivileged user.
    *
-   * @param offset
-   *          The offset to fetch credentials for, valid through {@link #NUM_USERS}
+   * @param offset The offset to fetch credentials for, valid through {@link #NUM_USERS}
    */
   public ClusterUser getClientPrincipal(int offset) {
     checkArgument(started, "Client principal is not initialized, is the KDC started?");
@@ -217,8 +217,7 @@ public class TestingKdc {
   /**
    * Qualify a username (only the primary from the kerberos principal) with the proper realm
    *
-   * @param primary
-   *          The primary or primary and instance
+   * @param primary The primary or primary and instance
    */
   public String qualifyUser(String primary) {
     return String.format("%s@%s.%s", primary, getOrgName(), getOrgDomain());

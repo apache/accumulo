@@ -62,8 +62,9 @@ public class ColumnQualifierFilter extends ServerFilter {
 
   @Override
   public boolean accept(Key key, Value v) {
-    if (columnFamilies.contains(key.getColumnFamilyData()))
+    if (columnFamilies.contains(key.getColumnFamilyData())) {
       return true;
+    }
 
     HashSet<ByteSequence> cfset = columnsQualifiers.get(key.getColumnQualifierData());
     // ensure the column qualifier goes with a paired column family,

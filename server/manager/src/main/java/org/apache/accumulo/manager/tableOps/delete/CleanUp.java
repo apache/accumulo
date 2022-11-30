@@ -108,8 +108,9 @@ class CleanUp extends ManagerRepo {
       }
     }
 
-    if (!done)
+    if (!done) {
       return 50;
+    }
 
     return 0;
   }

@@ -68,8 +68,9 @@ class LoggingTabletStateStore implements TabletStateStore {
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
     wrapped.unassign(tablets, logsForDeadServers);
 
-    if (logsForDeadServers == null)
+    if (logsForDeadServers == null) {
       logsForDeadServers = Map.of();
+    }
 
     for (TabletLocationState tls : tablets) {
       TabletLogger.unassigned(tls.extent, logsForDeadServers.size());
@@ -82,8 +83,9 @@ class LoggingTabletStateStore implements TabletStateStore {
       throws DistributedStoreException {
     wrapped.suspend(tablets, logsForDeadServers, suspensionTimestamp);
 
-    if (logsForDeadServers == null)
+    if (logsForDeadServers == null) {
       logsForDeadServers = Map.of();
+    }
 
     for (TabletLocationState tls : tablets) {
       var location = tls.getLocation();

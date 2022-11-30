@@ -36,14 +36,10 @@ public class TabletServerRecoveryInformation {
   /**
    * Stores a tserver recovery
    *
-   * @param server
-   *          Name of the tserver
-   * @param log
-   *          Log of the tserver
-   * @param time
-   *          Recovery runtime
-   * @param progress
-   *          Recovery progress
+   * @param server Name of the tserver
+   * @param log Log of the tserver
+   * @param time Recovery runtime
+   * @param progress Recovery progress
    */
   public TabletServerRecoveryInformation(String server, String log, int time, double progress) {
     this.server = server;

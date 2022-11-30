@@ -51,9 +51,8 @@ public interface ContextClassLoaderFactory {
    * RuntimeException of some type (such as IllegalArgumentException) if the provided contextName is
    * not supported or fails to be constructed.
    *
-   * @param contextName
-   *          the name of the context that represents a class loader that is managed by this factory
-   *          (can be null)
+   * @param contextName the name of the context that represents a class loader that is managed by
+   *        this factory (can be null)
    * @return the class loader for the given contextName
    */
   ClassLoader getClassLoader(String contextName);

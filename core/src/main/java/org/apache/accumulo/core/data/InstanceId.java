@@ -45,8 +45,7 @@ public class InstanceId extends AbstractId<InstanceId> {
   /**
    * Get a InstanceId object for the provided canonical string. This is guaranteed to be non-null
    *
-   * @param canonical
-   *          Instance ID string
+   * @param canonical Instance ID string
    * @return InstanceId object
    */
   public static InstanceId of(final String canonical) {
@@ -61,8 +60,7 @@ public class InstanceId extends AbstractId<InstanceId> {
   /**
    * Get a InstanceId object for the provided uuid. This is guaranteed to be non-null
    *
-   * @param uuid
-   *          UUID object
+   * @param uuid UUID object
    * @return InstanceId object
    */
   public static InstanceId of(final UUID uuid) {

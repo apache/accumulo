@@ -42,12 +42,9 @@ public class DeadLoggerInformation {
   /**
    * Stores a new dead logger information
    *
-   * @param server
-   *          dead logger location
-   * @param lastStatus
-   *          previous status of the dead logger
-   * @param status
-   *          status of the dead logger
+   * @param server dead logger location
+   * @param lastStatus previous status of the dead logger
+   * @param status status of the dead logger
    */
   public DeadLoggerInformation(String server, long lastStatus, String status) {
     this.server = server;

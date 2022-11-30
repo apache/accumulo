@@ -55,8 +55,9 @@ public class OldMutation implements Writable {
     private void reserve(int l) {
       if (offset + l > data.length) {
         int newSize = data.length * 2;
-        while (newSize <= offset + l)
+        while (newSize <= offset + l) {
           newSize = newSize * 2;
+        }
 
         byte[] newData = new byte[newSize];
         System.arraycopy(data, 0, newData, 0, offset);
@@ -79,10 +80,11 @@ public class OldMutation implements Writable {
 
     void add(boolean b) {
       reserve(1);
-      if (b)
+      if (b) {
         data[offset++] = 1;
-      else
+      } else {
         data[offset++] = 0;
+      }
     }
 
     void add(long v) {
@@ -213,8 +215,9 @@ public class OldMutation implements Writable {
   private void put(Text cf, Text cq, byte[] cv, boolean hasts, long ts, boolean deleted,
       byte[] val) {
 
-    if (buffer == null)
+    if (buffer == null) {
       throw new IllegalStateException("Can not add to mutation after serializing it");
+    }
 
     put(cf);
     put(cq);
@@ -226,8 +229,9 @@ public class OldMutation implements Writable {
     if (val.length < VALUE_SIZE_COPY_CUTOFF) {
       put(val);
     } else {
-      if (values == null)
+      if (values == null) {
         values = new ArrayList<>();
+      }
       byte[] copy = new byte[val.length];
       System.arraycopy(val, 0, copy, 0, val.length);
       values.add(copy);
@@ -350,8 +354,9 @@ public class OldMutation implements Writable {
 
   private byte[] readBytes(SimpleReader in) {
     int len = in.readInt();
-    if (len == 0)
+    if (len == 0) {
       return EMPTY_BYTES;
+    }
 
     byte[] bytes = new byte[len];
     in.readBytes(bytes);
@@ -369,8 +374,9 @@ public class OldMutation implements Writable {
       } else {
         ColumnUpdate[] tmpUpdates = new ColumnUpdate[entries];
 
-        for (int i = 0; i < entries; i++)
+        for (int i = 0; i < entries; i++) {
           tmpUpdates[i] = deserializeColumnUpdate(in);
+        }
 
         updates = Arrays.asList(tmpUpdates);
       }
@@ -405,13 +411,15 @@ public class OldMutation implements Writable {
   private int cachedValLens = -1;
 
   long getValueLengths() {
-    if (values == null)
+    if (values == null) {
       return 0;
+    }
 
     if (cachedValLens == -1) {
       int tmpCVL = 0;
-      for (byte[] val : values)
+      for (byte[] val : values) {
         tmpCVL += val.length;
+      }
 
       cachedValLens = tmpCVL;
     }
@@ -477,9 +485,9 @@ public class OldMutation implements Writable {
     out.write(data);
     out.writeInt(entries);
 
-    if (values == null)
+    if (values == null) {
       out.writeBoolean(false);
-    else {
+    } else {
       out.writeBoolean(true);
       out.writeInt(values.size());
       for (byte[] val : values) {
@@ -492,8 +500,9 @@ public class OldMutation implements Writable {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof OldMutation)
+    if (o instanceof OldMutation) {
       return equals((OldMutation) o);
+    }
     return false;
   }
 
@@ -504,17 +513,20 @@ public class OldMutation implements Writable {
 
   public boolean equals(OldMutation m) {
     serialize();
-    if (!Arrays.equals(row, m.getRow()))
+    if (!Arrays.equals(row, m.getRow())) {
       return false;
+    }
     List<ColumnUpdate> oldcus = this.getUpdates();
     List<ColumnUpdate> newcus = m.getUpdates();
-    if (oldcus.size() != newcus.size())
+    if (oldcus.size() != newcus.size()) {
       return false;
+    }
     for (int i = 0; i < newcus.size(); i++) {
       ColumnUpdate oldcu = oldcus.get(i);
       ColumnUpdate newcu = newcus.get(i);
-      if (!oldcu.equals(newcu))
+      if (!oldcu.equals(newcu)) {
         return false;
+      }
     }
     return false;
   }

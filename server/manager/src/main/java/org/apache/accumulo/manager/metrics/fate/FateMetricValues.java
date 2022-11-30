@@ -95,12 +95,9 @@ class FateMetricValues {
    * This method returns a map of counters of the current occurrences of each operation type that is
    * IN_PROGRESS
    *
-   * @param context
-   *          Accumulo context
-   * @param fateRootPath
-   *          the zookeeper path to fate info
-   * @param zooStore
-   *          a readonly zoostore
+   * @param context Accumulo context
+   * @param fateRootPath the zookeeper path to fate info
+   * @param zooStore a readonly zoostore
    * @return the current FATE metric values.
    */
   public static FateMetricValues getFromZooKeeper(final ServerContext context,

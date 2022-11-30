@@ -160,10 +160,10 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
     // circuit the call to switchSource
     boolean seekNeeded = yielded || (!onlySwitchAfterRow && switchSource()) || initialSeek;
 
-    if (seekNeeded)
-      if (initialSeek)
+    if (seekNeeded) {
+      if (initialSeek) {
         iter.seek(range, columnFamilies, inclusive);
-      else if (yielded) {
+      } else if (yielded) {
         Key yieldPosition = yield.get().getPositionAndReset();
         if (!range.contains(yieldPosition)) {
           throw new IOException("Underlying iterator yielded to a position outside of its range: "
@@ -171,10 +171,11 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
         }
         iter.seek(new Range(yieldPosition, false, range.getEndKey(), range.isEndKeyInclusive()),
             columnFamilies, inclusive);
-      } else
+      } else {
         iter.seek(new Range(key, false, range.getEndKey(), range.isEndKeyInclusive()),
             columnFamilies, inclusive);
-    else {
+      }
+    } else {
       iter.next();
       if (onlySwitchAfterRow && iter.hasTop() && !source.isCurrent()
           && !key.getRowData().equals(iter.getTopKey().getRowData())) {
@@ -238,8 +239,9 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
   }
 
   private void _switchNow() throws IOException {
-    if (onlySwitchAfterRow)
+    if (onlySwitchAfterRow) {
       throw new IllegalStateException("Can only switch on row boundaries");
+    }
 
     if (switchSource()) {
       if (key != null) {
@@ -251,20 +253,23 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
 
   public void switchNow() throws IOException {
     synchronized (copies) {
-      for (SourceSwitchingIterator ssi : copies)
+      for (SourceSwitchingIterator ssi : copies) {
         ssi._switchNow();
+      }
     }
   }
 
   @Override
   public void setInterruptFlag(AtomicBoolean flag) {
     synchronized (copies) {
-      if (copies.size() != 1)
+      if (copies.size() != 1) {
         throw new IllegalStateException(
             "setInterruptFlag() called after deep copies made " + copies.size());
+      }
 
-      if (iter != null)
+      if (iter != null) {
         ((InterruptibleIterator) iter).setInterruptFlag(flag);
+      }
 
       source.setInterruptFlag(flag);
     }

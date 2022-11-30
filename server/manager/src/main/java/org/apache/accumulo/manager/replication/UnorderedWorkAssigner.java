@@ -110,10 +110,8 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
   /**
    * Distribute the work for the given path with filename
    *
-   * @param path
-   *          Path to the file being replicated
-   * @param target
-   *          Target for the file to be replicated to
+   * @param path Path to the file being replicated
+   * @param target Target for the file to be replicated to
    */
   @Override
   protected boolean queueWork(Path path, ReplicationTarget target) {

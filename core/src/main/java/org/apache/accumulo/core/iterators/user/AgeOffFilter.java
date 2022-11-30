@@ -54,21 +54,24 @@ public class AgeOffFilter extends Filter {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
-    if (options == null)
+    if (options == null) {
       throw new IllegalArgumentException(TTL + " must be set for AgeOffFilter");
+    }
 
     String ttl = options.get(TTL);
-    if (ttl == null)
+    if (ttl == null) {
       throw new IllegalArgumentException(TTL + " must be set for AgeOffFilter");
+    }
 
     super.init(source, options, env);
     threshold = Long.parseLong(ttl);
 
     String time = options.get(CURRENT_TIME);
-    if (time != null)
+    if (time != null) {
       currentTime = Long.parseLong(time);
-    else
+    } else {
       currentTime = System.currentTimeMillis();
+    }
 
     // add sanity checks for threshold and currentTime?
   }
@@ -95,8 +98,9 @@ public class AgeOffFilter extends Filter {
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    if (!super.validateOptions(options))
+    if (!super.validateOptions(options)) {
       return false;
+    }
     try {
       Long.parseLong(options.get(TTL));
     } catch (Exception e) {
@@ -108,10 +112,8 @@ public class AgeOffFilter extends Filter {
   /**
    * A convenience method for setting the age off threshold.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param ttl
-   *          age off threshold in milliseconds.
+   * @param is IteratorSetting object to configure.
+   * @param ttl age off threshold in milliseconds.
    */
   public static void setTTL(IteratorSetting is, Long ttl) {
     is.addOption(TTL, Long.toString(ttl));
@@ -121,10 +123,8 @@ public class AgeOffFilter extends Filter {
    * A convenience method for setting the current time (from which to measure the age off
    * threshold).
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param currentTime
-   *          time in milliseconds.
+   * @param is IteratorSetting object to configure.
+   * @param currentTime time in milliseconds.
    */
   public static void setCurrentTime(IteratorSetting is, Long currentTime) {
     is.addOption(CURRENT_TIME, Long.toString(currentTime));

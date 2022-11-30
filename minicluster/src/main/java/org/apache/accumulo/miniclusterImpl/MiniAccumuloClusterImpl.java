@@ -142,20 +142,17 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   /**
    *
-   * @param dir
-   *          An empty or nonexistent temp directory that Accumulo and Zookeeper can store data in.
-   *          Creating the directory is left to the user. Java 7, Guava, and Junit provide methods
-   *          for creating temporary directories.
-   * @param rootPassword
-   *          Initial root password for instance.
+   * @param dir An empty or nonexistent temp directory that Accumulo and Zookeeper can store data
+   *        in. Creating the directory is left to the user. Java 7, Guava, and Junit provide methods
+   *        for creating temporary directories.
+   * @param rootPassword Initial root password for instance.
    */
   public MiniAccumuloClusterImpl(File dir, String rootPassword) throws IOException {
     this(new MiniAccumuloConfigImpl(dir, rootPassword));
   }
 
   /**
-   * @param config
-   *          initial configuration
+   * @param config initial configuration
    */
   @SuppressWarnings("deprecation")
   public MiniAccumuloClusterImpl(MiniAccumuloConfigImpl config) throws IOException {

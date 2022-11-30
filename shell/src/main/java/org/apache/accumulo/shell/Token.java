@@ -64,16 +64,18 @@ public class Token {
 
   public Token getSubcommand(String name) {
     for (Token t : subcommands) {
-      if (t.containsCommand(name))
+      if (t.containsCommand(name)) {
         return t;
+      }
     }
     return null;
   }
 
   public Set<String> getSubcommandNames() {
     HashSet<String> set = new HashSet<>();
-    for (Token t : subcommands)
+    for (Token t : subcommands) {
       set.addAll(t.getCommandNames());
+    }
     return set;
   }
 
@@ -101,11 +103,13 @@ public class Token {
   public boolean containsCommand(String match) {
     for (String t : command) {
       if (caseSensitive) {
-        if (t.equals(match))
+        if (t.equals(match)) {
           return true;
+        }
       } else {
-        if (t.equalsIgnoreCase(match))
+        if (t.equalsIgnoreCase(match)) {
           return true;
+        }
       }
     }
     return false;

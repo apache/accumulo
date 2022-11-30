@@ -137,17 +137,12 @@ public class ZooReaderWriter extends ZooReader {
   /**
    * Overwrite a persistent node if the data version matches.
    *
-   * @param zPath
-   *          the zookeeper path
-   * @param data
-   *          the byte array data
-   * @param expectedVersion
-   *          the expected data version of the zookeeper node.
+   * @param zPath the zookeeper path
+   * @param data the byte array data
+   * @param expectedVersion the expected data version of the zookeeper node.
    * @return true if the data was set, false if the version does not match expected.
-   * @throws KeeperException
-   *           if a KeeperException occurs (no node most likely)
-   * @throws InterruptedException
-   *           if the zookeeper write is interrupted.
+   * @throws KeeperException if a KeeperException occurs (no node most likely)
+   * @throws InterruptedException if the zookeeper write is interrupted.
    */
   public boolean overwritePersistentData(String zPath, byte[] data, final int expectedVersion)
       throws KeeperException, InterruptedException {
@@ -282,10 +277,8 @@ public class ZooReaderWriter extends ZooReader {
    * Delete the specified node if the version matches the provided version. All underlying
    * exceptions are thrown back to the caller.
    *
-   * @param path
-   *          the path of the ZooKeeper node.
-   * @param version
-   *          the expected version of the ZooKeeper node.
+   * @param path the path of the ZooKeeper node.
+   * @param version the expected version of the ZooKeeper node.
    */
   public void deleteStrict(final String path, final int version)
       throws KeeperException, InterruptedException {

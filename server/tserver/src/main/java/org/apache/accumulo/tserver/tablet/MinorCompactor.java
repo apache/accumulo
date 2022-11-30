@@ -145,8 +145,9 @@ public class MinorCompactor extends FileCompactor {
           log.warn("Failed to delete failed MinC file {} {}", outputFileName, e.getMessage());
         }
 
-        if (isTableDeleting())
+        if (isTableDeleting()) {
           return new CompactionStats(0, 0);
+        }
 
       } while (true);
     } finally {

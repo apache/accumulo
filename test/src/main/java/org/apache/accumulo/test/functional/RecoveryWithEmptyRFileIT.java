@@ -108,8 +108,9 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
         scan.setRange(new Range());
         long cells = 0L;
         for (Entry<Key,Value> entry : scan) {
-          if (entry != null)
+          if (entry != null) {
             cells++;
+          }
         }
         assertEquals(0L, cells);
       }

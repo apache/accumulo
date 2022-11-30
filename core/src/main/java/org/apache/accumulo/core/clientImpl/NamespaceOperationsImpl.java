@@ -192,10 +192,11 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
           client -> client.setNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(),
               namespace, property, value));
     } catch (TableNotFoundException e) {
-      if (e.getCause() instanceof NamespaceNotFoundException)
+      if (e.getCause() instanceof NamespaceNotFoundException) {
         throw (NamespaceNotFoundException) e.getCause();
-      else
+      } else {
         throw new AccumuloException(e);
+      }
     }
 
     checkLocalityGroups(namespace, property);
@@ -227,10 +228,11 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       }
 
     } catch (TableNotFoundException e) {
-      if (e.getCause() instanceof NamespaceNotFoundException)
+      if (e.getCause() instanceof NamespaceNotFoundException) {
         throw (NamespaceNotFoundException) e.getCause();
-      else
+      } else {
         throw new AccumuloException(e);
+      }
     }
 
     return vProperties.getProperties();
@@ -275,10 +277,11 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       ThriftClientTypes.MANAGER.executeVoidTableCommand(context, client -> client
           .removeNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace, property));
     } catch (TableNotFoundException e) {
-      if (e.getCause() instanceof NamespaceNotFoundException)
+      if (e.getCause() instanceof NamespaceNotFoundException) {
         throw (NamespaceNotFoundException) e.getCause();
-      else
+      } else {
         throw new AccumuloException(e);
+      }
     }
     checkLocalityGroups(namespace, property);
   }

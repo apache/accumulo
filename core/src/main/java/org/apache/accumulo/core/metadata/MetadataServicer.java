@@ -42,12 +42,13 @@ public abstract class MetadataServicer {
 
   public static MetadataServicer forTableId(ClientContext context, TableId tableId) {
     checkArgument(tableId != null, "tableId is null");
-    if (RootTable.ID.equals(tableId))
+    if (RootTable.ID.equals(tableId)) {
       return new ServicerForRootTable(context);
-    else if (MetadataTable.ID.equals(tableId))
+    } else if (MetadataTable.ID.equals(tableId)) {
       return new ServicerForMetadataTable(context);
-    else
+    } else {
       return new ServicerForUserTables(context, tableId);
+    }
   }
 
   /**
@@ -59,8 +60,7 @@ public abstract class MetadataServicer {
   /**
    * Populate the provided data structure with the known tablets for the table being serviced
    *
-   * @param tablets
-   *          A mapping of all known tablets to their location (if available, null otherwise)
+   * @param tablets A mapping of all known tablets to their location (if available, null otherwise)
    */
   public abstract void getTabletLocations(SortedMap<KeyExtent,String> tablets)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;

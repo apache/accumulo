@@ -138,8 +138,7 @@ public class ReplicationTarget implements Writable {
   /**
    * Deserialize a ReplicationTarget
    *
-   * @param t
-   *          Serialized copy
+   * @param t Serialized copy
    * @return the deserialized version
    */
   public static ReplicationTarget from(Text t) {
@@ -159,8 +158,7 @@ public class ReplicationTarget implements Writable {
   /**
    * Deserialize a ReplicationTarget
    *
-   * @param s
-   *          Serialized copy
+   * @param s Serialized copy
    * @return the deserialized version
    */
   public static ReplicationTarget from(String s) {

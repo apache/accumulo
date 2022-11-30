@@ -34,8 +34,7 @@ public class TablesList {
   /**
    * Add a table to the list
    *
-   * @param table
-   *          Table to add
+   * @param table Table to add
    */
   public void addTable(TableNamespace table) {
     tables.add(table);

@@ -241,8 +241,9 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
       }
       logSorter.writeBuffer(destPath, buffer, 0);
 
-      if (FinishMarker)
+      if (FinishMarker) {
         ns.create(SortedLogState.getFinishedMarkerPath(destPath));
+      }
 
       dirs.add(new Path(destPath));
     }

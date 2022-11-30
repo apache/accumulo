@@ -82,9 +82,10 @@ public class ConfigurationDocGen {
     description += "**Available since:** " + prefix.availableSince() + "<br>";
     if (depr) {
       description += "*Deprecated since:* " + prefix.deprecatedSince() + "<br>";
-      if (prefix.isReplaced())
+      if (prefix.isReplaced()) {
         description += "*Replaced by:* <a href=\"#" + prefix.replacedBy().getKey().replace(".", "_")
             + "prefix\">" + prefix.replacedBy() + "</a><br>";
+      }
     }
     description += strike(sanitize(prefix.getDescription()), depr);
     doc.println("| " + key + " | " + description + " |");
@@ -106,9 +107,10 @@ public class ConfigurationDocGen {
     }
     if (depr) {
       description += "*Deprecated since:* " + prop.deprecatedSince() + "<br>";
-      if (prop.isReplaced())
+      if (prop.isReplaced()) {
         description += "*Replaced by:* <a href=\"#" + prop.replacedBy().getKey().replace(".", "_")
             + "\">" + prop.replacedBy() + "</a><br>";
+      }
     }
     description += strike(sanitize(prop.getDescription()), depr) + "<br>"
         + strike("**type:** " + prop.getType().name(), depr) + ", "
@@ -167,10 +169,8 @@ public class ConfigurationDocGen {
    * Generates documentation for accumulo.properties file usage. Arguments are: "--generate-markdown
    * filename"
    *
-   * @param args
-   *          command-line arguments
-   * @throws IllegalArgumentException
-   *           if args is invalid
+   * @param args command-line arguments
+   * @throws IllegalArgumentException if args is invalid
    */
   public static void main(String[] args) throws IOException {
     if (args.length == 2 && args[0].equals("--generate-markdown")) {

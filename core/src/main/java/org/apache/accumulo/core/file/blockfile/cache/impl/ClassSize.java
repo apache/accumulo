@@ -89,8 +89,7 @@ public class ClassSize {
   /**
    * Aligns a number to 8.
    *
-   * @param num
-   *          number to align to 8
+   * @param num number to align to 8
    * @return smallest number &gt;= input that is a multiple of 8
    */
   public static int align(int num) {
@@ -100,8 +99,7 @@ public class ClassSize {
   /**
    * Aligns a number to 8.
    *
-   * @param num
-   *          number to align to 8
+   * @param num number to align to 8
    * @return smallest number &gt;= input that is a multiple of 8
    */
   public static long align(long num) {

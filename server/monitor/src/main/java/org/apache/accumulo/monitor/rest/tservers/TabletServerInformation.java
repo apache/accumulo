@@ -94,8 +94,7 @@ public class TabletServerInformation {
   /**
    * Generate tserver information from thrift status
    *
-   * @param thriftStatus
-   *          Thrift status to obtain information
+   * @param thriftStatus Thrift status to obtain information
    */
   public TabletServerInformation(Monitor monitor, TabletServerStatus thriftStatus) {
     TableInfo summary = TableInfoUtil.summarizeTableStats(thriftStatus);
@@ -105,10 +104,8 @@ public class TabletServerInformation {
   /**
    * Generate tserver information from thrift status and table summary
    *
-   * @param thriftStatus
-   *          Thrift status to obtain information
-   * @param summary
-   *          Table info summary
+   * @param thriftStatus Thrift status to obtain information
+   * @param summary Table info summary
    */
   public void updateTabletServerInfo(Monitor monitor, TabletServerStatus thriftStatus,
       TableInfo summary) {

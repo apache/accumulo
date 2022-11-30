@@ -87,11 +87,9 @@ public class SharedRateLimiterFactory {
   /**
    * Lookup the RateLimiter associated with the specified name, or create a new one for that name.
    *
-   * @param name
-   *          key for the rate limiter
-   * @param rateProvider
-   *          a function which can be called to get what the current rate for the rate limiter
-   *          should be.
+   * @param name key for the rate limiter
+   * @param rateProvider a function which can be called to get what the current rate for the rate
+   *        limiter should be.
    */
   public RateLimiter create(String name, RateProvider rateProvider) {
     synchronized (activeLimiters) {

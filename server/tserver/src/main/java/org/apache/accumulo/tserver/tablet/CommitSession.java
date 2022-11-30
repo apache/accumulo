@@ -50,17 +50,20 @@ public class CommitSession {
   }
 
   public void decrementCommitsInProgress() {
-    if (commitsInProgress < 1)
+    if (commitsInProgress < 1) {
       throw new IllegalStateException("commitsInProgress = " + commitsInProgress);
+    }
 
     commitsInProgress--;
-    if (commitsInProgress == 0)
+    if (commitsInProgress == 0) {
       committer.notifyAll();
+    }
   }
 
   public void incrementCommitsInProgress() {
-    if (commitsInProgress < 0)
+    if (commitsInProgress < 0) {
       throw new IllegalStateException("commitsInProgress = " + commitsInProgress);
+    }
 
     commitsInProgress++;
   }
@@ -104,8 +107,9 @@ public class CommitSession {
   }
 
   public long getMaxCommittedTime() {
-    if (maxCommittedTime == Long.MIN_VALUE)
+    if (maxCommittedTime == Long.MIN_VALUE) {
       throw new IllegalStateException("Tried to read max committed time when it was never set");
+    }
     return maxCommittedTime;
   }
 

@@ -124,22 +124,26 @@ class DatafileManager {
     synchronized (tablet) {
       Set<StoredTabletFile> absFilePaths = scanFileReservations.remove(reservationId);
 
-      if (absFilePaths == null)
+      if (absFilePaths == null) {
         throw new IllegalArgumentException("Unknown scan reservation id " + reservationId);
+      }
 
       boolean notify = false;
       for (StoredTabletFile path : absFilePaths) {
         long refCount = fileScanReferenceCounts.decrement(path, 1);
         if (refCount == 0) {
-          if (filesToDeleteAfterScan.remove(path))
+          if (filesToDeleteAfterScan.remove(path)) {
             filesToDelete.add(path);
+          }
           notify = true;
-        } else if (refCount < 0)
+        } else if (refCount < 0) {
           throw new IllegalStateException("Scan ref count for " + path + " is " + refCount);
+        }
       }
 
-      if (notify)
+      if (notify) {
         tablet.notifyAll();
+      }
     }
 
     if (!filesToDelete.isEmpty()) {
@@ -150,17 +154,19 @@ class DatafileManager {
   }
 
   void removeFilesAfterScan(Set<StoredTabletFile> scanFiles) {
-    if (scanFiles.isEmpty())
+    if (scanFiles.isEmpty()) {
       return;
+    }
 
     Set<StoredTabletFile> filesToDelete = new HashSet<>();
 
     synchronized (tablet) {
       for (StoredTabletFile path : scanFiles) {
-        if (fileScanReferenceCounts.get(path) == 0)
+        if (fileScanReferenceCounts.get(path) == 0) {
           filesToDelete.add(path);
-        else
+        } else {
           filesToDeleteAfterScan.add(path);
+        }
       }
     }
 
@@ -191,8 +197,9 @@ class DatafileManager {
         }
 
         for (StoredTabletFile path : pathsToWaitFor) {
-          if (fileScanReferenceCounts.get(path) > 0)
+          if (fileScanReferenceCounts.get(path) > 0) {
             inUse.add(path);
+          }
         }
       }
     } catch (Exception e) {
@@ -224,10 +231,11 @@ class DatafileManager {
         throw new IOException("Data file " + tpath + " not in table dirs");
       }
 
-      if (bulkDir == null)
+      if (bulkDir == null) {
         bulkDir = tpath.getTabletDir();
-      else if (!bulkDir.equals(tpath.getTabletDir()))
+      } else if (!bulkDir.equals(tpath.getTabletDir())) {
         throw new IllegalArgumentException("bulk files in different dirs " + bulkDir + " " + tpath);
+      }
 
     }
 
@@ -242,9 +250,10 @@ class DatafileManager {
         if (setTime) {
           for (DataFileValue dfv : paths.values()) {
             long nextTime = tablet.getAndUpdateTime();
-            if (nextTime < bulkTime)
+            if (nextTime < bulkTime) {
               throw new IllegalStateException(
                   "Time went backwards unexpectedly " + nextTime + " " + bulkTime);
+            }
             bulkTime = nextTime;
             dfv.setTime(bulkTime);
           }
@@ -498,8 +507,9 @@ class DatafileManager {
 
       // known consistency issue between minor and major compactions - see ACCUMULO-18
       Set<StoredTabletFile> filesInUseByScans = waitForScansToFinish(oldDatafiles);
-      if (!filesInUseByScans.isEmpty())
+      if (!filesInUseByScans.isEmpty()) {
         log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
+      }
       ManagerMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
           filesInUseByScans, newFile, compactionIdToWrite, dfv,
           tablet.getTabletServer().getClientAddressString(), lastLocation,

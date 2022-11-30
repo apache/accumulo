@@ -167,8 +167,9 @@ public class CompactableUtils {
         strategy.gatherInformation(request);
         var plan = strategy.getCompactionPlan(request);
 
-        if (plan == null)
+        if (plan == null) {
           return new CompactionPlan();
+        }
 
         log.debug("Selected files using compaction strategy {} {} {} {}",
             strategy.getClass().getSimpleName(), csc.getOptions(), plan.inputFiles,
@@ -185,8 +186,9 @@ public class CompactableUtils {
   }
 
   static Map<String,String> computeOverrides(WriteParameters p) {
-    if (p == null)
+    if (p == null) {
       return null;
+    }
 
     Map<String,String> result = new HashMap<>();
     if (p.getHdfsBlockSize() > 0) {
@@ -531,16 +533,18 @@ public class CompactableUtils {
       overrides = computeOverrides(tablet, files);
     }
 
-    if (overrides == null)
+    if (overrides == null) {
       return Map.of();
+    }
 
     return overrides;
   }
 
   private static AccumuloConfiguration getCompactionConfig(TableConfiguration tableConfiguration,
       Map<String,String> overrides) {
-    if (overrides.isEmpty())
+    if (overrides.isEmpty()) {
       return tableConfiguration;
+    }
 
     ConfigurationCopy copy = new ConfigurationCopy(tableConfiguration);
     overrides.forEach((k, v) -> copy.set(k, v));

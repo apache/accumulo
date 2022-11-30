@@ -183,10 +183,8 @@ public class ClientConfigGenerate {
    * Generates markdown and config files for Accumulo client properties. Arguments are:
    * "--generate-markdown filename" or "--generate-config filename"
    *
-   * @param args
-   *          command-line arguments
-   * @throws IllegalArgumentException
-   *           if args is invalid
+   * @param args command-line arguments
+   * @throws IllegalArgumentException if args is invalid
    */
   public static void main(String[] args) throws IOException {
     if (args.length == 2) {

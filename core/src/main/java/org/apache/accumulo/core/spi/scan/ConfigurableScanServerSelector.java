@@ -175,8 +175,9 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     transient long parsedBusyTimeout;
 
     void parse() {
-      if (parsed)
+      if (parsed) {
         return;
+      }
 
       if (servers.endsWith("%")) {
         // TODO check < 100
@@ -232,8 +233,9 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     }
 
     void parse() {
-      if (parsed)
+      if (parsed) {
         return;
+      }
       parsedMaxBusyTimeout = ConfigurationTypeHelper.getTimeInMillis(maxBusyTimeout);
       parsed = true;
     }

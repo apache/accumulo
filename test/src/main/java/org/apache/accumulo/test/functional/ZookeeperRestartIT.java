@@ -66,8 +66,9 @@ public class ZookeeperRestartIT extends ConfigurableMacBase {
       }
 
       // kill zookeeper
-      for (ProcessReference proc : cluster.getProcesses().get(ServerType.ZOOKEEPER))
+      for (ProcessReference proc : cluster.getProcesses().get(ServerType.ZOOKEEPER)) {
         cluster.killProcess(ServerType.ZOOKEEPER, proc);
+      }
 
       // give the servers time to react
       sleepUninterruptibly(1, TimeUnit.SECONDS);

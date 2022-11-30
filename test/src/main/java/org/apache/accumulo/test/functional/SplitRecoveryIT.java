@@ -227,8 +227,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     TabletMetadata meta = context.getAmple().readTablet(high);
     KeyExtent fixedExtent = ManagerMetadataUtil.fixSplit(context, meta, zl);
 
-    if (steps < 2)
+    if (steps < 2) {
       assertEquals(splitRatio, meta.getSplitRatio(), 0.0);
+    }
 
     if (steps >= 1) {
       assertEquals(high, fixedExtent);

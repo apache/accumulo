@@ -28,8 +28,9 @@ public class Encoding {
     String encodedRow = Base64.getUrlEncoder().encodeToString(TextUtil.getBytes(data));
 
     int index = encodedRow.length() - 1;
-    while (index >= 0 && encodedRow.charAt(index) == '=')
+    while (index >= 0 && encodedRow.charAt(index) == '=') {
       index--;
+    }
 
     encodedRow = encodedRow.substring(0, index + 1);
     return encodedRow;

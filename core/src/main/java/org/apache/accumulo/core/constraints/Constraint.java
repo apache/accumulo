@@ -67,8 +67,7 @@ public interface Constraint extends org.apache.accumulo.core.data.constraints.Co
   /**
    * Gets a short, one-sentence description of what a given violation code means.
    *
-   * @param violationCode
-   *          numeric violation code
+   * @param violationCode numeric violation code
    * @return matching violation description
    */
   @Override
@@ -80,10 +79,8 @@ public interface Constraint extends org.apache.accumulo.core.data.constraints.Co
    *
    * Violation codes must be non-negative. Negative violation codes are reserved for system use.
    *
-   * @param env
-   *          constraint environment
-   * @param mutation
-   *          mutation to check
+   * @param env constraint environment
+   * @param mutation mutation to check
    * @return list of violation codes, or null if none
    */
   List<Short> check(Environment env, Mutation mutation);

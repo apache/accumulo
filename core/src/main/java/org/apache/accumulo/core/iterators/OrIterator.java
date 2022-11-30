@@ -177,8 +177,9 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
   private OrIterator(OrIterator other, IteratorEnvironment env) {
     ArrayList<TermSource> copiedSources = new ArrayList<>();
 
-    for (TermSource TS : other.sources)
+    for (TermSource TS : other.sources) {
       copiedSources.add(new TermSource(TS.iter.deepCopy(env), new Text(TS.term)));
+    }
     this.sources = Collections.unmodifiableList(copiedSources);
   }
 
@@ -199,8 +200,9 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
   @Override
   public final void next() throws IOException {
     LOG.trace("next()");
-    if (currentTerm == null)
+    if (currentTerm == null) {
       return;
+    }
 
     // Advance currentTerm
     currentTerm.iter.next();

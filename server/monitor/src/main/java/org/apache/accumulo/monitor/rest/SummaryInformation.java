@@ -60,12 +60,9 @@ public class SummaryInformation {
   /**
    * Stores Monitor information as XML or JSON
    *
-   * @param size
-   *          Number of tservers
-   * @param info
-   *          Manager information
-   * @param tablesList
-   *          Table list
+   * @param size Number of tservers
+   * @param info Manager information
+   * @param tablesList Table list
    */
   public SummaryInformation(int size, ManagerInformation info, TableInformationList tablesList) {
     this.servers = new ArrayList<>(size);
@@ -87,8 +84,7 @@ public class SummaryInformation {
   /**
    * Adds a new tablet
    *
-   * @param tablet
-   *          Tablet to add
+   * @param tablet Tablet to add
    */
   public void addTabletServer(TabletServer tablet) {
     servers.add(tablet);

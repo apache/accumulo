@@ -56,8 +56,7 @@ public interface BatchScanner extends ScannerBase {
   /**
    * Allows scanning over multiple ranges efficiently.
    *
-   * @param ranges
-   *          specifies the non-overlapping ranges to query
+   * @param ranges specifies the non-overlapping ranges to query
    */
   void setRanges(Collection<Range> ranges);
 

@@ -243,17 +243,14 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
   /**
    * Queue the given work for the target
    *
-   * @param path
-   *          File to replicate
-   * @param target
-   *          Target for the work
+   * @param path File to replicate
+   * @param target Target for the work
    * @return True if the work was queued, false otherwise
    */
   protected abstract boolean queueWork(Path path, ReplicationTarget target);
 
   /**
-   * @param target
-   *          Target for the work
+   * @param target Target for the work
    * @return Queued work for the given target
    */
   protected abstract Set<String> getQueuedWork(ReplicationTarget target);

@@ -135,8 +135,9 @@ public class CompactionManager {
         }
 
         last = null;
-        if (retry.hasRetried())
+        if (retry.hasRetried()) {
           retry = retryFactory.createRetry();
+        }
 
         checkForConfigChanges(false);
 

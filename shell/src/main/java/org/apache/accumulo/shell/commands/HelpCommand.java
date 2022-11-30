@@ -64,8 +64,9 @@ public class HelpCommand extends Command {
           }
           int beginIndex = 0;
           int endIndex = s.length();
-          while (beginIndex < endIndex && s.charAt(beginIndex) == ' ')
+          while (beginIndex < endIndex && s.charAt(beginIndex) == ' ') {
             beginIndex++;
+          }
           String dash = "-";
           while (endIndex > beginIndex && endIndex - beginIndex + i + 5 > numColumns) {
             endIndex = s.lastIndexOf(" ", numColumns + beginIndex - i - 5);

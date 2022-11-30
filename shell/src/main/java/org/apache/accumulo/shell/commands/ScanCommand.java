@@ -255,11 +255,13 @@ public class ScanCommand extends Command {
       Shell.log.error("Interpreter class could not be loaded.", e);
     }
 
-    if (clazz == null)
+    if (clazz == null) {
       clazz = InterpreterCommand.getCurrentInterpreter(tableName, shellState);
+    }
 
-    if (clazz == null)
+    if (clazz == null) {
       clazz = org.apache.accumulo.core.util.interpret.DefaultScanInterpreter.class;
+    }
 
     return clazz.getDeclaredConstructor().newInstance();
   }

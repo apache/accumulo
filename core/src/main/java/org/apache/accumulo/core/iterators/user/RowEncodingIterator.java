@@ -103,12 +103,14 @@ public abstract class RowEncodingIterator
 
   private void prepKeys() throws IOException {
     long kvBufSize = 0;
-    if (topKey != null)
+    if (topKey != null) {
       return;
+    }
     Text currentRow;
     do {
-      if (!sourceIter.hasTop())
+      if (!sourceIter.hasTop()) {
         return;
+      }
       currentRow = new Text(sourceIter.getTopKey().getRow());
       keys.clear();
       values.clear();
@@ -132,14 +134,11 @@ public abstract class RowEncodingIterator
 
   /**
    *
-   * @param currentRow
-   *          All keys have this in their row portion (do not modify!).
-   * @param keys
-   *          One key for each key in the row, ordered as they are given by the source iterator (do
-   *          not modify!).
-   * @param values
-   *          One value for each key in keys, ordered to correspond to the ordering in keys (do not
-   *          modify!).
+   * @param currentRow All keys have this in their row portion (do not modify!).
+   * @param keys One key for each key in the row, ordered as they are given by the source iterator
+   *        (do not modify!).
+   * @param values One value for each key in keys, ordered to correspond to the ordering in keys (do
+   *        not modify!).
    * @return true if we want to keep the row, false if we want to skip it
    */
   protected boolean filter(Text currentRow, List<Key> keys, List<Value> values) {
@@ -215,8 +214,9 @@ public abstract class RowEncodingIterator
       // assuming that we are seeking using a key previously returned by this iterator
       // therefore go to the next row
       Key followingRowKey = sk.followingKey(PartialKey.ROW);
-      if (range.getEndKey() != null && followingRowKey.compareTo(range.getEndKey()) > 0)
+      if (range.getEndKey() != null && followingRowKey.compareTo(range.getEndKey()) > 0) {
         return;
+      }
 
       range = new Range(sk.followingKey(PartialKey.ROW), true, range.getEndKey(),
           range.isEndKeyInclusive());

@@ -89,8 +89,9 @@ public class QuotedStringTokenizer implements Iterable<String> {
           byte b;
           try {
             b = (byte) (0xff & Short.parseShort(hexChars, 16));
-            if (!Character.isValidCodePoint(0xff & b))
+            if (!Character.isValidCodePoint(0xff & b)) {
               throw new NumberFormatException();
+            }
           } catch (NumberFormatException e) {
             throw new BadArgumentException("unsupported non-ascii character", input, i);
           }

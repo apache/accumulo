@@ -140,8 +140,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
       Preconditions.checkState(extentsToFetch != null);
 
-      if (!fetchedCols.isEmpty())
+      if (!fetchedCols.isEmpty()) {
         fetch(ColumnType.PREV_ROW);
+      }
 
       for (DataLevel level : groupedExtents.keySet()) {
         if (level == DataLevel.ROOT) {

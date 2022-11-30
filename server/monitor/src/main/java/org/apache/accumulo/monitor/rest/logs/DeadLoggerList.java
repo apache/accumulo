@@ -34,8 +34,7 @@ public class DeadLoggerList {
   /**
    * Adds a new dead logger to the list
    *
-   * @param deadLogger
-   *          dead logger to add
+   * @param deadLogger dead logger to add
    */
   public void addDeadLogger(DeadLoggerInformation deadLogger) {
     this.deadLogger.add(deadLogger);

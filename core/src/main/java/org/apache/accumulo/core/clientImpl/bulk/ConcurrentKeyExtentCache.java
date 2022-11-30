@@ -98,8 +98,9 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
     while (true) {
 
       KeyExtent ke = getFromCache(row);
-      if (ke != null)
+      if (ke != null) {
         return ke;
+      }
 
       // If a metadata lookup is currently in progress, then multiple threads can queue up their
       // rows. The next lookup will process all queued. Processing multiple at once can be more
@@ -132,8 +133,9 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
                 Iterator<KeyExtent> iter = lookupExtents(lookupRow).iterator();
                 while (iter.hasNext()) {
                   KeyExtent ke2 = iter.next();
-                  if (inCache(ke2))
+                  if (inCache(ke2)) {
                     break;
+                  }
                   updateCache(ke2);
                 }
                 break;
