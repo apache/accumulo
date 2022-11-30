@@ -63,14 +63,16 @@ public class BatchInputSplit extends org.apache.accumulo.core.client.mapreduce.R
    */
   @Override
   public float getProgress(Key currentKey) {
-    if (rangeProgress == null)
+    if (rangeProgress == null) {
       rangeProgress = new float[ranges.size()];
+    }
 
     float total = 0; // progress per range could be on different scales, this number is "fuzzy"
 
     if (currentKey == null) {
-      for (float progress : rangeProgress)
+      for (float progress : rangeProgress) {
         total += progress;
+      }
     } else {
       int i = 0;
       for (Range range : ranges) {
@@ -110,8 +112,9 @@ public class BatchInputSplit extends org.apache.accumulo.core.client.mapreduce.R
   @Override
   public long getLength() {
     long sum = 0;
-    for (Range range : ranges)
+    for (Range range : ranges) {
       sum += SplitUtils.getRangeLength(range);
+    }
     return sum;
   }
 
@@ -133,8 +136,9 @@ public class BatchInputSplit extends org.apache.accumulo.core.client.mapreduce.R
     super.write(out);
 
     out.writeInt(ranges.size());
-    for (Range r : ranges)
+    for (Range r : ranges) {
       r.write(out);
+    }
   }
 
   @Override

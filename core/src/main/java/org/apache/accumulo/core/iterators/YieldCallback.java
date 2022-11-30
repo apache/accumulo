@@ -27,8 +27,7 @@ public class YieldCallback<K> {
   /**
    * Called by the iterator when a next or seek call yields control.
    *
-   * @param key
-   *          the key position at which the iterator yielded.
+   * @param key the key position at which the iterator yielded.
    */
   public void yield(K key) {
     this.key = key;

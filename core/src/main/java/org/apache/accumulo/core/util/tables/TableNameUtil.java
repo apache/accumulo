@@ -33,10 +33,11 @@ public class TableNameUtil {
 
   public static String qualified(String tableName, String defaultNamespace) {
     Pair<String,String> qualifiedTableName = qualify(tableName, defaultNamespace);
-    if (Namespace.DEFAULT.name().equals(qualifiedTableName.getFirst()))
+    if (Namespace.DEFAULT.name().equals(qualifiedTableName.getFirst())) {
       return qualifiedTableName.getSecond();
-    else
+    } else {
       return qualifiedTableName.toString("", ".", "");
+    }
   }
 
   public static Pair<String,String> qualify(String tableName) {

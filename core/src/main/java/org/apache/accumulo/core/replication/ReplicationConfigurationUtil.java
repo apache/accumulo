@@ -31,10 +31,8 @@ public class ReplicationConfigurationUtil {
   /**
    * Determines if the replication is enabled for the given {@link KeyExtent}
    *
-   * @param extent
-   *          The {@link KeyExtent} for the Tablet in question
-   * @param conf
-   *          The {@link AccumuloConfiguration} for that Tablet (table or namespace)
+   * @param extent The {@link KeyExtent} for the Tablet in question
+   * @param conf The {@link AccumuloConfiguration} for that Tablet (table or namespace)
    * @return True if this extent is a candidate for replication at the given point in time.
    */
   public static boolean isEnabled(KeyExtent extent, AccumuloConfiguration conf) {

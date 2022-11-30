@@ -107,8 +107,9 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
       try (Scanner scanner2 = client.createScanner(table2, Authorizations.EMPTY)) {
         int count = 0;
         for (Entry<Key,Value> entry : scanner2) {
-          if (entry != null)
+          if (entry != null) {
             count++;
+          }
         }
 
         if (count != 0) {

@@ -70,8 +70,9 @@ public class TimeoutIT extends AccumuloClusterHarness {
     bw.addMutation(mut);
     var mre =
         assertThrows(MutationsRejectedException.class, bw::close, "batch writer did not timeout");
-    if (mre.getCause() instanceof TimedOutException)
+    if (mre.getCause() instanceof TimedOutException) {
       return;
+    }
     throw mre;
   }
 

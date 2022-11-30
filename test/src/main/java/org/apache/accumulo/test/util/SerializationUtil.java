@@ -112,12 +112,13 @@ public class SerializationUtil {
     } catch (IOException ex) {
       throw new UncheckedIOException(ex);
     } finally {
-      if (out != null)
+      if (out != null) {
         try {
           out.close();
         } catch (IOException e) {
           log.error("cannot close", e);
         }
+      }
     }
   }
 
@@ -131,12 +132,13 @@ public class SerializationUtil {
     } catch (IOException ex) {
       throw new UncheckedIOException(ex);
     } finally {
-      if (in != null)
+      if (in != null) {
         try {
           in.close();
         } catch (IOException e) {
           log.error("cannot close", e);
         }
+      }
     }
   }
 
@@ -157,12 +159,9 @@ public class SerializationUtil {
    * The stream passed in is not buffered internally within this method. This is the responsibility
    * of your application if desired.
    *
-   * @param obj
-   *          the object to serialize to bytes, may be null
-   * @param outputStream
-   *          the stream to write to, must not be null
-   * @throws NullPointerException
-   *           if {@code outputStream} is {@code null}
+   * @param obj the object to serialize to bytes, may be null
+   * @param outputStream the stream to write to, must not be null
+   * @throws NullPointerException if {@code outputStream} is {@code null}
    */
   public static void serialize(Serializable obj, OutputStream outputStream) {
     Objects.requireNonNull(outputStream);
@@ -173,20 +172,20 @@ public class SerializationUtil {
     } catch (IOException ex) {
       throw new UncheckedIOException(ex);
     } finally {
-      if (out != null)
+      if (out != null) {
         try {
           out.close();
         } catch (IOException e) {
           log.error("cannot close", e);
         }
+      }
     }
   }
 
   /**
    * Serializes an {@code Object} to a byte array for storage/serialization.
    *
-   * @param obj
-   *          the object to serialize to bytes
+   * @param obj the object to serialize to bytes
    * @return a byte[] with the converted Serializable
    */
   public static byte[] serialize(Serializable obj) {
@@ -207,11 +206,9 @@ public class SerializationUtil {
    * The stream passed in is not buffered internally within this method. This is the responsibility
    * of your application if desired.
    *
-   * @param inputStream
-   *          the serialized object input stream, must not be null
+   * @param inputStream the serialized object input stream, must not be null
    * @return the deserialized object
-   * @throws IllegalArgumentException
-   *           if {@code inputStream} is {@code null}
+   * @throws IllegalArgumentException if {@code inputStream} is {@code null}
    */
   @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION", justification = "okay for test")
   public static Object deserialize(InputStream inputStream) {
@@ -223,23 +220,22 @@ public class SerializationUtil {
     } catch (ClassNotFoundException | IOException ex) {
       throw new RuntimeException(ex);
     } finally {
-      if (in != null)
+      if (in != null) {
         try {
           in.close();
         } catch (IOException e) {
           log.error("cannot close", e);
         }
+      }
     }
   }
 
   /**
    * Deserializes a single {@code Object} from an array of bytes.
    *
-   * @param objectData
-   *          the serialized object, must not be null
+   * @param objectData the serialized object, must not be null
    * @return the deserialized object
-   * @throws IllegalArgumentException
-   *           if {@code objectData} is {@code null}
+   * @throws IllegalArgumentException if {@code objectData} is {@code null}
    */
   public static Object deserialize(byte[] objectData) {
     Objects.requireNonNull(objectData);

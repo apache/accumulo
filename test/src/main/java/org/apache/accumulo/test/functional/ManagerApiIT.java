@@ -80,8 +80,9 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       instanceId = client.instanceOperations().getInstanceId();
       SecurityOperations rootSecOps = client.securityOperations();
-      for (Credentials user : Arrays.asList(regularUser, privilegedUser))
+      for (Credentials user : Arrays.asList(regularUser, privilegedUser)) {
         rootSecOps.createLocalUser(user.getPrincipal(), (PasswordToken) user.getToken());
+      }
       rootSecOps.grantSystemPermission(privilegedUser.getPrincipal(), SystemPermission.SYSTEM);
     }
   }

@@ -137,10 +137,11 @@ public class GenerateSplits implements KeywordExecutable {
       filePaths.addAll(getFiles(fs, path));
     }
 
-    if (filePaths.isEmpty())
+    if (filePaths.isEmpty()) {
       throw new IllegalArgumentException("No files were found in " + opts.files);
-    else
+    } else {
       log.trace("Found the following files: {}", filePaths);
+    }
 
     // if no size specified look at indexed keys first
     if (opts.splitSize == 0) {
@@ -164,8 +165,9 @@ public class GenerateSplits implements KeywordExecutable {
     if (opts.splitSize == 0 && numFound > requestedNumSplits) {
       desiredSplits = getEvenlySpacedSplits(numFound, requestedNumSplits, splits.iterator());
     } else {
-      if (numFound < requestedNumSplits)
+      if (numFound < requestedNumSplits) {
         log.warn("Only found {} splits", numFound);
+      }
       desiredSplits = splits;
     }
     log.info("Generated {} splits", desiredSplits.size());
@@ -242,19 +244,20 @@ public class GenerateSplits implements KeywordExecutable {
       return null;
     }
     byte[] bytes = TextUtil.getBytes(text);
-    if (encode)
+    if (encode) {
       return Base64.getEncoder().encodeToString(bytes);
-    else {
+    } else {
       // drop non printable characters
       StringBuilder sb = new StringBuilder();
       for (byte aByte : bytes) {
         int c = 0xff & aByte;
-        if (c == '\\')
+        if (c == '\\') {
           sb.append("\\\\");
-        else if (c >= 32 && c <= 126)
+        } else if (c >= 32 && c <= 126) {
           sb.append((char) c);
-        else
+        } else {
           log.debug("Dropping non printable char: \\x{}", Integer.toHexString(c));
+        }
       }
       return sb.toString();
     }

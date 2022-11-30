@@ -69,16 +69,14 @@ public interface CloneConfiguration {
     /**
      * Determines if memory is flushed in the source table before cloning.
      *
-     * @param flush
-     *          true if memory is flushed in the source table before cloning.
+     * @param flush true if memory is flushed in the source table before cloning.
      */
     Builder setFlush(boolean flush);
 
     /**
      * The source table properties are copied. This allows overriding of some of those properties.
      *
-     * @param propertiesToSet
-     *          The source table properties to override.
+     * @param propertiesToSet The source table properties to override.
      */
     Builder setPropertiesToSet(Map<String,String> propertiesToSet);
 
@@ -86,8 +84,7 @@ public interface CloneConfiguration {
      * The source table properties are copied, this allows reverting to system defaults for some of
      * those properties.
      *
-     * @param propertiesToExclude
-     *          The properties that are to be reverted to system defaults.
+     * @param propertiesToExclude The properties that are to be reverted to system defaults.
      */
     Builder setPropertiesToExclude(Set<String> propertiesToExclude);
 
@@ -95,8 +92,7 @@ public interface CloneConfiguration {
      * The new table is normally brought online after the cloning process. This allows leaving the
      * new table offline
      *
-     * @param keepOffline
-     *          true if the new table is to be kept offline after cloning.
+     * @param keepOffline true if the new table is to be kept offline after cloning.
      */
     Builder setKeepOffline(boolean keepOffline);
 

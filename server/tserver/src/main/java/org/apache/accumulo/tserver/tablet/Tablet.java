@@ -731,8 +731,9 @@ public class Tablet extends TabletBase {
         }
       }
 
-      if (overlappingConfig == null)
+      if (overlappingConfig == null) {
         overlappingConfig = new CompactionConfig(); // no config present, set to default
+      }
 
       return new Pair<>(compactID, overlappingConfig);
     } catch (InterruptedException | DecoderException | NumberFormatException e) {
@@ -1116,11 +1117,9 @@ public class Tablet extends TabletBase {
    * caller of this method must acquire the updateCounter parameter before acquiring the
    * tabletMetadata.
    *
-   * @param updateCounter
-   *          used to check for conucurrent updates in which case this check is a no-op. See
-   *          {@link #getUpdateCount()}
-   * @param tabletMetadata
-   *          the metadata for this tablet that was acquired from the metadata table.
+   * @param updateCounter used to check for conucurrent updates in which case this check is a no-op.
+   *        See {@link #getUpdateCount()}
+   * @param tabletMetadata the metadata for this tablet that was acquired from the metadata table.
    */
   public synchronized void compareTabletInfo(MetadataUpdateCount updateCounter,
       TabletMetadata tabletMetadata) {

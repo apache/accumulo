@@ -87,14 +87,16 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
         int tablets = 0;
         for (TabletServerStatus tserver : stats.tServerInfo) {
           for (Entry<String,TableInfo> entry : tserver.tableMap.entrySet()) {
-            if (entry.getKey().startsWith("!") || entry.getKey().startsWith("+"))
+            if (entry.getKey().startsWith("!") || entry.getKey().startsWith("+")) {
               continue;
+            }
             tablets += entry.getValue().onlineTablets;
           }
         }
         log.info("Online tablets " + tablets);
-        if (tablets == 2002)
+        if (tablets == 2002) {
           break;
+        }
         sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
     }

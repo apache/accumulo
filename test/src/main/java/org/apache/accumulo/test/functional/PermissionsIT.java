@@ -164,8 +164,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || root_client.tableOperations().list().contains(tableName))
+              || root_client.tableOperations().list().contains(tableName)) {
             throw e;
+          }
         }
         break;
       case DROP_TABLE:
@@ -179,8 +180,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || !root_client.tableOperations().list().contains(tableName))
+              || !root_client.tableOperations().list().contains(tableName)) {
             throw e;
+          }
         }
         break;
       case ALTER_TABLE:
@@ -196,8 +198,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
               || root_client.tableOperations().getConfiguration(tableName)
-                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%")) {
             throw e;
+          }
         }
         try {
           // Add test for modifyProperties
@@ -210,8 +213,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
               || root_client.tableOperations().getConfiguration(tableName)
-                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%")) {
             throw e;
+          }
         }
         loginAs(rootUser);
         root_client.tableOperations().setProperty(tableName,
@@ -229,8 +233,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
               || !root_client.tableOperations().getConfiguration(tableName)
-                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%")) {
             throw e;
+          }
         }
         String table2 = tableName + "2";
         try {
@@ -241,8 +246,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
               || !root_client.tableOperations().list().contains(tableName)
-              || root_client.tableOperations().list().contains(table2))
+              || root_client.tableOperations().list().contains(table2)) {
             throw e;
+          }
         }
         break;
       case CREATE_USER:
@@ -257,8 +263,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
               || (userToken instanceof PasswordToken
-                  && root_client.securityOperations().authenticateUser(user, userToken)))
+                  && root_client.securityOperations().authenticateUser(user, userToken))) {
             throw e;
+          }
         }
         break;
       case DROP_USER:
@@ -292,8 +299,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || !root_client.securityOperations().getUserAuthorizations(user).isEmpty())
+              || !root_client.securityOperations().getUserAuthorizations(user).isEmpty()) {
             throw e;
+          }
         }
         break;
       case SYSTEM:
@@ -307,8 +315,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
               || root_client.instanceOperations().getSystemConfiguration()
-                  .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000"))
+                  .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000")) {
             throw e;
+          }
         }
         // Test removal of property
         loginAs(rootUser);
@@ -323,8 +332,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
               || !root_client.instanceOperations().getSystemConfiguration()
-                  .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000"))
+                  .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000")) {
             throw e;
+          }
         }
         break;
       case CREATE_NAMESPACE:
@@ -336,8 +346,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || root_client.namespaceOperations().list().contains(namespace))
+              || root_client.namespaceOperations().list().contains(namespace)) {
             throw e;
+          }
         }
         break;
       case DROP_NAMESPACE:
@@ -351,8 +362,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || !root_client.namespaceOperations().list().contains(namespace))
+              || !root_client.namespaceOperations().list().contains(namespace)) {
             throw e;
+          }
         }
         break;
       case ALTER_NAMESPACE:
@@ -368,8 +380,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
               || root_client.namespaceOperations().getConfiguration(namespace)
-                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%")) {
             throw e;
+          }
         }
         try {
           loginAs(testUser);
@@ -382,8 +395,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
               || root_client.namespaceOperations().getConfiguration(namespace)
-                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%")) {
             throw e;
+          }
         }
         loginAs(rootUser);
         root_client.namespaceOperations().setProperty(namespace,
@@ -401,8 +415,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
               || !root_client.namespaceOperations().getConfiguration(namespace)
-                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+                  .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%")) {
             throw e;
+          }
         }
         String namespace2 = namespace + "2";
         try {
@@ -413,8 +428,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
               || !root_client.namespaceOperations().list().contains(namespace)
-              || root_client.namespaceOperations().list().contains(namespace2))
+              || root_client.namespaceOperations().list().contains(namespace2)) {
             throw e;
+          }
         }
         break;
       case OBTAIN_DELEGATION_TOKEN:
@@ -454,8 +470,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
         loginAs(testUser);
         test_user_client.tableOperations().create(tableName);
         loginAs(rootUser);
-        if (!root_client.tableOperations().list().contains(tableName))
+        if (!root_client.tableOperations().list().contains(tableName)) {
           throw new IllegalStateException("Should be able to create a table");
+        }
         break;
       case DROP_TABLE:
         tableName = tableNamePrefix + "__DROP_TABLE_WITH_PERM_TEST__";
@@ -464,8 +481,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
         loginAs(testUser);
         test_user_client.tableOperations().delete(tableName);
         loginAs(rootUser);
-        if (root_client.tableOperations().list().contains(tableName))
+        if (root_client.tableOperations().list().contains(tableName)) {
           throw new IllegalStateException("Should be able to delete a table");
+        }
         break;
       case ALTER_TABLE:
         tableName = tableNamePrefix + "__ALTER_TABLE_WITH_PERM_TEST__";
@@ -478,21 +496,24 @@ public class PermissionsIT extends AccumuloClusterHarness {
             Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
         loginAs(rootUser);
         Map<String,String> properties = root_client.tableOperations().getConfiguration(tableName);
-        if (!properties.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+        if (!properties.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%")) {
           throw new IllegalStateException("Should be able to set a table property");
+        }
         loginAs(testUser);
         test_user_client.tableOperations().removeProperty(tableName,
             Property.TABLE_BLOOM_ERRORRATE.getKey());
         loginAs(rootUser);
         properties = root_client.tableOperations().getConfiguration(tableName);
-        if (properties.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+        if (properties.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%")) {
           throw new IllegalStateException("Should be able to remove a table property");
+        }
         loginAs(testUser);
         test_user_client.tableOperations().rename(tableName, table2);
         loginAs(rootUser);
         if (root_client.tableOperations().list().contains(tableName)
-            || !root_client.tableOperations().list().contains(table2))
+            || !root_client.tableOperations().list().contains(table2)) {
           throw new IllegalStateException("Should be able to rename a table");
+        }
         break;
       case CREATE_USER:
         user = "__CREATE_USER_WITH_PERM_TEST__";
@@ -501,8 +522,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
             (passwordBased ? new PasswordToken(password) : null));
         loginAs(rootUser);
         if (passwordBased && !root_client.securityOperations().authenticateUser(user,
-            new PasswordToken(password)))
+            new PasswordToken(password))) {
           throw new IllegalStateException("Should be able to create a user");
+        }
         break;
       case DROP_USER:
         user = "__DROP_USER_WITH_PERM_TEST__";
@@ -512,9 +534,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
         loginAs(testUser);
         test_user_client.securityOperations().dropLocalUser(user);
         loginAs(rootUser);
-        if (passwordBased
-            && root_client.securityOperations().authenticateUser(user, new PasswordToken(password)))
+        if (passwordBased && root_client.securityOperations().authenticateUser(user,
+            new PasswordToken(password))) {
           throw new IllegalStateException("Should be able to delete a user");
+        }
         break;
       case ALTER_USER:
         user = "__ALTER_USER_WITH_PERM_TEST__";
@@ -525,8 +548,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
         test_user_client.securityOperations().changeUserAuthorizations(user,
             new Authorizations("A", "B"));
         loginAs(rootUser);
-        if (root_client.securityOperations().getUserAuthorizations(user).isEmpty())
+        if (root_client.securityOperations().getUserAuthorizations(user).isEmpty()) {
           throw new IllegalStateException("Should be able to alter a user");
+        }
         break;
       case SYSTEM:
         // Test setProperty
@@ -535,24 +559,27 @@ public class PermissionsIT extends AccumuloClusterHarness {
             .setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "10000");
         loginAs(rootUser);
         if (!root_client.instanceOperations().getSystemConfiguration()
-            .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000"))
+            .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000")) {
           throw new IllegalStateException("Should be able to set system property");
+        }
         // Test removal of property
         loginAs(testUser);
         test_user_client.instanceOperations()
             .removeProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey());
         loginAs(rootUser);
         if (root_client.instanceOperations().getSystemConfiguration()
-            .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000"))
+            .get(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey()).equals("10000")) {
           throw new IllegalStateException("Should be able remove systemproperty");
+        }
         break;
       case CREATE_NAMESPACE:
         namespace = "__CREATE_NAMESPACE_WITH_PERM_TEST__";
         loginAs(testUser);
         test_user_client.namespaceOperations().create(namespace);
         loginAs(rootUser);
-        if (!root_client.namespaceOperations().list().contains(namespace))
+        if (!root_client.namespaceOperations().list().contains(namespace)) {
           throw new IllegalStateException("Should be able to create a namespace");
+        }
         break;
       case DROP_NAMESPACE:
         namespace = "__DROP_NAMESPACE_WITH_PERM_TEST__";
@@ -561,8 +588,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
         loginAs(testUser);
         test_user_client.namespaceOperations().delete(namespace);
         loginAs(rootUser);
-        if (root_client.namespaceOperations().list().contains(namespace))
+        if (root_client.namespaceOperations().list().contains(namespace)) {
           throw new IllegalStateException("Should be able to delete a namespace");
+        }
         break;
       case ALTER_NAMESPACE:
         namespace = "__ALTER_NAMESPACE_WITH_PERM_TEST__";
@@ -574,21 +602,24 @@ public class PermissionsIT extends AccumuloClusterHarness {
             Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
         loginAs(rootUser);
         Map<String,String> propies = root_client.namespaceOperations().getConfiguration(namespace);
-        if (!propies.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+        if (!propies.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%")) {
           throw new IllegalStateException("Should be able to set a table property");
+        }
         loginAs(testUser);
         test_user_client.namespaceOperations().removeProperty(namespace,
             Property.TABLE_BLOOM_ERRORRATE.getKey());
         loginAs(rootUser);
         propies = root_client.namespaceOperations().getConfiguration(namespace);
-        if (propies.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
+        if (propies.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%")) {
           throw new IllegalStateException("Should be able to remove a table property");
+        }
         loginAs(testUser);
         test_user_client.namespaceOperations().rename(namespace, namespace2);
         loginAs(rootUser);
         if (root_client.namespaceOperations().list().contains(namespace)
-            || !root_client.namespaceOperations().list().contains(namespace2))
+            || !root_client.namespaceOperations().list().contains(namespace2)) {
           throw new IllegalStateException("Should be able to rename a table");
+        }
         break;
       case OBTAIN_DELEGATION_TOKEN:
         if (saslEnabled()) {
@@ -621,21 +652,25 @@ public class PermissionsIT extends AccumuloClusterHarness {
     for (SystemPermission p : SystemPermission.values()) {
       if (permList.contains(p)) {
         // should have these
-        if (!root_client.securityOperations().hasSystemPermission(user, p))
+        if (!root_client.securityOperations().hasSystemPermission(user, p)) {
           throw new IllegalStateException(user + " SHOULD have system permission " + p);
+        }
       } else {
         // should not have these
-        if (root_client.securityOperations().hasSystemPermission(user, p))
+        if (root_client.securityOperations().hasSystemPermission(user, p)) {
           throw new IllegalStateException(user + " SHOULD NOT have system permission " + p);
+        }
       }
     }
   }
 
   private void verifyHasNoSystemPermissions(AccumuloClient root_client, String user,
       SystemPermission... perms) throws AccumuloException, AccumuloSecurityException {
-    for (SystemPermission p : perms)
-      if (root_client.securityOperations().hasSystemPermission(user, p))
+    for (SystemPermission p : perms) {
+      if (root_client.securityOperations().hasSystemPermission(user, p)) {
         throw new IllegalStateException(user + " SHOULD NOT have system permission " + p);
+      }
+    }
   }
 
   @Test
@@ -719,15 +754,17 @@ public class PermissionsIT extends AccumuloClusterHarness {
       case READ:
         try (Scanner scanner = test_user_client.createScanner(tableName, Authorizations.EMPTY)) {
           int i = 0;
-          for (Entry<Key,Value> entry : scanner)
+          for (Entry<Key,Value> entry : scanner) {
             i += 1 + entry.getKey().getRowData().length();
+          }
           if (i != 0) {
             throw new IllegalStateException("Should NOT be able to read from the table");
           }
         } catch (RuntimeException e) {
           AccumuloSecurityException se = (AccumuloSecurityException) e.getCause();
-          if (se.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+          if (se.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED) {
             throw se;
+          }
         }
         break;
       case WRITE:
@@ -737,15 +774,17 @@ public class PermissionsIT extends AccumuloClusterHarness {
             m.put("a", "b", "c");
             bw.addMutation(m);
           } catch (MutationsRejectedException e1) {
-            if (!e1.getSecurityErrorCodes().isEmpty())
+            if (!e1.getSecurityErrorCodes().isEmpty()) {
               throw new AccumuloSecurityException(test_user_client.whoami(),
                   org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode.PERMISSION_DENIED,
                   e1);
+            }
           }
           throw new IllegalStateException("Should NOT be able to write to a table");
         } catch (AccumuloSecurityException e) {
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED) {
             throw e;
+          }
         }
         // Now see if we can flush, this should be allowed because we give the user ALTER_TABLE
         test_user_client.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"),
@@ -761,16 +800,18 @@ public class PermissionsIT extends AccumuloClusterHarness {
           test_user_client.tableOperations().setLocalityGroups(tableName, groups);
           throw new IllegalStateException("User should not be able to set locality groups");
         } catch (AccumuloSecurityException e) {
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED) {
             throw e;
+          }
         }
         try {
           test_user_client.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"),
               false);
           throw new IllegalStateException("Should NOT be able to flush a table");
         } catch (AccumuloSecurityException e) {
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED) {
             throw e;
+          }
         }
         testArbitraryProperty(test_user_client, tableName, false);
         break;
@@ -779,8 +820,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
           test_user_client.tableOperations().delete(tableName);
           throw new IllegalStateException("User should not be able delete the table");
         } catch (AccumuloSecurityException e) {
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED) {
             throw e;
+          }
         }
         break;
       case GRANT:
@@ -789,8 +831,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
               TablePermission.GRANT);
           throw new IllegalStateException("User should not be able grant permissions");
         } catch (AccumuloSecurityException e) {
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED) {
             throw e;
+          }
         }
         break;
       case GET_SUMMARIES:
@@ -798,8 +841,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
           test_user_client.tableOperations().summaries(tableName).retrieve();
           throw new IllegalStateException("User should not be able to get table summaries");
         } catch (AccumuloSecurityException e) {
-          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+          if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED) {
             throw e;
+          }
         }
         break;
       default:
@@ -863,14 +907,16 @@ public class PermissionsIT extends AccumuloClusterHarness {
     for (TablePermission p : TablePermission.values()) {
       if (permList.contains(p)) {
         // should have these
-        if (!root_client.securityOperations().hasTablePermission(user, table, p))
+        if (!root_client.securityOperations().hasTablePermission(user, table, p)) {
           throw new IllegalStateException(
               user + " SHOULD have table permission " + p + " for table " + table);
+        }
       } else {
         // should not have these
-        if (root_client.securityOperations().hasTablePermission(user, table, p))
+        if (root_client.securityOperations().hasTablePermission(user, table, p)) {
           throw new IllegalStateException(
               user + " SHOULD NOT have table permission " + p + " for table " + table);
+        }
       }
     }
   }
@@ -882,9 +928,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
         if (!root_client.securityOperations().hasTablePermission(user, table, p)) {
           root_client.securityOperations().grantTablePermission(user, table, p);
         }
-      } else if (root_client.securityOperations().hasTablePermission(user, table, p))
+      } else if (root_client.securityOperations().hasTablePermission(user, table, p)) {
         throw new IllegalStateException(
             user + " SHOULD NOT have table permission " + p + " for table " + table);
+      }
     }
   }
 
@@ -923,11 +970,13 @@ public class PermissionsIT extends AccumuloClusterHarness {
       count = c.tableOperations().getConfiguration(tableName).entrySet().stream()
           .filter(e -> e.getKey().equals(propertyName)).count();
       assertEquals(count, 0);
-      if (!havePerm)
+      if (!havePerm) {
         throw new IllegalStateException("User should not been able to alter property.");
+      }
     } catch (AccumuloSecurityException se) {
-      if (havePerm)
+      if (havePerm) {
         throw new IllegalStateException("User should have been able to alter property");
+      }
     }
   }
 }

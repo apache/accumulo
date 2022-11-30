@@ -44,8 +44,7 @@ public class TabletServers {
   /**
    * Adds bad and dead servers to the list
    *
-   * @param info
-   *          Manager information to get bad and dead server information
+   * @param info Manager information to get bad and dead server information
    */
   public void addBadTabletServer(ManagerInformation info) {
     badServers = info.badTabletServers.badTabletServer;
@@ -55,8 +54,7 @@ public class TabletServers {
   /**
    * Adds new tservers to the list
    *
-   * @param tablet
-   *          New tserver
+   * @param tablet New tserver
    */
   public void addTablet(TabletServer tablet) {
     servers.add(tablet.server);

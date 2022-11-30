@@ -97,8 +97,9 @@ public class ExternalCompactionFinalState {
     }
 
     private Text decode(String s) {
-      if (s == null)
+      if (s == null) {
         return null;
+      }
       return new Text(Base64.getDecoder().decode(s));
     }
 

@@ -33,11 +33,9 @@ public class BlockCacheManagerFactory {
    * Get the BlockCacheFactory specified by the property 'tserver.cache.factory.class' using the
    * AccumuloVFSClassLoader
    *
-   * @param conf
-   *          accumulo configuration
+   * @param conf accumulo configuration
    * @return block cache manager instance
-   * @throws Exception
-   *           error loading block cache manager implementation class
+   * @throws Exception error loading block cache manager implementation class
    */
   public static synchronized BlockCacheManager getInstance(AccumuloConfiguration conf)
       throws Exception {
@@ -51,11 +49,9 @@ public class BlockCacheManagerFactory {
   /**
    * Get the BlockCacheFactory specified by the property 'tserver.cache.factory.class'
    *
-   * @param conf
-   *          accumulo configuration
+   * @param conf accumulo configuration
    * @return block cache manager instance
-   * @throws Exception
-   *           error loading block cache manager implementation class
+   * @throws Exception error loading block cache manager implementation class
    */
   public static synchronized BlockCacheManager getClientInstance(AccumuloConfiguration conf)
       throws Exception {

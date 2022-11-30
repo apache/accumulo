@@ -34,16 +34,19 @@ public class BlockedOutputStream extends OutputStream {
   ByteBuffer bb;
 
   public BlockedOutputStream(OutputStream out, int blockSize, int bufferSize) {
-    if (bufferSize <= 0)
+    if (bufferSize <= 0) {
       throw new IllegalArgumentException("bufferSize must be greater than 0.");
-    if (out instanceof DataOutputStream)
+    }
+    if (out instanceof DataOutputStream) {
       this.out = (DataOutputStream) out;
-    else
+    } else {
       this.out = new DataOutputStream(out);
+    }
     this.blockSize = blockSize;
     int remainder = bufferSize % blockSize;
-    if (remainder != 0)
+    if (remainder != 0) {
       remainder = blockSize - remainder;
+    }
     // some buffer space + bytes to make the buffer evened up with the cipher block size - 4 bytes
     // for the size int
     bb = ByteBuffer.allocate(bufferSize + remainder - 4);
@@ -55,13 +58,15 @@ public class BlockedOutputStream extends OutputStream {
       throw new RuntimeException("BlockedOutputStream has no backing array.");
     }
     int size = bb.position();
-    if (size == 0)
+    if (size == 0) {
       return;
+    }
     out.writeInt(size);
 
     int remainder = ((size + 4) % blockSize);
-    if (remainder != 0)
+    if (remainder != 0) {
       remainder = blockSize - remainder;
+    }
 
     // This is garbage
     bb.position(size + remainder);
@@ -75,8 +80,9 @@ public class BlockedOutputStream extends OutputStream {
   public void write(int b) throws IOException {
     // Checking before provides same functionality but causes the case of previous flush() failing
     // to now throw a buffer out of bounds error
-    if (bb.remaining() == 0)
+    if (bb.remaining() == 0) {
       flush();
+    }
     bb.put((byte) b);
   }
 

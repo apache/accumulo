@@ -147,8 +147,9 @@ public class ZooStore<T> implements TStore<T> {
         Collections.sort(txdirs);
 
         synchronized (this) {
-          if (!txdirs.isEmpty() && txdirs.get(txdirs.size() - 1).compareTo(lastReserved) <= 0)
+          if (!txdirs.isEmpty() && txdirs.get(txdirs.size() - 1).compareTo(lastReserved) <= 0) {
             lastReserved = "";
+          }
         }
 
         for (String txdir : txdirs) {
@@ -158,18 +159,20 @@ public class ZooStore<T> implements TStore<T> {
             // this check makes reserve pick up where it left off, so that it cycles through all as
             // it is repeatedly called.... failing to do so can lead to
             // starvation where fate ops that sort higher and hold a lock are never reserved.
-            if (txdir.compareTo(lastReserved) <= 0)
+            if (txdir.compareTo(lastReserved) <= 0) {
               continue;
+            }
 
             if (defered.containsKey(tid)) {
-              if (defered.get(tid) < System.currentTimeMillis())
+              if (defered.get(tid) < System.currentTimeMillis()) {
                 defered.remove(tid);
-              else
+              } else {
                 continue;
+              }
             }
-            if (reserved.contains(tid))
+            if (reserved.contains(tid)) {
               continue;
-            else {
+            } else {
               reserved.add(tid);
               lastReserved = txdir;
             }
@@ -197,13 +200,14 @@ public class ZooStore<T> implements TStore<T> {
         synchronized (this) {
           // suppress lgtm alert - synchronized variable is not always true
           if (events == statusChangeEvents) { // lgtm [java/constant-comparison]
-            if (defered.isEmpty())
+            if (defered.isEmpty()) {
               this.wait(5000);
-            else {
+            } else {
               Long minTime = Collections.min(defered.values());
               long waitTime = minTime - System.currentTimeMillis();
-              if (waitTime > 0)
+              if (waitTime > 0) {
                 this.wait(Math.min(waitTime, 5000));
+              }
             }
           }
         }
@@ -218,12 +222,13 @@ public class ZooStore<T> implements TStore<T> {
     synchronized (this) {
       reservationsWaiting++;
       try {
-        while (reserved.contains(tid))
+        while (reserved.contains(tid)) {
           try {
             this.wait(1000);
           } catch (InterruptedException e) {
             throw new RuntimeException(e);
           }
+        }
 
         reserved.add(tid);
       } finally {
@@ -235,8 +240,7 @@ public class ZooStore<T> implements TStore<T> {
   /**
    * Attempt to reserve transaction
    *
-   * @param tid
-   *          transaction id
+   * @param tid transaction id
    * @return true if reserved by this call, false if already reserved
    */
   @Override
@@ -252,31 +256,36 @@ public class ZooStore<T> implements TStore<T> {
 
   private void unreserve(long tid) {
     synchronized (this) {
-      if (!reserved.remove(tid))
+      if (!reserved.remove(tid)) {
         throw new IllegalStateException(
             "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
+      }
 
       // do not want this unreserve to unesc wake up threads in reserve()... this leads to infinite
       // loop when tx is stuck in NEW...
       // only do this when something external has called reserve(tid)...
-      if (reservationsWaiting > 0)
+      if (reservationsWaiting > 0) {
         this.notifyAll();
+      }
     }
   }
 
   @Override
   public void unreserve(long tid, long deferTime) {
 
-    if (deferTime < 0)
+    if (deferTime < 0) {
       throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
+    }
 
     synchronized (this) {
-      if (!reserved.remove(tid))
+      if (!reserved.remove(tid)) {
         throw new IllegalStateException(
             "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
+      }
 
-      if (deferTime > 0)
+      if (deferTime > 0) {
         defered.put(tid, System.currentTimeMillis() + deferTime);
+      }
 
       this.notifyAll();
     }
@@ -285,9 +294,10 @@ public class ZooStore<T> implements TStore<T> {
 
   private void verifyReserved(long tid) {
     synchronized (this) {
-      if (!reserved.contains(tid))
+      if (!reserved.contains(tid)) {
         throw new IllegalStateException(
             "Tried to operate on unreserved transaction " + FateTxId.formatTid(tid));
+      }
     }
   }
 
@@ -332,12 +342,15 @@ public class ZooStore<T> implements TStore<T> {
 
     String max = "";
 
-    for (String child : ops)
-      if (child.startsWith("repo_") && child.compareTo(max) > 0)
+    for (String child : ops) {
+      if (child.startsWith("repo_") && child.compareTo(max) > 0) {
         max = child;
+      }
+    }
 
-    if (max.equals(""))
+    if (max.equals("")) {
       return null;
+    }
 
     return max;
   }
@@ -368,8 +381,9 @@ public class ZooStore<T> implements TStore<T> {
     try {
       String txpath = getTXPath(tid);
       String top = findTop(txpath);
-      if (top == null)
+      if (top == null) {
         throw new IllegalStateException("Tried to pop when empty " + FateTxId.formatTid(tid));
+      }
       zk.recursiveDelete(txpath + "/" + top, NodeMissingPolicy.SKIP);
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -401,8 +415,9 @@ public class ZooStore<T> implements TStore<T> {
       }
 
       TStatus status = _getStatus(tid);
-      if (expected.contains(status))
+      if (expected.contains(status)) {
         return status;
+      }
 
       synchronized (this) {
         // suppress lgtm alert - synchronized variable is not always true

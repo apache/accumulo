@@ -128,14 +128,10 @@ public class DelegatingChooser implements VolumeChooser {
    * Create a volume chooser, using the cached version if any. This will replace the cached version
    * if the class name has changed.
    *
-   * @param clazz
-   *          The volume chooser class name
-   * @param property
-   *          The property from which it was obtained
-   * @param key
-   *          The key to user in the cache
-   * @param cache
-   *          The cache
+   * @param clazz The volume chooser class name
+   * @param property The property from which it was obtained
+   * @param key The key to user in the cache
+   * @param cache The cache
    * @return The volume chooser instance
    */
   private <T> VolumeChooser createVolumeChooser(VolumeChooserEnvironment env, String clazz,

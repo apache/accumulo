@@ -287,8 +287,9 @@ public class SetIterCommand extends Command {
                 input = new String(input);
               }
 
-              if (input.isEmpty())
+              if (input.isEmpty()) {
                 break;
+              }
 
               String[] sa = input.split(" ", 2);
               localOptions.put(sa[0], sa[1]);
@@ -297,8 +298,9 @@ public class SetIterCommand extends Command {
         }
 
         options.putAll(localOptions);
-        if (!iterOptions.validateOptions(options))
+        if (!iterOptions.validateOptions(options)) {
           writer.println("invalid options for " + clazzName);
+        }
 
       } while (!iterOptions.validateOptions(options));
     } else {

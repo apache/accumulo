@@ -83,8 +83,9 @@ public class Writer {
       ConstraintViolationException, TableNotFoundException {
     checkArgument(m != null, "m is null");
 
-    if (m.size() == 0)
+    if (m.size() == 0) {
       throw new IllegalArgumentException("Can not add empty mutations");
+    }
 
     while (true) {
       TabletLocation tabLoc = TabletLocator.getLocator(context, tableId).locateTablet(context,

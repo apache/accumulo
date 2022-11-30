@@ -61,8 +61,9 @@ public class AccumuloITBase extends WithTestNames {
 
   public String[] getUniqueNames(int num) {
     String[] names = new String[num];
-    for (int i = 0; i < num; i++)
+    for (int i = 0; i < num; i++) {
       names[i] = this.getClass().getSimpleName() + "_" + testName() + i;
+    }
     return names;
   }
 
@@ -72,9 +73,8 @@ public class AccumuloITBase extends WithTestNames {
    * "-ssl" appended. This new directory is not created here, but is expected to be created as
    * needed.
    *
-   * @param baseDir
-   *          the original directory, which the new directory will be created next to; it should
-   *          exist
+   * @param baseDir the original directory, which the new directory will be created next to; it
+   *        should exist
    * @return the new directory (is not created)
    */
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
@@ -87,8 +87,9 @@ public class AccumuloITBase extends WithTestNames {
   public static File createTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    if (name == null)
+    if (name == null) {
       return baseDir;
+    }
     File testDir = new File(baseDir, name);
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());

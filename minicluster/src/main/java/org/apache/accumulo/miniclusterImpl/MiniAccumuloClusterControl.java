@@ -503,8 +503,9 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         found = true;
         break;
     }
-    if (!found)
+    if (!found) {
       throw new ProcessNotFoundException();
+    }
   }
 
   @Override

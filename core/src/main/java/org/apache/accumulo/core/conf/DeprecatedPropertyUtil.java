@@ -73,10 +73,10 @@ public class DeprecatedPropertyUtil {
    * This is expected to be used only with system properties stored in the SiteConfiguration and
    * ZooConfiguration, and not for per-table or per-namespace configuration in ZooKeeper.
    *
-   * @param propertyName
-   *          the name of the potentially deprecated property to check for a replacement name
-   * @param loggerActionOnReplace
-   *          the action to execute, if not null, if a replacement name was found
+   * @param propertyName the name of the potentially deprecated property to check for a replacement
+   *        name
+   * @param loggerActionOnReplace the action to execute, if not null, if a replacement name was
+   *        found
    * @return either the replacement for {@code propertyName}, or {@code propertyName} if the
    *         property is not deprecated
    */
@@ -100,8 +100,8 @@ public class DeprecatedPropertyUtil {
    * Ensures that for any deprecated properties, both the deprecated and replacement property name
    * are not both used in {@code config}.
    *
-   * @param config
-   *          the configuration to check for invalid use of deprecated and replacement properties
+   * @param config the configuration to check for invalid use of deprecated and replacement
+   *        properties
    */
   static void sanityCheckManagerProperties(AbstractConfiguration config) {
     boolean foundMasterPrefix = StreamSupport

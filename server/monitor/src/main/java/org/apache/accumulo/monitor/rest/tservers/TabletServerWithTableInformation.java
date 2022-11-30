@@ -36,10 +36,8 @@ public class TabletServerWithTableInformation {
   /**
    * Stores a new tserver
    *
-   * @param tserverInfo
-   *          Tserver to add
-   * @param tableInfo
-   *          Table information
+   * @param tserverInfo Tserver to add
+   * @param tableInfo Table information
    */
   public TabletServerWithTableInformation(TabletServerInformation tserverInfo,
       TableInformation tableInfo) {

@@ -91,8 +91,9 @@ public class TabletStateChangeIterator extends SkippingIterator {
   }
 
   private Set<KeyExtent> parseMigrations(String migrations) {
-    if (migrations == null)
+    if (migrations == null) {
       return Collections.emptySet();
+    }
     try {
       Set<KeyExtent> result = new HashSet<>();
       DataInputBuffer buffer = new DataInputBuffer();
@@ -108,17 +109,20 @@ public class TabletStateChangeIterator extends SkippingIterator {
   }
 
   private Set<TableId> parseTableIDs(String tableIDs) {
-    if (tableIDs == null)
+    if (tableIDs == null) {
       return null;
+    }
     Set<TableId> result = new HashSet<>();
-    for (String tableID : tableIDs.split(","))
+    for (String tableID : tableIDs.split(",")) {
       result.add(TableId.of(tableID));
+    }
     return result;
   }
 
   private Set<TServerInstance> parseServers(String servers) {
-    if (servers == null)
+    if (servers == null) {
       return null;
+    }
     // parse "host:port[INSTANCE]"
     Set<TServerInstance> result = new HashSet<>();
     if (!servers.isEmpty()) {
@@ -126,8 +130,9 @@ public class TabletStateChangeIterator extends SkippingIterator {
         String[] parts = part.split("\\[", 2);
         String hostport = parts[0];
         String instance = parts[1];
-        if (instance != null && instance.endsWith("]"))
+        if (instance != null && instance.endsWith("]")) {
           instance = instance.substring(0, instance.length() - 1);
+        }
         result.add(new TServerInstance(AddressUtil.parseAddress(hostport, false), instance));
       }
     }
@@ -135,8 +140,9 @@ public class TabletStateChangeIterator extends SkippingIterator {
   }
 
   private Map<TableId,MergeInfo> parseMerges(String merges) {
-    if (merges == null)
+    if (merges == null) {
       return null;
+    }
     try {
       Map<TableId,MergeInfo> result = new HashMap<>();
       DataInputBuffer buffer = new DataInputBuffer();
@@ -159,14 +165,16 @@ public class TabletStateChangeIterator extends SkippingIterator {
       Key k = getSource().getTopKey();
       Value v = getSource().getTopValue();
 
-      if (onlineTables == null || current == null || managerState != ManagerState.NORMAL)
+      if (onlineTables == null || current == null || managerState != ManagerState.NORMAL) {
         return;
+      }
 
       TabletLocationState tls;
       try {
         tls = MetaDataTableScanner.createTabletLocationState(k, v);
-        if (tls == null)
+        if (tls == null) {
           return;
+        }
       } catch (BadLocationStateException e) {
         // maybe the manager can do something with a tablet with bad/inconsistent state
         return;
@@ -194,15 +202,17 @@ public class TabletStateChangeIterator extends SkippingIterator {
           // we always want data about assigned tablets
           return;
         case HOSTED:
-          if (!shouldBeOnline)
+          if (!shouldBeOnline) {
             return;
+          }
           break;
         case ASSIGNED_TO_DEAD_SERVER:
           return;
         case SUSPENDED:
         case UNASSIGNED:
-          if (shouldBeOnline)
+          if (shouldBeOnline) {
             return;
+          }
           break;
         default:
           throw new AssertionError(
@@ -221,15 +231,17 @@ public class TabletStateChangeIterator extends SkippingIterator {
   public static void setCurrentServers(IteratorSetting cfg, Set<TServerInstance> goodServers) {
     if (goodServers != null) {
       List<String> servers = new ArrayList<>();
-      for (TServerInstance server : goodServers)
+      for (TServerInstance server : goodServers) {
         servers.add(server.getHostPortSession());
+      }
       cfg.addOption(SERVERS_OPTION, Joiner.on(",").join(servers));
     }
   }
 
   public static void setOnlineTables(IteratorSetting cfg, Set<TableId> onlineTables) {
-    if (onlineTables != null)
+    if (onlineTables != null) {
       cfg.addOption(TABLES_OPTION, Joiner.on(",").join(onlineTables));
+    }
   }
 
   public static void setMerges(IteratorSetting cfg, Collection<MergeInfo> merges) {

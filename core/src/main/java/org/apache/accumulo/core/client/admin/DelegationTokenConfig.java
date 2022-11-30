@@ -38,10 +38,8 @@ public class DelegationTokenConfig {
    * Requests a specific lifetime for the token that is different from the default system lifetime.
    * The lifetime must not exceed the secret key lifetime configured on the servers.
    *
-   * @param lifetime
-   *          Token lifetime
-   * @param unit
-   *          Unit of time for the lifetime
+   * @param lifetime Token lifetime
+   * @param unit Unit of time for the lifetime
    * @return this
    */
   public DelegationTokenConfig setTokenLifetime(long lifetime, TimeUnit unit) {
@@ -55,8 +53,7 @@ public class DelegationTokenConfig {
    * The current token lifetime. A value of zero corresponds to using the system configured
    * lifetime.
    *
-   * @param unit
-   *          The unit of time the lifetime should be returned in
+   * @param unit The unit of time the lifetime should be returned in
    * @return Token lifetime in requested unit of time
    */
   public long getTokenLifetime(TimeUnit unit) {

@@ -60,9 +60,10 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   public ConnectorImpl(ClientContext context) throws AccumuloSecurityException, AccumuloException {
     this.context = context;
     SingletonManager.setMode(Mode.CONNECTOR);
-    if (context.getCredentials().getToken().isDestroyed())
+    if (context.getCredentials().getToken().isDestroyed()) {
       throw new AccumuloSecurityException(context.getCredentials().getPrincipal(),
           SecurityErrorCode.TOKEN_EXPIRED);
+    }
     // Skip fail fast for system services; string literal for class name, to avoid dependency on
     // server jar
     final String tokenClassName = context.getCredentials().getToken().getClass().getName();

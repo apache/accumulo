@@ -259,8 +259,9 @@ public class PrintInfo implements KeywordExecutable {
             Value value = dataIter.getTopValue();
             if (formatter != null) {
               System.out.println(formatter.apply(key, value));
-              if (System.out.checkError())
+              if (System.out.checkError()) {
                 return;
+              }
             }
 
             if (opts.histogram) {

@@ -45,9 +45,10 @@ public enum CompactionSettings {
   }
 
   public void put(Map<String,String> selectorOpts, Map<String,String> configurerOpts, String val) {
-    if (selectorOpt)
+    if (selectorOpt) {
       selectorOpts.put(name(), type.convert(val));
-    else
+    } else {
       configurerOpts.put(name(), type.convert(val));
+    }
   }
 }

@@ -64,8 +64,9 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     Properties clientProps = OutputConfigurator.getClientProperties(CLASS, job.getConfiguration());
     AuthenticationToken token = ClientProperty.getAuthenticationToken(clientProps);
     try (AccumuloClient c = Accumulo.newClient().from(clientProps).build()) {
-      if (!c.securityOperations().authenticateUser(c.whoami(), token))
+      if (!c.securityOperations().authenticateUser(c.whoami(), token)) {
         throw new IOException("Unable to authenticate user");
+      }
     } catch (AccumuloException | AccumuloSecurityException e) {
       throw new IOException(e);
     }

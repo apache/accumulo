@@ -166,8 +166,9 @@ public class UpgradeCoordinator {
 
   public synchronized Future<Void> upgradeMetadata(ServerContext context,
       EventCoordinator eventCoordinator) {
-    if (status == UpgradeStatus.COMPLETE)
+    if (status == UpgradeStatus.COMPLETE) {
       return CompletableFuture.completedFuture(null);
+    }
 
     Preconditions.checkState(status == UpgradeStatus.UPGRADED_ZOOKEEPER,
         "Not currently in a suitable state to do metadata upgrade %s", status);

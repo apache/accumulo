@@ -469,14 +469,16 @@ public class CachableBlockFile {
 
     @Override
     public synchronized void close() throws IOException {
-      if (closed)
+      if (closed) {
         return;
+      }
 
       closed = true;
 
       BCFile.Reader reader = bcfr.get();
-      if (reader != null)
+      if (reader != null) {
         reader.close();
+      }
 
       if (fin != null) {
         // synchronize on the FSDataInputStream to ensure thread safety with the

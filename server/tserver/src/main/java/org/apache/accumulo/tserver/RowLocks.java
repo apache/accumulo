@@ -102,8 +102,9 @@ class RowLocks {
       // possible, not blocking on rows that are already locked.
       for (RowLock rowLock : locks) {
         if (!rowLock.tryLock()) {
-          if (rowsNotLocked == null)
+          if (rowsNotLocked == null) {
             rowsNotLocked = new HashSet<>();
+          }
           rowsNotLocked.add(rowLock.rowSeq);
         }
       }
@@ -121,10 +122,11 @@ class RowLocks {
         public void defer(List<ServerConditionalMutation> scml,
             List<ServerConditionalMutation> okMutations, List<ServerConditionalMutation> deferred) {
           for (ServerConditionalMutation scm : scml) {
-            if (rnlf.contains(new ArrayByteSequence(scm.getRow())))
+            if (rnlf.contains(new ArrayByteSequence(scm.getRow()))) {
               deferred.add(scm);
-            else
+            } else {
               okMutations.add(scm);
+            }
 
           }
         }

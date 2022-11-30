@@ -65,8 +65,9 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     @Override
     public void init(Map<String,String> options) {
       String countString = options.get("count");
-      if (countString != null)
+      if (countString != null) {
         count = Integer.parseInt(countString);
+      }
     }
 
     int count = 3;
@@ -123,8 +124,9 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
       c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props)
           .withSplits(new TreeSet<>(Arrays.asList(new Text("efg")))));
 
-      for (char ch = 'a'; ch < 'l'; ch++)
+      for (char ch = 'a'; ch < 'l'; ch++) {
         writeFlush(c, tableName, ch + "");
+      }
 
       while (countFiles(c) != 7) {
         UtilWaitThread.sleep(200);
@@ -156,15 +158,17 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   private void runTest(final AccumuloClient c, final String tableName, final int n)
       throws Exception {
-    for (int i = countFiles(c); i < n - 1; i++)
+    for (int i = countFiles(c); i < n - 1; i++) {
       makeFile(c, tableName);
+    }
     assertEquals(n - 1, countFiles(c));
     makeFile(c, tableName);
     for (int i = 0; i < 10; i++) {
       int count = countFiles(c);
       assertTrue(count == 1 || count == n);
-      if (count == 1)
+      if (count == 1) {
         break;
+      }
       UtilWaitThread.sleep(1000);
     }
   }

@@ -104,8 +104,9 @@ public class MiniClusterHarness {
     // classpath)
     if (coreSite.size() > 0) {
       File csFile = new File(miniCluster.getConfig().getConfDir(), "core-site.xml");
-      if (csFile.exists())
+      if (csFile.exists()) {
         throw new RuntimeException(csFile + " already exist");
+      }
 
       OutputStream out = new BufferedOutputStream(
           new FileOutputStream(new File(miniCluster.getConfig().getConfDir(), "core-site.xml")));

@@ -28,10 +28,11 @@ public class PeekingIterator<E> implements Iterator<E> {
 
   public PeekingIterator(Iterator<E> source) {
     this.source = source;
-    if (source.hasNext())
+    if (source.hasNext()) {
       top = source.next();
-    else
+    } else {
       top = null;
+    }
     isInitialized = true;
   }
 
@@ -48,29 +49,33 @@ public class PeekingIterator<E> implements Iterator<E> {
    */
   public PeekingIterator<E> initialize(Iterator<E> source) {
     this.source = source;
-    if (source.hasNext())
+    if (source.hasNext()) {
       top = source.next();
-    else
+    } else {
       top = null;
+    }
     isInitialized = true;
     return this;
   }
 
   public E peek() {
-    if (!isInitialized)
+    if (!isInitialized) {
       throw new IllegalStateException("Iterator has not yet been initialized");
+    }
     return top;
   }
 
   @Override
   public E next() {
-    if (!isInitialized)
+    if (!isInitialized) {
       throw new IllegalStateException("Iterator has not yet been initialized");
+    }
     E lastPeeked = top;
-    if (source.hasNext())
+    if (source.hasNext()) {
       top = source.next();
-    else
+    } else {
       top = null;
+    }
     return lastPeeked;
   }
 
@@ -81,8 +86,9 @@ public class PeekingIterator<E> implements Iterator<E> {
 
   @Override
   public boolean hasNext() {
-    if (!isInitialized)
+    if (!isInitialized) {
       throw new IllegalStateException("Iterator has not yet been initialized");
+    }
     return top != null;
   }
 }

@@ -47,8 +47,7 @@ public class EncodingOptions {
   /**
    * Instantiate encoding options to use version 1.0 encoding settings.
    *
-   * @param compress
-   *          when true compress the property map.
+   * @param compress when true compress the property map.
    * @return the encoding options.
    */
   public static EncodingOptions V1_0(final boolean compress) {
@@ -60,10 +59,8 @@ public class EncodingOptions {
    * the stream will be obtained from reading a byte array from a data store and then creating a
    * stream that reads from that array,
    *
-   * @param dis
-   *          a data input stream
-   * @throws IOException
-   *           if an exception occurs reading from the input stream.
+   * @param dis a data input stream
+   * @throws IOException if an exception occurs reading from the input stream.
    */
   public static EncodingOptions fromDataStream(final DataInputStream dis) throws IOException {
     return new EncodingOptions(dis.readInt(), dis.readBoolean());
@@ -72,10 +69,8 @@ public class EncodingOptions {
   /**
    * Write the values to a data stream.
    *
-   * @param dos
-   *          a data output stream
-   * @throws IOException
-   *           if an exception occurs writing the data stream.
+   * @param dos a data output stream
+   * @throws IOException if an exception occurs writing the data stream.
    */
   public void encode(final DataOutputStream dos) throws IOException {
     dos.writeInt(encodingVersion);

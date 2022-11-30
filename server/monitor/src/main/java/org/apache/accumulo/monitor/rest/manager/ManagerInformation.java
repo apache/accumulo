@@ -72,52 +72,29 @@ public class ManagerInformation {
   /**
    * Stores a new manager JSON object
    *
-   * @param manager
-   *          Manager location
-   * @param onlineTabletServers
-   *          Number of online tservers
-   * @param totalTabletServers
-   *          Total number of tservers
-   * @param lastGC
-   *          Time of the last gc
-   * @param tablets
-   *          Number of tablet
-   * @param unassignedTablets
-   *          Number of unassigned tablets
-   * @param entries
-   *          Number of entries
-   * @param ingest
-   *          Number of ingest
-   * @param entriesRead
-   *          Number of queries
-   * @param entriesReturned
-   *          Number of returned queries
-   * @param holdTime
-   *          Amount of hold time
-   * @param osLoad
-   *          Amount of load to the OS
-   * @param tables
-   *          Number of tables
-   * @param deadTabletServersCount
-   *          Number of dead tservers
-   * @param lookups
-   *          Number of lookups
-   * @param uptime
-   *          Time the Monitor has been running
-   * @param gcStatus
-   *          Status of the garbage collector
-   * @param managerGoalState
-   *          Goal state of the manager
-   * @param managerState
-   *          Current state of the manager
-   * @param badTabletServers
-   *          Number of bad tservers
-   * @param tabletServersShuttingDown
-   *          Number of tservers shutting down
-   * @param deadTabletServers
-   *          Number of dead tservers
-   * @param deadLoggers
-   *          Number of dead loggers
+   * @param manager Manager location
+   * @param onlineTabletServers Number of online tservers
+   * @param totalTabletServers Total number of tservers
+   * @param lastGC Time of the last gc
+   * @param tablets Number of tablet
+   * @param unassignedTablets Number of unassigned tablets
+   * @param entries Number of entries
+   * @param ingest Number of ingest
+   * @param entriesRead Number of queries
+   * @param entriesReturned Number of returned queries
+   * @param holdTime Amount of hold time
+   * @param osLoad Amount of load to the OS
+   * @param tables Number of tables
+   * @param deadTabletServersCount Number of dead tservers
+   * @param lookups Number of lookups
+   * @param uptime Time the Monitor has been running
+   * @param gcStatus Status of the garbage collector
+   * @param managerGoalState Goal state of the manager
+   * @param managerState Current state of the manager
+   * @param badTabletServers Number of bad tservers
+   * @param tabletServersShuttingDown Number of tservers shutting down
+   * @param deadTabletServers Number of dead tservers
+   * @param deadLoggers Number of dead loggers
    */
   public ManagerInformation(String manager, int onlineTabletServers, int totalTabletServers,
       String lastGC, int tablets, int unassignedTablets, long entries, double ingest,

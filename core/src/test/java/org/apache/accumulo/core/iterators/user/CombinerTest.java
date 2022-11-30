@@ -685,8 +685,9 @@ public class CombinerTest {
 
   public static void assertBytesEqual(byte[] a, byte[] b) {
     assertEquals(a.length, b.length);
-    for (int i = 0; i < a.length; i++)
+    for (int i = 0; i < a.length; i++) {
       assertEquals(a[i], b[i]);
+    }
   }
 
   public static void sumArray(Class<? extends Encoder<List<Long>>> encoderClass,
@@ -864,8 +865,9 @@ public class CombinerTest {
 
     ai.init(new SortedMapIterator(input), is.getOptions(), env);
 
-    if (deepCopy)
+    if (deepCopy) {
       assertEquals(expected, readAll(ai.deepCopy(env)));
+    }
     assertEquals(expected, readAll(ai));
 
     long logSize = CombinerTestUtil.cacheSize();

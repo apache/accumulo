@@ -60,8 +60,7 @@ public interface PluginEnvironment {
     /**
      * Returns all properties with a given prefix
      *
-     * @param prefix
-     *          prefix of properties to be returned. Include the trailing '.' in the prefix.
+     * @param prefix prefix of properties to be returned. Include the trailing '.' in the prefix.
      * @return all properties with a given prefix
      * @since 2.1.0
      */
@@ -161,10 +160,8 @@ public interface PluginEnvironment {
    * Instantiate a class using Accumulo's system classloader. The class must have a no argument
    * constructor.
    *
-   * @param className
-   *          Fully qualified name of the class.
-   * @param base
-   *          The expected super type of the class.
+   * @param className Fully qualified name of the class.
+   * @param base The expected super type of the class.
    */
   <T> T instantiate(String className, Class<T> base) throws Exception;
 
@@ -172,10 +169,8 @@ public interface PluginEnvironment {
    * Instantiate a class using Accumulo's per table classloader. The class must have a no argument
    * constructor.
    *
-   * @param className
-   *          Fully qualified name of the class.
-   * @param base
-   *          The expected super type of the class.
+   * @param className Fully qualified name of the class.
+   * @param base The expected super type of the class.
    */
   <T> T instantiate(TableId tableId, String className, Class<T> base) throws Exception;
 }

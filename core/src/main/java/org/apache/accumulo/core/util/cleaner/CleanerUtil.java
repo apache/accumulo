@@ -61,19 +61,14 @@ public class CleanerUtil {
    * <li>log an error if the resource cannot be closed for any reason
    * </ol>
    *
-   * @param obj
-   *          the object to monitor for becoming phantom-reachable without having been closed
-   * @param objClass
-   *          the class whose simple name will be used in the log message for <code>o</code>
-   *          (usually an interface name, rather than the actual impl name of the object)
-   * @param closed
-   *          a flag to check whether <code>o</code> has already been closed
-   * @param log
-   *          the logger to use when emitting error/warn messages
-   * @param closeable
-   *          the resource within <code>o</code> to close when <code>o</code> is cleaned; must not
-   *          contain a reference to the <code>monitoredObject</code> or it won't become
-   *          phantom-reachable and will never be cleaned
+   * @param obj the object to monitor for becoming phantom-reachable without having been closed
+   * @param objClass the class whose simple name will be used in the log message for <code>o</code>
+   *        (usually an interface name, rather than the actual impl name of the object)
+   * @param closed a flag to check whether <code>o</code> has already been closed
+   * @param log the logger to use when emitting error/warn messages
+   * @param closeable the resource within <code>o</code> to close when <code>o</code> is cleaned;
+   *        must not contain a reference to the <code>monitoredObject</code> or it won't become
+   *        phantom-reachable and will never be cleaned
    * @return the registered {@link Cleanable} from {@link Cleaner#register(Object, Runnable)}
    */
   public static Cleanable unclosed(AutoCloseable obj, Class<?> objClass, AtomicBoolean closed,

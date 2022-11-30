@@ -82,8 +82,9 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
           Entry<Key,Value> entry = scannerIterator.next();
           key.set(currentKey = entry.getKey());
           value.set(entry.getValue().get());
-          if (log.isTraceEnabled())
+          if (log.isTraceEnabled()) {
             log.trace("Processing key/value pair: " + DefaultFormatter.formatEntry(entry, true));
+          }
           return true;
         }
         return false;

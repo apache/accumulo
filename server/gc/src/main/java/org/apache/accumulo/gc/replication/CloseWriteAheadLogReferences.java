@@ -141,10 +141,9 @@ public class CloseWriteAheadLogReferences implements Runnable {
    * Given the set of WALs which have references in the metadata table, close any status messages
    * with reference that WAL.
    *
-   * @param client
-   *          Accumulo client
-   * @param closedWals
-   *          {@link Set} of paths to WALs that marked as closed or unreferenced in zookeeper
+   * @param client Accumulo client
+   * @param closedWals {@link Set} of paths to WALs that marked as closed or unreferenced in
+   *        zookeeper
    */
   protected long updateReplicationEntries(AccumuloClient client, Set<String> closedWals) {
     long recordsClosed = 0;
@@ -194,10 +193,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
    * Write a closed {@link Status} mutation for the given {@link Key} using the provided
    * {@link BatchWriter}
    *
-   * @param bw
-   *          BatchWriter
-   * @param k
-   *          Key to create close mutation from
+   * @param bw BatchWriter
+   * @param k Key to create close mutation from
    */
   protected void closeWal(BatchWriter bw, Key k) throws MutationsRejectedException {
     log.debug("Closing unreferenced WAL ({}) in metadata table", k.toStringNoTruncate());

@@ -105,17 +105,19 @@ public class RelativeKey implements Writable {
       cvCommonPrefixLen = getCommonPrefixLen(prevKeyScratch, keyScratch, CV_SAME, CV_COMMON_PREFIX);
 
       tsDiff = key.getTimestamp() - prevKey.getTimestamp();
-      if (tsDiff == 0)
+      if (tsDiff == 0) {
         fieldsSame |= TS_SAME;
-      else
+      } else {
         fieldsPrefixed |= TS_DIFF;
+      }
 
       fieldsSame |= fieldsPrefixed == 0 ? 0 : PREFIX_COMPRESSION_ENABLED;
     }
 
     // stored deleted information in bit vector instead of its own byte
-    if (key.isDeleted())
+    if (key.isDeleted()) {
       fieldsSame |= DELETED;
+    }
   }
 
   private int getCommonPrefixLen(ByteSequence prevKeyScratch, ByteSequence keyScratch,
@@ -134,8 +136,9 @@ public class RelativeKey implements Writable {
    * @return -1 (exact match) or the number of bytes in common
    */
   static int getCommonPrefix(ByteSequence prev, ByteSequence cur) {
-    if (prev == cur)
+    if (prev == cur) {
       return -1; // infinite... exact match
+    }
 
     int prevLen = prev.length();
     int curLen = cur.length();
@@ -144,8 +147,9 @@ public class RelativeKey implements Writable {
     while (common < maxChecks) {
       int a = prev.byteAt(common) & 0xff;
       int b = cur.byteAt(common) & 0xff;
-      if (a != b)
+      if (a != b) {
         return common;
+      }
       common++;
     }
     // no differences found
@@ -290,10 +294,11 @@ public class RelativeKey implements Writable {
       pdel = (fieldsSame & DELETED) == DELETED;
 
       fieldsSame = in.readByte();
-      if ((fieldsSame & PREFIX_COMPRESSION_ENABLED) == PREFIX_COMPRESSION_ENABLED)
+      if ((fieldsSame & PREFIX_COMPRESSION_ENABLED) == PREFIX_COMPRESSION_ENABLED) {
         fieldsPrefixed = in.readByte();
-      else
+      } else {
         fieldsPrefixed = 0;
+      }
 
       boolean changed = false;
 
@@ -303,10 +308,11 @@ public class RelativeKey implements Writable {
         prow = row;
         row = tmp;
 
-        if ((fieldsPrefixed & ROW_COMMON_PREFIX) == ROW_COMMON_PREFIX)
+        if ((fieldsPrefixed & ROW_COMMON_PREFIX) == ROW_COMMON_PREFIX) {
           readPrefix(in, row, prow);
-        else
+        } else {
           read(in, row);
+        }
 
         // read a new row, so need to compare...
         rowCmp = row.compareTo(stopRow);
@@ -319,10 +325,11 @@ public class RelativeKey implements Writable {
         pcf = cf;
         cf = tmp;
 
-        if ((fieldsPrefixed & CF_COMMON_PREFIX) == CF_COMMON_PREFIX)
+        if ((fieldsPrefixed & CF_COMMON_PREFIX) == CF_COMMON_PREFIX) {
           readPrefix(in, cf, pcf);
-        else
+        } else {
           read(in, cf);
+        }
 
         cfCmp = cf.compareTo(stopCF);
         changed = true;
@@ -334,10 +341,11 @@ public class RelativeKey implements Writable {
         pcq = cq;
         cq = tmp;
 
-        if ((fieldsPrefixed & CQ_COMMON_PREFIX) == CQ_COMMON_PREFIX)
+        if ((fieldsPrefixed & CQ_COMMON_PREFIX) == CQ_COMMON_PREFIX) {
           readPrefix(in, cq, pcq);
-        else
+        } else {
           read(in, cq);
+        }
 
         cqCmp = cq.compareTo(stopCQ);
         changed = true;
@@ -349,19 +357,21 @@ public class RelativeKey implements Writable {
         pcv = cv;
         cv = tmp;
 
-        if ((fieldsPrefixed & CV_COMMON_PREFIX) == CV_COMMON_PREFIX)
+        if ((fieldsPrefixed & CV_COMMON_PREFIX) == CV_COMMON_PREFIX) {
           readPrefix(in, cv, pcv);
-        else
+        } else {
           read(in, cv);
+        }
       }
 
       if ((fieldsSame & TS_SAME) != TS_SAME) {
         pts = ts;
 
-        if ((fieldsPrefixed & TS_DIFF) == TS_DIFF)
+        if ((fieldsPrefixed & TS_DIFF) == TS_DIFF) {
           ts = WritableUtils.readVLong(in) + pts;
-        else
+        } else {
           ts = WritableUtils.readVLong(in);
+        }
       }
 
       readValue(in, value);
@@ -369,15 +379,18 @@ public class RelativeKey implements Writable {
       count++;
 
       if (changed && rowCmp >= 0) {
-        if (rowCmp > 0)
+        if (rowCmp > 0) {
           break;
+        }
 
         if (cfCmp >= 0) {
-          if (cfCmp > 0)
+          if (cfCmp > 0) {
             break;
+          }
 
-          if (cqCmp >= 0)
+          if (cqCmp >= 0) {
             break;
+          }
         }
       }
 
@@ -400,10 +413,11 @@ public class RelativeKey implements Writable {
           tcq.length(), tcv.getBackingArray(), tcv.offset(), tcv.length(), tts);
       newPrevKey.setDeleted(pdel);
     } else if (count == 1) {
-      if (currKey != null)
+      if (currKey != null) {
         newPrevKey = currKey;
-      else
+      } else {
         newPrevKey = prevKey;
+      }
     } else {
       throw new IllegalStateException();
     }

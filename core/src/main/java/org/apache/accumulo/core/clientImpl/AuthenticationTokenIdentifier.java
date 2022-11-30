@@ -83,10 +83,11 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
   }
 
   public InstanceId getInstanceId() {
-    if (impl.getInstanceId() == null)
+    if (impl.getInstanceId() == null) {
       return InstanceId.of("");
-    else
+    } else {
       return InstanceId.of(impl.getInstanceId());
+    }
   }
 
   public TAuthenticationTokenIdentifier getThriftIdentifier() {
@@ -117,8 +118,9 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
     impl.principal = tAuthTokenId.getPrincipal();
     setExpirationDate(tAuthTokenId.getExpirationDate());
     setIssueDate(tAuthTokenId.getIssueDate());
-    if (tAuthTokenId.getInstanceId() != null)
+    if (tAuthTokenId.getInstanceId() != null) {
       setInstanceId(InstanceId.of(tAuthTokenId.getInstanceId()));
+    }
     setKeyId(tAuthTokenId.getKeyId());
   }
 

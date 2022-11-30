@@ -53,18 +53,21 @@ public class ZKAuthenticatorTest {
 
   @Test
   public void testPermissionIdConversions() {
-    for (SystemPermission s : SystemPermission.values())
+    for (SystemPermission s : SystemPermission.values()) {
       assertEquals(s, SystemPermission.getPermissionById(s.getId()));
+    }
 
-    for (TablePermission s : TablePermission.values())
+    for (TablePermission s : TablePermission.values()) {
       assertEquals(s, TablePermission.getPermissionById(s.getId()));
+    }
   }
 
   @Test
   public void testAuthorizationConversion() {
     ByteArraySet auths = new ByteArraySet();
-    for (int i = 0; i < 300; i += 3)
+    for (int i = 0; i < 300; i += 3) {
       auths.add(Integer.toString(i).getBytes());
+    }
 
     Authorizations converted = new Authorizations(auths);
     byte[] test = ZKSecurityTool.convertAuthorizations(converted);
@@ -83,8 +86,9 @@ public class ZKAuthenticatorTest {
     Set<SystemPermission> converted =
         ZKSecurityTool.convertSystemPermissions(ZKSecurityTool.convertSystemPermissions(perms));
     assertEquals(perms.size(), converted.size());
-    for (SystemPermission s : perms)
+    for (SystemPermission s : perms) {
       assertTrue(converted.contains(s));
+    }
   }
 
   @Test
@@ -95,8 +99,9 @@ public class ZKAuthenticatorTest {
     Set<TablePermission> converted =
         ZKSecurityTool.convertTablePermissions(ZKSecurityTool.convertTablePermissions(perms));
     assertEquals(perms.size(), converted.size());
-    for (TablePermission s : perms)
+    for (TablePermission s : perms) {
       assertTrue(converted.contains(s));
+    }
   }
 
   @Test

@@ -35,11 +35,12 @@ public class SamplerFactory {
 
     Class<? extends Sampler> clazz;
     try {
-      if (!useAccumuloStart)
+      if (!useAccumuloStart) {
         clazz = SamplerFactory.class.getClassLoader().loadClass(config.getClassName())
             .asSubclass(Sampler.class);
-      else
+      } else {
         clazz = ClassLoaderUtil.loadClass(context, config.getClassName(), Sampler.class);
+      }
 
       Sampler sampler = clazz.getDeclaredConstructor().newInstance();
       sampler.validateOptions(config.getOptions());

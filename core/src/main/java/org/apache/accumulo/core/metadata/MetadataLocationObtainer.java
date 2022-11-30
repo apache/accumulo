@@ -133,13 +133,15 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       return MetadataLocationObtainer.getMetadataLocationEntries(results);
 
     } catch (AccumuloServerException ase) {
-      if (log.isTraceEnabled())
+      if (log.isTraceEnabled()) {
         log.trace("{} lookup failed, {} server side exception", src.tablet_extent.tableId(),
             src.tablet_location);
+      }
       throw ase;
     } catch (AccumuloException e) {
-      if (log.isTraceEnabled())
+      if (log.isTraceEnabled()) {
         log.trace("{} lookup failed", src.tablet_extent.tableId(), e);
+      }
       parent.invalidateCache(context, src.tablet_location);
     }
 
@@ -195,8 +197,9 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
           rr, columns, opts, Authorizations.EMPTY);
       if (!failures.isEmpty()) {
         // invalidate extents in parents cache
-        if (log.isTraceEnabled())
+        if (log.isTraceEnabled()) {
           log.trace("lookupTablets failed for {} extents", failures.size());
+        }
         parent.invalidateCache(failures.keySet());
       }
     } catch (IOException e) {
@@ -246,10 +249,11 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         session = new Text(colq);
       } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
         KeyExtent ke = KeyExtent.fromMetaPrevRow(entry);
-        if (location != null)
+        if (location != null) {
           results.add(new TabletLocation(ke, location.toString(), session.toString()));
-        else
+        } else {
           locationless.add(ke);
+        }
         location = null;
       }
     }

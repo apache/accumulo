@@ -100,8 +100,7 @@ class ProtocolOverridingSSLSocketFactory extends SSLSocketFactory {
    * Set the {@link javax.net.ssl.SSLSocket#getEnabledProtocols() enabled protocols} to
    * {@link #enabledProtocols} if the <code>socket</code> is a {@link SSLSocket}
    *
-   * @param socket
-   *          The Socket
+   * @param socket The Socket
    */
   private Socket overrideProtocol(final Socket socket) {
     if (socket instanceof SSLSocket) {

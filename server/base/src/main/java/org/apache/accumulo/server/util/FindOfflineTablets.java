@@ -70,10 +70,12 @@ public class FindOfflineTablets {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted,
           Set<TServerInstance> added) {
-        if (!deleted.isEmpty() && scanning.get())
+        if (!deleted.isEmpty() && scanning.get()) {
           log.warn("Tablet servers deleted while scanning: {}", deleted);
-        if (!added.isEmpty() && scanning.get())
+        }
+        if (!added.isEmpty() && scanning.get()) {
           log.warn("Tablet servers added while scanning: {}", added);
+        }
       }
     });
     tservers.startListeningForTabletServerChanges();
@@ -85,20 +87,24 @@ public class FindOfflineTablets {
     int offline = 0;
 
     System.out.println("Scanning zookeeper");
-    if ((offline = checkTablets(context, zooScanner, tservers)) > 0)
+    if ((offline = checkTablets(context, zooScanner, tservers)) > 0) {
       return offline;
+    }
 
-    if (RootTable.NAME.equals(tableName))
+    if (RootTable.NAME.equals(tableName)) {
       return 0;
+    }
 
     System.out.println("Scanning " + RootTable.NAME);
     Iterator<TabletLocationState> rootScanner =
         new MetaDataTableScanner(context, TabletsSection.getRange(), RootTable.NAME);
-    if ((offline = checkTablets(context, rootScanner, tservers)) > 0)
+    if ((offline = checkTablets(context, rootScanner, tservers)) > 0) {
       return offline;
+    }
 
-    if (MetadataTable.NAME.equals(tableName))
+    if (MetadataTable.NAME.equals(tableName)) {
       return 0;
+    }
 
     System.out.println("Scanning " + MetadataTable.NAME);
 

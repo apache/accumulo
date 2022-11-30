@@ -62,12 +62,14 @@ public class TablesCommand extends Command {
     Iterator<String> it = Iterators.transform(tables.entrySet().iterator(), entry -> {
       String tableName = String.valueOf(sortByTableId ? entry.getValue() : entry.getKey());
       String tableId = String.valueOf(sortByTableId ? entry.getKey() : entry.getValue());
-      if (namespace != null)
+      if (namespace != null) {
         tableName = TableNameUtil.qualify(tableName).getSecond();
-      if (cl.hasOption(tableIdOption.getOpt()))
+      }
+      if (cl.hasOption(tableIdOption.getOpt())) {
         return String.format(NAME_AND_ID_FORMAT, tableName, tableId);
-      else
+      } else {
         return tableName;
+      }
     });
 
     shellState.printLines(it, !cl.hasOption(disablePaginationOpt.getOpt()));

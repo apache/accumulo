@@ -123,8 +123,9 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       public void map(Key k, Value v, OutputCollector<Text,Mutation> output, Reporter reporter) {
         finalOutput = output;
         try {
-          if (key != null)
+          if (key != null) {
             assertEquals(key.getRow().toString(), new String(v.get()));
+          }
           assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
           assertEquals(new String(v.get()), String.format("%09x", count));
         } catch (AssertionError e) {

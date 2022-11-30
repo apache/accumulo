@@ -100,8 +100,7 @@ public class ThriftTransportPool {
   /**
    * Create a new instance and start its checker thread, returning the instance.
    *
-   * @param maxAgeMillis
-   *          the supplier for the max age of idle transports before they are cleaned up
+   * @param maxAgeMillis the supplier for the max age of idle transports before they are cleaned up
    * @return a new instance with its checker thread started to clean up idle transports
    */
   static ThriftTransportPool startNew(LongSupplier maxAgeMillis) {
@@ -380,8 +379,7 @@ public class ThriftTransportPool {
      * This operation locks access to the mapping for the key in {@link ConnectionPool#connections}
      * until the operation completes.
      *
-     * @param key
-     *          the transport key
+     * @param key the transport key
      * @return the reserved {@link CachedConnection}
      */
     CachedConnection reserveAny(final ThriftTransportKey key) {
@@ -402,8 +400,7 @@ public class ThriftTransportPool {
      * This operation locks access to the mapping for the key in {@link ConnectionPool#connections}
      * until the operation completes.
      *
-     * @param key
-     *          the transport key
+     * @param key the transport key
      * @return the reserved {@link CachedConnection}, or null if none were available.
      */
     CachedConnection reserveAnyIfPresent(final ThriftTransportKey key) {
@@ -423,10 +420,8 @@ public class ThriftTransportPool {
      * This operation locks access to the mapping for the key in {@link ConnectionPool#connections}
      * until the operation completes.
      *
-     * @param key
-     *          the transport key
-     * @param connection
-     *          the reserved connection
+     * @param key the transport key
+     * @param connection the reserved connection
      */
     void putReserved(final ThriftTransportKey key, final CachedConnection connection) {
       // It's possible that multiple locks from executeWithinLock will overlap with a single lock
@@ -449,10 +444,9 @@ public class ThriftTransportPool {
      * This operation locks access to the mapping for the key in {@link ConnectionPool#connections}
      * until the operation completes.
      *
-     * @param transport
-     *          the transport
-     * @param toBeClosed
-     *          the list to add connections that must be closed after this operation finishes
+     * @param transport the transport
+     * @param toBeClosed the list to add connections that must be closed after this operation
+     *        finishes
      * @return true if the connection for the transport existed and was initially reserved, or false
      *         otherwise
      */

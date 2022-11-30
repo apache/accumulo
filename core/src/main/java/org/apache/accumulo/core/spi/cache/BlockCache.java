@@ -33,18 +33,15 @@ public interface BlockCache {
   /**
    * Add block to cache.
    *
-   * @param blockName
-   *          Zero-based file block number.
-   * @param buf
-   *          The block contents wrapped in a ByteBuffer.
+   * @param blockName Zero-based file block number.
+   * @param buf The block contents wrapped in a ByteBuffer.
    */
   CacheEntry cacheBlock(String blockName, byte[] buf);
 
   /**
    * Fetch block from cache.
    *
-   * @param blockName
-   *          Block name to fetch.
+   * @param blockName Block name to fetch.
    * @return Block or null if block is not in the cache.
    */
   CacheEntry getBlock(String blockName);
@@ -59,8 +56,7 @@ public interface BlockCache {
     /**
      * Loads a block. Anything returned by {@link #getDependencies()} should be loaded and passed.
      *
-     * @param maxSize
-     *          This is the maximum block size that will be cached.
+     * @param maxSize This is the maximum block size that will be cached.
      * @return The loaded block or null if loading the block would exceed maxSize.
      */
     byte[] load(int maxSize, Map<String,byte[]> dependencies);
@@ -73,10 +69,8 @@ public interface BlockCache {
    * prevent concurrent loading of the same block.
    *
    *
-   * @param blockName
-   *          Block name to fetch
-   * @param loader
-   *          If the block is not present in the cache, the loader can be called to load it.
+   * @param blockName Block name to fetch
+   * @param loader If the block is not present in the cache, the loader can be called to load it.
    * @return Block or null if block is not in the cache or didn't load.
    */
   CacheEntry getBlock(String blockName, Loader loader);

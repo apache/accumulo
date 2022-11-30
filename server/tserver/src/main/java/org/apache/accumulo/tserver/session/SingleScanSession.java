@@ -59,13 +59,15 @@ public class SingleScanSession extends ScanSession {
   public boolean cleanup() {
     final boolean ret;
     try {
-      if (nextBatchTask != null)
+      if (nextBatchTask != null) {
         nextBatchTask.cancel(true);
+      }
     } finally {
-      if (scanner != null)
+      if (scanner != null) {
         ret = scanner.close();
-      else
+      } else {
         ret = true;
+      }
     }
     return ret;
   }

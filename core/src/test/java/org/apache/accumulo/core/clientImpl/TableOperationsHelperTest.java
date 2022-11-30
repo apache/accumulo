@@ -149,16 +149,18 @@ public class TableOperationsHelperTest {
 
     @Override
     public void removeProperty(String tableName, String property) {
-      if (!settings.containsKey(tableName))
+      if (!settings.containsKey(tableName)) {
         return;
+      }
       settings.get(tableName).remove(property);
     }
 
     @Override
     public Map<String,String> getConfiguration(String tableName) {
       Map<String,String> empty = Collections.emptyMap();
-      if (!settings.containsKey(tableName))
+      if (!settings.containsKey(tableName)) {
         return empty;
+      }
       return settings.get(tableName);
     }
 
@@ -166,8 +168,9 @@ public class TableOperationsHelperTest {
     public Map<String,String> getTableProperties(String tableName)
         throws AccumuloException, TableNotFoundException {
       Map<String,String> empty = Collections.emptyMap();
-      if (!settings.containsKey(tableName))
+      if (!settings.containsKey(tableName)) {
         return empty;
+      }
       return settings.get(tableName);
     }
 

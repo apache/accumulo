@@ -105,9 +105,10 @@ public class RowHash extends Configured implements Tool {
     int idx = col.indexOf(":");
     Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
     Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
-    if (cf.getLength() > 0)
+    if (cf.getLength() > 0) {
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.fetchColumns(job,
           Collections.singleton(new Pair<>(cf, cq)));
+    }
 
     job.setMapperClass(HashDataMapper.class);
     job.setMapOutputKeyClass(Text.class);

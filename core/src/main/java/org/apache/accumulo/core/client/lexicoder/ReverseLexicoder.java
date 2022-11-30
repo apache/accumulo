@@ -34,8 +34,7 @@ public class ReverseLexicoder<T> extends AbstractLexicoder<T> {
   private Lexicoder<T> lexicoder;
 
   /**
-   * @param lexicoder
-   *          The lexicoder who's sort order will be flipped.
+   * @param lexicoder The lexicoder who's sort order will be flipped.
    */
   public ReverseLexicoder(Lexicoder<T> lexicoder) {
     this.lexicoder = lexicoder;
@@ -46,8 +45,9 @@ public class ReverseLexicoder<T> extends AbstractLexicoder<T> {
     byte[] bytes = escape(lexicoder.encode(data));
     byte[] ret = new byte[bytes.length + 1];
 
-    for (int i = 0; i < bytes.length; i++)
+    for (int i = 0; i < bytes.length; i++) {
       ret[i] = (byte) (0xff - (0xff & bytes[i]));
+    }
 
     ret[bytes.length] = (byte) 0xff;
 

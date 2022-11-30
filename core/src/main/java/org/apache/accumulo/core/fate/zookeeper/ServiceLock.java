@@ -178,8 +178,7 @@ public class ServiceLock implements Watcher {
    * Sort list of ephemeral nodes by their sequence number. Any ephemeral nodes that are not of the
    * correct form will sort last.
    *
-   * @param children
-   *          list of ephemeral nodes
+   * @param children list of ephemeral nodes
    * @return list of ephemeral nodes that have valid formats, sorted by sequence number
    */
   public static List<String> validateAndSort(ServiceLockPath path, List<String> children) {
@@ -241,10 +240,8 @@ public class ServiceLock implements Watcher {
    * "zlock#UUID#sequenceNumber", find the ephemeral node that sorts before the ephemeralNode
    * parameter with the lowest sequence number
    *
-   * @param children
-   *          list of sequential ephemera nodes, already sorted
-   * @param ephemeralNode
-   *          starting node for the search
+   * @param children list of sequential ephemera nodes, already sorted
+   * @param ephemeralNode starting node for the search
    * @return next lowest prefix with the lowest sequence number
    */
   public static String findLowestPrevPrefix(final List<String> children,
@@ -483,10 +480,11 @@ public class ServiceLock implements Watcher {
                   // created.
                   zooKeeper.removeWatches(pathForWatcher, this, WatcherType.Any, true);
 
-                  if (lockNodeName != null)
+                  if (lockNodeName != null) {
                     lostLock(LockLossReason.LOCK_DELETED);
-                  else if (createdNodeName != null)
+                  } else if (createdNodeName != null) {
                     failedToAcquireLock();
+                  }
                 }
               } catch (Exception e) {
                 lockWatcher.unableToMonitorLockNode(e);
@@ -595,8 +593,9 @@ public class ServiceLock implements Watcher {
   }
 
   public synchronized void replaceLockData(byte[] b) throws KeeperException, InterruptedException {
-    if (getLockPath() != null)
+    if (getLockPath() != null) {
       zooKeeper.setData(getLockPath(), b, -1);
+    }
   }
 
   @Override
@@ -639,8 +638,9 @@ public class ServiceLock implements Watcher {
     }
 
     String lockNode = children.get(0);
-    if (!lid.node.equals(lockNode))
+    if (!lid.node.equals(lockNode)) {
       return false;
+    }
 
     ZcStat stat = new ZcStat();
     return zc.get(lid.path + "/" + lid.node, stat) != null && stat.getEphemeralOwner() == lid.eid;
@@ -689,8 +689,9 @@ public class ServiceLock implements Watcher {
     String lockNode = children.get(0);
 
     ZcStat stat = new ZcStat();
-    if (zc.get(path + "/" + lockNode, stat) != null)
+    if (zc.get(path + "/" + lockNode, stat) != null) {
       return stat.getEphemeralOwner();
+    }
     return 0;
   }
 

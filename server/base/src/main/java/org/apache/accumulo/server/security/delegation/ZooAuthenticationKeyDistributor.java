@@ -129,8 +129,7 @@ public class ZooAuthenticationKeyDistributor {
   /**
    * Add the given {@link AuthenticationKey} to ZooKeeper.
    *
-   * @param newKey
-   *          The key to add to ZooKeeper
+   * @param newKey The key to add to ZooKeeper
    */
   public synchronized void advertise(AuthenticationKey newKey)
       throws KeeperException, InterruptedException {
@@ -167,8 +166,7 @@ public class ZooAuthenticationKeyDistributor {
    * there is only a single process managing ZooKeeper at one time, any inconsistencies should be
    * client error.
    *
-   * @param key
-   *          The key to remove from ZooKeeper
+   * @param key The key to remove from ZooKeeper
    */
   public synchronized void remove(AuthenticationKey key)
       throws KeeperException, InterruptedException {

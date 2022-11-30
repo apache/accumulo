@@ -54,8 +54,9 @@ public class PasswdCommand extends Command {
     } // user canceled
 
     if (!shellState.getAccumuloClient().securityOperations().authenticateUser(currentUser,
-        new PasswordToken(oldPassword)))
+        new PasswordToken(oldPassword))) {
       throw new AccumuloSecurityException(user, SecurityErrorCode.BAD_CREDENTIALS);
+    }
 
     password = shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
     if (password == null) {

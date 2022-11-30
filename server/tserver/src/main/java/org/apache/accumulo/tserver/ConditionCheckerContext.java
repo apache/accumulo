@@ -116,12 +116,13 @@ public class ConditionCheckerContext {
     for (TCondition tc : scm.getConditions()) {
 
       Range range;
-      if (tc.hasTimestamp)
+      if (tc.hasTimestamp) {
         range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()),
             new Text(tc.getCv()), tc.getTs());
-      else
+      } else {
         range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()),
             new Text(tc.getCv()));
+      }
 
       SortedKeyValueIterator<Key,Value> iter = buildIterator(systemIter, tc);
 

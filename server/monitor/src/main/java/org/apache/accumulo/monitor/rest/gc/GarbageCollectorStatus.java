@@ -36,8 +36,7 @@ public class GarbageCollectorStatus {
   /**
    * Groups gc status into files and wals
    *
-   * @param status
-   *          garbage collector status
+   * @param status garbage collector status
    */
   public GarbageCollectorStatus(GCStatus status) {
     if (status != null) {

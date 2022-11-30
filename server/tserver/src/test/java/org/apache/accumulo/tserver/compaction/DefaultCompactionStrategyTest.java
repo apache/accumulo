@@ -53,11 +53,13 @@ public class DefaultCompactionStrategyTest {
 
   private static Pair<Key,Key> keys(String firstString, String secondString) {
     Key first = null;
-    if (firstString != null)
+    if (firstString != null) {
       first = new Key(new Text(firstString));
+    }
     Key second = null;
-    if (secondString != null)
+    if (secondString != null) {
       second = new Key(new Text(secondString));
+    }
     return new Pair<>(first, second);
   }
 
@@ -100,8 +102,9 @@ public class DefaultCompactionStrategyTest {
 
     @Override
     public int getMaxFilesPerTablet() {
-      if (mfpt != null)
+      if (mfpt != null) {
         return mfpt;
+      }
       return super.getMaxFilesPerTablet();
     }
 
@@ -139,8 +142,9 @@ public class DefaultCompactionStrategyTest {
 
   private static Set<String> asSet(Collection<String> strings) {
     HashSet<String> result = new HashSet<>();
-    for (String string : strings)
+    for (String string : strings) {
       result.add("hdfs://nn1/accumulo/tables/5/t-0001/" + string);
+    }
     return result;
   }
 

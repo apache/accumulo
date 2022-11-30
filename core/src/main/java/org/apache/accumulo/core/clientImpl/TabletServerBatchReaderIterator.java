@@ -149,10 +149,11 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       try {
         resultsQueue.put(entries);
       } catch (InterruptedException e) {
-        if (TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown())
+        if (TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown()) {
           log.debug("Failed to add Batch Scan result", e);
-        else
+        } else {
           log.warn("Failed to add Batch Scan result", e);
+        }
         fatalException = e;
         throw new RuntimeException(e);
 
@@ -171,23 +172,28 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   @Override
   public boolean hasNext() {
     synchronized (nextLock) {
-      if (batch == LAST_BATCH)
+      if (batch == LAST_BATCH) {
         return false;
+      }
 
-      if (batch != null && batchIterator.hasNext())
+      if (batch != null && batchIterator.hasNext()) {
         return true;
+      }
 
       // don't have one cached, try to cache one and return success
       try {
         batch = null;
-        while (batch == null && fatalException == null && !queryThreadPool.isShutdown())
+        while (batch == null && fatalException == null && !queryThreadPool.isShutdown()) {
           batch = resultsQueue.poll(1, SECONDS);
+        }
 
-        if (fatalException != null)
-          if (fatalException instanceof RuntimeException)
+        if (fatalException != null) {
+          if (fatalException instanceof RuntimeException) {
             throw (RuntimeException) fatalException;
-          else
+          } else {
             throw new RuntimeException(fatalException);
+          }
+        }
 
         if (queryThreadPool.isShutdown()) {
           String shortMsg =
@@ -211,10 +217,11 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   public Entry<Key,Value> next() {
     // if there's one waiting, or hasNext() can get one, return it
     synchronized (nextLock) {
-      if (hasNext())
+      if (hasNext()) {
         return batchIterator.next();
-      else
+      } else {
         throw new NoSuchElementException();
+      }
     }
   }
 
@@ -262,9 +269,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
         lastFailureSize = failures.size();
 
-        if (log.isTraceEnabled())
+        if (log.isTraceEnabled()) {
           log.trace("Failed to bin {} ranges, tablet locations were null, retrying in 100ms",
               failures.size());
+        }
 
         try {
           Thread.sleep(100);
@@ -285,8 +293,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         Range tabletRange = tabletRanges.getKey().toDataRange();
         List<Range> clippedRanges = new ArrayList<>();
         tabletMap.put(tabletRanges.getKey(), clippedRanges);
-        for (Range range : tabletRanges.getValue())
+        for (Range range : tabletRanges.getValue()) {
           clippedRanges.add(tabletRange.clip(range));
+        }
       }
     }
 
@@ -297,8 +306,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private void processFailures(Map<KeyExtent,List<Range>> failures, ResultReceiver receiver,
       List<Column> columns, Duration scanServerSelectorDelay)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    if (log.isTraceEnabled())
+    if (log.isTraceEnabled()) {
       log.trace("Failed to execute multiscans against {} tablets, retrying...", failures.size());
+    }
 
     try {
       if (scanServerSelectorDelay != null) {
@@ -319,8 +329,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     List<Range> allRanges = new ArrayList<>();
 
-    for (List<Range> ranges : failures.values())
+    for (List<Range> ranges : failures.values()) {
       allRanges.addAll(ranges);
+    }
 
     // since the first call to binRanges clipped the ranges to within a tablet, we should not get
     // only
@@ -410,17 +421,19 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         log.debug("AccumuloSecurityException thrown", e);
 
         context.clearTableListCache();
-        if (context.tableNodeExists(tableId))
+        if (context.tableNodeExists(tableId)) {
           fatalException = e;
-        else
+        } else {
           fatalException = new TableDeletedException(tableId.canonical());
+        }
       } catch (SampleNotPresentException e) {
         fatalException = e;
       } catch (Exception t) {
-        if (queryThreadPool.isShutdown())
+        if (queryThreadPool.isShutdown()) {
           log.debug("Caught exception, but queryThreadPool is shutdown", t);
-        else
+        } else {
           log.warn("Caught exception, but queryThreadPool is not shutdown", t);
+        }
         fatalException = t;
       } catch (Throwable t) {
         fatalException = t;
@@ -774,11 +787,12 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     try {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
       final TabletScanClientService.Client client;
-      if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
+      if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis()) {
         client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context,
             timeoutTracker.getTimeOut());
-      else
+      } else {
         client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
+      }
 
       try {
 
@@ -813,8 +827,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
             SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
             options.batchTimeOut, options.classLoaderContext, execHints, busyTimeout);
-        if (waitForWrites)
+        if (waitForWrites) {
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
+        }
 
         MultiScanResult scanResult = imsr.result;
 
@@ -831,11 +846,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           entries.add(new SimpleImmutableEntry<>(new Key(kv.key), new Value(kv.value)));
         }
 
-        if (!entries.isEmpty())
+        if (!entries.isEmpty()) {
           receiver.receive(entries);
+        }
 
-        if (!entries.isEmpty() || !scanResult.fullScans.isEmpty())
+        if (!entries.isEmpty() || !scanResult.fullScans.isEmpty()) {
           timeoutTracker.madeProgress();
+        }
 
         trackScanning(failures, unscanned, scanResult);
 
@@ -866,11 +883,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             entries.add(new SimpleImmutableEntry<>(new Key(kv.key), new Value(kv.value)));
           }
 
-          if (!entries.isEmpty())
+          if (!entries.isEmpty()) {
             receiver.receive(entries);
+          }
 
-          if (!entries.isEmpty() || !scanResult.fullScans.isEmpty())
+          if (!entries.isEmpty() || !scanResult.fullScans.isEmpty()) {
             timeoutTracker.madeProgress();
+          }
 
           trackScanning(failures, unscanned, scanResult);
         }

@@ -122,8 +122,9 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
           }
         }
         System.out.println(states + " size " + states.size() + " allAssigned " + allAssigned);
-        if (states.size() != 2 && allAssigned)
+        if (states.size() != 2 && allAssigned) {
           break;
+        }
       }
       assertEquals(1, replStates.size());
       assertEquals(1, states.size());

@@ -256,8 +256,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     } catch (TException e) {
       throw new AccumuloException(e);
     } finally {
-      if (client != null)
+      if (client != null) {
         returnClient(client, context);
+      }
     }
   }
 
@@ -286,8 +287,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     } catch (TException e) {
       throw new AccumuloException(e);
     } finally {
-      if (client != null)
+      if (client != null) {
         returnClient(client, context);
+      }
     }
   }
 

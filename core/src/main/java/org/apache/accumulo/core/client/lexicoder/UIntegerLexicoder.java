@@ -34,8 +34,9 @@ public class UIntegerLexicoder extends AbstractLexicoder<Integer> {
     int prefix = i < 0 ? 0xff : 0x00;
 
     for (index = 0; index < 4; index++) {
-      if (((i >>> shift) & 0xff) != prefix)
+      if (((i >>> shift) & 0xff) != prefix) {
         break;
+      }
 
       shift -= 8;
     }
@@ -47,8 +48,9 @@ public class UIntegerLexicoder extends AbstractLexicoder<Integer> {
       shift -= 8;
     }
 
-    if (i < 0)
+    if (i < 0) {
       ret[0] = (byte) (8 - ret[0]);
+    }
 
     return ret;
 
@@ -64,8 +66,9 @@ public class UIntegerLexicoder extends AbstractLexicoder<Integer> {
   @Override
   protected Integer decodeUnchecked(byte[] data, int offset, int len) {
 
-    if (data[offset] < 0 || data[offset] > 8)
+    if (data[offset] < 0 || data[offset] > 8) {
       throw new IllegalArgumentException("Unexpected length " + (0xff & data[offset]));
+    }
 
     int i = 0;
     int shift = 0;
@@ -76,8 +79,9 @@ public class UIntegerLexicoder extends AbstractLexicoder<Integer> {
     }
 
     // fill in 0xff prefix
-    if (data[offset] > 4)
+    if (data[offset] > 4) {
       i |= -1 << ((8 - data[offset]) << 3);
+    }
 
     return i;
   }

@@ -32,8 +32,9 @@ public class MinCombiner extends LongCombiner {
     long min = Long.MAX_VALUE;
     while (iter.hasNext()) {
       Long l = iter.next();
-      if (l < min)
+      if (l < min) {
         min = l;
+      }
     }
     return min;
   }

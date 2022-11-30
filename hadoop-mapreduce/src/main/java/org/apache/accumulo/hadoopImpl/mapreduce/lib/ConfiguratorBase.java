@@ -55,10 +55,9 @@ public class ConfiguratorBase {
   /**
    * Provides a configuration key for a given feature enum, prefixed by the implementingClass
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param e
-   *          the enum used to provide the unique part of the configuration key
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param e the enum used to provide the unique part of the configuration key
    * @return the configuration key
    * @since 1.6.0
    */
@@ -71,8 +70,7 @@ public class ConfiguratorBase {
   /**
    * Provides a configuration key for a given feature enum.
    *
-   * @param e
-   *          the enum used to provide the unique part of the configuration key
+   * @param e the enum used to provide the unique part of the configuration key
    * @return the configuration key
    */
   protected static String enumToConfKey(Enum<?> e) {
@@ -137,10 +135,9 @@ public class ConfiguratorBase {
   /**
    * Determines if the connector info has already been set for this instance.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
    * @return true if the connector info has already been set, false otherwise
    * @since 1.6.0
    */
@@ -151,10 +148,9 @@ public class ConfiguratorBase {
   /**
    * Creates an {@link AccumuloClient} based on the configuration that must be closed by user
    *
-   * @param implementingClass
-   *          class whose name will be used as a prefix for the property configuration
-   * @param conf
-   *          Hadoop configuration object
+   * @param implementingClass class whose name will be used as a prefix for the property
+   *        configuration
+   * @param conf Hadoop configuration object
    * @return {@link AccumuloClient} that must be closed by user
    * @since 2.0.0
    */
@@ -165,10 +161,8 @@ public class ConfiguratorBase {
   /**
    * Sets the valid visibility count for this job.
    *
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param visibilityCacheSize
-   *          the LRU cache size
+   * @param conf the Hadoop configuration object to configure
+   * @param visibilityCacheSize the LRU cache size
    */
   public static void setVisibilityCacheSize(Configuration conf, int visibilityCacheSize) {
     conf.setInt(enumToConfKey(GeneralOpts.VISIBILITY_CACHE_SIZE), visibilityCacheSize);
@@ -177,8 +171,7 @@ public class ConfiguratorBase {
   /**
    * Gets the valid visibility count for this job.
    *
-   * @param conf
-   *          the Hadoop configuration object to configure
+   * @param conf the Hadoop configuration object to configure
    * @return the valid visibility count
    */
   public static int getVisibilityCacheSize(Configuration conf) {

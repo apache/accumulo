@@ -62,10 +62,12 @@ public class QueueAndPriority implements Comparable<QueueAndPriority> {
 
   @Override
   public boolean equals(Object obj) {
-    if (null == obj)
+    if (null == obj) {
       return false;
-    if (obj == this)
+    }
+    if (obj == this) {
       return true;
+    }
     if (!(obj instanceof QueueAndPriority)) {
       return false;
     } else {

@@ -35,8 +35,7 @@ public class TableNamespace {
   /**
    * Creates a new namespace group with an empty list
    *
-   * @param name
-   *          Namespace for the group
+   * @param name Namespace for the group
    */
   public TableNamespace(String name) {
     namespace = name;
@@ -45,8 +44,7 @@ public class TableNamespace {
   /**
    * Add a new table to the list
    *
-   * @param table
-   *          Table to add
+   * @param table Table to add
    */
   public void addTable(TableInformation table) {
     this.table.add(table);

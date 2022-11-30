@@ -154,8 +154,9 @@ public class MutationTest {
     for (int i = 0; i < 5; i++) {
       int len = Mutation.VALUE_SIZE_COPY_CUTOFF - 2 + i;
       byte[] val = new byte[len];
-      for (int j = 0; j < len; j++)
+      for (int j = 0; j < len; j++) {
         val[j] = (byte) i;
+      }
 
       m.put(new Text("cf" + i), new Text("cq" + i), new Value(val));
 
@@ -175,8 +176,9 @@ public class MutationTest {
         byte[] val = cu.getValue();
         int len = Mutation.VALUE_SIZE_COPY_CUTOFF - 2 + i;
         assertEquals(len, val.length);
-        for (int j = 0; j < len; j++)
+        for (int j = 0; j < len; j++) {
           assertEquals(i, val[j]);
+        }
       }
 
       m = cloneMutation(m);
@@ -604,8 +606,9 @@ public class MutationTest {
     assertEquals(cq, new String(cu.getColumnQualifier()));
     assertEquals(cv, new String(cu.getColumnVisibility()));
     assertEquals(timeSet, cu.hasTimestamp());
-    if (timeSet)
+    if (timeSet) {
       assertEquals(ts, cu.getTimestamp());
+    }
     assertEquals(deleted, cu.isDeleted());
     assertEquals(val, new String(cu.getValue()));
   }

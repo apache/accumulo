@@ -31,8 +31,7 @@ public class ComparableBytes extends BinaryComparable {
    * Creates a new byte wrapper. The given byte array is used directly as a backing array, so later
    * changes made to the array reflect into the new object.
    *
-   * @param b
-   *          bytes to wrap
+   * @param b bytes to wrap
    */
   public ComparableBytes(byte[] b) {
     this.data = b;

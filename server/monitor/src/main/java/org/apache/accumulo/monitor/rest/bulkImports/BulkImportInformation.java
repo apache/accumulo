@@ -37,12 +37,9 @@ public class BulkImportInformation {
   /**
    * Creates new bulk import object
    *
-   * @param filename
-   *          name of the bulk import file
-   * @param age
-   *          age of the bulk import
-   * @param state
-   *          state of the bulk import
+   * @param filename name of the bulk import file
+   * @param age age of the bulk import
+   * @param state state of the bulk import
    */
   public BulkImportInformation(String filename, long age, BulkImportState state) {
     this.filename = filename;

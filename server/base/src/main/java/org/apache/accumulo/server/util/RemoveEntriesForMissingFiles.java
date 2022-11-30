@@ -135,20 +135,23 @@ public class RemoveEntriesForMissingFiles {
     AtomicReference<Exception> exceptionRef = new AtomicReference<>(null);
     BatchWriter writer = null;
 
-    if (fix)
+    if (fix) {
       writer = context.createBatchWriter(MetadataTable.NAME);
+    }
 
     for (Entry<Key,Value> entry : metadata) {
-      if (exceptionRef.get() != null)
+      if (exceptionRef.get() != null) {
         break;
+      }
 
       count++;
       Key key = entry.getKey();
       Path map = new Path(ValidationUtil.validate(key.getColumnQualifierData().toString()));
 
       synchronized (processing) {
-        while (processing.size() >= 64 || processing.contains(map))
+        while (processing.size() >= 64 || processing.contains(map)) {
           processing.wait();
+        }
 
         if (cache.get(map) != null) {
           continue;
@@ -164,15 +167,18 @@ public class RemoveEntriesForMissingFiles {
     threadPool.shutdown();
 
     synchronized (processing) {
-      while (!processing.isEmpty())
+      while (!processing.isEmpty()) {
         processing.wait();
+      }
     }
 
-    if (exceptionRef.get() != null)
+    if (exceptionRef.get() != null) {
       throw new AccumuloException(exceptionRef.get());
+    }
 
-    if (writer != null && missing.get() > 0)
+    if (writer != null && missing.get() > 0) {
       writer.close();
+    }
 
     System.out.printf("Scan finished, %d files of %d missing\n\n", missing.get(), count);
 
@@ -182,10 +188,11 @@ public class RemoveEntriesForMissingFiles {
   static int checkAllTables(ServerContext context, boolean fix) throws Exception {
     int missing = checkTable(context, RootTable.NAME, TabletsSection.getRange(), fix);
 
-    if (missing == 0)
+    if (missing == 0) {
       return checkTable(context, MetadataTable.NAME, TabletsSection.getRange(), fix);
-    else
+    } else {
       return missing;
+    }
   }
 
   static int checkTable(ServerContext context, String tableName, boolean fix) throws Exception {

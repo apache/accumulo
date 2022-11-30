@@ -125,8 +125,9 @@ public class VolumeIT extends ConfigurableMacBase {
       String tableName = getUniqueNames(1)[0];
       // create set of splits
       SortedSet<Text> partitions = new TreeSet<>();
-      for (String s : "d,m,t".split(","))
+      for (String s : "d,m,t".split(",")) {
         partitions.add(new Text(s));
+      }
       // create table with splits
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions);
       client.tableOperations().create(tableName, ntc);
@@ -400,8 +401,9 @@ public class VolumeIT extends ConfigurableMacBase {
       writeData(tableNames[1], c2);
     }
 
-    if (cleanShutdown)
+    if (cleanShutdown) {
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+    }
 
     cluster.stop();
 

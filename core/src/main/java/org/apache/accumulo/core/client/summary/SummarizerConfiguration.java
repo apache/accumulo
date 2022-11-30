@@ -145,8 +145,7 @@ public class SummarizerConfiguration {
   /**
    * Encodes each configuration in the same way as {@link #toTableProperties()}.
    *
-   * @throws IllegalArgumentException
-   *           when there are duplicate values for {@link #getPropertyId()}
+   * @throws IllegalArgumentException when there are duplicate values for {@link #getPropertyId()}
    */
   public static Map<String,String> toTableProperties(SummarizerConfiguration... configurations) {
     return SummarizerConfigurationUtil.toTablePropertiesMap(Arrays.asList(configurations));
@@ -155,8 +154,7 @@ public class SummarizerConfiguration {
   /**
    * Encodes each configuration in the same way as {@link #toTableProperties()}.
    *
-   * @throws IllegalArgumentException
-   *           when there are duplicate values for {@link #getPropertyId()}
+   * @throws IllegalArgumentException when there are duplicate values for {@link #getPropertyId()}
    */
   public static Map<String,String>
       toTableProperties(Collection<SummarizerConfiguration> configurations) {
@@ -197,9 +195,8 @@ public class SummarizerConfiguration {
      * Sets the id used when generating table properties. Setting this is optional. If not set, an
      * id is generated using hashing that will likely be unique.
      *
-     * @param propId
-     *          This id is used when converting a {@link SummarizerConfiguration} to table
-     *          properties. Since tables can have multiple summarizers, make sure its unique.
+     * @param propId This id is used when converting a {@link SummarizerConfiguration} to table
+     *        properties. Since tables can have multiple summarizers, make sure its unique.
      *
      * @see SummarizerConfiguration#toTableProperties()
      */
@@ -253,8 +250,7 @@ public class SummarizerConfiguration {
      * }
      * </pre>
      *
-     * @param keyValuePairs
-     *          This array must have an even and positive number of elements.
+     * @param keyValuePairs This array must have an even and positive number of elements.
      * @return this
      * @see SummarizerConfiguration#getOptions()
      */
@@ -268,8 +264,7 @@ public class SummarizerConfiguration {
     }
 
     /**
-     * @param options
-     *          Each entry in the map is passed to {@link #addOption(String, String)}
+     * @param options Each entry in the map is passed to {@link #addOption(String, String)}
      * @return this
      *
      * @see SummarizerConfiguration#getOptions()
@@ -288,8 +283,7 @@ public class SummarizerConfiguration {
    * Call this method to initiate a chain of fluent method calls to a create an immutable
    * {@link SummarizerConfiguration}
    *
-   * @param className
-   *          The fully qualified name of a class that implements {@link Summarizer}.
+   * @param className The fully qualified name of a class that implements {@link Summarizer}.
    */
   public static Builder builder(String className) {
     return new Builder(className);

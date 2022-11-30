@@ -32,8 +32,9 @@ public class ServerColumnUpdate extends ColumnUpdate {
 
   @Override
   public long getTimestamp() {
-    if (hasTimestamp())
+    if (hasTimestamp()) {
       return super.getTimestamp();
+    }
     return parent.getSystemTimestamp();
   }
 

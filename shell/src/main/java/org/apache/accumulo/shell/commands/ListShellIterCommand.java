@@ -36,29 +36,34 @@ public class ListShellIterCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
-    if (shellState.iteratorProfiles.isEmpty())
+    if (shellState.iteratorProfiles.isEmpty()) {
       return 0;
+    }
 
     final StringBuilder sb = new StringBuilder();
 
     String profile = null;
-    if (cl.hasOption(profileOpt.getOpt()))
+    if (cl.hasOption(profileOpt.getOpt())) {
       profile = cl.getOptionValue(profileOpt.getOpt());
+    }
 
     String name = null;
-    if (cl.hasOption(nameOpt.getOpt()))
+    if (cl.hasOption(nameOpt.getOpt())) {
       name = cl.getOptionValue(nameOpt.getOpt());
+    }
 
     Set<Entry<String,List<IteratorSetting>>> es = shellState.iteratorProfiles.entrySet();
     for (Entry<String,List<IteratorSetting>> entry : es) {
-      if (profile != null && !profile.equals(entry.getKey()))
+      if (profile != null && !profile.equals(entry.getKey())) {
         continue;
+      }
 
       sb.append("-\n");
       sb.append("- Profile : " + entry.getKey() + "\n");
       for (IteratorSetting setting : entry.getValue()) {
-        if (name != null && !name.equals(setting.getName()))
+        if (name != null && !name.equals(setting.getName())) {
           continue;
+        }
 
         sb.append("-    Iterator ").append(setting.getName()).append(", ").append(" options:\n");
         sb.append("-        ").append("iteratorPriority").append(" = ")

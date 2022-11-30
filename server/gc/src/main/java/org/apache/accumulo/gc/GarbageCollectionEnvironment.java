@@ -51,8 +51,7 @@ public interface GarbageCollectionEnvironment {
    * Given an iterator to a deletion candidate list, return a sub-list of candidates which fit
    * within provided memory constraints.
    *
-   * @param candidatesIter
-   *          iterator referencing a List of possible deletion candidates
+   * @param candidatesIter iterator referencing a List of possible deletion candidates
    * @return a List of possible deletion candidates
    */
   List<String> readCandidatesThatFitInMemory(Iterator<String> candidatesIter);
@@ -80,8 +79,7 @@ public interface GarbageCollectionEnvironment {
    * ({@link GCRun#getCandidateTableIDs()}.
    *
    * @return set of table ids
-   * @throws InterruptedException
-   *           if interrupted when calling ZooKeeper
+   * @throws InterruptedException if interrupted when calling ZooKeeper
    */
   Set<TableId> getCandidateTableIDs() throws InterruptedException;
 
@@ -90,8 +88,7 @@ public interface GarbageCollectionEnvironment {
    * running over
    *
    * @return The valueSet for the table name to table id map.
-   * @throws InterruptedException
-   *           if interrupted when calling ZooKeeper
+   * @throws InterruptedException if interrupted when calling ZooKeeper
    */
   Map<TableId,TableState> getTableIDs() throws InterruptedException;
 
@@ -99,8 +96,7 @@ public interface GarbageCollectionEnvironment {
    * Delete the given files from the provided {@link Map} of relative path to absolute path for each
    * file that should be deleted. The candidates should already be confirmed for deletion.
    *
-   * @param candidateMap
-   *          A Map from relative path to absolute path for files to be deleted.
+   * @param candidateMap A Map from relative path to absolute path for files to be deleted.
    */
   void deleteConfirmedCandidates(SortedMap<String,String> candidateMap)
       throws TableNotFoundException;
@@ -108,24 +104,21 @@ public interface GarbageCollectionEnvironment {
   /**
    * Delete a table's directory if it is empty.
    *
-   * @param tableID
-   *          The id of the table whose directory we are to operate on
+   * @param tableID The id of the table whose directory we are to operate on
    */
   void deleteTableDirIfEmpty(TableId tableID) throws IOException;
 
   /**
    * Increment the number of candidates for deletion for the current garbage collection run
    *
-   * @param i
-   *          Value to increment the deletion candidates by
+   * @param i Value to increment the deletion candidates by
    */
   void incrementCandidatesStat(long i);
 
   /**
    * Increment the number of files still in use for the current garbage collection run
    *
-   * @param i
-   *          Value to increment the still-in-use count by.
+   * @param i Value to increment the still-in-use count by.
    */
   void incrementInUseStat(long i);
 

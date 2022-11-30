@@ -45,10 +45,9 @@ public class CompactionJobImpl implements CompactionJob {
 
   /**
    *
-   * @param jobSelectedAll
-   *          This parameters only needs to be non-empty for job objects that are used to start
-   *          compaction. After a job is running, its not used. So when a job object is recreated
-   *          for a running external compaction this parameter can be empty.
+   * @param jobSelectedAll This parameters only needs to be non-empty for job objects that are used
+   *        to start compaction. After a job is running, its not used. So when a job object is
+   *        recreated for a running external compaction this parameter can be empty.
    */
   public CompactionJobImpl(short priority, CompactionExecutorId executor,
       Collection<CompactableFile> files, CompactionKind kind, Optional<Boolean> jobSelectedAll) {

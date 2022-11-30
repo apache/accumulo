@@ -133,8 +133,9 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
   public static long abs(long l) {
     l = Math.abs(l); // abs(Long.MIN_VALUE) == Long.MIN_VALUE...
-    if (l < 0)
+    if (l < 0) {
       return 0;
+    }
     return l;
   }
 
@@ -1080,10 +1081,12 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         while (results.hasNext()) {
           Status status = results.next().getStatus();
-          if (status == Status.ACCEPTED)
+          if (status == Status.ACCEPTED) {
             accepted++;
-          if (status == Status.REJECTED)
+          }
+          if (status == Status.REJECTED) {
             rejected++;
+          }
           total++;
         }
 
@@ -1105,8 +1108,9 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       while (iterator.hasNext()) {
         Entry<Key,Value> entry = iterator.next();
 
-        if (row == null)
+        if (row == null) {
           row = entry.getKey().getRowData();
+        }
 
         String cf = entry.getKey().getColumnFamilyData().toString();
         String cq = entry.getKey().getColumnQualifierData().toString();
@@ -1148,8 +1152,9 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
     ConditionalMutation toMutation() {
       Condition cond = new Condition("meta", "seq");
-      if (seq >= 0)
+      if (seq >= 0) {
         cond.setValue(seq + "");
+      }
 
       ConditionalMutation cm = new ConditionalMutation(row, cond);
 
@@ -1196,8 +1201,9 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           ArrayList<ByteSequence> changes = new ArrayList<>(numRows);
           ArrayList<ConditionalMutation> mutations = new ArrayList<>();
 
-          for (int j = 0; j < numRows; j++)
+          for (int j = 0; j < numRows; j++) {
             changes.add(rows.get(random.nextInt(rows.size())));
+          }
 
           for (ByteSequence row : changes) {
             scanner.setRange(new Range(row.toString()));
@@ -1256,8 +1262,9 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         ArrayList<ConditionalMutation> mutations = new ArrayList<>();
 
-        for (ByteSequence row : rows)
+        for (ByteSequence row : rows) {
           mutations.add(new Stats(row).toMutation());
+        }
 
         ArrayList<ByteSequence> rows2 = new ArrayList<>();
         Iterator<Result> results = cw.write(mutations.iterator());
@@ -1301,8 +1308,9 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
   private SortedSet<Text> nss(String... splits) {
     TreeSet<Text> ret = new TreeSet<>();
-    for (String split : splits)
+    for (String split : splits) {
       ret.add(new Text(split));
+    }
 
     return ret;
   }
@@ -1401,12 +1409,13 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           String cq = entry.getKey().getColumnQualifierData().toString();
           String val = entry.getValue().toString();
 
-          if (cf.equals("tx") && cq.equals("seq"))
+          if (cf.equals("tx") && cq.equals("seq")) {
             assertEquals("1", val, "Unexpected value in tx:seq");
-          else if (cf.equals("data") && cq.equals("x"))
+          } else if (cf.equals("data") && cq.equals("x")) {
             assertEquals("a", val, "Unexpected value in data:x");
-          else
+          } else {
             fail("Saw unexpected column family and qualifier: " + entry);
+          }
         }
 
         ConditionalMutation cm3 =

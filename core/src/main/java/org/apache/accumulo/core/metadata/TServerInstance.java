@@ -70,8 +70,9 @@ public class TServerInstance implements Comparable<TServerInstance> {
 
   @Override
   public int compareTo(TServerInstance other) {
-    if (this == other)
+    if (this == other) {
       return 0;
+    }
     return this.getHostPortSession().compareTo(other.getHostPortSession());
   }
 

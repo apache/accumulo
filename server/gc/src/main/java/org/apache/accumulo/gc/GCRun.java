@@ -460,8 +460,7 @@ public class GCRun implements GarbageCollectionEnvironment {
    * throwing an exception.
    *
    * @return true if the file was moved to trash
-   * @throws IOException
-   *           if the volume manager encountered a problem
+   * @throws IOException if the volume manager encountered a problem
    */
   boolean moveToTrash(Path path) throws IOException {
     final VolumeManager fs = context.getVolumeManager();
@@ -518,8 +517,7 @@ public class GCRun implements GarbageCollectionEnvironment {
    * return the table id for the accumulo.root table.
    *
    * @return The table ids
-   * @throws InterruptedException
-   *           if interrupted when calling ZooKeeper
+   * @throws InterruptedException if interrupted when calling ZooKeeper
    */
   @Override
   public Set<TableId> getCandidateTableIDs() throws InterruptedException {

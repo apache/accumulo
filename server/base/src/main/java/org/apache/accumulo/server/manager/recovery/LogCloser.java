@@ -34,17 +34,12 @@ public interface LogCloser {
   /**
    * Attempts to properly close a WALog
    *
-   * @param conf
-   *          AccumuloConfiguration
-   * @param hadoopConf
-   *          Hadoop configuration
-   * @param fs
-   *          VolumeManager
-   * @param path
-   *          WALog file path
+   * @param conf AccumuloConfiguration
+   * @param hadoopConf Hadoop configuration
+   * @param fs VolumeManager
+   * @param path WALog file path
    * @return amount of time to wait before retrying, 0 if succeeded
-   * @throws IOException
-   *           exception closing walog
+   * @throws IOException exception closing walog
    */
   long close(AccumuloConfiguration conf, Configuration hadoopConf, VolumeManager fs, Path path)
       throws IOException;

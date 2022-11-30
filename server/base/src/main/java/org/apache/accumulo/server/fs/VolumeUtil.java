@@ -49,15 +49,17 @@ public class VolumeUtil {
   private static final Logger log = LoggerFactory.getLogger(VolumeUtil.class);
 
   public static String removeTrailingSlash(String path) {
-    while (path.endsWith("/"))
+    while (path.endsWith("/")) {
       path = path.substring(0, path.length() - 1);
+    }
     return path;
   }
 
   public static Path removeTrailingSlash(Path path) {
     String pathStr = path.toString();
-    if (pathStr.endsWith("/"))
+    if (pathStr.endsWith("/")) {
       return new Path(removeTrailingSlash(pathStr));
+    }
     return path;
   }
 
@@ -136,8 +138,9 @@ public class VolumeUtil {
   public static TabletFiles updateTabletVolumes(ServerContext context, ServiceLock zooLock,
       KeyExtent extent, TabletFiles tabletFiles, boolean replicate) {
     List<Pair<Path,Path>> replacements = context.getVolumeReplacements();
-    if (replacements.isEmpty())
+    if (replacements.isEmpty()) {
       return tabletFiles;
+    }
     log.trace("Using volume replacements: {}", replacements);
 
     List<LogEntry> logsToRemove = new ArrayList<>();

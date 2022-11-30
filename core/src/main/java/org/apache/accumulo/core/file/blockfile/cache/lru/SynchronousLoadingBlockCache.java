@@ -38,8 +38,7 @@ public abstract class SynchronousLoadingBlockCache implements BlockCache {
   private final Lock[] loadLocks;
 
   /**
-   * @param numLocks
-   *          this controls how many load operations can run concurrently
+   * @param numLocks this controls how many load operations can run concurrently
    */
   SynchronousLoadingBlockCache(int numLocks) {
     loadLocks = new Lock[numLocks];

@@ -122,11 +122,9 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
   /**
    * A convenience method for setting the negation option on a filter.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param negate
-   *          if false, filter accepts k/v for which the accept method returns true; if true, filter
-   *          accepts k/v for which the accept method returns false.
+   * @param is IteratorSetting object to configure.
+   * @param negate if false, filter accepts k/v for which the accept method returns true; if true,
+   *        filter accepts k/v for which the accept method returns false.
    */
   public static void setNegate(IteratorSetting is, boolean negate) {
     is.addOption(NEGATE, Boolean.toString(negate));

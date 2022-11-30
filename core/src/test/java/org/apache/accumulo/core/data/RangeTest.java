@@ -41,12 +41,14 @@ import org.junit.jupiter.api.Test;
 public class RangeTest {
   private Range newRange(String k1, String k2) {
     Key ik1 = null;
-    if (k1 != null)
+    if (k1 != null) {
       ik1 = new Key(new Text(k1), 0L);
+    }
 
     Key ik2 = null;
-    if (k2 != null)
+    if (k2 != null) {
       ik2 = new Key(new Text(k2), 0L);
+    }
 
     return new Range(ik1, ik2);
   }
@@ -266,9 +268,9 @@ public class RangeTest {
 
   @Test
   public void testMergeOverlapping21() {
-    for (boolean b1 : new boolean[] {true, false})
-      for (boolean b2 : new boolean[] {true, false})
-        for (boolean b3 : new boolean[] {true, false})
+    for (boolean b1 : new boolean[] {true, false}) {
+      for (boolean b2 : new boolean[] {true, false}) {
+        for (boolean b3 : new boolean[] {true, false}) {
           for (boolean b4 : new boolean[] {true, false}) {
 
             // System.out.println("b1:"+b1+" b2:"+b2+" b3:"+b3+" b4:"+b4);
@@ -298,6 +300,9 @@ public class RangeTest {
                 new Range(new Key(new Text("a")), b1 || b3, new Key(new Text("n")), b2 || b4));
             check(Range.mergeOverlapping(rl), expected);
           }
+        }
+      }
+    }
 
   }
 
@@ -484,11 +489,13 @@ public class RangeTest {
     Text tr1 = null;
     Text tr2 = null;
 
-    if (r1 != null)
+    if (r1 != null) {
       tr1 = new Text(r1);
+    }
 
-    if (r2 != null)
+    if (r2 != null) {
       tr2 = new Text(r2);
+    }
 
     return new Range(tr1, r1i, tr2, r2i);
 

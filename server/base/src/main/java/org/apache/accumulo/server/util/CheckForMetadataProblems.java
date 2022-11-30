@@ -102,10 +102,11 @@ public class CheckForMetadataProblems {
 
       lastEndRow = tabke.endRow();
     }
-    if (everythingLooksGood)
+    if (everythingLooksGood) {
       System.out.println("...All is well for table " + tableName + " (" + tableId + ")");
-    else
+    } else {
       sawProblems = true;
+    }
   }
 
   private static void checkMetadataAndRootTableEntries(String tableNameToCheck, ServerUtilOpts opts)
@@ -184,8 +185,9 @@ public class CheckForMetadataProblems {
       checkMetadataAndRootTableEntries(RootTable.NAME, opts);
       System.out.println();
       checkMetadataAndRootTableEntries(MetadataTable.NAME, opts);
-      if (sawProblems)
+      if (sawProblems) {
         throw new RuntimeException();
+      }
     } catch (Exception e) {
       TraceUtil.setException(span, e, true);
       throw e;

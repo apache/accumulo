@@ -31,8 +31,9 @@ public class ZooReservation {
 
   public static boolean attempt(ZooReaderWriter zk, String path, String reservationID,
       String debugInfo) throws KeeperException, InterruptedException {
-    if (reservationID.contains(":"))
+    if (reservationID.contains(":")) {
       throw new IllegalArgumentException();
+    }
 
     while (true) {
       try {

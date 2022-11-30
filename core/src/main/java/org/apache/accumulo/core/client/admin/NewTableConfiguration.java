@@ -82,8 +82,7 @@ public class NewTableConfiguration {
   /**
    * Configure logical or millisecond time for tables created with this configuration.
    *
-   * @param tt
-   *          the time type to use; defaults to milliseconds
+   * @param tt the time type to use; defaults to milliseconds
    * @return this
    */
   public NewTableConfiguration setTimeType(TimeType tt) {
@@ -138,8 +137,7 @@ public class NewTableConfiguration {
    * Sets additional properties to be applied to tables created with this configuration. Additional
    * calls to this method replace properties set by previous calls.
    *
-   * @param props
-   *          additional properties to add to the table when it is created
+   * @param props additional properties to add to the table when it is created
    * @return this
    */
   public NewTableConfiguration setProperties(Map<String,String> props) {
@@ -169,8 +167,9 @@ public class NewTableConfiguration {
   public Map<String,String> getProperties() {
     Map<String,String> propertyMap = new HashMap<>();
 
-    if (limitVersion)
+    if (limitVersion) {
       propertyMap.putAll(IteratorConfigUtil.generateInitialTableProperties(limitVersion));
+    }
 
     propertyMap.putAll(summarizerProps);
     propertyMap.putAll(samplerProps);
@@ -225,8 +224,7 @@ public class NewTableConfiguration {
    * Allows locality groups to be set prior to table creation. Additional calls to this method prior
    * to table creation will overwrite previous locality group mappings.
    *
-   * @param groups
-   *          mapping of locality group names to column families in the locality group
+   * @param groups mapping of locality group names to column families in the locality group
    *
    * @since 2.0.0
    *
@@ -250,8 +248,7 @@ public class NewTableConfiguration {
   /**
    * Create a new table with pre-configured splits from the provided input collection.
    *
-   * @param splits
-   *          A SortedSet of String values to be used as split points in a newly created table.
+   * @param splits A SortedSet of String values to be used as split points in a newly created table.
    * @return this
    *
    * @since 2.0.0
@@ -269,8 +266,7 @@ public class NewTableConfiguration {
    * Additional calls to this method before table creation will overwrite previous iterator
    * settings.
    *
-   * @param setting
-   *          object specifying the properties of the iterator
+   * @param setting object specifying the properties of the iterator
    *
    * @since 2.0.0
    *
@@ -283,10 +279,8 @@ public class NewTableConfiguration {
   /**
    * Configure iterator settings for a table prior to its creation.
    *
-   * @param setting
-   *          object specifying the properties of the iterator
-   * @param scopes
-   *          enumerated set of iterator scopes
+   * @param setting object specifying the properties of the iterator
+   * @param scopes enumerated set of iterator scopes
    *
    * @since 2.0.0
    *

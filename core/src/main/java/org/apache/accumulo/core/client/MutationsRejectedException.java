@@ -45,14 +45,10 @@ public class MutationsRejectedException extends AccumuloException {
 
   /**
    *
-   * @param cvsList
-   *          list of constraint violations
-   * @param hashMap
-   *          authorization failures
-   * @param serverSideErrors
-   *          server side errors
-   * @param unknownErrors
-   *          number of unknown errors
+   * @param cvsList list of constraint violations
+   * @param hashMap authorization failures
+   * @param serverSideErrors server side errors
+   * @param unknownErrors number of unknown errors
    *
    * @since 1.7.0
    * @deprecated since 2.0.0, replaced by
@@ -75,16 +71,11 @@ public class MutationsRejectedException extends AccumuloException {
   /**
    * Creates Mutations rejected exception
    *
-   * @param client
-   *          AccumuloClient
-   * @param cvsList
-   *          list of constraint violations
-   * @param hashMap
-   *          authorization failures
-   * @param serverSideErrors
-   *          server side errors
-   * @param unknownErrors
-   *          number of unknown errors
+   * @param client AccumuloClient
+   * @param cvsList list of constraint violations
+   * @param hashMap authorization failures
+   * @param serverSideErrors server side errors
+   * @param unknownErrors number of unknown errors
    *
    * @since 2.0.0
    */

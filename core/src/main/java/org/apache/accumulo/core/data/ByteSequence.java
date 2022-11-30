@@ -32,11 +32,9 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
   /**
    * Gets a byte within this sequence.
    *
-   * @param i
-   *          index into sequence
+   * @param i index into sequence
    * @return byte
-   * @throws IllegalArgumentException
-   *           if i is out of range
+   * @throws IllegalArgumentException if i is out of range
    */
   public abstract byte byteAt(int i);
 
@@ -50,10 +48,8 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
   /**
    * Returns a portion of this sequence.
    *
-   * @param start
-   *          index of subsequence start (inclusive)
-   * @param end
-   *          index of subsequence end (exclusive)
+   * @param start index of subsequence start (inclusive)
+   * @param end index of subsequence end (exclusive)
    */
   public abstract ByteSequence subSequence(int start, int end);
 
@@ -94,10 +90,8 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
    * differs, or one sequence runs out of byte (is shorter). A shorter sequence is considered less
    * than a longer one.
    *
-   * @param bs1
-   *          first byte sequence to compare
-   * @param bs2
-   *          second byte sequence to compare
+   * @param bs1 first byte sequence to compare
+   * @param bs2 second byte sequence to compare
    * @return comparison result
    */
   public static int compareBytes(ByteSequence bs1, ByteSequence bs2) {
@@ -131,11 +125,13 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
     if (o instanceof ByteSequence) {
       ByteSequence obs = (ByteSequence) o;
 
-      if (this == o)
+      if (this == o) {
         return true;
+      }
 
-      if (length() != obs.length())
+      if (length() != obs.length()) {
         return false;
+      }
 
       return compareTo(obs) == 0;
     }
@@ -150,11 +146,13 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
     if (isBackedByArray()) {
       byte[] data = getBackingArray();
       int end = offset() + length();
-      for (int i = offset(); i < end; i++)
+      for (int i = offset(); i < end; i++) {
         hash = (31 * hash) + data[i];
+      }
     } else {
-      for (int i = 0; i < length(); i++)
+      for (int i = 0; i < length(); i++) {
         hash = (31 * hash) + byteAt(i);
+      }
     }
     return hash;
   }

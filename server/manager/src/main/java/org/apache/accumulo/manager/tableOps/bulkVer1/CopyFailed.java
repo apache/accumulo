@@ -76,15 +76,17 @@ class CopyFailed extends ManagerRepo {
     for (TServerInstance server : running) {
       try {
         TServerConnection client = manager.getConnection(server);
-        if (client != null && !client.isActive(tid))
+        if (client != null && !client.isActive(tid)) {
           finished.add(server);
+        }
       } catch (TException ex) {
         log.info("Ignoring error trying to check on tid " + FateTxId.formatTid(tid)
             + " from server " + server + ": " + ex);
       }
     }
-    if (finished.containsAll(running))
+    if (finished.containsAll(running)) {
       return 0;
+    }
     return 500;
   }
 
@@ -94,8 +96,9 @@ class CopyFailed extends ManagerRepo {
     manager.updateBulkImportStatus(source, BulkImportState.COPY_FILES);
     VolumeManager fs = manager.getVolumeManager();
 
-    if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
+    if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT))) {
       return new CleanUpBulkImport(tableId, source, bulk, error);
+    }
 
     var failures = new HashSet<Path>();
     var loadedFailures = new HashSet<Path>();
@@ -105,8 +108,9 @@ class CopyFailed extends ManagerRepo {
       String line = null;
       while ((line = in.readLine()) != null) {
         Path path = new Path(line);
-        if (!fs.exists(new Path(error, path.getName())))
+        if (!fs.exists(new Path(error, path.getName()))) {
           failures.add(path);
+        }
       }
     }
 
@@ -150,8 +154,9 @@ class CopyFailed extends ManagerRepo {
       for (Path orig : loadedFailures) {
         Path dest = new Path(error, orig.getName());
 
-        if (fs.exists(dest))
+        if (fs.exists(dest)) {
           continue;
+        }
 
         bifCopyQueue.addWork(orig.getName(), (orig + "," + dest).getBytes(UTF_8));
         workIds.add(orig.getName());

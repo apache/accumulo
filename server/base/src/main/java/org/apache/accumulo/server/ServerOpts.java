@@ -28,8 +28,9 @@ public class ServerOpts extends ConfigOpts {
   private String address = null;
 
   public String getAddress() {
-    if (address != null)
+    if (address != null) {
       return address;
+    }
     return "0.0.0.0";
   }
 }

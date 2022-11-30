@@ -62,10 +62,12 @@ public class DefaultFormatter implements Formatter {
   }
 
   protected void checkState(boolean expectInitialized) {
-    if (expectInitialized && si == null)
+    if (expectInitialized && si == null) {
       throw new IllegalStateException("Not initialized");
-    if (!expectInitialized && si != null)
+    }
+    if (!expectInitialized && si != null) {
       throw new IllegalStateException("Already initialized");
+    }
   }
 
   /**
@@ -173,12 +175,13 @@ public class DefaultFormatter implements Formatter {
   static StringBuilder appendBytes(StringBuilder sb, byte[] ba, int offset, int len) {
     for (int i = 0; i < len; i++) {
       int c = 0xff & ba[offset + i];
-      if (c == '\\')
+      if (c == '\\') {
         sb.append("\\\\");
-      else if (c >= 32 && c <= 126)
+      } else if (c >= 32 && c <= 126) {
         sb.append((char) c);
-      else
+      } else {
         sb.append("\\x").append(String.format("%02X", c));
+      }
     }
     return sb;
   }

@@ -56,12 +56,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
   /**
    * Execute a method on the client API that does not return a value
    *
-   * @param exec
-   *          client operation to execute
-   * @throws AccumuloException
-   *           error executing client operation
-   * @throws AccumuloSecurityException
-   *           error executing client operation
+   * @param exec client operation to execute
+   * @throws AccumuloException error executing client operation
+   * @throws AccumuloSecurityException error executing client operation
    */
   private void executeVoid(ExecVoid<ClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
@@ -72,12 +69,13 @@ public class SecurityOperationsImpl implements SecurityOperations {
       if (t instanceof ThriftTableOperationException) {
         ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
         // recast missing table
-        if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
+        if (ttoe.getType() == TableOperationExceptionType.NOTFOUND) {
           throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
-        else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
+        } else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
           throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
-        else
+        } else {
           throw e;
+        }
       }
       throw e;
     } catch (Exception e) {
@@ -88,15 +86,11 @@ public class SecurityOperationsImpl implements SecurityOperations {
   /**
    * Execute a method on the client API that returns an instance of type R
    *
-   * @param <R>
-   *          return type
-   * @param exec
-   *          client operation to execute
+   * @param <R> return type
+   * @param exec client operation to execute
    * @return instance of type R
-   * @throws AccumuloException
-   *           error executing client operation
-   * @throws AccumuloSecurityException
-   *           error executing client operation
+   * @throws AccumuloException error executing client operation
+   * @throws AccumuloSecurityException error executing client operation
    */
   private <R> R execute(Exec<R,ClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
@@ -107,12 +101,13 @@ public class SecurityOperationsImpl implements SecurityOperations {
       if (t instanceof ThriftTableOperationException) {
         ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
         // recast missing table
-        if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
+        if (ttoe.getType() == TableOperationExceptionType.NOTFOUND) {
           throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
-        else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
+        } else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
           throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
-        else
+        } else {
           throw e;
+        }
       }
       throw e;
     } catch (Exception e) {
@@ -217,10 +212,11 @@ public class SecurityOperationsImpl implements SecurityOperations {
       return execute(client -> client.hasTablePermission(TraceUtil.traceInfo(), context.rpcCreds(),
           principal, table, perm.getId()));
     } catch (AccumuloSecurityException e) {
-      if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST)
+      if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST) {
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
-      else
+      } else {
         throw e;
+      }
     }
   }
 
@@ -256,10 +252,11 @@ public class SecurityOperationsImpl implements SecurityOperations {
       executeVoid(client -> client.grantTablePermission(TraceUtil.traceInfo(), context.rpcCreds(),
           principal, table, permission.getId()));
     } catch (AccumuloSecurityException e) {
-      if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST)
+      if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST) {
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
-      else
+      } else {
         throw e;
+      }
     }
   }
 
@@ -295,10 +292,11 @@ public class SecurityOperationsImpl implements SecurityOperations {
       executeVoid(client -> client.revokeTablePermission(TraceUtil.traceInfo(), context.rpcCreds(),
           principal, table, permission.getId()));
     } catch (AccumuloSecurityException e) {
-      if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST)
+      if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST) {
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
-      else
+      } else {
         throw e;
+      }
     }
   }
 

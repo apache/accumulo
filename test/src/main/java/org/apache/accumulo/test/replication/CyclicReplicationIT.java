@@ -103,8 +103,9 @@ public class CyclicReplicationIT extends AccumuloITBase {
 
   private void setCoreSite(MiniAccumuloClusterImpl cluster) throws Exception {
     File csFile = new File(cluster.getConfig().getConfDir(), "core-site.xml");
-    if (csFile.exists())
+    if (csFile.exists()) {
       throw new RuntimeException(csFile + " already exist");
+    }
 
     Configuration coreSite = new Configuration(false);
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());

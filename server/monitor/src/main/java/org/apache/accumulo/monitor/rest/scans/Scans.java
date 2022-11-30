@@ -34,8 +34,7 @@ public class Scans {
   /**
    * Adds a new scan to the list
    *
-   * @param scan
-   *          Scan object to add
+   * @param scan Scan object to add
    */
   public void addScan(ScanInformation scan) {
     scans.add(scan);

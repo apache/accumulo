@@ -47,13 +47,15 @@ public class NamespacesCommand extends Command {
 
     Iterator<String> it = Iterators.transform(namespaces.entrySet().iterator(), entry -> {
       String name = entry.getKey();
-      if (Namespace.DEFAULT.name().equals(name))
+      if (Namespace.DEFAULT.name().equals(name)) {
         name = DEFAULT_NAMESPACE_DISPLAY_NAME;
+      }
       String id = entry.getValue();
-      if (cl.hasOption(namespaceIdOption.getOpt()))
+      if (cl.hasOption(namespaceIdOption.getOpt())) {
         return String.format(TablesCommand.NAME_AND_ID_FORMAT, name, id);
-      else
+      } else {
         return name;
+      }
     });
 
     shellState.printLines(it, !cl.hasOption(disablePaginationOpt.getOpt()));

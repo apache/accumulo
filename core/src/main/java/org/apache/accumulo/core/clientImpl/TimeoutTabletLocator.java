@@ -65,10 +65,11 @@ public class TimeoutTabletLocator extends SyncingTabletLocator {
     try {
       TabletLocation ret = super.locateTablet(context, row, skipRow, retry);
 
-      if (ret == null)
+      if (ret == null) {
         failed();
-      else
+      } else {
         succeeded();
+      }
 
       return ret;
     } catch (AccumuloException ae) {
@@ -84,10 +85,11 @@ public class TimeoutTabletLocator extends SyncingTabletLocator {
     try {
       super.binMutations(context, mutations, binnedMutations, failures);
 
-      if (failures.size() == mutations.size())
+      if (failures.size() == mutations.size()) {
         failed();
-      else
+      } else {
         succeeded();
+      }
 
     } catch (AccumuloException ae) {
       failed();
@@ -102,10 +104,11 @@ public class TimeoutTabletLocator extends SyncingTabletLocator {
     try {
       List<Range> ret = super.binRanges(context, ranges, binnedRanges);
 
-      if (ranges.size() == ret.size())
+      if (ranges.size() == ret.size()) {
         failed();
-      else
+      } else {
         succeeded();
+      }
 
       return ret;
     } catch (AccumuloException ae) {

@@ -50,16 +50,21 @@ public class CompactionPlan {
       b.append(" files to be deleted ");
       b.append(deleteFiles);
       if (writeParameters != null) {
-        if (writeParameters.getCompressType() != null)
+        if (writeParameters.getCompressType() != null) {
           b.append(" compress type " + writeParameters.getCompressType());
-        if (writeParameters.getHdfsBlockSize() != 0)
+        }
+        if (writeParameters.getHdfsBlockSize() != 0) {
           b.append(" hdfs block size " + writeParameters.getHdfsBlockSize());
-        if (writeParameters.getBlockSize() != 0)
+        }
+        if (writeParameters.getBlockSize() != 0) {
           b.append(" data block size " + writeParameters.getBlockSize());
-        if (writeParameters.getIndexBlockSize() != 0)
+        }
+        if (writeParameters.getIndexBlockSize() != 0) {
           b.append(" index block size " + writeParameters.getIndexBlockSize());
-        if (writeParameters.getReplication() != 0)
+        }
+        if (writeParameters.getReplication() != 0) {
           b.append(" replication " + writeParameters.getReplication());
+        }
       }
     }
     return b.toString();
@@ -68,10 +73,8 @@ public class CompactionPlan {
   /**
    * Validate compaction plan.
    *
-   * @param allFiles
-   *          All possible files
-   * @throws IllegalStateException
-   *           thrown when validation fails.
+   * @param allFiles All possible files
+   * @throws IllegalStateException thrown when validation fails.
    */
   public final void validate(Set<StoredTabletFile> allFiles) {
     Set<TabletFile> inputSet = new HashSet<>(inputFiles);

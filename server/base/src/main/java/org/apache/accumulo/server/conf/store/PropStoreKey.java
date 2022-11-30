@@ -83,8 +83,7 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
   /**
    * Determine the prop cache id from a ZooKeeper path
    *
-   * @param path
-   *          the path
+   * @param path the path
    * @return the prop cache id
    */
   public static @Nullable PropStoreKey<?> fromPath(final String path) {
@@ -132,10 +131,12 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
+    }
     PropStoreKey<?> that = (PropStoreKey<?>) o;
     if (getId().getClass() != that.getId().getClass()) {
       return false;

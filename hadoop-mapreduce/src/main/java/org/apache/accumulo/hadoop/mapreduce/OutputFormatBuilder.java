@@ -42,8 +42,7 @@ public interface OutputFormatBuilder {
      * properties will be serialized into configuration. Therefore it is more secure to use
      * {@link #clientPropertiesPath(String)}
      *
-     * @param clientProperties
-     *          Accumulo connection information
+     * @param clientProperties Accumulo connection information
      */
     OutputOptions<T> clientProperties(Properties clientProperties);
 
@@ -51,8 +50,7 @@ public interface OutputFormatBuilder {
      * Set path to DFS location containing accumulo-client.properties file. This setting is more
      * secure than {@link #clientProperties(Properties)}
      *
-     * @param clientPropsPath
-     *          DFS path to accumulo-client.properties
+     * @param clientPropsPath DFS path to accumulo-client.properties
      */
     OutputOptions<T> clientPropertiesPath(String clientPropsPath);
   }
@@ -67,8 +65,7 @@ public interface OutputFormatBuilder {
      * Sets the default table name to use if one emits a null in place of a table name for a given
      * mutation. Table names can only be alpha-numeric and underscores.
      *
-     * @param tableName
-     *          the table to use when the tablename is null in the write call
+     * @param tableName the table to use when the tablename is null in the write call
      */
     OutputOptions<T> defaultTable(String tableName);
 

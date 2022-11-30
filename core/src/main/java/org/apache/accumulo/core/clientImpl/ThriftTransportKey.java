@@ -77,8 +77,9 @@ public class ThriftTransportKey {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof ThriftTransportKey))
+    if (!(o instanceof ThriftTransportKey)) {
       return false;
+    }
     ThriftTransportKey ttk = (ThriftTransportKey) o;
     return server.equals(ttk.server) && timeout == ttk.timeout
         && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams)))

@@ -55,8 +55,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Create a {@link Key} builder.
    *
    * @since 2.0
-   * @param copyBytes
-   *          if the bytes of the {@link Key} components should be copied
+   * @param copyBytes if the bytes of the {@link Key} components should be copied
    * @return the builder at the {@link KeyBuilder.RowStep}
    */
   public static KeyBuilder.RowStep builder(boolean copyBytes) {
@@ -77,19 +76,22 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof Key)
+    if (o instanceof Key) {
       return this.equals((Key) o, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL);
+    }
     return false;
   }
 
   private static final byte[] EMPTY_BYTES = new byte[0];
 
   static byte[] copyIfNeeded(byte[] ba, int off, int len, boolean copyData) {
-    if (len == 0)
+    if (len == 0) {
       return EMPTY_BYTES;
+    }
 
-    if (!copyData && ba.length == len && off == 0)
+    if (!copyData && ba.length == len && off == 0) {
       return ba;
+    }
 
     byte[] copy = new byte[len];
     System.arraycopy(ba, off, copy, 0, len);
@@ -128,8 +130,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
    * instead.
    *
-   * @param row
-   *          row ID
+   * @param row row ID
    * @see #builder()
    */
   public Key(Text row) {
@@ -146,8 +147,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
    * instead.
    *
-   * @param row
-   *          row ID
+   * @param row row ID
    * @since 1.8.0
    * @see #builder()
    */
@@ -165,10 +165,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
    * instead.
    *
-   * @param row
-   *          row ID
-   * @param ts
-   *          timestamp
+   * @param row row ID
+   * @param ts timestamp
    * @see #builder()
    */
   public Key(Text row, long ts) {
@@ -185,10 +183,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
    * instead.
    *
-   * @param row
-   *          row ID
-   * @param ts
-   *          timestamp
+   * @param row row ID
+   * @param ts timestamp
    * @since 1.8.0
    * @see #builder()
    */
@@ -205,32 +201,19 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
    * instead.
    *
-   * @param row
-   *          bytes containing row ID
-   * @param rOff
-   *          offset into row where key's row ID begins (inclusive)
-   * @param rLen
-   *          length of row ID in row
-   * @param cf
-   *          bytes containing column family
-   * @param cfOff
-   *          offset into cf where key's column family begins (inclusive)
-   * @param cfLen
-   *          length of column family in cf
-   * @param cq
-   *          bytes containing column qualifier
-   * @param cqOff
-   *          offset into cq where key's column qualifier begins (inclusive)
-   * @param cqLen
-   *          length of column qualifier in cq
-   * @param cv
-   *          bytes containing column visibility
-   * @param cvOff
-   *          offset into cv where key's column visibility begins (inclusive)
-   * @param cvLen
-   *          length of column visibility in cv
-   * @param ts
-   *          timestamp
+   * @param row bytes containing row ID
+   * @param rOff offset into row where key's row ID begins (inclusive)
+   * @param rLen length of row ID in row
+   * @param cf bytes containing column family
+   * @param cfOff offset into cf where key's column family begins (inclusive)
+   * @param cfLen length of column family in cf
+   * @param cq bytes containing column qualifier
+   * @param cqOff offset into cq where key's column qualifier begins (inclusive)
+   * @param cqLen length of column qualifier in cq
+   * @param cv bytes containing column visibility
+   * @param cvOff offset into cv where key's column visibility begins (inclusive)
+   * @param cvLen length of column visibility in cv
+   * @param ts timestamp
    * @see #builder()
    */
   public Key(byte[] row, int rOff, int rLen, byte[] cf, int cfOff, int cfLen, byte[] cq, int cqOff,
@@ -241,36 +224,21 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Creates a key.
    *
-   * @param row
-   *          bytes containing row ID
-   * @param rOff
-   *          offset into row where key's row ID begins (inclusive)
-   * @param rLen
-   *          length of row ID in row
-   * @param cf
-   *          bytes containing column family
-   * @param cfOff
-   *          offset into cf where key's column family begins (inclusive)
-   * @param cfLen
-   *          length of column family in cf
-   * @param cq
-   *          bytes containing column qualifier
-   * @param cqOff
-   *          offset into cq where key's column qualifier begins (inclusive)
-   * @param cqLen
-   *          length of column qualifier in cq
-   * @param cv
-   *          bytes containing column visibility
-   * @param cvOff
-   *          offset into cv where key's column visibility begins (inclusive)
-   * @param cvLen
-   *          length of column visibility in cv
-   * @param ts
-   *          timestamp
-   * @param deleted
-   *          delete marker
-   * @param copy
-   *          if true, forces copy of byte array values into key
+   * @param row bytes containing row ID
+   * @param rOff offset into row where key's row ID begins (inclusive)
+   * @param rLen length of row ID in row
+   * @param cf bytes containing column family
+   * @param cfOff offset into cf where key's column family begins (inclusive)
+   * @param cfLen length of column family in cf
+   * @param cq bytes containing column qualifier
+   * @param cqOff offset into cq where key's column qualifier begins (inclusive)
+   * @param cqLen length of column qualifier in cq
+   * @param cv bytes containing column visibility
+   * @param cvOff offset into cv where key's column visibility begins (inclusive)
+   * @param cvLen length of column visibility in cv
+   * @param ts timestamp
+   * @param deleted delete marker
+   * @param copy if true, forces copy of byte array values into key
    * @see #builder()
    */
   Key(byte[] row, int rOff, int rLen, byte[] cf, int cfOff, int cfLen, byte[] cq, int cqOff,
@@ -286,16 +254,11 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
    * instead.
    *
-   * @param row
-   *          row ID
-   * @param colFamily
-   *          column family
-   * @param colQualifier
-   *          column qualifier
-   * @param colVisibility
-   *          column visibility
-   * @param timestamp
-   *          timestamp
+   * @param row row ID
+   * @param colFamily column family
+   * @param colQualifier column qualifier
+   * @param colVisibility column visibility
+   * @param timestamp timestamp
    * @see #builder()
    */
   public Key(byte[] row, byte[] colFamily, byte[] colQualifier, byte[] colVisibility,
@@ -310,18 +273,12 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
    * instead.
    *
-   * @param row
-   *          row ID
-   * @param cf
-   *          column family
-   * @param cq
-   *          column qualifier
-   * @param cv
-   *          column visibility
-   * @param ts
-   *          timestamp
-   * @param deleted
-   *          delete marker
+   * @param row row ID
+   * @param cf column family
+   * @param cq column qualifier
+   * @param cv column visibility
+   * @param ts timestamp
+   * @param deleted delete marker
    * @see #builder()
    */
   public Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted) {
@@ -331,20 +288,13 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Creates a key.
    *
-   * @param row
-   *          row ID
-   * @param cf
-   *          column family
-   * @param cq
-   *          column qualifier
-   * @param cv
-   *          column visibility
-   * @param ts
-   *          timestamp
-   * @param deleted
-   *          delete marker
-   * @param copy
-   *          if true, forces copy of byte array values into key
+   * @param row row ID
+   * @param cf column family
+   * @param cq column qualifier
+   * @param cv column visibility
+   * @param ts timestamp
+   * @param deleted delete marker
+   * @param copy if true, forces copy of byte array values into key
    * @see #builder()
    */
   public Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy) {
@@ -612,8 +562,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Returns a key that will sort immediately after this key.
    *
-   * @param part
-   *          PartialKey except {@link PartialKey#ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL}
+   * @param part PartialKey except {@link PartialKey#ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL}
    */
   public Key followingKey(PartialKey part) {
     Key returnKey = new Key();
@@ -662,8 +611,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Creates a key from Thrift.
    *
-   * @param tkey
-   *          Thrift key
+   * @param tkey Thrift key
    */
   public Key(TKey tkey) {
     this.row = toBytes(tkey.row);
@@ -691,8 +639,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Writes the row ID into the given <code>Text</code>. This method gives users control over
    * allocation of Text objects by copying into the passed in text.
    *
-   * @param r
-   *          <code>Text</code> object to copy into
+   * @param r <code>Text</code> object to copy into
    * @return the <code>Text</code> that was passed in
    */
   public Text getRow(Text r) {
@@ -722,8 +669,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Compares this key's row ID with another.
    *
-   * @param r
-   *          row ID to compare
+   * @param r row ID to compare
    * @return same as {@link #getRow()}.compareTo(r)
    */
   public int compareRow(Text r) {
@@ -744,8 +690,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Writes the column family into the given <code>Text</code>. This method gives users control over
    * allocation of Text objects by copying into the passed in text.
    *
-   * @param cf
-   *          <code>Text</code> object to copy into
+   * @param cf <code>Text</code> object to copy into
    * @return the <code>Text</code> that was passed in
    */
   public Text getColumnFamily(Text cf) {
@@ -765,8 +710,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Compares this key's column family with another.
    *
-   * @param cf
-   *          column family to compare
+   * @param cf column family to compare
    * @return same as {@link #getColumnFamily()}.compareTo(cf)
    */
 
@@ -789,8 +733,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Writes the column qualifier into the given <code>Text</code>. This method gives users control
    * over allocation of Text objects by copying into the passed in text.
    *
-   * @param cq
-   *          <code>Text</code> object to copy into
+   * @param cq <code>Text</code> object to copy into
    * @return the <code>Text</code> that was passed in
    */
   public Text getColumnQualifier(Text cq) {
@@ -810,8 +753,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Compares this key's column qualifier with another.
    *
-   * @param cq
-   *          column qualifier to compare
+   * @param cq column qualifier to compare
    * @return same as {@link #getColumnQualifier()}.compareTo(cq)
    */
   public int compareColumnQualifier(Text cq) {
@@ -822,8 +764,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Sets the timestamp.
    *
-   * @param ts
-   *          timestamp
+   * @param ts timestamp
    */
   public void setTimestamp(long ts) {
     this.timestamp = ts;
@@ -850,8 +791,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Sets the delete marker on this key.
    *
-   * @param deleted
-   *          delete marker (true to delete)
+   * @param deleted delete marker (true to delete)
    */
   public void setDeleted(boolean deleted) {
     this.deleted = deleted;
@@ -880,8 +820,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Writes the column visibility into the given <code>Text</code>. This method gives users control
    * over allocation of Text objects by copying into the passed in text.
    *
-   * @param cv
-   *          <code>Text</code> object to copy into
+   * @param cv <code>Text</code> object to copy into
    * @return the <code>Text</code> that was passed in
    */
   public final Text getColumnVisibility(Text cv) {
@@ -905,8 +844,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * marker to be the same as another key's. This method does not copy data from the other key, but
    * only references to it.
    *
-   * @param k
-   *          key to set from
+   * @param k key to set from
    */
   public void set(Key k) {
     row = k.row;
@@ -968,10 +906,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Compares part of a key. For example, compares just the row and column family, and if those are
    * equal then return true.
    *
-   * @param other
-   *          key to compare to
-   * @param part
-   *          part of key to compare
+   * @param other key to compare to
+   * @param part part of key to compare
    * @return true if specified parts of keys match, false otherwise
    */
   public boolean equals(Key other, PartialKey part) {
@@ -1014,10 +950,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * family. If the row IDs are not equal, return the result of the row comparison; otherwise,
    * returns the result of the column family comparison.
    *
-   * @param other
-   *          key to compare to
-   * @param part
-   *          part of key to compare
+   * @param other key to compare to
+   * @param part part of key to compare
    * @return comparison result
    * @see #compareTo(Key)
    */
@@ -1025,38 +959,44 @@ public class Key implements WritableComparable<Key>, Cloneable {
     // check for matching row
     int result =
         WritableComparator.compareBytes(row, 0, row.length, other.row, 0, other.row.length);
-    if (result != 0 || part.equals(PartialKey.ROW))
+    if (result != 0 || part.equals(PartialKey.ROW)) {
       return result;
+    }
 
     // check for matching column family
     result = WritableComparator.compareBytes(colFamily, 0, colFamily.length, other.colFamily, 0,
         other.colFamily.length);
-    if (result != 0 || part.equals(PartialKey.ROW_COLFAM))
+    if (result != 0 || part.equals(PartialKey.ROW_COLFAM)) {
       return result;
+    }
 
     // check for matching column qualifier
     result = WritableComparator.compareBytes(colQualifier, 0, colQualifier.length,
         other.colQualifier, 0, other.colQualifier.length);
-    if (result != 0 || part.equals(PartialKey.ROW_COLFAM_COLQUAL))
+    if (result != 0 || part.equals(PartialKey.ROW_COLFAM_COLQUAL)) {
       return result;
+    }
 
     // check for matching column visibility
     result = WritableComparator.compareBytes(colVisibility, 0, colVisibility.length,
         other.colVisibility, 0, other.colVisibility.length);
-    if (result != 0 || part.equals(PartialKey.ROW_COLFAM_COLQUAL_COLVIS))
+    if (result != 0 || part.equals(PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
       return result;
+    }
 
     // check for matching timestamp
     result = Long.compare(other.timestamp, timestamp);
 
-    if (result != 0 || part.equals(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME))
+    if (result != 0 || part.equals(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME)) {
       return result;
+    }
 
     // check for matching deleted flag
-    if (deleted)
+    if (deleted) {
       result = other.deleted ? 0 : -1;
-    else
+    } else {
       result = other.deleted ? 1 : 0;
+    }
 
     return result;
   }
@@ -1080,14 +1020,10 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * characters. See {@link #appendPrintableString(byte[], int, int, int, StringBuilder)} for
    * caveats.
    *
-   * @param ba
-   *          byte array
-   * @param offset
-   *          offset to start with in byte array (inclusive)
-   * @param len
-   *          number of bytes to print
-   * @param maxLen
-   *          maximum number of bytes to convert to printable form
+   * @param ba byte array
+   * @param offset offset to start with in byte array (inclusive)
+   * @param len number of bytes to print
+   * @param maxLen maximum number of bytes to convert to printable form
    * @return printable string
    * @see #appendPrintableString(byte[], int, int, int, StringBuilder)
    */
@@ -1101,16 +1037,11 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * appended as is; otherwise, it is appended as a character code, e.g., %05; for byte value 5. If
    * len &gt; maxlen, the string includes a "TRUNCATED" note at the end.
    *
-   * @param ba
-   *          byte array
-   * @param offset
-   *          offset to start with in byte array (inclusive)
-   * @param len
-   *          number of bytes to print
-   * @param maxLen
-   *          maximum number of bytes to convert to printable form
-   * @param sb
-   *          <code>StringBuilder</code> to append to
+   * @param ba byte array
+   * @param offset offset to start with in byte array (inclusive)
+   * @param len number of bytes to print
+   * @param maxLen maximum number of bytes to convert to printable form
+   * @param sb <code>StringBuilder</code> to append to
    * @return given <code>StringBuilder</code>
    */
   public static StringBuilder appendPrintableString(byte[] ba, int offset, int len, int maxLen,
@@ -1119,10 +1050,11 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
     for (int i = 0; i < plen; i++) {
       int c = 0xff & ba[offset + i];
-      if (c >= 32 && c <= 126)
+      if (c >= 32 && c <= 126) {
         sb.append((char) c);
-      else
+      } else {
         sb.append("%" + String.format("%02x;", c));
+      }
     }
 
     if (len > maxLen) {
@@ -1203,16 +1135,19 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   private static boolean isEqual(byte[] a1, byte[] a2) {
-    if (a1 == a2)
+    if (a1 == a2) {
       return true;
+    }
 
     int last = a1.length;
 
-    if (last != a2.length)
+    if (last != a2.length) {
       return false;
+    }
 
-    if (last == 0)
+    if (last == 0) {
       return true;
+    }
 
     // since sorted data is usually compared in accumulo,
     // the prefixes will normally be the same... so compare
@@ -1227,9 +1162,11 @@ public class Key implements WritableComparable<Key>, Cloneable {
     last--;
 
     if (a1[last] == a2[last]) {
-      for (int i = 0; i < last; i++)
-        if (a1[i] != a2[i])
+      for (int i = 0; i < last; i++) {
+        if (a1[i] != a2[i]) {
           return false;
+        }
+      }
     } else {
       return false;
     }
@@ -1241,17 +1178,17 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Compresses a list of key/value pairs before sending them via thrift.
    *
-   * @param param
-   *          list of key/value pairs
+   * @param param list of key/value pairs
    * @return list of Thrift key/value pairs
    */
   public static List<TKeyValue> compress(List<? extends KeyValue> param) {
 
     List<TKeyValue> tkvl = Arrays.asList(new TKeyValue[param.size()]);
 
-    if (!param.isEmpty())
+    if (!param.isEmpty()) {
       tkvl.set(0, new TKeyValue(param.get(0).getKey().toThrift(),
           ByteBuffer.wrap(param.get(0).getValue().get())));
+    }
 
     for (int i = param.size() - 1; i > 0; i--) {
       Key prevKey = param.get(i - 1).getKey();
@@ -1266,25 +1203,29 @@ public class Key implements WritableComparable<Key>, Cloneable {
       }
 
       if (isEqual(prevKey.colFamily, key.colFamily)) {
-        if (newKey == null)
+        if (newKey == null) {
           newKey = key.toThrift();
+        }
         newKey.colFamily = null;
       }
 
       if (isEqual(prevKey.colQualifier, key.colQualifier)) {
-        if (newKey == null)
+        if (newKey == null) {
           newKey = key.toThrift();
+        }
         newKey.colQualifier = null;
       }
 
       if (isEqual(prevKey.colVisibility, key.colVisibility)) {
-        if (newKey == null)
+        if (newKey == null) {
           newKey = key.toThrift();
+        }
         newKey.colVisibility = null;
       }
 
-      if (newKey == null)
+      if (newKey == null) {
         newKey = key.toThrift();
+      }
 
       tkvl.set(i, new TKeyValue(newKey, ByteBuffer.wrap(kv.getValue().get())));
     }
@@ -1296,8 +1237,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Decompresses a list of key/value pairs received from thrift. Decompression occurs in place, in
    * the list.
    *
-   * @param param
-   *          list of Thrift key/value pairs
+   * @param param list of Thrift key/value pairs
    */
   public static void decompress(List<TKeyValue> param) {
     for (int i = 1; i < param.size(); i++) {

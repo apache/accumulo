@@ -147,8 +147,7 @@ public class ClientConfConverter {
    * A utility method for converting client configuration to a standard configuration object for use
    * internally.
    *
-   * @param config
-   *          the original config
+   * @param config the original config
    * @return the client configuration presented in the form of an {@link AccumuloConfiguration}
    */
   @SuppressWarnings("deprecation")

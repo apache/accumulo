@@ -202,8 +202,7 @@ public class MetadataSchema {
       }
 
       /**
-       * @throws IllegalArgumentException
-       *           when {@link #isValidDirCol(String)} returns false.
+       * @throws IllegalArgumentException when {@link #isValidDirCol(String)} returns false.
        */
       public static void validateDirCol(String dirName) {
         Preconditions.checkArgument(isValidDirCol(dirName), "Invalid dir name %s", dirName);
@@ -428,8 +427,7 @@ public class MetadataSchema {
     /**
      * Extract the table ID from the colfam
      *
-     * @param k
-     *          Key to extract from
+     * @param k Key to extract from
      */
     public static TableId getTableId(Key k) {
       requireNonNull(k);
@@ -439,10 +437,8 @@ public class MetadataSchema {
     /**
      * Extract the file name from the row suffix into the given {@link Text}
      *
-     * @param k
-     *          Key to extract from
-     * @param buff
-     *          Text to place file name into
+     * @param k Key to extract from
+     * @param buff Text to place file name into
      */
     public static void getFile(Key k, Text buff) {
       requireNonNull(k);

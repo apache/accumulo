@@ -38,10 +38,9 @@ public interface BatchWriter extends AutoCloseable {
   /**
    * Queues one mutation to write.
    *
-   * @param m
-   *          the mutation to add
-   * @throws MutationsRejectedException
-   *           this could be thrown because current or previous mutations failed
+   * @param m the mutation to add
+   * @throws MutationsRejectedException this could be thrown because current or previous mutations
+   *         failed
    */
 
   void addMutation(Mutation m) throws MutationsRejectedException;
@@ -49,26 +48,25 @@ public interface BatchWriter extends AutoCloseable {
   /**
    * Queues several mutations to write.
    *
-   * @param iterable
-   *          allows adding any number of mutations iteratively
-   * @throws MutationsRejectedException
-   *           this could be thrown because current or previous mutations failed
+   * @param iterable allows adding any number of mutations iteratively
+   * @throws MutationsRejectedException this could be thrown because current or previous mutations
+   *         failed
    */
   void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException;
 
   /**
    * Send any buffered mutations to Accumulo immediately.
    *
-   * @throws MutationsRejectedException
-   *           this could be thrown because current or previous mutations failed
+   * @throws MutationsRejectedException this could be thrown because current or previous mutations
+   *         failed
    */
   void flush() throws MutationsRejectedException;
 
   /**
    * Flush and release any resources.
    *
-   * @throws MutationsRejectedException
-   *           this could be thrown because current or previous mutations failed
+   * @throws MutationsRejectedException this could be thrown because current or previous mutations
+   *         failed
    */
   @Override
   void close() throws MutationsRejectedException;

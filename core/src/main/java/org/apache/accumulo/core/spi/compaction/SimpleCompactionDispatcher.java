@@ -81,10 +81,11 @@ public class SimpleCompactionDispatcher implements CompactionDispatcher {
 
     for (CompactionKind ctype : CompactionKind.values()) {
       String service = params.getOptions().get("service." + ctype.name().toLowerCase());
-      if (service == null)
+      if (service == null) {
         services.put(ctype, defaultService);
-      else
+      } else {
         services.put(ctype, CompactionDispatch.builder().toService(service).build());
+      }
     }
 
     if (params.getOptions().isEmpty()) {

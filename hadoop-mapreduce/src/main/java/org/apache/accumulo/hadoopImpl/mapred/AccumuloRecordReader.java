@@ -91,8 +91,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
   /**
    * Extracts Iterators settings from the context to be used by RecordReader.
    *
-   * @param job
-   *          the Hadoop job configuration
+   * @param job the Hadoop job configuration
    * @return List of iterator settings for given table
    */
   private List<IteratorSetting> jobIterators(JobConf job) {
@@ -102,10 +101,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
   /**
    * Configures the iterators on a scanner for the given table name.
    *
-   * @param job
-   *          the Hadoop job configuration
-   * @param scanner
-   *          the scanner for which to configure the iterators
+   * @param job the Hadoop job configuration
+   * @param scanner the scanner for which to configure the iterators
    */
   private void setupIterators(JobConf job, ScannerBase scanner,
       org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit split) {
@@ -120,8 +117,9 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
       }
     }
 
-    for (IteratorSetting iterator : iterators)
+    for (IteratorSetting iterator : iterators) {
       scanner.addScanIterator(iterator);
+    }
   }
 
   /**
@@ -269,8 +267,9 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
 
   @Override
   public float getProgress() {
-    if (numKeysRead > 0 && currentKey == null)
+    if (numKeysRead > 0 && currentKey == null) {
       return 1.0f;
+    }
     return baseSplit.getProgress(currentKey);
   }
 
@@ -311,14 +310,16 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
         boolean batchScan = InputConfigurator.isBatchScan(callingClass, job);
         boolean supportBatchScan = !(tableConfig.isOfflineScan()
             || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
-        if (batchScan && !supportBatchScan)
+        if (batchScan && !supportBatchScan) {
           throw new IllegalArgumentException("BatchScanner optimization not available for offline"
               + " scan, isolated, or local iterators");
+        }
 
         boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
-        if (batchScan && !autoAdjust)
+        if (batchScan && !autoAdjust) {
           throw new IllegalArgumentException(
               "AutoAdjustRanges must be enabled when using BatchScanner optimization");
+        }
 
         List<Range> ranges =
             autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
@@ -363,8 +364,9 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
 
         HashMap<Range,ArrayList<String>> splitsToAdd = null;
 
-        if (!autoAdjust)
+        if (!autoAdjust) {
           splitsToAdd = new HashMap<>();
+        }
 
         HashMap<String,String> hostNameCache = new HashMap<>();
         for (Map.Entry<String,Map<KeyExtent,List<Range>>> tserverBin : binnedRanges.entrySet()) {
@@ -380,8 +382,9 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
             if (batchScan) {
               // group ranges by tablet to be read by a BatchScanner
               ArrayList<Range> clippedRanges = new ArrayList<>();
-              for (Range r : extentRanges.getValue())
+              for (Range r : extentRanges.getValue()) {
                 clippedRanges.add(ke.clip(r));
+              }
 
               BatchInputSplit split =
                   new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
@@ -404,8 +407,9 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
                 } else {
                   // don't divide ranges
                   ArrayList<String> locations = splitsToAdd.get(r);
-                  if (locations == null)
+                  if (locations == null) {
                     locations = new ArrayList<>(1);
+                  }
                   locations.add(location);
                   splitsToAdd.put(r, locations);
                 }
@@ -414,7 +418,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
           }
         }
 
-        if (!autoAdjust)
+        if (!autoAdjust) {
           for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
             RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonical(),
                 entry.getKey(), entry.getValue().toArray(new String[0]));
@@ -425,6 +429,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
 
             splits.add(split);
           }
+        }
       }
     }
 

@@ -46,12 +46,9 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
    * possible vales - gathering FaTE information is done asynchronously and when the measurement is
    * captured it may not be complete.
    *
-   * @param reportTime
-   *          the Instant that the report snapshot was created
-   * @param txnStatus
-   *          the FaTE transaction status
-   * @param idsToNameMap
-   *          a map of namespace, table ids to names.
+   * @param reportTime the Instant that the report snapshot was created
+   * @param txnStatus the FaTE transaction status
+   * @param idsToNameMap a map of namespace, table ids to names.
    */
   public FateTxnDetails(final long reportTime, final AdminUtil.TransactionStatus txnStatus,
       final Map<String,String> idsToNameMap) {
@@ -103,25 +100,27 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
    * Sort by running time in reverse (oldest txn first). txid is unique as used to break times and
    * so that compareTo remains consistent with hashCode and equals methods.
    *
-   * @param other
-   *          the FateTxnDetails to be compared.
+   * @param other the FateTxnDetails to be compared.
    * @return -1, 0 or 1 if older, equal or newer than the other
    */
   @Override
   public int compareTo(FateTxnDetails other) {
     int v = Long.compare(other.running, this.running);
-    if (v != 0)
+    if (v != 0) {
       return v;
+    }
     return txnId.compareTo(other.txnId);
   }
 
   @Override
   public boolean equals(Object o) {
 
-    if (this == o)
+    if (this == o) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
+    }
     FateTxnDetails that = (FateTxnDetails) o;
     return running == that.running && txnId.equals(that.txnId);
   }

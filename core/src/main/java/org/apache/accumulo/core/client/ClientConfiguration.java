@@ -144,9 +144,11 @@ public class ClientConfiguration {
     }
 
     public static ClientProperty getPropertyByKey(String key) {
-      for (ClientProperty prop : ClientProperty.values())
-        if (prop.getKey().equals(key))
+      for (ClientProperty prop : ClientProperty.values()) {
+        if (prop.getKey().equals(key)) {
           return prop;
+        }
+      }
       return null;
     }
   }
@@ -194,8 +196,7 @@ public class ClientConfiguration {
    * supports Java "properties" files. The returned object can be further configured with subsequent
    * calls to other methods on this class.
    *
-   * @param file
-   *          the path to the configuration file
+   * @param file the path to the configuration file
    * @since 1.9.0
    */
   public static ClientConfiguration fromFile(File file) {
@@ -212,8 +213,7 @@ public class ClientConfiguration {
    * Initializes a configuration object from the contents of a map. The returned object can be
    * further configured with subsequent calls to other methods on this class.
    *
-   * @param properties
-   *          a map containing the configuration properties to use
+   * @param properties a map containing the configuration properties to use
    * @since 1.9.0
    */
   public static ClientConfiguration fromMap(Map<String,String> properties) {
@@ -262,8 +262,7 @@ public class ClientConfiguration {
    * {@code client.conf} to the end of the file path. This is a no-op if the value is not a
    * directory on the filesystem.
    *
-   * @param clientConfPath
-   *          The value of ACCUMULO_CLIENT_CONF_PATH.
+   * @param clientConfPath The value of ACCUMULO_CLIENT_CONF_PATH.
    */
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "process runs in same security context as user who provided path")
@@ -321,10 +320,11 @@ public class ClientConfiguration {
    *
    */
   public String get(ClientProperty prop) {
-    if (compositeConfig.containsKey(prop.getKey()))
+    if (compositeConfig.containsKey(prop.getKey())) {
       return compositeConfig.getString(prop.getKey());
-    else
+    } else {
       return prop.getDefaultValue();
+    }
   }
 
   private void checkType(ClientProperty property, PropertyType type) {
@@ -338,11 +338,9 @@ public class ClientConfiguration {
   /**
    * Gets all properties under the given prefix in this configuration.
    *
-   * @param property
-   *          prefix property, must be of type PropertyType.PREFIX
+   * @param property prefix property, must be of type PropertyType.PREFIX
    * @return a map of property keys to values
-   * @throws IllegalArgumentException
-   *           if property is not a prefix
+   * @throws IllegalArgumentException if property is not a prefix
    */
   public Map<String,String> getAllPropertiesWithPrefix(ClientProperty property) {
     checkType(property, PropertyType.PREFIX);
@@ -465,10 +463,12 @@ public class ClientConfiguration {
   public ClientConfiguration withTruststore(String path, String password, String type) {
     checkArgument(path != null, "path is null");
     setProperty(ClientProperty.RPC_SSL_TRUSTSTORE_PATH, path);
-    if (password != null)
+    if (password != null) {
       setProperty(ClientProperty.RPC_SSL_TRUSTSTORE_PASSWORD, password);
-    if (type != null)
+    }
+    if (type != null) {
       setProperty(ClientProperty.RPC_SSL_TRUSTSTORE_TYPE, type);
+    }
     return this;
   }
 
@@ -490,10 +490,12 @@ public class ClientConfiguration {
     checkArgument(path != null, "path is null");
     setProperty(ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH, "true");
     setProperty(ClientProperty.RPC_SSL_KEYSTORE_PATH, path);
-    if (password != null)
+    if (password != null) {
       setProperty(ClientProperty.RPC_SSL_KEYSTORE_PASSWORD, password);
-    if (type != null)
+    }
+    if (type != null) {
       setProperty(ClientProperty.RPC_SSL_KEYSTORE_TYPE, type);
+    }
     return this;
   }
 
@@ -520,11 +522,9 @@ public class ClientConfiguration {
    * Same as {@link #with(ClientProperty, String)} for ClientProperty.INSTANCE_RPC_SASL_ENABLED and
    * ClientProperty.GENERAL_KERBEROS_PRINCIPAL.
    *
-   * @param saslEnabled
-   *          Should SASL(kerberos) be enabled
-   * @param kerberosServerPrimary
-   *          The 'primary' component of the Kerberos principal Accumulo servers use to login (e.g.
-   *          'accumulo' in 'accumulo/_HOST@REALM')
+   * @param saslEnabled Should SASL(kerberos) be enabled
+   * @param kerberosServerPrimary The 'primary' component of the Kerberos principal Accumulo servers
+   *        use to login (e.g. 'accumulo' in 'accumulo/_HOST@REALM')
    * @since 1.7.0
    */
   public ClientConfiguration withSasl(boolean saslEnabled, String kerberosServerPrimary) {

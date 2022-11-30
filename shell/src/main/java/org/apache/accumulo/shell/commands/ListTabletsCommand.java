@@ -113,13 +113,11 @@ public class ListTabletsCommand extends Command {
    * Process the command line for table names using table option, table name pattern, or default to
    * current table.
    *
-   * @param cl
-   *          command line
-   * @param shellState
-   *          shell state
+   * @param cl command line
+   * @param shellState shell state
    * @return set of table names.
-   * @throws NamespaceNotFoundException
-   *           if the namespace option is specified and namespace does not exist
+   * @throws NamespaceNotFoundException if the namespace option is specified and namespace does not
+   *         exist
    */
   private Set<TableInfo> populateTables(final CommandLine cl, final Shell shellState)
       throws NamespaceNotFoundException {
@@ -199,10 +197,12 @@ public class ListTabletsCommand extends Command {
 
     @Override
     public boolean equals(Object o) {
-      if (this == o)
+      if (this == o) {
         return true;
-      if (o == null || getClass() != o.getClass())
+      }
+      if (o == null || getClass() != o.getClass()) {
         return false;
+      }
       TableInfo tableInfo = (TableInfo) o;
       return name.equals(tableInfo.name);
     }
@@ -348,18 +348,20 @@ public class ListTabletsCommand extends Command {
 
     public String getEndRow() {
       Text t = tablet.endRow();
-      if (t == null)
+      if (t == null) {
         return "+INF";
-      else
+      } else {
         return t.toString();
+      }
     }
 
     public String getStartRow() {
       Text t = tablet.prevEndRow();
-      if (t == null)
+      if (t == null) {
         return "-INF";
-      else
+      } else {
         return t.toString();
+      }
     }
 
     public static final String header = String.format(

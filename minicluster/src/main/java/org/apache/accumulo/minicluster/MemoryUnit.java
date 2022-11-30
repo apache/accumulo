@@ -46,8 +46,9 @@ public enum MemoryUnit {
 
   public static MemoryUnit fromSuffix(String suffix) {
     for (MemoryUnit memoryUnit : MemoryUnit.values()) {
-      if (memoryUnit.suffix.equals(suffix))
+      if (memoryUnit.suffix.equals(suffix)) {
         return memoryUnit;
+      }
     }
     return null;
   }

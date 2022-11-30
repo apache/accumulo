@@ -43,8 +43,9 @@ public enum TablePermission {
 
   private static final TablePermission[] mapping = new TablePermission[9];
   static {
-    for (TablePermission perm : TablePermission.values())
+    for (TablePermission perm : TablePermission.values()) {
       mapping[perm.permID] = perm;
+    }
   }
 
   private TablePermission(byte id) {
@@ -70,8 +71,9 @@ public enum TablePermission {
 
     List<String> list = new ArrayList<>(a.length);
 
-    for (TablePermission p : a)
+    for (TablePermission p : a) {
       list.add("Table." + p);
+    }
 
     return list;
   }
@@ -79,16 +81,15 @@ public enum TablePermission {
   /**
    * Gets the permission matching the given byte ID.
    *
-   * @param id
-   *          byte ID
+   * @param id byte ID
    * @return table permission
-   * @throws IndexOutOfBoundsException
-   *           if the byte ID is invalid
+   * @throws IndexOutOfBoundsException if the byte ID is invalid
    */
   public static TablePermission getPermissionById(byte id) {
     TablePermission result = mapping[id];
-    if (result != null)
+    if (result != null) {
       return result;
+    }
     throw new IndexOutOfBoundsException("No such permission");
   }
 

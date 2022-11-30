@@ -48,19 +48,18 @@ public class SecurityUtil {
    * renewal period. This method does nothing if either {@code keyTab} or {@code principal} are null
    * or of zero length.
    *
-   * @param acuConf
-   *          The Accumulo configuration
-   * @param keyTab
-   *          The path to the Kerberos keytab file
-   * @param principal
-   *          The Kerberos principal
+   * @param acuConf The Accumulo configuration
+   * @param keyTab The path to the Kerberos keytab file
+   * @param principal The Kerberos principal
    */
   public static void serverLogin(AccumuloConfiguration acuConf, String keyTab, String principal) {
-    if (keyTab == null || keyTab.isEmpty())
+    if (keyTab == null || keyTab.isEmpty()) {
       return;
+    }
 
-    if (principal == null || principal.isEmpty())
+    if (principal == null || principal.isEmpty()) {
       return;
+    }
 
     if (login(principal, keyTab)) {
       try {
@@ -79,10 +78,9 @@ public class SecurityUtil {
   /**
    * This will log in the given user in kerberos.
    *
-   * @param principalConfig
-   *          This is the principals name in the format NAME/HOST@REALM.
-   *          {@link org.apache.hadoop.security.SecurityUtil#HOSTNAME_PATTERN} will automatically be
-   *          replaced by the systems host name.
+   * @param principalConfig This is the principals name in the format NAME/HOST@REALM.
+   *        {@link org.apache.hadoop.security.SecurityUtil#HOSTNAME_PATTERN} will automatically be
+   *        replaced by the systems host name.
    * @return true if login succeeded, otherwise false
    */
   static boolean login(String principalConfig, String keyTabPath) {
@@ -117,12 +115,9 @@ public class SecurityUtil {
   /**
    * Start a thread that periodically attempts to renew the current Kerberos user's ticket.
    *
-   * @param conf
-   *          Accumulo configuration
-   * @param ugi
-   *          The current Kerberos user.
-   * @param renewalPeriod
-   *          The amount of time between attempting renewals.
+   * @param conf Accumulo configuration
+   * @param ugi The current Kerberos user.
+   * @param renewalPeriod The amount of time between attempting renewals.
    */
   static void startTicketRenewalThread(AccumuloConfiguration conf, final UserGroupInformation ugi,
       final long renewalPeriod) {

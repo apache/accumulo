@@ -91,16 +91,16 @@ public class VisibilityEvaluator {
    * Creates a new {@link Authorizations} object with escaped forms of the authorizations in the
    * given object.
    *
-   * @param auths
-   *          original authorizations
+   * @param auths original authorizations
    * @return authorizations object with escaped authorization strings
    * @see #escape(byte[], boolean)
    */
   static Authorizations escape(Authorizations auths) {
     ArrayList<byte[]> retAuths = new ArrayList<>(auths.getAuthorizations().size());
 
-    for (byte[] auth : auths.getAuthorizations())
+    for (byte[] auth : auths.getAuthorizations()) {
       retAuths.add(escape(auth, false));
+    }
 
     return new Authorizations(retAuths);
   }
@@ -108,25 +108,26 @@ public class VisibilityEvaluator {
   /**
    * Properly escapes an authorization string. The string can be quoted if desired.
    *
-   * @param auth
-   *          authorization string, as UTF-8 encoded bytes
-   * @param quote
-   *          true to wrap escaped authorization in quotes
+   * @param auth authorization string, as UTF-8 encoded bytes
+   * @param quote true to wrap escaped authorization in quotes
    * @return escaped authorization string
    */
   public static byte[] escape(byte[] auth, boolean quote) {
     int escapeCount = 0;
 
-    for (byte value : auth)
-      if (value == '"' || value == '\\')
+    for (byte value : auth) {
+      if (value == '"' || value == '\\') {
         escapeCount++;
+      }
+    }
 
     if (escapeCount > 0 || quote) {
       byte[] escapedAuth = new byte[auth.length + escapeCount + (quote ? 2 : 0)];
       int index = quote ? 1 : 0;
       for (byte b : auth) {
-        if (b == '"' || b == '\\')
+        if (b == '"' || b == '\\') {
           escapedAuth[index++] = '\\';
+        }
         escapedAuth[index++] = b;
       }
 
@@ -153,8 +154,7 @@ public class VisibilityEvaluator {
    * Creates a new evaluator for the given collection of authorizations. Each authorization string
    * is escaped before handling, and the original strings are unchanged.
    *
-   * @param authorizations
-   *          authorizations object
+   * @param authorizations authorizations object
    */
   public VisibilityEvaluator(Authorizations authorizations) {
     this.auths = escape(authorizations);
@@ -165,12 +165,10 @@ public class VisibilityEvaluator {
    * visibility passes evaluation if all authorizations in it are contained in those known to the
    * evaluator, and all AND and OR subexpressions have at least two children.
    *
-   * @param visibility
-   *          column visibility to evaluate
+   * @param visibility column visibility to evaluate
    * @return true if visibility passes evaluation
-   * @throws VisibilityParseException
-   *           if an AND or OR subexpression has less than two children, or a subexpression is of an
-   *           unknown type
+   * @throws VisibilityParseException if an AND or OR subexpression has less than two children, or a
+   *         subexpression is of an unknown type
    */
   public boolean evaluate(ColumnVisibility visibility) throws VisibilityParseException {
     // The VisibilityEvaluator computes a trie from the given Authorizations, that ColumnVisibility
@@ -180,26 +178,31 @@ public class VisibilityEvaluator {
 
   private final boolean evaluate(final byte[] expression, final Node root)
       throws VisibilityParseException {
-    if (expression.length == 0)
+    if (expression.length == 0) {
       return true;
+    }
     switch (root.type) {
       case TERM:
         return auths.contains(root.getTerm(expression));
       case AND:
-        if (root.children == null || root.children.size() < 2)
+        if (root.children == null || root.children.size() < 2) {
           throw new VisibilityParseException("AND has less than 2 children", expression,
               root.start);
+        }
         for (Node child : root.children) {
-          if (!evaluate(expression, child))
+          if (!evaluate(expression, child)) {
             return false;
+          }
         }
         return true;
       case OR:
-        if (root.children == null || root.children.size() < 2)
+        if (root.children == null || root.children.size() < 2) {
           throw new VisibilityParseException("OR has less than 2 children", expression, root.start);
+        }
         for (Node child : root.children) {
-          if (evaluate(expression, child))
+          if (evaluate(expression, child)) {
             return true;
+          }
         }
         return false;
       default:

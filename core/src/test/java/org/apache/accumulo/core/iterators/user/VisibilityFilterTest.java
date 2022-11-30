@@ -53,28 +53,34 @@ public class VisibilityFilterTest {
 
   private TreeMap<Key,Value> createUnprotectedSource(int numPublic, int numHidden) {
     TreeMap<Key,Value> source = new TreeMap<>();
-    for (int i = 0; i < numPublic; i++)
+    for (int i = 0; i < numPublic; i++) {
       source.put(new Key(new Text(String.format("%03d", i)), GOOD, GOOD, EMPTY_VIS), EMPTY_VALUE);
-    for (int i = 0; i < numHidden; i++)
+    }
+    for (int i = 0; i < numHidden; i++) {
       source.put(new Key(new Text(String.format("%03d", i)), BAD, BAD, GOOD_VIS), EMPTY_VALUE);
+    }
     return source;
   }
 
   private TreeMap<Key,Value> createPollutedSource(int numGood, int numBad) {
     TreeMap<Key,Value> source = new TreeMap<>();
-    for (int i = 0; i < numGood; i++)
+    for (int i = 0; i < numGood; i++) {
       source.put(new Key(new Text(String.format("%03d", i)), GOOD, GOOD, GOOD_VIS), EMPTY_VALUE);
-    for (int i = 0; i < numBad; i++)
+    }
+    for (int i = 0; i < numBad; i++) {
       source.put(new Key(new Text(String.format("%03d", i)), BAD, BAD, BAD_VIS), EMPTY_VALUE);
+    }
     return source;
   }
 
   private TreeMap<Key,Value> createSourceWithHiddenData(int numViewable, int numHidden) {
     TreeMap<Key,Value> source = new TreeMap<>();
-    for (int i = 0; i < numViewable; i++)
+    for (int i = 0; i < numViewable; i++) {
       source.put(new Key(new Text(String.format("%03d", i)), GOOD, GOOD, GOOD_VIS), EMPTY_VALUE);
-    for (int i = 0; i < numHidden; i++)
+    }
+    for (int i = 0; i < numHidden; i++) {
       source.put(new Key(new Text(String.format("%03d", i)), BAD, BAD, HIDDEN_VIS), EMPTY_VALUE);
+    }
     return source;
   }
 
@@ -187,8 +193,9 @@ public class VisibilityFilterTest {
     VisibilityFilter.setAuthorizations(is, new Authorizations("def"));
 
     TreeMap<Key,Value> source = createSourceWithHiddenData(1, 5);
-    for (Entry<Key,Value> entry : createPollutedSource(0, 1).entrySet())
+    for (Entry<Key,Value> entry : createPollutedSource(0, 1).entrySet()) {
       source.put(entry.getKey(), entry.getValue());
+    }
 
     verify(source, 7, is.getOptions(), GOOD, GOOD, GOOD_VIS, 1);
   }

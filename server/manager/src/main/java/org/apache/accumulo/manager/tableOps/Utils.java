@@ -61,9 +61,10 @@ public class Utils {
 
     TableId id = context.getTableNameToIdMap().get(tableName);
 
-    if (id != null && !id.equals(tableId))
+    if (id != null && !id.equals(tableId)) {
       throw new AcceptableThriftTableOperationException(null, tableName, operation,
           TableOperationExceptionType.EXISTS, null);
+    }
   }
 
   public static <T extends AbstractId<T>> T getNextId(String name, ServerContext context,
@@ -92,15 +93,17 @@ public class Utils {
     if (getLock(env.getContext(), tableId, tid, writeLock).tryLock()) {
       if (tableMustExist) {
         ZooReaderWriter zk = env.getContext().getZooReaderWriter();
-        if (!zk.exists(env.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId))
+        if (!zk.exists(env.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId)) {
           throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
+        }
       }
       log.info("table {} {} locked for {} operation: {}", tableId, FateTxId.formatTid(tid),
           (writeLock ? "write" : "read"), op);
       return 0;
-    } else
+    } else {
       return 100;
+    }
   }
 
   public static void unreserveTable(Manager env, TableId tableId, long tid, boolean writeLock) {
@@ -122,15 +125,17 @@ public class Utils {
       if (mustExist) {
         ZooReaderWriter zk = env.getContext().getZooReaderWriter();
         if (!zk.exists(
-            env.getContext().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId))
+            env.getContext().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId)) {
           throw new AcceptableThriftTableOperationException(namespaceId.canonical(), "", op,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
+        }
       }
       log.info("namespace {} {} locked for {} operation: {}", namespaceId, FateTxId.formatTid(id),
           (writeLock ? "write" : "read"), op);
       return 0;
-    } else
+    } else {
       return 100;
+    }
   }
 
   public static long reserveHdfsDirectory(Manager env, String directory, long tid)
@@ -142,8 +147,9 @@ public class Utils {
 
     if (ZooReservation.attempt(zk, resvPath, FastFormat.toHexString(tid), "")) {
       return 0;
-    } else
+    } else {
       return 50;
+    }
   }
 
   public static void unreserveHdfsDirectory(Manager env, String directory, long tid)
@@ -163,10 +169,11 @@ public class Utils {
     Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
     if (lock == null) {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
-      if (writeLock)
+      if (writeLock) {
         lock = locker.writeLock();
-      else
+      } else {
         lock = locker.readLock();
+      }
     }
     return lock;
   }
@@ -189,9 +196,10 @@ public class Utils {
 
     NamespaceId n = Namespaces.lookupNamespaceId(context, namespace);
 
-    if (n != null && !n.equals(namespaceId))
+    if (n != null && !n.equals(namespaceId)) {
       throw new AcceptableThriftTableOperationException(null, namespace, operation,
           TableOperationExceptionType.NAMESPACE_EXISTS, null);
+    }
   }
 
   /**
@@ -199,8 +207,7 @@ public class Utils {
    * retrieve the data from a file on the file system. It is assumed that the file is textual and
    * not binary data.
    *
-   * @param path
-   *          the fully-qualified path
+   * @param path the fully-qualified path
    */
   public static SortedSet<Text> getSortedSetFromFile(Manager manager, Path path, boolean encoded)
       throws IOException {
