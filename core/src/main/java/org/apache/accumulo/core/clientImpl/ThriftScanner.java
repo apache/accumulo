@@ -314,8 +314,9 @@ public class ThriftScanner {
         } else {
           while (loc == null) {
             long currentTime = System.currentTimeMillis();
-            if ((currentTime - startTime) / 1000.0 > timeOut)
+            if ((currentTime - startTime) / 1000.0 > timeOut) {
               throw new ScanTimedOutException();
+            }
 
             Span child1 = TraceUtil.startSpan(ThriftScanner.class, "scan::locateTablet");
             try (Scope locateSpan = child1.makeCurrent()) {
@@ -328,10 +329,11 @@ public class ThriftScanner {
 
                 error = "Failed to locate tablet for table : " + scanState.tableId + " row : "
                     + scanState.startRow;
-                if (!error.equals(lastError))
+                if (!error.equals(lastError)) {
                   log.debug("{}", error);
-                else if (log.isTraceEnabled())
+                } else if (log.isTraceEnabled()) {
                   log.trace("{}", error);
+                }
                 lastError = error;
                 sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
               } else {
