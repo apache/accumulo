@@ -208,6 +208,8 @@ public class AuthenticationTokenSecretManagerTest extends WithTestNames {
     assertArrayEquals(password, secretManager.retrievePassword(id));
 
     // Make a second token for the same user
+    // Briefly sleep to guarantee token is unique, since the token is based on the time
+    Thread.sleep(100);
     Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair2 =
         secretManager.generateToken(principal, cfg);
     Token<AuthenticationTokenIdentifier> token2 = pair2.getKey();
