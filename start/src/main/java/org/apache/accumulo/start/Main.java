@@ -214,7 +214,7 @@ public class Main {
     printCommands(executables, UsageGroup.CORE);
 
     System.out.println("  jshell                         Runs JShell for Accumulo\n"
-            + "  classpath                      Prints Accumulo classpath\n"
+        + "  classpath                      Prints Accumulo classpath\n"
         + "  <main class> args              Runs Java <main class> located on Accumulo classpath");
 
     System.out.println("\nProcess Commands:");
