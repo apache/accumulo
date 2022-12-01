@@ -31,7 +31,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
@@ -358,8 +357,7 @@ public class GarbageCollectWriteAheadLogs {
           candidates.remove(id);
           log.info("Ignore closed log " + id + " because it is being replicated");
         }
-      } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException
-          | TableOfflineException ex) {
+      } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException ex) {
         return candidates.size();
       }
 
