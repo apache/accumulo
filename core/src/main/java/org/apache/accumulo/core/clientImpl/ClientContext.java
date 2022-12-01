@@ -21,7 +21,6 @@ package org.apache.accumulo.core.clientImpl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Suppliers.memoizeWithExpiration;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -147,8 +146,6 @@ public class ClientContext implements AccumuloClient {
   private final TableOperationsImpl tableops;
   private final NamespaceOperations namespaceops;
   private InstanceOperations instanceops = null;
-  @SuppressWarnings("deprecation")
-  private org.apache.accumulo.core.client.admin.ReplicationOperations replicationops = null;
   private final SingletonReservation singletonReservation;
   private final ThreadPools clientThreadPools;
   private ThreadPoolExecutor cleanupThreadPool;
@@ -509,13 +506,8 @@ public class ClientContext implements AccumuloClient {
    */
   public List<String> getManagerLocations() {
     ensureOpen();
-    return getManagerLocations(zooCache, getInstanceID().canonical());
-  }
-
-  // available only for sharing code with old ZooKeeperInstance
-  public static List<String> getManagerLocations(ZooCache zooCache, String instanceId) {
     var zLockManagerPath =
-        ServiceLock.path(Constants.ZROOT + "/" + instanceId + Constants.ZMANAGER_LOCK);
+        ServiceLock.path(Constants.ZROOT + "/" + getInstanceID() + Constants.ZMANAGER_LOCK);
 
     OpTimer timer = null;
 
@@ -548,35 +540,25 @@ public class ClientContext implements AccumuloClient {
   public InstanceId getInstanceID() {
     ensureOpen();
     if (instanceId == null) {
+      // lookup by name
       final String instanceName = info.getInstanceName();
-      instanceId = getInstanceID(zooCache, instanceName);
-      verifyInstanceId(zooCache, instanceId.canonical(), instanceName);
+      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
+      byte[] data = zooCache.get(instanceNamePath);
+      if (data == null) {
+        throw new RuntimeException(
+            "Instance name " + instanceName + " does not exist in zookeeper. "
+                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+      }
+      String instanceIdString = new String(data, UTF_8);
+      // verify that the instanceId found via the instanceName actually exists as an instance
+      if (zooCache.get(Constants.ZROOT + "/" + instanceIdString) == null) {
+        throw new RuntimeException("Instance id " + instanceIdString
+            + (instanceName == null ? "" : " pointed to by the name " + instanceName)
+            + " does not exist in zookeeper");
+      }
+      instanceId = InstanceId.of(instanceIdString);
     }
     return instanceId;
-  }
-
-  // available only for sharing code with old ZooKeeperInstance
-  public static InstanceId getInstanceID(ZooCache zooCache, String instanceName) {
-    requireNonNull(zooCache, "zooCache cannot be null");
-    requireNonNull(instanceName, "instanceName cannot be null");
-    String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
-    byte[] data = zooCache.get(instanceNamePath);
-    if (data == null) {
-      throw new RuntimeException("Instance name " + instanceName + " does not exist in zookeeper. "
-          + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
-    }
-    return InstanceId.of(new String(data, UTF_8));
-  }
-
-  // available only for sharing code with old ZooKeeperInstance
-  public static void verifyInstanceId(ZooCache zooCache, String instanceId, String instanceName) {
-    requireNonNull(zooCache, "zooCache cannot be null");
-    requireNonNull(instanceId, "instanceId cannot be null");
-    if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
-      throw new RuntimeException("Instance id " + instanceId
-          + (instanceName == null ? "" : " pointed to by the name " + instanceName)
-          + " does not exist in zookeeper");
-    }
   }
 
   public String getZooKeeperRoot() {
@@ -847,18 +829,6 @@ public class ClientContext implements AccumuloClient {
     }
 
     return instanceops;
-  }
-
-  @Override
-  @Deprecated
-  public synchronized org.apache.accumulo.core.client.admin.ReplicationOperations
-      replicationOperations() {
-    ensureOpen();
-    if (replicationops == null) {
-      replicationops = new ReplicationOperationsImpl(this);
-    }
-
-    return replicationops;
   }
 
   @Override

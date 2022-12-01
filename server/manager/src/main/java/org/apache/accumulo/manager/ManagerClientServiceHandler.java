@@ -27,7 +27,6 @@ import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.List;
@@ -37,8 +36,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
@@ -53,11 +50,8 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
@@ -71,12 +65,9 @@ import org.apache.accumulo.core.manager.thrift.TabletSplit;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
@@ -88,7 +79,6 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.util.PropUtil;
 import org.apache.accumulo.server.util.SystemPropUtil;
@@ -97,15 +87,10 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.protobuf.InvalidProtocolBufferException;
 
 public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   private static final Logger log = Manager.log;
-  private static final Logger drainLog =
-      LoggerFactory.getLogger("org.apache.accumulo.manager.ManagerDrainImpl");
   private final Manager manager;
 
   protected ManagerClientServiceHandler(Manager manager) {
@@ -618,107 +603,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
   }
 
-  @SuppressWarnings("deprecation")
-  @Override
-  public boolean drainReplicationTable(TInfo tfino, TCredentials credentials, String tableName,
-      Set<String> logsToWatch) throws TException {
-    AccumuloClient client = manager.getContext();
-
-    final Text tableId = new Text(getTableId(manager.getContext(), tableName).canonical());
-
-    drainLog.trace("Waiting for {} to be replicated for {}", logsToWatch, tableId);
-
-    drainLog.trace("Reading from metadata table");
-    final Set<Range> range = Collections.singleton(new Range(ReplicationSection.getRange()));
-    BatchScanner bs;
-    try {
-      bs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
-    } catch (TableNotFoundException e) {
-      throw new RuntimeException("Could not read metadata table", e);
-    }
-    bs.setRanges(range);
-    bs.fetchColumnFamily(ReplicationSection.COLF);
-    try {
-      // Return immediately if there are records in metadata for these WALs
-      if (!allReferencesReplicated(bs, tableId, logsToWatch)) {
-        return false;
-      }
-    } finally {
-      bs.close();
-    }
-
-    drainLog.trace("reading from replication table");
-    try {
-      bs = client.createBatchScanner(org.apache.accumulo.core.replication.ReplicationTable.NAME,
-          Authorizations.EMPTY, 4);
-    } catch (TableNotFoundException e) {
-      throw new RuntimeException("Replication table was not found", e);
-    }
-    bs.setRanges(Collections.singleton(new Range()));
-    try {
-      // No records in metadata, check replication table
-      return allReferencesReplicated(bs, tableId, logsToWatch);
-    } finally {
-      bs.close();
-    }
-  }
-
   protected TableId getTableId(ClientContext context, String tableName)
       throws ThriftTableOperationException {
     return ClientServiceHandler.checkTableId(context, tableName, null);
   }
 
-  /**
-   * @return return true records are only in place which are fully replicated
-   */
-  @Deprecated
-  protected boolean allReferencesReplicated(BatchScanner bs, Text tableId,
-      Set<String> relevantLogs) {
-    Text rowHolder = new Text(), colfHolder = new Text();
-    for (Entry<Key,Value> entry : bs) {
-      drainLog.trace("Got key {}", entry.getKey().toStringNoTruncate());
-
-      entry.getKey().getColumnQualifier(rowHolder);
-      if (tableId.equals(rowHolder)) {
-        entry.getKey().getRow(rowHolder);
-        entry.getKey().getColumnFamily(colfHolder);
-
-        String file;
-        if (colfHolder.equals(ReplicationSection.COLF)) {
-          file = rowHolder.toString();
-          file = file.substring(ReplicationSection.getRowPrefix().length());
-        } else if (colfHolder
-            .equals(org.apache.accumulo.core.replication.ReplicationSchema.OrderSection.NAME)) {
-          file = org.apache.accumulo.core.replication.ReplicationSchema.OrderSection
-              .getFile(entry.getKey(), rowHolder);
-          long timeClosed = org.apache.accumulo.core.replication.ReplicationSchema.OrderSection
-              .getTimeClosed(entry.getKey(), rowHolder);
-          drainLog.trace("Order section: {} and {}", timeClosed, file);
-        } else {
-          file = rowHolder.toString();
-        }
-
-        // Skip files that we didn't observe when we started (new files/data)
-        if (relevantLogs.contains(file)) {
-          drainLog.trace("Found file that we *do* care about {}", file);
-        } else {
-          drainLog.trace("Found file that we didn't care about {}", file);
-          continue;
-        }
-
-        try {
-          Status stat = Status.parseFrom(entry.getValue().get());
-          if (!org.apache.accumulo.server.replication.StatusUtil.isFullyReplicated(stat)) {
-            drainLog.trace("{} and {} is not replicated", file, ProtobufUtil.toString(stat));
-            return false;
-          }
-          drainLog.trace("{} and {} is replicated", file, ProtobufUtil.toString(stat));
-        } catch (InvalidProtocolBufferException e) {
-          drainLog.trace("Could not parse protobuf for {}", entry.getKey(), e);
-        }
-      }
-    }
-
-    return true;
-  }
 }

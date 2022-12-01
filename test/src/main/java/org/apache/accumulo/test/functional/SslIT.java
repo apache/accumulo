@@ -86,16 +86,4 @@ public class SslIT extends ConfigurableMacBase {
           getUniqueNames(1)[0], this.getClass().getName(), testName(), true);
     }
   }
-
-  @SuppressWarnings("deprecation")
-  @Test
-  @Timeout(value = 1, unit = MINUTES)
-  public void mapReduce() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      // testing old mapreduce code from core jar; the new mapreduce module should have its own test
-      // case which checks functionality with ssl enabled
-      org.apache.accumulo.test.mapreduce.MapReduceIT.runTest(client, getCluster());
-    }
-  }
-
 }

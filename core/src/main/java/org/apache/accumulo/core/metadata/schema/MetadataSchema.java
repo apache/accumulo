@@ -18,12 +18,9 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -399,58 +396,6 @@ public class MetadataSchema {
       return section.getRowPrefix();
     }
 
-  }
-
-  /**
-   * Holds references to files that need replication
-   *
-   * <pre>
-   * <code>
-   * ~replhdfs://localhost:8020/accumulo/wal/tserver+port/WAL stat:local_table_id [] -&gt; protobuf
-   * </code>
-   * </pre>
-   */
-  public static class ReplicationSection {
-    public static final Text COLF = new Text("stat");
-    private static final ArrayByteSequence COLF_BYTE_SEQ = new ArrayByteSequence(COLF.toString());
-    private static final Section section =
-        new Section(RESERVED_PREFIX + "repl", true, RESERVED_PREFIX + "repm", false);
-
-    public static Range getRange() {
-      return section.getRange();
-    }
-
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
-    }
-
-    /**
-     * Extract the table ID from the colfam
-     *
-     * @param k Key to extract from
-     */
-    public static TableId getTableId(Key k) {
-      requireNonNull(k);
-      return TableId.of(k.getColumnQualifier().toString());
-    }
-
-    /**
-     * Extract the file name from the row suffix into the given {@link Text}
-     *
-     * @param k Key to extract from
-     * @param buff Text to place file name into
-     */
-    public static void getFile(Key k, Text buff) {
-      requireNonNull(k);
-      requireNonNull(buff);
-      checkArgument(COLF_BYTE_SEQ.equals(k.getColumnFamilyData()),
-          "Given metadata replication status key with incorrect colfam");
-
-      k.getRow(buff);
-
-      buff.set(buff.getBytes(), section.getRowPrefix().length(),
-          buff.getLength() - section.getRowPrefix().length());
-    }
   }
 
   public static class ExternalCompactionSection {

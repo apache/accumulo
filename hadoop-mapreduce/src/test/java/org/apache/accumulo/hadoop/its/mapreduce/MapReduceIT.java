@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.mapreduce;
+package org.apache.accumulo.hadoop.its.mapreduce;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -48,10 +48,6 @@ import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-/**
- * This tests deprecated mapreduce code in core jar
- */
-@Deprecated(since = "2.0.0")
 public class MapReduceIT extends ConfigurableMacBase {
 
   public static final String hadoopTmpDirArg =
@@ -62,7 +58,6 @@ public class MapReduceIT extends ConfigurableMacBase {
   static final String input_cq = "cq-NOTHASHED";
   static final String input_cfcq = input_cf + ":" + input_cq;
   static final String output_cq = "cq-MD4BASE64";
-  static final String output_cfcq = input_cf + ":" + output_cq;
 
   @Override
   protected Duration defaultTimeout() {
@@ -71,7 +66,8 @@ public class MapReduceIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    var props = getClientProperties();
+    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
       runTest(client, getCluster());
     }
   }
@@ -90,8 +86,8 @@ public class MapReduceIT extends ConfigurableMacBase {
     }
     bw.close();
 
-    Process hash = cluster.exec(RowHash.class, Collections.singletonList(hadoopTmpDirArg), "-c",
-        cluster.getClientPropsPath(), "-t", tablename, "--column", input_cfcq).getProcess();
+    Process hash = cluster.exec(RowHashIT.RowHash.class, Collections.singletonList(hadoopTmpDirArg),
+        "-c", cluster.getClientPropsPath(), "-t", tablename, "--column", input_cfcq).getProcess();
     assertEquals(0, hash.waitFor());
 
     try (Scanner s = c.createScanner(tablename, Authorizations.EMPTY)) {

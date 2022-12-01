@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -41,13 +40,10 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.PeekingIterator;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -270,44 +266,6 @@ public class GarbageCollectionAlgorithm {
     }
   }
 
-  protected void confirmDeletesFromReplication(GarbageCollectionEnvironment gce,
-      SortedMap<String,String> candidateMap) {
-    var replicationNeededIterator = gce.getReplicationNeededIterator();
-    var candidateMapIterator = candidateMap.entrySet().iterator();
-
-    PeekingIterator<Entry<String,Status>> pendingReplication =
-        Iterators.peekingIterator(replicationNeededIterator);
-    PeekingIterator<Entry<String,String>> candidates =
-        Iterators.peekingIterator(candidateMapIterator);
-    while (pendingReplication.hasNext() && candidates.hasNext()) {
-      Entry<String,Status> pendingReplica = pendingReplication.peek();
-      Entry<String,String> candidate = candidates.peek();
-
-      String filePendingReplication = pendingReplica.getKey();
-      String fullPathCandidate = candidate.getValue();
-
-      int comparison = filePendingReplication.compareTo(fullPathCandidate);
-      if (comparison < 0) {
-        pendingReplication.next();
-      } else if (comparison > 1) {
-        candidates.next();
-      } else {
-        // We want to advance both, and try to delete the candidate if we can
-        candidates.next();
-        pendingReplication.next();
-
-        // We cannot delete a file if it is still needed for replication
-        @SuppressWarnings("deprecation")
-        boolean safeToRemove = org.apache.accumulo.server.replication.StatusUtil
-            .isSafeForRemoval(pendingReplica.getValue());
-        if (!safeToRemove) {
-          // If it must be replicated, we must remove it from the candidate set to prevent deletion
-          candidates.remove();
-        }
-      }
-    }
-  }
-
   private void cleanUpDeletedTableDirs(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws InterruptedException, IOException {
     HashSet<TableId> tableIdsWithDeletes = new HashSet<>();
@@ -340,7 +298,6 @@ public class GarbageCollectionAlgorithm {
     try (Scope scope = confirmDeletesSpan.makeCurrent()) {
       blips = removeBlipCandidates(gce, candidateMap);
       removeCandidatesInUse(gce, candidateMap);
-      confirmDeletesFromReplication(gce, candidateMap);
     } catch (Exception e) {
       TraceUtil.setException(confirmDeletesSpan, e, true);
       throw e;

@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>2.1.1-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-core</artifactId>
   <name>Apache Accumulo Core</name>
@@ -56,10 +56,6 @@
           <artifactId>listenablefuture</artifactId>
         </exclusion>
       </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>com.google.protobuf</groupId>
-      <artifactId>protobuf-java</artifactId>
     </dependency>
     <dependency>
       <groupId>commons-io</groupId>
@@ -432,6 +428,8 @@
                   <exclude>**/TestCfCqSlice.java</exclude>
                   <exclude>**/TestCfCqSliceSeekingFilter.java</exclude>
                   <exclude>**/core/constraints/DefaultKeySizeConstraintTest.java</exclude>
+                  <exclude>**/core/rpc/SaslConnectionParamsTest.java</exclude>
+                  <exclude>**/core/clientImpl/ThriftTransportKeyTest.java</exclude>
                 </excludes>
               </configuration>
               <executions>
@@ -451,7 +449,9 @@
                       <include>**/IdleRatioScanPrioritizerTest.java</include>
                       <include>**/TestCfCqSlice.java</include>
                       <include>**/TestCfCqSliceSeekingFilter.java</include>
-                      <exclude>**/core/constraints/DefaultKeySizeConstraintTest.java</exclude>
+                      <include>**/core/constraints/DefaultKeySizeConstraintTest.java</include>
+                      <include>**/core/rpc/SaslConnectionParamsTest.java</include>
+                      <include>**/core/clientImpl/ThriftTransportKeyTest.java</include>
                     </includes>
                   </configuration>
                 </execution>

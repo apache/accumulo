@@ -21,7 +21,6 @@ package org.apache.accumulo.server.init;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
-import static org.apache.accumulo.server.init.Initialize.REPL_TABLE_ID;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -32,7 +31,6 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.InstanceId;
@@ -103,13 +101,6 @@ class FileSystemInitializer {
         fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
             + MetadataTable.ID + Path.SEPARATOR + tableMetadataTabletDirName;
     chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
-        REPL_TABLE_ID, null, context);
-    String replicationTableDefaultTabletDirName =
-        MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
-    String replicationTableDefaultTabletDirUri =
-        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-            + REPL_TABLE_ID + Path.SEPARATOR + replicationTableDefaultTabletDirName;
-    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
         MetadataTable.ID, null, context);
     String defaultMetadataTabletDirName =
         MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
@@ -118,20 +109,11 @@ class FileSystemInitializer {
             + MetadataTable.ID + Path.SEPARATOR + defaultMetadataTabletDirName;
 
     // create table and default tablets directories
-    createDirectories(fs, rootTabletDirUri, tableMetadataTabletDirUri, defaultMetadataTabletDirUri,
-        replicationTableDefaultTabletDirUri);
-
-    String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
-
-    // populate the metadata tablet with info about the replication tablet
-    String metadataFileName = tableMetadataTabletDirUri + Path.SEPARATOR + "0_1." + ext;
-    Tablet replicationTablet =
-        new Tablet(REPL_TABLE_ID, replicationTableDefaultTabletDirName, null, null);
-    createMetadataFile(fs, metadataFileName, siteConfig, replicationTablet);
+    createDirectories(fs, rootTabletDirUri, tableMetadataTabletDirUri, defaultMetadataTabletDirUri);
 
     // populate the root tablet with info about the metadata table's two initial tablets
-    Tablet tablesTablet = new Tablet(MetadataTable.ID, tableMetadataTabletDirName, null, splitPoint,
-        metadataFileName);
+    Tablet tablesTablet =
+        new Tablet(MetadataTable.ID, tableMetadataTabletDirName, null, splitPoint);
     Tablet defaultTablet =
         new Tablet(MetadataTable.ID, defaultMetadataTabletDirName, splitPoint, null);
     createMetadataFile(fs, rootTabletFileUri, siteConfig, tablesTablet, defaultTablet);
@@ -162,7 +144,6 @@ class FileSystemInitializer {
     setTableProperties(context, RootTable.ID, initConfig.getRootMetaConf());
     setTableProperties(context, MetadataTable.ID, initConfig.getRootMetaConf());
     setTableProperties(context, MetadataTable.ID, initConfig.getMetaTableConf());
-    setTableProperties(context, REPL_TABLE_ID, initConfig.getReplTableConf());
   }
 
   private void setTableProperties(final ServerContext context, TableId tableId,

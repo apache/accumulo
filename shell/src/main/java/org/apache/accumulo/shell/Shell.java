@@ -385,9 +385,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         {new ClasspathCommand(), new org.apache.accumulo.shell.commands.DebugCommand(),
             new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(),
             new PingCommand(), new ListBulkCommand(), new ListTabletsCommand()};
-    @SuppressWarnings("deprecation")
-    Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(),
-        new org.apache.accumulo.shell.commands.ScriptCommand()};
+    Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
     Command[] helpCommands =
         {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};

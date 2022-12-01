@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -45,7 +44,6 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.jupiter.api.Test;
 
 public class GarbageCollectionTest {
@@ -58,7 +56,6 @@ public class GarbageCollectionTest {
 
     ArrayList<String> deletes = new ArrayList<>();
     ArrayList<TableId> tablesDirsToDelete = new ArrayList<>();
-    TreeMap<String,Status> filesToReplicate = new TreeMap<>();
 
     private final Ample.DataLevel level;
 
@@ -97,7 +94,7 @@ public class GarbageCollectionTest {
     @Override
     public Map<TableId,TableState> getTableIDs() {
       HashMap<TableId,TableState> results = new HashMap<>();
-      tableIds.forEach((t) -> results.put(t, TableState.ONLINE));
+      tableIds.forEach(t -> results.put(t, TableState.ONLINE));
       return results;
     }
 
@@ -153,11 +150,6 @@ public class GarbageCollectionTest {
 
     @Override
     public void incrementInUseStat(long i) {}
-
-    @Override
-    public Iterator<Entry<String,Status>> getReplicationNeededIterator() {
-      return filesToReplicate.entrySet().iterator();
-    }
 
     @Override
     public Set<TableId> getCandidateTableIDs() {
@@ -761,87 +753,6 @@ public class GarbageCollectionTest {
     assertEquals(tids.size(), gce.tablesDirsToDelete.size());
     assertTrue(tids.containsAll(gce.tablesDirsToDelete));
 
-  }
-
-  @Test
-  public void finishedReplicationRecordsDontPreventDeletion() throws Exception {
-    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
-
-    TestGCE gce = new TestGCE();
-
-    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf");
-    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf");
-
-    Status status = Status.newBuilder().setClosed(true).setEnd(100).setBegin(100).build();
-    gce.filesToReplicate.put("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf", status);
-
-    gca.collect(gce);
-
-    // No refs to A000002.rf, and a closed, finished repl for A000001.rf should not preclude
-    // it from being deleted
-    assertEquals(2, gce.deletes.size());
-  }
-
-  @Test
-  public void openReplicationRecordsPreventDeletion() throws Exception {
-    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
-
-    TestGCE gce = new TestGCE();
-
-    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf");
-    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf");
-
-    // We replicated all of the data, but we might still write more data to the file
-    Status status = Status.newBuilder().setClosed(false).setEnd(1000).setBegin(100).build();
-    gce.filesToReplicate.put("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf", status);
-
-    gca.collect(gce);
-
-    // We need to replicate that one file still, should not delete it.
-    assertEquals(1, gce.deletes.size());
-    assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
-  }
-
-  @Test
-  public void newReplicationRecordsPreventDeletion() throws Exception {
-    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
-
-    TestGCE gce = new TestGCE();
-
-    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf");
-    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf");
-
-    // We replicated all of the data, but we might still write more data to the file
-    @SuppressWarnings("deprecation")
-    Status status =
-        org.apache.accumulo.server.replication.StatusUtil.fileCreated(System.currentTimeMillis());
-    gce.filesToReplicate.put("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf", status);
-
-    gca.collect(gce);
-
-    // We need to replicate that one file still, should not delete it.
-    assertEquals(1, gce.deletes.size());
-    assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
-  }
-
-  @Test
-  public void bulkImportReplicationRecordsPreventDeletion() throws Exception {
-    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
-
-    TestGCE gce = new TestGCE();
-
-    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf");
-    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf");
-
-    // Some file of unknown length has no replication yet (representative of the bulk-import case)
-    Status status = Status.newBuilder().setInfiniteEnd(true).setBegin(0).setClosed(true).build();
-    gce.filesToReplicate.put("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf", status);
-
-    gca.collect(gce);
-
-    // We need to replicate that one file still, should not delete it.
-    assertEquals(1, gce.deletes.size());
-    assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
   }
 
   @Test

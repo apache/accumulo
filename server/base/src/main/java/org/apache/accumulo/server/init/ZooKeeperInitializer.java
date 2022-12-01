@@ -19,7 +19,6 @@
 package org.apache.accumulo.server.init;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.server.init.Initialize.REPL_TABLE_ID;
 
 import java.io.IOException;
 
@@ -122,10 +121,6 @@ public class ZooKeeperInitializer {
         RootTable.NAME, TableState.ONLINE, ZooUtil.NodeExistsPolicy.FAIL);
     TableManager.prepareNewTableState(context, MetadataTable.ID, Namespace.ACCUMULO.id(),
         MetadataTable.NAME, TableState.ONLINE, ZooUtil.NodeExistsPolicy.FAIL);
-    @SuppressWarnings("deprecation")
-    String replicationTableName = org.apache.accumulo.core.replication.ReplicationTable.NAME;
-    TableManager.prepareNewTableState(context, REPL_TABLE_ID, Namespace.ACCUMULO.id(),
-        replicationTableName, TableState.OFFLINE, ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY,
@@ -156,15 +151,6 @@ public class ZooKeeperInitializer {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMONITOR, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMONITOR_LOCK, EMPTY_BYTE_ARRAY,
-        ZooUtil.NodeExistsPolicy.FAIL);
-    @SuppressWarnings("deprecation")
-    String replicationZBase = org.apache.accumulo.core.replication.ReplicationConstants.ZOO_BASE;
-    zoo.putPersistentData(zkInstanceRoot + replicationZBase, EMPTY_BYTE_ARRAY,
-        ZooUtil.NodeExistsPolicy.FAIL);
-    @SuppressWarnings("deprecation")
-    String replicationZServers =
-        org.apache.accumulo.core.replication.ReplicationConstants.ZOO_TSERVERS;
-    zoo.putPersistentData(zkInstanceRoot + replicationZServers, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + WalStateManager.ZWALS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);

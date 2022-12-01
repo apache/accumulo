@@ -32,6 +32,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -98,84 +100,87 @@ public class MiniAccumuloClusterTest extends WithTestNames {
   @Test
   @Timeout(30)
   public void test() throws Exception {
-    org.apache.accumulo.core.client.Connector conn =
-        accumulo.getConnector(ROOT_USER, ROOT_PASSWORD);
+    try (AccumuloClient conn = Accumulo.newClient().from(accumulo.getClientProperties())
+        .as(ROOT_USER, ROOT_PASSWORD).build()) {
 
-    final String tableName = testName();
+      final String tableName = testName();
 
-    IteratorSetting is = new IteratorSetting(10, SummingCombiner.class);
-    SummingCombiner.setEncodingType(is, LongCombiner.Type.STRING);
-    SummingCombiner.setColumns(is,
-        Collections.singletonList(new IteratorSetting.Column("META", "COUNT")));
+      IteratorSetting is = new IteratorSetting(10, SummingCombiner.class);
+      SummingCombiner.setEncodingType(is, LongCombiner.Type.STRING);
+      SummingCombiner.setColumns(is,
+          Collections.singletonList(new IteratorSetting.Column("META", "COUNT")));
 
-    conn.tableOperations().create(tableName, new NewTableConfiguration().attachIterator(is));
+      conn.tableOperations().create(tableName, new NewTableConfiguration().attachIterator(is));
 
-    final String principal = "user1";
-    final String password = "pass1";
-    conn.securityOperations().createLocalUser(principal, new PasswordToken(password));
-    conn.securityOperations().changeUserAuthorizations(principal, new Authorizations("A", "B"));
-    conn.securityOperations().grantTablePermission(principal, tableName, TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission(principal, tableName, TablePermission.READ);
+      final String principal = "user1";
+      final String password = "pass1";
+      conn.securityOperations().createLocalUser(principal, new PasswordToken(password));
+      conn.securityOperations().changeUserAuthorizations(principal, new Authorizations("A", "B"));
+      conn.securityOperations().grantTablePermission(principal, tableName, TablePermission.WRITE);
+      conn.securityOperations().grantTablePermission(principal, tableName, TablePermission.READ);
 
-    org.apache.accumulo.core.client.Connector uconn = accumulo.getConnector(principal, password);
+      try (AccumuloClient uconn = Accumulo.newClient().from(accumulo.getClientProperties())
+          .as(principal, password).build()) {
 
-    try (BatchWriter bw = uconn.createBatchWriter(tableName, new BatchWriterConfig())) {
+        try (BatchWriter bw = uconn.createBatchWriter(tableName, new BatchWriterConfig())) {
 
-      UUID uuid = UUID.randomUUID();
+          UUID uuid = UUID.randomUUID();
 
-      ColumnVisibility colVisAorB = new ColumnVisibility("A|B");
-      Mutation m = new Mutation(uuid.toString());
-      m.put("META", "SIZE", colVisAorB, "8");
-      m.put("META", "CRC", colVisAorB, "456");
-      m.put("META", "COUNT", colVisAorB, "1");
-      m.put("DATA", "IMG", new ColumnVisibility("A&B"), "ABCDEFGH");
+          ColumnVisibility colVisAorB = new ColumnVisibility("A|B");
+          Mutation m = new Mutation(uuid.toString());
+          m.put("META", "SIZE", colVisAorB, "8");
+          m.put("META", "CRC", colVisAorB, "456");
+          m.put("META", "COUNT", colVisAorB, "1");
+          m.put("DATA", "IMG", new ColumnVisibility("A&B"), "ABCDEFGH");
 
-      bw.addMutation(m);
-      bw.flush();
+          bw.addMutation(m);
+          bw.flush();
 
-      m = new Mutation(uuid.toString());
-      m.put("META", "COUNT", colVisAorB, "1");
-      m.put("META", "CRC", colVisAorB, "123");
-      bw.addMutation(m);
+          m = new Mutation(uuid.toString());
+          m.put("META", "COUNT", colVisAorB, "1");
+          m.put("META", "CRC", colVisAorB, "123");
+          bw.addMutation(m);
 
-    }
-
-    int count = 0;
-    try (Scanner scanner = uconn.createScanner(tableName, new Authorizations("A"))) {
-      for (Entry<Key,Value> entry : scanner) {
-        final String actualValue = entry.getValue().toString();
-        switch (entry.getKey().getColumnQualifierData().toString()) {
-          case "COUNT":
-            assertEquals("2", actualValue);
-            break;
-          case "SIZE":
-            assertEquals("8", actualValue);
-            break;
-          case "CRC":
-            assertEquals("123", actualValue);
-            break;
-          default:
-            fail();
-            break;
         }
-        count++;
-      }
-    }
-    assertEquals(3, count);
 
-    count = 0;
-    try (Scanner scanner = uconn.createScanner(tableName, new Authorizations("A", "B"))) {
-      for (Entry<Key,Value> entry : scanner) {
-        if (entry.getKey().getColumnQualifierData().toString().equals("IMG")) {
-          assertEquals("ABCDEFGH", entry.getValue().toString());
+        int count = 0;
+        try (Scanner scanner = uconn.createScanner(tableName, new Authorizations("A"))) {
+          for (Entry<Key,Value> entry : scanner) {
+            final String actualValue = entry.getValue().toString();
+            switch (entry.getKey().getColumnQualifierData().toString()) {
+              case "COUNT":
+                assertEquals("2", actualValue);
+                break;
+              case "SIZE":
+                assertEquals("8", actualValue);
+                break;
+              case "CRC":
+                assertEquals("123", actualValue);
+                break;
+              default:
+                fail();
+                break;
+            }
+            count++;
+          }
         }
-        count++;
+        assertEquals(3, count);
+
+        count = 0;
+        try (Scanner scanner = uconn.createScanner(tableName, new Authorizations("A", "B"))) {
+          for (Entry<Key,Value> entry : scanner) {
+            if (entry.getKey().getColumnQualifierData().toString().equals("IMG")) {
+              assertEquals("ABCDEFGH", entry.getValue().toString());
+            }
+            count++;
+          }
+        }
+
+        assertEquals(4, count);
       }
+      conn.tableOperations().delete(tableName);
     }
 
-    assertEquals(4, count);
-
-    conn.tableOperations().delete(tableName);
   }
 
   @Test

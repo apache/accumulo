@@ -32,8 +32,7 @@ import com.google.common.base.Preconditions;
  * Historically, Accumulo client code that used Connector had no control over these singletons. The
  * new AccumuloClient API that replaces Connector is closeable. When all AccumuloClients are closed
  * then resources used by the singletons are released. This class coordinates releasing those
- * resources. For compatibility purposes this class will not release resources when the user has
- * created Connectors.
+ * resources.
  *
  * <p>
  * This class is intermediate solution to resource management. Ideally there would be no static
@@ -62,9 +61,10 @@ public class SingletonManager {
      */
     SERVER,
     /**
-     * In this mode singletons are never disabled unless the mode is set back to CLIENT. The user
-     * can do this by using util.CleanUp (an old API created for users).
+     * This mode was removed along with Connector in 3.0.0. It no longer does anything, but is kept
+     * here to preserve enum ordinals.
      */
+    @Deprecated(since = "3.0.0")
     CONNECTOR,
     /**
      * In this mode singletons are permanently disabled and entering this mode prevents
@@ -77,7 +77,6 @@ public class SingletonManager {
   private static long reservations;
   private static Mode mode;
   private static boolean enabled;
-  private static boolean transitionedFromClientToConnector;
   private static List<SingletonService> services;
 
   @VisibleForTesting
@@ -85,7 +84,6 @@ public class SingletonManager {
     reservations = 0;
     mode = Mode.CLIENT;
     enabled = true;
-    transitionedFromClientToConnector = false;
     services = new ArrayList<>();
   }
 
@@ -160,16 +158,8 @@ public class SingletonManager {
     if (SingletonManager.mode == Mode.CLOSED) {
       throw new IllegalStateException("Cannot leave closed mode once entered");
     }
-    if (SingletonManager.mode == Mode.CLIENT && mode == Mode.CONNECTOR) {
-      if (transitionedFromClientToConnector) {
-        throw new IllegalStateException("Can only transition from " + Mode.CLIENT + " to "
-            + Mode.CONNECTOR + " once.  This error indicates that "
-            + "org.apache.accumulo.core.util.CleanUp.shutdownNow() was called and then later a "
-            + "Connector was created.  Connectors can not be created after CleanUp.shutdownNow()"
-            + " is called.");
-      }
-
-      transitionedFromClientToConnector = true;
+    if (mode == Mode.CONNECTOR) {
+      throw new IllegalArgumentException("CONNECTOR mode was removed");
     }
 
     /*
@@ -198,10 +188,9 @@ public class SingletonManager {
       }
     } else {
       // if we're in a disabled state AND
-      // the mode is CONNECTOR or SERVER or if there are active clients,
+      // the mode is SERVER or if there are active clients,
       // then enable everything
-      if (mode == Mode.CONNECTOR || mode == Mode.SERVER
-          || (mode == Mode.CLIENT && reservations > 0)) {
+      if (mode == Mode.SERVER || (mode == Mode.CLIENT && reservations > 0)) {
         services.forEach(SingletonManager::enable);
         enabled = true;
       }

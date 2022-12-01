@@ -53,7 +53,6 @@ public abstract class TabletTime {
     } else if (metadataTime.getType().equals(TimeType.MILLIS)) {
       return new MillisTime(metadataTime.getTime());
     } else {
-      // this should really never happen here
       throw new IllegalArgumentException("Time type unknown : " + metadataTime);
     }
   }

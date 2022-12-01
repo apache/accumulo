@@ -1030,8 +1030,8 @@ public class RFile {
 
           if (iiter.hasPrevious()) {
             prevKey = new Key(iiter.peekPrevious().getKey()); // initially prevKey is the last key
+                                                              // of the prev block
           } else {
-            // of the prev block
             prevKey = new Key(); // first block in the file, so set prev key to minimal key
           }
 

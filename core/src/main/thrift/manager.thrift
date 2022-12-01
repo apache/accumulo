@@ -360,14 +360,4 @@ service ManagerClientService {
     2:client.ThriftNotActiveServiceException tnase
   )
 
-  // Determine when all provided logs are replicated
-  bool drainReplicationTable(
-    1:trace.TInfo tfino
-    2:security.TCredentials credentials
-    3:string tableName
-    4:set<string> logsToWatch
-  ) throws (
-    1:client.ThriftNotActiveServiceException tnase
-  )
-
 }

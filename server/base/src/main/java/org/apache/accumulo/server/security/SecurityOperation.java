@@ -365,11 +365,8 @@ public class SecurityOperation {
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
-    @SuppressWarnings("deprecation")
-    TableId replicationTableId = org.apache.accumulo.core.replication.ReplicationTable.ID;
-
-    if ((table.equals(MetadataTable.ID) || table.equals(RootTable.ID)
-        || table.equals(replicationTableId)) && permission.equals(TablePermission.READ)) {
+    if ((table.equals(MetadataTable.ID) || table.equals(RootTable.ID))
+        && permission.equals(TablePermission.READ)) {
       return true;
     }
 

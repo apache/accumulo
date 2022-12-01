@@ -181,8 +181,7 @@ public class BulkImport extends ManagerRepo {
 
     while (true) {
       Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
-      if (fs.exists(newBulkDir)) {
-        // sanity check
+      if (fs.exists(newBulkDir)) { // sanity check
         throw new IOException("Dir exist when it should not " + newBulkDir);
       }
       if (fs.mkdirs(newBulkDir)) {

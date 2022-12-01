@@ -72,42 +72,6 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     assertTrue(e.getMessage().toLowerCase().contains("closed"));
   }
 
-  @SuppressWarnings("deprecation")
-  @Test
-  public void testGetConnectorFromAccumuloClient() throws Exception {
-    AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
-    org.apache.accumulo.core.client.Connector c =
-        org.apache.accumulo.core.client.Connector.from(client);
-    assertEquals(client.whoami(), c.whoami());
-
-    // this should cause the connector to stop functioning
-    client.close();
-
-    expectClosed(c::tableOperations);
-  }
-
-  @SuppressWarnings("deprecation")
-  @Test
-  public void testGetAccumuloClientFromConnector() throws Exception {
-    try (AccumuloClient client1 = Accumulo.newClient().from(getClientProps()).build()) {
-      org.apache.accumulo.core.client.Connector c =
-          org.apache.accumulo.core.client.Connector.from(client1);
-
-      String tableName = getUniqueNames(1)[0];
-
-      c.tableOperations().create(tableName);
-
-      try (AccumuloClient client2 = org.apache.accumulo.core.client.Connector.newClient(c)) {
-        assertTrue(client2.tableOperations().list().contains(tableName));
-      }
-
-      // closing client2 should not have had an impact on the connector or client1
-
-      assertTrue(client1.tableOperations().list().contains(tableName));
-      assertTrue(c.tableOperations().list().contains(tableName));
-    }
-  }
-
   @Test
   public void testAccumuloClientBuilder() throws Exception {
     AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();

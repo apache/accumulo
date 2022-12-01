@@ -51,11 +51,11 @@ import org.apache.accumulo.core.security.Authorizations;
  * </pre>
  *
  * <p>
- * If migrating code from Connector to AccumuloClient an important difference to consider is that
- * AccumuloClient is closable and Connector is not. Connector uses static resources and therefore
- * creating them is cheap. AccumuloClient attempts to clean up resources on close, so constantly
- * creating them could perform worse than Connector. Therefore, it would be better to create an
- * AccumuloClient and pass it around.
+ * An important difference with the legacy Connector to consider is that Connector reused global
+ * static resources. AccumuloClient, however, attempts to clean up its resources on close. So,
+ * creating many AccumuloClient objects will perform worse than creating many Connectors did.
+ * Therefore, it is suggested to reuse AccumuloClient instances where possible, rather than create
+ * many of them.
  *
  * <p>
  * AccumuloClient objects are intended to be thread-safe, and can be used by multiple threads.
@@ -290,14 +290,6 @@ public interface AccumuloClient extends AutoCloseable {
    * @return an object to modify instance configuration
    */
   InstanceOperations instanceOperations();
-
-  /**
-   * Retrieves a ReplicationOperations object to manage replication configuration.
-   *
-   * @return an object to modify replication configuration
-   */
-  @Deprecated(since = "2.1.0")
-  org.apache.accumulo.core.client.admin.ReplicationOperations replicationOperations();
 
   /**
    * @return All {@link Properties} used to create client except 'auth.token'

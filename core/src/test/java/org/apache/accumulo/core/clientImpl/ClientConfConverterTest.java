@@ -35,18 +35,39 @@ public class ClientConfConverterTest {
   @Test
   public void testBasic() {
     Properties before = new Properties();
+
+    // this will be dropped when converting to AccumuloConfiguration
     before.setProperty(ClientProperty.INSTANCE_NAME.getKey(), "instance");
-    before.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), "zookeepers");
     ClientProperty.setPassword(before, "mypass");
-    before.setProperty(ClientProperty.SSL_ENABLED.getKey(), "true");
-    before.setProperty(ClientProperty.SSL_KEYSTORE_PATH.getKey(), "key_path");
-    before.setProperty(ClientProperty.SSL_KEYSTORE_PASSWORD.getKey(), "key_pass");
-    before.setProperty(ClientProperty.SSL_TRUSTSTORE_PATH.getKey(), "trust_path");
-    before.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
-    before.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(), "primary");
     before.setProperty(ClientProperty.BATCH_WRITER_THREADS_MAX.getKey(), "5");
 
-    Properties after = ClientConfConverter.toProperties(ClientConfConverter.toClientConf(before));
+    // these will map to equivalent in AccumuloConfiguration
+    before.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), "zookeepers");
+    before.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(), "20s");
+    before.setProperty(ClientProperty.SSL_ENABLED.getKey(), "true");
+    before.setProperty(ClientProperty.SSL_USE_JSSE.getKey(), "true");
+    before.setProperty(ClientProperty.SSL_KEYSTORE_PATH.getKey(), "key_path");
+    before.setProperty(ClientProperty.SSL_KEYSTORE_PASSWORD.getKey(), "key_pass");
+    before.setProperty(ClientProperty.SSL_KEYSTORE_TYPE.getKey(), "jks");
+    before.setProperty(ClientProperty.SSL_TRUSTSTORE_PATH.getKey(), "trust_path");
+    before.setProperty(ClientProperty.SSL_TRUSTSTORE_PASSWORD.getKey(), "trust_pass");
+    before.setProperty(ClientProperty.SSL_TRUSTSTORE_TYPE.getKey(), "jks");
+    before.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
+    before.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(), "primary");
+    before.setProperty(ClientProperty.SASL_QOP.getKey(), "auth-int");
+
+    Properties after = ClientConfConverter.toProperties(ClientConfConverter.toAccumuloConf(before));
+
+    // some props don't have an equivalent in the AccumuloConfiguration; set them here and check
+    assertNotEquals(before, after);
+    ClientProperty.setPassword(after, "mypass");
+
+    assertNotEquals(before, after);
+    after.setProperty(ClientProperty.BATCH_WRITER_THREADS_MAX.getKey(), "5");
+
+    assertNotEquals(before, after);
+    after.setProperty(ClientProperty.INSTANCE_NAME.getKey(), "instance");
+
     assertEquals(before, after);
   }
 
