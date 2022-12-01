@@ -115,10 +115,6 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
       throw new IllegalStateException("batch reader closed");
     }
 
-    if (getConsistencyLevel() == ConsistencyLevel.IMMEDIATE) {
-      context.requireNotOffline(tableId, tableName);
-    }
-
     return new TabletServerBatchReaderIterator(context, tableId, tableName, authorizations, ranges,
         numThreads, queryThreadPool, this, timeOut);
   }
