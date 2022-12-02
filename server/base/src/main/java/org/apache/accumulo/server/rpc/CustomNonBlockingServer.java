@@ -117,7 +117,16 @@ public class CustomNonBlockingServer extends THsHaServer {
     public CustomFrameBuffer(TNonblockingTransport trans, SelectionKey selectionKey,
         AbstractSelectThread selectThread) throws TTransportException {
       super(trans, selectionKey, selectThread);
+      // Store the clientAddress in the buffer so it can be referenced for logging during read/write
       this.clientAddress = getClientAddress();
+    }
+
+    @Override
+    public void invoke() {
+      // On invoke() set the clientAddress on the ThreadLocal so that it can be accessed elsewhere
+      // in the same thread that called invoke() on the buffer
+      TServerUtils.clientAddress.set(clientAddress);
+      super.invoke();
     }
 
     @Override
@@ -141,13 +150,20 @@ public class CustomNonBlockingServer extends THsHaServer {
     }
 
     /*
-     * Helper method used to capture the client address from the socket for each new allocated
-     * FrameBuffer. Because this is a non-blocking server there is a shared thread pool so threads
-     * are re-used for different requests. A new FrameBuffer is created for each request and
-     * different threads can process the same FrameBuffer (For example read() and invoke() can be
-     * called on different threads) so trying to store the client address in a thread local does not
-     * work. The simplest thing to do is to get the client address on FrameBuffer creation as the
-     * same FrameBuffer will be used for the duration of the request.
+     * Helper method used to capture the client address inside the CustomFrameBuffer constructor so
+     * that it can be referenced inside the read/write methods for logging purposes. It previously
+     * was only set on the ThreadLocal in the invoke() method but that does not work because A) the
+     * method isn't called until after reading is finished so the value will be null inside of
+     * read() and B) The other problem is that invoke() is called on a different thread than
+     * read()/write() so even if the order was correct it would not be available.
+     *
+     * Since a new FrameBuffer is created for each request we can use it to capture the client
+     * address earlier in the constructor and not wait for invoke(). A FrameBuffer is used to read
+     * data and write a response back to the client and as part of creation of the buffer the
+     * TNonblockingSocket is stored as a final variable and won't change so we can safely capture
+     * the clientAddress in the constructor and use it for logging during read/write and then use
+     * the value inside of invoke() to set the ThreadLocal so the client address will still be
+     * available on the thread that called invoke().
      */
     private String getClientAddress() {
       String clientAddress = null;
