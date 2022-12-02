@@ -112,21 +112,12 @@ public class CustomNonBlockingServer extends THsHaServer {
    * extract the client's network location before accepting the request.
    */
   private class CustomFrameBuffer extends FrameBuffer {
+    private final String clientAddress;
 
     public CustomFrameBuffer(TNonblockingTransport trans, SelectionKey selectionKey,
         AbstractSelectThread selectThread) throws TTransportException {
       super(trans, selectionKey, selectThread);
-    }
-
-    @Override
-    public void invoke() {
-      if (trans_ instanceof TNonblockingSocket) {
-        TNonblockingSocket tsock = (TNonblockingSocket) trans_;
-        Socket sock = tsock.getSocketChannel().socket();
-        TServerUtils.clientAddress
-            .set(sock.getInetAddress().getHostAddress() + ":" + sock.getPort());
-      }
-      super.invoke();
+      this.clientAddress = getClientAddress();
     }
 
     @Override
@@ -134,7 +125,7 @@ public class CustomNonBlockingServer extends THsHaServer {
       boolean result = super.read();
       if (!result) {
         log.trace("CustomFrameBuffer.read returned false when reading data from client: {}",
-            TServerUtils.clientAddress.get());
+            clientAddress);
       }
       return result;
     }
@@ -144,11 +135,30 @@ public class CustomNonBlockingServer extends THsHaServer {
       boolean result = super.write();
       if (!result) {
         log.trace("CustomFrameBuffer.write returned false when writing data to client: {}",
-            TServerUtils.clientAddress.get());
+            clientAddress);
       }
       return result;
     }
 
+    /*
+     * Helper method used to capture the client address from the socket for each new allocated
+     * FrameBuffer. Because this is a non-blocking server there is a shared thread pool so threads
+     * are re-used for different requests. A new FrameBuffer is created for each request and
+     * different threads can process the same FrameBuffer (For example read() and invoke() can be
+     * called on different threads) so trying to store the client address in a thread local does not
+     * work. The simplest thing to do is to get the client address on FrameBuffer creation as the
+     * same FrameBuffer will be used for the duration of the request.
+     */
+    private String getClientAddress() {
+      String clientAddress = null;
+      if (trans_ instanceof TNonblockingSocket) {
+        TNonblockingSocket tsock = (TNonblockingSocket) trans_;
+        Socket sock = tsock.getSocketChannel().socket();
+        clientAddress = sock.getInetAddress().getHostAddress() + ":" + sock.getPort();
+        log.trace("CustomFrameBuffer captured client address: {}", clientAddress);
+      }
+      return clientAddress;
+    }
   }
 
 }
