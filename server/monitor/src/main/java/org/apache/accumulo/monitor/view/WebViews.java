@@ -218,12 +218,8 @@ public class WebViews {
     model.put("title", "External Compactions");
     model.put("template", "ec.ftl");
 
-    if (ccHost.isPresent()) {
-      model.put("coordinatorRunning", true);
-      model.put("js", "ec.js");
-    } else {
-      model.put("coordinatorRunning", false);
-    }
+    model.put("coordinatorRunning", ccHost.isPresent());
+    model.put("js", "ec.js");
 
     return model;
   }

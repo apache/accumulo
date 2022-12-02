@@ -238,12 +238,41 @@ function refresh() {
  * Refreshes the compaction tables
  */
 function refreshECTables() {
-  // user paging is not reset on reload
-  ajaxReloadTable(compactorsTable);
-  ajaxReloadTable(runningTable);
-  ajaxReloadTable(coordinatorTable);
+  refreshCoordinatorStatus().then(function (coordinatorStatus) {
+
+    // tables will not be shown, avoid reloading
+    if (coordinatorStatus === 'ERROR') {
+      return;
+    }
+
+    // user paging is not reset on reload
+    refreshCompactors();
+    refreshRunning();
+    ajaxReloadTable(coordinatorTable);
+  });
 }
 
+/**
+ * Updates session storage then checks if the coordinator is running. If it is,
+ * show the tables and hide the 'coordinator not running' banner. Else, vise-versa.
+ * 
+ * returns the coordinator status
+ */
+async function refreshCoordinatorStatus() {
+  return getStatus().then(function () {
+    var coordinatorStatus = JSON.parse(sessionStorage.status).coordinatorStatus;
+    if (coordinatorStatus === 'ERROR') {
+      // show banner and hide tables
+      $('#ccBanner').show();
+      $('#ecDiv').hide();
+    } else {
+      // otherwise, hide banner and show tables
+      $('#ccBanner').hide();
+      $('#ecDiv').show();
+    }
+    return coordinatorStatus;
+  });
+}
 
 function getRunningDetails(ecid, idSuffix) {
   var ajaxUrl = '/rest/ec/details?ecid=' + ecid;
