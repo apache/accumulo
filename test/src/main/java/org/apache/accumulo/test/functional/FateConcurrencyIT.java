@@ -120,8 +120,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    * simulate the condition. After the online operation while compaction is running completes, the
    * test is complete and the compaction is canceled so that other tests can run.
    *
-   * @throws Exception
-   *           any exception is a test failure.
+   * @throws Exception any exception is a test failure.
    */
   @Test
   public void changeTableStateTest() throws Exception {
@@ -327,11 +326,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    * Throwing the Zookeeper exception allows for retries if desired to handle transient zookeeper
    * issues.
    *
-   * @param tableName
-   *          a table name
+   * @param tableName a table name
    * @return true if corresponding fate transaction found, false otherwise
-   * @throws KeeperException
-   *           if a zookeeper error occurred - allows for retries.
+   * @throws KeeperException if a zookeeper error occurred - allows for retries.
    */
   private boolean lookupFateInZookeeper(final String tableName) throws KeeperException {
 
@@ -354,8 +351,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
 
-        if (isCompaction(tx))
+        if (isCompaction(tx)) {
           return true;
+        }
       }
 
     } catch (TableNotFoundException | InterruptedException ex) {
@@ -370,8 +368,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    * Test that the transaction top contains "CompactionDriver" and the debug message contains
    * "CompactRange"
    *
-   * @param tx
-   *          transaction status
+   * @param tx transaction status
    * @return true if tx top and debug have compaction messages.
    */
   private boolean isCompaction(AdminUtil.TransactionStatus tx) {
@@ -393,11 +390,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   /**
    * Returns the current table state (ONLINE, OFFLINE,...) of named table.
    *
-   * @param tableName
-   *          the table name
+   * @param tableName the table name
    * @return the current table state
-   * @throws TableNotFoundException
-   *           if table does not exist
+   * @throws TableNotFoundException if table does not exist
    */
   private TableState getTableState(String tableName) throws TableNotFoundException {
 
@@ -447,8 +442,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     /**
      * Create an instance of this class to set the provided table online.
      *
-     * @param tableName
-     *          The table name that will be set online.
+     * @param tableName The table name that will be set online.
      */
     OnLineCallable(final String tableName) {
       this.tableName = tableName;

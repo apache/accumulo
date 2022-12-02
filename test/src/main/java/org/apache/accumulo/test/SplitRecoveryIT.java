@@ -85,8 +85,9 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
         }
         // take the table offline
         client.tableOperations().offline(tableName);
-        while (!isOffline(tableName, client))
+        while (!isOffline(tableName, client)) {
           sleepUninterruptibly(200, MILLISECONDS);
+        }
 
         // poke a partial split into the metadata table
         client.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME,

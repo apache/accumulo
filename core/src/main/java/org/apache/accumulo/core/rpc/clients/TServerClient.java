@@ -69,9 +69,10 @@ public interface TServerClient<C extends TServiceClient> {
       byte[] data = zc.getLockData(zLocPath);
       if (data != null) {
         String strData = new String(data, UTF_8);
-        if (!strData.equals("manager"))
+        if (!strData.equals("manager")) {
           servers.add(new ThriftTransportKey(
               new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout, context));
+        }
       }
     }
 

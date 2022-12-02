@@ -27,8 +27,9 @@ public class ColumnUtil {
     int hash = 1;
     int end = offset + len;
 
-    for (int i = offset; i < end; i++)
+    for (int i = offset; i < end; i++) {
       hash = (31 * hash) + bytes[i];
+    }
 
     return hash;
   }
@@ -65,14 +66,16 @@ public class ColumnUtil {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof ColFamHashKey)
+      if (o instanceof ColFamHashKey) {
         return equals((ColFamHashKey) o);
+      }
       return false;
     }
 
     public boolean equals(ColFamHashKey ohk) {
-      if (columnFamily == null)
+      if (columnFamily == null) {
         return key.compareColumnFamily(ohk.columnFamily) == 0;
+      }
       return ohk.key.compareColumnFamily(columnFamily) == 0;
     }
   }
@@ -109,15 +112,17 @@ public class ColumnUtil {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof ColHashKey)
+      if (o instanceof ColHashKey) {
         return equals((ColHashKey) o);
+      }
       return false;
     }
 
     public boolean equals(ColHashKey ohk) {
-      if (columnFamily == null)
+      if (columnFamily == null) {
         return key.compareColumnFamily(ohk.columnFamily) == 0
             && key.compareColumnQualifier(ohk.columnQualifier) == 0;
+      }
       return ohk.key.compareColumnFamily(columnFamily) == 0
           && ohk.key.compareColumnQualifier(columnQualifier) == 0;
     }

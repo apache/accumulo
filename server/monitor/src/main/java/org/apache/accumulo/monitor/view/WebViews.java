@@ -69,8 +69,7 @@ public class WebViews {
   /**
    * Get HTML for external CSS and JS resources from configuration. See ACCUMULO-4739
    *
-   * @param model
-   *          map of the MVC model
+   * @param model map of the MVC model
    */
   private void addExternalResources(Map<String,Object> model) {
     AccumuloConfiguration conf = monitor.getContext().getConfiguration();
@@ -144,8 +143,7 @@ public class WebViews {
   /**
    * Returns the tservers templates
    *
-   * @param server
-   *          TServer to show details
+   * @param server TServer to show details
    * @return tserver model
    */
   @GET
@@ -281,8 +279,7 @@ public class WebViews {
   /**
    * Returns participating tservers template
    *
-   * @param tableID
-   *          Table ID for participating tservers
+   * @param tableID Table ID for participating tservers
    * @return Participating tservers model
    */
   @GET
@@ -325,8 +322,7 @@ public class WebViews {
   /**
    * Returns problem report template
    *
-   * @param table
-   *          Table ID to display problem details
+   * @param table Table ID to display problem details
    * @return Problem report model
    */
   @GET
@@ -344,25 +340,6 @@ public class WebViews {
     if (table != null && !table.isBlank()) {
       model.put("table", table);
     }
-
-    return model;
-  }
-
-  /**
-   * Returns replication table template
-   *
-   * @return Replication model
-   */
-  @GET
-  @Path("replication")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getReplication() {
-
-    Map<String,Object> model = getModel();
-    model.put("title", "Replication Overview");
-
-    model.put("template", "replication.ftl");
-    model.put("js", "replication.js");
 
     return model;
   }

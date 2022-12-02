@@ -64,10 +64,13 @@ public class IntersectingIteratorTest {
 
     for (int i = 0; i < columnFamilies.length; i++) {
       negateMask[i] = false;
-      if (negatedColumns.length > 0)
-        for (Text ng : negatedColumns)
-          if (columnFamilies[i].equals(ng))
+      if (negatedColumns.length > 0) {
+        for (Text ng : negatedColumns) {
+          if (columnFamilies[i].equals(ng)) {
             negateMask[i] = true;
+          }
+        }
+      }
     }
     for (int i = 0; i < numRows; i++) {
       Text row = new Text(String.format("%06d", i));
@@ -78,11 +81,13 @@ public class IntersectingIteratorTest {
           if (random.nextFloat() < hitRatio) {
             Key k = new Key(row, columnFamilies[j], doc);
             map.put(k, v);
-            if (negateMask[j])
+            if (negateMask[j]) {
               docHits = false;
+            }
           } else {
-            if (!negateMask[j])
+            if (!negateMask[j]) {
               docHits = false;
+            }
           }
         }
         if (docHits) {

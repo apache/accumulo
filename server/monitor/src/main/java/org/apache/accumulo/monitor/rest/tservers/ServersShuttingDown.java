@@ -34,8 +34,7 @@ public class ServersShuttingDown {
   /**
    * Adds a new tserver to the list
    *
-   * @param server
-   *          TServer to add
+   * @param server TServer to add
    */
   public void addServerShuttingDown(ServerShuttingDownInformation server) {
     this.server.add(server);

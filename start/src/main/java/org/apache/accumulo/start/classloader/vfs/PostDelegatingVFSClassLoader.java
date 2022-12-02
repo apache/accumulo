@@ -35,8 +35,9 @@ public class PostDelegatingVFSClassLoader extends VFSClassLoader {
   protected synchronized Class<?> loadClass(String name, boolean resolve)
       throws ClassNotFoundException {
     Class<?> c = findLoadedClass(name);
-    if (c != null)
+    if (c != null) {
       return c;
+    }
     try {
       // try finding this class here instead of parent
       return findClass(name);

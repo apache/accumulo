@@ -46,10 +46,8 @@ public class RFileCipherOutputStream extends CipherOutputStream {
    *
    * Constructs a RFileCipherOutputStream
    *
-   * @param os
-   *          the OutputStream object
-   * @param c
-   *          an initialized Cipher object
+   * @param os the OutputStream object
+   * @param c an initialized Cipher object
    */
   public RFileCipherOutputStream(OutputStream os, Cipher c) {
     super(os, c);

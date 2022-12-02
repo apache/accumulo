@@ -30,21 +30,24 @@ public class AccumuloStatus {
    *
    * @return true iff all servers show no indication of being registered in zookeeper, otherwise
    *         false
-   * @throws IOException
-   *           if there are issues connecting to ZooKeeper to determine service status
+   * @throws IOException if there are issues connecting to ZooKeeper to determine service status
    */
   public static boolean isAccumuloOffline(ZooReader reader, String rootPath) throws IOException {
     try {
       for (String child : reader.getChildren(rootPath + Constants.ZTSERVERS)) {
-        if (!reader.getChildren(rootPath + Constants.ZTSERVERS + "/" + child).isEmpty())
+        if (!reader.getChildren(rootPath + Constants.ZTSERVERS + "/" + child).isEmpty()) {
           return false;
+        }
       }
-      if (!reader.getChildren(rootPath + Constants.ZMANAGER_LOCK).isEmpty())
+      if (!reader.getChildren(rootPath + Constants.ZMANAGER_LOCK).isEmpty()) {
         return false;
-      if (!reader.getChildren(rootPath + Constants.ZMONITOR_LOCK).isEmpty())
+      }
+      if (!reader.getChildren(rootPath + Constants.ZMONITOR_LOCK).isEmpty()) {
         return false;
-      if (!reader.getChildren(rootPath + Constants.ZGC_LOCK).isEmpty())
+      }
+      if (!reader.getChildren(rootPath + Constants.ZGC_LOCK).isEmpty()) {
         return false;
+      }
     } catch (KeeperException | InterruptedException e) {
       throw new IOException("Issues contacting ZooKeeper to get Accumulo status.", e);
     }

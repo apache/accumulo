@@ -50,8 +50,9 @@ public class MetadataBulkLoadFilterTest {
 
     @Override
     public boolean transactionComplete(String type, long tid) {
-      if (tid == 9)
+      if (tid == 9) {
         throw new RuntimeException();
+      }
       return tid != 5 && tid != 7;
     }
   }
@@ -73,8 +74,9 @@ public class MetadataBulkLoadFilterTest {
     if (val == null) {
       k.setDeleted(true);
       tm.put(k, new Value(""));
-    } else
+    } else {
       tm.put(k, new Value(val));
+    }
   }
 
   @Test

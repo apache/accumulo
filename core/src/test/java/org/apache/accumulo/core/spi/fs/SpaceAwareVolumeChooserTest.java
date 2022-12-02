@@ -167,10 +167,12 @@ public class SpaceAwareVolumeChooserTest {
     SpaceAwareVolumeChooser chooser = new SpaceAwareVolumeChooser() {
       @Override
       protected double getFreeSpace(String uri) {
-        if (uri.equals(volumeOne))
+        if (uri.equals(volumeOne)) {
           return free1;
-        if (uri.equals(volumeTwo))
+        }
+        if (uri.equals(volumeTwo)) {
           return free2;
+        }
         throw new IllegalArgumentException();
       }
     };

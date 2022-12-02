@@ -73,10 +73,11 @@ public class RegExFilter extends Filter {
   private boolean matchSubstring = false;
 
   private Matcher copyMatcher(Matcher m) {
-    if (m == null)
+    if (m == null) {
       return m;
-    else
+    } else {
       return m.pattern().matcher("");
+    }
   }
 
   private boolean matches(Matcher matcher, ByteSequence bs) {
@@ -97,11 +98,12 @@ public class RegExFilter extends Filter {
 
   @Override
   public boolean accept(Key key, Value value) {
-    if (orFields)
+    if (orFields) {
       return (matches(rowMatcher, rowMatcher == null ? null : key.getRowData())
           || matches(colfMatcher, colfMatcher == null ? null : key.getColumnFamilyData())
           || matches(colqMatcher, colqMatcher == null ? null : key.getColumnQualifierData())
           || matches(valueMatcher, value.get(), 0, value.get().length));
+    }
     return (matches(rowMatcher, rowMatcher == null ? null : key.getRowData())
         && matches(colfMatcher, colfMatcher == null ? null : key.getColumnFamilyData())
         && matches(colqMatcher, colqMatcher == null ? null : key.getColumnQualifierData())
@@ -174,21 +176,26 @@ public class RegExFilter extends Filter {
   @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT",
       justification = "Pattern.compile used to validate - no matching performed")
   public boolean validateOptions(Map<String,String> options) {
-    if (!super.validateOptions(options))
+    if (!super.validateOptions(options)) {
       return false;
+    }
 
     try {
-      if (options.containsKey(ROW_REGEX))
+      if (options.containsKey(ROW_REGEX)) {
         Pattern.compile(options.get(ROW_REGEX)).matcher("");
+      }
 
-      if (options.containsKey(COLF_REGEX))
+      if (options.containsKey(COLF_REGEX)) {
         Pattern.compile(options.get(COLF_REGEX)).matcher("");
+      }
 
-      if (options.containsKey(COLQ_REGEX))
+      if (options.containsKey(COLQ_REGEX)) {
         Pattern.compile(options.get(COLQ_REGEX)).matcher("");
+      }
 
-      if (options.containsKey(VALUE_REGEX))
+      if (options.containsKey(VALUE_REGEX)) {
         Pattern.compile(options.get(VALUE_REGEX)).matcher("");
+      }
     } catch (Exception e) {
       throw new IllegalArgumentException("bad regex", e);
     }
@@ -210,18 +217,12 @@ public class RegExFilter extends Filter {
    * {@link #setRegexs(IteratorSetting, String, String, String, String, boolean, boolean)} with
    * matchSubstring set to false
    *
-   * @param si
-   *          ScanIterator config to be updated
-   * @param rowTerm
-   *          the pattern to match against the Key's row. Not used if null.
-   * @param cfTerm
-   *          the pattern to match against the Key's column family. Not used if null.
-   * @param cqTerm
-   *          the pattern to match against the Key's column qualifier. Not used if null.
-   * @param valueTerm
-   *          the pattern to match against the Key's value. Not used if null.
-   * @param orFields
-   *          if true, any of the non-null terms can match to return the entry
+   * @param si ScanIterator config to be updated
+   * @param rowTerm the pattern to match against the Key's row. Not used if null.
+   * @param cfTerm the pattern to match against the Key's column family. Not used if null.
+   * @param cqTerm the pattern to match against the Key's column qualifier. Not used if null.
+   * @param valueTerm the pattern to match against the Key's value. Not used if null.
+   * @param orFields if true, any of the non-null terms can match to return the entry
    */
   public static void setRegexs(IteratorSetting si, String rowTerm, String cfTerm, String cqTerm,
       String valueTerm, boolean orFields) {
@@ -231,30 +232,28 @@ public class RegExFilter extends Filter {
   /**
    * Encode the terms to match against in the iterator
    *
-   * @param si
-   *          ScanIterator config to be updated
-   * @param rowTerm
-   *          the pattern to match against the Key's row. Not used if null.
-   * @param cfTerm
-   *          the pattern to match against the Key's column family. Not used if null.
-   * @param cqTerm
-   *          the pattern to match against the Key's column qualifier. Not used if null.
-   * @param valueTerm
-   *          the pattern to match against the Key's value. Not used if null.
-   * @param matchSubstring
-   *          if true then search expressions will match on partial strings
+   * @param si ScanIterator config to be updated
+   * @param rowTerm the pattern to match against the Key's row. Not used if null.
+   * @param cfTerm the pattern to match against the Key's column family. Not used if null.
+   * @param cqTerm the pattern to match against the Key's column qualifier. Not used if null.
+   * @param valueTerm the pattern to match against the Key's value. Not used if null.
+   * @param matchSubstring if true then search expressions will match on partial strings
    */
   public static void setRegexs(IteratorSetting si, String rowTerm, String cfTerm, String cqTerm,
       String valueTerm, boolean orFields, boolean matchSubstring) {
 
-    if (rowTerm != null)
+    if (rowTerm != null) {
       si.addOption(RegExFilter.ROW_REGEX, rowTerm);
-    if (cfTerm != null)
+    }
+    if (cfTerm != null) {
       si.addOption(RegExFilter.COLF_REGEX, cfTerm);
-    if (cqTerm != null)
+    }
+    if (cqTerm != null) {
       si.addOption(RegExFilter.COLQ_REGEX, cqTerm);
-    if (valueTerm != null)
+    }
+    if (valueTerm != null) {
       si.addOption(RegExFilter.VALUE_REGEX, valueTerm);
+    }
     si.addOption(RegExFilter.OR_FIELDS, String.valueOf(orFields));
     si.addOption(RegExFilter.MATCH_SUBSTRING, String.valueOf(matchSubstring));
 
@@ -263,10 +262,8 @@ public class RegExFilter extends Filter {
   /**
    * Set the encoding string to use when interpreting characters
    *
-   * @param si
-   *          ScanIterator config to be updated
-   * @param encoding
-   *          the encoding string to use for character interpretation.
+   * @param si ScanIterator config to be updated
+   * @param encoding the encoding string to use for character interpretation.
    *
    */
   public static void setEncoding(IteratorSetting si, String encoding) {

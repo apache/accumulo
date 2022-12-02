@@ -34,8 +34,9 @@ public class BatchWriterImpl implements BatchWriter {
   public BatchWriterImpl(ClientContext context, TableId tableId, BatchWriterConfig config) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
-    if (config == null)
+    if (config == null) {
       config = new BatchWriterConfig();
+    }
     this.tableId = tableId;
     this.bw = new TabletServerBatchWriter(context, config);
   }

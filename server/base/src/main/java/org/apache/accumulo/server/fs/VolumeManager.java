@@ -73,8 +73,9 @@ public interface VolumeManager extends AutoCloseable {
         return path.length() - (dir.length() + 1);
       }
 
-      if (path.contains(":"))
+      if (path.contains(":")) {
         throw new IllegalArgumentException(path + " is absolute, but does not contain " + dir);
+      }
       return -1;
     }
 
@@ -82,8 +83,9 @@ public interface VolumeManager extends AutoCloseable {
       String pathString = path.toString();
 
       int eopi = endOfVolumeIndex(pathString, dir);
-      if (eopi != -1)
+      if (eopi != -1) {
         return new Path(pathString.substring(0, eopi + 1));
+      }
 
       return null;
     }
@@ -92,8 +94,9 @@ public interface VolumeManager extends AutoCloseable {
       String pathString = path.toString();
 
       int eopi = endOfVolumeIndex(pathString, dir);
-      if (eopi != -1)
+      if (eopi != -1) {
         return new Path(pathString.substring(eopi + 1));
+      }
 
       return null;
     }

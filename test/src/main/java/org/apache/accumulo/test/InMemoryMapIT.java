@@ -290,12 +290,9 @@ public class InMemoryMapIT extends WithTestNames {
    * <li>Each key value pair in each mutated map has a unique id (kvCount)</li>
    * </ul>
    *
-   * @param mutations
-   *          List of mutations
-   * @param imm1
-   *          InMemoryMap to compare
-   * @param imm2
-   *          InMemoryMap to compare
+   * @param mutations List of mutations
+   * @param imm1 InMemoryMap to compare
+   * @param imm2 InMemoryMap to compare
    */
   private void assertMutatesEquivalent(List<Mutation> mutations, InMemoryMap imm1,
       InMemoryMap imm2) {

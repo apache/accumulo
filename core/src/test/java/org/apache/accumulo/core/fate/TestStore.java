@@ -42,9 +42,10 @@ public class TestStore extends ZooStore<String> {
 
   @Override
   public void reserve(long tid) {
-    if (reserved.contains(tid))
+    if (reserved.contains(tid)) {
       throw new IllegalStateException(); // zoo store would wait, but do not expect test to reserve
-                                         // twice... if test change, then change this
+    }
+    // twice... if test change, then change this
     reserved.add(tid);
   }
 
@@ -68,28 +69,33 @@ public class TestStore extends ZooStore<String> {
 
   @Override
   public org.apache.accumulo.core.fate.TStore.TStatus getStatus(long tid) {
-    if (!reserved.contains(tid))
+    if (!reserved.contains(tid)) {
       throw new IllegalStateException();
+    }
 
     TStatus status = statuses.get(tid);
-    if (status == null)
+    if (status == null) {
       return TStatus.UNKNOWN;
+    }
     return status;
   }
 
   @Override
   public void setStatus(long tid, org.apache.accumulo.core.fate.TStore.TStatus status) {
-    if (!reserved.contains(tid))
+    if (!reserved.contains(tid)) {
       throw new IllegalStateException();
-    if (!statuses.containsKey(tid))
+    }
+    if (!statuses.containsKey(tid)) {
       throw new IllegalStateException();
+    }
     statuses.put(tid, status);
   }
 
   @Override
   public void delete(long tid) {
-    if (!reserved.contains(tid))
+    if (!reserved.contains(tid)) {
       throw new IllegalStateException();
+    }
     statuses.remove(tid);
   }
 

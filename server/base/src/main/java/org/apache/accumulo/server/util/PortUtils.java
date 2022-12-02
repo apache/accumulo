@@ -39,10 +39,11 @@ public class PortUtils {
       } catch (IOException ioe) {
 
       } finally {
-        if (so != null)
+        if (so != null) {
           try {
             so.close();
           } catch (IOException e) {}
+        }
       }
 
       count++;

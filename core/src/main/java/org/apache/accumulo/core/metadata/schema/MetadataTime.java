@@ -37,26 +37,24 @@ public final class MetadataTime implements Comparable<MetadataTime> {
   /**
    * Creates a MetadataTime object from a string
    *
-   * @param timestr
-   *          string representation of a metatdata time, ex. "M12345678"
+   * @param timestr string representation of a metatdata time, ex. "M12345678"
    * @return a MetadataTime object represented by string
-   * @throws IllegalArgumentException
-   *           if {@code timesstr == null} or {@code timestr.length() <= 1)}
+   * @throws IllegalArgumentException if {@code timesstr == null} or {@code timestr.length() <= 1)}
    */
 
   public static MetadataTime parse(String timestr) throws IllegalArgumentException {
 
     if (timestr != null && timestr.length() > 1) {
       return new MetadataTime(Long.parseLong(timestr.substring(1)), getType(timestr.charAt(0)));
-    } else
+    } else {
       throw new IllegalArgumentException("Unknown metadata time value " + timestr);
+    }
   }
 
   /**
    * Converts timetypes to data codes used in the table data implementation
    *
-   * @param code
-   *          character M or L otherwise exception thrown
+   * @param code character M or L otherwise exception thrown
    * @return a TimeType {@link TimeType} represented by code.
    */
   public static TimeType getType(char code) {
@@ -116,11 +114,12 @@ public final class MetadataTime implements Comparable<MetadataTime> {
 
   @Override
   public int compareTo(MetadataTime mtime) {
-    if (this.type.equals(mtime.getType()))
+    if (this.type.equals(mtime.getType())) {
       return Long.compare(this.time, mtime.getTime());
-    else
+    } else {
       throw new IllegalArgumentException(
           "Cannot compare different time types: " + this + " and " + mtime);
+    }
   }
 
 }

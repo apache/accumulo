@@ -58,8 +58,9 @@ public class BinaryFormatter extends DefaultFormatter {
     sb.append(new ColumnVisibility(key.getColumnVisibility()));
 
     // append timestamp
-    if (printTimestamps)
+    if (printTimestamps) {
       sb.append(" ").append(entry.getKey().getTimestamp());
+    }
 
     // append value
     Value value = entry.getValue();

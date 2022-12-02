@@ -120,8 +120,7 @@ public class TablesResource {
   /**
    * Generates a list of participating tservers for a table
    *
-   * @param tableIdStr
-   *          Table ID to find participating tservers
+   * @param tableIdStr Table ID to find participating tservers
    * @return List of participating tservers
    */
   @Path("{tableId}")

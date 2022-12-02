@@ -48,14 +48,16 @@ public class IdentityCodec implements CompressionCodec {
     @Override
     public int compress(byte[] b, int off, int len) throws IOException {
       int n = Math.min(len, userBufLen);
-      if (userBuf != null && b != null)
+      if (userBuf != null && b != null) {
         System.arraycopy(userBuf, userBufOff, b, off, n);
+      }
       userBufOff += n;
       userBufLen -= n;
       nwrite += n;
 
-      if (finish && userBufLen <= 0)
+      if (finish && userBufLen <= 0) {
         finished = true;
+      }
 
       return n;
     }
@@ -138,14 +140,16 @@ public class IdentityCodec implements CompressionCodec {
     @Override
     public int decompress(byte[] b, int off, int len) throws IOException {
       int n = Math.min(len, userBufLen);
-      if (userBuf != null && b != null)
+      if (userBuf != null && b != null) {
         System.arraycopy(userBuf, userBufOff, b, off, n);
+      }
       userBufOff += n;
       userBufLen -= n;
       nwrite += n;
 
-      if (finish && userBufLen <= 0)
+      if (finish && userBufLen <= 0) {
         finished = true;
+      }
 
       return n;
     }

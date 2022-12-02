@@ -212,9 +212,9 @@ public class InMemoryMap {
 
     @Override
     public InterruptibleIterator skvIterator(SamplerConfigurationImpl samplerConfig) {
-      if (samplerConfig == null)
+      if (samplerConfig == null) {
         return map.skvIterator(null);
-      else {
+      } else {
         Pair<SamplerConfigurationImpl,Sampler> samplerAndConf = samplerRef.get();
         if (samplerAndConf == null) {
           return EmptyIterator.EMPTY_ITERATOR;
@@ -298,8 +298,9 @@ public class InMemoryMap {
       int count = 0;
       for (Set<ByteSequence> cfset : groups.values()) {
         HashMap<ByteSequence,MutableLong> map = new HashMap<>();
-        for (ByteSequence bs : cfset)
+        for (ByteSequence bs : cfset) {
           map.put(bs, new MutableLong(1));
+        }
         this.groupFams.set(count++, map);
       }
 
@@ -313,22 +314,25 @@ public class InMemoryMap {
     @Override
     public int size() {
       int sum = 0;
-      for (SimpleMap map : maps)
+      for (SimpleMap map : maps) {
         sum += map.size();
+      }
       return sum;
     }
 
     @Override
     public InterruptibleIterator skvIterator(SamplerConfigurationImpl samplerConfig) {
-      if (samplerConfig != null)
+      if (samplerConfig != null) {
         throw new SampleNotPresentException();
+      }
 
       LocalityGroup[] groups = new LocalityGroup[maps.length];
       for (int i = 0; i < groups.length; i++) {
-        if (i < groupFams.length)
+        if (i < groupFams.length) {
           groups[i] = new LocalityGroup(maps[i].skvIterator(null), groupFams.get(i), false);
-        else
+        } else {
           groups[i] = new LocalityGroup(maps[i].skvIterator(null), null, true);
+        }
       }
 
       return new LocalityGroupIterator(groups);
@@ -336,15 +340,17 @@ public class InMemoryMap {
 
     @Override
     public void delete() {
-      for (SimpleMap map : maps)
+      for (SimpleMap map : maps) {
         map.delete();
+      }
     }
 
     @Override
     public long getMemoryUsed() {
       long sum = 0;
-      for (SimpleMap map : maps)
+      for (SimpleMap map : maps) {
         sum += map.getMemoryUsed();
+      }
       return sum;
     }
 
@@ -360,8 +366,9 @@ public class InMemoryMap {
         for (int i = 0; i < partitioned.length; i++) {
           if (!partitioned.get(i).isEmpty()) {
             maps[i].mutate(partitioned.get(i), kvCount);
-            for (Mutation m : partitioned.get(i))
+            for (Mutation m : partitioned.get(i)) {
               kvCount += m.getUpdates().size();
+            }
           }
         }
       } finally {
@@ -384,8 +391,9 @@ public class InMemoryMap {
       // Always a MemKey, so account for the kvCount int
       bytesInMemory.addAndGet(key.getLength() + 4);
       bytesInMemory.addAndGet(value.getSize());
-      if (map.put(key, value) == null)
+      if (map.put(key, value) == null) {
         size.incrementAndGet();
+      }
     }
 
     @Override
@@ -395,10 +403,12 @@ public class InMemoryMap {
 
     @Override
     public InterruptibleIterator skvIterator(SamplerConfigurationImpl samplerConfig) {
-      if (samplerConfig != null)
+      if (samplerConfig != null) {
         throw new SampleNotPresentException();
-      if (map == null)
+      }
+      if (map == null) {
         throw new IllegalStateException();
+      }
 
       return new SortedMapIterator(map);
     }
@@ -450,8 +460,9 @@ public class InMemoryMap {
 
     @Override
     public InterruptibleIterator skvIterator(SamplerConfigurationImpl samplerConfig) {
-      if (samplerConfig != null)
+      if (samplerConfig != null) {
         throw new SampleNotPresentException();
+      }
       return (InterruptibleIterator) nativeMap.skvIterator();
     }
 
@@ -504,15 +515,17 @@ public class InMemoryMap {
    * @return bytesInMemory
    */
   public synchronized long estimatedSizeInBytes() {
-    if (map == null)
+    if (map == null) {
       return 0;
+    }
 
     return map.getMemoryUsed();
   }
 
   public synchronized long getNumEntries() {
-    if (map == null)
+    if (map == null) {
       return 0;
+    }
     return map.size();
   }
 
@@ -555,16 +568,18 @@ public class InMemoryMap {
 
     @Override
     public boolean isCurrent() {
-      if (switched)
+      if (switched) {
         return true;
-      else
+      } else {
         return memDumpFile == null;
+      }
     }
 
     @Override
     public DataSource getNewDataSource() {
-      if (switched)
+      if (switched) {
         throw new IllegalStateException();
+      }
 
       if (!isCurrent()) {
         switched = true;
@@ -589,8 +604,9 @@ public class InMemoryMap {
         reader = new RFileOperations().newReaderBuilder()
             .forFile(memDumpFile, fs, conf, tableConf.getCryptoService())
             .withTableConfiguration(tableConf).seekToBeginning().build();
-        if (iflag != null)
+        if (iflag != null) {
           reader.setInterruptFlag(iflag);
+        }
 
         if (getSamplerConfig() != null) {
           reader = reader.getSample(getSamplerConfig());
@@ -602,15 +618,16 @@ public class InMemoryMap {
 
     @Override
     public SortedKeyValueIterator<Key,Value> iterator() throws IOException {
-      if (iter == null)
+      if (iter == null) {
         if (!switched) {
           iter = map.skvIterator(getSamplerConfig());
-          if (iflag != null)
+          if (iflag != null) {
             iter.setInterruptFlag(iflag);
+          }
         } else {
-          if (parent == null)
+          if (parent == null) {
             iter = new MemKeyConversionIterator(getReader());
-          else
+          } else {
             synchronized (parent) {
               // synchronize deep copy operation on parent, this prevents multiple threads from deep
               // copying the rfile shared from parent its possible that the
@@ -618,7 +635,9 @@ public class InMemoryMap {
               // copies
               iter = new MemKeyConversionIterator(parent.getReader().deepCopy(env));
             }
+          }
         }
+      }
 
       return iter;
     }
@@ -661,8 +680,9 @@ public class InMemoryMap {
       synchronized (this) {
         if (closed.compareAndSet(false, true)) {
           try {
-            if (mds.reader != null)
+            if (mds.reader != null) {
               mds.reader.close();
+            }
           } catch (IOException e) {
             log.warn("{}", e.getMessage(), e);
           }
@@ -674,8 +694,9 @@ public class InMemoryMap {
     }
 
     private synchronized boolean switchNow() throws IOException {
-      if (closed.get())
+      if (closed.get()) {
         return false;
+      }
 
       ssi.switchNow();
       return true;
@@ -697,11 +718,13 @@ public class InMemoryMap {
   }
 
   public synchronized MemoryIterator skvIterator(SamplerConfigurationImpl iteratorSamplerConfig) {
-    if (map == null)
+    if (map == null) {
       throw new NullPointerException();
+    }
 
-    if (deleted)
+    if (deleted) {
       throw new IllegalStateException("Can not obtain iterator after map deleted");
+    }
 
     int mc = kvCount.get();
     MemoryDataSource mds = new MemoryDataSource(iteratorSamplerConfig);
@@ -715,9 +738,10 @@ public class InMemoryMap {
 
   public SortedKeyValueIterator<Key,Value> compactionIterator() {
 
-    if (nextKVCount.get() - 1 != kvCount.get())
+    if (nextKVCount.get() - 1 != kvCount.get()) {
       throw new IllegalStateException("Memory map in unexpected state : nextKVCount = "
           + nextKVCount.get() + " kvCount = " + kvCount.get());
+    }
 
     return map.skvIterator(null);
   }
@@ -727,8 +751,9 @@ public class InMemoryMap {
   public void delete(long waitTime) {
 
     synchronized (this) {
-      if (deleted)
+      if (deleted) {
         throw new IllegalStateException("Double delete");
+      }
 
       deleted = true;
     }

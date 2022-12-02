@@ -52,9 +52,9 @@ fail() {
 }
 runLog() {
   local o
-  o=$1 && shift && echo "$(green Running) $(yellow "$@" '>>' "$o")" && echo Running "$@" >>"$o" && eval "$@" >>"$o"
+  o=$1 && shift && echo "$(green Running) $(yellow "$@" '>>' "$o")" && echo Running "$*" >>"$o" && "$@" >>"$o"
 }
-run() { echo "$(green Running) $(yellow "$@")" && eval "$@"; }
+run() { echo "$(green Running) $(yellow "$@")" && "$@"; }
 
 currentBranch() {
   local b

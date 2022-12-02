@@ -61,8 +61,9 @@ public class TabletLocationState {
     this.current = current;
     this.last = last;
     this.suspend = suspend;
-    if (walogs == null)
+    if (walogs == null) {
       walogs = Collections.emptyList();
+    }
     this.walogs = walogs;
     this.chopped = chopped;
     if (hasCurrent() && hasFuture()) {
@@ -117,15 +118,16 @@ public class TabletLocationState {
   }
 
   public TabletState getState(Set<TServerInstance> liveServers) {
-    if (hasFuture())
+    if (hasFuture()) {
       return liveServers.contains(future) ? TabletState.ASSIGNED
           : TabletState.ASSIGNED_TO_DEAD_SERVER;
-    else if (hasCurrent())
+    } else if (hasCurrent()) {
       return liveServers.contains(current) ? TabletState.HOSTED
           : TabletState.ASSIGNED_TO_DEAD_SERVER;
-    else if (hasSuspend())
+    } else if (hasSuspend()) {
       return TabletState.SUSPENDED;
-    else
+    } else {
       return TabletState.UNASSIGNED;
+    }
   }
 }

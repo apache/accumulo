@@ -58,8 +58,9 @@ public class TraceRepo<T> implements Repo<T> {
     Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getName(), tinfo);
     try (Scope scope = span.makeCurrent()) {
       Repo<T> result = repo.call(tid, environment);
-      if (result == null)
+      if (result == null) {
         return null;
+      }
       return new TraceRepo<>(result);
     } catch (Exception e) {
       TraceUtil.setException(span, e, true);

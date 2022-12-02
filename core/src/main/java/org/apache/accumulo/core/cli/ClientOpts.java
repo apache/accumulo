@@ -184,8 +184,9 @@ public class ClientOpts extends Help {
       // grab the bad options
       StringBuilder badOptions = new StringBuilder();
       for (String arg : args) {
-        if (legacyClientOpts.contains(arg))
+        if (legacyClientOpts.contains(arg)) {
           badOptions.append(arg).append(" ");
+        }
       }
       throw new IllegalArgumentException("The Client options: " + badOptions
           + "have been dropped. Use accumulo-client.properties for any connection or token "

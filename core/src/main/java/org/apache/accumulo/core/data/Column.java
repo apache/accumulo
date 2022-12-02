@@ -48,8 +48,7 @@ public class Column implements WritableComparable<Column> {
    * Compares this column to another. Column families are compared first, then qualifiers, then
    * visibilities.
    *
-   * @param that
-   *          column to compare
+   * @param that column to compare
    * @return comparison result
    */
   @Override
@@ -123,12 +122,9 @@ public class Column implements WritableComparable<Column> {
   /**
    * Creates a new column.
    *
-   * @param columnFamily
-   *          family
-   * @param columnQualifier
-   *          qualifier
-   * @param columnVisibility
-   *          visibility
+   * @param columnFamily family
+   * @param columnQualifier qualifier
+   * @param columnVisibility visibility
    */
   public Column(byte[] columnFamily, byte[] columnQualifier, byte[] columnVisibility) {
     this();
@@ -140,8 +136,7 @@ public class Column implements WritableComparable<Column> {
   /**
    * Creates a new column.
    *
-   * @param tcol
-   *          Thrift column
+   * @param tcol Thrift column
    */
   public Column(TColumn tcol) {
     this(toBytes(tcol.columnFamily), toBytes(tcol.columnQualifier), toBytes(tcol.columnVisibility));
@@ -149,18 +144,19 @@ public class Column implements WritableComparable<Column> {
 
   @Override
   public boolean equals(Object that) {
-    if (that == null)
+    if (that == null) {
       return false;
-    if (that instanceof Column)
+    }
+    if (that instanceof Column) {
       return this.equals((Column) that);
+    }
     return false;
   }
 
   /**
    * Checks if this column equals another.
    *
-   * @param that
-   *          column to compare
+   * @param that column to compare
    * @return true if this column equals that, false otherwise
    */
   public boolean equals(Column that) {
@@ -168,8 +164,9 @@ public class Column implements WritableComparable<Column> {
   }
 
   private static int hash(byte[] b) {
-    if (b == null)
+    if (b == null) {
       return 0;
+    }
 
     return WritableComparator.hashBytes(b, b.length);
   }

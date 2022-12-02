@@ -47,10 +47,8 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,22 +122,26 @@ class DatafileManager {
     synchronized (tablet) {
       Set<StoredTabletFile> absFilePaths = scanFileReservations.remove(reservationId);
 
-      if (absFilePaths == null)
+      if (absFilePaths == null) {
         throw new IllegalArgumentException("Unknown scan reservation id " + reservationId);
+      }
 
       boolean notify = false;
       for (StoredTabletFile path : absFilePaths) {
         long refCount = fileScanReferenceCounts.decrement(path, 1);
         if (refCount == 0) {
-          if (filesToDeleteAfterScan.remove(path))
+          if (filesToDeleteAfterScan.remove(path)) {
             filesToDelete.add(path);
+          }
           notify = true;
-        } else if (refCount < 0)
+        } else if (refCount < 0) {
           throw new IllegalStateException("Scan ref count for " + path + " is " + refCount);
+        }
       }
 
-      if (notify)
+      if (notify) {
         tablet.notifyAll();
+      }
     }
 
     if (!filesToDelete.isEmpty()) {
@@ -150,17 +152,19 @@ class DatafileManager {
   }
 
   void removeFilesAfterScan(Set<StoredTabletFile> scanFiles) {
-    if (scanFiles.isEmpty())
+    if (scanFiles.isEmpty()) {
       return;
+    }
 
     Set<StoredTabletFile> filesToDelete = new HashSet<>();
 
     synchronized (tablet) {
       for (StoredTabletFile path : scanFiles) {
-        if (fileScanReferenceCounts.get(path) == 0)
+        if (fileScanReferenceCounts.get(path) == 0) {
           filesToDelete.add(path);
-        else
+        } else {
           filesToDeleteAfterScan.add(path);
+        }
       }
     }
 
@@ -191,8 +195,9 @@ class DatafileManager {
         }
 
         for (StoredTabletFile path : pathsToWaitFor) {
-          if (fileScanReferenceCounts.get(path) > 0)
+          if (fileScanReferenceCounts.get(path) > 0) {
             inUse.add(path);
+          }
         }
       }
     } catch (Exception e) {
@@ -224,10 +229,11 @@ class DatafileManager {
         throw new IOException("Data file " + tpath + " not in table dirs");
       }
 
-      if (bulkDir == null)
+      if (bulkDir == null) {
         bulkDir = tpath.getTabletDir();
-      else if (!bulkDir.equals(tpath.getTabletDir()))
+      } else if (!bulkDir.equals(tpath.getTabletDir())) {
         throw new IllegalArgumentException("bulk files in different dirs " + bulkDir + " " + tpath);
+      }
 
     }
 
@@ -242,9 +248,10 @@ class DatafileManager {
         if (setTime) {
           for (DataFileValue dfv : paths.values()) {
             long nextTime = tablet.getAndUpdateTime();
-            if (nextTime < bulkTime)
+            if (nextTime < bulkTime) {
               throw new IllegalStateException(
                   "Time went backwards unexpectedly " + nextTime + " " + bulkTime);
+            }
             bulkTime = nextTime;
             dfv.setTime(bulkTime);
           }
@@ -324,23 +331,6 @@ class DatafileManager {
     long t1, t2;
 
     Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
-    @SuppressWarnings("deprecation")
-    boolean replicate = org.apache.accumulo.core.replication.ReplicationConfigurationUtil
-        .isEnabled(tablet.getExtent(), tablet.getTableConfiguration());
-    Set<String> logFileOnly = null;
-    if (replicate) {
-      // unusedWalLogs is of the form host/fileURI, need to strip off the host portion
-      logFileOnly = new HashSet<>();
-      for (String unusedWalLog : unusedWalLogs) {
-        int index = unusedWalLog.indexOf('/');
-        if (index == -1) {
-          log.warn("Could not find host component to strip from DFSLogger representation of WAL");
-        } else {
-          unusedWalLog = unusedWalLog.substring(index + 1);
-        }
-        logFileOnly.add(unusedWalLog);
-      }
-    }
     try {
       // the order of writing to metadata and walog is important in the face of machine/process
       // failures need to write to metadata before writing to walog, when things are done in the
@@ -348,26 +338,6 @@ class DatafileManager {
       // before the following metadata write is made
       newFile = tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
           unusedWalLogs, flushId);
-
-      // Mark that we have data we want to replicate
-      // This WAL could still be in use by other Tablets *from the same table*, so we can only mark
-      // that there is data to replicate,
-      // but it is *not* closed. We know it is not closed by the fact that this MinC triggered. A
-      // MinC cannot happen unless the
-      // tablet is online and thus these WALs are referenced by that tablet. Therefore, the WAL
-      // replication status cannot be 'closed'.
-      if (replicate) {
-        if (log.isDebugEnabled()) {
-          log.debug("Recording that data has been ingested into {} using {}", tablet.getExtent(),
-              logFileOnly);
-        }
-        for (String logFile : logFileOnly) {
-          @SuppressWarnings("deprecation")
-          Status status = org.apache.accumulo.server.replication.StatusUtil.openWithUnknownLength();
-          ReplicationTableUtil.updateFiles(tablet.getContext(), tablet.getExtent(), logFile,
-              status);
-        }
-      }
     } finally {
       tablet.finishClearingUnusedLogs();
     }
@@ -498,8 +468,9 @@ class DatafileManager {
 
       // known consistency issue between minor and major compactions - see ACCUMULO-18
       Set<StoredTabletFile> filesInUseByScans = waitForScansToFinish(oldDatafiles);
-      if (!filesInUseByScans.isEmpty())
+      if (!filesInUseByScans.isEmpty()) {
         log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
+      }
       ManagerMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
           filesInUseByScans, newFile, compactionIdToWrite, dfv,
           tablet.getTabletServer().getClientAddressString(), lastLocation,

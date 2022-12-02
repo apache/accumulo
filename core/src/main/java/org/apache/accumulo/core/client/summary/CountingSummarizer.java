@@ -80,9 +80,8 @@ import org.apache.commons.lang3.mutable.MutableLong;
  * </code>
  * </pre>
  *
- * @param <K>
- *          The counter key type. This type must have good implementations of
- *          {@link Object#hashCode()} and {@link Object#equals(Object)}.
+ * @param <K> The counter key type. This type must have good implementations of
+ *        {@link Object#hashCode()} and {@link Object#equals(Object)}.
  * @see CounterSummary
  * @since 2.0.0
  */
@@ -178,8 +177,7 @@ public abstract class CountingSummarizer<K> implements Summarizer {
    */
   public interface Converter<K> {
     /**
-     * @param consumer
-     *          emit counter objects derived from key and value to this consumer
+     * @param consumer emit counter objects derived from key and value to this consumer
      */
     void convert(Key k, Value v, Consumer<K> consumer);
   }

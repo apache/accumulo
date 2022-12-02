@@ -40,20 +40,25 @@ class ActiveCompactionHelper {
   private static final Logger log = LoggerFactory.getLogger(ActiveCompactionHelper.class);
 
   private static String maxDecimal(double count) {
-    if (count < 9.995)
+    if (count < 9.995) {
       return String.format("%.2f", count);
-    if (count < 99.95)
+    }
+    if (count < 99.95) {
       return String.format("%.1f", count);
+    }
     return String.format("%.0f", count);
   }
 
   private static String shortenCount(long count) {
-    if (count < 1_000)
+    if (count < 1_000) {
       return count + "";
-    if (count < 1_000_000)
+    }
+    if (count < 1_000_000) {
       return maxDecimal(count / 1_000.0) + "K";
-    if (count < 1_000_000_000)
+    }
+    if (count < 1_000_000_000) {
       return maxDecimal(count / 1_000_000.0) + "M";
+    }
     return maxDecimal(count / 1_000_000_000.0) + "B";
   }
 

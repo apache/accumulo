@@ -89,8 +89,7 @@ public class PropSnapshot implements PropChangeListener {
   /**
    * Update the current snapshot if a refresh is required.
    *
-   * @throws IllegalStateException
-   *           if the properties cannot be retrieved from the underlying store.
+   * @throws IllegalStateException if the properties cannot be retrieved from the underlying store.
    */
   private void updateSnapshot() {
     if (!needsUpdate.get()) {

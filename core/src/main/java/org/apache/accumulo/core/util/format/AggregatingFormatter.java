@@ -32,16 +32,16 @@ public abstract class AggregatingFormatter extends DefaultFormatter {
   public String next() {
     Iterator<Entry<Key,Value>> si = super.getScannerIterator();
     checkState(true);
-    while (si.hasNext())
+    while (si.hasNext()) {
       aggregateStats(si.next());
+    }
     return getStats();
   }
 
   /**
    * Generate statistics from each {@link Entry}, called for each entry to be iterated over.
    *
-   * @param next
-   *          the next entry to aggregate
+   * @param next the next entry to aggregate
    */
   protected abstract void aggregateStats(Entry<Key,Value> next);
 

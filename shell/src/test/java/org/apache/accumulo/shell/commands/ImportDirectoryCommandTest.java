@@ -65,8 +65,7 @@ public class ImportDirectoryCommandTest {
   /**
    * Test original command form - no -t tablename option provided.
    *
-   * @throws Exception
-   *           any exception is a test failure.
+   * @throws Exception any exception is a test failure.
    */
   @Test
   public void testOriginalCmdForm() throws Exception {
@@ -99,8 +98,7 @@ public class ImportDirectoryCommandTest {
   /**
    * Test with -t tablename option provided.
    *
-   * @throws Exception
-   *           any exception is a test failure.
+   * @throws Exception any exception is a test failure.
    */
   @Test
   public void testPassTableOptCmdForm() throws Exception {

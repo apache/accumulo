@@ -47,8 +47,7 @@ public interface BalancerEnvironment extends ServiceEnvironment {
    * Accumulo plugins working with a table may need to know if the table is online or not before
    * operating on it.
    *
-   * @param tableId
-   *          The id of the table to check.
+   * @param tableId The id of the table to check.
    * @return {@code true} if the table is online and {@code false} if not
    */
   boolean isTableOnline(TableId tableId);
@@ -58,8 +57,7 @@ public interface BalancerEnvironment extends ServiceEnvironment {
    * no location available for a given tablet, then the returned mapping will have a {@code null}
    * value stored for the tablet id.
    *
-   * @param tableId
-   *          The id of the table for which to retrieve tablets.
+   * @param tableId The id of the table for which to retrieve tablets.
    * @return a mapping of {@link TabletId} to {@link TabletServerId} (or @null if no location is
    *         available) for each tablet belonging to {@code tableId}
    */
@@ -69,15 +67,11 @@ public interface BalancerEnvironment extends ServiceEnvironment {
    * Fetch the tablets for the given table by asking the tablet server. Useful if your balance
    * strategy needs details at the tablet level to decide what tablets to move.
    *
-   * @param tabletServerId
-   *          The tablet server to ask.
-   * @param tableId
-   *          The table id
+   * @param tabletServerId The tablet server to ask.
+   * @param tableId The table id
    * @return a list of tablet statistics
-   * @throws AccumuloSecurityException
-   *           tablet server disapproves of your internal System password.
-   * @throws AccumuloException
-   *           any other problem
+   * @throws AccumuloSecurityException tablet server disapproves of your internal System password.
+   * @throws AccumuloException any other problem
    */
   List<TabletStatistics> listOnlineTabletsForTable(TabletServerId tabletServerId, TableId tableId)
       throws AccumuloException, AccumuloSecurityException;

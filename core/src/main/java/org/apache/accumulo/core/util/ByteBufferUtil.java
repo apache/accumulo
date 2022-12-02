@@ -37,8 +37,9 @@ import org.apache.hadoop.io.Text;
 
 public class ByteBufferUtil {
   public static byte[] toBytes(ByteBuffer buffer) {
-    if (buffer == null)
+    if (buffer == null) {
       return null;
+    }
     if (buffer.hasArray()) {
       // did not use buffer.get() because it changes the position
       return Arrays.copyOfRange(buffer.array(), buffer.position() + buffer.arrayOffset(),
@@ -52,8 +53,9 @@ public class ByteBufferUtil {
   }
 
   public static List<ByteBuffer> toByteBuffers(Collection<byte[]> bytesList) {
-    if (bytesList == null)
+    if (bytesList == null) {
       return null;
+    }
     ArrayList<ByteBuffer> result = new ArrayList<>();
     for (byte[] bytes : bytesList) {
       result.add(ByteBuffer.wrap(bytes));
@@ -62,8 +64,9 @@ public class ByteBufferUtil {
   }
 
   public static List<byte[]> toBytesList(Collection<ByteBuffer> bytesList) {
-    if (bytesList == null)
+    if (bytesList == null) {
       return null;
+    }
     ArrayList<byte[]> result = new ArrayList<>(bytesList.size());
     for (ByteBuffer bytes : bytesList) {
       result.add(toBytes(bytes));
@@ -72,8 +75,9 @@ public class ByteBufferUtil {
   }
 
   public static Set<String> toStringSet(Collection<ByteBuffer> bytesList) {
-    if (bytesList == null)
+    if (bytesList == null) {
       return null;
+    }
     Set<String> result = new HashSet<>(bytesList.size());
     for (ByteBuffer bytes : bytesList) {
       result.add(toString(bytes));
@@ -82,8 +86,9 @@ public class ByteBufferUtil {
   }
 
   public static Text toText(ByteBuffer byteBuffer) {
-    if (byteBuffer == null)
+    if (byteBuffer == null) {
       return null;
+    }
 
     if (byteBuffer.hasArray()) {
       Text result = new Text();
@@ -109,8 +114,9 @@ public class ByteBufferUtil {
   }
 
   public static ByteBuffer toByteBuffers(ByteSequence bs) {
-    if (bs == null)
+    if (bs == null) {
       return null;
+    }
 
     if (bs.isBackedByArray()) {
       return ByteBuffer.wrap(bs.getBackingArray(), bs.offset(), bs.length());

@@ -39,14 +39,11 @@ public interface CompactionPlan {
    */
   interface Builder {
     /**
-     * @param priority
-     *          This determines the order in which the job is taken off the execution queue. Larger
-     *          numbers are taken off the queue first. If two jobs are on the queue, one with a
-     *          priority of 4 and another with 5, then the one with 5 will be taken first.
-     * @param executor
-     *          Where the job should run.
-     * @param group
-     *          The files to compact.
+     * @param priority This determines the order in which the job is taken off the execution queue.
+     *        Larger numbers are taken off the queue first. If two jobs are on the queue, one with a
+     *        priority of 4 and another with 5, then the one with 5 will be taken first.
+     * @param executor Where the job should run.
+     * @param group The files to compact.
      * @return this
      */
     Builder addJob(short priority, CompactionExecutorId executor,

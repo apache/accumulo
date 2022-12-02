@@ -75,8 +75,7 @@ public abstract class VersionedPropCodec {
    * Serialize the versioned properties. The version information on the properties is updated if the
    * data is successfully serialized.
    *
-   * @param vProps
-   *          the versioned properties.
+   * @param vProps the versioned properties.
    * @return a byte array with the serialized properties.
    */
   public byte[] toBytes(final VersionedProperties vProps) throws IOException {
@@ -101,14 +100,10 @@ public abstract class VersionedPropCodec {
    * Encode the properties and optionally any specific encoding metadata that is necessary to decode
    * the payload with the scheme chosen.
    *
-   * @param out
-   *          an output stream
-   * @param vProps
-   *          the versioned properties
-   * @param encodingOpts
-   *          the general encoding options.
-   * @throws IOException
-   *           if an error occurs writing to the underlying output stream.
+   * @param out an output stream
+   * @param vProps the versioned properties
+   * @param encodingOpts the general encoding options.
+   * @throws IOException if an error occurs writing to the underlying output stream.
    */
   abstract void encodePayload(final OutputStream out, final VersionedProperties vProps,
       final EncodingOptions encodingOpts) throws IOException;
@@ -116,13 +111,10 @@ public abstract class VersionedPropCodec {
   /**
    *
    *
-   * @param version
-   *          the data version determined by the prop store
-   * @param bytes
-   *          an array of bytes created using a PropCodec.
+   * @param version the data version determined by the prop store
+   * @param bytes an array of bytes created using a PropCodec.
    * @return the versioned properties.
-   * @throws IOException
-   *           if the an error occurs reading from the byte array.
+   * @throws IOException if the an error occurs reading from the byte array.
    */
   public @NonNull VersionedProperties fromBytes(final int version, final byte[] bytes)
       throws IOException {
@@ -156,8 +148,7 @@ public abstract class VersionedPropCodec {
    * upgrading / changing encodings, otherwise a single encoding should be in operation for an
    * instance at any given time.
    *
-   * @param bytes
-   *          serialized encoded versioned property byte array.
+   * @param bytes serialized encoded versioned property byte array.
    * @return the encoding version used to serialize the properties.
    */
   public static int getEncodingVersion(final byte[] bytes) {
@@ -179,8 +170,7 @@ public abstract class VersionedPropCodec {
    * Generally reading from the store will be followed by some sort of usage which would require the
    * full decode operation anyway, so uses of this method should be narrow and limited.
    *
-   * @param bytes
-   *          serialized encoded versioned property byte array.
+   * @param bytes serialized encoded versioned property byte array.
    * @return the timestamp used to serialize the properties.
    */
   public static Instant readTimestamp(final byte[] bytes) {
@@ -198,13 +188,10 @@ public abstract class VersionedPropCodec {
    * Decode the payload and any optional encoding specific metadata and return a map of the property
    * name, value pairs.
    *
-   * @param inStream
-   *          an input stream
-   * @param encodingOpts
-   *          the general encoding options.
+   * @param inStream an input stream
+   * @param encodingOpts the general encoding options.
    * @return a map of properties name, value pairs.
-   * @throws IOException
-   *           if an exception occurs reading from the input stream.
+   * @throws IOException if an exception occurs reading from the input stream.
    */
   abstract Map<String,String> decodePayload(final InputStream inStream,
       final EncodingOptions encodingOpts) throws IOException;
@@ -219,11 +206,9 @@ public abstract class VersionedPropCodec {
    * different mechanism if desired, one example might be using a JSON implementation to encode /
    * decode the properties.
    *
-   * @param dis
-   *          a data input stream
+   * @param dis a data input stream
    * @return the property map
-   * @throws IOException
-   *           if an exception occurs reading from the stream.
+   * @throws IOException if an exception occurs reading from the stream.
    */
   Map<String,String> readMapAsUTF(DataInputStream dis) throws IOException {
 
@@ -246,12 +231,9 @@ public abstract class VersionedPropCodec {
    * different mechanism if desired, one example might be using a JSON implementation to encode /
    * decode the properties.
    *
-   * @param dos
-   *          a data output stream
-   * @param aMap
-   *          the property map of k, v string pairs.
-   * @throws IOException
-   *           if an exception occurs.
+   * @param dos a data output stream
+   * @param aMap the property map of k, v string pairs.
+   * @throws IOException if an exception occurs.
    */
   void writeMapAsUTF(final DataOutputStream dos, final Map<String,String> aMap) throws IOException {
 

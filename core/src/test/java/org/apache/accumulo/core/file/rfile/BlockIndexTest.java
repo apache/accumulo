@@ -87,8 +87,9 @@ public class BlockIndexTest {
     CachableBlockFile.CachedBlockRead cacheBlock = new CachableBlockFile.CachedBlockRead(ce, data);
     BlockIndex blockIndex = null;
 
-    for (int i = 0; i < 129; i++)
+    for (int i = 0; i < 129; i++) {
       blockIndex = BlockIndex.getIndex(cacheBlock, new IndexEntry(prevKey, num, 0, 0, 0));
+    }
 
     BlockIndexEntry[] indexEntries = blockIndex.getIndexEntries();
 
@@ -99,10 +100,11 @@ public class BlockIndexTest {
 
       bie =
           blockIndex.seekBlock(new Key(RFileTest.formatString("", row), "cf1", "cq1"), cacheBlock);
-      if (i == 0)
+      if (i == 0) {
         assertSame(null, bie);
-      else
+      } else {
         assertSame(indexEntries[i - 1], bie);
+      }
 
       assertSame(bie, blockIndex
           .seekBlock(new Key(RFileTest.formatString("", row - 1), "cf1", "cq1"), cacheBlock));
@@ -159,8 +161,9 @@ public class BlockIndexTest {
     CachableBlockFile.CachedBlockRead cacheBlock = new CachableBlockFile.CachedBlockRead(ce, data);
     BlockIndex blockIndex = null;
 
-    for (int i = 0; i < 257; i++)
+    for (int i = 0; i < 257; i++) {
       blockIndex = BlockIndex.getIndex(cacheBlock, new IndexEntry(prevKey, num, 0, 0, 0));
+    }
 
     assertSame(null,
         blockIndex.seekBlock(new Key(RFileTest.formatString("", 0), "cf1", "cq1"), cacheBlock));

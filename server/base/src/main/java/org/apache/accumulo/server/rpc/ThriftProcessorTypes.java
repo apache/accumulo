@@ -24,8 +24,6 @@ import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
-import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
-import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
@@ -81,12 +79,6 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   private static final ThriftProcessorTypes<ManagerClientService.Client> MANAGER =
       new ThriftProcessorTypes<>(ThriftClientTypes.MANAGER);
 
-  private static final ThriftProcessorTypes<ReplicationCoordinator.Client> REPLICATION_COORDINATOR =
-      new ThriftProcessorTypes<>(ThriftClientTypes.REPLICATION_COORDINATOR);
-
-  private static final ThriftProcessorTypes<ReplicationServicer.Client> REPLICATION_SERVICER =
-      new ThriftProcessorTypes<>(ThriftClientTypes.REPLICATION_SERVICER);
-
   @VisibleForTesting
   public static final ThriftProcessorTypes<TabletClientService.Client> TABLET_SERVER =
       new ThriftProcessorTypes<>(ThriftClientTypes.TABLET_SERVER);
@@ -128,24 +120,6 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
     muxProcessor.registerProcessor(MANAGER.getServiceName(),
         MANAGER.getTProcessor(ManagerClientService.Processor.class,
             ManagerClientService.Iface.class, managerServiceHandler, context));
-    return muxProcessor;
-  }
-
-  public static TMultiplexedProcessor getReplicationCoordinatorTProcessor(
-      ReplicationCoordinator.Iface serviceHandler, ServerContext context) {
-    TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
-    muxProcessor.registerProcessor(REPLICATION_COORDINATOR.getServiceName(),
-        REPLICATION_COORDINATOR.getTProcessor(ReplicationCoordinator.Processor.class,
-            ReplicationCoordinator.Iface.class, serviceHandler, context));
-    return muxProcessor;
-  }
-
-  public static TMultiplexedProcessor getReplicationClientTProcessor(
-      ReplicationServicer.Iface serviceHandler, ServerContext context) {
-    TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
-    muxProcessor.registerProcessor(REPLICATION_SERVICER.getServiceName(),
-        REPLICATION_SERVICER.getTProcessor(ReplicationServicer.Processor.class,
-            ReplicationServicer.Iface.class, serviceHandler, context));
     return muxProcessor;
   }
 

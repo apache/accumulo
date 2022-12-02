@@ -116,8 +116,9 @@ public class FunctionalTestUtils {
         Text row = entry.getKey().getRow();
 
         Integer count = tabletFileCounts.get(row);
-        if (count == null)
+        if (count == null) {
           count = 0;
+        }
         if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
           count = count + 1;
         }
@@ -197,8 +198,9 @@ public class FunctionalTestUtils {
 
   public static SortedSet<Text> splits(String[] splits) {
     SortedSet<Text> result = new TreeSet<>();
-    for (String split : splits)
+    for (String split : splits) {
       result.add(new Text(split));
+    }
     return result;
   }
 

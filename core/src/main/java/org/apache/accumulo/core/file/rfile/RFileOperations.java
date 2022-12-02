@@ -121,8 +121,9 @@ public class RFileOperations extends FileOperations {
       long hblock = conf.getLong("dfs.block.size", 1 << 26);
       long tblock = acuconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE);
       long block = hblock;
-      if (tblock > 0)
+      if (tblock > 0) {
         block = tblock;
+      }
       int bufferSize = conf.getInt("io.file.buffer.size", 4096);
 
       String file = options.getFilename();

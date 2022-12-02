@@ -73,10 +73,8 @@ public class VersionedPropEncryptCodec extends VersionedPropCodec {
   /**
    * Instantiate a versioned property codec.
    *
-   * @param compress
-   *          if true, compress the payload
-   * @param cipherParams
-   *          the parameters needed for AES GCM encryption.
+   * @param compress if true, compress the payload
+   * @param cipherParams the parameters needed for AES GCM encryption.
    * @return a codec for encoding / decoding versioned properties.
    */
   public static VersionedPropCodec codec(final boolean compress,
@@ -153,13 +151,10 @@ public class VersionedPropEncryptCodec extends VersionedPropCodec {
    * initialization vector on encryption creates different encrypted values on each write even
    * though the same key is being used.
    *
-   * @param inStream
-   *          an input stream
-   * @param encodingOpts
-   *          the general encoding options.
+   * @param inStream an input stream
+   * @param encodingOpts the general encoding options.
    * @return a map of property name, value pairs.
-   * @throws IOException
-   *           if an error occurs reading from the input stream.
+   * @throws IOException if an error occurs reading from the input stream.
    */
   @Override
   Map<String,String> decodePayload(InputStream inStream, EncodingOptions encodingOpts)

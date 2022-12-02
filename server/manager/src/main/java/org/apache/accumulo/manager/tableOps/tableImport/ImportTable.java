@@ -142,15 +142,17 @@ public class ImportTable extends ManagerRepo {
           "Failed to read export metadata " + e.getMessage());
     }
 
-    if (exportVersion == null || exportVersion > ExportTable.VERSION)
+    if (exportVersion == null || exportVersion > ExportTable.VERSION) {
       throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Incompatible export version " + exportVersion);
+    }
 
-    if (dataVersion == null || dataVersion > AccumuloDataVersion.get())
+    if (dataVersion == null || dataVersion > AccumuloDataVersion.get()) {
       throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Incompatible data version " + dataVersion);
+    }
   }
 
   @Override

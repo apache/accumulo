@@ -36,14 +36,10 @@ public class ConstraintViolationSummary implements Serializable {
   /**
    * Creates a new summary.
    *
-   * @param constrainClass
-   *          class of constraint that was violated
-   * @param violationCode
-   *          violation code
-   * @param violationDescription
-   *          description of violation
-   * @param numberOfViolatingMutations
-   *          number of mutations that produced this particular violation
+   * @param constrainClass class of constraint that was violated
+   * @param violationCode violation code
+   * @param violationDescription description of violation
+   * @param numberOfViolatingMutations number of mutations that produced this particular violation
    */
   public ConstraintViolationSummary(String constrainClass, short violationCode,
       String violationDescription, long numberOfViolatingMutations) {
@@ -56,8 +52,7 @@ public class ConstraintViolationSummary implements Serializable {
   /**
    * Creates a new summary from Thrift.
    *
-   * @param tcvs
-   *          Thrift summary
+   * @param tcvs Thrift summary
    */
   public ConstraintViolationSummary(TConstraintViolationSummary tcvs) {
     this(tcvs.constrainClass, tcvs.violationCode, tcvs.violationDescription,

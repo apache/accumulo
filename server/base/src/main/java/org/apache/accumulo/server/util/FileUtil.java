@@ -103,8 +103,9 @@ public class FileUtil {
       // might both return true
       // Creating a file is not subject to this, so create a special file to make sure we solely
       // will use this directory
-      if (!fs.createNewFile(new Path(result, "__reserve")))
+      if (!fs.createNewFile(new Path(result, "__reserve"))) {
         result = null;
+      }
     }
     return result;
   }
@@ -115,8 +116,9 @@ public class FileUtil {
 
     ArrayList<String> paths = new ArrayList<>(mapFiles);
 
-    if (paths.size() <= maxFiles)
+    if (paths.size() <= maxFiles) {
       return paths;
+    }
 
     String newDir = String.format("%s/pass_%04d", tmpDir, pass);
 
@@ -161,30 +163,35 @@ public class FileUtil {
           boolean gtPrevEndRow = prevEndRow == null || key.compareRow(prevEndRow) > 0;
           boolean lteEndRow = endRow == null || key.compareRow(endRow) <= 0;
 
-          if (gtPrevEndRow && lteEndRow)
+          if (gtPrevEndRow && lteEndRow) {
             writer.append(key, new Value());
+          }
 
-          if (!lteEndRow)
+          if (!lteEndRow) {
             break;
+          }
 
           mmfi.next();
         }
       } finally {
         try {
-          if (reader != null)
+          if (reader != null) {
             reader.close();
+          }
         } catch (IOException e) {
           log.error("{}", e.getMessage(), e);
         }
 
-        for (SortedKeyValueIterator<Key,Value> r : iters)
+        for (SortedKeyValueIterator<Key,Value> r : iters) {
           try {
-            if (r != null)
+            if (r != null) {
               ((FileSKVIterator) r).close();
+            }
           } catch (IOException e) {
             // continue closing
             log.error("{}", e.getMessage(), e);
           }
+        }
 
         try {
           writer.close();
@@ -225,8 +232,9 @@ public class FileUtil {
             String.format("%6.2f secs", (t2 - t1) / 1000.0));
       }
 
-      if (prevEndRow == null)
+      if (prevEndRow == null) {
         prevEndRow = new Text();
+      }
 
       long numKeys =
           countIndexEntries(context, tableConf, prevEndRow, endRow, mapFiles, true, readers);
@@ -268,13 +276,12 @@ public class FileUtil {
 
   /**
    *
-   * @param mapFiles
-   *          - list MapFiles to find the mid point key
+   * @param mapFiles - list MapFiles to find the mid point key
    *
-   *          ISSUES : This method used the index files to find the mid point. If the map files have
-   *          different index intervals this method will not return an accurate mid point. Also, it
-   *          would be tricky to use this method in conjunction with an in memory map because the
-   *          indexing interval is unknown.
+   *        ISSUES : This method used the index files to find the mid point. If the map files have
+   *        different index intervals this method will not return an accurate mid point. Also, it
+   *        would be tricky to use this method in conjunction with an in memory map because the
+   *        indexing interval is unknown.
    */
   public static SortedMap<Double,Key> findMidPoint(ServerContext context,
       TableConfiguration tableConf, String tabletDirectory, Text prevEndRow, Text endRow,
@@ -290,9 +297,10 @@ public class FileUtil {
 
     try {
       if (mapFiles.size() > maxToOpen) {
-        if (!useIndex)
+        if (!useIndex) {
           throw new IOException(
               "Cannot find mid point using data files, too many " + mapFiles.size());
+        }
         tmpDir = createTmpDir(context, tabletDirectory);
 
         log.debug("Too many indexes ({}) to open at once for {} {}, reducing in tmpDir = {}",
@@ -307,8 +315,9 @@ public class FileUtil {
             String.format("%6.2f secs", (t2 - t1) / 1000.0));
       }
 
-      if (prevEndRow == null)
+      if (prevEndRow == null) {
         prevEndRow = new Text();
+      }
 
       long t1 = System.currentTimeMillis();
 
@@ -332,8 +341,9 @@ public class FileUtil {
       MultiIterator mmfi = new MultiIterator(iters, true);
 
       // skip the prevEndRow
-      while (mmfi.hasTop() && mmfi.getTopKey().compareRow(prevEndRow) <= 0)
+      while (mmfi.hasTop() && mmfi.getTopKey().compareRow(prevEndRow) <= 0) {
         mmfi.next();
+      }
 
       // read half of the keys in the index
       TreeMap<Double,Key> ret = new TreeMap<>();
@@ -350,8 +360,9 @@ public class FileUtil {
           keyBeforeMidPointPosition = keysRead - 1;
         }
 
-        if (lastKey == null)
+        if (lastKey == null) {
           lastKey = new Key();
+        }
 
         lastKey.set(mmfi.getTopKey());
 
@@ -361,8 +372,9 @@ public class FileUtil {
         mmfi.next();
       }
 
-      if (keyBeforeMidPoint != null)
+      if (keyBeforeMidPoint != null) {
         ret.put(keyBeforeMidPointPosition / (double) numKeys, keyBeforeMidPoint);
+      }
 
       long t2 = System.currentTimeMillis();
 
@@ -392,8 +404,9 @@ public class FileUtil {
     // close all of the index sequence files
     for (FileSKVIterator r : readers) {
       try {
-        if (r != null)
+        if (r != null) {
           r.close();
+        }
       } catch (IOException e) {
         // okay, try to close the rest anyway
         log.error("{}", e.getMessage(), e);
@@ -422,43 +435,47 @@ public class FileUtil {
       Path path = new Path(file);
       FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
       try {
-        if (useIndex)
+        if (useIndex) {
           reader = FileOperations.getInstance().newIndexReaderBuilder()
               .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
               .withTableConfiguration(tableConf).build();
-        else
+        } else {
           reader = FileOperations.getInstance().newScanReaderBuilder()
               .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
               .withTableConfiguration(tableConf)
               .overRange(new Range(prevEndRow, false, null, true), Set.of(), false).build();
+        }
 
         while (reader.hasTop()) {
           Key key = reader.getTopKey();
-          if (endRow != null && key.compareRow(endRow) > 0)
+          if (endRow != null && key.compareRow(endRow) > 0) {
             break;
-          else if (prevEndRow == null || key.compareRow(prevEndRow) > 0)
+          } else if (prevEndRow == null || key.compareRow(prevEndRow) > 0) {
             numKeys++;
+          }
 
           reader.next();
         }
       } finally {
         try {
-          if (reader != null)
+          if (reader != null) {
             reader.close();
+          }
         } catch (IOException e) {
           log.error("{}", e.getMessage(), e);
         }
       }
 
-      if (useIndex)
+      if (useIndex) {
         readers.add(FileOperations.getInstance().newIndexReaderBuilder()
             .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
             .withTableConfiguration(tableConf).build());
-      else
+      } else {
         readers.add(FileOperations.getInstance().newScanReaderBuilder()
             .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
             .withTableConfiguration(tableConf)
             .overRange(new Range(prevEndRow, false, null, true), Set.of(), false).build());
+      }
 
     }
     return numKeys;
@@ -519,18 +536,21 @@ public class FileUtil {
           .withTableConfiguration(tableConf).seekToBeginning().build();
 
       try {
-        if (!reader.hasTop())
+        if (!reader.hasTop()) {
           // file is empty, so there is no last key
           continue;
+        }
 
         Key key = reader.getLastKey();
 
-        if (lastKey == null || key.compareTo(lastKey) > 0)
+        if (lastKey == null || key.compareTo(lastKey) > 0) {
           lastKey = key;
+        }
       } finally {
         try {
-          if (reader != null)
+          if (reader != null) {
             reader.close();
+          }
         } catch (IOException e) {
           log.error("{}", e.getMessage(), e);
         }

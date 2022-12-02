@@ -147,8 +147,9 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   private static long correctBlockSize(Configuration conf, long blockSize) {
-    if (blockSize <= 0)
+    if (blockSize <= 0) {
       blockSize = conf.getLong("dfs.block.size", 67108864); // 64MB default
+    }
     int checkSum = conf.getInt("io.bytes.per.checksum", 512);
     blockSize -= blockSize % checkSum;
     return Math.max(blockSize, checkSum);
@@ -360,11 +361,13 @@ public class VolumeManagerImpl implements VolumeManager {
 
     // The "default" Volume for Accumulo (in case no volumes are specified)
     for (String volumeUriOrDir : volumeStrings) {
-      if (volumeUriOrDir.isBlank())
+      if (volumeUriOrDir.isBlank()) {
         throw new IllegalArgumentException("Empty volume specified in configuration");
+      }
 
-      if (volumeUriOrDir.startsWith("viewfs"))
+      if (volumeUriOrDir.startsWith("viewfs")) {
         throw new IllegalArgumentException("Cannot use viewfs as a volume");
+      }
 
       // We require a URI here, fail if it doesn't look like one
       if (volumeUriOrDir.contains(":")) {
@@ -382,8 +385,9 @@ public class VolumeManagerImpl implements VolumeManager {
   public boolean isReady() throws IOException {
     for (Volume volume : volumesByName.values()) {
       final FileSystem fs = volume.getFileSystem();
-      if (!(fs instanceof DistributedFileSystem))
+      if (!(fs instanceof DistributedFileSystem)) {
         continue;
+      }
       final DistributedFileSystem dfs = (DistributedFileSystem) fs;
       // Returns true when safemode is on
       if (dfs.setSafeMode(SafeModeAction.SAFEMODE_GET)) {

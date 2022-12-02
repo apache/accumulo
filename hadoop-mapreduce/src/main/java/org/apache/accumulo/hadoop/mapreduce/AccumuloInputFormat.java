@@ -75,9 +75,8 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
    * the specified ranges.
    *
    * @return the splits from the tables based on the ranges.
-   * @throws java.io.IOException
-   *           if a table set on the job doesn't exist or an error occurs initializing the tablet
-   *           locator
+   * @throws java.io.IOException if a table set on the job doesn't exist or an error occurs
+   *         initializing the tablet locator
    */
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException {
@@ -95,8 +94,9 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
           Entry<Key,Value> entry = scannerIterator.next();
           currentK = currentKey = entry.getKey();
           currentV = entry.getValue();
-          if (log.isTraceEnabled())
+          if (log.isTraceEnabled()) {
             log.trace("Processing key/value pair: " + DefaultFormatter.formatEntry(entry, true));
+          }
           return true;
         }
         return false;

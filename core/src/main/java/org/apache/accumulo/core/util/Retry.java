@@ -51,16 +51,11 @@ public class Retry {
   private boolean doTimeJitter = true;
 
   /**
-   * @param maxRetries
-   *          Maximum times to retry or MAX_RETRY_DISABLED if no maximum
-   * @param startWait
-   *          The amount of time (ms) to wait for the initial retry
-   * @param maxWait
-   *          The maximum wait (ms)
-   * @param waitIncrement
-   *          The amount of time (ms) to increment next wait time by
-   * @param logInterval
-   *          The amount of time (ms) between logging retries
+   * @param maxRetries Maximum times to retry or MAX_RETRY_DISABLED if no maximum
+   * @param startWait The amount of time (ms) to wait for the initial retry
+   * @param maxWait The maximum wait (ms)
+   * @param waitIncrement The amount of time (ms) to increment next wait time by
+   * @param logInterval The amount of time (ms) between logging retries
    */
   private Retry(long maxRetries, long startWait, long waitIncrement, long maxWait, long logInterval,
       double backOffFactor) {
@@ -177,8 +172,9 @@ public class Retry {
       throws InterruptedException {
 
     double waitFactor = (1 + (random.nextDouble() - 0.5) / 10.0) * currentBackOffFactor;
-    if (!doTimeJitter)
+    if (!doTimeJitter) {
       waitFactor = currentBackOffFactor;
+    }
     currentBackOffFactor = currentBackOffFactor * backOffFactor;
 
     log.debug("Sleeping for {}ms before retrying operation : {} ", currentWait,
@@ -186,9 +182,9 @@ public class Retry {
 
     sleep(currentWait);
 
-    if (backOffFactor == 1)
+    if (backOffFactor == 1) {
       currentWait = Math.min(maxWait, currentWait + waitIncrement);
-    else if (backOffFactor > 1.0) {
+    } else if (backOffFactor > 1.0) {
       waitIncrement = (long) Math.ceil(waitFactor * this.initialWait);
       currentWait = Math.min(maxWait, initialWait + waitIncrement);
     }
@@ -267,8 +263,7 @@ public class Retry {
     NeedsRetryDelay infiniteRetries();
 
     /**
-     * @param max
-     *          the maximum number of retries to set
+     * @param max the maximum number of retries to set
      * @return this builder with the maximum number of retries set to the provided value
      */
     NeedsRetryDelay maxRetries(long max);
@@ -276,9 +271,8 @@ public class Retry {
 
   public interface NeedsRetryDelay {
     /**
-     * @param duration
-     *          the amount of time to wait before the first retry; input is converted to
-     *          milliseconds, rounded down to the nearest
+     * @param duration the amount of time to wait before the first retry; input is converted to
+     *        milliseconds, rounded down to the nearest
      * @return this builder with the initial wait period set
      */
     NeedsTimeIncrement retryAfter(long duration, TimeUnit unit);
@@ -286,9 +280,8 @@ public class Retry {
 
   public interface NeedsTimeIncrement {
     /**
-     * @param duration
-     *          the amount of additional time to add before each subsequent retry; input is
-     *          converted to milliseconds, rounded down to the nearest
+     * @param duration the amount of additional time to add before each subsequent retry; input is
+     *        converted to milliseconds, rounded down to the nearest
      * @return this builder with the increment amount set
      */
     NeedsMaxWait incrementBy(long duration, TimeUnit unit);
@@ -296,9 +289,8 @@ public class Retry {
 
   public interface NeedsMaxWait {
     /**
-     * @param duration
-     *          the maximum amount of time to which the waiting period between retries can be
-     *          incremented; input is converted to milliseconds, rounded down to the nearest
+     * @param duration the maximum amount of time to which the waiting period between retries can be
+     *        incremented; input is converted to milliseconds, rounded down to the nearest
      * @return this builder with a maximum time limit set
      */
     NeedsBackOffFactor maxWait(long duration, TimeUnit unit);
@@ -306,18 +298,17 @@ public class Retry {
 
   public interface NeedsBackOffFactor {
     /**
-     * @param backOffFactor
-     *          the number that the wait increment will be successively multiplied by to make the
-     *          time between retries to be exponentially increasing. The default value will be one.
+     * @param backOffFactor the number that the wait increment will be successively multiplied by to
+     *        make the time between retries to be exponentially increasing. The default value will
+     *        be one.
      */
     NeedsLogInterval backOffFactor(double backOffFactor);
   }
 
   public interface NeedsLogInterval {
     /**
-     * @param duration
-     *          the minimum time interval between logging that a retry is occurring; input is
-     *          converted to milliseconds, rounded down to the nearest
+     * @param duration the minimum time interval between logging that a retry is occurring; input is
+     *        converted to milliseconds, rounded down to the nearest
      * @return this builder with a logging interval set
      */
     BuilderDone logInterval(long duration, TimeUnit unit);

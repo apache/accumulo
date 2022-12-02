@@ -355,21 +355,25 @@ public class Admin implements KeywordExecutable {
         ListInstances.listInstances(context.getZooKeepers(), listInstancesOpts.printAll,
             listInstancesOpts.printErrors);
       } else if (cl.getParsedCommand().equals("ping")) {
-        if (ping(context, pingCommand.args) != 0)
+        if (ping(context, pingCommand.args) != 0) {
           rc = 4;
+        }
       } else if (cl.getParsedCommand().equals("checkTablets")) {
         System.out.println("\n*** Looking for offline tablets ***\n");
-        if (FindOfflineTablets.findOffline(context, checkTabletsCommand.tableName) != 0)
+        if (FindOfflineTablets.findOffline(context, checkTabletsCommand.tableName) != 0) {
           rc = 5;
+        }
         System.out.println("\n*** Looking for missing files ***\n");
         if (checkTabletsCommand.tableName == null) {
           if (RemoveEntriesForMissingFiles.checkAllTables(context, checkTabletsCommand.fixFiles)
-              != 0)
+              != 0) {
             rc = 6;
+          }
         } else {
           if (RemoveEntriesForMissingFiles.checkTable(context, checkTabletsCommand.tableName,
-              checkTabletsCommand.fixFiles) != 0)
+              checkTabletsCommand.fixFiles) != 0) {
             rc = 6;
+          }
         }
 
       } else if (cl.getParsedCommand().equals("stop")) {
@@ -397,14 +401,16 @@ public class Admin implements KeywordExecutable {
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
-        if (everything)
+        if (everything) {
           flushAll(context);
+        }
 
         stopServer(context, everything);
       }
 
-      if (rc != 0)
+      if (rc != 0) {
         System.exit(rc);
+      }
     } catch (AccumuloException e) {
       log.error("{}", e.getMessage(), e);
       System.exit(1);
@@ -455,8 +461,9 @@ public class Admin implements KeywordExecutable {
       try {
         Set<String> tables = context.tableOperations().tableIdMap().keySet();
         for (String table : tables) {
-          if (table.equals(MetadataTable.NAME))
+          if (table.equals(MetadataTable.NAME)) {
             continue;
+          }
           try {
             context.tableOperations().flush(table, null, null, false);
             flushesStarted.incrementAndGet();
@@ -537,8 +544,7 @@ public class Admin implements KeywordExecutable {
   /**
    * Get the parent ZNode for tservers for the given instance
    *
-   * @param context
-   *          ClientContext
+   * @param context ClientContext
    * @return The tservers znode for the instance
    */
   static String getTServersZkPath(ClientContext context) {
@@ -549,8 +555,7 @@ public class Admin implements KeywordExecutable {
   /**
    * Look up the TabletServers in ZooKeeper and try to find a sessionID for this server reference
    *
-   * @param hostAndPort
-   *          The host and port for a TabletServer
+   * @param hostAndPort The host and port for a TabletServer
    * @return The host and port with the session ID in square-brackets appended, or the original
    *         value.
    */
@@ -647,14 +652,16 @@ public class Admin implements KeywordExecutable {
   }
 
   private String getDefaultConfigValue(String key) {
-    if (key == null)
+    if (key == null) {
       return null;
+    }
 
     String defaultValue = null;
     try {
       Property p = Property.getPropertyByKey(key);
-      if (p == null)
+      if (p == null) {
         return defaultValue;
+      }
       defaultValue = defaultConfig.get(p);
     } catch (IllegalArgumentException e) {
       // ignore
@@ -844,8 +851,9 @@ public class Admin implements KeywordExecutable {
     } catch (Exception e) {
       throw new AccumuloException(e);
     } finally {
-      if (client != null)
+      if (client != null) {
         ThriftUtil.close(client, context);
+      }
     }
   }
 

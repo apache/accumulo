@@ -92,10 +92,11 @@ class MinorCompactionTask implements Runnable {
               break;
             } catch (IOException e) {
               // An IOException could have occurred while creating the new file
-              if (newFile == null)
+              if (newFile == null) {
                 log.warn("Failed to create new file for minor compaction {}", e.getMessage(), e);
-              else
+              } else {
                 log.warn("Failed to write to write ahead log {}", e.getMessage(), e);
+              }
 
             }
           }

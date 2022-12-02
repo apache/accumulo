@@ -42,10 +42,11 @@ public class MergeTest {
       Text start = null;
       for (Integer size : sizes) {
         Text end;
-        if (tablets.size() == sizes.length - 1)
+        if (tablets.size() == sizes.length - 1) {
           end = null;
-        else
+        } else {
           end = new Text(String.format("%05d", tablets.size()));
+        }
         KeyExtent extent = new KeyExtent(TableId.of("table"), end, start);
         start = end;
         tablets.add(new Size(extent, size));
@@ -72,13 +73,15 @@ public class MergeTest {
             Size candidate = impl.next();
             if (start != null) {
               if (candidate.extent.endRow() != null
-                  && candidate.extent.endRow().compareTo(start) < 0)
+                  && candidate.extent.endRow().compareTo(start) < 0) {
                 continue;
+              }
             }
             if (end != null) {
               if (candidate.extent.prevEndRow() != null
-                  && candidate.extent.prevEndRow().compareTo(end) >= 0)
+                  && candidate.extent.prevEndRow().compareTo(end) >= 0) {
                 continue;
+              }
             }
             return candidate;
           }

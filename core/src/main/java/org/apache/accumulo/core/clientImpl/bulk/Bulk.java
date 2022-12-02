@@ -138,10 +138,12 @@ public class Bulk {
 
     @Override
     public boolean equals(Object o) {
-      if (o == this)
+      if (o == this) {
         return true;
-      if (!(o instanceof FileInfo))
+      }
+      if (!(o instanceof FileInfo)) {
         return false;
+      }
       FileInfo other = (FileInfo) o;
       return this.name.equals(other.name) && this.estSize == other.estSize
           && this.estEntries == other.estEntries;
@@ -201,10 +203,12 @@ public class Bulk {
 
     @Override
     public boolean equals(Object o) {
-      if (o == this)
+      if (o == this) {
         return true;
-      if (!(o instanceof Files))
+      }
+      if (!(o instanceof Files)) {
         return false;
+      }
       Files other = (Files) o;
       return this.files.equals(other.files);
     }

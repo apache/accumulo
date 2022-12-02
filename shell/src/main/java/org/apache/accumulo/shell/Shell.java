@@ -261,14 +261,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    * Configures the shell using the provided options. Not for client use.
    *
    * @return true if the shell was successfully configured, false otherwise.
-   * @throws IOException
-   *           if problems occur creating the LineReader
+   * @throws IOException if problems occur creating the LineReader
    */
   public boolean config(String... args) throws IOException {
-    if (this.terminal == null)
+    if (this.terminal == null) {
       this.terminal = TerminalBuilder.builder().jansi(false).build();
-    if (this.reader == null)
+    }
+    if (this.reader == null) {
       this.reader = LineReaderBuilder.builder().terminal(this.terminal).build();
+    }
     this.writer = this.terminal.writer();
 
     ShellOptionsJC options = new ShellOptionsJC();
@@ -1210,8 +1211,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   /**
    * Return the formatter for the given table.
    *
-   * @param tableName
-   *          the table name
+   * @param tableName the table name
    * @return the formatter class for the given table
    */
   public Class<? extends Formatter> getFormatter(String tableName) {

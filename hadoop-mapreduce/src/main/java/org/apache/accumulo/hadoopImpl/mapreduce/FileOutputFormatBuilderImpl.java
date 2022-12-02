@@ -115,21 +115,28 @@ public class FileOutputFormatBuilderImpl<T> implements FileOutputFormatBuilder,
   }
 
   private void _store(Configuration conf) {
-    if (comp.isPresent())
+    if (comp.isPresent()) {
       FileOutputConfigurator.setCompressionType(callingClass, conf, comp.get());
-    if (dataBlockSize.isPresent())
+    }
+    if (dataBlockSize.isPresent()) {
       FileOutputConfigurator.setDataBlockSize(callingClass, conf, dataBlockSize.get());
-    if (fileBlockSize.isPresent())
+    }
+    if (fileBlockSize.isPresent()) {
       FileOutputConfigurator.setFileBlockSize(callingClass, conf, fileBlockSize.get());
-    if (indexBlockSize.isPresent())
+    }
+    if (indexBlockSize.isPresent()) {
       FileOutputConfigurator.setIndexBlockSize(callingClass, conf, indexBlockSize.get());
-    if (replication.isPresent())
+    }
+    if (replication.isPresent()) {
       FileOutputConfigurator.setReplication(callingClass, conf, replication.get());
-    if (sampler.isPresent())
+    }
+    if (sampler.isPresent()) {
       FileOutputConfigurator.setSampler(callingClass, conf, sampler.get());
-    if (!summarizers.isEmpty())
+    }
+    if (!summarizers.isEmpty()) {
       FileOutputConfigurator.setSummarizers(callingClass, conf,
           summarizers.toArray(new SummarizerConfiguration[0]));
+    }
   }
 
   private void store(JobConf job) {

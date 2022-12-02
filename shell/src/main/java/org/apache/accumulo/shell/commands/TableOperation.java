@@ -69,8 +69,9 @@ public abstract class TableOperation extends Command {
       tableSet.add(shellState.getTableName());
     }
 
-    if (tableSet.isEmpty())
+    if (tableSet.isEmpty()) {
       Shell.log.warn("No tables found that match your criteria");
+    }
 
     boolean more = true;
     // flush the tables
@@ -100,8 +101,7 @@ public abstract class TableOperation extends Command {
   /**
    * Allows implementation to remove certain tables from the set of tables to be operated on.
    *
-   * @param tables
-   *          A reference to the Set of tables to be operated on
+   * @param tables A reference to the Set of tables to be operated on
    */
   protected void pruneTables(Set<String> tables) {
     // Default no pruning
@@ -166,7 +166,8 @@ public abstract class TableOperation extends Command {
   @Override
   public void registerCompletion(final Token root,
       final Map<Command.CompletionSet,Set<String>> special) {
-    if (useCommandLine)
+    if (useCommandLine) {
       registerCompletionForTables(root, special);
+    }
   }
 }

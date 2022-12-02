@@ -102,16 +102,11 @@ public class ZooSession {
   }
 
   /**
-   * @param host
-   *          comma separated list of zk servers
-   * @param timeout
-   *          in milliseconds
-   * @param scheme
-   *          authentication type, e.g. 'digest', may be null
-   * @param auth
-   *          authentication-scheme-specific token, may be null
-   * @param watcher
-   *          ZK notifications, may be null
+   * @param host comma separated list of zk servers
+   * @param timeout in milliseconds
+   * @param scheme authentication type, e.g. 'digest', may be null
+   * @param auth authentication-scheme-specific token, may be null
+   * @param watcher ZK notifications, may be null
    */
   static ZooKeeper connect(String host, int timeout, String scheme, byte[] auth, Watcher watcher) {
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
@@ -128,11 +123,13 @@ public class ZooSession {
         // it may take some time to get connected to zookeeper if some of the servers are down
         for (int i = 0; i < connectTimeWait / TIME_BETWEEN_CONNECT_CHECKS_MS && tryAgain; i++) {
           if (zooKeeper.getState().equals(States.CONNECTED)) {
-            if (auth != null)
+            if (auth != null) {
               ZooUtil.auth(zooKeeper, scheme, auth);
+            }
             tryAgain = false;
-          } else
+          } else {
             UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
+          }
         }
 
       } catch (IOException e) {
@@ -146,13 +143,14 @@ public class ZooSession {
         log.warn("Connection to zooKeeper failed, will try again in "
             + String.format("%.2f secs", sleepTime / 1000.0), e);
       } finally {
-        if (tryAgain && zooKeeper != null)
+        if (tryAgain && zooKeeper != null) {
           try {
             zooKeeper.close();
             zooKeeper = null;
           } catch (InterruptedException e) {
             log.warn("interrupted", e);
           }
+        }
       }
 
       long stopTime = System.nanoTime();
@@ -164,15 +162,17 @@ public class ZooSession {
       }
 
       if (tryAgain) {
-        if (2L * timeout < duration + sleepTime + connectTimeWait)
+        if (2L * timeout < duration + sleepTime + connectTimeWait) {
           sleepTime = 2L * timeout - duration - connectTimeWait;
+        }
         if (sleepTime < 0) {
           connectTimeWait -= sleepTime;
           sleepTime = 0;
         }
         UtilWaitThread.sleep(sleepTime);
-        if (sleepTime < 10000)
+        if (sleepTime < 10000) {
           sleepTime = sleepTime + (long) (sleepTime * random.nextDouble());
+        }
       }
     }
 
@@ -191,10 +191,11 @@ public class ZooSession {
   private static synchronized ZooKeeper getSession(String zooKeepers, int timeout, String scheme,
       byte[] auth) {
 
-    if (sessions == null)
+    if (sessions == null) {
       throw new ZooSessionShutdownException(
           "The Accumulo singleton that that tracks zookeeper session is disabled.  This is likely "
               + "caused by all AccumuloClients being closed or garbage collected.");
+    }
 
     String sessionKey = sessionKey(zooKeepers, timeout, scheme, auth);
 
@@ -203,8 +204,9 @@ public class ZooSession {
     ZooSessionInfo zsi = sessions.get(sessionKey);
     if (zsi != null && zsi.zooKeeper.getState() == States.CLOSED) {
       log.debug("Removing closed ZooKeeper session to {}", zooKeepers);
-      if (auth != null && sessions.get(readOnlySessionKey) == zsi)
+      if (auth != null && sessions.get(readOnlySessionKey) == zsi) {
         sessions.remove(readOnlySessionKey);
+      }
       zsi = null;
       sessions.remove(sessionKey);
     }
@@ -214,8 +216,9 @@ public class ZooSession {
       log.debug("Connecting to {} with timeout {} with auth", zooKeepers, timeout);
       zsi = new ZooSessionInfo(connect(zooKeepers, timeout, scheme, auth, watcher));
       sessions.put(sessionKey, zsi);
-      if (auth != null && !sessions.containsKey(readOnlySessionKey))
+      if (auth != null && !sessions.containsKey(readOnlySessionKey)) {
         sessions.put(readOnlySessionKey, zsi);
+      }
     }
     return zsi.zooKeeper;
   }
@@ -225,15 +228,17 @@ public class ZooSession {
   }
 
   private static synchronized void enable() {
-    if (sessions != null)
+    if (sessions != null) {
       return;
+    }
 
     sessions = new HashMap<>();
   }
 
   private static synchronized void disable() {
-    if (sessions == null)
+    if (sessions == null) {
       return;
+    }
 
     for (ZooSessionInfo zsi : sessions.values()) {
       try {

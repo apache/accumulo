@@ -256,8 +256,9 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
         while (row.hasNext()) {
           Entry<Key,Value> entry = row.next();
           Key k = entry.getKey();
-          if (m == null)
+          if (m == null) {
             m = new Mutation(k.getRow());
+          }
 
           m.put(k.getColumnFamily(), k.getColumnQualifier(), k.getColumnVisibilityParsed(),
               k.getTimestamp(), entry.getValue());
@@ -267,9 +268,9 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       }
     }
 
-    // metadata should be stable with only 7 rows (1 replication + 2 for each table)
+    // metadata should be stable with only 6 rows (2 for each table)
     log.debug("Gathered {} rows to create copy {}", mutations.size(), copy);
-    assertEquals(7, mutations.size(), "Metadata should have 7 rows (1 repl + 2 for each table)");
+    assertEquals(6, mutations.size(), "Metadata should have 6 rows (2 for each table)");
     client.tableOperations().create(copy);
 
     try (BatchWriter writer = client.createBatchWriter(copy)) {

@@ -118,8 +118,9 @@ public interface ScanDispatcher {
 
   default ScanDispatch dispatch(DispatchParameters params) {
     String executor = dispatch((DispatchParmaters) params);
-    if (executor.equals(DefaultScanDispatch.DEFAULT_SCAN_DISPATCH.getExecutorName()))
+    if (executor.equals(DefaultScanDispatch.DEFAULT_SCAN_DISPATCH.getExecutorName())) {
       return DefaultScanDispatch.DEFAULT_SCAN_DISPATCH;
+    }
 
     return ScanDispatch.builder().setExecutorName(executor).build();
   }

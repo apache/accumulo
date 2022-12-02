@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.metrics;
 
 import java.lang.reflect.InvocationTargetException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -32,7 +31,6 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tag;
@@ -42,8 +40,6 @@ import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
-import io.micrometer.core.instrument.config.MeterFilter;
-import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
 
 public class MetricsUtil {
 
@@ -84,26 +80,12 @@ public class MetricsUtil {
       }
       commonTags = Collections.unmodifiableList(tags);
 
-      // Configure replication metrics to display percentiles and change its expiry to 10 mins
-      MeterFilter replicationFilter = new MeterFilter() {
-        @Override
-        public DistributionStatisticConfig configure(Meter.Id id,
-            DistributionStatisticConfig config) {
-          if (id.getName().equals("replicationQueue")) {
-            return DistributionStatisticConfig.builder().percentiles(0.5, 0.75, 0.9, 0.95, 0.99)
-                .expiry(Duration.ofMinutes(10)).build().merge(config);
-          }
-          return config;
-        }
-      };
-
       Class<? extends MeterRegistryFactory> clazz =
           ClassLoaderUtil.loadClass(factoryClass, MeterRegistryFactory.class);
       MeterRegistryFactory factory = clazz.getDeclaredConstructor().newInstance();
 
       MeterRegistry registry = factory.create();
       registry.config().commonTags(commonTags);
-      registry.config().meterFilter(replicationFilter);
       Metrics.addRegistry(registry);
 
       if (jvmMetricsEnabled) {

@@ -37,16 +37,11 @@ public class TabletServerDetailInformation {
   /**
    * Store new tserver details
    *
-   * @param hostedTablets
-   *          Number of hosted tablets
-   * @param entries
-   *          Number of entries
-   * @param minors
-   *          Number of minor compactions
-   * @param majors
-   *          Number of major compactions
-   * @param splits
-   *          Number of splits
+   * @param hostedTablets Number of hosted tablets
+   * @param entries Number of entries
+   * @param minors Number of minor compactions
+   * @param majors Number of major compactions
+   * @param splits Number of splits
    */
   public TabletServerDetailInformation(int hostedTablets, long entries, int minors, int majors,
       int splits) {

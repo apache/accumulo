@@ -39,8 +39,9 @@ public class BlockIndex implements Weighable {
       throws IOException {
 
     BlockIndex blockIndex = cacheBlock.getIndex(BlockIndex::new);
-    if (blockIndex == null)
+    if (blockIndex == null) {
       return null;
+    }
 
     int accessCount = blockIndex.accessCount.incrementAndGet();
 
@@ -50,8 +51,9 @@ public class BlockIndex implements Weighable {
       cacheBlock.indexWeightChanged();
     }
 
-    if (blockIndex.blockIndex != null)
+    if (blockIndex.blockIndex != null) {
       return blockIndex;
+    }
 
     return null;
   }
@@ -90,8 +92,9 @@ public class BlockIndex implements Weighable {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof BlockIndexEntry)
+      if (o instanceof BlockIndexEntry) {
         return compareTo((BlockIndexEntry) o) == 0;
+      }
       return false;
     }
 
@@ -126,34 +129,38 @@ public class BlockIndex implements Weighable {
     int index;
 
     if (pos < 0) {
-      if (pos == -1)
+      if (pos == -1) {
         return null; // less than the first key in index, did not index the first key in block so
-                     // just return null... code calling this will scan from beginning
-                     // of block
+      }
+      // just return null... code calling this will scan from beginning
+      // of block
       index = (pos * -1) - 2;
     } else {
       // found exact key in index
       index = pos;
       while (index > 0) {
-        if (blockIndex[index].getPrevKey().equals(startKey))
+        if (blockIndex[index].getPrevKey().equals(startKey)) {
           index--;
-        else
+        } else {
           break;
+        }
       }
     }
 
     // handle case where multiple keys in block are exactly the same, want to find the earliest key
     // in the index
     while (index - 1 > 0) {
-      if (blockIndex[index].getPrevKey().equals(blockIndex[index - 1].getPrevKey()))
+      if (blockIndex[index].getPrevKey().equals(blockIndex[index - 1].getPrevKey())) {
         index--;
-      else
+      } else {
         break;
+      }
 
     }
 
-    if (index == 0 && blockIndex[index].getPrevKey().equals(startKey))
+    if (index == 0 && blockIndex[index].getPrevKey().equals(startKey)) {
       return null;
+    }
 
     BlockIndexEntry bie = blockIndex[index];
     cacheBlock.seek(bie.pos);
@@ -169,13 +176,15 @@ public class BlockIndex implements Weighable {
 
     int interval = indexEntry.getNumEntries() / indexEntries;
 
-    if (interval <= 32)
+    if (interval <= 32) {
       return;
+    }
 
     // multiple threads could try to create the index with different sizes, do not replace a large
     // index with a smaller one
-    if (this.blockIndex != null && this.blockIndex.length > indexEntries - 1)
+    if (this.blockIndex != null && this.blockIndex.length > indexEntries - 1) {
       return;
+    }
 
     int count = 0;
 

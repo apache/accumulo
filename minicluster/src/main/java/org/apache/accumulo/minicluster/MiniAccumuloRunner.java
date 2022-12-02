@@ -150,8 +150,7 @@ public class MiniAccumuloRunner {
    * Runs the {@link MiniAccumuloCluster} given a -p argument with a property file. Establishes a
    * shutdown port for asynchronous operation.
    *
-   * @param args
-   *          An optional -p argument can be specified with the path to a valid properties file.
+   * @param args An optional -p argument can be specified with the path to a valid properties file.
    */
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "UNENCRYPTED_SERVER_SOCKET"},
       justification = "code runs in same security context as user who provided input file name; "
@@ -169,9 +168,9 @@ public class MiniAccumuloRunner {
 
     final File miniDir;
 
-    if (opts.prop.containsKey(DIRECTORY_PROP))
+    if (opts.prop.containsKey(DIRECTORY_PROP)) {
       miniDir = new File(opts.prop.getProperty(DIRECTORY_PROP));
-    else {
+    } else {
       miniDir = Files.createTempDirectory(System.currentTimeMillis() + "").toFile();
     }
 
@@ -180,41 +179,53 @@ public class MiniAccumuloRunner {
 
     MiniAccumuloConfig config = new MiniAccumuloConfig(miniDir, rootPass);
 
-    if (opts.prop.containsKey(INSTANCE_NAME_PROP))
+    if (opts.prop.containsKey(INSTANCE_NAME_PROP)) {
       config.setInstanceName(opts.prop.getProperty(INSTANCE_NAME_PROP));
-    if (opts.prop.containsKey(NUM_T_SERVERS_PROP))
+    }
+    if (opts.prop.containsKey(NUM_T_SERVERS_PROP)) {
       config.setNumTservers(Integer.parseInt(opts.prop.getProperty(NUM_T_SERVERS_PROP)));
-    if (opts.prop.containsKey(ZOO_KEEPER_PORT_PROP))
+    }
+    if (opts.prop.containsKey(ZOO_KEEPER_PORT_PROP)) {
       config.setZooKeeperPort(Integer.parseInt(opts.prop.getProperty(ZOO_KEEPER_PORT_PROP)));
-    if (opts.prop.containsKey(ZOO_KEEPER_STARTUP_TIME_PROP))
+    }
+    if (opts.prop.containsKey(ZOO_KEEPER_STARTUP_TIME_PROP)) {
       config.setZooKeeperStartupTime(
           Long.parseLong(opts.prop.getProperty(ZOO_KEEPER_STARTUP_TIME_PROP)));
-    if (opts.prop.containsKey(EXISTING_ZOO_KEEPERS_PROP))
+    }
+    if (opts.prop.containsKey(EXISTING_ZOO_KEEPERS_PROP)) {
       config.getImpl().setExistingZooKeepers(opts.prop.getProperty(EXISTING_ZOO_KEEPERS_PROP));
-    if (opts.prop.containsKey(JDWP_ENABLED_PROP))
+    }
+    if (opts.prop.containsKey(JDWP_ENABLED_PROP)) {
       config.setJDWPEnabled(Boolean.parseBoolean(opts.prop.getProperty(JDWP_ENABLED_PROP)));
-    if (opts.prop.containsKey(ZOO_KEEPER_MEMORY_PROP))
+    }
+    if (opts.prop.containsKey(ZOO_KEEPER_MEMORY_PROP)) {
       setMemoryOnConfig(config, opts.prop.getProperty(ZOO_KEEPER_MEMORY_PROP),
           ServerType.ZOOKEEPER);
-    if (opts.prop.containsKey(TSERVER_MEMORY_PROP))
+    }
+    if (opts.prop.containsKey(TSERVER_MEMORY_PROP)) {
       setMemoryOnConfig(config, opts.prop.getProperty(TSERVER_MEMORY_PROP),
           ServerType.TABLET_SERVER);
+    }
     if (opts.prop.containsKey(MASTER_MEMORY_PROP)) {
       log.warn("{} is deprecated. Use {} instead.", MASTER_MEMORY_PROP, MANAGER_MEMORY_PROP);
       setMemoryOnConfig(config, opts.prop.getProperty(MASTER_MEMORY_PROP), ServerType.MANAGER);
     }
-    if (opts.prop.containsKey(MANAGER_MEMORY_PROP))
+    if (opts.prop.containsKey(MANAGER_MEMORY_PROP)) {
       setMemoryOnConfig(config, opts.prop.getProperty(MANAGER_MEMORY_PROP), ServerType.MANAGER);
-    if (opts.prop.containsKey(DEFAULT_MEMORY_PROP))
+    }
+    if (opts.prop.containsKey(DEFAULT_MEMORY_PROP)) {
       setMemoryOnConfig(config, opts.prop.getProperty(DEFAULT_MEMORY_PROP));
-    if (opts.prop.containsKey(SHUTDOWN_PORT_PROP))
+    }
+    if (opts.prop.containsKey(SHUTDOWN_PORT_PROP)) {
       shutdownPort = Integer.parseInt(opts.prop.getProperty(SHUTDOWN_PORT_PROP));
+    }
 
     Map<String,String> siteConfig = new HashMap<>();
     for (Map.Entry<Object,Object> entry : opts.prop.entrySet()) {
       String key = (String) entry.getKey();
-      if (key.startsWith("site."))
+      if (key.startsWith("site.")) {
         siteConfig.put(key.replaceFirst("site.", ""), (String) entry.getValue());
+      }
     }
 
     config.setSiteConfig(siteConfig);
@@ -260,8 +271,9 @@ public class MiniAccumuloRunner {
     MemoryUnit[] units = MemoryUnit.values();
     for (int i = 0; i < units.length; i++) {
       unitsRegex += units[i].suffix();
-      if (i < units.length - 1)
+      if (i < units.length - 1) {
         unitsRegex += "|";
+      }
     }
     unitsRegex += "]";
     Pattern p = Pattern.compile("\\d+" + unitsRegex);
@@ -274,16 +286,18 @@ public class MiniAccumuloRunner {
 
   private static void setMemoryOnConfig(MiniAccumuloConfig config, String memoryString,
       ServerType serverType) {
-    if (!validateMemoryString(memoryString))
+    if (!validateMemoryString(memoryString)) {
       throw new IllegalArgumentException(memoryString + " is not a valid memory string");
+    }
 
     long memSize = Long.parseLong(memoryString.substring(0, memoryString.length() - 1));
     MemoryUnit memUnit = MemoryUnit.fromSuffix(memoryString.substring(memoryString.length() - 1));
 
-    if (serverType != null)
+    if (serverType != null) {
       config.setMemory(serverType, memSize, memUnit);
-    else
+    } else {
       config.setDefaultMemory(memSize, memUnit);
+    }
   }
 
   private static void printInfo(MiniAccumuloCluster accumulo, int shutdownPort) {

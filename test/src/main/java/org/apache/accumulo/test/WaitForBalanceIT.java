@@ -93,8 +93,9 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
               offline++;
             } else {
               Integer count = counts.get(location);
-              if (count == null)
+              if (count == null) {
                 count = 0;
+              }
               count = count + 1;
               counts.put(location, count);
             }
@@ -103,8 +104,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
         }
       }
     }
-    // the replication table is expected to be offline for this test, so ignore it
-    if (offline > 1) {
+    if (offline > 0) {
       System.out.println("Offline tablets " + offline);
       return false;
     }

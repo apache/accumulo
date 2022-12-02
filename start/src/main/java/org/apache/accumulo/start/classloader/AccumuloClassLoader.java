@@ -63,20 +63,20 @@ public class AccumuloClassLoader {
       }
     } else {
       accumuloConfigUrl = AccumuloClassLoader.class.getClassLoader().getResource(configFile);
-      if (accumuloConfigUrl == null)
+      if (accumuloConfigUrl == null) {
         log.warn("Failed to load Accumulo configuration '{}' from classpath", configFile);
+      }
     }
-    if (accumuloConfigUrl != null)
+    if (accumuloConfigUrl != null) {
       log.debug("Using Accumulo configuration at {}", accumuloConfigUrl.getFile());
+    }
   }
 
   /**
    * Returns value of property in accumulo.properties file, otherwise default value
    *
-   * @param propertyName
-   *          Name of the property to pull
-   * @param defaultValue
-   *          Value to default to if not found.
+   * @param propertyName Name of the property to pull
+   * @param defaultValue Value to default to if not found.
    * @return value of property or default
    */
   @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
@@ -94,8 +94,9 @@ public class AccumuloClassLoader {
         config.read(reader);
       }
       String value = config.getString(propertyName);
-      if (value != null)
+      if (value != null) {
         return value;
+      }
       return defaultValue;
     } catch (Exception e) {
       throw new IllegalStateException(
@@ -130,8 +131,9 @@ public class AccumuloClassLoader {
       justification = "class path configuration is controlled by admin, not unchecked user input")
   private static void addUrl(String classpath, ArrayList<URL> urls) throws MalformedURLException {
     classpath = classpath.trim();
-    if (classpath.isEmpty())
+    if (classpath.isEmpty()) {
       return;
+    }
 
     classpath = replaceEnvVars(classpath, System.getenv());
 
@@ -149,16 +151,17 @@ public class AccumuloClassLoader {
       // This checks to see if the url string is a dir if it expand and get all jars in that
       // directory
       final File extDir = new File(classpath);
-      if (extDir.isDirectory())
+      if (extDir.isDirectory()) {
         urls.add(extDir.toURI().toURL());
-      else {
+      } else {
         if (extDir.getParentFile() != null) {
           var pattern = Pattern.compile(extDir.getName());
           File[] extJars =
               extDir.getParentFile().listFiles((dir, name) -> pattern.matcher(name).matches());
           if (extJars != null && extJars.length > 0) {
-            for (File jar : extJars)
+            for (File jar : extJars) {
               urls.add(jar.toURI().toURL());
+            }
           } else {
             log.debug("ignoring classpath entry {}", classpath);
           }
@@ -174,8 +177,9 @@ public class AccumuloClassLoader {
 
   private static ArrayList<URL> findAccumuloURLs() throws IOException {
     String cp = getAccumuloProperty(GENERAL_CLASSPATHS, null);
-    if (cp == null)
+    if (cp == null) {
       return new ArrayList<>();
+    }
     log.warn("'{}' is deprecated but was set to '{}' ", GENERAL_CLASSPATHS, cp);
     String[] cps = replaceEnvVars(cp, System.getenv()).split(",");
     ArrayList<URL> urls = new ArrayList<>();

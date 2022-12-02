@@ -110,11 +110,13 @@ class ChooseDir extends ManagerRepo {
       throws IOException {
     Path p = tableInfo.getSplitDirsPath();
     FileSystem fs = p.getFileSystem(manager.getContext().getHadoopConf());
-    if (fs.exists(p))
+    if (fs.exists(p)) {
       fs.delete(p, true);
+    }
     try (FSDataOutputStream stream = fs.create(p)) {
-      for (Text dir : dirs)
+      for (Text dir : dirs) {
         stream.write((dir + "\n").getBytes(UTF_8));
+      }
     }
   }
 

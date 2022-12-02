@@ -75,11 +75,9 @@ public interface ReadOnlyTStore<T> {
    * upon successful return the store now controls the referenced transaction id. caller should no
    * longer interact with it.
    *
-   * @param tid
-   *          transaction id, previously reserved.
-   * @param deferTime
-   *          time in millis to keep this transaction out of the pool used in the {@link #reserve()
-   *          reserve} method. must be non-negative.
+   * @param tid transaction id, previously reserved.
+   * @param deferTime time in millis to keep this transaction out of the pool used in the
+   *        {@link #reserve() reserve} method. must be non-negative.
    */
   void unreserve(long tid, long deferTime);
 
@@ -88,8 +86,7 @@ public interface ReadOnlyTStore<T> {
    *
    * Caller must have already reserved tid.
    *
-   * @param tid
-   *          transaction id, previously reserved.
+   * @param tid transaction id, previously reserved.
    * @return a read-only view of the operation
    */
   ReadOnlyRepo<T> top(long tid);
@@ -105,8 +102,7 @@ public interface ReadOnlyTStore<T> {
    *
    * Caller must have already reserved tid.
    *
-   * @param tid
-   *          transaction id, previously reserved.
+   * @param tid transaction id, previously reserved.
    * @return execution status
    */
   TStatus getStatus(long tid);
@@ -114,10 +110,9 @@ public interface ReadOnlyTStore<T> {
   /**
    * Wait for the status of a transaction to change
    *
-   * @param tid
-   *          transaction id, need not have been reserved.
-   * @param expected
-   *          a set of possible statuses we are interested in being notified about. may not be null.
+   * @param tid transaction id, need not have been reserved.
+   * @param expected a set of possible statuses we are interested in being notified about. may not
+   *        be null.
    * @return execution status.
    */
   TStatus waitForStatusChange(long tid, EnumSet<TStatus> expected);
@@ -127,10 +122,8 @@ public interface ReadOnlyTStore<T> {
    *
    * Caller must have already reserved tid.
    *
-   * @param tid
-   *          transaction id, previously reserved.
-   * @param txInfo
-   *          name of attribute of a transaction to retrieve.
+   * @param tid transaction id, previously reserved.
+   * @param txInfo name of attribute of a transaction to retrieve.
    */
   Serializable getTransactionInfo(long tid, Fate.TxInfo txInfo);
 
@@ -144,8 +137,7 @@ public interface ReadOnlyTStore<T> {
   /**
    * Retrieve the creation time of a FaTE transaction.
    *
-   * @param tid
-   *          Transaction id, previously reserved.
+   * @param tid Transaction id, previously reserved.
    * @return creation time of transaction.
    */
   long timeCreated(long tid);

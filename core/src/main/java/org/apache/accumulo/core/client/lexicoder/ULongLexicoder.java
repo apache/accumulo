@@ -34,8 +34,9 @@ public class ULongLexicoder extends AbstractLexicoder<Long> {
     int prefix = l < 0 ? 0xff : 0x00;
 
     for (index = 0; index < 8; index++) {
-      if (((l >>> shift) & 0xff) != prefix)
+      if (((l >>> shift) & 0xff) != prefix) {
         break;
+      }
 
       shift -= 8;
     }
@@ -47,8 +48,9 @@ public class ULongLexicoder extends AbstractLexicoder<Long> {
       shift -= 8;
     }
 
-    if (l < 0)
+    if (l < 0) {
       ret[0] = (byte) (16 - ret[0]);
+    }
 
     return ret;
 
@@ -60,8 +62,9 @@ public class ULongLexicoder extends AbstractLexicoder<Long> {
     long l = 0;
     int shift = 0;
 
-    if (data[offset] < 0 || data[offset] > 16)
+    if (data[offset] < 0 || data[offset] > 16) {
       throw new IllegalArgumentException("Unexpected length " + (0xff & data[offset]));
+    }
 
     for (int i = (offset + len) - 1; i >= offset + 1; i--) {
       l += (data[i] & 0xffL) << shift;
@@ -69,8 +72,9 @@ public class ULongLexicoder extends AbstractLexicoder<Long> {
     }
 
     // fill in 0xff prefix
-    if (data[offset] > 8)
+    if (data[offset] > 8) {
       l |= -1L << ((16 - data[offset]) << 3);
+    }
 
     return l;
   }

@@ -53,8 +53,9 @@ public class PreparedMutations {
     this.nonViolators = Objects.requireNonNull(nonViolators);
     this.violators = Objects.requireNonNull(violators);
     this.violations = Objects.requireNonNull(violations);
-    if (cs == null)
+    if (cs == null) {
       Preconditions.checkArgument(nonViolators.isEmpty());
+    }
     this.commitSession = cs;
   }
 

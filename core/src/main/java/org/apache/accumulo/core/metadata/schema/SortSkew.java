@@ -38,8 +38,7 @@ public class SortSkew {
    * Creates a left justified hex string for the path hashcode of a deterministic length, therefore
    * if necessary it is right padded with zeros
    *
-   * @param keypart
-   *          value to be coded
+   * @param keypart value to be coded
    * @return coded value of keypart
    */
   public static String getCode(String keypart) {

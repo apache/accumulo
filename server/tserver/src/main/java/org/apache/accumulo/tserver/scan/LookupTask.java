@@ -65,11 +65,13 @@ public class LookupTask extends ScanTask<MultiScanResult> {
     String oldThreadName = Thread.currentThread().getName();
 
     try {
-      if (isCancelled() || session == null)
+      if (isCancelled() || session == null) {
         return;
+      }
 
-      if (!transitionToRunning())
+      if (!transitionToRunning()) {
         return;
+      }
 
       TableConfiguration acuTableConf = server.getTableConfiguration(session.threadPoolExtent);
       long maxResultsSize = acuTableConf.getAsBytes(Property.TABLE_SCAN_MAXMEM);
@@ -116,8 +118,9 @@ public class LookupTask extends ScanTask<MultiScanResult> {
 
           // do the following check to avoid a race condition between setting false below and the
           // task being canceled
-          if (isCancelled())
+          if (isCancelled()) {
             interruptFlag.set(true);
+          }
 
           // Create new List here to collect the results from this Tablet.lookup() call
           // Ensures that the yield code in Tablet can only compare a yield position

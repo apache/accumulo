@@ -34,8 +34,7 @@ public interface ClusterUsers {
   /**
    * Get an unprivileged user. Multiple are created
    *
-   * @param offset
-   *          the user to return
+   * @param offset the user to return
    * @return the user denoted by the given offset
    */
   ClusterUser getUser(int offset);

@@ -36,20 +36,13 @@ public class ColumnUpdate {
   /**
    * Creates a new column update.
    *
-   * @param cf
-   *          column family
-   * @param cq
-   *          column qualifier
-   * @param cv
-   *          column visibility
-   * @param hasts
-   *          true if the update specifies a timestamp
-   * @param ts
-   *          timestamp
-   * @param deleted
-   *          delete marker
-   * @param val
-   *          cell value
+   * @param cf column family
+   * @param cq column qualifier
+   * @param cv column visibility
+   * @param hasts true if the update specifies a timestamp
+   * @param ts timestamp
+   * @param deleted delete marker
+   * @param val cell value
    */
   public ColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted,
       byte[] val) {
@@ -134,8 +127,9 @@ public class ColumnUpdate {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof ColumnUpdate))
+    if (!(obj instanceof ColumnUpdate)) {
       return false;
+    }
     ColumnUpdate upd = (ColumnUpdate) obj;
     return Arrays.equals(getColumnFamily(), upd.getColumnFamily())
         && Arrays.equals(getColumnQualifier(), upd.getColumnQualifier())

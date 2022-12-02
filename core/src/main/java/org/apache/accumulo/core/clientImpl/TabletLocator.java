@@ -97,8 +97,9 @@ public abstract class TabletLocator {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof LocatorKey)
+      if (o instanceof LocatorKey) {
         return equals((LocatorKey) o);
+      }
       return false;
     }
 
@@ -236,8 +237,9 @@ public abstract class TabletLocator {
       int result = tablet_extent.compareTo(o.tablet_extent);
       if (result == 0) {
         result = tablet_location.compareTo(o.tablet_location);
-        if (result == 0)
+        if (result == 0) {
           result = tablet_session.compareTo(o.tablet_session);
+        }
       }
       return result;
     }

@@ -105,8 +105,9 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
 
   private void setEncoder(Map<String,String> options) {
     String type = options.get(TYPE);
-    if (type == null)
+    if (type == null) {
       throw new IllegalArgumentException("no type specified");
+    }
     if (type.startsWith(CLASS_PREFIX)) {
       setEncoder(type.substring(CLASS_PREFIX.length()));
       testEncoder(Arrays.asList(0L, 1L));
@@ -140,8 +141,9 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    if (!super.validateOptions(options))
+    if (!super.validateOptions(options)) {
       return false;
+    }
     try {
       setEncoder(options);
     } catch (Exception e) {
@@ -220,8 +222,9 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   public static class StringArrayEncoder extends AbstractEncoder<List<Long>> {
     @Override
     public byte[] encode(List<Long> la) {
-      if (la.isEmpty())
+      if (la.isEmpty()) {
         return new byte[] {};
+      }
       StringBuilder sb = new StringBuilder(Long.toString(la.get(0)));
       for (int i = 1; i < la.size(); i++) {
         sb.append(",");
@@ -242,14 +245,15 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       String[] longstrs = new String(b, offset, len, UTF_8).split(",");
       List<Long> la = new ArrayList<>(longstrs.length);
       for (String s : longstrs) {
-        if (s.isEmpty())
+        if (s.isEmpty()) {
           la.add(0L);
-        else
+        } else {
           try {
             la.add(Long.parseLong(s));
           } catch (NumberFormatException nfe) {
             throw new ValueFormatException(nfe);
           }
+        }
       }
       return la;
     }
@@ -258,10 +262,8 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   /**
    * A convenience method for setting the encoding type.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param type
-   *          SummingArrayCombiner.Type specifying the encoding type.
+   * @param is IteratorSetting object to configure.
+   * @param type SummingArrayCombiner.Type specifying the encoding type.
    */
   public static void setEncodingType(IteratorSetting is, Type type) {
     is.addOption(TYPE, type.toString());
@@ -270,10 +272,8 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   /**
    * A convenience method for setting the encoding type.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param encoderClass
-   *          {@code Class<? extends Encoder<List<Long>>>} specifying the encoding type.
+   * @param is IteratorSetting object to configure.
+   * @param encoderClass {@code Class<? extends Encoder<List<Long>>>} specifying the encoding type.
    */
   public static void setEncodingType(IteratorSetting is,
       Class<? extends Encoder<List<Long>>> encoderClass) {
@@ -283,10 +283,8 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   /**
    * A convenience method for setting the encoding type.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param encoderClassName
-   *          name of a class specifying the encoding type.
+   * @param is IteratorSetting object to configure.
+   * @param encoderClassName name of a class specifying the encoding type.
    */
   public static void setEncodingType(IteratorSetting is, String encoderClassName) {
     is.addOption(TYPE, CLASS_PREFIX + encoderClassName);

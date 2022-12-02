@@ -33,9 +33,10 @@ public class AddressUtil {
       throws NumberFormatException {
     address = address.replace('+', ':');
     HostAndPort hap = HostAndPort.fromString(address);
-    if (!ignoreMissingPort && !hap.hasPort())
+    if (!ignoreMissingPort && !hap.hasPort()) {
       throw new IllegalArgumentException(
           "Address was expected to contain port. address=" + address);
+    }
 
     return hap;
   }
@@ -49,12 +50,11 @@ public class AddressUtil {
    * security property 'networkaddress.cache.negative.ttl'. Should that fail returns the default
    * value used in the Oracle JVM 1.4+, which is 10 seconds.
    *
-   * @param originalException
-   *          the host lookup that is the source of needing this lookup. maybe be null.
+   * @param originalException the host lookup that is the source of needing this lookup. maybe be
+   *        null.
    * @return positive integer number of seconds
    * @see InetAddress
-   * @throws IllegalArgumentException
-   *           if dns failures are cached forever
+   * @throws IllegalArgumentException if dns failures are cached forever
    */
   public static int getAddressCacheNegativeTtl(UnknownHostException originalException) {
     int negativeTtl = 10;

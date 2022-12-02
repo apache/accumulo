@@ -173,15 +173,17 @@ public class SamplerConfigurationImpl implements Writable {
   }
 
   public static TSamplerConfiguration toThrift(SamplerConfiguration samplerConfig) {
-    if (samplerConfig == null)
+    if (samplerConfig == null) {
       return null;
+    }
     return new TSamplerConfiguration(samplerConfig.getSamplerClassName(),
         samplerConfig.getOptions());
   }
 
   public static SamplerConfiguration fromThrift(TSamplerConfiguration tsc) {
-    if (tsc == null)
+    if (tsc == null) {
       return null;
+    }
     return new SamplerConfiguration(tsc.getClassName()).setOptions(tsc.getOptions());
   }
 

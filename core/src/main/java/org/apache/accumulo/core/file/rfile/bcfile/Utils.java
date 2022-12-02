@@ -40,10 +40,8 @@ public final class Utils {
    * Encoding an integer into a variable-length encoding format. Synonymous to
    * <code>Utils#writeVLong(out, n)</code>.
    *
-   * @param out
-   *          output stream
-   * @param n
-   *          The integer to be encoded
+   * @param out output stream
+   * @param n The integer to be encoded
    * @see Utils#writeVLong(DataOutput, long)
    */
   public static void writeVInt(DataOutput out, int n) throws IOException {
@@ -79,10 +77,8 @@ public final class Utils {
    * byte[7]=(n&gt;&gt;8)&amp;0xff; byte[8]=n&amp;0xff;
    * </ul>
    *
-   * @param out
-   *          output stream
-   * @param n
-   *          the integer number
+   * @param out output stream
+   * @param n the integer number
    */
   @SuppressWarnings("fallthrough")
   public static void writeVLong(DataOutput out, long n) throws IOException {
@@ -153,8 +149,7 @@ public final class Utils {
   /**
    * Decoding the variable-length integer. Synonymous to <code>(int)Utils#readVLong(in)</code>.
    *
-   * @param in
-   *          input stream
+   * @param in input stream
    * @return the decoded integer
    *
    * @see Utils#readVLong(DataInput)
@@ -180,8 +175,7 @@ public final class Utils {
    * <li>if (FB in [-128, -121]), return interpret NB[FB+129] as a signed big-endian integer.
    * </ul>
    *
-   * @param in
-   *          input stream
+   * @param in input stream
    * @return the decoded long integer.
    */
 
@@ -246,14 +240,14 @@ public final class Utils {
   /**
    * Read a String as a VInt n, followed by n Bytes in Text format.
    *
-   * @param in
-   *          The input stream.
+   * @param in The input stream.
    * @return The string
    */
   public static String readString(DataInput in) throws IOException {
     int length = readVInt(in);
-    if (length == -1)
+    if (length == -1) {
       return null;
+    }
     byte[] buffer = new byte[length];
     in.readFully(buffer);
     return Text.decode(buffer);
@@ -274,8 +268,7 @@ public final class Utils {
     /**
      * Construct the Version object by reading from the input stream.
      *
-     * @param in
-     *          input stream
+     * @param in input stream
      */
     public Version(DataInput in) throws IOException {
       major = in.readShort();
@@ -285,10 +278,8 @@ public final class Utils {
     /**
      * Constructor.
      *
-     * @param major
-     *          major version.
-     * @param minor
-     *          minor version.
+     * @param major major version.
+     * @param minor minor version.
      */
     public Version(short major, short minor) {
       this.major = major;
@@ -299,8 +290,7 @@ public final class Utils {
      * Write the object to a DataOutput. The serialized format of the Version is major version
      * followed by minor version, both as big-endian short integers.
      *
-     * @param out
-     *          The DataOutput object.
+     * @param out The DataOutput object.
      */
     public void write(DataOutput out) throws IOException {
       out.writeShort(major);
@@ -324,8 +314,7 @@ public final class Utils {
     /**
      * Test compatibility.
      *
-     * @param other
-     *          The Version object to test compatibility with.
+     * @param other The Version object to test compatibility with.
      * @return true if both versions have the same major version number; false otherwise.
      */
     public boolean compatibleWith(Version other) {
@@ -342,10 +331,12 @@ public final class Utils {
 
     @Override
     public boolean equals(Object other) {
-      if (this == other)
+      if (this == other) {
         return true;
-      if (!(other instanceof Version))
+      }
+      if (!(other instanceof Version)) {
         return false;
+      }
       return compareTo((Version) other) == 0;
     }
 

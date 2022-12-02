@@ -34,8 +34,7 @@ public class TableInformationList {
   /**
    * Adds a new table to the list
    *
-   * @param table
-   *          Table information to add
+   * @param table Table information to add
    */
   public void addTable(TableInformation table) {
     this.table.add(table);

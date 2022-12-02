@@ -116,10 +116,12 @@ public class PartitionerTest {
 
   private Set<Key> toKeySet(Mutation... expected) {
     HashSet<Key> ret = new HashSet<>();
-    for (Mutation mutation : expected)
-      for (ColumnUpdate cu : mutation.getUpdates())
+    for (Mutation mutation : expected) {
+      for (ColumnUpdate cu : mutation.getUpdates()) {
         ret.add(new Key(mutation.getRow(), cu.getColumnFamily(), cu.getColumnQualifier(),
             cu.getColumnVisibility(), cu.getTimestamp()));
+      }
+    }
 
     return ret;
   }

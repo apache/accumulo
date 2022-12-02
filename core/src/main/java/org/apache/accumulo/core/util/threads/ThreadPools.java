@@ -85,27 +85,24 @@ public class ThreadPools {
   private static final ConcurrentLinkedQueue<ScheduledFuture<?>> NON_CRITICAL_RUNNING_TASKS =
       new ConcurrentLinkedQueue<>();
 
-  private static Runnable TASK_CHECKER = new Runnable() {
-    @Override
-    public void run() {
-      final List<ConcurrentLinkedQueue<ScheduledFuture<?>>> queues =
-          List.of(CRITICAL_RUNNING_TASKS, NON_CRITICAL_RUNNING_TASKS);
-      while (true) {
-        queues.forEach(q -> {
-          Iterator<ScheduledFuture<?>> tasks = q.iterator();
-          while (tasks.hasNext()) {
-            if (checkTaskFailed(tasks.next(), q)) {
-              tasks.remove();
-            }
+  private static Runnable TASK_CHECKER = () -> {
+    final List<ConcurrentLinkedQueue<ScheduledFuture<?>>> queues =
+        List.of(CRITICAL_RUNNING_TASKS, NON_CRITICAL_RUNNING_TASKS);
+    while (true) {
+      queues.forEach(q -> {
+        Iterator<ScheduledFuture<?>> tasks = q.iterator();
+        while (tasks.hasNext()) {
+          if (checkTaskFailed(tasks.next(), q)) {
+            tasks.remove();
           }
-        });
-        try {
-          TimeUnit.MINUTES.sleep(1);
-        } catch (InterruptedException ie) {
-          // This thread was interrupted by something while sleeping. We don't want to exit
-          // this thread, so reset the interrupt state on this thread and keep going.
-          Thread.interrupted();
         }
+      });
+      try {
+        TimeUnit.MINUTES.sleep(1);
+      } catch (InterruptedException ie) {
+        // This thread was interrupted by something while sleeping. We don't want to exit
+        // this thread, so reset the interrupt state on this thread and keep going.
+        Thread.interrupted();
       }
     }
   };
@@ -113,10 +110,8 @@ public class ThreadPools {
   /**
    * Checks to see if a ScheduledFuture has exited successfully or thrown an error
    *
-   * @param future
-   *          scheduled future to check
-   * @param taskQueue
-   *          the running task queue from which the future came
+   * @param future scheduled future to check
+   * @param taskQueue the running task queue from which the future came
    * @return true if the future should be removed
    */
   private static boolean checkTaskFailed(ScheduledFuture<?> future,
@@ -192,12 +187,9 @@ public class ThreadPools {
   /**
    * Resize ThreadPoolExecutor based on current value of maxThreads
    *
-   * @param pool
-   *          the ThreadPoolExecutor to modify
-   * @param maxThreads
-   *          supplier of maxThreads value
-   * @param poolName
-   *          name of the thread pool
+   * @param pool the ThreadPoolExecutor to modify
+   * @param maxThreads supplier of maxThreads value
+   * @param poolName name of the thread pool
    */
   public static void resizePool(final ThreadPoolExecutor pool, final IntSupplier maxThreads,
       String poolName) {
@@ -222,12 +214,9 @@ public class ThreadPools {
   /**
    * Resize ThreadPoolExecutor based on current value of Property p
    *
-   * @param pool
-   *          the ThreadPoolExecutor to modify
-   * @param conf
-   *          the AccumuloConfiguration
-   * @param p
-   *          the property to base the size from
+   * @param pool the ThreadPoolExecutor to modify
+   * @param conf the AccumuloConfiguration
+   * @param p the property to base the size from
    */
   public static void resizePool(final ThreadPoolExecutor pool, final AccumuloConfiguration conf,
       final Property p) {
@@ -243,20 +232,16 @@ public class ThreadPools {
   /**
    * Create a thread pool based on a thread pool related property
    *
-   * @param conf
-   *          accumulo configuration
-   * @param p
-   *          thread pool related property
-   * @param emitThreadPoolMetrics
-   *          When set to true will emit metrics and register the metrics in a static registry.
-   *          After the thread pool is deleted, there will still be metrics objects related to it in
-   *          the static registry. There is no way to clean these left over objects up therefore its
-   *          recommended that this option only be set true for long lived thread pools. Creating
-   *          lots of short lived thread pools and registering them can lead to out of memory errors
-   *          over long time periods.
+   * @param conf accumulo configuration
+   * @param p thread pool related property
+   * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
+   *        static registry. After the thread pool is deleted, there will still be metrics objects
+   *        related to it in the static registry. There is no way to clean these left over objects
+   *        up therefore its recommended that this option only be set true for long lived thread
+   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
+   *        memory errors over long time periods.
    * @return ExecutorService impl
-   * @throws RuntimeException
-   *           if property is not handled
+   * @throws RuntimeException if property is not handled
    */
   @SuppressWarnings("deprecation")
   public ThreadPoolExecutor createExecutorService(final AccumuloConfiguration conf,
@@ -308,8 +293,6 @@ public class ThreadPools {
             "summary partition", emitThreadPoolMetrics);
       case GC_DELETE_THREADS:
         return createFixedThreadPool(conf.getCount(p), "deleting", emitThreadPoolMetrics);
-      case REPLICATION_WORKER_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "replication task", emitThreadPoolMetrics);
       default:
         throw new RuntimeException("Unhandled thread pool property: " + p);
     }
@@ -318,17 +301,14 @@ public class ThreadPools {
   /**
    * Create a named thread pool
    *
-   * @param numThreads
-   *          number of threads
-   * @param name
-   *          thread pool name
-   * @param emitThreadPoolMetrics
-   *          When set to true will emit metrics and register the metrics in a static registry.
-   *          After the thread pool is deleted, there will still be metrics objects related to it in
-   *          the static registry. There is no way to clean these left over objects up therefore its
-   *          recommended that this option only be set true for long lived thread pools. Creating
-   *          lots of short lived thread pools and registering them can lead to out of memory errors
-   *          over long time periods.
+   * @param numThreads number of threads
+   * @param name thread pool name
+   * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
+   *        static registry. After the thread pool is deleted, there will still be metrics objects
+   *        related to it in the static registry. There is no way to clean these left over objects
+   *        up therefore its recommended that this option only be set true for long lived thread
+   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
+   *        memory errors over long time periods.
    * @return ThreadPoolExecutor
    */
   public ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
@@ -340,19 +320,15 @@ public class ThreadPools {
   /**
    * Create a named thread pool
    *
-   * @param numThreads
-   *          number of threads
-   * @param name
-   *          thread pool name
-   * @param queue
-   *          queue to use for tasks
-   * @param emitThreadPoolMetrics
-   *          When set to true will emit metrics and register the metrics in a static registry.
-   *          After the thread pool is deleted, there will still be metrics objects related to it in
-   *          the static registry. There is no way to clean these left over objects up therefore its
-   *          recommended that this option only be set true for long lived thread pools. Creating
-   *          lots of short lived thread pools and registering them can lead to out of memory errors
-   *          over long time periods.
+   * @param numThreads number of threads
+   * @param name thread pool name
+   * @param queue queue to use for tasks
+   * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
+   *        static registry. After the thread pool is deleted, there will still be metrics objects
+   *        related to it in the static registry. There is no way to clean these left over objects
+   *        up therefore its recommended that this option only be set true for long lived thread
+   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
+   *        memory errors over long time periods.
    * @return ThreadPoolExecutor
    */
   public ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
@@ -364,21 +340,16 @@ public class ThreadPools {
   /**
    * Create a named thread pool
    *
-   * @param numThreads
-   *          number of threads
-   * @param timeOut
-   *          core thread time out
-   * @param units
-   *          core thread time out units
-   * @param name
-   *          thread pool name
-   * @param emitThreadPoolMetrics
-   *          When set to true will emit metrics and register the metrics in a static registry.
-   *          After the thread pool is deleted, there will still be metrics objects related to it in
-   *          the static registry. There is no way to clean these left over objects up therefore its
-   *          recommended that this option only be set true for long lived thread pools. Creating
-   *          lots of short lived thread pools and registering them can lead to out of memory errors
-   *          over long time periods.
+   * @param numThreads number of threads
+   * @param timeOut core thread time out
+   * @param units core thread time out units
+   * @param name thread pool name
+   * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
+   *        static registry. After the thread pool is deleted, there will still be metrics objects
+   *        related to it in the static registry. There is no way to clean these left over objects
+   *        up therefore its recommended that this option only be set true for long lived thread
+   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
+   *        memory errors over long time periods.
    * @return ThreadPoolExecutor
    */
   public ThreadPoolExecutor createFixedThreadPool(int numThreads, long timeOut, TimeUnit units,
@@ -389,23 +360,17 @@ public class ThreadPools {
   /**
    * Create a named thread pool
    *
-   * @param coreThreads
-   *          number of threads
-   * @param maxThreads
-   *          max number of threads
-   * @param timeOut
-   *          core thread time out
-   * @param units
-   *          core thread time out units
-   * @param name
-   *          thread pool name
-   * @param emitThreadPoolMetrics
-   *          When set to true will emit metrics and register the metrics in a static registry.
-   *          After the thread pool is deleted, there will still be metrics objects related to it in
-   *          the static registry. There is no way to clean these left over objects up therefore its
-   *          recommended that this option only be set true for long lived thread pools. Creating
-   *          lots of short lived thread pools and registering them can lead to out of memory errors
-   *          over long time periods.
+   * @param coreThreads number of threads
+   * @param maxThreads max number of threads
+   * @param timeOut core thread time out
+   * @param units core thread time out units
+   * @param name thread pool name
+   * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
+   *        static registry. After the thread pool is deleted, there will still be metrics objects
+   *        related to it in the static registry. There is no way to clean these left over objects
+   *        up therefore its recommended that this option only be set true for long lived thread
+   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
+   *        memory errors over long time periods.
    * @return ThreadPoolExecutor
    */
   public ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
@@ -417,25 +382,18 @@ public class ThreadPools {
   /**
    * Create a named thread pool
    *
-   * @param coreThreads
-   *          number of threads
-   * @param maxThreads
-   *          max number of threads
-   * @param timeOut
-   *          core thread time out
-   * @param units
-   *          core thread time out units
-   * @param name
-   *          thread pool name
-   * @param queue
-   *          queue to use for tasks
-   * @param emitThreadPoolMetrics
-   *          When set to true will emit metrics and register the metrics in a static registry.
-   *          After the thread pool is deleted, there will still be metrics objects related to it in
-   *          the static registry. There is no way to clean these left over objects up therefore its
-   *          recommended that this option only be set true for long lived thread pools. Creating
-   *          lots of short lived thread pools and registering them can lead to out of memory errors
-   *          over long time periods.
+   * @param coreThreads number of threads
+   * @param maxThreads max number of threads
+   * @param timeOut core thread time out
+   * @param units core thread time out units
+   * @param name thread pool name
+   * @param queue queue to use for tasks
+   * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
+   *        static registry. After the thread pool is deleted, there will still be metrics objects
+   *        related to it in the static registry. There is no way to clean these left over objects
+   *        up therefore its recommended that this option only be set true for long lived thread
+   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
+   *        memory errors over long time periods.
    * @return ThreadPoolExecutor
    */
   public ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
@@ -448,27 +406,19 @@ public class ThreadPools {
   /**
    * Create a named thread pool
    *
-   * @param coreThreads
-   *          number of threads
-   * @param maxThreads
-   *          max number of threads
-   * @param timeOut
-   *          core thread time out
-   * @param units
-   *          core thread time out units
-   * @param name
-   *          thread pool name
-   * @param queue
-   *          queue to use for tasks
-   * @param priority
-   *          thread priority
-   * @param emitThreadPoolMetrics
-   *          When set to true will emit metrics and register the metrics in a static registry.
-   *          After the thread pool is deleted, there will still be metrics objects related to it in
-   *          the static registry. There is no way to clean these left over objects up therefore its
-   *          recommended that this option only be set true for long lived thread pools. Creating
-   *          lots of short lived thread pools and registering them can lead to out of memory errors
-   *          over long time periods.
+   * @param coreThreads number of threads
+   * @param maxThreads max number of threads
+   * @param timeOut core thread time out
+   * @param units core thread time out units
+   * @param name thread pool name
+   * @param queue queue to use for tasks
+   * @param priority thread priority
+   * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
+   *        static registry. After the thread pool is deleted, there will still be metrics objects
+   *        related to it in the static registry. There is no way to clean these left over objects
+   *        up therefore its recommended that this option only be set true for long lived thread
+   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
+   *        memory errors over long time periods.
    * @return ThreadPoolExecutor
    */
   public ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
@@ -529,17 +479,14 @@ public class ThreadPools {
   /**
    * Create a named ScheduledThreadPool
    *
-   * @param numThreads
-   *          number of threads
-   * @param name
-   *          thread pool name
-   * @param emitThreadPoolMetrics
-   *          When set to true will emit metrics and register the metrics in a static registry.
-   *          After the thread pool is deleted, there will still be metrics objects related to it in
-   *          the static registry. There is no way to clean these left over objects up therefore its
-   *          recommended that this option only be set true for long lived thread pools. Creating
-   *          lots of short lived thread pools and registering them can lead to out of memory errors
-   *          over long time periods.
+   * @param numThreads number of threads
+   * @param name thread pool name
+   * @param emitThreadPoolMetrics When set to true will emit metrics and register the metrics in a
+   *        static registry. After the thread pool is deleted, there will still be metrics objects
+   *        related to it in the static registry. There is no way to clean these left over objects
+   *        up therefore its recommended that this option only be set true for long lived thread
+   *        pools. Creating lots of short lived thread pools and registering them can lead to out of
+   *        memory errors over long time periods.
    * @return ScheduledThreadPoolExecutor
    */
   public ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,

@@ -81,13 +81,10 @@ public class KeyExtent implements Comparable<KeyExtent> {
   /**
    * Create a new KeyExtent from its components.
    *
-   * @param table
-   *          the ID for the table
-   * @param endRow
-   *          the last row in this tablet, or null if this is the last tablet in this table
-   * @param prevEndRow
-   *          the last row in the immediately preceding tablet for the table, or null if this
-   *          represents the first tablet in this table
+   * @param table the ID for the table
+   * @param endRow the last row in this tablet, or null if this is the last tablet in this table
+   * @param prevEndRow the last row in the immediately preceding tablet for the table, or null if
+   *        this represents the first tablet in this table
    */
   public KeyExtent(TableId table, Text endRow, Text prevEndRow) {
     tableId = requireNonNull(table, "null table ID not allowed");
@@ -102,8 +99,7 @@ public class KeyExtent implements Comparable<KeyExtent> {
   /**
    * Create a copy of a provided KeyExtent.
    *
-   * @param original
-   *          the KeyExtent to copy
+   * @param original the KeyExtent to copy
    */
   public static KeyExtent copyOf(KeyExtent original) {
     return new KeyExtent(original.tableId(), original.endRow(), original.prevEndRow());
@@ -112,8 +108,7 @@ public class KeyExtent implements Comparable<KeyExtent> {
   /**
    * Create a KeyExtent from its Thrift form.
    *
-   * @param tke
-   *          the KeyExtent in its Thrift object form
+   * @param tke the KeyExtent in its Thrift object form
    */
   public static KeyExtent fromThrift(TKeyExtent tke) {
     TableId tableId = TableId.of(new String(ByteBufferUtil.toBytes(tke.table), UTF_8));
@@ -135,12 +130,11 @@ public class KeyExtent implements Comparable<KeyExtent> {
   /**
    * Create a KeyExtent from a metadata previous end row entry.
    *
-   * @param prevRowEntry
-   *          a provided previous end row entry from the metadata table, stored in the
-   *          <code>{@value TabletColumnFamily#STR_NAME}</code> column family and
-   *          <code>{@value TabletColumnFamily#PREV_ROW_QUAL}</code> column. If the individual
-   *          components are needed, consider {@link #KeyExtent(TableId, Text, Text)} or
-   *          {@link #fromMetaRow(Text, Text)} instead.
+   * @param prevRowEntry a provided previous end row entry from the metadata table, stored in the
+   *        <code>{@value TabletColumnFamily#STR_NAME}</code> column family and
+   *        <code>{@value TabletColumnFamily#PREV_ROW_QUAL}</code> column. If the individual
+   *        components are needed, consider {@link #KeyExtent(TableId, Text, Text)} or
+   *        {@link #fromMetaRow(Text, Text)} instead.
    */
   public static KeyExtent fromMetaPrevRow(Entry<Key,Value> prevRowEntry) {
     return fromMetaRow(prevRowEntry.getKey().getRow(),
@@ -151,10 +145,9 @@ public class KeyExtent implements Comparable<KeyExtent> {
    * Create a KeyExtent from the table ID and the end row encoded in the row field of a tablet's
    * metadata entry, with no previous end row.
    *
-   * @param encodedMetadataRow
-   *          the encoded <code>tableId</code> and <code>endRow</code> from a metadata entry, as in
-   *          <code>entry.getKey().getRow()</code> or from
-   *          {@link TabletsSection#encodeRow(TableId, Text)}
+   * @param encodedMetadataRow the encoded <code>tableId</code> and <code>endRow</code> from a
+   *        metadata entry, as in <code>entry.getKey().getRow()</code> or from
+   *        {@link TabletsSection#encodeRow(TableId, Text)}
    */
   public static KeyExtent fromMetaRow(Text encodedMetadataRow) {
     return fromMetaRow(encodedMetadataRow, (Text) null);
@@ -164,12 +157,10 @@ public class KeyExtent implements Comparable<KeyExtent> {
    * Create a KeyExtent from the table ID and the end row encoded in the row field of a tablet's
    * metadata entry, along with a previous end row.
    *
-   * @param encodedMetadataRow
-   *          the encoded <code>tableId</code> and <code>endRow</code> from a metadata entry, as in
-   *          <code>entry.getKey().getRow()</code> or from
-   *          {@link TabletsSection#encodeRow(TableId, Text)}
-   * @param prevEndRow
-   *          the unencoded previous end row (a copy will be made)
+   * @param encodedMetadataRow the encoded <code>tableId</code> and <code>endRow</code> from a
+   *        metadata entry, as in <code>entry.getKey().getRow()</code> or from
+   *        {@link TabletsSection#encodeRow(TableId, Text)}
+   * @param prevEndRow the unencoded previous end row (a copy will be made)
    */
   public static KeyExtent fromMetaRow(Text encodedMetadataRow, Text prevEndRow) {
     Pair<TableId,Text> tableIdAndEndRow = TabletsSection.decodeRow(encodedMetadataRow);
@@ -181,8 +172,7 @@ public class KeyExtent implements Comparable<KeyExtent> {
   /**
    * Create a KeyExtent from a {@link TabletId}.
    *
-   * @param tabletId
-   *          the {@link TabletId} to convert to a KeyExtent
+   * @param tabletId the {@link TabletId} to convert to a KeyExtent
    */
   public static KeyExtent fromTabletId(TabletId tabletId) {
     if (tabletId instanceof TabletIdImpl) {

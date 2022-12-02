@@ -129,8 +129,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    * <p>
    * All other factors will be calculated based on defaults specified in this class.
    *
-   * @param conf
-   *          block cache configuration
+   * @param conf block cache configuration
    */
   @SuppressFBWarnings(value = "SC_START_IN_CTOR",
       justification = "bad practice to start threads in constructor; probably needs rewrite")
@@ -216,12 +215,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    * assumed that you are reinserting the same exact block due to a race condition and will update
    * the buffer but not modify the size of the cache.
    *
-   * @param blockName
-   *          block name
-   * @param buf
-   *          block buffer
-   * @param inMemory
-   *          if block is in-memory
+   * @param blockName block name
+   * @param buf block buffer
+   * @param inMemory if block is in-memory
    */
   public CacheEntry cacheBlock(String blockName, byte[] buf, boolean inMemory) {
     CachedBlock cb = map.get(blockName);
@@ -255,10 +251,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    * assumed that you are reinserting the same exact block due to a race condition and will update
    * the buffer but not modify the size of the cache.
    *
-   * @param blockName
-   *          block name
-   * @param buf
-   *          block buffer
+   * @param blockName block name
+   * @param buf block buffer
    */
   @Override
   public CacheEntry cacheBlock(String blockName, byte[] buf) {
@@ -268,8 +262,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   /**
    * Get the buffer of the block with the specified name.
    *
-   * @param blockName
-   *          block name
+   * @param blockName block name
    * @return buffer of specified block name, or null if not in cache
    */
   @Override
@@ -319,8 +312,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   void evict() {
 
     // Ensure only one eviction at a time
-    if (!evictionLock.tryLock())
+    if (!evictionLock.tryLock()) {
       return;
+    }
 
     try {
       evictionInProgress = true;
@@ -329,8 +323,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
 
       log.trace("Block cache LRU eviction started.  Attempting to free {} bytes", bytesToFree);
 
-      if (bytesToFree <= 0)
+      if (bytesToFree <= 0) {
         return;
+      }
 
       // Instantiate priority buckets
       BlockBucket bucketSingle = new BlockBucket(bytesToFree, conf.getBlockSize(), singleSize());
@@ -433,8 +428,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
 
     @Override
     public int compareTo(BlockBucket that) {
-      if (this.overflow() == that.overflow())
+      if (this.overflow() == that.overflow()) {
         return 0;
+      }
       return this.overflow() > that.overflow() ? 1 : -1;
     }
 
@@ -445,8 +441,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
 
     @Override
     public boolean equals(Object that) {
-      if (that instanceof BlockBucket)
+      if (that instanceof BlockBucket) {
         return compareTo((BlockBucket) that) == 0;
+      }
       return false;
     }
   }
@@ -538,8 +535,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
           } catch (InterruptedException e) {}
         }
         LruBlockCache cache = this.cache.get();
-        if (cache == null)
+        if (cache == null) {
           break;
+        }
         cache.evict();
       }
     }

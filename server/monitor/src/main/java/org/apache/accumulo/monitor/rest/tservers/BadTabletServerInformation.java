@@ -39,10 +39,8 @@ public class BadTabletServerInformation {
   /**
    * Stores a bad tserver
    *
-   * @param id
-   *          ID of the tserver
-   * @param status
-   *          Status of the tserver
+   * @param id ID of the tserver
+   * @param status Status of the tserver
    */
   public BadTabletServerInformation(String id, String status) {
     this.id = id;

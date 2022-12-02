@@ -254,10 +254,11 @@ public class CompactionService {
 
     @Override
     public Map<String,String> getExecutionHints() {
-      if (kind == CompactionKind.USER)
+      if (kind == CompactionKind.USER) {
         return files.executionHints;
-      else
+      } else {
         return Map.of();
+      }
     }
 
     @Override
@@ -332,8 +333,9 @@ public class CompactionService {
   private CompactionPlan convertPlan(CompactionPlan plan, CompactionKind kind,
       Set<CompactableFile> allFiles, Set<CompactableFile> candidates) {
 
-    if (plan.getClass().equals(CompactionPlanImpl.class))
+    if (plan.getClass().equals(CompactionPlanImpl.class)) {
       return plan;
+    }
 
     var builder = new CompactionPlanImpl.BuilderImpl(kind, allFiles, candidates);
 
@@ -356,11 +358,13 @@ public class CompactionService {
     Preconditions.checkArgument(maxRate >= 0);
 
     var old = this.rateLimit.getAndSet(maxRate);
-    if (old != maxRate)
+    if (old != maxRate) {
       log.debug("Updated compaction service id:{} rate limit:{}", myId, maxRate);
+    }
 
-    if (this.plannerClassName.equals(plannerClassName) && this.plannerOpts.equals(plannerOptions))
+    if (this.plannerClassName.equals(plannerClassName) && this.plannerOpts.equals(plannerOptions)) {
       return;
+    }
 
     var initParams =
         new CompactionPlannerInitParams(myId, plannerOptions, new ServiceEnvironmentImpl(context));

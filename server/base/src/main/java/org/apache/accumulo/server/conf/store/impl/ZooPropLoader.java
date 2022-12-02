@@ -118,10 +118,8 @@ public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedPrope
    * versions do not match, the data is reread from ZooKeeper and returned. If any exceptions occur,
    * a null value is returned and any cached values should be considered invalid.
    *
-   * @param propCacheId
-   *          the property cache id
-   * @param currentValue
-   *          the current versioned properties.
+   * @param propCacheId the property cache id
+   * @param currentValue the current versioned properties.
    * @return versioned properties that match the values stored in ZooKeeper, or null if the
    *         properties cannot be retrieved.
    */

@@ -28,7 +28,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -104,8 +103,9 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   }
 
   private synchronized void ensureOpen() {
-    if (closed)
+    if (closed) {
       throw new IllegalStateException("Scanner is closed");
+    }
   }
 
   public ScannerImpl(ClientContext context, TableId tableId, Authorizations authorizations) {
@@ -136,10 +136,11 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   @Override
   public synchronized void setBatchSize(int size) {
     ensureOpen();
-    if (size > 0)
+    if (size > 0) {
       this.size = size;
-    else
+    } else {
       throw new IllegalArgumentException("size must be greater than zero");
+    }
   }
 
   @Override
@@ -151,16 +152,6 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   @Override
   public synchronized Iterator<Entry<Key,Value>> iterator() {
     ensureOpen();
-
-    if (getConsistencyLevel() == ConsistencyLevel.IMMEDIATE) {
-      try {
-        String tableName = context.getTableName(tableId);
-        context.requireNotOffline(tableId, tableName);
-      } catch (TableNotFoundException e) {
-        throw new RuntimeException("Table not found", e);
-      }
-    }
-
     ScannerIterator iter = new ScannerIterator(context, tableId, authorizations, range, size,
         getTimeout(SECONDS), this, isolated, readaheadThreshold, new Reporter());
 

@@ -50,9 +50,11 @@ public class Namespaces {
       throws NamespaceNotFoundException {
     String namespace = getNamespaceName(context, namespaceId);
     List<TableId> tableIds = new LinkedList<>();
-    for (Entry<String,TableId> nameToId : context.getTableNameToIdMap().entrySet())
-      if (namespace.equals(TableNameUtil.qualify(nameToId.getKey()).getFirst()))
+    for (Entry<String,TableId> nameToId : context.getTableNameToIdMap().entrySet()) {
+      if (namespace.equals(TableNameUtil.qualify(nameToId.getKey()).getFirst())) {
         tableIds.add(nameToId.getValue());
+      }
+    }
     return tableIds;
   }
 
@@ -60,9 +62,11 @@ public class Namespaces {
       throws NamespaceNotFoundException {
     String namespace = getNamespaceName(context, namespaceId);
     List<String> names = new LinkedList<>();
-    for (String name : context.getTableNameToIdMap().keySet())
-      if (namespace.equals(TableNameUtil.qualify(name).getFirst()))
+    for (String name : context.getTableNameToIdMap().keySet()) {
+      if (namespace.equals(TableNameUtil.qualify(name).getFirst())) {
         names.add(name);
+      }
+    }
     return names;
   }
 
@@ -108,12 +112,14 @@ public class Namespaces {
       throws NamespaceNotFoundException {
     final ArrayList<NamespaceId> singleId = new ArrayList<>(1);
     getAllNamespaces(context, (id, name) -> {
-      if (name.equals(namespaceName))
+      if (name.equals(namespaceName)) {
         singleId.add(NamespaceId.of(id));
+      }
     });
-    if (singleId.isEmpty())
+    if (singleId.isEmpty()) {
       throw new NamespaceNotFoundException(null, namespaceName,
           "getNamespaceId() failed to find namespace");
+    }
     return singleId.get(0);
   }
 
@@ -125,8 +131,9 @@ public class Namespaces {
     try {
       id = getNamespaceId(context, namespaceName);
     } catch (NamespaceNotFoundException e) {
-      if (log.isDebugEnabled())
+      if (log.isDebugEnabled()) {
         log.debug("Failed to find namespace ID from name: " + namespaceName, e);
+      }
     }
     return id;
   }
@@ -147,11 +154,12 @@ public class Namespaces {
     ZooCache zc = context.getZooCache();
     byte[] path = zc.get(context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/"
         + namespaceId.canonical() + Constants.ZNAMESPACE_NAME);
-    if (path != null)
+    if (path != null) {
       name = new String(path, UTF_8);
-    else
+    } else {
       throw new NamespaceNotFoundException(namespaceId.canonical(), null,
           "getNamespaceName() failed to find namespace");
+    }
     return name;
   }
 

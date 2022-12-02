@@ -355,8 +355,7 @@ public class FateCommand extends Command {
   /**
    * If provided on the command line, get the TStatus values provided.
    *
-   * @param cl
-   *          the command line
+   * @param cl the command line
    * @return a set of status filters, or an empty set if none provides
    */
   private EnumSet<TStatus> getCmdLineStatusFilters(CommandLine cl) {

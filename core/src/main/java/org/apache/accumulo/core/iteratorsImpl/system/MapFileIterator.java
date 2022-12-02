@@ -77,8 +77,9 @@ public class MapFileIterator implements FileSKVIterator {
 
   @Override
   public void next() throws IOException {
-    if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get())
+    if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get()) {
       throw new IterationInterruptedException();
+    }
 
     reader.next(topKey, topValue);
   }
@@ -90,11 +91,13 @@ public class MapFileIterator implements FileSKVIterator {
       throw new IllegalArgumentException("I do not know how to filter column families");
     }
 
-    if (range == null)
+    if (range == null) {
       throw new IllegalArgumentException("Cannot seek to null range");
+    }
 
-    if (interruptFlag != null && interruptFlag.get())
+    if (interruptFlag != null && interruptFlag.get()) {
       throw new IterationInterruptedException();
+    }
 
     Key key = range.getStartKey();
     if (key == null) {
@@ -145,8 +148,9 @@ public class MapFileIterator implements FileSKVIterator {
   @Override
   public DataInputStream getMetaStore(String name) throws IOException {
     Path path = new Path(this.dirName, name);
-    if (!fs.exists(path))
+    if (!fs.exists(path)) {
       throw new NoSuchMetaStoreException("name = " + name);
+    }
     return fs.open(path);
   }
 

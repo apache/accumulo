@@ -46,10 +46,9 @@ public class CompactionStrategyConfig {
   private Map<String,String> options = Map.of();
 
   /**
-   * @param className
-   *          The name of a class that implements
-   *          org.apache.accumulo.tserver.compaction.CompactionStrategy. This class must exist on
-   *          tservers.
+   * @param className The name of a class that implements
+   *        org.apache.accumulo.tserver.compaction.CompactionStrategy. This class must exist on
+   *        tservers.
    */
   public CompactionStrategyConfig(String className) {
     this.className = requireNonNull(className);
@@ -63,10 +62,9 @@ public class CompactionStrategyConfig {
   }
 
   /**
-   * @param opts
-   *          The options that will be passed to the init() method of the compaction strategy when
-   *          its instantiated on a tserver. This method will copy the map. The default is an empty
-   *          map.
+   * @param opts The options that will be passed to the init() method of the compaction strategy
+   *        when its instantiated on a tserver. This method will copy the map. The default is an
+   *        empty map.
    * @return this
    */
   public CompactionStrategyConfig setOptions(Map<String,String> opts) {

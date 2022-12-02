@@ -97,8 +97,9 @@ public abstract class RowFilter extends WrappingIterator {
     while (source.hasTop()) {
       Text row = source.getTopKey().getRow();
 
-      if (currentRow != null && currentRow.equals(row))
+      if (currentRow != null && currentRow.equals(row)) {
         break;
+      }
 
       Range rowRange = new Range(row);
       decisionIterator.setRow(rowRange);
@@ -118,10 +119,11 @@ public abstract class RowFilter extends WrappingIterator {
         if (source.hasTop() && source.getTopKey().getRow().equals(row)) {
           Range nextRow = new Range(row, false, null, false);
           nextRow = range.clip(nextRow, true);
-          if (nextRow == null)
+          if (nextRow == null) {
             hasTop = false;
-          else
+          } else {
             source.seek(nextRow, columnFamilies, inclusive);
+          }
         }
       }
     }
@@ -131,12 +133,11 @@ public abstract class RowFilter extends WrappingIterator {
    * Implementation should return false to suppress a row.
    *
    *
-   * @param rowIterator
-   *          - An iterator over the row. This iterator is confined to the row. Seeking past the end
-   *          of the row will return no data. Seeking before the row will always set top to the
-   *          first column in the current row. By default this iterator will only see the columns
-   *          the parent was seeked with. To see more columns reseek this iterator with those
-   *          columns.
+   * @param rowIterator - An iterator over the row. This iterator is confined to the row. Seeking
+   *        past the end of the row will return no data. Seeking before the row will always set top
+   *        to the first column in the current row. By default this iterator will only see the
+   *        columns the parent was seeked with. To see more columns reseek this iterator with those
+   *        columns.
    * @return false if a row should be suppressed, otherwise true.
    */
   public abstract boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator)

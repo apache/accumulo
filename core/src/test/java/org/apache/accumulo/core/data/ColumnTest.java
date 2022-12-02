@@ -50,10 +50,11 @@ public class ColumnTest {
   public void testEquals() {
     for (int i = 0; i < col.length; i++) {
       for (int j = 0; j < col.length; j++) {
-        if (i == j || (i == 0 && j == 1) || (i == 1 && j == 0))
+        if (i == j || (i == 0 && j == 1) || (i == 1 && j == 0)) {
           assertTrue(col[i].equals(col[j]));
-        else
+        } else {
           assertFalse(col[i].equals(col[j]));
+        }
       }
     }
   }
@@ -62,19 +63,22 @@ public class ColumnTest {
   public void testCompare() {
     for (int i = 0; i < col.length; i++) {
       for (int j = 0; j < col.length; j++) {
-        if (i == j || (i == 0 && j == 1) || (i == 1 && j == 0))
+        if (i == j || (i == 0 && j == 1) || (i == 1 && j == 0)) {
           assertEquals(0, col[i].compareTo(col[j]));
-        else
+        } else {
           assertNotEquals(0, col[i].compareTo(col[j]));
+        }
       }
     }
   }
 
   @Test
   public void testEqualsCompare() {
-    for (Column value : col)
-      for (Column column : col)
+    for (Column value : col) {
+      for (Column column : col) {
         assertEquals(value.equals(column), value.compareTo(column) == 0);
+      }
+    }
   }
 
   @Test

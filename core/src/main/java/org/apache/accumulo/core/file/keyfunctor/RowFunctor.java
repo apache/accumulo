@@ -50,8 +50,9 @@ public class RowFunctor implements KeyFunctor {
       return false;
     }
 
-    if (range.getStartKey().equals(range.getEndKey(), keyDepth))
+    if (range.getStartKey().equals(range.getEndKey(), keyDepth)) {
       return true;
+    }
 
     // include everything but the deleted flag in the comparison...
     return range.getStartKey().followingKey(keyDepth).equals(range.getEndKey(),

@@ -40,16 +40,18 @@ public class SanitizedLogEvent {
     this.level = sanitize(event.level);
     String msg = sanitize(event.message);
     // truncate long messages
-    if (msg.length() > 300)
+    if (msg.length() > 300) {
       msg = msg.substring(0, 300).trim();
+    }
     this.message = msg;
     this.stacktrace = sanitize(event.stacktrace);
     this.count = count;
   }
 
   private String sanitize(String s) {
-    if (s == null)
+    if (s == null) {
       return null;
+    }
     StringBuilder text = new StringBuilder();
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);

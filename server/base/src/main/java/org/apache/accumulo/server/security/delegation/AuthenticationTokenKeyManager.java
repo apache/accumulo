@@ -45,15 +45,12 @@ public class AuthenticationTokenKeyManager implements Runnable {
    * Construct the key manager which will generate new AuthenticationKeys to generate and verify
    * delegation tokens
    *
-   * @param mgr
-   *          The SecretManager in use
-   * @param dist
-   *          The implementation to distribute AuthenticationKeys to ZooKeeper
-   * @param keyUpdateInterval
-   *          The frequency, in milliseconds, that new AuthenticationKeys are created
-   * @param tokenMaxLifetime
-   *          The lifetime, in milliseconds, of generated AuthenticationKeys (and subsequently
-   *          delegation tokens).
+   * @param mgr The SecretManager in use
+   * @param dist The implementation to distribute AuthenticationKeys to ZooKeeper
+   * @param keyUpdateInterval The frequency, in milliseconds, that new AuthenticationKeys are
+   *        created
+   * @param tokenMaxLifetime The lifetime, in milliseconds, of generated AuthenticationKeys (and
+   *        subsequently delegation tokens).
    */
   public AuthenticationTokenKeyManager(AuthenticationTokenSecretManager mgr,
       ZooAuthenticationKeyDistributor dist, long keyUpdateInterval, long tokenMaxLifetime) {
@@ -139,8 +136,7 @@ public class AuthenticationTokenKeyManager implements Runnable {
   /**
    * Internal "run" method which performs the actual work.
    *
-   * @param now
-   *          The current time in millis since epoch.
+   * @param now The current time in millis since epoch.
    */
   void _run(long now) {
     // clear any expired keys

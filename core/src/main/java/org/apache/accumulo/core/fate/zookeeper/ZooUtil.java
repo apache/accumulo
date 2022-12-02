@@ -68,10 +68,11 @@ public class ZooUtil {
         throw new IllegalArgumentException("Malformed serialized lock id " + serializedLID);
       }
 
-      if (lastSlash == 0)
+      if (lastSlash == 0) {
         path = root;
-      else
+      } else {
         path = root + "/" + sa[0].substring(0, lastSlash);
+      }
       node = sa[0].substring(lastSlash + 1);
       eid = new BigInteger(sa[1], 16).longValue();
     }
@@ -140,8 +141,7 @@ public class ZooUtil {
    * For debug: print the ZooKeeper Stat with value labels for a more user friendly string. The
    * format matches the zookeeper cli stat command.
    *
-   * @param stat
-   *          Zookeeper Stat structure
+   * @param stat Zookeeper Stat structure
    * @return a formatted string.
    */
   public static String printStat(final Stat stat) {

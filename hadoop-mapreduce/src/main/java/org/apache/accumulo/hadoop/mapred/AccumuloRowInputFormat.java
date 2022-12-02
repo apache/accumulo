@@ -48,9 +48,8 @@ public class AccumuloRowInputFormat implements InputFormat<Text,PeekingIterator<
    * the specified ranges.
    *
    * @return the splits from the tables based on the ranges.
-   * @throws java.io.IOException
-   *           if a table set on the job doesn't exist or an error occurs initializing the tablet
-   *           locator
+   * @throws java.io.IOException if a table set on the job doesn't exist or an error occurs
+   *         initializing the tablet locator
    */
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
@@ -72,8 +71,9 @@ public class AccumuloRowInputFormat implements InputFormat<Text,PeekingIterator<
 
           @Override
           public boolean next(Text key, PeekingIterator<Entry<Key,Value>> value) {
-            if (!rowIterator.hasNext())
+            if (!rowIterator.hasNext()) {
               return false;
+            }
             value.initialize(rowIterator.next());
             numKeysRead = rowIterator.getKVCount();
             key.set((currentKey = value.peek().getKey()).getRow());

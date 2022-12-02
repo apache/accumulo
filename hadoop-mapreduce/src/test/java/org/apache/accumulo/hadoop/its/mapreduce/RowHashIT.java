@@ -210,10 +210,11 @@ public class RowHashIT extends ConfigurableMacBase {
       int idx = col.indexOf(":");
       Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
       Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
-      if (cf.getLength() > 0)
+      if (cf.getLength() > 0) {
         AccumuloInputFormat.configure().clientProperties(opts.getClientProps())
             .table(opts.tableName).auths(Authorizations.EMPTY)
             .fetchColumns(Collections.singleton(new IteratorSetting.Column(cf, cq))).store(job);
+      }
 
       job.setMapperClass(RowHash.HashDataMapper.class);
       job.setMapOutputKeyClass(Text.class);

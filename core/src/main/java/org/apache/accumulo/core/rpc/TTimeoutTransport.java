@@ -56,13 +56,10 @@ public class TTimeoutTransport {
    * Creates a Thrift TTransport to the given address with the given timeout. All created resources
    * are closed if an exception is thrown.
    *
-   * @param addr
-   *          The address to connect the client to
-   * @param timeoutMillis
-   *          The timeout in milliseconds for the connection
+   * @param addr The address to connect the client to
+   * @param timeoutMillis The timeout in milliseconds for the connection
    * @return A TTransport connected to the given <code>addr</code>
-   * @throws TTransportException
-   *           If the transport fails to be created/connected
+   * @throws TTransportException If the transport fails to be created/connected
    */
   public static TTransport create(HostAndPort addr, long timeoutMillis) throws TTransportException {
     return INSTANCE.createInternal(new InetSocketAddress(addr.getHost(), addr.getPort()),
@@ -73,13 +70,10 @@ public class TTimeoutTransport {
    * Opens a socket to the given <code>addr</code>, configures the socket, and then creates a Thrift
    * transport using the socket.
    *
-   * @param addr
-   *          The address the socket should connect
-   * @param timeoutMillis
-   *          The socket timeout in milliseconds
+   * @param addr The address the socket should connect
+   * @param timeoutMillis The socket timeout in milliseconds
    * @return A TTransport instance to the given <code>addr</code>
-   * @throws TTransportException
-   *           If the Thrift client is failed to be connected/created
+   * @throws TTransportException If the Thrift client is failed to be connected/created
    */
   TTransport createInternal(SocketAddress addr, long timeoutMillis) throws TTransportException {
     Socket socket = null;
@@ -111,8 +105,9 @@ public class TTimeoutTransport {
 
   private void closeSocket(Socket socket, Exception e) {
     try {
-      if (socket != null)
+      if (socket != null) {
         socket.close();
+      }
     } catch (IOException ioe) {
       e.addSuppressed(ioe);
       log.error("Failed to close socket after unsuccessful I/O stream setup", e);
@@ -132,10 +127,8 @@ public class TTimeoutTransport {
   /**
    * Opens and configures a {@link Socket} for Accumulo RPC.
    *
-   * @param addr
-   *          The address to connect the socket to
-   * @param timeoutMillis
-   *          The timeout in milliseconds to apply to the socket connect call
+   * @param addr The address to connect the socket to
+   * @param timeoutMillis The timeout in milliseconds to apply to the socket connect call
    * @return A socket connected to the given address, or null if the socket fails to connect
    */
   Socket openSocket(SocketAddress addr, int timeoutMillis) throws IOException {

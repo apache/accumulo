@@ -94,8 +94,9 @@ class WriteExportFiles extends ManagerRepo {
     long reserved = Utils.reserveNamespace(manager, tableInfo.namespaceID, tid, false, true,
         TableOperation.EXPORT)
         + Utils.reserveTable(manager, tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
-    if (reserved > 0)
+    if (reserved > 0) {
       return reserved;
+    }
 
     AccumuloClient client = manager.getContext();
 
@@ -188,8 +189,9 @@ class WriteExportFiles extends ManagerRepo {
       createDistcpFile(fs, exportDir, exportMetaFilePath, uniqueFiles);
 
     } finally {
-      if (dataOut != null)
+      if (dataOut != null) {
         dataOut.close();
+      }
     }
   }
 
@@ -211,8 +213,9 @@ class WriteExportFiles extends ManagerRepo {
       distcpOut = null;
 
     } finally {
-      if (distcpOut != null)
+      if (distcpOut != null) {
         distcpOut.close();
+      }
     }
   }
 

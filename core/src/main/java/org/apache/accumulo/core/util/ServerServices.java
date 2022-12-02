@@ -78,8 +78,9 @@ public class ServerServices implements Comparable<ServerServices> {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ServerServices)
+    if (o instanceof ServerServices) {
       return toString().equals(o.toString());
+    }
     return false;
   }
 

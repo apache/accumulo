@@ -187,8 +187,7 @@ public class Main {
   /**
    * Print a stack trace to stderr and exit with a non-zero status.
    *
-   * @param t
-   *          The {@link Throwable} containing a stack trace to print.
+   * @param t The {@link Throwable} containing a stack trace to print.
    */
   private static void die(final Throwable t, String msg) {
     String message =
@@ -214,7 +213,8 @@ public class Main {
     System.out.println("\nCore Commands:");
     printCommands(executables, UsageGroup.CORE);
 
-    System.out.println("  classpath                      Prints Accumulo classpath\n"
+    System.out.println("  jshell                         Runs JShell for Accumulo\n"
+        + "  classpath                      Prints Accumulo classpath\n"
         + "  <main class> args              Runs Java <main class> located on Accumulo classpath");
 
     System.out.println("\nProcess Commands:");

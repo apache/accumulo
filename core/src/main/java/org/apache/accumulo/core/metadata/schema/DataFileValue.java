@@ -45,10 +45,11 @@ public class DataFileValue {
     size = Long.parseLong(ba[0]);
     numEntries = Long.parseLong(ba[1]);
 
-    if (ba.length == 3)
+    if (ba.length == 3) {
       time = Long.parseLong(ba[2]);
-    else
+    } else {
       time = -1;
+    }
   }
 
   public DataFileValue(byte[] encodedDFV) {
@@ -76,8 +77,9 @@ public class DataFileValue {
   }
 
   public String encodeAsString() {
-    if (time >= 0)
+    if (time >= 0) {
       return ("" + size + "," + numEntries + "," + time);
+    }
     return ("" + size + "," + numEntries);
   }
 
@@ -107,8 +109,9 @@ public class DataFileValue {
   }
 
   public void setTime(long time) {
-    if (time < 0)
+    if (time < 0) {
       throw new IllegalArgumentException();
+    }
     this.time = time;
   }
 }

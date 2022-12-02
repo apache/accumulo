@@ -84,8 +84,9 @@ public final class ScanParameters {
   }
 
   public SamplerConfigurationImpl getSamplerConfigurationImpl() {
-    if (samplerConfig == null)
+    if (samplerConfig == null) {
       return null;
+    }
     return new SamplerConfigurationImpl(samplerConfig);
   }
 

@@ -44,8 +44,7 @@ public class VersionedPropEncryptCodecTest {
   /**
    * Perform a round trip - encode, decode set of operations.
    *
-   * @throws Exception
-   *           an exception is a test failure.
+   * @throws Exception an exception is a test failure.
    */
   @Test
   public void roundTripSample() throws Exception {

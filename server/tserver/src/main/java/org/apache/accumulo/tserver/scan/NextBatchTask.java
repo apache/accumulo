@@ -43,8 +43,9 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
     this.scanID = scanID;
     this.interruptFlag = interruptFlag;
 
-    if (interruptFlag.get())
+    if (interruptFlag.get()) {
       cancel(true);
+    }
   }
 
   @Override
@@ -54,11 +55,13 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
     String oldThreadName = Thread.currentThread().getName();
 
     try {
-      if (isCancelled() || scanSession == null)
+      if (isCancelled() || scanSession == null) {
         return;
+      }
 
-      if (!transitionToRunning())
+      if (!transitionToRunning()) {
         return;
+      }
 
       Thread.currentThread()
           .setName("User: " + scanSession.getUser() + " Start: " + scanSession.startTime

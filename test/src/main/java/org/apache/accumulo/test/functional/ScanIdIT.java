@@ -103,8 +103,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
   }
 
   /**
-   * @throws Exception
-   *           any exception is a test failure.
+   * @throws Exception any exception is a test failure.
    */
   @Test
   public void testScanId() throws Exception {
@@ -305,8 +304,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
    * Create splits on table and force migration by taking table offline and then bring back online
    * for test.
    *
-   * @param client
-   *          Accumulo client to test cluster or MAC instance.
+   * @param client Accumulo client to test cluster or MAC instance.
    */
   private void addSplits(final AccumuloClient client, final String tableName) {
 
@@ -355,8 +353,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
    * check that the count value for fam1 increases if a scanner reads multiple value, but this is
    * secondary consideration for this test, that is included for completeness.
    *
-   * @param accumuloClient
-   *          Accumulo client to test cluster or MAC instance.
+   * @param accumuloClient Accumulo client to test cluster or MAC instance.
    */
   private void generateSampleData(AccumuloClient accumuloClient, final String tablename) {
 
@@ -390,8 +387,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
    * data is read and we do not read all of the data - the test stops once each scanner reports a
    * scan id.
    *
-   * @param accumuloClient
-   *          Accumulo client to test cluster or MAC instance.
+   * @param accumuloClient Accumulo client to test cluster or MAC instance.
    */
   private void attachSlowIterator(AccumuloClient accumuloClient, final String tablename) {
     try {

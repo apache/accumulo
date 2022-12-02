@@ -70,10 +70,13 @@ public class DeleteNamespaceCommand extends Command {
     List<String> tables = Namespaces.getTableNames(shellState.getContext(), namespaceId);
     resetContext = tables.contains(currentTable);
 
-    if (force)
-      for (String table : shellState.getAccumuloClient().tableOperations().list())
-        if (table.startsWith(namespace + "."))
+    if (force) {
+      for (String table : shellState.getAccumuloClient().tableOperations().list()) {
+        if (table.startsWith(namespace + ".")) {
           shellState.getAccumuloClient().tableOperations().delete(table);
+        }
+      }
+    }
 
     shellState.getAccumuloClient().namespaceOperations().delete(namespace);
     if (resetContext) {

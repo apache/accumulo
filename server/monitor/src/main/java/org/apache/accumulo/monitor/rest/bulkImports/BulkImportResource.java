@@ -53,8 +53,9 @@ public class BulkImportResource {
   public BulkImport getTables() {
     BulkImport bulkImport = new BulkImport();
     ManagerMonitorInfo mmi = monitor.getMmi();
-    if (mmi == null)
+    if (mmi == null) {
       return bulkImport;
+    }
 
     // Generating Bulk Import and adding it to the return object
     for (BulkImportStatus bulk : mmi.bulkImports) {

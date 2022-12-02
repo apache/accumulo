@@ -85,8 +85,7 @@ public class RuntimeFixedProperties {
    * Test if a property has changed since this instance was created. If a property has changed, it
    * will take effect on next restart.
    *
-   * @param current
-   *          a map of the current stored properties.
+   * @param current a map of the current stored properties.
    * @return true if changed and restart required, false otherwise
    */
   @VisibleForTesting

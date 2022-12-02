@@ -94,8 +94,9 @@ public class CompactCommand extends TableOperation {
 
   private void put(CommandLine cl, Map<String,String> sopts, Map<String,String> copts, Option opt,
       CompactionSettings setting) {
-    if (cl.hasOption(opt.getLongOpt()))
+    if (cl.hasOption(opt.getLongOpt())) {
       setting.put(sopts, copts, cl.getOptionValue(opt.getLongOpt()));
+    }
   }
 
   private void setupConfigurableCompaction(CommandLine cl, CompactionConfig compactionConfig) {

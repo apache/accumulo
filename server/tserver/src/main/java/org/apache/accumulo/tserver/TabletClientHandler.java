@@ -515,13 +515,15 @@ public class TabletClientHandler implements TabletClientService.Iface {
   }
 
   private void updateAvgCommitTime(long time, int size) {
-    if (size > 0)
+    if (size > 0) {
       server.updateMetrics.addCommitTime((long) (time / (double) size));
+    }
   }
 
   private void updateAvgPrepTime(long time, int size) {
-    if (size > 0)
+    if (size > 0) {
       server.updateMetrics.addCommitPrep((long) (time / (double) size));
+    }
   }
 
   @Override
@@ -1208,8 +1210,9 @@ public class TabletClientHandler implements TabletClientService.Iface {
     List<Tablet> tabletsToFlush = server.getOnlineTablets().values().stream()
         .filter(tablet -> ke.overlaps(tablet.getExtent())).collect(toList());
 
-    if (tabletsToFlush.isEmpty())
+    if (tabletsToFlush.isEmpty()) {
       return; // no tablets to flush
+    }
 
     // read the flush id once from zookeeper instead of reading it for each tablet
     final long flushID;

@@ -71,8 +71,9 @@ public class NamespaceConfiguration extends ZooBasedConfiguration {
     Predicate<String> parentFilter = filter;
     // exclude system iterators/constraints from the system namespace
     // so they don't affect the metadata or root tables.
-    if (getNamespaceId().equals(Namespace.ACCUMULO.id()))
+    if (getNamespaceId().equals(Namespace.ACCUMULO.id())) {
       parentFilter = key -> !isIteratorOrConstraint(key) && filter.test(key);
+    }
 
     getParent().getProperties(props, parentFilter);
 

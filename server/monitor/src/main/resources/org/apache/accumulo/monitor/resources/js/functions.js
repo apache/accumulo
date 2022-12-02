@@ -495,14 +495,6 @@ function getProblemDetails() {
   return getJSONForTable('/rest/problems/details', 'problemDetails');
 }
 
-/**
- * REST GET call for the replication table,
- * stores it on a sessionStorage variable
- */
-function getReplication() {
-  return getJSONForTable('/rest/replication', 'replication');
-}
-
 //// Overview Plots Rest Calls
 
 /**

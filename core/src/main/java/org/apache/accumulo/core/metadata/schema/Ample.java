@@ -88,8 +88,9 @@ public interface Ample {
      * @return The name of the Accumulo table in which this data level stores its metadata.
      */
     public String metaTable() {
-      if (table == null)
+      if (table == null) {
         throw new UnsupportedOperationException();
+      }
       return table;
     }
 
@@ -97,8 +98,9 @@ public interface Ample {
      * @return The Id of the Accumulo table in which this data level stores its metadata.
      */
     public TableId tableId() {
-      if (id == null)
+      if (id == null) {
         throw new UnsupportedOperationException();
+      }
       return id;
     }
 
@@ -135,10 +137,8 @@ public interface Ample {
    * Read a single tablets metadata. No checking is done for prev row, so it could differ. The
    * method will read the data using {@link ReadConsistency#IMMEDIATE}.
    *
-   * @param extent
-   *          Reads tablet metadata using the table id and end row from this extent.
-   * @param colsToFetch
-   *          What tablets columns to fetch. If empty, then everything is fetched.
+   * @param extent Reads tablet metadata using the table id and end row from this extent.
+   * @param colsToFetch What tablets columns to fetch. If empty, then everything is fetched.
    */
   default TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch) {
     return readTablet(extent, ReadConsistency.IMMEDIATE, colsToFetch);
@@ -147,12 +147,9 @@ public interface Ample {
   /**
    * Read a single tablets metadata. No checking is done for prev row, so it could differ.
    *
-   * @param extent
-   *          Reads tablet metadata using the table id and end row from this extent.
-   * @param readConsistency
-   *          Controls how the data is read.
-   * @param colsToFetch
-   *          What tablets columns to fetch. If empty, then everything is fetched.
+   * @param extent Reads tablet metadata using the table id and end row from this extent.
+   * @param readConsistency Controls how the data is read.
+   * @param colsToFetch What tablets columns to fetch. If empty, then everything is fetched.
    */
   TabletMetadata readTablet(KeyExtent extent, ReadConsistency readConsistency,
       ColumnType... colsToFetch);
@@ -170,9 +167,8 @@ public interface Ample {
    * {@code mutate()} method is called on the returned object. If updating multiple tablets,
    * consider using {@link #mutateTablets()}
    *
-   * @param extent
-   *          Mutates a tablet that has this table id and end row. The prev end row is not
-   *          considered or checked.
+   * @param extent Mutates a tablet that has this table id and end row. The prev end row is not
+   *        considered or checked.
    */
   default TabletMutator mutateTablet(KeyExtent extent) {
     throw new UnsupportedOperationException();
@@ -225,8 +221,7 @@ public interface Ample {
    * directory for Tablet File. Otherwise, a {@link TabletFile} object could be used. The
    * tabletFilePathToRemove is validated and normalized before creating the mutation.
    *
-   * @param tabletFilePathToRemove
-   *          String full path of the TabletFile
+   * @param tabletFilePathToRemove String full path of the TabletFile
    * @return Mutation with encoded delete marker
    */
   default Mutation createDeleteMutation(ReferenceFile tabletFilePathToRemove) {
@@ -311,8 +306,7 @@ public interface Ample {
   /**
    * Insert ScanServer references to Tablet files
    *
-   * @param scanRefs
-   *          set of scan server ref table file objects
+   * @param scanRefs set of scan server ref table file objects
    */
   default void putScanServerFileReferences(Collection<ScanServerRefTabletFile> scanRefs) {
     throw new UnsupportedOperationException();
@@ -330,8 +324,7 @@ public interface Ample {
   /**
    * Delete the set of scan server references
    *
-   * @param refsToDelete
-   *          set of scan server references to delete
+   * @param refsToDelete set of scan server references to delete
    */
   default void deleteScanServerFileReferences(Collection<ScanServerRefTabletFile> refsToDelete) {
     throw new UnsupportedOperationException();
@@ -340,10 +333,8 @@ public interface Ample {
   /**
    * Delete scan server references for this server
    *
-   * @param serverAddress
-   *          address of server, cannot be null
-   * @param serverSessionId
-   *          server session id, cannot be null
+   * @param serverAddress address of server, cannot be null
+   * @param serverSessionId server session id, cannot be null
    */
   default void deleteScanServerFileReferences(String serverAddress, UUID serverSessionId) {
     throw new UnsupportedOperationException();

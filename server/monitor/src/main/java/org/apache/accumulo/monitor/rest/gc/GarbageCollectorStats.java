@@ -42,8 +42,7 @@ public class GarbageCollectorStats {
   /**
    * Creates a new garbage collector cycle
    *
-   * @param thriftStats
-   *          used to find cycle information
+   * @param thriftStats used to find cycle information
    */
   public GarbageCollectorStats(String type, GcCycleStats thriftStats) {
     log.info("Creating {} stats using thriftStats = {}", type, thriftStats);
