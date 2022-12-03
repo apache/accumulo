@@ -53,7 +53,7 @@ public interface CompactionConfigurer {
 
     /**
      * @return the id of the tablet being compacted
-     * @since 2.1.1
+     * @since 3.0.0
      */
     TabletId getTabletId();
 
