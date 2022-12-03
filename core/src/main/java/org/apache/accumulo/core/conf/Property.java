@@ -25,9 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.constraints.NoDeleteConstraint;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -245,11 +243,6 @@ public enum Property {
       "2.1.0"),
   GENERAL_THREADPOOL_SIZE("general.server.threadpool.size", "1", PropertyType.COUNT,
       "The number of threads to use for server-internal scheduled tasks", "2.1.0"),
-  @Deprecated(since = "2.1.0")
-  @ReplacedBy(property = GENERAL_THREADPOOL_SIZE)
-  GENERAL_SIMPLETIMER_THREADPOOL_SIZE("general.server.simpletimer.threadpool.size", "1",
-      PropertyType.COUNT, "The number of threads to use for server-internal scheduled tasks",
-      "1.7.0"),
   // If you update the default type, be sure to update the default used for initialization failures
   // in VolumeManagerImpl
   @Experimental
@@ -286,14 +279,6 @@ public enum Property {
       "Properties in this category affect the behavior of the manager server. "
           + "Since 2.1.0, all properties in this category replace the old `master.*` names.",
       "2.1.0"),
-  @Deprecated(since = "2.1.0")
-  @ReplacedBy(property = Property.MANAGER_PREFIX)
-  MASTER_PREFIX("master.", null, PropertyType.PREFIX,
-      "Properties in this category affect the behavior of the manager (formerly named master) server. "
-          + "Since 2.1.0, all properties in this category are deprecated and replaced with corresponding "
-          + "`manager.*` properties. The old `master.*` names can still be used until at release 3.0, but a warning "
-          + "will be emitted. Configuration files should be updated to use the new property names.",
-      "1.3.5"),
   MANAGER_CLIENTPORT("manager.port.client", "9999", PropertyType.PORT,
       "The port used for handling client connections on the manager", "1.3.5"),
   MANAGER_TABLET_BALANCER("manager.tablet.balancer",
@@ -314,12 +299,6 @@ public enum Property {
   MANAGER_RENAME_THREADS("manager.rename.threadpool.size", "20", PropertyType.COUNT,
       "The number of threads to use when renaming user files during table import or bulk ingest.",
       "2.1.0"),
-  @Deprecated(since = "2.1.0")
-  @ReplacedBy(property = MANAGER_RENAME_THREADS)
-  MANAGER_BULK_RENAME_THREADS("manager.bulk.rename.threadpool.size", "20", PropertyType.COUNT,
-      "The number of threads to use when moving user files to bulk ingest "
-          + "directories under accumulo control",
-      "1.7.0"),
   MANAGER_BULK_TSERVER_REGEX("manager.bulk.tserver.regex", "", PropertyType.STRING,
       "Regular expression that defines the set of Tablet Servers that will perform bulk imports",
       "2.0.0"),
@@ -340,14 +319,6 @@ public enum Property {
   MANAGER_WAL_CLOSER_IMPLEMENTATION("manager.wal.closer.implementation",
       "org.apache.accumulo.server.manager.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechanism to steal write access to a write-ahead log", "2.1.0"),
-  @Deprecated(since = "2.1.0")
-  @ReplacedBy(property = Property.MANAGER_WAL_CLOSER_IMPLEMENTATION)
-  MANAGER_WALOG_CLOSER_IMPLEMETATION("manager.walog.closer.implementation",
-      "org.apache.accumulo.server.manager.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
-      "A class that implements a mechanism to steal write access to a write-ahead log", "1.5.0"),
-  @Deprecated
-  MANAGER_FATE_METRICS_ENABLED("manager.fate.metrics.enabled", "true", PropertyType.BOOLEAN,
-      "Enable reporting of FATE metrics in JMX (and logging with Hadoop Metrics2", "1.9.3"),
   MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL("manager.fate.metrics.min.update.interval", "60s",
       PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval",
       "1.9.3"),
@@ -484,29 +455,12 @@ public enum Property {
           + "logs over this threshold is minor compacted.  Also any tablet referencing this many "
           + "logs or more will be compacted.",
       "2.1.0"),
-  @Deprecated(since = "2.1.0")
-  @ReplacedBy(property = Property.TSERV_WAL_MAX_REFERENCED)
-  TSERV_WALOG_MAX_REFERENCED("tserver.walog.max.referenced", "3", PropertyType.COUNT,
-      "When a tablet server has more than this many write ahead logs, any tablet referencing older "
-          + "logs over this threshold is minor compacted.  Also any tablet referencing this many "
-          + "logs or more will be compacted.",
-      "2.0.0"),
   TSERV_WAL_MAX_SIZE("tserver.wal.max.size", "1G", PropertyType.BYTES,
       "The maximum size for each write-ahead log. See comment for property"
           + " tserver.memory.maps.max",
       "2.1.0"),
-  @Deprecated(since = "2.1.0")
-  @ReplacedBy(property = Property.TSERV_WAL_MAX_SIZE)
-  TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1G", PropertyType.BYTES,
-      "The maximum size for each write-ahead log. See comment for property"
-          + " tserver.memory.maps.max",
-      "1.3.5"),
   TSERV_WAL_MAX_AGE("tserver.wal.max.age", "24h", PropertyType.TIMEDURATION,
       "The maximum age for each write-ahead log.", "2.1.0"),
-  @Deprecated(since = "2.1.0")
-  @ReplacedBy(property = Property.TSERV_WAL_MAX_AGE)
-  TSERV_WALOG_MAX_AGE("tserver.walog.max.age", "24h", PropertyType.TIMEDURATION,
-      "The maximum age for each write-ahead log.", "1.6.6"),
   TSERV_WAL_TOLERATED_CREATION_FAILURES("tserver.wal.tolerated.creation.failures", "50",
       PropertyType.COUNT,
       "The maximum number of failures tolerated when creating a new write-ahead"
@@ -514,35 +468,14 @@ public enum Property {
           + " number of failures consecutively trying to create a new write-ahead log"
           + " causes the TabletServer to exit.",
       "2.1.0"),
-  @Deprecated(since = "2.1.0")
-  @ReplacedBy(property = Property.TSERV_WAL_TOLERATED_CREATION_FAILURES)
-  TSERV_WALOG_TOLERATED_CREATION_FAILURES("tserver.walog.tolerated.creation.failures", "50",
-      PropertyType.COUNT,
-      "The maximum number of failures tolerated when creating a new write-ahead"
-          + " log. Negative values will allow unlimited creation failures. Exceeding this"
-          + " number of failures consecutively trying to create a new write-ahead log"
-          + " causes the TabletServer to exit.",
-      "1.7.1"),
   TSERV_WAL_TOLERATED_WAIT_INCREMENT("tserver.wal.tolerated.wait.increment", "1000ms",
       PropertyType.TIMEDURATION,
       "The amount of time to wait between failures to create or write a write-ahead log.", "2.1.0"),
-  @Deprecated(since = "2.1.0")
-  @ReplacedBy(property = Property.TSERV_WAL_TOLERATED_WAIT_INCREMENT)
-  TSERV_WALOG_TOLERATED_WAIT_INCREMENT("tserver.walog.tolerated.wait.increment", "1000ms",
-      PropertyType.TIMEDURATION,
-      "The amount of time to wait between failures to create or write a write-ahead log.", "1.7.1"),
   // Never wait longer than 5 mins for a retry
   TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION("tserver.wal.maximum.wait.duration", "5m",
       PropertyType.TIMEDURATION,
       "The maximum amount of time to wait after a failure to create or write a write-ahead log.",
       "2.1.0"),
-  // Never wait longer than 5 mins for a retry
-  @Deprecated(since = "2.1.0")
-  @ReplacedBy(property = Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION)
-  TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION("tserver.walog.maximum.wait.duration", "5m",
-      PropertyType.TIMEDURATION,
-      "The maximum amount of time to wait after a failure to create or write a write-ahead log.",
-      "1.7.1"),
   TSERV_SCAN_MAX_OPENFILES("tserver.scan.files.open.max", "100", PropertyType.COUNT,
       "Maximum total RFiles that all tablets in a tablet server can open for scans. ", "1.4.0"),
   TSERV_MAX_IDLE("tserver.files.open.idle", "1m", PropertyType.TIMEDURATION,
@@ -745,16 +678,8 @@ public enum Property {
       "1.5.0"),
   TSERV_WAL_SORT_MAX_CONCURRENT("tserver.wal.sort.concurrent.max", "2", PropertyType.COUNT,
       "The maximum number of threads to use to sort logs during recovery", "2.1.0"),
-  @Deprecated(since = "2.1.0")
-  @ReplacedBy(property = Property.TSERV_WAL_SORT_MAX_CONCURRENT)
-  TSERV_RECOVERY_MAX_CONCURRENT("tserver.recovery.concurrent.max", "2", PropertyType.COUNT,
-      "The maximum number of threads to use to sort logs during recovery", "1.5.0"),
   TSERV_WAL_SORT_BUFFER_SIZE("tserver.wal.sort.buffer.size", "10%", PropertyType.MEMORY,
       "The amount of memory to use when sorting logs during recovery.", "2.1.0"),
-  @Deprecated(since = "2.1.0")
-  @ReplacedBy(property = Property.TSERV_WAL_SORT_BUFFER_SIZE)
-  TSERV_SORT_BUFFER_SIZE("tserver.sort.buffer.size", "10%", PropertyType.MEMORY,
-      "The amount of memory to use when sorting logs during recovery.", "1.5.0"),
   TSERV_WAL_SORT_FILE_PREFIX("tserver.wal.sort.file.", null, PropertyType.PREFIX,
       "The rfile properties to use when sorting logs during recovery. Most of the properties"
           + " that begin with 'table.file' can be used here. For example, to set the compression"
@@ -821,9 +746,6 @@ public enum Property {
       "The number of threads used to delete RFiles and write-ahead logs", "1.3.5"),
   GC_TRASH_IGNORE("gc.trash.ignore", "false", PropertyType.BOOLEAN,
       "Do not use the Trash, even if it is configured.", "1.5.0"),
-  @Deprecated(since = "2.1.0", forRemoval = true)
-  GC_TRACE_PERCENT("gc.trace.percent", "0.01", PropertyType.FRACTION,
-      "Percent of gc cycles to trace", "1.7.0"),
   GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
       "Provides listing of files to be deleted but does not delete any files", "2.1.0"),
   GC_USE_FULL_COMPACTION("gc.post.metadata.action", "flush", PropertyType.GC_POST_ACTION,
@@ -832,9 +754,6 @@ public enum Property {
           + " and possibly compacted. Legal values are: compact - which both flushes and compacts the"
           + " metadata; flush - which flushes only (compactions may be triggered if required); or none",
       "1.10.0"),
-  @Deprecated
-  GC_METRICS_ENABLED("gc.metrics.enabled", "true", PropertyType.BOOLEAN,
-      "Enable detailed gc metrics reporting with hadoop metrics.", "1.10.0"),
 
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX,
@@ -881,40 +800,6 @@ public enum Property {
           + " The resources that are used by default can be seen in"
           + " accumulo/server/monitor/src/main/resources/templates/default.ftl",
       "2.0.0"),
-  @Deprecated(since = "2.1.0")
-  TRACE_PREFIX("trace.", null, PropertyType.PREFIX,
-      "Properties in this category affect the behavior of distributed tracing.", "1.3.5"),
-  @Deprecated(since = "2.1.0")
-  TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient",
-      PropertyType.CLASSNAMELIST, "A list of span receiver classes to send trace spans", "1.7.0"),
-  @Deprecated(since = "2.1.0")
-  TRACE_SPAN_RECEIVER_PREFIX("trace.span.receiver.", null, PropertyType.PREFIX,
-      "Prefix for span receiver configuration properties", "1.7.0"),
-  @Deprecated(since = "2.1.0")
-  TRACE_ZK_PATH("trace.zookeeper.path", Constants.ZTRACERS, PropertyType.STRING,
-      "The zookeeper node where tracers are registered", "1.7.0"),
-  @Deprecated(since = "2.1.0")
-  TRACE_PORT("trace.port.client", "12234", PropertyType.PORT,
-      "The listening port for the trace server", "1.3.5"),
-  @Deprecated(since = "2.1.0")
-  TRACE_TABLE("trace.table", "trace", PropertyType.STRING,
-      "The name of the table to store distributed traces", "1.3.5"),
-  @Deprecated(since = "2.1.0")
-  TRACE_USER("trace.user", "root", PropertyType.STRING,
-      "The name of the user to store distributed traces", "1.3.5"),
-  @Sensitive
-  @Deprecated(since = "2.1.0")
-  TRACE_PASSWORD("trace.password", "secret", PropertyType.STRING,
-      "The password for the user used to store distributed traces", "1.3.5"),
-  @Sensitive
-  @Deprecated(since = "2.1.0")
-  TRACE_TOKEN_PROPERTY_PREFIX("trace.token.property.", null, PropertyType.PREFIX,
-      "The prefix used to create a token for storing distributed traces. For"
-          + " each property required by trace.token.type, place this prefix in front of it.",
-      "1.5.0"),
-  @Deprecated(since = "2.1.0")
-  TRACE_TOKEN_TYPE("trace.token.type", PasswordToken.class.getName(), PropertyType.CLASSNAME,
-      "An AuthenticationToken type supported by the authorizer", "1.5.0"),
 
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
@@ -947,10 +832,6 @@ public enum Property {
       "A tablet is split when the combined size of RFiles exceeds this amount.", "1.3.5"),
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
       "Maximum size of end row", "1.7.0"),
-  @Deprecated(since = "2.0.0")
-  @ReplacedBy(property = Property.TSERV_WAL_MAX_REFERENCED)
-  TABLE_MINC_LOGS_MAX("table.compaction.minor.logs.threshold", "3", PropertyType.COUNT,
-      "This property is deprecated and replaced.", "1.3.5"),
   TABLE_MINC_COMPACT_IDLETIME("table.compaction.minor.idle", "5m", PropertyType.TIMEDURATION,
       "After a tablet has been idle (no mutations) for this time period it may have its "
           + "in-memory map flushed to disk in a minor compaction. There is no guarantee an idle "
@@ -1166,10 +1047,6 @@ public enum Property {
       "The context to use for loading per-table resources, such as iterators"
           + " from the configured factory in `general.context.class.loader.factory`.",
       "2.1.0"),
-  @Deprecated(since = "2.1.0", forRemoval = true)
-  @ReplacedBy(property = TABLE_CLASSLOADER_CONTEXT)
-  TABLE_CLASSPATH("table.classpath.context", "", PropertyType.STRING, "Per table classpath context",
-      "1.5.0"),
   TABLE_SAMPLER("table.sampler", "", PropertyType.CLASSNAME,
       "The name of a class that implements org.apache.accumulo.core.Sampler."
           + " Setting this option enables storing a sample of data which can be"
@@ -1323,23 +1200,6 @@ public enum Property {
       "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
       "The interval at which to check the tservers for external compactions.", "2.1.0"),
   // deprecated properties grouped at the end to reference property that replaces them
-  @Deprecated(since = "1.6.0")
-  @ReplacedBy(property = INSTANCE_VOLUMES)
-  INSTANCE_DFS_URI("instance.dfs.uri", "", PropertyType.URI,
-      "A url accumulo should use to connect to DFS. If this is empty, accumulo"
-          + " will obtain this information from the hadoop configuration. This property"
-          + " will only be used when creating new files if instance.volumes is empty."
-          + " After an upgrade to 1.6.0 Accumulo will start using absolute paths to"
-          + " reference files. Files created before a 1.6.0 upgrade are referenced via"
-          + " relative paths. Relative paths will always be resolved using this config"
-          + " (if empty using the hadoop config).",
-      "1.4.0"),
-  @Deprecated(since = "1.6.0")
-  @ReplacedBy(property = INSTANCE_VOLUMES)
-  INSTANCE_DFS_DIR("instance.dfs.dir", "/accumulo", PropertyType.ABSOLUTEPATH,
-      "HDFS directory in which accumulo instance will run. "
-          + "Do not change after accumulo is initialized.",
-      "1.3.5"),
   @Deprecated(since = "2.0.0")
   GENERAL_CLASSPATHS(org.apache.accumulo.start.classloader.AccumuloClassLoader.GENERAL_CLASSPATHS,
       "", PropertyType.STRING,
@@ -1348,26 +1208,6 @@ public enum Property {
           + " of the places to look for a class. Order does matter, as it will look for"
           + " the jar starting in the first location to the last. Supports full regex"
           + " on filename alone.",
-      "1.3.5"),
-  @Deprecated(since = "1.7.0")
-  @ReplacedBy(property = TABLE_DURABILITY)
-  TSERV_WAL_SYNC_METHOD("tserver.wal.sync.method", "hsync", PropertyType.STRING,
-      "Use table.durability instead.", "1.5.2"),
-  @Deprecated(since = "1.7.0")
-  @ReplacedBy(property = TABLE_DURABILITY)
-  TABLE_WALOG_ENABLED("table.walog.enabled", "true", PropertyType.BOOLEAN,
-      "Use table.durability=none instead.", "1.3.5"),
-  @Deprecated(since = "2.0.0")
-  @ReplacedBy(property = TSERV_SCAN_EXECUTORS_DEFAULT_THREADS)
-  TSERV_READ_AHEAD_MAXCONCURRENT("tserver.readahead.concurrent.max", "16", PropertyType.COUNT,
-      "The maximum number of concurrent read ahead that will execute. This "
-          + "effectively limits the number of long running scans that can run concurrently "
-          + "per tserver.\"",
-      "1.3.5"),
-  @Deprecated(since = "2.0.0")
-  @ReplacedBy(property = TSERV_SCAN_EXECUTORS_META_THREADS)
-  TSERV_METADATA_READ_AHEAD_MAXCONCURRENT("tserver.metadata.readahead.concurrent.max", "8",
-      PropertyType.COUNT, "The maximum number of concurrent metadata read ahead that will execute.",
       "1.3.5");
 
   private final String key;
@@ -1663,7 +1503,6 @@ public enum Property {
     return key.startsWith(Property.TABLE_PREFIX.getKey())
         || key.startsWith(Property.TSERV_PREFIX.getKey())
         || key.startsWith(Property.MANAGER_PREFIX.getKey())
-        || key.startsWith(Property.MASTER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
         || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey());

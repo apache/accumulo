@@ -166,9 +166,6 @@ public class SiteConfiguration extends AccumuloConfiguration {
       config.addConfiguration(overrideConfig);
       config.addConfiguration(propsFileConfig);
 
-      // Make sure any deprecated property names aren't using both the old and new name.
-      DeprecatedPropertyUtil.sanityCheckManagerProperties(config);
-
       var result = new HashMap<String,String>();
       config.getKeys().forEachRemaining(orig -> {
         String resolved = DeprecatedPropertyUtil.getReplacementName(orig, (log, replacement) -> {

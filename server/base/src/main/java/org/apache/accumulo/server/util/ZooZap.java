@@ -146,15 +146,6 @@ public class ZooZap implements KeywordExecutable {
         }
       }
 
-      // Remove the tracers, we don't use them anymore.
-      @SuppressWarnings("deprecation")
-      String path = siteConf.get(Property.TRACE_ZK_PATH);
-      try {
-        zapDirectory(zoo, path, opts);
-      } catch (Exception e) {
-        // do nothing if the /tracers node does not exist.
-      }
-
       if (opts.zapCoordinators) {
         final String coordinatorPath = Constants.ZROOT + "/" + iid + Constants.ZCOORDINATOR_LOCK;
         try {

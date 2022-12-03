@@ -165,9 +165,7 @@ public class LogSorter {
         return;
       }
 
-      @SuppressWarnings("deprecation")
-      Property prop = sortedLogConf.resolve(Property.TSERV_WAL_SORT_BUFFER_SIZE,
-          Property.TSERV_SORT_BUFFER_SIZE);
+      Property prop = sortedLogConf.resolve(Property.TSERV_WAL_SORT_BUFFER_SIZE);
       final long bufferSize = sortedLogConf.getAsBytes(prop);
       Thread.currentThread().setName("Sorting " + name + " for recovery");
       while (true) {
@@ -229,9 +227,8 @@ public class LogSorter {
   public LogSorter(ServerContext context, AccumuloConfiguration conf) {
     this.context = context;
     this.sortedLogConf = extractSortedLogConfig(conf);
-    @SuppressWarnings("deprecation")
-    int threadPoolSize = conf.getCount(conf.resolve(Property.TSERV_WAL_SORT_MAX_CONCURRENT,
-        Property.TSERV_RECOVERY_MAX_CONCURRENT));
+
+    int threadPoolSize = conf.getCount(conf.resolve(Property.TSERV_WAL_SORT_MAX_CONCURRENT));
     this.threadPool = ThreadPools.getServerThreadPools().createFixedThreadPool(threadPoolSize,
         this.getClass().getName(), true);
     this.walBlockSize = DfsLogger.getWalBlockSize(conf);

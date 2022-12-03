@@ -484,8 +484,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   static long getWalBlockSize(AccumuloConfiguration conf) {
     long blockSize = conf.getAsBytes(Property.TSERV_WAL_BLOCKSIZE);
     if (blockSize == 0) {
-      @SuppressWarnings("deprecation")
-      Property prop = conf.resolve(Property.TSERV_WAL_MAX_SIZE, Property.TSERV_WALOG_MAX_SIZE);
+      Property prop = conf.resolve(Property.TSERV_WAL_MAX_SIZE);
       blockSize = (long) (conf.getAsBytes(prop) * 1.1);
     }
     return blockSize;

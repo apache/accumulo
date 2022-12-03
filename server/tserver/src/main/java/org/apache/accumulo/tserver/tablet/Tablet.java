@@ -1685,9 +1685,7 @@ public class Tablet extends TabletBase {
   public void checkIfMinorCompactionNeededForLogs(List<DfsLogger> closedLogs) {
 
     // grab this outside of tablet lock.
-    @SuppressWarnings("deprecation")
-    Property prop = tableConfiguration.resolve(Property.TSERV_WAL_MAX_REFERENCED,
-        Property.TSERV_WALOG_MAX_REFERENCED, Property.TABLE_MINC_LOGS_MAX);
+    Property prop = tableConfiguration.resolve(Property.TSERV_WAL_MAX_REFERENCED);
     int maxLogs = tableConfiguration.getCount(prop);
 
     String reason = null;
