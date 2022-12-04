@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -385,18 +386,66 @@ public class AccumuloConfigurationTest {
   }
 
   // note: this is hard to test if there aren't any deprecated properties
-  // if that's the case, just comment this test out or create a dummy deprecated property
+  // Update a couple of non-deprecated properties using reflection for testing purposes
   @Test
-  public void testResolveDeprecated() {
+  public void testResolveDeprecated() throws Exception {
     var conf = new ConfigurationCopy();
 
-    // non-deprecated second argument
-    var e2 = assertThrows(IllegalArgumentException.class, () -> conf
-        .resolve(Property.INSTANCE_VOLUMES, Property.INSTANCE_SECRET, Property.INSTANCE_VOLUMES));
-    assertEquals("Unexpected non-deprecated [INSTANCE_SECRET, INSTANCE_VOLUMES]", e2.getMessage());
+    final Field isDeprecatedField =
+        Property.INSTANCE_ZK_HOST.getClass().getDeclaredField("isDeprecated");
+    isDeprecatedField.setAccessible(true);
 
-    // empty second argument always resolves to non-deprecated first argument
-    assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES));
+    // Capture the original setting. These are not deprecated but just in case they are in the
+    // future
+    // this will prevent the test from breaking when we reset at the end
+    final boolean origIsDepInstanceZkHost = Property.INSTANCE_ZK_HOST.isDeprecated();
+    final boolean origIsDepInstanceZkTimeout = Property.INSTANCE_ZK_TIMEOUT.isDeprecated();
 
+    try {
+      // Mark these 2 properties as deprecated just for testing purposes to make sure resolve works
+      isDeprecatedField.set(Property.INSTANCE_ZK_HOST, true);
+      isDeprecatedField.set(Property.INSTANCE_ZK_TIMEOUT, true);
+
+      // deprecated first argument
+      var e1 =
+          assertThrows(IllegalArgumentException.class, () -> conf.resolve(Property.INSTANCE_ZK_HOST,
+              Property.INSTANCE_ZK_TIMEOUT, Property.INSTANCE_ZK_TIMEOUT));
+      assertEquals("Unexpected deprecated INSTANCE_ZK_HOST", e1.getMessage());
+
+      // non-deprecated second argument
+      var e2 = assertThrows(IllegalArgumentException.class,
+          () -> conf.resolve(Property.INSTANCE_VOLUMES, Property.INSTANCE_ZK_HOST,
+              Property.INSTANCE_SECRET, Property.INSTANCE_ZK_TIMEOUT, Property.INSTANCE_VOLUMES));
+      assertEquals("Unexpected non-deprecated [INSTANCE_SECRET, INSTANCE_VOLUMES]",
+          e2.getMessage());
+
+      // empty second argument always resolves to non-deprecated first argument
+      assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES));
+
+      // none are set, resolve to non-deprecated
+      assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES,
+          Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT));
+
+      // resolve to first deprecated argument that's set; here, it's the final one
+      conf.set(Property.INSTANCE_ZK_TIMEOUT, "");
+      assertSame(Property.INSTANCE_ZK_TIMEOUT, conf.resolve(Property.INSTANCE_VOLUMES,
+          Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT));
+
+      // resolve to first deprecated argument that's set; now, it's the first one because both are
+      // set
+      conf.set(Property.INSTANCE_ZK_HOST, "");
+      assertSame(Property.INSTANCE_ZK_HOST, conf.resolve(Property.INSTANCE_VOLUMES,
+          Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT));
+
+      // every property is set, so resolve to the non-deprecated one
+      conf.set(Property.INSTANCE_VOLUMES, "");
+      assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES,
+          Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT));
+    } finally {
+      // Reset back to original setting
+      isDeprecatedField.set(Property.INSTANCE_ZK_HOST, origIsDepInstanceZkHost);
+      isDeprecatedField.set(Property.INSTANCE_ZK_TIMEOUT, origIsDepInstanceZkTimeout);
+    }
   }
+
 }
