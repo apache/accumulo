@@ -94,7 +94,7 @@ public class ClassLoaderUtil {
    * Retrieve the classloader context from a table's configuration.
    */
   public static String tableContext(AccumuloConfiguration conf) {
-    return conf.get(conf.resolve(Property.TABLE_CLASSLOADER_CONTEXT));
+    return conf.get(Property.TABLE_CLASSLOADER_CONTEXT);
   }
 
 }

@@ -467,8 +467,8 @@ public class ThreadPools {
    */
   public ScheduledThreadPoolExecutor
       createGeneralScheduledExecutorService(AccumuloConfiguration conf) {
-    Property prop = conf.resolve(Property.GENERAL_THREADPOOL_SIZE);
-    return (ScheduledThreadPoolExecutor) createExecutorService(conf, prop, true);
+    return (ScheduledThreadPoolExecutor) createExecutorService(conf,
+        Property.GENERAL_THREADPOOL_SIZE, true);
   }
 
   /**

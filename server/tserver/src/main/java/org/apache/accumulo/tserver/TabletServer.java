@@ -303,8 +303,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }), 5, 5, TimeUnit.SECONDS);
     watchNonCriticalScheduledTask(future);
 
-    final long walMaxSize = aconf.getAsBytes(aconf.resolve(Property.TSERV_WAL_MAX_SIZE));
-    final long walMaxAge = aconf.getTimeInMillis(aconf.resolve(Property.TSERV_WAL_MAX_AGE));
+    final long walMaxSize = aconf.getAsBytes(Property.TSERV_WAL_MAX_SIZE);
+    final long walMaxAge = aconf.getTimeInMillis(Property.TSERV_WAL_MAX_AGE);
     final long minBlockSize =
         context.getHadoopConf().getLong("dfs.namenode.fs-limits.min-block-size", 0);
     if (minBlockSize != 0 && minBlockSize > walMaxSize) {
@@ -315,11 +315,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     final long toleratedWalCreationFailures =
-        aconf.getCount(aconf.resolve(Property.TSERV_WAL_TOLERATED_CREATION_FAILURES));
+        aconf.getCount(Property.TSERV_WAL_TOLERATED_CREATION_FAILURES);
     final long walFailureRetryIncrement =
-        aconf.getTimeInMillis(aconf.resolve(Property.TSERV_WAL_TOLERATED_WAIT_INCREMENT));
+        aconf.getTimeInMillis(Property.TSERV_WAL_TOLERATED_WAIT_INCREMENT);
     final long walFailureRetryMax =
-        aconf.getTimeInMillis(aconf.resolve(Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION));
+        aconf.getTimeInMillis(Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION);
     final RetryFactory walCreationRetryFactory =
         Retry.builder().maxRetries(toleratedWalCreationFailures)
             .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)

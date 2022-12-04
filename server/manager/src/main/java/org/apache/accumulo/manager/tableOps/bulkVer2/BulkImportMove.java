@@ -107,7 +107,7 @@ class BulkImportMove extends ManagerRepo {
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);
 
     AccumuloConfiguration aConf = manager.getConfiguration();
-    int workerCount = aConf.getCount(aConf.resolve(Property.MANAGER_RENAME_THREADS));
+    int workerCount = aConf.getCount(Property.MANAGER_RENAME_THREADS);
     Map<Path,Path> oldToNewMap = new HashMap<>();
     String fmtTid = FateTxId.formatTid(tid);
 

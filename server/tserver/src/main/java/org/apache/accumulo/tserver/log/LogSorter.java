@@ -165,8 +165,7 @@ public class LogSorter {
         return;
       }
 
-      Property prop = sortedLogConf.resolve(Property.TSERV_WAL_SORT_BUFFER_SIZE);
-      final long bufferSize = sortedLogConf.getAsBytes(prop);
+      final long bufferSize = sortedLogConf.getAsBytes(Property.TSERV_WAL_SORT_BUFFER_SIZE);
       Thread.currentThread().setName("Sorting " + name + " for recovery");
       while (true) {
         final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
@@ -228,7 +227,7 @@ public class LogSorter {
     this.context = context;
     this.sortedLogConf = extractSortedLogConfig(conf);
 
-    int threadPoolSize = conf.getCount(conf.resolve(Property.TSERV_WAL_SORT_MAX_CONCURRENT));
+    int threadPoolSize = conf.getCount(Property.TSERV_WAL_SORT_MAX_CONCURRENT);
     this.threadPool = ThreadPools.getServerThreadPools().createFixedThreadPool(threadPoolSize,
         this.getClass().getName(), true);
     this.walBlockSize = DfsLogger.getWalBlockSize(conf);

@@ -462,23 +462,13 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     } else {
       throw new IllegalArgumentException("No table or namespace specified");
     }
-    String tableContext = getTableContextFromProps(tableProps);
+    String tableContext = tableProps.get(Property.TABLE_CLASSLOADER_CONTEXT.getKey());
 
     if (tableContext != null && !tableContext.isEmpty()) {
       ClassLoaderUtil.initContextFactory(new ConfigurationCopy(
           shellState.getAccumuloClient().instanceOperations().getSystemConfiguration()));
     }
     return ClassLoaderUtil.getClassLoader(tableContext);
-  }
-
-  private static String getTableContextFromProps(Map<String,String> props) {
-    for (Entry<String,String> entry : props.entrySet()) {
-      if (entry.getKey().equals(Property.TABLE_CLASSLOADER_CONTEXT.getKey())
-          && entry.getValue() != null && !entry.getValue().isEmpty()) {
-        return entry.getValue();
-      }
-    }
-    return null;
   }
 
   @Override
