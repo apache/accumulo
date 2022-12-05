@@ -22,7 +22,7 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.tabletserver.thrift;
+package org.apache.accumulo.core.tabletscan.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
 public class TSamplerConfiguration implements org.apache.thrift.TBase<TSamplerConfiguration, TSamplerConfiguration._Fields>, java.io.Serializable, Cloneable, Comparable<TSamplerConfiguration> {
@@ -437,15 +437,15 @@ public class TSamplerConfiguration implements org.apache.thrift.TBase<TSamplerCo
           case 2: // OPTIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map106 = iprot.readMapBegin();
-                struct.options = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map106.size);
-                @org.apache.thrift.annotation.Nullable java.lang.String _key107;
-                @org.apache.thrift.annotation.Nullable java.lang.String _val108;
-                for (int _i109 = 0; _i109 < _map106.size; ++_i109)
+                org.apache.thrift.protocol.TMap _map0 = iprot.readMapBegin();
+                struct.options = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map0.size);
+                @org.apache.thrift.annotation.Nullable java.lang.String _key1;
+                @org.apache.thrift.annotation.Nullable java.lang.String _val2;
+                for (int _i3 = 0; _i3 < _map0.size; ++_i3)
                 {
-                  _key107 = iprot.readString();
-                  _val108 = iprot.readString();
-                  struct.options.put(_key107, _val108);
+                  _key1 = iprot.readString();
+                  _val2 = iprot.readString();
+                  struct.options.put(_key1, _val2);
                 }
                 iprot.readMapEnd();
               }
@@ -479,10 +479,10 @@ public class TSamplerConfiguration implements org.apache.thrift.TBase<TSamplerCo
         oprot.writeFieldBegin(OPTIONS_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.options.size()));
-          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter110 : struct.options.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter4 : struct.options.entrySet())
           {
-            oprot.writeString(_iter110.getKey());
-            oprot.writeString(_iter110.getValue());
+            oprot.writeString(_iter4.getKey());
+            oprot.writeString(_iter4.getValue());
           }
           oprot.writeMapEnd();
         }
@@ -520,10 +520,10 @@ public class TSamplerConfiguration implements org.apache.thrift.TBase<TSamplerCo
       if (struct.isSetOptions()) {
         {
           oprot.writeI32(struct.options.size());
-          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter111 : struct.options.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter5 : struct.options.entrySet())
           {
-            oprot.writeString(_iter111.getKey());
-            oprot.writeString(_iter111.getValue());
+            oprot.writeString(_iter5.getKey());
+            oprot.writeString(_iter5.getValue());
           }
         }
       }
@@ -539,15 +539,15 @@ public class TSamplerConfiguration implements org.apache.thrift.TBase<TSamplerCo
       }
       if (incoming.get(1)) {
         {
-          org.apache.thrift.protocol.TMap _map112 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
-          struct.options = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map112.size);
-          @org.apache.thrift.annotation.Nullable java.lang.String _key113;
-          @org.apache.thrift.annotation.Nullable java.lang.String _val114;
-          for (int _i115 = 0; _i115 < _map112.size; ++_i115)
+          org.apache.thrift.protocol.TMap _map6 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+          struct.options = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map6.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _key7;
+          @org.apache.thrift.annotation.Nullable java.lang.String _val8;
+          for (int _i9 = 0; _i9 < _map6.size; ++_i9)
           {
-            _key113 = iprot.readString();
-            _val114 = iprot.readString();
-            struct.options.put(_key113, _val114);
+            _key7 = iprot.readString();
+            _val8 = iprot.readString();
+            struct.options.put(_key7, _val8);
           }
         }
         struct.setOptionsIsSet(true);

@@ -66,7 +66,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -356,7 +356,7 @@ public class CompactionCoordinator extends AbstractServer
 
   private void updateSummaries(TServerInstance tsi, Set<String> queuesSeen) {
     try {
-      TabletClientService.Client client = null;
+      TabletServerClientService.Client client = null;
       try {
         LOG.debug("Contacting tablet server {} to get external compaction summaries",
             tsi.getHostPort());
@@ -439,7 +439,7 @@ public class CompactionCoordinator extends AbstractServer
 
       LOG.trace("Getting compaction for queue {} from tserver {}", queue, tserver.getHostAndPort());
       // Get a compaction from the tserver
-      TabletClientService.Client client = null;
+      TabletServerClientService.Client client = null;
       try {
         client = getTabletServerConnection(tserver);
         TExternalCompactionJob job =
@@ -488,7 +488,7 @@ public class CompactionCoordinator extends AbstractServer
    * @return thrift client
    * @throws TTransportException thrift error
    */
-  protected TabletClientService.Client getTabletServerConnection(TServerInstance tserver)
+  protected TabletServerClientService.Client getTabletServerConnection(TServerInstance tserver)
       throws TTransportException {
     TServerConnection connection = tserverSet.getConnection(tserver);
     ServerContext serverContext = getContext();
