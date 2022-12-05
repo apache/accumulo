@@ -83,10 +83,11 @@ public class MockShell {
   String exec(String cmd, boolean expectGoodExit, ErrorMessageCallback callback)
       throws IOException {
     String result = exec(cmd);
-    if (expectGoodExit)
+    if (expectGoodExit) {
       assertGoodExit("", true, callback);
-    else
+    } else {
       assertBadExit("", true, callback);
+    }
     return result;
   }
 
@@ -107,10 +108,11 @@ public class MockShell {
   String exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent,
       ErrorMessageCallback callback) throws IOException {
     String result = exec(cmd);
-    if (expectGoodExit)
+    if (expectGoodExit) {
       assertGoodExit(expectString, stringPresent, callback);
-    else
+    } else {
       assertBadExit(expectString, stringPresent, callback);
+    }
     return result;
   }
 
@@ -125,9 +127,10 @@ public class MockShell {
       assertEquals(0, shell.getExitCode(), errorMsg);
     }
 
-    if (!s.isEmpty())
+    if (!s.isEmpty()) {
       assertEquals(stringPresent, output.get().contains(s),
           s + " present in " + output.get() + " was not " + stringPresent);
+    }
   }
 
   void assertBadExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
@@ -137,9 +140,10 @@ public class MockShell {
       assertTrue(shell.getExitCode() > 0, errorMsg);
     }
 
-    if (!s.isEmpty())
+    if (!s.isEmpty()) {
       assertEquals(stringPresent, output.get().contains(s),
           s + " present in " + output.get() + " was not " + stringPresent);
+    }
     shell.resetExitCode();
   }
 
@@ -171,10 +175,11 @@ public class MockShell {
 
     @Override
     public int read() {
-      if (offset == source.length())
+      if (offset == source.length()) {
         return '\n';
-      else
+      } else {
         return source.charAt(offset++);
+      }
     }
 
     public void set(String other) {

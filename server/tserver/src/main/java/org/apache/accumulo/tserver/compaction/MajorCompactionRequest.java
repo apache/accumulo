@@ -181,8 +181,9 @@ public class MajorCompactionRequest implements Cloneable {
 
   public String getTableConfig(String key) {
     Property property = Property.getPropertyByKey(key);
-    if (property == null || property.isSensitive())
+    if (property == null || property.isSensitive()) {
       throw new RuntimeException("Unable to access the configuration value " + key);
+    }
     return tableConfig.get(property);
   }
 

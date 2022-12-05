@@ -137,8 +137,9 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
     Collection<Text> remainingSplits = c.tableOperations().listSplits(table);
     StringBuilder sb = new StringBuilder();
     // See that whole tablets are removed
-    for (Text split : remainingSplits)
+    for (Text split : remainingSplits) {
       sb.append(split);
+    }
     assertEquals(result, sb.toString());
     // See that the rows are really deleted
     try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {

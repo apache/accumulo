@@ -29,8 +29,7 @@ public interface IteratorTestCase {
   /**
    * Run the implementation's test against the given input.
    *
-   * @param testInput
-   *          The input to test.
+   * @param testInput The input to test.
    * @return The output of the test with the input.
    */
   IteratorTestOutput test(IteratorTestInput testInput);
@@ -39,10 +38,8 @@ public interface IteratorTestCase {
    * Compute whether or not the expected and actual output is a success or failure for this
    * implementation.
    *
-   * @param expected
-   *          The expected output from the user.
-   * @param actual
-   *          The actual output from the test
+   * @param expected The expected output from the user.
+   * @param actual The actual output from the test
    * @return true if the test case passes, false if it doesn't.
    */
   default boolean verify(IteratorTestOutput expected, IteratorTestOutput actual) {

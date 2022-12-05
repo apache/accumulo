@@ -68,8 +68,9 @@ public class ColumnSet {
     // lookup column family and column qualifier
     if (!objectsCol.isEmpty()) {
       lookupCol.set(key);
-      if (objectsCol.contains(lookupCol))
+      if (objectsCol.contains(lookupCol)) {
         return true;
+      }
     }
 
     // lookup just column family
@@ -116,16 +117,18 @@ public class ColumnSet {
     for (char c : enc.toCharArray()) {
       boolean validChar = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
           || c == '_' || c == '-' || c == ':' || c == '%';
-      if (!validChar)
+      if (!validChar) {
         return false;
+      }
     }
 
     return true;
   }
 
   public static Pair<Text,Text> decodeColumns(String columns) {
-    if (!isValidEncoding(columns))
+    if (!isValidEncoding(columns)) {
       throw new IllegalArgumentException("Invalid encoding " + columns);
+    }
 
     String[] cols = columns.split(":");
 

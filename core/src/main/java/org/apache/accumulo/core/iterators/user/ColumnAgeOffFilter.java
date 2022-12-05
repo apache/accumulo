@@ -70,8 +70,9 @@ public class ColumnAgeOffFilter extends Filter {
   @Override
   public boolean accept(Key k, Value v) {
     Long threshold = ttls.getObject(k);
-    if (threshold == null)
+    if (threshold == null) {
       return true;
+    }
     return currentTime - k.getTimestamp() <= threshold;
   }
 
@@ -107,8 +108,9 @@ public class ColumnAgeOffFilter extends Filter {
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    if (!super.validateOptions(options))
+    if (!super.validateOptions(options)) {
       return false;
+    }
     try {
       this.ttls = new TTLSet(options);
     } catch (Exception e) {
@@ -120,12 +122,9 @@ public class ColumnAgeOffFilter extends Filter {
   /**
    * A convenience method for adding or changing an age off threshold for a column.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param column
-   *          column to encode as a parameter name.
-   * @param ttl
-   *          age off threshold in milliseconds.
+   * @param is IteratorSetting object to configure.
+   * @param column column to encode as a parameter name.
+   * @param ttl age off threshold in milliseconds.
    */
   public static void addTTL(IteratorSetting is, IteratorSetting.Column column, Long ttl) {
     is.addOption(ColumnSet.encodeColumns(column.getFirst(), column.getSecond()),
@@ -135,10 +134,8 @@ public class ColumnAgeOffFilter extends Filter {
   /**
    * A convenience method for removing an age off threshold for a column.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param column
-   *          column to encode as a parameter name.
+   * @param is IteratorSetting object to configure.
+   * @param column column to encode as a parameter name.
    */
   public static void removeTTL(IteratorSetting is, IteratorSetting.Column column) {
     is.removeOption(ColumnSet.encodeColumns(column.getFirst(), column.getSecond()));

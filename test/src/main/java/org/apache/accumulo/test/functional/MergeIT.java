@@ -48,8 +48,9 @@ public class MergeIT extends AccumuloClusterHarness {
 
   SortedSet<Text> splits(String[] points) {
     SortedSet<Text> result = new TreeSet<>();
-    for (String point : points)
+    for (String point : points) {
       result.add(new Text(point));
+    }
     return result;
   }
 

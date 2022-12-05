@@ -80,20 +80,16 @@ public class AccumuloSecurityException extends Exception {
   /**
    * Construct a user-facing exception from a serialized version.
    *
-   * @param thrift
-   *          a serialized version
+   * @param thrift a serialized version
    */
   public AccumuloSecurityException(final ThriftSecurityException thrift) {
     this(thrift.getUser(), thrift.getCode(), thrift);
   }
 
   /**
-   * @param user
-   *          the relevant user for the security violation
-   * @param errorcode
-   *          the specific reason for this exception
-   * @param cause
-   *          the exception that caused this violation
+   * @param user the relevant user for the security violation
+   * @param errorcode the specific reason for this exception
+   * @param cause the exception that caused this violation
    */
   public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode,
       final Throwable cause) {
@@ -103,14 +99,10 @@ public class AccumuloSecurityException extends Exception {
   }
 
   /**
-   * @param user
-   *          the relevant user for the security violation
-   * @param errorcode
-   *          the specific reason for this exception
-   * @param tableInfo
-   *          the relevant tableInfo for the security violation
-   * @param cause
-   *          the exception that caused this violation
+   * @param user the relevant user for the security violation
+   * @param errorcode the specific reason for this exception
+   * @param tableInfo the relevant tableInfo for the security violation
+   * @param cause the exception that caused this violation
    */
   public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode,
       final String tableInfo, final Throwable cause) {
@@ -121,10 +113,8 @@ public class AccumuloSecurityException extends Exception {
   }
 
   /**
-   * @param user
-   *          the relevant user for the security violation
-   * @param errorcode
-   *          the specific reason for this exception
+   * @param user the relevant user for the security violation
+   * @param errorcode the specific reason for this exception
    */
   public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode) {
     super(getDefaultErrorMessage(errorcode));
@@ -133,12 +123,9 @@ public class AccumuloSecurityException extends Exception {
   }
 
   /**
-   * @param user
-   *          the relevant user for the security violation
-   * @param errorcode
-   *          the specific reason for this exception
-   * @param tableInfo
-   *          the relevant tableInfo for the security violation
+   * @param user the relevant user for the security violation
+   * @param errorcode the specific reason for this exception
+   * @param tableInfo the relevant tableInfo for the security violation
    */
   public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode,
       final String tableInfo) {

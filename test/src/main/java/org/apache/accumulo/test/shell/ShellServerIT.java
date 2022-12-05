@@ -710,14 +710,17 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       accumuloClient.tableOperations().getConfiguration(table).forEach((key, value) -> {
-        if (key.equals("table.custom.description"))
+        if (key.equals("table.custom.description")) {
           assertEquals("description", value, "Initial property was not set correctly");
+        }
 
-        if (key.equals("table.custom.testProp"))
+        if (key.equals("table.custom.testProp")) {
           assertEquals("testProp", value, "Initial property was not set correctly");
+        }
 
-        if (key.equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
+        if (key.equals(Property.TABLE_SPLIT_THRESHOLD.getKey())) {
           assertEquals("10K", value, "Initial property was not set correctly");
+        }
       });
     }
     ts.exec("deletetable -f " + table);
@@ -1393,8 +1396,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     for (int i = 0; i < 10; i++) {
       ts.exec("ping", true, "OK", true);
       // wait for both tservers to start up
-      if (ts.output.get().split("\n").length == 3)
+      if (ts.output.get().split("\n").length == 3) {
         break;
+      }
       sleepUninterruptibly(1, TimeUnit.SECONDS);
 
     }
@@ -1823,8 +1827,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
    * format that uses the current working table. Currently this test does not validate the actual
    * import - only the command syntax.
    *
-   * @throws Exception
-   *           any exception is a test failure.
+   * @throws Exception any exception is a test failure.
    */
   @Test
   public void importDirectoryCmdFmt() throws Exception {

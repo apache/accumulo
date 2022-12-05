@@ -43,8 +43,9 @@ public interface ManagerClient<C extends TServiceClient> {
     }
 
     HostAndPort manager = HostAndPort.fromString(locations.get(0));
-    if (manager.getPort() == 0)
+    if (manager.getPort() == 0) {
       return null;
+    }
 
     try {
       // Manager requests can take a long time: don't ever time out

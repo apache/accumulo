@@ -34,8 +34,7 @@ public class ProblemDetail {
   /**
    * Adds a new problem detail to the list
    *
-   * @param problemDetail
-   *          problem detail to add
+   * @param problemDetail problem detail to add
    */
   public void addProblemDetail(ProblemDetailInformation problemDetail) {
     this.problemDetails.add(problemDetail);

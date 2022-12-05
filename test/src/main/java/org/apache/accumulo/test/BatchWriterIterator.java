@@ -147,18 +147,24 @@ public class BatchWriterIterator extends WrappingIterator {
   private void parseOptions(Map<String,String> options) {
     this.originalOptions = new HashMap<>(options);
 
-    if (options.containsKey(OPT_numEntriesToWritePerEntry))
+    if (options.containsKey(OPT_numEntriesToWritePerEntry)) {
       numEntriesToWritePerEntry = Integer.parseInt(options.get(OPT_numEntriesToWritePerEntry));
-    if (options.containsKey(OPT_sleepAfterFirstWrite))
+    }
+    if (options.containsKey(OPT_sleepAfterFirstWrite)) {
       sleepAfterFirstWrite = Integer.parseInt(options.get(OPT_sleepAfterFirstWrite));
-    if (options.containsKey(OPT_batchWriterTimeout))
+    }
+    if (options.containsKey(OPT_batchWriterTimeout)) {
       batchWriterTimeout = Long.parseLong(options.get(OPT_batchWriterTimeout));
-    if (options.containsKey(OPT_batchWriterMaxMemory))
+    }
+    if (options.containsKey(OPT_batchWriterMaxMemory)) {
       batchWriterMaxMemory = Long.parseLong(options.get(OPT_batchWriterMaxMemory));
-    if (options.containsKey(OPT_clearCacheAfterFirstWrite))
+    }
+    if (options.containsKey(OPT_clearCacheAfterFirstWrite)) {
       clearCacheAfterFirstWrite = Boolean.parseBoolean(options.get(OPT_clearCacheAfterFirstWrite));
-    if (options.containsKey(OPT_splitAfterFirstWrite))
+    }
+    if (options.containsKey(OPT_splitAfterFirstWrite)) {
       splitAfterFirstWrite = Boolean.parseBoolean(options.get(OPT_splitAfterFirstWrite));
+    }
 
     instanceName = options.get(INSTANCENAME);
     tableName = options.get(TABLENAME);
@@ -210,17 +216,19 @@ public class BatchWriterIterator extends WrappingIterator {
 
         if (firstWrite) {
           batchWriter.flush();
-          if (clearCacheAfterFirstWrite)
+          if (clearCacheAfterFirstWrite) {
             TabletLocator.clearLocators();
+          }
           if (splitAfterFirstWrite) {
             SortedSet<Text> splits = new TreeSet<>();
             splits.add(new Text(row));
             accumuloClient.tableOperations().addSplits(tableName, splits);
           }
-          if (sleepAfterFirstWrite > 0)
+          if (sleepAfterFirstWrite > 0) {
             try {
               Thread.sleep(sleepAfterFirstWrite);
             } catch (InterruptedException ignored) {}
+          }
           firstWrite = false;
         }
       }
@@ -237,16 +245,18 @@ public class BatchWriterIterator extends WrappingIterator {
   @Override
   public void next() throws IOException {
     super.next();
-    if (hasTop())
+    if (hasTop()) {
       processNext();
+    }
   }
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
     super.seek(range, columnFamilies, inclusive);
-    if (hasTop())
+    if (hasTop()) {
       processNext();
+    }
   }
 
   @Override

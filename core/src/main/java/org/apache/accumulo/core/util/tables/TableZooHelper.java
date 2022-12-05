@@ -55,9 +55,8 @@ public class TableZooHelper implements AutoCloseable {
   /**
    * Lookup table ID in ZK.
    *
-   * @throws TableNotFoundException
-   *           if not found; if the namespace was not found, this has a getCause() of
-   *           NamespaceNotFoundException
+   * @throws TableNotFoundException if not found; if the namespace was not found, this has a
+   *         getCause() of NamespaceNotFoundException
    */
   public TableId getTableId(String tableName) throws TableNotFoundException {
     try {
@@ -80,10 +79,11 @@ public class TableZooHelper implements AutoCloseable {
       tableId = getTableMap().getNameToIdMap().get(tableName);
       if (tableId == null) {
         String namespace = TableNameUtil.qualify(tableName).getFirst();
-        if (Namespaces.getNameToIdMap(context).containsKey(namespace))
+        if (Namespaces.getNameToIdMap(context).containsKey(namespace)) {
           throw new TableNotFoundException(null, tableName, null);
-        else
+        } else {
           throw new NamespaceNotFoundException(null, namespace, null);
+        }
       }
     }
     return tableId;
@@ -91,8 +91,9 @@ public class TableZooHelper implements AutoCloseable {
 
   public String getTableName(TableId tableId) throws TableNotFoundException {
     String tableName = getTableMap().getIdtoNameMap().get(tableId);
-    if (tableName == null)
+    if (tableName == null) {
       throw new TableNotFoundException(tableId.canonical(), null, null);
+    }
     return tableName;
   }
 
@@ -155,10 +156,8 @@ public class TableZooHelper implements AutoCloseable {
    * Get the current state of the table using the tableid. The boolean clearCache, if true will
    * clear the table state in zookeeper before fetching the state. Added with ACCUMULO-4574.
    *
-   * @param tableId
-   *          the table id
-   * @param clearCachedState
-   *          if true clear the table state in zookeeper before checking status
+   * @param tableId the table id
+   * @param clearCachedState if true clear the table state in zookeeper before checking status
    * @return the table state.
    */
   public TableState getTableState(TableId tableId, boolean clearCachedState) {
@@ -179,11 +178,9 @@ public class TableZooHelper implements AutoCloseable {
   /**
    * Returns the namespace id for a given table ID.
    *
-   * @param tableId
-   *          The tableId
+   * @param tableId The tableId
    * @return The namespace id which this table resides in.
-   * @throws IllegalArgumentException
-   *           if the table doesn't exist in ZooKeeper
+   * @throws IllegalArgumentException if the table doesn't exist in ZooKeeper
    */
   public NamespaceId getNamespaceId(TableId tableId) throws TableNotFoundException {
     checkArgument(context != null, "instance is null");

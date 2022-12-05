@@ -270,8 +270,9 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   private void verifyDefault(Scanner scanner, int expectedCount) throws Exception {
     int actual = Iterators.size(scanner.iterator());
-    if (actual != expectedCount)
+    if (actual != expectedCount) {
       throw new Exception("actual count " + actual + " != expected count " + expectedCount);
+    }
   }
 
   private void verify(AccumuloClient c, String tableName, Set<String> auths,

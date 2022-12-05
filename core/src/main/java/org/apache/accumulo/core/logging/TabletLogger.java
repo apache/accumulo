@@ -146,10 +146,11 @@ public class TabletLogger {
   }
 
   public static void flushed(KeyExtent extent, Optional<StoredTabletFile> newDatafile) {
-    if (newDatafile.isPresent())
+    if (newDatafile.isPresent()) {
       fileLog.debug("Flushed {} created {} from [memory]", extent, newDatafile.get());
-    else
+    } else {
       fileLog.debug("Flushed {} from [memory] but no file was written.", extent);
+    }
   }
 
   public static void bulkImported(KeyExtent extent, TabletFile file) {

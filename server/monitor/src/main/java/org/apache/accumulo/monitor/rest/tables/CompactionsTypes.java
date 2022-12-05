@@ -35,12 +35,9 @@ public class CompactionsTypes {
   /**
    * Create a new compaction list based on types
    *
-   * @param scans
-   *          Scan compaction list
-   * @param major
-   *          Major compaction list
-   * @param minor
-   *          Minor compaction list
+   * @param scans Scan compaction list
+   * @param major Major compaction list
+   * @param minor Minor compaction list
    */
   public CompactionsTypes(CompactionsList scans, CompactionsList major, CompactionsList minor) {
     this.scans = scans;

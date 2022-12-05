@@ -40,9 +40,11 @@ public class SizeCompactionStrategy extends CompactionStrategy {
   @Override
   public boolean shouldCompact(MajorCompactionRequest request) {
 
-    for (DataFileValue dfv : request.getFiles().values())
-      if (dfv.getSize() < size)
+    for (DataFileValue dfv : request.getFiles().values()) {
+      if (dfv.getSize() < size) {
         return true;
+      }
+    }
 
     return false;
   }
@@ -51,9 +53,11 @@ public class SizeCompactionStrategy extends CompactionStrategy {
   public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
     CompactionPlan plan = new CompactionPlan();
 
-    for (Entry<StoredTabletFile,DataFileValue> entry : request.getFiles().entrySet())
-      if (entry.getValue().getSize() < size)
+    for (Entry<StoredTabletFile,DataFileValue> entry : request.getFiles().entrySet()) {
+      if (entry.getValue().getSize() < size) {
         plan.inputFiles.add(entry.getKey());
+      }
+    }
 
     return plan;
   }

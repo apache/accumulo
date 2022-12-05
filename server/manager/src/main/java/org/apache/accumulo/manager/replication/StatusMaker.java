@@ -77,8 +77,7 @@ public class StatusMaker {
    * <p>
    * Used to read records from a table other than 'metadata'
    *
-   * @param table
-   *          The table to read from
+   * @param table The table to read from
    */
   public void setSourceTableName(String table) {
     this.sourceTableName = table;
@@ -205,14 +204,10 @@ public class StatusMaker {
    * given to files that have been closed the longest and allow the work assigner to try to
    * replicate in order that data was ingested (avoid replay in different order)
    *
-   * @param file
-   *          File being replicated
-   * @param tableId
-   *          Table ID the file was used by
-   * @param stat
-   *          Status msg
-   * @param value
-   *          Serialized version of the Status msg
+   * @param file File being replicated
+   * @param tableId Table ID the file was used by
+   * @param stat Status msg
+   * @param value Serialized version of the Status msg
    */
   protected boolean addOrderRecord(Text file, TableId tableId, Status stat, Value value) {
     try {
@@ -267,8 +262,7 @@ public class StatusMaker {
    * assurance that the Status message was propagated to the replication table. It is easiest, in
    * terms of concurrency, to do this all in one step.
    *
-   * @param k
-   *          The Key to delete
+   * @param k The Key to delete
    */
   protected void deleteStatusRecord(Key k) {
     log.debug("Deleting {} from metadata table as it's no longer needed", k.toStringNoTruncate());

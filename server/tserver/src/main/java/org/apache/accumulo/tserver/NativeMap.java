@@ -206,23 +206,26 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       end = 0;
       index = 0;
 
-      if (source.hasNext())
+      if (source.hasNext()) {
         source.doNextPreCheck();
+      }
 
       int amountRead = 0;
 
       // as we keep filling, increase the read ahead buffer
-      if (nextEntries.length < MAX_READ_AHEAD_ENTRIES)
+      if (nextEntries.length < MAX_READ_AHEAD_ENTRIES) {
         nextEntries =
             new PreAllocatedArray<>(Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES));
+      }
 
       while (source.hasNext() && end < nextEntries.length) {
         Entry<Key,Value> ne = source.next();
         nextEntries.set(end++, ne);
         amountRead += ne.getKey().getSize() + ne.getValue().getSize();
 
-        if (amountRead > READ_AHEAD_BYTES)
+        if (amountRead > READ_AHEAD_BYTES) {
           break;
+        }
       }
     }
 
@@ -543,10 +546,11 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       this.map = map;
       this.range = new Range();
       iter = map.new ConcurrentIterator();
-      if (iter.hasNext())
+      if (iter.hasNext()) {
         entry = iter.next();
-      else
+      } else {
         entry = null;
+      }
 
       this.interruptFlag = interruptFlag;
     }
@@ -573,29 +577,33 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     @Override
     public void next() {
 
-      if (entry == null)
+      if (entry == null) {
         throw new NoSuchElementException();
+      }
 
       // checking the interrupt flag for every call to next had bad a bad performance impact
       // so check it every 100th time
-      if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get())
+      if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get()) {
         throw new IterationInterruptedException();
+      }
 
       if (iter.hasNext()) {
         entry = iter.next();
         if (range.afterEndKey(entry.getKey())) {
           entry = null;
         }
-      } else
+      } else {
         entry = null;
+      }
 
     }
 
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) {
 
-      if (interruptFlag != null && interruptFlag.get())
+      if (interruptFlag != null && interruptFlag.get()) {
         throw new IterationInterruptedException();
+      }
 
       iter.delete();
 
@@ -612,8 +620,9 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
         if (range.afterEndKey(entry.getKey())) {
           entry = null;
         }
-      } else
+      } else {
         entry = null;
+      }
 
       while (hasTop() && range.beforeStartKey(getTopKey())) {
         next();

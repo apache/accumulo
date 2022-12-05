@@ -31,10 +31,8 @@ public class KeyValue extends SimpleImmutableEntry<Key,Value> {
   /**
    * Creates a new key/value pair.
    *
-   * @param key
-   *          key
-   * @param value
-   *          bytes of value
+   * @param key key
+   * @param value bytes of value
    */
   public KeyValue(Key key, byte[] value) {
     super(key, new Value(value, false));
@@ -43,10 +41,8 @@ public class KeyValue extends SimpleImmutableEntry<Key,Value> {
   /**
    * Creates a new key/value pair.
    *
-   * @param key
-   *          key
-   * @param value
-   *          buffer containing bytes of value
+   * @param key key
+   * @param value buffer containing bytes of value
    */
   public KeyValue(Key key, ByteBuffer value) {
     super(key, new Value(value));
@@ -55,10 +51,8 @@ public class KeyValue extends SimpleImmutableEntry<Key,Value> {
   /**
    * Creates a new key/value pair.
    *
-   * @param key
-   *          key
-   * @param value
-   *          buffer containing bytes of value
+   * @param key key
+   * @param value buffer containing bytes of value
    */
   public KeyValue(Key key, Value value) {
     super(key, value);

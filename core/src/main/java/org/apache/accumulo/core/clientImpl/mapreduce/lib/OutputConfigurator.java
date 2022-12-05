@@ -54,27 +54,25 @@ public class OutputConfigurator extends ConfiguratorBase {
    * Sets the default table name to use if one emits a null in place of a table name for a given
    * mutation. Table names can only be alpha-numeric and underscores.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param tableName
-   *          the table to use when the tablename is null in the write call
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
+   * @param tableName the table to use when the tablename is null in the write call
    * @since 1.6.0
    */
   public static void setDefaultTableName(Class<?> implementingClass, Configuration conf,
       String tableName) {
-    if (tableName != null)
+    if (tableName != null) {
       conf.set(enumToConfKey(implementingClass, WriteOpts.DEFAULT_TABLE_NAME), tableName);
+    }
   }
 
   /**
    * Gets the default table name from the configuration.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
    * @return the default table name
    * @since 1.6.0
    * @see #setDefaultTableName(Class, Configuration, String)
@@ -88,12 +86,10 @@ public class OutputConfigurator extends ConfiguratorBase {
    * {@link BatchWriterConfig}, with sensible built-in defaults is used. Setting the configuration
    * multiple times overwrites any previous configuration.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param bwConfig
-   *          the configuration for the {@link BatchWriter}
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
+   * @param bwConfig the configuration for the {@link BatchWriter}
    * @since 1.6.0
    */
   public static void setBatchWriterOptions(Class<?> implementingClass, Configuration conf,
@@ -114,10 +110,9 @@ public class OutputConfigurator extends ConfiguratorBase {
   /**
    * Gets the {@link BatchWriterConfig} settings.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
    * @return the configuration object
    * @since 1.6.0
    * @see #setBatchWriterOptions(Class, Configuration, BatchWriterConfig)
@@ -148,12 +143,10 @@ public class OutputConfigurator extends ConfiguratorBase {
    * <p>
    * By default, this feature is <b>disabled</b>.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param enableFeature
-   *          the feature is enabled if true, disabled otherwise
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
+   * @param enableFeature the feature is enabled if true, disabled otherwise
    * @since 1.6.0
    */
   public static void setCreateTables(Class<?> implementingClass, Configuration conf,
@@ -164,10 +157,9 @@ public class OutputConfigurator extends ConfiguratorBase {
   /**
    * Determines whether tables are permitted to be created as needed.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
    * @return true if the feature is disabled, false otherwise
    * @since 1.6.0
    * @see #setCreateTables(Class, Configuration, boolean)
@@ -183,12 +175,10 @@ public class OutputConfigurator extends ConfiguratorBase {
    * <p>
    * By default, this feature is <b>disabled</b>.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param enableFeature
-   *          the feature is enabled if true, disabled otherwise
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
+   * @param enableFeature the feature is enabled if true, disabled otherwise
    * @since 1.6.0
    */
   public static void setSimulationMode(Class<?> implementingClass, Configuration conf,
@@ -199,10 +189,9 @@ public class OutputConfigurator extends ConfiguratorBase {
   /**
    * Determines whether this feature is enabled.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
    * @return true if the feature is enabled, false otherwise
    * @since 1.6.0
    * @see #setSimulationMode(Class, Configuration, boolean)

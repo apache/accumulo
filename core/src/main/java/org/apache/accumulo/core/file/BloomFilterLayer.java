@@ -123,10 +123,11 @@ public class BloomFilterLayer {
         String context = ClassLoaderUtil.tableContext(acuconf);
         String classname = acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR);
         Class<? extends KeyFunctor> clazz;
-        if (!useAccumuloStart)
+        if (!useAccumuloStart) {
           clazz = Writer.class.getClassLoader().loadClass(classname).asSubclass(KeyFunctor.class);
-        else
+        } else {
           clazz = ClassLoaderUtil.loadClass(context, classname, KeyFunctor.class);
+        }
 
         transformer = clazz.getDeclaredConstructor().newInstance();
 
@@ -144,15 +145,17 @@ public class BloomFilterLayer {
         throws IOException {
       writer.append(key, val);
       Key bloomKey = transformer.transform(key);
-      if (bloomKey.getBytes().length > 0)
+      if (bloomKey.getBytes().length > 0) {
         bloomFilter.add(bloomKey);
+      }
     }
 
     @Override
     public synchronized void close() throws IOException {
 
-      if (closed)
+      if (closed) {
         return;
+      }
 
       DataOutputStream out = writer.createMetaStore(BLOOM_FILE_NAME);
       out.writeUTF(transformer.getClass().getName());
@@ -215,8 +218,9 @@ public class BloomFilterLayer {
 
       loadTask = () -> {
         // no need to load the bloom filter if the map file is closed
-        if (closed)
+        if (closed) {
           return;
+        }
         String ClassName = null;
         DataInputStream in = null;
 
@@ -225,8 +229,9 @@ public class BloomFilterLayer {
           DynamicBloomFilter tmpBloomFilter = new DynamicBloomFilter();
 
           // check for closed again after open but before reading the bloom filter in
-          if (closed)
+          if (closed) {
             return;
+          }
 
           /**
            * Load classname for keyFunctor
@@ -247,10 +252,11 @@ public class BloomFilterLayer {
         } catch (NoSuchMetaStoreException nsme) {
           // file does not have a bloom filter, ignore it
         } catch (IOException ioe) {
-          if (closed)
+          if (closed) {
             LOG.debug("Can't open BloomFilter, file closed : {}", ioe.getMessage());
-          else
+          } else {
             LOG.warn("Can't open BloomFilter", ioe);
+          }
 
           bloomFilter = null;
         } catch (ClassNotFoundException e) {
@@ -260,10 +266,11 @@ public class BloomFilterLayer {
           LOG.error("Could not instantiate KeyFunctor: " + sanitize(ClassName), e);
           bloomFilter = null;
         } catch (RuntimeException rte) {
-          if (closed)
+          if (closed) {
             LOG.debug("Can't open BloomFilter, RTE after closed ", rte);
-          else
+          } else {
             throw rte;
+          }
         } finally {
           if (in != null) {
             try {
@@ -313,21 +320,22 @@ public class BloomFilterLayer {
      * Checks if this {@link RFile} contains keys from this range. The membership test is performed
      * using a Bloom filter, so the result has always non-zero probability of false positives.
      *
-     * @param range
-     *          range of keys to check
+     * @param range range of keys to check
      * @return false iff key doesn't exist, true if key probably exists.
      */
     boolean probablyHasKey(Range range) {
       if (bloomFilter == null) {
         initiateLoad(maxLoadThreads);
-        if (bloomFilter == null)
+        if (bloomFilter == null) {
           return true;
+        }
       }
 
       Key bloomKey = transformer.transform(range);
 
-      if (bloomKey == null || bloomKey.getBytes().length == 0)
+      if (bloomKey == null || bloomKey.getBytes().length == 0) {
         return true;
+      }
 
       return bloomFilter.membershipTest(bloomKey);
     }

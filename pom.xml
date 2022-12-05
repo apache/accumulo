@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>27</version>
+    <version>28</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
@@ -1181,6 +1181,8 @@
                   <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After,BeforeAll,AfterAll,BeforeEach,AfterEach" />
                 </module>
                 <module name="MissingOverrideCheck" />
+                <!--Require braces for all control statements -->
+                <module name="NeedBraces" />
               </module>
             </module>
           </checkstyleRules>
@@ -1668,6 +1670,8 @@
                   <!-- treat following warning as an error -->
                   -Xep:FutureReturnValueIgnored:ERROR \
                   -Xep:MissingOverride \
+                  <!--WARN if braces are missing for control statements -->
+                  -Xep:MissingBraces:WARN \
                   <!-- Items containing 'OFF' are currently Errors flagged by ErrorProne. The 'OFF'
                   can be removed and the project recompiled to discover location of errors for
                   further analysis. @SuppressWarnings can be used to ignore errors if desired. -->

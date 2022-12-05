@@ -166,10 +166,8 @@ public class ZooInfoViewer implements KeywordExecutable {
    * <li>HDFS</li>
    * </ol>
    *
-   * @param zooReader
-   *          a ZooReader
-   * @param opts
-   *          the parsed command line options.
+   * @param zooReader a ZooReader
+   * @param opts the parsed command line options.
    * @return an instance id
    */
   InstanceId getInstanceId(final ZooReader zooReader, final ZooInfoViewer.Opts opts) {

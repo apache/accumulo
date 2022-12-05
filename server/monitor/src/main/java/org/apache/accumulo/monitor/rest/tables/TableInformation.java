@@ -79,12 +79,9 @@ public class TableInformation {
   /**
    * Generate a table with just the state
    *
-   * @param tableName
-   *          Table name to create
-   * @param tableId
-   *          Table ID to create
-   * @param tableState
-   *          State of the table
+   * @param tableName Table name to create
+   * @param tableId Table ID to create
+   * @param tableState State of the table
    */
   public TableInformation(String tableName, TableId tableId, String tableState) {
     this.tablename = tableName;
@@ -113,16 +110,11 @@ public class TableInformation {
   /**
    * Generate table based on the thrift table info
    *
-   * @param tableName
-   *          Name of the table to create
-   * @param tableId
-   *          ID of the table to create
-   * @param info
-   *          Thift table info
-   * @param holdTime
-   *          Hold time for the table
-   * @param tableState
-   *          State of the table
+   * @param tableName Name of the table to create
+   * @param tableId ID of the table to create
+   * @param info Thift table info
+   * @param holdTime Hold time for the table
+   * @param tableState State of the table
    */
   public TableInformation(String tableName, TableId tableId, TableInfo info, Double holdTime,
       String tableState) {

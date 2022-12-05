@@ -34,8 +34,7 @@ public interface Upgrader {
   /**
    * Update entries in ZooKeeper - called before the root tablet is loaded.
    *
-   * @param context
-   *          the server context.
+   * @param context the server context.
    */
   void upgradeZookeeper(ServerContext context);
 
@@ -43,8 +42,7 @@ public interface Upgrader {
    * Update the root tablet - called after the root tablet is loaded and before the metadata table
    * is loaded.
    *
-   * @param context
-   *          the server context.
+   * @param context the server context.
    */
   void upgradeRoot(ServerContext context);
 
@@ -52,8 +50,7 @@ public interface Upgrader {
    * Update the metadata table - called after the metadata table is loaded and before loading user
    * tablets.
    *
-   * @param context
-   *          the server context.
+   * @param context the server context.
    */
   void upgradeMetadata(ServerContext context);
 }

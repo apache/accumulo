@@ -49,10 +49,8 @@ public class HadoopCredentialProvider {
   /**
    * Set the Hadoop Credential Provider path in the provided Hadoop Configuration.
    *
-   * @param conf
-   *          the Hadoop Configuration object
-   * @param path
-   *          the credential provider paths to set
+   * @param conf the Hadoop Configuration object
+   * @param path the credential provider paths to set
    */
   public static void setPath(Configuration conf, String path) {
     conf.set(CREDENTIAL_PROVIDER_PATH, path);
@@ -83,10 +81,8 @@ public class HadoopCredentialProvider {
    * Attempt to extract the password from any configured CredentialProviders for the given alias. If
    * no providers or credential is found, null is returned.
    *
-   * @param conf
-   *          Configuration for CredentialProvider
-   * @param alias
-   *          Name of CredentialEntry key
+   * @param conf Configuration for CredentialProvider
+   * @param alias Name of CredentialEntry key
    * @return The credential if found, null otherwise
    */
   public static char[] getValue(Configuration conf, String alias) {
@@ -110,8 +106,7 @@ public class HadoopCredentialProvider {
   /**
    * Attempt to extract all aliases from any configured CredentialProviders.
    *
-   * @param conf
-   *          Configuration for the CredentialProvider
+   * @param conf Configuration for the CredentialProvider
    * @return A list of aliases. An empty list if no CredentialProviders are configured, or the
    *         providers are empty.
    */
@@ -133,12 +128,9 @@ public class HadoopCredentialProvider {
    * Create a CredentialEntry using the configured Providers. If multiple CredentialProviders are
    * configured, the first will be used.
    *
-   * @param conf
-   *          Configuration for the CredentialProvider
-   * @param name
-   *          CredentialEntry name (alias)
-   * @param credential
-   *          The credential
+   * @param conf Configuration for the CredentialProvider
+   * @param name CredentialEntry name (alias)
+   * @param credential The credential
    */
   public static void createEntry(Configuration conf, String name, char[] credential)
       throws IOException {

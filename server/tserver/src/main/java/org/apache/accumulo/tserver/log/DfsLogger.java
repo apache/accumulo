@@ -212,11 +212,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
           }
         }
 
-        for (DfsLogger.LogWork logWork : work)
-          if (logWork == CLOSED_MARKER)
+        for (DfsLogger.LogWork logWork : work) {
+          if (logWork == CLOSED_MARKER) {
             sawClosedMarker = true;
-          else
+          } else {
             logWork.latch.countDown();
+          }
+        }
       }
     }
 
@@ -254,12 +256,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
 
       if (work.exception != null) {
-        if (work.exception instanceof IOException)
+        if (work.exception instanceof IOException) {
           throw (IOException) work.exception;
-        else if (work.exception instanceof RuntimeException)
+        } else if (work.exception instanceof RuntimeException) {
           throw (RuntimeException) work.exception;
-        else
+        } else {
           throw new RuntimeException(work.exception);
+        }
       }
     }
   }
@@ -279,10 +282,12 @@ public class DfsLogger implements Comparable<DfsLogger> {
   @Override
   public boolean equals(Object obj) {
     // filename is unique
-    if (obj == null)
+    if (obj == null) {
       return false;
-    if (obj instanceof DfsLogger)
+    }
+    if (obj instanceof DfsLogger) {
       return getFileName().equals(((DfsLogger) obj).getFileName());
+    }
     return false;
   }
 
@@ -323,8 +328,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   /**
    * Reference a pre-existing log file.
    *
-   * @param meta
-   *          the cq for the "log" entry in +r/!0
+   * @param meta the cq for the "log" entry in +r/!0
    */
   public DfsLogger(ServerContext context, ServerResources conf, String filename, String meta) {
     this(context, conf);
@@ -336,8 +340,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
    * Reads the WAL file header, and returns a decrypting stream which wraps the original stream. If
    * the file is not encrypted, the original stream is returned.
    *
-   * @throws LogHeaderIncompleteException
-   *           if the header cannot be fully read (can happen if the tserver died before finishing)
+   * @throws LogHeaderIncompleteException if the header cannot be fully read (can happen if the
+   *         tserver died before finishing)
    */
   public static DataInputStream getDecryptingStream(FSDataInputStream input,
       CryptoService cryptoService) throws LogHeaderIncompleteException, IOException {
@@ -346,9 +350,10 @@ public class DfsLogger implements Comparable<DfsLogger> {
     byte[] magic4 = DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8);
     byte[] magic3 = DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8);
 
-    if (magic4.length != magic3.length)
+    if (magic4.length != magic3.length) {
       throw new AssertionError("Always expect log file headers to be same length : " + magic4.length
           + " != " + magic3.length);
+    }
 
     byte[] magicBuffer = new byte[magic4.length];
     try {
@@ -388,8 +393,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
    * exception is thrown from this method, it is the callers responsibility to ensure that
    * {@link #close()} is called to prevent leaking the file handle and/or syncing thread.
    *
-   * @param address
-   *          The address of the host using this WAL
+   * @param address The address of the host using this WAL
    */
   public synchronized void open(String address) throws IOException {
     String filename = UUID.randomUUID().toString();
@@ -409,13 +413,15 @@ public class DfsLogger implements Comparable<DfsLogger> {
     try {
       Path logfilePath = new Path(logPath);
       short replication = (short) conf.getConfiguration().getCount(Property.TSERV_WAL_REPLICATION);
-      if (replication == 0)
+      if (replication == 0) {
         replication = fs.getDefaultReplication(logfilePath);
+      }
       long blockSize = getWalBlockSize(conf.getConfiguration());
-      if (conf.getConfiguration().getBoolean(Property.TSERV_WAL_SYNC))
+      if (conf.getConfiguration().getBoolean(Property.TSERV_WAL_SYNC)) {
         logFile = fs.createSyncable(logfilePath, 0, replication, blockSize);
-      else
+      } else {
         logFile = fs.create(logfilePath, true, 0, replication, blockSize);
+      }
 
       // Tell the DataNode that the write ahead log does not need to be cached in the OS page cache
       try {
@@ -461,8 +467,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
       key.filename = filename;
       op = logKeyData(key, Durability.SYNC);
     } catch (Exception ex) {
-      if (logFile != null)
+      if (logFile != null) {
         logFile.close();
+      }
       logFile = null;
       encryptingLogFile = null;
       throw new IOException(ex);
@@ -487,8 +494,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
   @Override
   public String toString() {
     String fileName = getFileName();
-    if (fileName.contains(":"))
+    if (fileName.contains(":")) {
       return getLogger() + "/" + getFileName();
+    }
     return fileName;
   }
 
@@ -513,8 +521,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
   public void close() throws IOException {
 
     synchronized (closeLock) {
-      if (closed)
+      if (closed) {
         return;
+      }
       // after closed is set to true, nothing else should be added to the queue
       // CLOSED_MARKER should be the last thing on the queue, therefore when the
       // background thread sees the marker and exits there should be nothing else
@@ -539,13 +548,14 @@ public class DfsLogger implements Comparable<DfsLogger> {
       throw new IllegalStateException("WAL work queue not empty after sync thread exited");
     }
 
-    if (encryptingLogFile != null)
+    if (encryptingLogFile != null) {
       try {
         logFile.close();
       } catch (IOException ex) {
         log.error("Failed to close log file", ex);
         throw new LogClosedException();
       }
+    }
   }
 
   public synchronized long getWrites() {
@@ -592,11 +602,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
       // use a different lock for close check so that adding to work queue does not need
       // to wait on walog I/O operations
 
-      if (closed)
+      if (closed) {
         throw new LogClosedException();
+      }
 
-      if (durability == Durability.LOG)
+      if (durability == Durability.LOG) {
         return NO_WAIT_LOGGER_OP;
+      }
 
       workQueue.add(work);
     }

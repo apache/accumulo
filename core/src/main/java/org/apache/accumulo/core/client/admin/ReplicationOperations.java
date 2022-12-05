@@ -37,10 +37,8 @@ public interface ReplicationOperations {
   /**
    * Defines a cluster with the given name and the given name system.
    *
-   * @param name
-   *          Unique name for the cluster
-   * @param replicaType
-   *          Class name to use to replicate the data
+   * @param name Unique name for the cluster
+   * @param replicaType Class name to use to replicate the data
    */
   void addPeer(String name, String replicaType)
       throws AccumuloException, AccumuloSecurityException, PeerExistsException;
@@ -48,8 +46,7 @@ public interface ReplicationOperations {
   /**
    * Removes a cluster with the given name.
    *
-   * @param name
-   *          Name of the cluster to remove
+   * @param name Name of the cluster to remove
    */
   void removePeer(String name)
       throws AccumuloException, AccumuloSecurityException, PeerNotFoundException;
@@ -58,8 +55,7 @@ public interface ReplicationOperations {
    * Waits for a table to be fully replicated, given the state of files pending replication for the
    * provided table at the point in time which this method is invoked.
    *
-   * @param tableName
-   *          The table to wait for
+   * @param tableName The table to wait for
    */
   void drain(String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
@@ -69,8 +65,7 @@ public interface ReplicationOperations {
    * to be fully replicated to all configured peers. This allows for the accurate calculation when a
    * table, at a given point in time, has been fully replicated.
    *
-   * @param tableName
-   *          The table to wait for
+   * @param tableName The table to wait for
    */
   void drain(String tableName, Set<String> files)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;

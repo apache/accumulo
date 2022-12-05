@@ -146,19 +146,13 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
    * RFile mechanisms). This method will find the locality groups to use in the
    * LocalityGroupContext, and will seek those groups.
    *
-   * @param hiter
-   *          The heap iterator
-   * @param lgContext
-   *          The locality groups
-   * @param range
-   *          The range to seek
-   * @param columnFamilies
-   *          The column fams to seek
-   * @param inclusive
-   *          The inclusiveness of the column fams
+   * @param hiter The heap iterator
+   * @param lgContext The locality groups
+   * @param range The range to seek
+   * @param columnFamilies The column fams to seek
+   * @param inclusive The inclusiveness of the column fams
    * @return The locality groups seeked
-   * @throws IOException
-   *           thrown if an locality group seek fails
+   * @throws IOException thrown if an locality group seek fails
    */
   static final Collection<LocalityGroup> _seek(HeapIterator hiter, LocalityGroupContext lgContext,
       Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
@@ -239,21 +233,14 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
    * This seek method will reuse the supplied LocalityGroupSeekCache if it can. Otherwise it will
    * delegate to the _seek method.
    *
-   * @param hiter
-   *          The heap iterator
-   * @param lgContext
-   *          The locality groups
-   * @param range
-   *          The range to seek
-   * @param columnFamilies
-   *          The column fams to seek
-   * @param inclusive
-   *          The inclusiveness of the column fams
-   * @param lgSeekCache
-   *          A cache returned by the previous call to this method
+   * @param hiter The heap iterator
+   * @param lgContext The locality groups
+   * @param range The range to seek
+   * @param columnFamilies The column fams to seek
+   * @param inclusive The inclusiveness of the column fams
+   * @param lgSeekCache A cache returned by the previous call to this method
    * @return A cache for this seek call
-   * @throws IOException
-   *           thrown if an locality group seek fails
+   * @throws IOException thrown if an locality group seek fails
    */
   public static LocalityGroupSeekCache seek(HeapIterator hiter, LocalityGroupContext lgContext,
       Range range, Collection<ByteSequence> columnFamilies, boolean inclusive,

@@ -37,18 +37,22 @@ public class TransactionWatcherTest {
 
     public synchronized void start(String txType, Long txid) throws Exception {
       List<Long> txids = started.get(txType);
-      if (txids == null)
+      if (txids == null) {
         txids = new ArrayList<>();
-      if (txids.contains(txid))
+      }
+      if (txids.contains(txid)) {
         throw new Exception("transaction already started");
+      }
       txids.add(txid);
       started.put(txType, txids);
 
       txids = cleanedUp.get(txType);
-      if (txids == null)
+      if (txids == null) {
         txids = new ArrayList<>();
-      if (txids.contains(txid))
+      }
+      if (txids.contains(txid)) {
         throw new IllegalStateException("transaction was started but not cleaned up");
+      }
       txids.add(txid);
       cleanedUp.put(txType, txids);
     }
@@ -74,16 +78,18 @@ public class TransactionWatcherTest {
     @Override
     public synchronized boolean transactionAlive(String txType, long tid) {
       List<Long> txids = started.get(txType);
-      if (txids == null)
+      if (txids == null) {
         return false;
+      }
       return txids.contains(tid);
     }
 
     @Override
     public boolean transactionComplete(String txType, long tid) {
       List<Long> txids = cleanedUp.get(txType);
-      if (txids == null)
+      if (txids == null) {
         return true;
+      }
       return !txids.contains(tid);
     }
 

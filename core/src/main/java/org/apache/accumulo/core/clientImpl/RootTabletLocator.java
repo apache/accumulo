@@ -123,10 +123,11 @@ public class RootTabletLocator extends TabletLocator {
 
     String server = loc.getHostPort();
 
-    if (lockChecker.isLockHeld(server, loc.getSession()))
+    if (lockChecker.isLockHeld(server, loc.getSession())) {
       return new TabletLocation(RootTable.EXTENT, server, loc.getSession());
-    else
+    } else {
       return null;
+    }
   }
 
   @Override

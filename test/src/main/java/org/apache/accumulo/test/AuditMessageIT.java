@@ -106,8 +106,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
   /**
    * Returns a List of Audit messages that have been grep'd out of the MiniAccumuloCluster output.
    *
-   * @param stepName
-   *          A unique name for the test being executed, to identify the System.out messages.
+   * @param stepName A unique name for the test being executed, to identify the System.out messages.
    * @return A List of the Audit messages, sorted (so in chronological order).
    */
   private ArrayList<String> getAuditMessages(String stepName) throws IOException {
@@ -139,8 +138,9 @@ public class AuditMessageIT extends ConfigurableMacBase {
               // Only include the message if startTimestamp is null. or the message occurred after
               // the startTimestamp value
               if ((lastAuditTimestamp == null)
-                  || (line.substring(0, 23).compareTo(lastAuditTimestamp) > 0))
+                  || (line.substring(0, 23).compareTo(lastAuditTimestamp) > 0)) {
                 result.add(line);
+              }
             }
           }
         }
@@ -152,8 +152,9 @@ public class AuditMessageIT extends ConfigurableMacBase {
       System.out.println(s);
     }
     System.out.println("End of captured audit messages for step " + stepName);
-    if (!result.isEmpty())
+    if (!result.isEmpty()) {
       lastAuditTimestamp = result.get(result.size() - 1).substring(0, 23);
+    }
 
     return result;
   }

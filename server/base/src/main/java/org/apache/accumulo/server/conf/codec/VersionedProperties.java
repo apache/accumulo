@@ -66,9 +66,8 @@ public class VersionedProperties {
   /**
    * Instantiate an initial instance with default version info and provided property map.
    *
-   * @param props
-   *          optional map of initial property key, value pairs. The properties are assumed to have
-   *          been previously validated (if required)
+   * @param props optional map of initial property key, value pairs. The properties are assumed to
+   *        have been previously validated (if required)
    */
   public VersionedProperties(Map<String,String> props) {
     this(INIT_VERSION, Instant.now(), props);
@@ -77,13 +76,10 @@ public class VersionedProperties {
   /**
    * Instantiate an instance and set the initial properties to the provided values.
    *
-   * @param zkDataVersion
-   *          the ZooKeeper node data version.
-   * @param timestamp
-   *          timestamp of this version.
-   * @param props
-   *          optional map of initial property key, value pairs. The properties are assumed to have
-   *          been previously validated (if required)
+   * @param zkDataVersion the ZooKeeper node data version.
+   * @param timestamp timestamp of this version.
+   * @param props optional map of initial property key, value pairs. The properties are assumed to
+   *        have been previously validated (if required)
    */
   public VersionedProperties(final long zkDataVersion, final Instant timestamp,
       final Map<String,String> props) {
@@ -150,10 +146,8 @@ public class VersionedProperties {
    * Other processes will receive an update when the instance is encoded and stored in the data
    * store and then retrieved with the normal store update mechanisms.
    *
-   * @param key
-   *          the property name.
-   * @param value
-   *          the property value.
+   * @param key the property name.
+   * @param value the property value.
    * @return A new instance of this class with the property added or updated.
    */
   public VersionedProperties addOrUpdate(final String key, final String value) {
@@ -170,8 +164,7 @@ public class VersionedProperties {
    * Other processes will receive an update when the instance is encoded and stored in the data
    * store and then retrieved with the normal store update mechanisms.
    *
-   * @param updates
-   *          A map of key, values pairs.
+   * @param updates A map of key, values pairs.
    * @return A new instance of this class with the properties added or updated.
    */
   public VersionedProperties addOrUpdate(final Map<String,String> updates) {
@@ -184,8 +177,7 @@ public class VersionedProperties {
    * Replaces all current properties. If a property already exists it is overwritten. If a property
    * is not included in the updates map, the property will not be set.
    *
-   * @param updates
-   *          A map of key, values pairs.
+   * @param updates A map of key, values pairs.
    * @return A new instance of this class with the replaced properties.
    */
   public VersionedProperties replaceAll(final Map<String,String> updates) {
@@ -201,8 +193,7 @@ public class VersionedProperties {
    * Other processes will receive an update when the instance is encoded and stored in the data
    * store and then retrieved with the normal store update mechanisms.
    *
-   * @param keys
-   *          a collection of the keys that if they exist, will be removed.
+   * @param keys a collection of the keys that if they exist, will be removed.
    * @return A new instance of this class.
    */
   public VersionedProperties remove(Collection<String> keys) {
@@ -215,8 +206,7 @@ public class VersionedProperties {
    * Generate a formatted string for debugging, either as a single line or human-friendly,
    * multi-line format.
    *
-   * @param prettyPrint
-   *          if true, generate human-friendly string
+   * @param prettyPrint if true, generate human-friendly string
    * @return a formatted string
    */
   public String print(boolean prettyPrint) {

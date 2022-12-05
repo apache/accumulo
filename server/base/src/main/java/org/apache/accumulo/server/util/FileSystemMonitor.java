@@ -105,12 +105,13 @@ public class FileSystemMonitor {
 
     // Populate readWriteFilesystems with the initial state of the mounts
     for (Mount mount : mounts) {
-      if (mount.options.contains("rw"))
+      if (mount.options.contains("rw")) {
         readWriteFilesystems.put(mount.mountPoint, true);
-      else if (mount.options.contains("ro"))
+      } else if (mount.options.contains("ro")) {
         readWriteFilesystems.put(mount.mountPoint, false);
-      else
+      } else {
         throw new IOException("Filesystem " + mount + " does not have ro or rw option");
+      }
     }
 
     // Create a task to check each mount periodically to see if its state has changed.
@@ -129,15 +130,17 @@ public class FileSystemMonitor {
   }
 
   protected void checkMount(Mount mount) throws Exception {
-    if (!readWriteFilesystems.containsKey(mount.mountPoint))
-      if (mount.options.contains("rw"))
+    if (!readWriteFilesystems.containsKey(mount.mountPoint)) {
+      if (mount.options.contains("rw")) {
         readWriteFilesystems.put(mount.mountPoint, true);
-      else if (mount.options.contains("ro"))
+      } else if (mount.options.contains("ro")) {
         readWriteFilesystems.put(mount.mountPoint, false);
-      else
+      } else {
         throw new Exception("Filesystem " + mount + " does not have ro or rw option");
-    else if (mount.options.contains("ro") && readWriteFilesystems.get(mount.mountPoint))
+      }
+    } else if (mount.options.contains("ro") && readWriteFilesystems.get(mount.mountPoint)) {
       throw new Exception("Filesystem " + mount.mountPoint + " switched to read only");
+    }
   }
 
   public static void start(AccumuloConfiguration conf) {

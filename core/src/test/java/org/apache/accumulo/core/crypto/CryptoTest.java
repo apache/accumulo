@@ -566,8 +566,9 @@ public class CryptoTest {
 
         @Override
         public void accept(Key k, Value v) {
-          if (!k.isDeleted())
+          if (!k.isDeleted()) {
             keys++;
+          }
         }
 
         @Override

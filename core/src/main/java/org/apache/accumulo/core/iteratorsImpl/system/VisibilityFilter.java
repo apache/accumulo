@@ -68,14 +68,16 @@ public class VisibilityFilter extends SynchronizedServerFilter {
   protected boolean accept(Key k, Value v) {
     ByteSequence testVis = k.getColumnVisibilityData();
 
-    if (testVis.length() == 0 && defaultVisibility.length() == 0)
+    if (testVis.length() == 0 && defaultVisibility.length() == 0) {
       return true;
-    else if (testVis.length() == 0)
+    } else if (testVis.length() == 0) {
       testVis = defaultVisibility;
+    }
 
     Boolean b = cache.get(testVis);
-    if (b != null)
+    if (b != null) {
       return b;
+    }
 
     try {
       boolean bb = ve.evaluate(new ColumnVisibility(testVis.toArray()));

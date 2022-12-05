@@ -71,8 +71,9 @@ public class TestRandomDeletes {
     @Override
     public int compareTo(RowColumn other) {
       int result = row.compareTo(other.row);
-      if (result != 0)
+      if (result != 0) {
         return result;
+      }
       return column.compareTo(other.column);
     }
 
@@ -147,8 +148,9 @@ public class TestRandomDeletes {
       while (true) {
         long half = scrambleDeleteHalfAndCheck(opts, doomed);
         deleted += half;
-        if (half == 0)
+        if (half == 0) {
           break;
+        }
       }
       long stopTime = System.currentTimeMillis();
 

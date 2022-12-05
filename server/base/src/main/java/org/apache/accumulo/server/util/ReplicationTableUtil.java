@@ -73,10 +73,8 @@ public class ReplicationTableUtil {
    * <p>
    * Allows mocking of a Writer for testing
    *
-   * @param creds
-   *          Credentials
-   * @param writer
-   *          A Writer to use for the given credentials
+   * @param creds Credentials
+   * @param writer A Writer to use for the given credentials
    */
   static synchronized void addWriter(Credentials creds, Writer writer) {
     writers.put(creds, writer);

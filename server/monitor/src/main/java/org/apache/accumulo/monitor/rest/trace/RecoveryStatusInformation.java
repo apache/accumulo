@@ -37,12 +37,9 @@ public class RecoveryStatusInformation {
   /**
    * Stores recovery information
    *
-   * @param name
-   *          Name of the table
-   * @param runtime
-   *          Runtime of the recovery
-   * @param progress
-   *          Progress of the recovery
+   * @param name Name of the table
+   * @param runtime Runtime of the recovery
+   * @param progress Progress of the recovery
    */
   public RecoveryStatusInformation(String name, Integer runtime, Double progress) {
     this.name = name;
@@ -53,8 +50,7 @@ public class RecoveryStatusInformation {
   /**
    * Stores recovery information
    *
-   * @param recovery
-   *          Recovery status to obtain name, runtime, and progress
+   * @param recovery Recovery status to obtain name, runtime, and progress
    */
   public RecoveryStatusInformation(RecoveryStatus recovery) {
     this.name = recovery.name;

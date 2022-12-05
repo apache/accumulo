@@ -73,24 +73,23 @@ public class ConditionalWriterConfig {
    * <p>
    * <b>Default:</b> {@link Long#MAX_VALUE} (no timeout)
    *
-   * @param timeout
-   *          the timeout, in the unit specified by the value of {@code timeUnit}
-   * @param timeUnit
-   *          determines how {@code timeout} will be interpreted
-   * @throws IllegalArgumentException
-   *           if {@code timeout} is less than 0
+   * @param timeout the timeout, in the unit specified by the value of {@code timeUnit}
+   * @param timeUnit determines how {@code timeout} will be interpreted
+   * @throws IllegalArgumentException if {@code timeout} is less than 0
    * @return {@code this} to allow chaining of set methods
    */
   public ConditionalWriterConfig setTimeout(long timeout, TimeUnit timeUnit) {
-    if (timeout < 0)
+    if (timeout < 0) {
       throw new IllegalArgumentException("Negative timeout not allowed " + timeout);
+    }
 
-    if (timeout == 0)
+    if (timeout == 0) {
       this.timeout = Long.MAX_VALUE;
-    else
+    } else {
       // make small, positive values that truncate to 0 when converted use the minimum millis
       // instead
       this.timeout = Math.max(1, timeUnit.toMillis(timeout));
+    }
     return this;
   }
 
@@ -100,15 +99,14 @@ public class ConditionalWriterConfig {
    * <p>
    * <b>Default:</b> 3
    *
-   * @param maxWriteThreads
-   *          the maximum threads to use
-   * @throws IllegalArgumentException
-   *           if {@code maxWriteThreads} is non-positive
+   * @param maxWriteThreads the maximum threads to use
+   * @throws IllegalArgumentException if {@code maxWriteThreads} is non-positive
    * @return {@code this} to allow chaining of set methods
    */
   public ConditionalWriterConfig setMaxWriteThreads(int maxWriteThreads) {
-    if (maxWriteThreads <= 0)
+    if (maxWriteThreads <= 0) {
       throw new IllegalArgumentException("Max threads must be positive " + maxWriteThreads);
+    }
 
     this.maxWriteThreads = maxWriteThreads;
     return this;
@@ -153,10 +151,8 @@ public class ConditionalWriterConfig {
    * Sets the name of the classloader context on this scanner. See the administration chapter of the
    * user manual for details on how to configure and use classloader contexts.
    *
-   * @param classLoaderContext
-   *          name of the classloader context
-   * @throws NullPointerException
-   *           if context is null
+   * @param classLoaderContext name of the classloader context
+   * @throws NullPointerException if context is null
    * @since 1.8.0
    */
   public void setClassLoaderContext(String classLoaderContext) {
@@ -184,8 +180,9 @@ public class ConditionalWriterConfig {
   }
 
   private static <T> T merge(T o1, T o2) {
-    if (o1 != null)
+    if (o1 != null) {
       return o1;
+    }
     return o2;
   }
 
@@ -193,8 +190,7 @@ public class ConditionalWriterConfig {
    * Merge this ConditionalWriterConfig with another. If config is set in both, preference will be
    * given to this config.
    *
-   * @param other
-   *          Another ConditionalWriterConfig
+   * @param other Another ConditionalWriterConfig
    * @return Merged ConditionalWriterConfig
    * @since 2.1.0
    */

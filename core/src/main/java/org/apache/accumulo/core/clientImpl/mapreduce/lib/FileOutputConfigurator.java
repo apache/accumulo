@@ -52,8 +52,7 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    * These properties correspond to the supported public static setter methods available to this
    * class.
    *
-   * @param property
-   *          the Accumulo property to check
+   * @param property the Accumulo property to check
    * @since 1.6.0
    */
   protected static Boolean isSupportedAccumuloProperty(Property property) {
@@ -73,29 +72,28 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    * Helper for transforming Accumulo configuration properties into something that can be stored
    * safely inside the Hadoop Job configuration.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param property
-   *          the supported Accumulo property
-   * @param value
-   *          the value of the property to set
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
+   * @param property the supported Accumulo property
+   * @param value the value of the property to set
    * @since 1.6.0
    */
   private static <T> void setAccumuloProperty(Class<?> implementingClass, Configuration conf,
       Property property, T value) {
     if (isSupportedAccumuloProperty(property)) {
       String val = String.valueOf(value);
-      if (property.getType().isValidFormat(val))
+      if (property.getType().isValidFormat(val)) {
         conf.set(
             enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + "." + property.getKey(),
             val);
-      else
+      } else {
         throw new IllegalArgumentException(
             "Value is not appropriate for property type '" + property.getType() + "'");
-    } else
+      }
+    } else {
       throw new IllegalArgumentException("Unsupported configuration property " + property.getKey());
+    }
   }
 
   /**
@@ -103,17 +101,16 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    * defaults, and overridden with Accumulo properties that have been stored in the Job's
    * configuration.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
    * @since 1.6.0
    */
   public static AccumuloConfiguration getAccumuloConfiguration(Class<?> implementingClass,
       Configuration conf) {
     String prefix = enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + ".";
     ConfigurationCopy acuConf = new ConfigurationCopy(DefaultConfiguration.getInstance());
-    for (Entry<String,String> entry : conf)
+    for (Entry<String,String> entry : conf) {
       if (entry.getKey().startsWith(prefix)) {
         String propString = entry.getKey().substring(prefix.length());
         Property prop = Property.getPropertyByKey(propString);
@@ -125,6 +122,7 @@ public class FileOutputConfigurator extends ConfiguratorBase {
           throw new IllegalArgumentException("Unknown accumulo file property " + propString);
         }
       }
+    }
     return acuConf;
   }
 
@@ -132,20 +130,19 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    * Sets the compression type to use for data blocks. Specifying a compression may require
    * additional libraries to be available to your Job.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param compressionType
-   *          one of "none", "gz", "bzip2", "lzo", "lz4", "snappy", or "zstd"
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
+   * @param compressionType one of "none", "gz", "bzip2", "lzo", "lz4", "snappy", or "zstd"
    * @since 1.6.0
    */
   public static void setCompressionType(Class<?> implementingClass, Configuration conf,
       String compressionType) {
     if (compressionType == null || !Arrays
-        .asList("none", "gz", "bzip2", "lzo", "lz4", "snappy", "zstd").contains(compressionType))
+        .asList("none", "gz", "bzip2", "lzo", "lz4", "snappy", "zstd").contains(compressionType)) {
       throw new IllegalArgumentException(
           "Compression type must be one of: none, gz, bzip2, lzo, lz4, snappy, zstd");
+    }
     setAccumuloProperty(implementingClass, conf, Property.TABLE_FILE_COMPRESSION_TYPE,
         compressionType);
   }
@@ -159,12 +156,10 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    * Making this value smaller may increase seek performance, but at the cost of increasing the size
    * of the indexes (which can also affect seek performance).
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param dataBlockSize
-   *          the block size, in bytes
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
+   * @param dataBlockSize the block size, in bytes
    * @since 1.6.0
    */
   public static void setDataBlockSize(Class<?> implementingClass, Configuration conf,
@@ -177,12 +172,10 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    * Sets the size for file blocks in the file system; file blocks are managed, and replicated, by
    * the underlying file system.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param fileBlockSize
-   *          the block size, in bytes
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
+   * @param fileBlockSize the block size, in bytes
    * @since 1.6.0
    */
   public static void setFileBlockSize(Class<?> implementingClass, Configuration conf,
@@ -195,12 +188,10 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    * within the file, while larger blocks mean a more shallow index hierarchy within the file. This
    * can affect the performance of queries.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param indexBlockSize
-   *          the block size, in bytes
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
+   * @param indexBlockSize the block size, in bytes
    * @since 1.6.0
    */
   public static void setIndexBlockSize(Class<?> implementingClass, Configuration conf,
@@ -213,12 +204,10 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    * Sets the file system replication factor for the resulting file, overriding the file system
    * default.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param replication
-   *          the number of replicas for produced files
+   * @param implementingClass the class whose name will be used as a prefix for the property
+   *        configuration key
+   * @param conf the Hadoop configuration object to configure
+   * @param replication the number of replicas for produced files
    * @since 1.6.0
    */
   public static void setReplication(Class<?> implementingClass, Configuration conf,

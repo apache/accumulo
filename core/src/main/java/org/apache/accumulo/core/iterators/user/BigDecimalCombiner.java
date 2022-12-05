@@ -63,8 +63,9 @@ public abstract class BigDecimalCombiner extends TypedValueCombiner<BigDecimal> 
   public static class BigDecimalSummingCombiner extends BigDecimalCombiner {
     @Override
     public BigDecimal typedReduce(Key key, Iterator<BigDecimal> iter) {
-      if (!iter.hasNext())
+      if (!iter.hasNext()) {
         return null;
+      }
       BigDecimal sum = iter.next();
       while (iter.hasNext()) {
         sum = sum.add(iter.next());
@@ -76,8 +77,9 @@ public abstract class BigDecimalCombiner extends TypedValueCombiner<BigDecimal> 
   public static class BigDecimalMaxCombiner extends BigDecimalCombiner {
     @Override
     public BigDecimal typedReduce(Key key, Iterator<BigDecimal> iter) {
-      if (!iter.hasNext())
+      if (!iter.hasNext()) {
         return null;
+      }
       BigDecimal max = iter.next();
       while (iter.hasNext()) {
         max = max.max(iter.next());
@@ -89,8 +91,9 @@ public abstract class BigDecimalCombiner extends TypedValueCombiner<BigDecimal> 
   public static class BigDecimalMinCombiner extends BigDecimalCombiner {
     @Override
     public BigDecimal typedReduce(Key key, Iterator<BigDecimal> iter) {
-      if (!iter.hasNext())
+      if (!iter.hasNext()) {
         return null;
+      }
       BigDecimal min = iter.next();
       while (iter.hasNext()) {
         min = min.min(iter.next());

@@ -154,31 +154,39 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     @SuppressWarnings("deprecation")
     ServiceEnvironment serviceEnv = env.getServiceEnv();
     PluginEnvironment pluginEnv = env.getPluginEnv();
-    if (serviceEnv != pluginEnv)
+    if (serviceEnv != pluginEnv) {
       throw new RuntimeException("Test failed - assertSame(getServiceEnv(),getPluginEnv())");
+    }
 
     // verify property exists on the table config (deprecated and new),
     // with and without custom prefix, but not in the system config
     @SuppressWarnings("deprecation")
     String accTableConf = env.getConfig().get("table.custom.iterator.env.test");
-    if (!"value1".equals(accTableConf))
+    if (!"value1".equals(accTableConf)) {
       throw new RuntimeException("Test failed - Expected table property not found in getConfig().");
+    }
     var tableConf = pluginEnv.getConfiguration(env.getTableId());
-    if (!"value1".equals(tableConf.get("table.custom.iterator.env.test")))
+    if (!"value1".equals(tableConf.get("table.custom.iterator.env.test"))) {
       throw new RuntimeException("Test failed - Expected table property not found in table conf.");
-    if (!"value1".equals(tableConf.getTableCustom("iterator.env.test")))
+    }
+    if (!"value1".equals(tableConf.getTableCustom("iterator.env.test"))) {
       throw new RuntimeException("Test failed - Expected table property not found in table conf.");
+    }
     var systemConf = pluginEnv.getConfiguration();
-    if (systemConf.get("table.custom.iterator.env.test") != null)
+    if (systemConf.get("table.custom.iterator.env.test") != null) {
       throw new RuntimeException("Test failed - Unexpected table property found in system conf.");
+    }
 
     // check other environment settings
-    if (!scope.equals(env.getIteratorScope()))
+    if (!scope.equals(env.getIteratorScope())) {
       throw new RuntimeException("Test failed - Error getting iterator scope");
-    if (env.isSamplingEnabled())
+    }
+    if (env.isSamplingEnabled()) {
       throw new RuntimeException("Test failed - isSamplingEnabled returned true, expected false");
-    if (!expectedTableId.equals(env.getTableId()))
+    }
+    if (!expectedTableId.equals(env.getTableId())) {
       throw new RuntimeException("Test failed - Error getting Table ID");
+    }
   }
 
   @BeforeEach
@@ -188,8 +196,9 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
 
   @AfterEach
   public void finish() {
-    if (client != null)
+    if (client != null) {
       client.close();
+    }
   }
 
   @Test

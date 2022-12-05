@@ -88,8 +88,9 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     accumuloClient = Accumulo.newClient().from(getClientProps()).build();
     // Need at least two tservers -- wait for them to start before failing
     for (int retries = 0; retries < 5; ++retries) {
-      if (accumuloClient.instanceOperations().getTabletServers().size() >= 2)
+      if (accumuloClient.instanceOperations().getTabletServers().size() >= 2) {
         break;
+      }
       UtilWaitThread.sleep(TimeUnit.SECONDS.toMillis(2));
     }
     assumeTrue(accumuloClient.instanceOperations().getTabletServers().size() >= 2,

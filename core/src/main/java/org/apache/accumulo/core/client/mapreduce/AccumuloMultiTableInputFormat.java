@@ -60,10 +60,8 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
   /**
    * Sets the {@link InputTableConfig} objects on the given Hadoop configuration
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param configs
-   *          the table query configs to be set on the configuration.
+   * @param job the Hadoop job instance to be configured
+   * @param configs the table query configs to be set on the configuration.
    * @since 1.6.0
    */
   public static void setInputTableConfigs(Job job, Map<String,InputTableConfig> configs) {
@@ -84,8 +82,9 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
           Map.Entry<Key,Value> entry = scannerIterator.next();
           currentK = currentKey = entry.getKey();
           currentV = entry.getValue();
-          if (log.isTraceEnabled())
+          if (log.isTraceEnabled()) {
             log.trace("Processing key/value pair: " + DefaultFormatter.formatEntry(entry, true));
+          }
           return true;
         }
         return false;

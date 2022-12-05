@@ -63,8 +63,7 @@ public class KeyBuilder {
     /**
      * Change the timestamp of the {@link Key} created.
      *
-     * @param timestamp
-     *          the timestamp to use for the {@link Key}
+     * @param timestamp the timestamp to use for the {@link Key}
      * @return this builder
      */
     Build timestamp(long timestamp);
@@ -72,8 +71,7 @@ public class KeyBuilder {
     /**
      * Set the deleted marker of the {@link Key} to the parameter.
      *
-     * @param deleted
-     *          if the {@link Key} should be marked as deleted or not
+     * @param deleted if the {@link Key} should be marked as deleted or not
      * @return this builder
      */
     Build deleted(boolean deleted);
@@ -89,8 +87,7 @@ public class KeyBuilder {
     /**
      * Set the row of the {@link Key} that this builder will build to the parameter.
      *
-     * @param row
-     *          the row to use for the key
+     * @param row the row to use for the key
      * @return this builder
      */
     ColumnFamilyStep row(final Text row);
@@ -98,8 +95,7 @@ public class KeyBuilder {
     /**
      * Set the row of the {@link Key} that this builder will build to the parameter.
      *
-     * @param row
-     *          the row to use for the key
+     * @param row the row to use for the key
      * @return this builder
      */
     ColumnFamilyStep row(final byte[] row);
@@ -107,14 +103,11 @@ public class KeyBuilder {
     /**
      * Set the row of the {@link Key} that this builder will build to the parameter.
      *
-     * @param row
-     *          the row to use for the key
-     * @param offset
-     *          the offset within the array of the first byte to be read; must be non-negative and
-     *          no larger than row.length
-     * @param length
-     *          the number of bytes to be read from the given array; must be non-negative and no
-     *          larger than row.length - offset
+     * @param row the row to use for the key
+     * @param offset the offset within the array of the first byte to be read; must be non-negative
+     *        and no larger than row.length
+     * @param length the number of bytes to be read from the given array; must be non-negative and
+     *        no larger than row.length - offset
      * @return this builder
      */
     ColumnFamilyStep row(final byte[] row, int offset, int length);
@@ -122,8 +115,7 @@ public class KeyBuilder {
     /**
      * Set the row of the {@link Key} that this builder will build to the parameter.
      *
-     * @param row
-     *          the row to use for the key. The encoding must be UTF-8
+     * @param row the row to use for the key. The encoding must be UTF-8
      * @return this builder
      */
     ColumnFamilyStep row(final CharSequence row);
@@ -139,8 +131,7 @@ public class KeyBuilder {
     /**
      * Set the column family of the {@link Key} that this builder will build to the parameter.
      *
-     * @param columnFamily
-     *          the column family to use for the {@link Key}
+     * @param columnFamily the column family to use for the {@link Key}
      * @return this builder
      */
     ColumnQualifierStep family(final byte[] columnFamily);
@@ -148,14 +139,11 @@ public class KeyBuilder {
     /**
      * Set the column family of the {@link Key} that this builder will build to the parameter.
      *
-     * @param columnFamily
-     *          the column family to use for the {@link Key}
-     * @param offset
-     *          the offset within the array of the first byte to be read; must be non-negative and
-     *          no larger than row.length
-     * @param length
-     *          the number of bytes to be read from the given array; must be non-negative and no
-     *          larger than row.length - offset
+     * @param columnFamily the column family to use for the {@link Key}
+     * @param offset the offset within the array of the first byte to be read; must be non-negative
+     *        and no larger than row.length
+     * @param length the number of bytes to be read from the given array; must be non-negative and
+     *        no larger than row.length - offset
      * @return this builder
      */
     ColumnQualifierStep family(final byte[] columnFamily, int offset, int length);
@@ -163,8 +151,7 @@ public class KeyBuilder {
     /**
      * Set the column family of the {@link Key} that this builder will build to the parameter.
      *
-     * @param columnFamily
-     *          the column family to use for the {@link Key}
+     * @param columnFamily the column family to use for the {@link Key}
      * @return this builder
      */
     ColumnQualifierStep family(final Text columnFamily);
@@ -172,8 +159,7 @@ public class KeyBuilder {
     /**
      * Set the column family of the {@link Key} that this builder will build to the parameter.
      *
-     * @param columnFamily
-     *          the column family to use for the {@link Key}. The encoding must be UTF-8
+     * @param columnFamily the column family to use for the {@link Key}. The encoding must be UTF-8
      * @return this builder
      */
     ColumnQualifierStep family(final CharSequence columnFamily);
@@ -189,8 +175,7 @@ public class KeyBuilder {
     /**
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
      *
-     * @param columnQualifier
-     *          the column qualifier to use for the {@link Key}
+     * @param columnQualifier the column qualifier to use for the {@link Key}
      * @return this builder
      */
     ColumnVisibilityStep qualifier(final byte[] columnQualifier);
@@ -198,14 +183,11 @@ public class KeyBuilder {
     /**
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
      *
-     * @param columnQualifier
-     *          the column qualifier to use for the {@link Key}
-     * @param offset
-     *          the offset within the array of the first byte to be read; must be non-negative and
-     *          no larger than row.length
-     * @param length
-     *          the number of bytes to be read from the given array; must be non-negative and no
-     *          larger than row.length - offset
+     * @param columnQualifier the column qualifier to use for the {@link Key}
+     * @param offset the offset within the array of the first byte to be read; must be non-negative
+     *        and no larger than row.length
+     * @param length the number of bytes to be read from the given array; must be non-negative and
+     *        no larger than row.length - offset
      * @return this builder
      */
     ColumnVisibilityStep qualifier(final byte[] columnQualifier, int offset, int length);
@@ -213,8 +195,7 @@ public class KeyBuilder {
     /**
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
      *
-     * @param columnQualifier
-     *          the column qualifier to use for the {@link Key}
+     * @param columnQualifier the column qualifier to use for the {@link Key}
      * @return this builder
      */
     ColumnVisibilityStep qualifier(final Text columnQualifier);
@@ -222,8 +203,8 @@ public class KeyBuilder {
     /**
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
      *
-     * @param columnQualifier
-     *          the column qualifier to use for the {@link Key}. The encoding must be UTF-8
+     * @param columnQualifier the column qualifier to use for the {@link Key}. The encoding must be
+     *        UTF-8
      * @return this builder
      */
     ColumnVisibilityStep qualifier(final CharSequence columnQualifier);
@@ -239,8 +220,7 @@ public class KeyBuilder {
     /**
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
      *
-     * @param columnVisibility
-     *          the column visibility to use for the {@link Key}
+     * @param columnVisibility the column visibility to use for the {@link Key}
      * @return this builder
      */
     Build visibility(final byte[] columnVisibility);
@@ -248,14 +228,11 @@ public class KeyBuilder {
     /**
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
      *
-     * @param columnVisibility
-     *          the column visibility to use for the {@link Key}
-     * @param offset
-     *          the offset within the array of the first byte to be read; must be non-negative and
-     *          no larger than row.length
-     * @param length
-     *          the number of bytes to be read from the given array; must be non-negative and no
-     *          larger than row.length - offset
+     * @param columnVisibility the column visibility to use for the {@link Key}
+     * @param offset the offset within the array of the first byte to be read; must be non-negative
+     *        and no larger than row.length
+     * @param length the number of bytes to be read from the given array; must be non-negative and
+     *        no larger than row.length - offset
      * @return this builder
      */
     Build visibility(final byte[] columnVisibility, int offset, int length);
@@ -263,8 +240,7 @@ public class KeyBuilder {
     /**
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
      *
-     * @param columnVisibility
-     *          the column visibility to use for the {@link Key}
+     * @param columnVisibility the column visibility to use for the {@link Key}
      * @return this builder
      */
     Build visibility(final Text columnVisibility);
@@ -272,8 +248,8 @@ public class KeyBuilder {
     /**
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
      *
-     * @param columnVisibility
-     *          the column visibility to use for the {@link Key}. The encoding must be UTF-8
+     * @param columnVisibility the column visibility to use for the {@link Key}. The encoding must
+     *        be UTF-8
      * @return this builder
      */
     Build visibility(final CharSequence columnVisibility);
@@ -281,8 +257,7 @@ public class KeyBuilder {
     /**
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
      *
-     * @param columnVisibility
-     *          the column visibility to use for the {@link Key}
+     * @param columnVisibility the column visibility to use for the {@link Key}
      * @return this builder
      */
     Build visibility(final ColumnVisibility columnVisibility);

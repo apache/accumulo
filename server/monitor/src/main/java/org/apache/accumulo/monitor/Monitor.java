@@ -388,8 +388,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         previousHost = coordinatorHost;
         coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
         coordinatorCheckNanos = System.nanoTime();
-        if (previousHost.isEmpty() && coordinatorHost.isPresent())
+        if (previousHost.isEmpty() && coordinatorHost.isPresent()) {
           log.info("External Compaction Coordinator found at {}", coordinatorHost.get());
+        }
       }
 
     } finally {

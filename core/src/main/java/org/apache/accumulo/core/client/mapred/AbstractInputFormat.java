@@ -90,10 +90,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   /**
    * Sets the name of the classloader context on this scanner
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param context
-   *          name of the classloader context
+   * @param job the Hadoop job instance to be configured
+   * @param context name of the classloader context
    * @since 1.8.0
    */
   public static void setClassLoaderContext(JobConf job, String context) {
@@ -103,8 +101,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   /**
    * Returns the name of the current classloader context set on this scanner
    *
-   * @param job
-   *          the Hadoop job instance to be configured
+   * @param job the Hadoop job instance to be configured
    * @return name of the current context
    * @since 1.8.0
    */
@@ -124,12 +121,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * {@link SecurityOperations#getDelegationToken(DelegationTokenConfig)}, is not subject to this
    * concern.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param principal
-   *          a valid Accumulo user name (user must have Table.CREATE permission)
-   * @param token
-   *          the user's password
+   * @param job the Hadoop job instance to be configured
+   * @param principal a valid Accumulo user name (user must have Table.CREATE permission)
+   * @param token the user's password
    * @since 1.5.0
    */
   public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token)
@@ -168,12 +162,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * Stores the password in a file in HDFS and pulls that into the Distributed Cache in an attempt
    * to be more secure than storing it in the Configuration.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param principal
-   *          a valid Accumulo user name (user must have Table.CREATE permission)
-   * @param tokenFile
-   *          the path to the token file
+   * @param job the Hadoop job instance to be configured
+   * @param principal a valid Accumulo user name (user must have Table.CREATE permission)
+   * @param tokenFile the path to the token file
    * @since 1.6.0
    */
   public static void setConnectorInfo(JobConf job, String principal, String tokenFile)
@@ -184,8 +175,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   /**
    * Determines if the connector has been configured.
    *
-   * @param job
-   *          the Hadoop context for the configured job
+   * @param job the Hadoop context for the configured job
    * @return true if the connector has been configured, false otherwise
    * @since 1.5.0
    * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
@@ -197,8 +187,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   /**
    * Gets the user name from the configuration.
    *
-   * @param job
-   *          the Hadoop context for the configured job
+   * @param job the Hadoop context for the configured job
    * @return the user name
    * @since 1.5.0
    * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
@@ -211,8 +200,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * Gets the authenticated token from either the specified token file or directly from the
    * configuration, whichever was used when the job was configured.
    *
-   * @param job
-   *          the Hadoop context for the configured job
+   * @param job the Hadoop context for the configured job
    * @return the principal's authentication token
    * @since 1.6.0
    * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
@@ -226,12 +214,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   /**
    * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param instanceName
-   *          the Accumulo instance name
-   * @param zooKeepers
-   *          a comma-separated list of zookeeper servers
+   * @param job the Hadoop job instance to be configured
+   * @param instanceName the Accumulo instance name
+   * @param zooKeepers a comma-separated list of zookeeper servers
    * @since 1.5.0
    * @deprecated since 1.6.0; Use
    *             {@link #setZooKeeperInstance(JobConf, org.apache.accumulo.core.client.ClientConfiguration)}
@@ -246,10 +231,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   /**
    * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param clientConfig
-   *          client configuration containing connection options
+   * @param job the Hadoop job instance to be configured
+   * @param clientConfig client configuration containing connection options
    * @since 1.6.0
    */
   public static void setZooKeeperInstance(JobConf job,
@@ -261,8 +244,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * Initializes an Accumulo {@link org.apache.accumulo.core.client.Instance} based on the
    * configuration.
    *
-   * @param job
-   *          the Hadoop context for the configured job
+   * @param job the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
    * @see #setZooKeeperInstance(JobConf, org.apache.accumulo.core.client.ClientConfiguration)
@@ -274,10 +256,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   /**
    * Sets the log level for this job.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param level
-   *          the logging level
+   * @param job the Hadoop job instance to be configured
+   * @param level the logging level
    * @since 1.5.0
    */
   public static void setLogLevel(JobConf job, Level level) {
@@ -287,8 +267,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   /**
    * Gets the log level from this configuration.
    *
-   * @param job
-   *          the Hadoop context for the configured job
+   * @param job the Hadoop context for the configured job
    * @return the log level
    * @since 1.5.0
    * @see #setLogLevel(JobConf, Level)
@@ -301,10 +280,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorization.
    * Defaults to the empty set.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param auths
-   *          the user's authorizations
+   * @param job the Hadoop job instance to be configured
+   * @param auths the user's authorizations
    * @since 1.5.0
    */
   public static void setScanAuthorizations(JobConf job, Authorizations auths) {
@@ -314,8 +291,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   /**
    * Gets the authorizations to set for the scans from the configuration.
    *
-   * @param job
-   *          the Hadoop context for the configured job
+   * @param job the Hadoop context for the configured job
    * @return the Accumulo scan authorizations
    * @since 1.5.0
    * @see #setScanAuthorizations(JobConf, Authorizations)
@@ -327,8 +303,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   /**
    * Fetch the client configuration from the job.
    *
-   * @param job
-   *          The job
+   * @param job The job
    * @return The client configuration for the job
    * @since 1.7.0
    */
@@ -342,10 +317,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * Check whether a configuration is fully configured to be used with an Accumulo
    * {@link InputFormat}.
    *
-   * @param job
-   *          the Hadoop context for the configured job
-   * @throws java.io.IOException
-   *           if the context is improperly configured
+   * @param job the Hadoop context for the configured job
+   * @throws java.io.IOException if the context is improperly configured
    * @since 1.5.0
    */
   protected static void validateOptions(JobConf job) throws IOException {
@@ -356,8 +329,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * Fetches all {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig}s that have been
    * set on the given Hadoop job.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
+   * @param job the Hadoop job instance to be configured
    * @return the {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} objects set on
    *         the job
    * @since 1.6.0
@@ -374,10 +346,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * <p>
    * null is returned in the event that the table doesn't exist.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param tableName
-   *          the table name for which to grab the config object
+   * @param job the Hadoop job instance to be configured
+   * @param tableName the table name for which to grab the config object
    * @return the {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} for the given
    *         table
    * @since 1.6.0
@@ -408,10 +378,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     /**
      * Extracts Iterators settings from the context to be used by RecordReader.
      *
-     * @param job
-     *          the Hadoop job configuration
-     * @param tableName
-     *          the table name for which the scanner is configured
+     * @param job the Hadoop job configuration
+     * @param tableName the table name for which the scanner is configured
      * @return List of iterator settings for given table
      * @since 1.7.0
      */
@@ -420,12 +388,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     /**
      * Configures the iterators on a scanner for the given table name.
      *
-     * @param job
-     *          the Hadoop job configuration
-     * @param scanner
-     *          the scanner for which to configure the iterators
-     * @param tableName
-     *          the table name for which the scanner is configured
+     * @param job the Hadoop job configuration
+     * @param scanner the scanner for which to configure the iterators
+     * @param tableName the table name for which the scanner is configured
      * @since 1.7.0
      */
     private void setupIterators(JobConf job, ScannerBase scanner, String tableName,
@@ -441,19 +406,17 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         }
       }
 
-      for (IteratorSetting iterator : iterators)
+      for (IteratorSetting iterator : iterators) {
         scanner.addScanIterator(iterator);
+      }
     }
 
     /**
      * Configures the iterators on a scanner for the given table name.
      *
-     * @param job
-     *          the Hadoop job configuration
-     * @param scanner
-     *          the scanner for which to configure the iterators
-     * @param tableName
-     *          the table name for which the scanner is configured
+     * @param job the Hadoop job configuration
+     * @param scanner the scanner for which to configure the iterators
+     * @param tableName the table name for which the scanner is configured
      * @since 1.6.0
      * @deprecated since 1.7.0; Use {@link #jobIterators} instead.
      */
@@ -599,8 +562,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
     @Override
     public float getProgress() throws IOException {
-      if (numKeysRead > 0 && currentKey == null)
+      if (numKeysRead > 0 && currentKey == null) {
         return 1.0f;
+      }
       return baseSplit.getProgress(currentKey);
     }
 
@@ -619,9 +583,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * the specified ranges.
    *
    * @return the splits from the tables based on the ranges.
-   * @throws java.io.IOException
-   *           if a table set on the job doesn't exist or an error occurs initializing the tablet
-   *           locator
+   * @throws java.io.IOException if a table set on the job doesn't exist or an error occurs
+   *         initializing the tablet locator
    */
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
@@ -659,14 +622,16 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       boolean batchScan = InputConfigurator.isBatchScan(CLASS, job);
       boolean supportBatchScan = !(tableConfig.isOfflineScan()
           || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
-      if (batchScan && !supportBatchScan)
+      if (batchScan && !supportBatchScan) {
         throw new IllegalArgumentException("BatchScanner optimization not available for offline"
             + " scan, isolated, or local iterators");
+      }
 
       boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
-      if (batchScan && !autoAdjust)
+      if (batchScan && !autoAdjust) {
         throw new IllegalArgumentException(
             "AutoAdjustRanges must be enabled when using BatchScanner optimization");
+      }
 
       List<Range> ranges =
           autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
@@ -712,8 +677,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       // Map from Range to Array of Locations, we only use this if we're don't split
       HashMap<Range,ArrayList<String>> splitsToAdd = null;
 
-      if (!autoAdjust)
+      if (!autoAdjust) {
         splitsToAdd = new HashMap<>();
+      }
 
       HashMap<String,String> hostNameCache = new HashMap<>();
       for (Map.Entry<String,Map<KeyExtent,List<Range>>> tserverBin : binnedRanges.entrySet()) {
@@ -729,8 +695,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           if (batchScan) {
             // group ranges by tablet to be read by a BatchScanner
             ArrayList<Range> clippedRanges = new ArrayList<>();
-            for (Range r : extentRanges.getValue())
+            for (Range r : extentRanges.getValue()) {
               clippedRanges.add(ke.clip(r));
+            }
             org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit split =
                 new org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit(tableName, tableId,
                     clippedRanges, new String[] {location});
@@ -754,8 +721,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
               } else {
                 // don't divide ranges
                 ArrayList<String> locations = splitsToAdd.get(r);
-                if (locations == null)
+                if (locations == null) {
                   locations = new ArrayList<>(1);
+                }
                 locations.add(location);
                 splitsToAdd.put(r, locations);
               }
@@ -764,7 +732,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         }
       }
 
-      if (!autoAdjust)
+      if (!autoAdjust) {
         for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
           RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonical(),
               entry.getKey(), entry.getValue().toArray(new String[0]));
@@ -776,6 +744,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
           splits.add(split);
         }
+      }
     }
     return splits.toArray(new InputSplit[splits.size()]);
   }

@@ -113,8 +113,9 @@ public class ConfigurableCompactionStrategy implements CompactionSelector, Compa
       SamplerConfigurationImpl sc = SamplerConfigurationImpl.newSamplerConfig(
           new ConfigurationCopy(params.getEnvironment().getConfiguration(params.getTableId())));
 
-      if (sc == null)
+      if (sc == null) {
         return Set.of();
+      }
 
       Set<CompactableFile> filesToCompact = new HashSet<>();
       for (CompactableFile tabletFile : params.getAvailableFiles()) {

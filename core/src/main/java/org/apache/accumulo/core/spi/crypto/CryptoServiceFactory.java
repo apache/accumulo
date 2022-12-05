@@ -32,10 +32,8 @@ public interface CryptoServiceFactory {
   /**
    * Return the appropriate CryptoService.
    *
-   * @param environment
-   *          CryptoEnvironment containing a variety of information
-   * @param properties
-   *          configuration
+   * @param environment CryptoEnvironment containing a variety of information
+   * @param properties configuration
    *
    * @return CryptoService based on the environment and configuration
    */

@@ -266,8 +266,7 @@ public class ScanServer extends AbstractServer
    * Start the thrift service to handle incoming client requests
    *
    * @return address of this client service
-   * @throws UnknownHostException
-   *           host unknown
+   * @throws UnknownHostException host unknown
    */
   protected ServerAddress startScanServerClientService() throws UnknownHostException {
 

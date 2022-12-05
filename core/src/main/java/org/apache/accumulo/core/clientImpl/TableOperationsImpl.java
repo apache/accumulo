@@ -198,8 +198,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public boolean exists(String tableName) {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME))
+    if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
       return true;
+    }
 
     OpTimer timer = null;
 
@@ -413,12 +414,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     } finally {
       context.clearTableListCache();
       // always finish table op, even when exception
-      if (opid != null)
+      if (opid != null) {
         try {
           finishFateOperation(opid);
         } catch (Exception e) {
           log.warn("Exception thrown while finishing fate table operation", e);
         }
+      }
     }
   }
 
@@ -452,8 +454,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     @Override
     public void run() {
       try {
-        if (env.exception.get() != null)
+        if (env.exception.get() != null) {
           return;
+        }
 
         if (splits.size() <= 2) {
           addSplits(env, new TreeSet<>(splits));
@@ -544,8 +547,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       while (!successful) {
 
-        if (attempt > 0)
+        if (attempt > 0) {
           sleepUninterruptibly(100, MILLISECONDS);
+        }
 
         attempt++;
 
@@ -683,9 +687,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     ArrayList<Text> endRows = new ArrayList<>(tabletLocations.size());
-    for (KeyExtent ke : tabletLocations.keySet())
-      if (ke.endRow() != null)
+    for (KeyExtent ke : tabletLocations.keySet()) {
+      if (ke.endRow() != null) {
         endRows.add(ke.endRow());
+      }
+    }
 
     return endRows;
 
@@ -706,10 +712,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * decremented by 1 and the process continues until all existing splits have been parsed or
    * maxSplits splits have been selected.
    *
-   * @param tableName
-   *          the name of the table
-   * @param maxSplits
-   *          specifies the maximum number of splits to return
+   * @param tableName the name of the table
+   * @param maxSplits specifies the maximum number of splits to return
    * @return a Collection containing a subset of evenly selected splits
    */
   @Override
@@ -781,8 +785,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     TableId srcTableId = context.getTableId(srcTableName);
 
-    if (config.isFlush())
+    if (config.isFlush()) {
       _flush(srcTableId, null, null, true);
+    }
 
     Map<String,String> opts = new HashMap<>();
     validatePropertiesToSet(opts, config.getPropertiesToSet());
@@ -878,8 +883,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Text start = config.getStartRow();
     Text end = config.getEndRow();
 
-    if (config.getFlush())
+    if (config.getFlush()) {
       _flush(tableId, start, end, true);
+    }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
         ByteBuffer.wrap(UserCompactionUtils.encode(config)));
@@ -1184,8 +1190,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       setPropertyNoChecks(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(),
           Joiner.on(",").join(groups.keySet()));
     } catch (AccumuloException e) {
-      if (e.getCause() instanceof TableNotFoundException)
+      if (e.getCause() instanceof TableNotFoundException) {
         throw (TableNotFoundException) e.getCause();
+      }
       throw e;
     }
 
@@ -1234,10 +1241,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(range != null, "range is null");
 
-    if (maxSplits < 1)
+    if (maxSplits < 1) {
       throw new IllegalArgumentException("maximum splits must be >= 1");
-    if (maxSplits == 1)
+    }
+    if (maxSplits == 1) {
       return Collections.singleton(range);
+    }
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     TableId tableId = context.getTableId(tableName);
@@ -1260,8 +1269,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     LinkedList<KeyExtent> unmergedExtents = new LinkedList<>();
     List<KeyExtent> mergedExtents = new ArrayList<>();
 
-    for (Map<KeyExtent,List<Range>> map : binnedRanges.values())
+    for (Map<KeyExtent,List<Range>> map : binnedRanges.values()) {
       unmergedExtents.addAll(map.keySet());
+    }
 
     // the sort method is efficient for linked list
     Collections.sort(unmergedExtents);
@@ -1284,8 +1294,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     mergedExtents.addAll(unmergedExtents);
 
     Set<Range> ranges = new HashSet<>();
-    for (KeyExtent k : mergedExtents)
+    for (KeyExtent k : mergedExtents) {
       ranges.add(k.toDataRange().clip(range));
+    }
 
     return ranges;
   }
@@ -1354,18 +1365,20 @@ public class TableOperationsImpl extends TableOperationsHelper {
         TableState currentState = context.getTableState(tableId);
         if (currentState != expectedState) {
           context.requireNotDeleted(tableId);
-          if (currentState == TableState.DELETING)
+          if (currentState == TableState.DELETING) {
             throw new TableNotFoundException(tableId.canonical(), "", TABLE_DELETED_MSG);
+          }
           throw new AccumuloException(
               "Unexpected table state " + tableId + " " + currentState + " != " + expectedState);
         }
       }
 
       Range range;
-      if (startRow == null || lastRow == null)
+      if (startRow == null || lastRow == null) {
         range = new KeyExtent(tableId, null, null).toMetaRange();
-      else
+      } else {
         range = new Range(startRow, lastRow);
+      }
 
       TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
           .overRange(range).fetch(LOCATION, PREV_ROW).build();
@@ -1385,8 +1398,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if ((expectedState == TableState.ONLINE
             && (loc == null || loc.getType() == LocationType.FUTURE))
             || (expectedState == TableState.OFFLINE && loc != null)) {
-          if (continueRow == null)
+          if (continueRow == null) {
             continueRow = tablet.getExtent().toMetaRow();
+          }
           waitFor++;
           lastRow = tablet.getExtent().toMetaRow();
 
@@ -1422,8 +1436,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if (serverCounts.size() > 0) {
           maxPerServer = serverCounts.max();
           waitTime = maxPerServer * 10;
-        } else
+        } else {
           waitTime = waitFor * 10L;
+        }
         waitTime = Math.max(100, waitTime);
         waitTime = Math.min(5000, waitTime);
         log.trace("Waiting for {}({}) tablets, startRow = {} lastRow = {}, holes={} sleeping:{}ms",
@@ -1459,8 +1474,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new AssertionError(e);
     }
 
-    if (wait)
+    if (wait) {
       waitForTableStateTransition(tableId, TableState.OFFLINE);
+    }
   }
 
   @Override
@@ -1488,8 +1504,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
      * ACCUMULO-4574 if table is already online return without executing fate operation.
      */
     if (isOnline(tableName)) {
-      if (wait)
+      if (wait) {
         waitForTableStateTransition(tableId, TableState.ONLINE);
+      }
       return;
     }
 
@@ -1504,8 +1521,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new AssertionError(e);
     }
 
-    if (wait)
+    if (wait) {
       waitForTableStateTransition(tableId, TableState.ONLINE);
+    }
   }
 
   @Override
@@ -1570,8 +1588,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
         throw new AccumuloException(e);
       } finally {
         // must always return thrift connection
-        if (pair != null)
+        if (pair != null) {
           ThriftUtil.close(pair.getSecond(), context);
+        }
       }
     }
 
@@ -1587,14 +1606,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * Search multiple directories for exportMetadata.zip, the control file used for the importable
    * command.
    *
-   * @param context
-   *          used to obtain filesystem based on configuration
-   * @param importDirs
-   *          the set of directories to search.
+   * @param context used to obtain filesystem based on configuration
+   * @param importDirs the set of directories to search.
    * @return the Path representing the location of the file.
-   * @throws AccumuloException
-   *           if zero or more than one copy of the exportMetadata.zip file are found in the
-   *           directories provided.
+   * @throws AccumuloException if zero or more than one copy of the exportMetadata.zip file are
+   *         found in the directories provided.
    */
   public static Path findExportFile(ClientContext context, Set<String> importDirs)
       throws AccumuloException {
@@ -2110,8 +2126,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   private void prependPropertiesToExclude(Map<String,String> opts, Set<String> propsToExclude) {
-    if (propsToExclude == null)
+    if (propsToExclude == null) {
       return;
+    }
 
     for (String prop : propsToExclude) {
       opts.put(PROPERTY_EXCLUDE_PREFIX + prop, "");
@@ -2119,13 +2136,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   private void validatePropertiesToSet(Map<String,String> opts, Map<String,String> propsToSet) {
-    if (propsToSet == null)
+    if (propsToSet == null) {
       return;
+    }
 
     propsToSet.forEach((k, v) -> {
-      if (k.startsWith(PROPERTY_EXCLUDE_PREFIX))
+      if (k.startsWith(PROPERTY_EXCLUDE_PREFIX)) {
         throw new IllegalArgumentException(
             "Property can not start with " + PROPERTY_EXCLUDE_PREFIX);
+      }
       opts.put(k, v);
     });
   }

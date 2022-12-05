@@ -37,14 +37,10 @@ public interface InstanceOperations {
    * Only some properties can be changed by this method, an IllegalArgumentException will be thrown
    * if there is an attempt to set a read-only property.
    *
-   * @param property
-   *          the name of a system property
-   * @param value
-   *          the value to set a system property to
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
+   * @param property the name of a system property
+   * @param value the value to set a system property to
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
    */
   void setProperty(final String property, final String value)
       throws AccumuloException, AccumuloSecurityException;
@@ -115,20 +111,16 @@ public interface InstanceOperations {
    *         }
    * </pre>
    *
-   * @param mapMutator
-   *          This consumer should modify the passed snapshot of instance properties to contain the
-   *          desired keys and values. It should be safe for Accumulo to call this consumer multiple
-   *          times, this may be done automatically when certain retryable errors happen. The
-   *          consumer should probably avoid accessing the Accumulo client as that could lead to
-   *          undefined behavior.
+   * @param mapMutator This consumer should modify the passed snapshot of instance properties to
+   *        contain the desired keys and values. It should be safe for Accumulo to call this
+   *        consumer multiple times, this may be done automatically when certain retryable errors
+   *        happen. The consumer should probably avoid accessing the Accumulo client as that could
+   *        lead to undefined behavior.
    *
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
-   * @throws IllegalArgumentException
-   *           if the Consumer alters the map by adding properties that cannot be stored in
-   *           ZooKeeper
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws IllegalArgumentException if the Consumer alters the map by adding properties that
+   *         cannot be stored in ZooKeeper
    *
    * @return The map that became Accumulo's new properties for this table. This map is immutable and
    *         contains the snapshot passed to mapMutator and the changes made by mapMutator.
@@ -141,12 +133,9 @@ public interface InstanceOperations {
    * Removes a system property from zookeeper. Changes can be seen using
    * {@link #getSystemConfiguration()}
    *
-   * @param property
-   *          the name of a system property
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission
+   * @param property the name of a system property
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
    */
   void removeProperty(final String property) throws AccumuloException, AccumuloSecurityException;
 
@@ -192,8 +181,8 @@ public interface InstanceOperations {
   /**
    * List the active scans on a tablet server.
    *
-   * @param tserver
-   *          The tablet server address. This should be of the form {@code <ip address>:<port>}
+   * @param tserver The tablet server address. This should be of the form
+   *        {@code <ip address>:<port>}
    * @return A list of active scans on tablet server.
    */
   List<ActiveScan> getActiveScans(String tserver)
@@ -205,8 +194,8 @@ public interface InstanceOperations {
    * external compactions running on compactors. Use {@link #getActiveCompactions()} to get a list
    * of all compactions running on tservers and compactors.
    *
-   * @param tserver
-   *          The tablet server address. This should be of the form {@code <ip address>:<port>}
+   * @param tserver The tablet server address. This should be of the form
+   *        {@code <ip address>:<port>}
    * @return the list of active compactions
    * @since 1.5.0
    */
@@ -224,8 +213,8 @@ public interface InstanceOperations {
   /**
    * Throws an exception if a tablet server can not be contacted.
    *
-   * @param tserver
-   *          The tablet server address. This should be of the form {@code <ip address>:<port>}
+   * @param tserver The tablet server address. This should be of the form
+   *        {@code <ip address>:<port>}
    * @since 1.5.0
    */
   void ping(String tserver) throws AccumuloException;

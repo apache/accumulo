@@ -65,8 +65,9 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 
       @Override
       public void close(Reporter reporter) throws IOException {
-        if (out != null)
+        if (out != null) {
           out.close();
+        }
       }
 
       @Override

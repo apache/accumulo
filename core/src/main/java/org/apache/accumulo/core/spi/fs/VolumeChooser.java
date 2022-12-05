@@ -38,10 +38,8 @@ public interface VolumeChooser {
   /**
    * Choose a volume from the provided options.
    *
-   * @param env
-   *          the server environment provided by the calling framework
-   * @param options
-   *          the list of volumes to choose from
+   * @param env the server environment provided by the calling framework
+   * @param options the list of volumes to choose from
    * @return one of the options
    */
   String choose(VolumeChooserEnvironment env, Set<String> options);
@@ -52,10 +50,8 @@ public interface VolumeChooser {
    * determine if all of the volumes that could be chosen for write ahead logs support the needed
    * filesystem operations. There may be other use cases in the future.
    *
-   * @param env
-   *          the server environment provided by the calling framework
-   * @param options
-   *          the subset of volumes to choose from
+   * @param env the server environment provided by the calling framework
+   * @param options the subset of volumes to choose from
    * @return array of valid options
    */
   Set<String> choosable(VolumeChooserEnvironment env, Set<String> options);

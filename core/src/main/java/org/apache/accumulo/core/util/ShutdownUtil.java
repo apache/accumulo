@@ -37,15 +37,19 @@ public class ShutdownUtil {
   }
 
   public static boolean isIOException(Throwable e) {
-    if (e == null)
+    if (e == null) {
       return false;
+    }
 
-    if (e instanceof IOException)
+    if (e instanceof IOException) {
       return true;
+    }
 
-    for (Throwable suppressed : e.getSuppressed())
-      if (isIOException(suppressed))
+    for (Throwable suppressed : e.getSuppressed()) {
+      if (isIOException(suppressed)) {
         return true;
+      }
+    }
 
     return isIOException(e.getCause());
   }

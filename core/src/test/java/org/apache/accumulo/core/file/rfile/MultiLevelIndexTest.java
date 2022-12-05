@@ -71,8 +71,9 @@ public class MultiLevelIndexTest {
 
     BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
 
-    for (int i = 0; i < num; i++)
+    for (int i = 0; i < num; i++) {
       mliw.add(new Key(String.format("%05d000", i)), i, 0, 0, 0);
+    }
 
     mliw.addLast(new Key(String.format("%05d000", num)), num, 0, 0, 0);
 
@@ -121,10 +122,11 @@ public class MultiLevelIndexTest {
 
     random.ints(100, 0, num * 1_000).forEach(k -> {
       int expected;
-      if (k % 1000 == 0)
+      if (k % 1000 == 0) {
         expected = k / 1000; // end key is inclusive
-      else
+      } else {
         expected = k / 1000 + 1;
+      }
       try {
         IndexEntry ie = reader.lookup(new Key(String.format("%08d", k))).next();
         assertEquals(expected, ie.getNumEntries());

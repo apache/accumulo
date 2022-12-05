@@ -136,8 +136,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     /**
      * Constructs an accumulo iterator from a scanner.
      *
-     * @param scanner
-     *          the scanner to iterate over
+     * @param scanner the scanner to iterate over
      */
     public ScannerTranslatorImpl(final Scanner scanner, SamplerConfiguration samplerConfig) {
       this.scanner = scanner;
@@ -157,10 +156,11 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     @Override
     public void next() throws IOException {
-      if (iter.hasNext())
+      if (iter.hasNext()) {
         top = iter.next();
-      else
+      } else {
         top = null;
+      }
     }
 
     @Override
@@ -207,8 +207,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   /**
    * Constructs a scanner that can execute client-side iterators.
    *
-   * @param scanner
-   *          the source scanner
+   * @param scanner the source scanner
    */
   public ClientSideIteratorScanner(final Scanner scanner) {
     smi = new ScannerTranslatorImpl(scanner, scanner.getSamplerConfiguration());
@@ -218,8 +217,9 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     this.batchTimeOut = scanner.getTimeout(MILLISECONDS);
     this.readaheadThreshold = scanner.getReadaheadThreshold();
     SamplerConfiguration samplerConfig = scanner.getSamplerConfiguration();
-    if (samplerConfig != null)
+    if (samplerConfig != null) {
       setSamplerConfiguration(samplerConfig);
+    }
   }
 
   /**
@@ -235,10 +235,11 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     smi.scanner.setTimeout(timeOut, MILLISECONDS);
     smi.scanner.setBatchTimeout(batchTimeOut, MILLISECONDS);
     smi.scanner.setReadaheadThreshold(readaheadThreshold);
-    if (isolated)
+    if (isolated) {
       smi.scanner.enableIsolation();
-    else
+    } else {
       smi.scanner.disableIsolation();
+    }
 
     smi.samplerConfig = getSamplerConfiguration();
 

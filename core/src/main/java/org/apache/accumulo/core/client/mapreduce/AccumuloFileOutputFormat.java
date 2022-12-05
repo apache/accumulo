@@ -62,10 +62,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * Sets the compression type to use for data blocks. Specifying a compression may require
    * additional libraries to be available to your Job.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param compressionType
-   *          one of "none", "gz", "bzip2", "lzo", "lz4", "snappy", or "zstd"
+   * @param job the Hadoop job instance to be configured
+   * @param compressionType one of "none", "gz", "bzip2", "lzo", "lz4", "snappy", or "zstd"
    * @since 1.5.0
    */
   public static void setCompressionType(Job job, String compressionType) {
@@ -81,10 +79,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * Making this value smaller may increase seek performance, but at the cost of increasing the size
    * of the indexes (which can also affect seek performance).
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param dataBlockSize
-   *          the block size, in bytes
+   * @param job the Hadoop job instance to be configured
+   * @param dataBlockSize the block size, in bytes
    * @since 1.5.0
    */
   public static void setDataBlockSize(Job job, long dataBlockSize) {
@@ -95,10 +91,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * Sets the size for file blocks in the file system; file blocks are managed, and replicated, by
    * the underlying file system.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param fileBlockSize
-   *          the block size, in bytes
+   * @param job the Hadoop job instance to be configured
+   * @param fileBlockSize the block size, in bytes
    * @since 1.5.0
    */
   public static void setFileBlockSize(Job job, long fileBlockSize) {
@@ -110,10 +104,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * within the file, while larger blocks mean a more shallow index hierarchy within the file. This
    * can affect the performance of queries.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param indexBlockSize
-   *          the block size, in bytes
+   * @param job the Hadoop job instance to be configured
+   * @param indexBlockSize the block size, in bytes
    * @since 1.5.0
    */
   public static void setIndexBlockSize(Job job, long indexBlockSize) {
@@ -124,10 +116,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * Sets the file system replication factor for the resulting file, overriding the file system
    * default.
    *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param replication
-   *          the number of replicas for produced files
+   * @param job the Hadoop job instance to be configured
+   * @param replication the number of replicas for produced files
    * @since 1.5.0
    */
   public static void setReplication(Job job, int replication) {
@@ -138,10 +128,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * Specify a sampler to be used when writing out data. This will result in the output file having
    * sample data.
    *
-   * @param job
-   *          The Hadoop job instance to be configured
-   * @param samplerConfig
-   *          The configuration for creating sample data in the output file.
+   * @param job The Hadoop job instance to be configured
+   * @param samplerConfig The configuration for creating sample data in the output file.
    * @since 1.8.0
    */
 
@@ -165,8 +153,9 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 
       @Override
       public void close(TaskAttemptContext context) throws IOException {
-        if (out != null)
+        if (out != null) {
           out.close();
+        }
       }
 
       @Override

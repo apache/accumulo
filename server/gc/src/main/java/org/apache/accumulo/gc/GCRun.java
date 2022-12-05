@@ -44,7 +44,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -384,8 +383,7 @@ public class GCRun implements GarbageCollectionEnvironment {
         }
         return Maps.immutableEntry(file, stat);
       });
-    } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException
-        | TableOfflineException e) {
+    } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException e) {
       // No elements that we need to preclude
       return Collections.emptyIterator();
     }
@@ -460,8 +458,7 @@ public class GCRun implements GarbageCollectionEnvironment {
    * throwing an exception.
    *
    * @return true if the file was moved to trash
-   * @throws IOException
-   *           if the volume manager encountered a problem
+   * @throws IOException if the volume manager encountered a problem
    */
   boolean moveToTrash(Path path) throws IOException {
     final VolumeManager fs = context.getVolumeManager();
@@ -518,8 +515,7 @@ public class GCRun implements GarbageCollectionEnvironment {
    * return the table id for the accumulo.root table.
    *
    * @return The table ids
-   * @throws InterruptedException
-   *           if interrupted when calling ZooKeeper
+   * @throws InterruptedException if interrupted when calling ZooKeeper
    */
   @Override
   public Set<TableId> getCandidateTableIDs() throws InterruptedException {

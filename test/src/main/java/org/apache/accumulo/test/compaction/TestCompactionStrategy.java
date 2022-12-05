@@ -35,24 +35,30 @@ public class TestCompactionStrategy extends CompactionStrategy {
 
   @Override
   public void init(Map<String,String> options) {
-    if (options.containsKey("inputPrefix"))
+    if (options.containsKey("inputPrefix")) {
       inputPrefix = options.get("inputPrefix");
-    if (options.containsKey("dropPrefix"))
+    }
+    if (options.containsKey("dropPrefix")) {
       dropPrefix = options.get("dropPrefix");
-    if (options.containsKey("shouldCompact"))
+    }
+    if (options.containsKey("shouldCompact")) {
       shouldCompact = Boolean.parseBoolean(options.get("shouldCompact"));
+    }
   }
 
   @Override
   public boolean shouldCompact(MajorCompactionRequest request) {
-    if (shouldCompact)
+    if (shouldCompact) {
       return true;
+    }
 
     for (TabletFile file : request.getFiles().keySet()) {
-      if (file.getFileName().startsWith(inputPrefix))
+      if (file.getFileName().startsWith(inputPrefix)) {
         return true;
-      if (file.getFileName().startsWith(dropPrefix))
+      }
+      if (file.getFileName().startsWith(dropPrefix)) {
         return true;
+      }
     }
 
     return false;

@@ -32,12 +32,9 @@ public class VisibilityParseException extends ParseException {
   /**
    * Creates a new exception.
    *
-   * @param reason
-   *          reason string
-   * @param visibility
-   *          visibility that could not be parsed
-   * @param errorOffset
-   *          offset into visibility where parsing failed
+   * @param reason reason string
+   * @param visibility visibility that could not be parsed
+   * @param errorOffset offset into visibility where parsing failed
    */
   public VisibilityParseException(String reason, byte[] visibility, int errorOffset) {
     super(reason, errorOffset);

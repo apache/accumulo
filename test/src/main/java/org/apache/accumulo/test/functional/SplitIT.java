@@ -149,8 +149,9 @@ public class SplitIT extends AccumuloClusterHarness {
         int shortened = 0;
         for (Entry<Key,Value> entry : s) {
           extent = KeyExtent.fromMetaPrevRow(entry);
-          if (extent.endRow() != null && extent.endRow().toString().length() < 14)
+          if (extent.endRow() != null && extent.endRow().toString().length() < 14) {
             shortened++;
+          }
           count++;
         }
 
@@ -197,8 +198,9 @@ public class SplitIT extends AccumuloClusterHarness {
       c.tableOperations().flush(tableName, null, null, true);
       for (int i = 0; i < 5; i++) {
         sleepUninterruptibly(10, TimeUnit.SECONDS);
-        if (c.tableOperations().listSplits(tableName).size() > 20)
+        if (c.tableOperations().listSplits(tableName).size() > 20) {
           break;
+        }
       }
       assertTrue(c.tableOperations().listSplits(tableName).size() > 20);
     }

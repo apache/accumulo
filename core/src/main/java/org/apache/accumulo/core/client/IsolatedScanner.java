@@ -95,9 +95,9 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
 
           nextRowStart = null;
 
-          if (lastRow == null)
+          if (lastRow == null) {
             seekRange = range;
-          else {
+          } else {
             Text lastRowText = new Text();
             lastRowText.set(lastRow.getBackingArray(), lastRow.offset(), lastRow.length());
             Key startKey = new Key(lastRowText).followingKey(PartialKey.ROW);

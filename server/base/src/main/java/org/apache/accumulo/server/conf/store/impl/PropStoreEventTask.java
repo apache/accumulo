@@ -35,8 +35,7 @@ public abstract class PropStoreEventTask implements Runnable {
   /**
    * Used when the notification is sent to the listeners without specifying a prop cache key.
    *
-   * @param listeners
-   *          the set of listeners.
+   * @param listeners the set of listeners.
    */
   private PropStoreEventTask(final Set<PropChangeListener> listeners) {
     this.propStoreKey = null;
@@ -46,10 +45,8 @@ public abstract class PropStoreEventTask implements Runnable {
   /**
    * Used when listeners for the specified prop cahe key should receive a notification.
    *
-   * @param propStoreKey
-   *          the prop cache key
-   * @param listeners
-   *          the set of listeners
+   * @param propStoreKey the prop cache key
+   * @param listeners the set of listeners
    */
   private PropStoreEventTask(final PropStoreKey<?> propStoreKey,
       final Set<PropChangeListener> listeners) {

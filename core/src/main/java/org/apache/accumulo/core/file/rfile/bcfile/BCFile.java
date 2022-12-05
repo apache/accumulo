@@ -229,10 +229,8 @@ public final class BCFile {
       /**
        * Constructor
        *
-       * @param metaBlockRegister
-       *          the block register, which is called when the block is closed.
-       * @param wbs
-       *          The writable compression block state.
+       * @param metaBlockRegister the block register, which is called when the block is closed.
+       * @param wbs The writable compression block state.
        */
       BlockAppender(MetaBlockRegister metaBlockRegister, WBlockState wbs) {
         super(wbs.getOutputStream());
@@ -293,9 +291,10 @@ public final class BCFile {
         try {
           ++errorCount;
           wBlkState.finish();
-          if (metaBlockRegister != null)
+          if (metaBlockRegister != null) {
             metaBlockRegister.register(getRawSize(), wBlkState.getStartPos(),
                 wBlkState.getCurrentPos());
+          }
           --errorCount;
         } finally {
           closed = true;
@@ -307,10 +306,9 @@ public final class BCFile {
     /**
      * Constructor
      *
-     * @param fout
-     *          FS output stream.
-     * @param compressionName
-     *          Name of the compression algorithm, which will be used for all data blocks.
+     * @param fout FS output stream.
+     * @param compressionName Name of the compression algorithm, which will be used for all data
+     *        blocks.
      * @see Compression#getSupportedAlgorithms
      */
     public Writer(FSDataOutputStream fout, RateLimiter writeLimiter, String compressionName,
@@ -400,11 +398,9 @@ public final class BCFile {
      * be one BlockAppender stream active at any time. Regular Blocks may not be created after the
      * first Meta Blocks. The caller must call BlockAppender.close() to conclude the block creation.
      *
-     * @param name
-     *          The name of the Meta Block. The name must not conflict with existing Meta Blocks.
+     * @param name The name of the Meta Block. The name must not conflict with existing Meta Blocks.
      * @return The BlockAppender stream
-     * @throws MetaBlockAlreadyExists
-     *           If the meta block with the name already exists.
+     * @throws MetaBlockAlreadyExists If the meta block with the name already exists.
      */
     public BlockAppender prepareMetaBlock(String name) throws IOException, MetaBlockAlreadyExists {
       return prepareMetaBlock(name, getDefaultCompressionAlgorithm());
@@ -689,11 +685,9 @@ public final class BCFile {
     /**
      * Stream access to a Meta Block.
      *
-     * @param name
-     *          meta block name
+     * @param name meta block name
      * @return BlockReader input stream for reading the meta block.
-     * @throws MetaBlockDoesNotExist
-     *           The Meta Block with the given name does not exist.
+     * @throws MetaBlockDoesNotExist The Meta Block with the given name does not exist.
      */
     public BlockReader getMetaBlock(String name) throws IOException, MetaBlockDoesNotExist {
       MetaIndexEntry imeBCIndex = metaIndex.getMetaByName(name);
@@ -717,8 +711,7 @@ public final class BCFile {
     /**
      * Stream access to a Data Block.
      *
-     * @param blockIndex
-     *          0-based data block index.
+     * @param blockIndex 0-based data block index.
      * @return BlockReader input stream for reading the data block.
      */
     public BlockReader getDataBlock(int blockIndex) throws IOException {

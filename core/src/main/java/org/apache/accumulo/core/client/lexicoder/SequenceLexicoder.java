@@ -40,8 +40,7 @@ import java.util.List;
  * whereas a list with a single empty element is represented as a single terminating delimiter.
  *
  * @since 2.0.0
- * @param <E>
- *          list element type.
+ * @param <E> list element type.
  */
 public class SequenceLexicoder<E> extends AbstractLexicoder<List<E>> {
 
@@ -51,8 +50,7 @@ public class SequenceLexicoder<E> extends AbstractLexicoder<List<E>> {
   /**
    * Primary constructor.
    *
-   * @param elementLexicoder
-   *          Lexicoder to apply to elements.
+   * @param elementLexicoder Lexicoder to apply to elements.
    */
   public SequenceLexicoder(final Lexicoder<E> elementLexicoder) {
     this.elementLexicoder = requireNonNull(elementLexicoder, "elementLexicoder");

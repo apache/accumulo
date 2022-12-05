@@ -54,10 +54,11 @@ public class WriteAheadLogEncryptedIT extends AccumuloClusterHarness {
       Path keyFile = new Path(keyPath);
       FileSystem fs = FileSystem.getLocal(new Configuration());
       fs.delete(keyFile, true);
-      if (fs.createNewFile(keyFile))
+      if (fs.createNewFile(keyFile)) {
         log.info("Created keyfile at {}", keyPath);
-      else
+      } else {
         log.error("Failed to create key file at {}", keyPath);
+      }
 
       try (FSDataOutputStream out = fs.create(keyFile)) {
         out.writeUTF("sixteenbytekey"); // 14 + 2 from writeUTF

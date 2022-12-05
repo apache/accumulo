@@ -52,8 +52,7 @@ public class Value implements WritableComparable<Object> {
   /**
    * Creates a value using the UTF-8 encoding of the CharSequence
    *
-   * @param cs
-   *          may not be null
+   * @param cs may not be null
    *
    * @since 1.8.0
    */
@@ -65,8 +64,7 @@ public class Value implements WritableComparable<Object> {
    * Creates a Value using the bytes of the Text. Makes a copy, does not use the byte array from the
    * Text.
    *
-   * @param text
-   *          may not be null
+   * @param text may not be null
    *
    * @since 1.8.0
    */
@@ -78,8 +76,7 @@ public class Value implements WritableComparable<Object> {
    * Creates a Value using a byte array as the initial value. The given byte array is used directly
    * as the backing array, so later changes made to the array reflect into the new Value.
    *
-   * @param bytes
-   *          May not be null
+   * @param bytes May not be null
    */
   public Value(byte[] bytes) {
     this(bytes, false);
@@ -88,8 +85,7 @@ public class Value implements WritableComparable<Object> {
   /**
    * Creates a Value using the bytes in a buffer as the initial value. Makes a defensive copy.
    *
-   * @param bytes
-   *          May not be null
+   * @param bytes May not be null
    */
   public Value(ByteBuffer bytes) {
     /* TODO ACCUMULO-2509 right now this uses the entire backing array, which must be accessible. */
@@ -99,10 +95,9 @@ public class Value implements WritableComparable<Object> {
   /**
    * Creates a Value using a byte array as the initial value.
    *
-   * @param bytes
-   *          may not be null
-   * @param copy
-   *          false to use the given byte array directly as the backing array, true to force a copy
+   * @param bytes may not be null
+   * @param copy false to use the given byte array directly as the backing array, true to force a
+   *        copy
    */
   public Value(byte[] bytes, boolean copy) {
     requireNonNull(bytes);
@@ -118,8 +113,7 @@ public class Value implements WritableComparable<Object> {
   /**
    * Creates a new Value based on another.
    *
-   * @param ibw
-   *          may not be null.
+   * @param ibw may not be null.
    */
   public Value(final Value ibw) {
     this(ibw.get(), 0, ibw.getSize());
@@ -128,14 +122,10 @@ public class Value implements WritableComparable<Object> {
   /**
    * Creates a Value based on a range in a byte array. A copy of the bytes is always made.
    *
-   * @param newData
-   *          source of copy, may not be null
-   * @param offset
-   *          the offset in newData to start with for value bytes
-   * @param length
-   *          the number of bytes in the value
-   * @throws IndexOutOfBoundsException
-   *           if offset or length are invalid
+   * @param newData source of copy, may not be null
+   * @param offset the offset in newData to start with for value bytes
+   * @param length the number of bytes in the value
+   * @throws IndexOutOfBoundsException if offset or length are invalid
    */
   public Value(final byte[] newData, final int offset, final int length) {
     requireNonNull(newData);
@@ -157,8 +147,7 @@ public class Value implements WritableComparable<Object> {
    * Sets the byte data of this value. The given byte array is used directly as the backing array,
    * so later changes made to the array reflect into this Value.
    *
-   * @param b
-   *          may not be null
+   * @param b may not be null
    */
   public void set(final byte[] b) {
     requireNonNull(b);
@@ -168,8 +157,7 @@ public class Value implements WritableComparable<Object> {
   /**
    * Sets the byte data of this value. The given byte array is copied.
    *
-   * @param b
-   *          may not be null
+   * @param b may not be null
    */
   public void copy(byte[] b) {
     requireNonNull(b);
@@ -209,8 +197,7 @@ public class Value implements WritableComparable<Object> {
   /**
    * Define the sort order of the BytesWritable.
    *
-   * @param right_obj
-   *          The other bytes writable
+   * @param right_obj The other bytes writable
    * @return Positive if left is bigger than right, 0 if they are equal, and negative if left is
    *         smaller than right.
    */

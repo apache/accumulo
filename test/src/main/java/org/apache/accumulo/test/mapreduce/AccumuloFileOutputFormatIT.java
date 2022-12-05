@@ -126,8 +126,9 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
         try {
           try {
             context.write(key, value);
-            if (index == 2)
+            if (index == 2) {
               fail();
+            }
           } catch (Exception e) {
             assertEquals(2, index);
           }

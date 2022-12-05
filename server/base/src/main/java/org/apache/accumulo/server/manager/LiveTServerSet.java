@@ -130,8 +130,9 @@ public class LiveTServerSet implements Watcher {
     public TabletServerStatus getTableMap(boolean usePooledConnection)
         throws TException, ThriftSecurityException {
 
-      if (usePooledConnection)
+      if (usePooledConnection) {
         throw new UnsupportedOperationException();
+      }
 
       long start = System.currentTimeMillis();
 
@@ -251,8 +252,9 @@ public class LiveTServerSet implements Watcher {
   }
 
   public synchronized ZooCache getZooCache() {
-    if (zooCache == null)
+    if (zooCache == null) {
       zooCache = new ZooCache(context.getZooReader(), this);
+    }
     return zooCache;
   }
 
@@ -377,11 +379,13 @@ public class LiveTServerSet implements Watcher {
   }
 
   public synchronized TServerConnection getConnection(TServerInstance server) {
-    if (server == null)
+    if (server == null) {
       return null;
+    }
     TServerInfo tServerInfo = currentInstances.get(server);
-    if (tServerInfo == null)
+    if (tServerInfo == null) {
       return null;
+    }
     return tServerInfo.connection;
   }
 
@@ -414,8 +418,9 @@ public class LiveTServerSet implements Watcher {
     for (Entry<String,TServerInfo> entry : servers.entrySet()) {
       if (entry.getValue().instance.getHostAndPort().equals(addr)) {
         // Return the instance if we have no desired session ID, or we match the desired session ID
-        if (sessionId == null || sessionId.equals(entry.getValue().instance.getSession()))
+        if (sessionId == null || sessionId.equals(entry.getValue().instance.getSession())) {
           return entry.getValue().instance;
+        }
       }
     }
     return null;
@@ -429,8 +434,9 @@ public class LiveTServerSet implements Watcher {
         break;
       }
     }
-    if (zPath == null)
+    if (zPath == null) {
       return;
+    }
     current.remove(zPath);
     currentInstances.remove(server);
 

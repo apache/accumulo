@@ -318,8 +318,9 @@ public class ServerContext extends ClientContext {
     int unknownHostTries = 3;
     while (true) {
       try {
-        if (getVolumeManager().isReady())
+        if (getVolumeManager().isReady()) {
           break;
+        }
         log.warn("Waiting for the NameNode to leave safemode");
       } catch (IOException ex) {
         log.warn("Unable to connect to HDFS", ex);
@@ -368,8 +369,9 @@ public class ServerContext extends ClientContext {
     ensureDataVersionCompatible(dataVersion);
 
     TreeMap<String,String> sortedProps = new TreeMap<>();
-    for (Map.Entry<String,String> entry : conf)
+    for (Map.Entry<String,String> entry : conf) {
       sortedProps.put(entry.getKey(), entry.getValue());
+    }
 
     for (Map.Entry<String,String> entry : sortedProps.entrySet()) {
       String key = entry.getKey();

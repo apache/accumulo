@@ -105,6 +105,7 @@ public class ConditionalMutation extends Mutation {
     return result;
   }
 
+  @Deprecated
   @Override
   public void setReplicationSources(Set<String> sources) {
     throw new UnsupportedOperationException(

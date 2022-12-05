@@ -65,10 +65,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   /**
    * Create instance using ZooPropStore.Builder
    *
-   * @param instanceId
-   *          the instance id
-   * @param zrw
-   *          a wrapper set of utilities for accessing ZooKeeper.
+   * @param instanceId the instance id
+   * @param zrw a wrapper set of utilities for accessing ZooKeeper.
    */
   private ZooPropStore(final InstanceId instanceId, final ZooReaderWriter zrw) {
     this(instanceId, zrw, null, null, null);
@@ -79,16 +77,11 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * ReadyMonitor and a PropStore watcher allowing them to be mocked. If the optional components are
    * passed as null an internal instance is created.
    *
-   * @param instanceId
-   *          the instance id
-   * @param zrw
-   *          a wrapper set of utilities for accessing ZooKeeper.
-   * @param monitor
-   *          a ready monitor. Optional, if null, one is created.
-   * @param watcher
-   *          a watcher. Optional, if null, one is created.
-   * @param ticker
-   *          a synthetic clock used for testing. Optional, if null, one is created.
+   * @param instanceId the instance id
+   * @param zrw a wrapper set of utilities for accessing ZooKeeper.
+   * @param monitor a ready monitor. Optional, if null, one is created.
+   * @param watcher a watcher. Optional, if null, one is created.
+   * @param ticker a synthetic clock used for testing. Optional, if null, one is created.
    */
   @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
       justification = "random number not used in secure context")
@@ -173,11 +166,9 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * legacy properties exist, they will be converted to the new storage form and naming convention.
    * The legacy properties are deleted once the new node format is written.
    *
-   * @param propStoreKey
-   *          the prop cache key
+   * @param propStoreKey the prop cache key
    * @return The versioned properties.
-   * @throws IllegalStateException
-   *           if the updates fails because of an underlying store exception
+   * @throws IllegalStateException if the updates fails because of an underlying store exception
    */
   @Override
   public @NonNull VersionedProperties get(final PropStoreKey<?> propStoreKey) {
@@ -203,19 +194,13 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * directly from ZooKeeper. This allows utilities access when there is a ZooKeeper, may there may
    * not be a full instance running. All exception handling is left to the caller.
    *
-   * @param propStoreKey
-   *          the prop cache key
-   * @param watcher
-   *          a prop store watcher that will receive / handle ZooKeeper events.
-   * @param zooReader
-   *          a ZooReader with an authenticated session.
+   * @param propStoreKey the prop cache key
+   * @param watcher a prop store watcher that will receive / handle ZooKeeper events.
+   * @param zooReader a ZooReader with an authenticated session.
    * @return the versioned properties or null if the node does not exist.
-   * @throws IOException
-   *           if the underlying data from the ZooKeeper node cannot be decoded.
-   * @throws KeeperException
-   *           if a ZooKeeper exception occurs
-   * @throws InterruptedException
-   *           if the ZooKeeper read was interrupted.
+   * @throws IOException if the underlying data from the ZooKeeper node cannot be decoded.
+   * @throws KeeperException if a ZooKeeper exception occurs
+   * @throws InterruptedException if the ZooKeeper read was interrupted.
    */
   public static @Nullable VersionedProperties readFromZk(final PropStoreKey<?> propStoreKey,
       final PropStoreWatcher watcher, final ZooReader zooReader)
@@ -245,12 +230,10 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * value(s) will be the set to the values provided by the last thread to complete. The order is
    * indeterminate.
    *
-   * @param propStoreKey
-   *          the prop cache id
-   * @param props
-   *          a map of property k,v pairs
-   * @throws IllegalStateException
-   *           if the values cannot be written or if an underlying store exception occurs.
+   * @param propStoreKey the prop cache id
+   * @param props a map of property k,v pairs
+   * @throws IllegalStateException if the values cannot be written or if an underlying store
+   *         exception occurs.
    */
   @Override
   public void putAll(@NonNull PropStoreKey<?> propStoreKey, @NonNull Map<String,String> props) {
@@ -403,8 +386,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * change is also sent to external listeners of the need to take action, but for the prop store,
    * no additional action is required.
    *
-   * @param propStoreKey
-   *          the prop cache id.
+   * @param propStoreKey the prop cache id.
    */
   @Override
   public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
@@ -426,17 +408,13 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   /**
    * Read and decode property node from ZooKeeper.
    *
-   * @param propStoreKey
-   *          the propStoreKey
+   * @param propStoreKey the propStoreKey
    * @return the decoded properties.
-   * @throws KeeperException
-   *           if a ZooKeeper exception occurs to allow caller to decide on action.
-   * @throws IOException
-   *           if the node data cannot be decoded into properties to allow the caller to decide on
-   *           action.
-   * @throws IllegalStateException
-   *           if an interrupt occurs. The interrupt status is reasserted and usually best to not
-   *           otherwise try to handle the exception.
+   * @throws KeeperException if a ZooKeeper exception occurs to allow caller to decide on action.
+   * @throws IOException if the node data cannot be decoded into properties to allow the caller to
+   *         decide on action.
+   * @throws IllegalStateException if an interrupt occurs. The interrupt status is reasserted and
+   *         usually best to not otherwise try to handle the exception.
    */
   private VersionedProperties readPropsFromZk(PropStoreKey<?> propStoreKey)
       throws KeeperException, IOException {

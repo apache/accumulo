@@ -71,8 +71,9 @@ public class SummariesCommand extends TableOperation {
 
     boolean addEmpty = false;
     for (Summary summary : summaries) {
-      if (addEmpty)
+      if (addEmpty) {
         lines.add("");
+      }
       addEmpty = true;
       lines.add(String.format(" Summarizer         : %s", summary.getSummarizerConfiguration()));
       lines.add(String.format(" File Statistics    : %s", summary.getFileStatistics()));

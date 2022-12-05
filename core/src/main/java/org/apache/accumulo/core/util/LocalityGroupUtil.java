@@ -65,8 +65,7 @@ public class LocalityGroupUtil {
    * set of columns. We are using the immutable set to enable faster comparisons down in the
    * LocalityGroupIterator.
    *
-   * @param columns
-   *          The set of columns
+   * @param columns The set of columns
    * @return An immutable set of columns
    */
   public static Set<ByteSequence> families(Collection<Column> columns) {

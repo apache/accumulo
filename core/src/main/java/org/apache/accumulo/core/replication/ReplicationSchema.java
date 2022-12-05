@@ -103,8 +103,7 @@ public class ReplicationSchema {
     /**
      * Extract the table ID from the key (inefficiently if called repeatedly)
      *
-     * @param k
-     *          Key to extract from
+     * @param k Key to extract from
      * @return The table ID
      */
     public static TableId getTableId(Key k) {
@@ -115,10 +114,8 @@ public class ReplicationSchema {
     /**
      * Extract the file name from the row suffix into the given {@link Text}
      *
-     * @param k
-     *          Key to extract from
-     * @param buff
-     *          Text to place file name into
+     * @param k Key to extract from
+     * @param buff Text to place file name into
      */
     public static void getFile(Key k, Text buff) {
       requireNonNull(k);
@@ -163,10 +160,8 @@ public class ReplicationSchema {
     /**
      * Extract the table ID from the given key
      *
-     * @param k
-     *          OrderSection key
-     * @param buff
-     *          Text to place table ID into
+     * @param k OrderSection key
+     * @param buff Text to place table ID into
      */
     public static void getTableId(Key k, Text buff) {
       requireNonNull(k);
@@ -185,10 +180,8 @@ public class ReplicationSchema {
     /**
      * Creates the Mutation for the Order section for the given file and time
      *
-     * @param file
-     *          Filename
-     * @param timeInMillis
-     *          Time in millis that the file was closed
+     * @param file Filename
+     * @param timeInMillis Time in millis that the file was closed
      * @return Mutation for the Order section
      */
     public static Mutation createMutation(String file, long timeInMillis) {
@@ -216,12 +209,9 @@ public class ReplicationSchema {
     /**
      * Add a column update to the given mutation with the provided tableId and value
      *
-     * @param m
-     *          Mutation for OrderSection
-     * @param tableId
-     *          Source table id
-     * @param v
-     *          Serialized Status msg
+     * @param m Mutation for OrderSection
+     * @param tableId Source table id
+     * @param v Serialized Status msg
      * @return The original Mutation
      */
     public static Mutation add(Mutation m, TableId tableId, Value v) {

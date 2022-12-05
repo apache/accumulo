@@ -159,8 +159,7 @@ public class Gatherer {
   }
 
   /**
-   * @param fileSelector
-   *          only returns files that match this predicate
+   * @param fileSelector only returns files that match this predicate
    * @return A map of the form : {@code map<tserver location, map<path, list<range>>} . The ranges
    *         associated with a file represent the tablets that use the file.
    */

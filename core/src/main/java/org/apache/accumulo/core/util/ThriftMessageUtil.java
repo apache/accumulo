@@ -57,11 +57,9 @@ public class ThriftMessageUtil {
   /**
    * Convert the {@code msg} to a byte array representation
    *
-   * @param msg
-   *          The message to serialize
+   * @param msg The message to serialize
    * @return The serialized message
-   * @throws IOException
-   *           When serialization fails
+   * @throws IOException When serialization fails
    */
   public ByteBuffer serialize(TBase<?,?> msg) throws IOException {
     requireNonNull(msg);
@@ -87,13 +85,10 @@ public class ThriftMessageUtil {
   /**
    * Deserializes a message into the provided {@code instance} from {@code serialized}
    *
-   * @param serialized
-   *          The serialized representation of the object
-   * @param instance
-   *          An instance of the object to reconstitute
+   * @param serialized The serialized representation of the object
+   * @param instance An instance of the object to reconstitute
    * @return The reconstituted instance provided
-   * @throws IOException
-   *           When deserialization fails
+   * @throws IOException When deserialization fails
    */
   public <T extends TBase<?,?>> T deserialize(byte[] serialized, int offset, int length, T instance)
       throws IOException {

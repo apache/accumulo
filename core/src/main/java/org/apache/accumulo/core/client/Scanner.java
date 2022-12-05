@@ -33,8 +33,7 @@ public interface Scanner extends ScannerBase {
   /**
    * Sets the range of keys to scan over.
    *
-   * @param range
-   *          key range to begin and end scan
+   * @param range key range to begin and end scan
    */
   void setRange(Range range);
 
@@ -48,8 +47,7 @@ public interface Scanner extends ScannerBase {
   /**
    * Sets the number of Key/Value pairs that will be fetched at a time from a tablet server.
    *
-   * @param size
-   *          the number of Key/Value pairs to fetch per call to Accumulo
+   * @param size the number of Key/Value pairs to fetch per call to Accumulo
    */
   void setBatchSize(int size);
 
@@ -86,8 +84,7 @@ public interface Scanner extends ScannerBase {
    * Sets the number of batches of Key/Value pairs returned before the {@link Scanner} will begin to
    * prefetch the next batch
    *
-   * @param batches
-   *          Non-negative number of batches
+   * @param batches Non-negative number of batches
    * @since 1.6.0
    */
   void setReadaheadThreshold(long batches);

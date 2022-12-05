@@ -71,13 +71,10 @@ public class ConfigTransformer {
   /**
    * Instantiate a transformer instance.
    *
-   * @param zrw
-   *          a ZooReaderWriter
-   * @param codec
-   *          the codec used to encode to the single-node format.
-   * @param propStoreWatcher
-   *          the watcher registered to receive future notifications of changes to the encoded
-   *          property node.
+   * @param zrw a ZooReaderWriter
+   * @param codec the codec used to encode to the single-node format.
+   * @param propStoreWatcher the watcher registered to receive future notifications of changes to
+   *        the encoded property node.
    */
   public ConfigTransformer(final ZooReaderWriter zrw, VersionedPropCodec codec,
       final PropStoreWatcher propStoreWatcher) {
@@ -204,8 +201,7 @@ public class ConfigTransformer {
    * If the config node exists, return the properties, otherwise return null. ZooKeeper exceptions
    * are ignored. Interrupt exceptions will be propagated as IllegalStateExceptions.
    *
-   * @param propStoreKey
-   *          the prop key for that identifies the configuration node.
+   * @param propStoreKey the prop key for that identifies the configuration node.
    * @return the existing encoded properties if present, null if they do not.
    */
   private VersionedProperties checkNeedsTransform(PropStoreKey<?> propStoreKey) {
@@ -391,15 +387,11 @@ public class ConfigTransformer {
      * legacy property name has been deprecated, the property is renamed and the conversion is noted
      * in the log.
      *
-     * @param path
-     *          the ZooKeeper path
-     * @param propName
-     *          the property name - if deprecated it will be stored as the updated name and the
-     *          conversion logged.
-     * @param data
-     *          the property value
-     * @param nodeVersion
-     *          the ZooKeeper stat data version.
+     * @param path the ZooKeeper path
+     * @param propName the property name - if deprecated it will be stored as the updated name and
+     *        the conversion logged.
+     * @param data the property value
+     * @param nodeVersion the ZooKeeper stat data version.
      */
     public LegacyPropNode(@NonNull final String path, final String propName, final String data,
         final int nodeVersion) {
@@ -427,10 +419,12 @@ public class ConfigTransformer {
 
     @Override
     public boolean equals(Object o) {
-      if (this == o)
+      if (this == o) {
         return true;
-      if (o == null || getClass() != o.getClass())
+      }
+      if (o == null || getClass() != o.getClass()) {
         return false;
+      }
       LegacyPropNode that = (LegacyPropNode) o;
       return path.equals(that.path);
     }

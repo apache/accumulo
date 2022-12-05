@@ -81,10 +81,11 @@ public class SizeWindowTest {
       assertEquals(10, tail.size());
       assertEquals(genTestData(i - 9, i).keySet(), getFileNames(tail));
       assertEquals(i, tail.topSize());
-      if (tail.slideUp())
+      if (tail.slideUp()) {
         assertTrue(i < 20);
-      else
+      } else {
         assertEquals(20, i);
+      }
     }
   }
 

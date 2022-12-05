@@ -98,8 +98,9 @@ public class SetScanIterCommand extends SetIterCommand {
           && !IteratorScope.scan.name().equals(o.getOpt())) {
         modifiedOptions.addOption(o);
         OptionGroup group = parentOptions.getOptionGroup(o);
-        if (group != null)
+        if (group != null) {
           groups.add(group);
+        }
       }
     }
     for (OptionGroup group : groups) {

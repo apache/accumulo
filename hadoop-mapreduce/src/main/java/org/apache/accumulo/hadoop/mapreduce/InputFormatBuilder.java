@@ -55,8 +55,7 @@ public interface InputFormatBuilder {
      * {@link #clientPropertiesPath(String)}. Client properties can be created using
      * {@link Accumulo#newClientProperties()}
      *
-     * @param clientProperties
-     *          Accumulo connection information
+     * @param clientProperties Accumulo connection information
      */
     TableParams<T> clientProperties(Properties clientProperties);
 
@@ -64,8 +63,7 @@ public interface InputFormatBuilder {
      * Set path to DFS location containing accumulo-client.properties file. This setting is more
      * secure than {@link #clientProperties(Properties)}
      *
-     * @param clientPropsPath
-     *          DFS path to accumulo-client.properties
+     * @param clientPropsPath DFS path to accumulo-client.properties
      */
     TableParams<T> clientPropertiesPath(String clientPropsPath);
   }
@@ -80,8 +78,7 @@ public interface InputFormatBuilder {
      * Sets the name of the input table, over which this job will scan. At least one table is
      * required before calling store(Job)
      *
-     * @param tableName
-     *          the table to use when the tablename is null in the write call
+     * @param tableName the table to use when the tablename is null in the write call
      */
     InputFormatOptions<T> table(String tableName);
 
@@ -101,24 +98,21 @@ public interface InputFormatBuilder {
      * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorizations.
      * By Default, all of the users auths are set.
      *
-     * @param auths
-     *          the user's authorizations
+     * @param auths the user's authorizations
      */
     InputFormatOptions<T> auths(Authorizations auths);
 
     /**
      * Sets the name of the classloader context on this scanner
      *
-     * @param context
-     *          name of the classloader context
+     * @param context name of the classloader context
      */
     InputFormatOptions<T> classLoaderContext(String context);
 
     /**
      * Sets the input ranges to scan for the single input table associated with this job.
      *
-     * @param ranges
-     *          the ranges that will be mapped over
+     * @param ranges the ranges that will be mapped over
      * @see TableOperations#splitRangeByTablets(String, Range, int)
      */
     InputFormatOptions<T> ranges(Collection<Range> ranges);
@@ -126,10 +120,9 @@ public interface InputFormatBuilder {
     /**
      * Restricts the columns that will be mapped over for this job for the default input table.
      *
-     * @param fetchColumns
-     *          a collection of IteratorSetting.Column objects corresponding to column family and
-     *          column qualifier. If the column qualifier is null, the entire column family is
-     *          selected. An empty set is the default and is equivalent to scanning all columns.
+     * @param fetchColumns a collection of IteratorSetting.Column objects corresponding to column
+     *        family and column qualifier. If the column qualifier is null, the entire column family
+     *        is selected. An empty set is the default and is equivalent to scanning all columns.
      */
     InputFormatOptions<T> fetchColumns(Collection<IteratorSetting.Column> fetchColumns);
 
@@ -137,8 +130,7 @@ public interface InputFormatBuilder {
      * Encode an iterator on the single input table for this job. It is safe to call this method
      * multiple times. If an iterator is added with the same name, it will be overridden.
      *
-     * @param cfg
-     *          the configuration of the iterator
+     * @param cfg the configuration of the iterator
      */
     InputFormatOptions<T> addIterator(IteratorSetting cfg);
 
@@ -153,9 +145,8 @@ public interface InputFormatBuilder {
      * configuration or a tables sampler configuration changes while reading data, then the input
      * format will throw an error.
      *
-     * @param samplerConfig
-     *          The sampler configuration that sample must have been created with inorder for
-     *          reading sample data to succeed.
+     * @param samplerConfig The sampler configuration that sample must have been created with
+     *        inorder for reading sample data to succeed.
      *
      * @see ScannerBase#setSamplerConfiguration(SamplerConfiguration)
      */

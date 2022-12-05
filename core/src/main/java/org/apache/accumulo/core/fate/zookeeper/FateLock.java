@@ -105,8 +105,9 @@ public class FateLock implements QueueLock {
         try {
           byte[] data = zoo.getData(path + "/" + name);
           long order = Long.parseLong(name.substring(PREFIX.length()));
-          if (order <= entry)
+          if (order <= entry) {
             result.put(order, data);
+          }
         } catch (KeeperException.NoNodeException ex) {
           // ignored
         }

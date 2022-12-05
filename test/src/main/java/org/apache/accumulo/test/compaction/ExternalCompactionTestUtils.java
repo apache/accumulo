@@ -180,8 +180,9 @@ public class ExternalCompactionTestUtils {
 
       int expectedCount = 0;
       for (int i = 0; i < rows; i++) {
-        if (i % modulus == 0)
+        if (i % modulus == 0) {
           expectedCount++;
+        }
       }
 
       assertEquals(expectedCount, count);

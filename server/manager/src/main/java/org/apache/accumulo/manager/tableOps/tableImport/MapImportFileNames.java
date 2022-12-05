@@ -102,12 +102,13 @@ class MapImportFileNames extends ManagerRepo {
             tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
             "Error writing mapping file " + path + " " + ioe.getMessage());
       } finally {
-        if (mappingsWriter != null)
+        if (mappingsWriter != null) {
           try {
             mappingsWriter.close();
           } catch (IOException ioe) {
             log.warn("Failed to close " + path, ioe);
           }
+        }
       }
     }
 

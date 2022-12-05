@@ -122,14 +122,11 @@ public abstract class TabletBalancer
    * Assign tablets to tablet servers. This method is called whenever the manager finds tablets that
    * are unassigned.
    *
-   * @param current
-   *          The current table-summary state of all the online tablet servers. Read-only. The
-   *          TabletServerStatus for each server may be null if the tablet server has not yet
-   *          responded to a recent request for status.
-   * @param unassigned
-   *          A map from unassigned tablet to the last known tablet server. Read-only.
-   * @param assignments
-   *          A map from tablet to assigned server. Write-only.
+   * @param current The current table-summary state of all the online tablet servers. Read-only. The
+   *        TabletServerStatus for each server may be null if the tablet server has not yet
+   *        responded to a recent request for status.
+   * @param unassigned A map from unassigned tablet to the last known tablet server. Read-only.
+   * @param assignments A map from tablet to assigned server. Write-only.
    */
   public abstract void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments);
@@ -143,13 +140,10 @@ public abstract class TabletBalancer
    * the balancer knows that the problem can not self correct. It should not issue these messages
    * more than once a minute.
    *
-   * @param current
-   *          The current table-summary state of all the online tablet servers. Read-only.
-   * @param migrations
-   *          the current set of migrations. Read-only.
-   * @param migrationsOut
-   *          new migrations to perform; should not contain tablets in the current set of
-   *          migrations. Write-only.
+   * @param current The current table-summary state of all the online tablet servers. Read-only.
+   * @param migrations the current set of migrations. Read-only.
+   * @param migrationsOut new migrations to perform; should not contain tablets in the current set
+   *        of migrations. Write-only.
    * @return the time, in milliseconds, to wait before re-balancing.
    *
    *         This method will not be called when there are unassigned tablets.
@@ -245,15 +239,11 @@ public abstract class TabletBalancer
    * Fetch the tablets for the given table by asking the tablet server. Useful if your balance
    * strategy needs details at the tablet level to decide what tablets to move.
    *
-   * @param tserver
-   *          The tablet server to ask.
-   * @param tableId
-   *          The table id
+   * @param tserver The tablet server to ask.
+   * @param tableId The table id
    * @return a list of tablet statistics
-   * @throws ThriftSecurityException
-   *           tablet server disapproves of your internal System password.
-   * @throws TException
-   *           any other problem
+   * @throws ThriftSecurityException tablet server disapproves of your internal System password.
+   * @throws TException any other problem
    */
   public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, TableId tableId)
       throws ThriftSecurityException, TException {

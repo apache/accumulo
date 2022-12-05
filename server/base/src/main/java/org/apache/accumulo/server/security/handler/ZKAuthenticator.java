@@ -128,13 +128,15 @@ public final class ZKAuthenticator implements Authenticator {
   public void createUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException {
     try {
-      if (!(token instanceof PasswordToken))
+      if (!(token instanceof PasswordToken)) {
         throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
+      }
       PasswordToken pt = (PasswordToken) token;
       constructUser(principal, ZKSecurityTool.createPass(pt.getPassword()));
     } catch (KeeperException e) {
-      if (e.code().equals(KeeperException.Code.NODEEXISTS))
+      if (e.code().equals(KeeperException.Code.NODEEXISTS)) {
         throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_EXISTS, e);
+      }
       throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
       log.error("{}", e.getMessage(), e);
@@ -168,8 +170,9 @@ public final class ZKAuthenticator implements Authenticator {
   @Override
   public void changePassword(String principal, AuthenticationToken token)
       throws AccumuloSecurityException {
-    if (!(token instanceof PasswordToken))
+    if (!(token instanceof PasswordToken)) {
       throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
+    }
     PasswordToken pt = (PasswordToken) token;
     if (userExists(principal)) {
       try {
@@ -188,9 +191,10 @@ public final class ZKAuthenticator implements Authenticator {
         log.error("{}", e.getMessage(), e);
         throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
       }
-    } else
+    } else {
       // user doesn't exist
       throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST);
+    }
   }
 
   @Override
@@ -206,8 +210,9 @@ public final class ZKAuthenticator implements Authenticator {
   @Override
   public boolean authenticateUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException {
-    if (!(token instanceof PasswordToken))
+    if (!(token instanceof PasswordToken)) {
       throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
+    }
     PasswordToken pt = (PasswordToken) token;
     byte[] zkData;
     String zpath = ZKUserPath + "/" + principal;

@@ -76,11 +76,13 @@ public class ManagerMetadataUtil {
     tablet.putDirName(dirName);
     tablet.putTime(time);
 
-    if (lastFlushID > 0)
+    if (lastFlushID > 0) {
       tablet.putFlushId(lastFlushID);
+    }
 
-    if (lastCompactID > 0)
+    if (lastCompactID > 0) {
       tablet.putCompactionId(lastCompactID);
+    }
 
     if (location != null) {
       tablet.putLocation(location, LocationType.CURRENT);
@@ -119,11 +121,12 @@ public class ManagerMetadataUtil {
   private static KeyExtent fixSplit(ServerContext context, TableId tableId, Text metadataEntry,
       Text metadataPrevEndRow, Text oper, double splitRatio, ServiceLock lock)
       throws AccumuloException {
-    if (metadataPrevEndRow == null)
+    if (metadataPrevEndRow == null) {
       // something is wrong, this should not happen... if a tablet is split, it will always have a
       // prev end row....
       throw new AccumuloException(
           "Split tablet does not have prev end row, something is amiss, extent = " + metadataEntry);
+    }
 
     // check to see if prev tablet exist in metadata tablet
     Key prevRowKey = new Key(new Text(TabletsSection.encodeRow(tableId, metadataPrevEndRow)));
@@ -193,21 +196,25 @@ public class ManagerMetadataUtil {
     datafilesToDelete.forEach(tablet::deleteFile);
     scanFiles.forEach(tablet::putScan);
 
-    if (path.isPresent())
+    if (path.isPresent()) {
       tablet.putFile(path.get(), size);
+    }
 
-    if (compactionId != null)
+    if (compactionId != null) {
       tablet.putCompactionId(compactionId);
+    }
 
     TServerInstance self = getTServerInstance(address, zooLock);
     tablet.putLocation(self, LocationType.LAST);
 
     // remove the old location
-    if (lastLocation != null && !lastLocation.equals(self))
+    if (lastLocation != null && !lastLocation.equals(self)) {
       tablet.deleteLocation(lastLocation, LocationType.LAST);
+    }
 
-    if (ecid.isPresent())
+    if (ecid.isPresent()) {
       tablet.deleteExternalCompaction(ecid.get());
+    }
 
     tablet.putZooLock(zooLock);
 

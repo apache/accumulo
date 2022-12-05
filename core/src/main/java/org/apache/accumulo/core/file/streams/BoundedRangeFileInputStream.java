@@ -40,15 +40,12 @@ public class BoundedRangeFileInputStream extends InputStream {
   /**
    * Constructor
    *
-   * @param in
-   *          The FSDataInputStream we connect to.
-   * @param offset
-   *          Beginning offset of the region.
-   * @param length
-   *          Length of the region.
+   * @param in The FSDataInputStream we connect to.
+   * @param offset Beginning offset of the region.
+   * @param length Length of the region.
    *
-   *          The actual length of the region may be smaller if (off_begin + length) goes beyond the
-   *          end of FS input stream.
+   *        The actual length of the region may be smaller if (off_begin + length) goes beyond the
+   *        end of FS input stream.
    */
   public <StreamType extends InputStream & Seekable> BoundedRangeFileInputStream(StreamType in,
       long offset, long length) {
@@ -70,8 +67,9 @@ public class BoundedRangeFileInputStream extends InputStream {
   @Override
   public int read() throws IOException {
     int ret = read(oneByte);
-    if (ret == 1)
+    if (ret == 1) {
       return oneByte[0] & 0xff;
+    }
     return -1;
   }
 
@@ -87,8 +85,9 @@ public class BoundedRangeFileInputStream extends InputStream {
     }
 
     final int n = (int) Math.min(Integer.MAX_VALUE, Math.min(len, (end - pos)));
-    if (n == 0)
+    if (n == 0) {
       return -1;
+    }
     int ret = 0;
     synchronized (in) {
       // ensuring we are not closed which would be followed by someone else reusing the decompressor
@@ -123,8 +122,9 @@ public class BoundedRangeFileInputStream extends InputStream {
 
   @Override
   public synchronized void reset() throws IOException {
-    if (mark < 0)
+    if (mark < 0) {
       throw new IOException("Resetting to invalid mark");
+    }
     pos = mark;
   }
 

@@ -62,8 +62,9 @@ public class SimpleLoadBalancerTest {
       result.tableMap = new HashMap<>();
       for (TabletId tabletId : tablets) {
         TableInfo info = result.tableMap.get(tabletId.getTable().canonical());
-        if (info == null)
+        if (info == null) {
           result.tableMap.put(tabletId.getTable().canonical(), info = new TableInfo());
+        }
         info.onlineTablets++;
         info.recs = info.onlineTablets;
         info.ingestRate = 123.;
@@ -202,11 +203,13 @@ public class SimpleLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut));
-      if (migrationsOut.isEmpty())
+      if (migrationsOut.isEmpty()) {
         break;
+      }
       for (TabletMigration migration : migrationsOut) {
-        if (servers.get(migration.getOldTabletServer()).tablets.remove(migration.getTablet()))
+        if (servers.get(migration.getOldTabletServer()).tablets.remove(migration.getTablet())) {
           moved++;
+        }
         servers.get(migration.getNewTabletServer()).tablets.add(migration.getTablet());
       }
     }
@@ -242,11 +245,13 @@ public class SimpleLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut));
-      if (migrationsOut.isEmpty())
+      if (migrationsOut.isEmpty()) {
         break;
+      }
       for (TabletMigration migration : migrationsOut) {
-        if (servers.get(migration.getOldTabletServer()).tablets.remove(migration.getTablet()))
+        if (servers.get(migration.getOldTabletServer()).tablets.remove(migration.getTablet())) {
           moved++;
+        }
         last.remove(migration.getTablet());
         servers.get(migration.getNewTabletServer()).tablets.add(migration.getTablet());
         last.put(migration.getTablet(), migration.getNewTabletServer());
@@ -262,12 +267,14 @@ public class SimpleLoadBalancerTest {
     int average = metadataTable.size() / servers.size();
     for (FakeTServer server : servers.values()) {
       int diff = server.tablets.size() - average;
-      if (diff < 0)
+      if (diff < 0) {
         fail("average number of tablets is " + average + " but a server has "
             + server.tablets.size());
-      if (diff > 1)
+      }
+      if (diff > 1) {
         fail("average number of tablets is " + average + " but a server has "
             + server.tablets.size());
+      }
     }
 
     if (expectedCounts != null) {
@@ -288,8 +295,9 @@ public class SimpleLoadBalancerTest {
   }
 
   private static Text toText(String value) {
-    if (value != null)
+    if (value != null) {
       return new Text(value);
+    }
     return null;
   }
 

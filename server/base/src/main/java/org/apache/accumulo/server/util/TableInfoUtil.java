@@ -29,12 +29,15 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 public class TableInfoUtil {
 
   public static void add(TableInfo total, TableInfo more) {
-    if (total.minors == null)
+    if (total.minors == null) {
       total.minors = new Compacting();
-    if (total.majors == null)
+    }
+    if (total.majors == null) {
       total.majors = new Compacting();
-    if (total.scans == null)
+    }
+    if (total.scans == null) {
       total.scans = new Compacting();
+    }
     if (more.minors != null) {
       total.minors.running += more.minors.running;
       total.minors.queued += more.minors.queued;

@@ -192,8 +192,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
    * groups, so HOST_BALANCER_POOL_RECHECK_KEY should be specified in the terms of minutes, not
    * seconds or less.
    *
-   * @param current
-   *          map of current tservers
+   * @param current map of current tservers
    * @return current servers grouped by pool name, if not a match it is put into a default pool.
    */
   protected synchronized Map<String,SortedMap<TServerInstance,TabletServerStatus>>
@@ -233,8 +232,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   /**
    * Matches host against the regexes and returns the matching pool names
    *
-   * @param host
-   *          tablet server host
+   * @param host tablet server host
    * @return pool names, will return default pool if host matches more no regex
    */
   protected List<String> getPoolNamesForHost(String host) {
@@ -285,8 +283,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   /**
    * Matches table name against pool names, returns matching pool name or DEFAULT_POOL.
    *
-   * @param tableName
-   *          name of table
+   * @param tableName name of table
    * @return tablet server pool name (table name or DEFAULT_POOL)
    */
   protected String getPoolNameForTable(String tableName) {

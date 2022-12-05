@@ -57,8 +57,9 @@ public class DefaultLoadBalancerTest {
       for (KeyExtent extent : extents) {
         TableId tableId = extent.tableId();
         TableInfo info = result.tableMap.get(tableId.canonical());
-        if (info == null)
+        if (info == null) {
           result.tableMap.put(tableId.canonical(), info = new TableInfo());
+        }
         info.onlineTablets++;
         info.recs = info.onlineTablets;
         info.ingestRate = 123.;
@@ -199,11 +200,13 @@ public class DefaultLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(getAssignments(servers), migrations, migrationsOut);
-      if (migrationsOut.isEmpty())
+      if (migrationsOut.isEmpty()) {
         break;
+      }
       for (TabletMigration migration : migrationsOut) {
-        if (servers.get(migration.oldServer).extents.remove(migration.tablet))
+        if (servers.get(migration.oldServer).extents.remove(migration.tablet)) {
           moved++;
+        }
         servers.get(migration.newServer).extents.add(migration.tablet);
       }
     }
@@ -241,11 +244,13 @@ public class DefaultLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(getAssignments(servers), migrations, migrationsOut);
-      if (migrationsOut.isEmpty())
+      if (migrationsOut.isEmpty()) {
         break;
+      }
       for (TabletMigration migration : migrationsOut) {
-        if (servers.get(migration.oldServer).extents.remove(migration.tablet))
+        if (servers.get(migration.oldServer).extents.remove(migration.tablet)) {
           moved++;
+        }
         last.remove(migration.tablet);
         servers.get(migration.newServer).extents.add(migration.tablet);
         last.put(migration.tablet, migration.newServer);
@@ -261,12 +266,14 @@ public class DefaultLoadBalancerTest {
     int average = metadataTable.size() / servers.size();
     for (FakeTServer server : servers.values()) {
       int diff = server.extents.size() - average;
-      if (diff < 0)
+      if (diff < 0) {
         fail("average number of tablets is " + average + " but a server has "
             + server.extents.size());
-      if (diff > 1)
+      }
+      if (diff > 1) {
         fail("average number of tablets is " + average + " but a server has "
             + server.extents.size());
+      }
     }
 
     if (expectedCounts != null) {
@@ -287,8 +294,9 @@ public class DefaultLoadBalancerTest {
   }
 
   private static Text toText(String value) {
-    if (value != null)
+    if (value != null) {
       return new Text(value);
+    }
     return null;
   }
 

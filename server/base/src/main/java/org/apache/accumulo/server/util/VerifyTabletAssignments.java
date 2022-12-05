@@ -69,8 +69,9 @@ public class VerifyTabletAssignments {
     Span span = TraceUtil.startSpan(VerifyTabletAssignments.class, "main");
     try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
-        for (String table : client.tableOperations().list())
+        for (String table : client.tableOperations().list()) {
           checkTable((ClientContext) client, verbose, table, null);
+        }
       } finally {
         span.end();
       }
@@ -81,10 +82,11 @@ public class VerifyTabletAssignments {
       String tableName, HashSet<KeyExtent> check) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, InterruptedException {
 
-    if (check == null)
+    if (check == null) {
       System.out.println("Checking table " + tableName);
-    else
+    } else {
       System.out.println("Checking table " + tableName + " again, failures " + check.size());
+    }
 
     TreeMap<KeyExtent,String> tabletLocations = new TreeMap<>();
 
@@ -98,18 +100,20 @@ public class VerifyTabletAssignments {
     for (Entry<KeyExtent,String> entry : tabletLocations.entrySet()) {
       KeyExtent keyExtent = entry.getKey();
       String loc = entry.getValue();
-      if (loc == null)
+      if (loc == null) {
         System.out.println(" Tablet " + keyExtent + " has no location");
-      else if (verbose)
+      } else if (verbose) {
         System.out.println(" Tablet " + keyExtent + " is located at " + loc);
+      }
 
       if (loc != null) {
         final HostAndPort parsedLoc = HostAndPort.fromString(loc);
         List<KeyExtent> extentList =
             extentsPerServer.computeIfAbsent(parsedLoc, k -> new ArrayList<>());
 
-        if (check == null || check.contains(keyExtent))
+        if (check == null || check.contains(keyExtent)) {
           extentList.add(keyExtent);
+        }
       }
     }
 
@@ -132,8 +136,9 @@ public class VerifyTabletAssignments {
 
     while (!tp.awaitTermination(1, TimeUnit.HOURS)) {}
 
-    if (!failures.isEmpty())
+    if (!failures.isEmpty()) {
       checkTable(context, verbose, tableName, failures);
+    }
   }
 
   private static void checkFailures(HostAndPort server, HashSet<KeyExtent> failures,

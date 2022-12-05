@@ -69,8 +69,9 @@ public class BulkOldIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       SortedSet<Text> splits = new TreeSet<>();
-      for (String split : "0333 0666 0999 1333 1666".split(" "))
+      for (String split : "0333 0666 0999 1333 1666".split(" ")) {
         splits.add(new Text(split));
+      }
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
       c.tableOperations().create(tableName, ntc);
       Configuration conf = new Configuration();
@@ -124,22 +125,26 @@ public class BulkOldIT extends AccumuloClusterHarness {
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
       for (int i = s; i <= e; i++) {
-        if (!iter.hasNext())
+        if (!iter.hasNext()) {
           throw new Exception("row " + i + " not found");
+        }
 
         Entry<Key,Value> entry = iter.next();
 
         String row = String.format("%04d", i);
 
-        if (!entry.getKey().getRow().equals(new Text(row)))
+        if (!entry.getKey().getRow().equals(new Text(row))) {
           throw new Exception("unexpected row " + entry.getKey() + " " + i);
+        }
 
-        if (Integer.parseInt(entry.getValue().toString()) != i)
+        if (Integer.parseInt(entry.getValue().toString()) != i) {
           throw new Exception("unexpected value " + entry + " " + i);
+        }
       }
 
-      if (iter.hasNext())
+      if (iter.hasNext()) {
         throw new Exception("found more than expected " + iter.next());
+      }
     }
   }
 

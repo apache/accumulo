@@ -63,8 +63,7 @@ public class StatusUtil {
   /**
    * Creates a {@link Status} for newly-created data that must be replicated
    *
-   * @param recordsIngested
-   *          Offset of records which need to be replicated
+   * @param recordsIngested Offset of records which need to be replicated
    * @return A {@link Status} tracking data that must be replicated
    */
   public static Status ingestedUntil(long recordsIngested) {
@@ -76,8 +75,7 @@ public class StatusUtil {
   }
 
   /**
-   * @param recordsReplicated
-   *          Offset of records which have been replicated
+   * @param recordsReplicated Offset of records which have been replicated
    * @return A {@link Status} tracking data that must be replicated
    */
   public static Status replicated(long recordsReplicated) {
@@ -85,10 +83,8 @@ public class StatusUtil {
   }
 
   /**
-   * @param builder
-   *          Existing {@link Builder} to use
-   * @param recordsReplicated
-   *          Offset of records which have been replicated
+   * @param builder Existing {@link Builder} to use
+   * @param recordsReplicated Offset of records which have been replicated
    * @return A {@link Status} tracking data that must be replicated
    */
   public static Status replicated(Status.Builder builder, long recordsReplicated) {
@@ -98,10 +94,8 @@ public class StatusUtil {
   /**
    * Creates a @{link Status} for a file which has new data and data which has been replicated
    *
-   * @param recordsReplicated
-   *          Offset of records which have been replicated
-   * @param recordsIngested
-   *          Offset for records which need to be replicated
+   * @param recordsReplicated Offset of records which have been replicated
+   * @param recordsIngested Offset for records which need to be replicated
    * @return A {@link Status} for the given parameters
    */
   public static Status replicatedAndIngested(long recordsReplicated, long recordsIngested) {
@@ -111,12 +105,9 @@ public class StatusUtil {
   /**
    * Same as {@link #replicatedAndIngested(long, long)} but uses the provided {@link Builder}
    *
-   * @param builder
-   *          An existing builder
-   * @param recordsReplicated
-   *          Offset of records which have been replicated
-   * @param recordsIngested
-   *          Offset of records which need to be replicated
+   * @param builder An existing builder
+   * @param recordsReplicated Offset of records which have been replicated
+   * @param recordsIngested Offset of records which need to be replicated
    * @return A {@link Status} for the given parameters using the builder
    */
   public static Status replicatedAndIngested(Status.Builder builder, long recordsReplicated,
@@ -186,8 +177,7 @@ public class StatusUtil {
   }
 
   /**
-   * @param v
-   *          Value with serialized Status
+   * @param v Value with serialized Status
    * @return A Status created from the Value
    */
   public static Status fromValue(Value v) throws InvalidProtocolBufferException {
@@ -197,8 +187,7 @@ public class StatusUtil {
   /**
    * Is the given Status fully replicated and is its file ready for deletion on the source
    *
-   * @param status
-   *          a Status protobuf
+   * @param status a Status protobuf
    * @return True if the file this Status references can be deleted.
    */
   public static boolean isSafeForRemoval(Status status) {
@@ -208,8 +197,7 @@ public class StatusUtil {
   /**
    * Is the given Status fully replicated but potentially not yet safe for deletion
    *
-   * @param status
-   *          a Status protobuf
+   * @param status a Status protobuf
    * @return True if the file this Status references is fully replicated so far
    */
   public static boolean isFullyReplicated(Status status) {
@@ -223,8 +211,7 @@ public class StatusUtil {
   /**
    * Given the {@link Status}, is there replication work to be done
    *
-   * @param status
-   *          Status for a file
+   * @param status Status for a file
    * @return true if replication work is required
    */
   public static boolean isWorkRequired(Status status) {

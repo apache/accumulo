@@ -57,8 +57,9 @@ public abstract class BusiestTracker {
       // only get the count once to ensure consistency in the case of multiple threads
       long count = extractCount(tablet);
 
-      if (count == 0)
+      if (count == 0) {
         continue;
+      }
 
       counts.put(extent, count);
 
@@ -69,8 +70,9 @@ public abstract class BusiestTracker {
       long delta = (lastCount > count) ? count : count - lastCount;
 
       // handle case where tablet had no activity
-      if (delta > 0)
+      if (delta > 0) {
         tabletsWithDelta.add(new ComparablePair<>(delta, extent));
+      }
     }
 
     lastCounts = counts;

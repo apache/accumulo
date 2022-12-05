@@ -71,8 +71,9 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
   @Override
   public void removeIterator(String namespace, String name, EnumSet<IteratorScope> scopes)
       throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
-    if (!exists(namespace))
+    if (!exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
+    }
     Map<String,String> copy = Map.copyOf(this.getConfiguration(namespace));
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
@@ -87,8 +88,9 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
   @Override
   public IteratorSetting getIteratorSetting(String namespace, String name, IteratorScope scope)
       throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
-    if (!exists(namespace))
+    if (!exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
+    }
     int priority = -1;
     String classname = null;
     Map<String,String> settings = new HashMap<>();
@@ -117,8 +119,9 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
   @Override
   public Map<String,EnumSet<IteratorScope>> listIterators(String namespace)
       throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
-    if (!exists(namespace))
+    if (!exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
+    }
     Map<String,EnumSet<IteratorScope>> result = new TreeMap<>();
     for (Entry<String,String> property : this.getProperties(namespace)) {
       String name = property.getKey();
@@ -126,8 +129,9 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
       if (parts.length == 4) {
         if (parts[0].equals("table") && parts[1].equals("iterator")) {
           IteratorScope scope = IteratorScope.valueOf(parts[2]);
-          if (!result.containsKey(parts[3]))
+          if (!result.containsKey(parts[3])) {
             result.put(parts[3], EnumSet.noneOf(IteratorScope.class));
+          }
           result.get(parts[3]).add(scope);
         }
       }
@@ -139,8 +143,9 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
   public void checkIteratorConflicts(String namespace, IteratorSetting setting,
       EnumSet<IteratorScope> scopes)
       throws AccumuloException, NamespaceNotFoundException, AccumuloSecurityException {
-    if (!exists(namespace))
+    if (!exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
+    }
     for (IteratorScope scope : scopes) {
       String scopeStr =
           String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
@@ -149,30 +154,36 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
       Map<String,String> optionConflicts = new TreeMap<>();
       for (Entry<String,String> property : this.getProperties(namespace)) {
         if (property.getKey().startsWith(scopeStr)) {
-          if (property.getKey().equals(nameStr))
+          if (property.getKey().equals(nameStr)) {
             throw new AccumuloException(new IllegalArgumentException("iterator name conflict for "
                 + setting.getName() + ": " + property.getKey() + "=" + property.getValue()));
-          if (property.getKey().startsWith(optStr))
+          }
+          if (property.getKey().startsWith(optStr)) {
             optionConflicts.put(property.getKey(), property.getValue());
-          if (property.getKey().contains(".opt."))
+          }
+          if (property.getKey().contains(".opt.")) {
             continue;
+          }
           String[] parts = property.getValue().split(",");
-          if (parts.length != 2)
+          if (parts.length != 2) {
             throw new AccumuloException("Bad value for existing iterator setting: "
                 + property.getKey() + "=" + property.getValue());
+          }
           try {
-            if (Integer.parseInt(parts[0]) == setting.getPriority())
+            if (Integer.parseInt(parts[0]) == setting.getPriority()) {
               throw new AccumuloException(new IllegalArgumentException(
                   "iterator priority conflict: " + property.getKey() + "=" + property.getValue()));
+            }
           } catch (NumberFormatException e) {
             throw new AccumuloException("Bad value for existing iterator setting: "
                 + property.getKey() + "=" + property.getValue());
           }
         }
       }
-      if (!optionConflicts.isEmpty())
+      if (!optionConflicts.isEmpty()) {
         throw new AccumuloException(new IllegalArgumentException(
             "iterator options conflict for " + setting.getName() + ": " + optionConflicts));
+      }
     }
   }
 
@@ -195,12 +206,14 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
       }
     }
     i = 1;
-    while (constraintNumbers.contains(i))
+    while (constraintNumbers.contains(i)) {
       i++;
-    if (constraintClasses.containsKey(constraintClassName))
+    }
+    if (constraintClasses.containsKey(constraintClassName)) {
       throw new AccumuloException(
           "Constraint " + constraintClassName + " already exists for namespace " + namespace
               + " with number " + constraintClasses.get(constraintClassName));
+    }
     this.setProperty(namespace, Property.TABLE_CONSTRAINT_PREFIX.toString() + i,
         constraintClassName);
     return i;
@@ -218,10 +231,11 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     Map<String,Integer> constraints = new TreeMap<>();
     for (Entry<String,String> property : this.getProperties(namespace)) {
       if (property.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.toString())) {
-        if (constraints.containsKey(property.getValue()))
+        if (constraints.containsKey(property.getValue())) {
           throw new AccumuloException("Same constraint configured twice: " + property.getKey() + "="
               + Property.TABLE_CONSTRAINT_PREFIX + constraints.get(property.getValue()) + "="
               + property.getKey());
+        }
         try {
           constraints.put(property.getValue(), Integer.parseInt(
               property.getKey().substring(Property.TABLE_CONSTRAINT_PREFIX.toString().length())));

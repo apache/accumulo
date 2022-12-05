@@ -82,8 +82,9 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
 
         count = Iterators.size(scanner.iterator());
 
-        if (count != 1)
+        if (count != 1) {
           throw new Exception("Did not see expected # entries " + count);
+        }
 
         // now try putting bad iterator back and deleting the table
         c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.minc));

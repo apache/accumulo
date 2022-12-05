@@ -37,8 +37,9 @@ class TabletMutatorImpl extends TabletMutatorBase implements Ample.TabletMutator
     try {
       writer.addMutation(getMutation());
 
-      if (closeAfterMutate != null)
+      if (closeAfterMutate != null) {
         closeAfterMutate.close();
+      }
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

@@ -58,19 +58,22 @@ public class TimestampFilter extends Filter {
   @Override
   public boolean accept(Key k, Value v) {
     long ts = k.getTimestamp();
-    if ((hasStart && (ts < start)) || (hasEnd && (ts > end)))
+    if ((hasStart && (ts < start)) || (hasEnd && (ts > end))) {
       return false;
-    if (hasStart && !startInclusive && ts == start)
+    }
+    if (hasStart && !startInclusive && ts == start) {
       return false;
+    }
     return !hasEnd || endInclusive || ts != end;
   }
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
-    if (options == null)
+    if (options == null) {
       throw new IllegalArgumentException(
           "start and/or end must be set for " + TimestampFilter.class.getName());
+    }
 
     super.init(source, options, env);
 
@@ -79,36 +82,43 @@ public class TimestampFilter extends Filter {
     startInclusive = true;
     endInclusive = true;
 
-    if (options.containsKey(START))
+    if (options.containsKey(START)) {
       hasStart = true;
-    if (options.containsKey(END))
+    }
+    if (options.containsKey(END)) {
       hasEnd = true;
-    if (!hasStart && !hasEnd)
+    }
+    if (!hasStart && !hasEnd) {
       throw new IllegalArgumentException(
           "must have either start or end for " + TimestampFilter.class.getName());
+    }
 
     try {
       if (hasStart) {
         String s = options.get(START);
-        if (s.startsWith(LONG_PREFIX))
+        if (s.startsWith(LONG_PREFIX)) {
           start = Long.parseLong(s.substring(LONG_PREFIX.length()));
-        else
+        } else {
           start = dateParser.parse(s).getTime();
+        }
       }
       if (hasEnd) {
         String s = options.get(END);
-        if (s.startsWith(LONG_PREFIX))
+        if (s.startsWith(LONG_PREFIX)) {
           end = Long.parseLong(s.substring(LONG_PREFIX.length()));
-        else
+        } else {
           end = dateParser.parse(s).getTime();
+        }
       }
     } catch (Exception e) {
       throw new IllegalArgumentException(e);
     }
-    if (options.get(START_INCL) != null)
+    if (options.get(START_INCL) != null) {
       startInclusive = Boolean.parseBoolean(options.get(START_INCL));
-    if (options.get(END_INCL) != null)
+    }
+    if (options.get(END_INCL) != null) {
       endInclusive = Boolean.parseBoolean(options.get(END_INCL));
+    }
   }
 
   @Override
@@ -137,33 +147,39 @@ public class TimestampFilter extends Filter {
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    if (!super.validateOptions(options))
+    if (!super.validateOptions(options)) {
       return false;
+    }
     boolean hasStart = false;
     boolean hasEnd = false;
     try {
       if (options.containsKey(START)) {
         hasStart = true;
         String s = options.get(START);
-        if (s.startsWith(LONG_PREFIX))
+        if (s.startsWith(LONG_PREFIX)) {
           Long.valueOf(s.substring(LONG_PREFIX.length()));
-        else
+        } else {
           dateParser.parse(s);
+        }
       }
       if (options.containsKey(END)) {
         hasEnd = true;
         String s = options.get(END);
-        if (s.startsWith(LONG_PREFIX))
+        if (s.startsWith(LONG_PREFIX)) {
           Long.valueOf(s.substring(LONG_PREFIX.length()));
-        else
+        } else {
           dateParser.parse(s);
+        }
       }
-      if (!hasStart && !hasEnd)
+      if (!hasStart && !hasEnd) {
         throw new IllegalArgumentException(START + " or " + END + " must be specified");
-      if (options.get(START_INCL) != null)
+      }
+      if (options.get(START_INCL) != null) {
         Boolean.parseBoolean(options.get(START_INCL));
-      if (options.get(END_INCL) != null)
+      }
+      if (options.get(END_INCL) != null) {
         Boolean.parseBoolean(options.get(END_INCL));
+      }
     } catch (Exception e) {
       throw new IllegalArgumentException("invalid options", e);
     }
@@ -173,12 +189,9 @@ public class TimestampFilter extends Filter {
   /**
    * A convenience method for setting the range of timestamps accepted by the timestamp filter.
    *
-   * @param is
-   *          the iterator setting object to configure
-   * @param start
-   *          the start timestamp, inclusive (yyyyMMddHHmmssz)
-   * @param end
-   *          the end timestamp, inclusive (yyyyMMddHHmmssz)
+   * @param is the iterator setting object to configure
+   * @param start the start timestamp, inclusive (yyyyMMddHHmmssz)
+   * @param end the end timestamp, inclusive (yyyyMMddHHmmssz)
    */
   public static void setRange(IteratorSetting is, String start, String end) {
     setRange(is, start, true, end, true);
@@ -187,16 +200,11 @@ public class TimestampFilter extends Filter {
   /**
    * A convenience method for setting the range of timestamps accepted by the timestamp filter.
    *
-   * @param is
-   *          the iterator setting object to configure
-   * @param start
-   *          the start timestamp (yyyyMMddHHmmssz)
-   * @param startInclusive
-   *          boolean indicating whether the start is inclusive
-   * @param end
-   *          the end timestamp (yyyyMMddHHmmssz)
-   * @param endInclusive
-   *          boolean indicating whether the end is inclusive
+   * @param is the iterator setting object to configure
+   * @param start the start timestamp (yyyyMMddHHmmssz)
+   * @param startInclusive boolean indicating whether the start is inclusive
+   * @param end the end timestamp (yyyyMMddHHmmssz)
+   * @param endInclusive boolean indicating whether the end is inclusive
    */
   public static void setRange(IteratorSetting is, String start, boolean startInclusive, String end,
       boolean endInclusive) {
@@ -207,12 +215,9 @@ public class TimestampFilter extends Filter {
   /**
    * A convenience method for setting the start timestamp accepted by the timestamp filter.
    *
-   * @param is
-   *          the iterator setting object to configure
-   * @param start
-   *          the start timestamp (yyyyMMddHHmmssz)
-   * @param startInclusive
-   *          boolean indicating whether the start is inclusive
+   * @param is the iterator setting object to configure
+   * @param start the start timestamp (yyyyMMddHHmmssz)
+   * @param startInclusive boolean indicating whether the start is inclusive
    */
   public static void setStart(IteratorSetting is, String start, boolean startInclusive) {
     SimpleDateFormat dateParser = initDateParser();
@@ -227,12 +232,9 @@ public class TimestampFilter extends Filter {
   /**
    * A convenience method for setting the end timestamp accepted by the timestamp filter.
    *
-   * @param is
-   *          the iterator setting object to configure
-   * @param end
-   *          the end timestamp (yyyyMMddHHmmssz)
-   * @param endInclusive
-   *          boolean indicating whether the end is inclusive
+   * @param is the iterator setting object to configure
+   * @param end the end timestamp (yyyyMMddHHmmssz)
+   * @param endInclusive boolean indicating whether the end is inclusive
    */
   public static void setEnd(IteratorSetting is, String end, boolean endInclusive) {
     SimpleDateFormat dateParser = initDateParser();
@@ -247,12 +249,9 @@ public class TimestampFilter extends Filter {
   /**
    * A convenience method for setting the range of timestamps accepted by the timestamp filter.
    *
-   * @param is
-   *          the iterator setting object to configure
-   * @param start
-   *          the start timestamp, inclusive
-   * @param end
-   *          the end timestamp, inclusive
+   * @param is the iterator setting object to configure
+   * @param start the start timestamp, inclusive
+   * @param end the end timestamp, inclusive
    */
   public static void setRange(IteratorSetting is, long start, long end) {
     setRange(is, start, true, end, true);
@@ -261,16 +260,11 @@ public class TimestampFilter extends Filter {
   /**
    * A convenience method for setting the range of timestamps accepted by the timestamp filter.
    *
-   * @param is
-   *          the iterator setting object to configure
-   * @param start
-   *          the start timestamp
-   * @param startInclusive
-   *          boolean indicating whether the start is inclusive
-   * @param end
-   *          the end timestamp
-   * @param endInclusive
-   *          boolean indicating whether the end is inclusive
+   * @param is the iterator setting object to configure
+   * @param start the start timestamp
+   * @param startInclusive boolean indicating whether the start is inclusive
+   * @param end the end timestamp
+   * @param endInclusive boolean indicating whether the end is inclusive
    */
   public static void setRange(IteratorSetting is, long start, boolean startInclusive, long end,
       boolean endInclusive) {
@@ -281,12 +275,9 @@ public class TimestampFilter extends Filter {
   /**
    * A convenience method for setting the start timestamp accepted by the timestamp filter.
    *
-   * @param is
-   *          the iterator setting object to configure
-   * @param start
-   *          the start timestamp
-   * @param startInclusive
-   *          boolean indicating whether the start is inclusive
+   * @param is the iterator setting object to configure
+   * @param start the start timestamp
+   * @param startInclusive boolean indicating whether the start is inclusive
    */
   public static void setStart(IteratorSetting is, long start, boolean startInclusive) {
     is.addOption(START, LONG_PREFIX + start);
@@ -296,12 +287,9 @@ public class TimestampFilter extends Filter {
   /**
    * A convenience method for setting the end timestamp accepted by the timestamp filter.
    *
-   * @param is
-   *          the iterator setting object to configure
-   * @param end
-   *          the end timestamp
-   * @param endInclusive
-   *          boolean indicating whether the end is inclusive
+   * @param is the iterator setting object to configure
+   * @param end the end timestamp
+   * @param endInclusive boolean indicating whether the end is inclusive
    */
   public static void setEnd(IteratorSetting is, long end, boolean endInclusive) {
     is.addOption(END, LONG_PREFIX + end);

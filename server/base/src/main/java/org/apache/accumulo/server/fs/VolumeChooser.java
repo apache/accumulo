@@ -33,14 +33,11 @@ public interface VolumeChooser extends org.apache.accumulo.core.spi.fs.VolumeCho
   /**
    * Choose a volume from the provided options.
    *
-   * @param env
-   *          the server environment provided by the calling framework
-   * @param options
-   *          the list of volumes to choose from
+   * @param env the server environment provided by the calling framework
+   * @param options the list of volumes to choose from
    * @return one of the options
-   * @throws VolumeChooserException
-   *           if there is an error choosing (this is a RuntimeException); this does not preclude
-   *           other RuntimeExceptions from occurring
+   * @throws VolumeChooserException if there is an error choosing (this is a RuntimeException); this
+   *         does not preclude other RuntimeExceptions from occurring
    */
   default String choose(VolumeChooserEnvironment env, String[] options)
       throws VolumeChooserException {

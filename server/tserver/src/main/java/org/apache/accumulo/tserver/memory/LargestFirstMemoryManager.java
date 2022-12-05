@@ -84,8 +84,9 @@ public class LargestFirstMemoryManager {
 
     public boolean put(Long key, TabletInfo value) {
       if (map.size() == max) {
-        if (key.compareTo(map.firstKey()) < 0)
+        if (key.compareTo(map.firstKey()) < 0) {
           return false;
+        }
         try {
           add(key, value);
           return true;
@@ -137,9 +138,10 @@ public class LargestFirstMemoryManager {
 
   protected long getMinCIdleThreshold(KeyExtent extent) {
     TableId tableId = extent.tableId();
-    if (!mincIdleThresholds.containsKey(tableId))
+    if (!mincIdleThresholds.containsKey(tableId)) {
       mincIdleThresholds.put(tableId, context.getTableConfiguration(tableId)
           .getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
+    }
     return mincIdleThresholds.get(tableId);
   }
 
@@ -153,9 +155,10 @@ public class LargestFirstMemoryManager {
   }
 
   public List<KeyExtent> tabletsToMinorCompact(List<TabletMemoryReport> tablets) {
-    if (maxMemory < 0)
+    if (maxMemory < 0) {
       throw new IllegalStateException(
           "need to initialize " + LargestFirstMemoryManager.class.getName());
+    }
 
     final int maxMinCs = maxConcurrentMincs * numWaitingMultiplier;
 
@@ -208,8 +211,9 @@ public class LargestFirstMemoryManager {
       }
 
       compactionMemory += minorCompactingSize;
-      if (minorCompactingSize > 0)
+      if (minorCompactingSize > 0) {
         numWaitingMincs++;
+      }
     }
 
     if (ingestMemory + compactionMemory > maxObserved) {
@@ -248,8 +252,9 @@ public class LargestFirstMemoryManager {
               largest.extent.toString(), (ingestMemory + compactionMemory), ingestMemory));
           log.debug(String.format("chosenMem = %,d chosenIT = %.2f load %,d", largest.memTableSize,
               largest.idleTime / 1000.0, largest.load));
-          if (toBeCompacted > ingestMemory * MAX_FLUSH_AT_ONCE_PERCENT)
+          if (toBeCompacted > ingestMemory * MAX_FLUSH_AT_ONCE_PERCENT) {
             break outer;
+          }
           i++;
         }
         largestMemTablets.remove(lastEntry.getKey());

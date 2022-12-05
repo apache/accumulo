@@ -29,8 +29,7 @@ public class MetaBlockAlreadyExists extends IOException {
   /**
    * Constructor
    *
-   * @param s
-   *          message.
+   * @param s message.
    */
   MetaBlockAlreadyExists(String s) {
     super(s);

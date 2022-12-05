@@ -111,8 +111,9 @@ public class CollectTabletStats {
     opts.parseArgs(CollectTabletStats.class.getName(), args);
 
     String[] columnsTmp = {};
-    if (opts.columns != null)
+    if (opts.columns != null) {
       columnsTmp = opts.columns.split(",");
+    }
     final String[] columns = columnsTmp;
 
     ServerContext context = opts.getServerContext();
@@ -536,8 +537,9 @@ public class CollectTabletStats {
       int count = 0;
 
       for (Entry<Key,Value> entry : scanner) {
-        if (entry != null)
+        if (entry != null) {
           count++;
+        }
       }
       return count;
     }

@@ -82,8 +82,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
    * Starts a MiniAccumuloCluster instance with the default configuration but also provides the
    * caller the opportunity to update the configuration before the MiniAccumuloCluster is started.
    *
-   * @param miniClusterCallback
-   *          A callback to configure the minicluster before it is started.
+   * @param miniClusterCallback A callback to configure the minicluster before it is started.
    */
   public static void startMiniClusterWithConfig(
       MiniClusterConfigurationCallback miniClusterCallback) throws Exception {

@@ -127,9 +127,10 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
       HashMap<String,String> actual = new HashMap<>();
 
-      for (Entry<Key,Value> entry : scanner)
+      for (Entry<Key,Value> entry : scanner) {
         actual.put(entry.getKey().getRowData() + ":" + entry.getKey().getColumnQualifierData(),
             entry.getValue().toString());
+      }
 
       assertEquals(expected, actual);
     }

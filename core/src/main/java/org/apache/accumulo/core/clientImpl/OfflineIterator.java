@@ -124,8 +124,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
 
     SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
-      if (topLevelIterators.isEmpty())
+      if (topLevelIterators.isEmpty()) {
         return iter;
+      }
       ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<>(topLevelIterators);
       allIters.add(iter);
       return new MultiIterator(allIters, false);
@@ -143,8 +144,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     @Override
     public IteratorEnvironment cloneWithSamplingEnabled() {
-      if (sampleConf == null)
+      if (sampleConf == null) {
         throw new SampleNotPresentException();
+      }
       return new OfflineIteratorEnvironment(authorizations, conf, true, sampleConf);
     }
   }
@@ -176,12 +178,14 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     try {
       nextTablet();
 
-      while (iter != null && !iter.hasTop())
+      while (iter != null && !iter.hasTop()) {
         nextTablet();
+      }
 
     } catch (Exception e) {
-      if (e instanceof RuntimeException)
+      if (e instanceof RuntimeException) {
         throw (RuntimeException) e;
+      }
       throw new RuntimeException(e);
     }
   }
@@ -200,8 +204,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
       iter.next();
 
-      while (iter != null && !iter.hasTop())
+      while (iter != null && !iter.hasTop()) {
         nextTablet();
+      }
 
       return ret;
     } catch (Exception e) {
@@ -217,10 +222,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     if (currentExtent == null) {
       Text startRow;
 
-      if (range.getStartKey() != null)
+      if (range.getStartKey() != null) {
         startRow = range.getStartKey().getRow();
-      else
+      } else {
         startRow = new Text();
+      }
 
       nextRange = new Range(TabletsSection.encodeRow(tableId, startRow), true, null, false);
     } else {
@@ -255,9 +261,10 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
           " did not find tablets for table " + tableId + " " + tablet.getExtent());
     }
 
-    if (currentExtent != null && !tablet.getExtent().isPreviousExtent(currentExtent))
+    if (currentExtent != null && !tablet.getExtent().isPreviousExtent(currentExtent)) {
       throw new AccumuloException(
           " " + currentExtent + " is not previous extent " + tablet.getExtent());
+    }
 
     iter = createIterator(tablet.getExtent(), tablet.getFiles());
     iter.seek(range, LocalityGroupUtil.families(options.fetchedColumns),
@@ -306,8 +313,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
           .forFile(file.getPathStr(), fs, conf, cs).withTableConfiguration(tableCC).build();
       if (scannerSamplerConfigImpl != null) {
         reader = reader.getSample(scannerSamplerConfigImpl);
-        if (reader == null)
+        if (reader == null) {
           throw new SampleNotPresentException();
+        }
       }
       readers.add(reader);
     }
