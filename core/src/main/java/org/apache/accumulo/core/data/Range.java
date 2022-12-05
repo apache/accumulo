@@ -36,7 +36,7 @@ import org.apache.hadoop.io.WritableComparable;
  *
  * @see Key
  */
-public class Range implements WritableComparable<Range> {
+public class Range implements WritableComparable<Range>, RangedObject<Range> {
 
   private Key start;
   private Key stop;
@@ -731,6 +731,57 @@ public class Range implements WritableComparable<Range> {
    */
   public boolean isInfiniteStopKey() {
     return infiniteStopKey;
+  }
+
+  @Override
+  public boolean overlaps(Range candidate) {
+
+    if (this.equals(candidate)) {
+      return true;
+    }
+
+    if (this.infiniteStartKey && this.infiniteStopKey) {
+      // If both this range and candidate range have
+      // infinite start and stop keys, then equals above
+      // would have returned true. To get here, that must
+      // not be true. If this range has infinite start
+      // and stop keys, then return true as the candidate
+      // range cannot have both as well.
+      return true;
+    }
+
+    int startCmp = 0;
+    int endCmp = 0;
+    if (!this.infiniteStartKey && !candidate.infiniteStartKey) {
+      startCmp = this.getStartKey().compareTo(candidate.getStartKey());
+      boolean startInclusivityEqual = (this.startKeyInclusive == candidate.startKeyInclusive);
+      if (startCmp == 0 && this.startKeyInclusive && !startInclusivityEqual) {
+        // If the start keys are equal, but the this is inclusive and the candidate is not, then
+        // this
+        // range is less than the candidate range.
+        startCmp = -1;
+      }
+    } else if (!this.infiniteStartKey && candidate.infiniteStartKey) {
+      startCmp = 1;
+    }
+
+    if (!this.infiniteStopKey && !candidate.infiniteStopKey) {
+      endCmp = this.getEndKey().compareTo(candidate.getEndKey());
+      boolean endInclusivityEqual = (this.stopKeyInclusive == candidate.stopKeyInclusive);
+      if (endCmp == 0 && this.stopKeyInclusive && !endInclusivityEqual) {
+        // If the end keys are equal, but the this is inclusive and the candidate is not, then this
+        // range is greater than the candidate range.
+        endCmp = 1;
+      }
+    } else if (!this.infiniteStopKey && candidate.infiniteStopKey) {
+      endCmp = -1;
+    }
+
+    if ((this.infiniteStartKey && (endCmp >= 0)) || (this.infiniteStopKey && (startCmp <= 0))
+        || (startCmp <= 0 && endCmp >= 0)) {
+      return true;
+    }
+    return false;
   }
 
   /**

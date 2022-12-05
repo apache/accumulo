@@ -42,6 +42,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RangedObject;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
@@ -59,7 +60,7 @@ import org.apache.hadoop.io.Text;
 /**
  * keeps track of information needed to identify a tablet
  */
-public class KeyExtent implements Comparable<KeyExtent> {
+public class KeyExtent implements Comparable<KeyExtent>, RangedObject<KeyExtent> {
 
   private static final String OBSCURING_HASH_ALGORITHM = "SHA-256";
 
@@ -428,6 +429,7 @@ public class KeyExtent implements Comparable<KeyExtent> {
     return result;
   }
 
+  @Override
   public boolean overlaps(KeyExtent other) {
     SortedSet<KeyExtent> set = new TreeSet<>();
     set.add(other);

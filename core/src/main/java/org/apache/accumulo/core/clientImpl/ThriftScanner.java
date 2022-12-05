@@ -304,7 +304,6 @@ public class ThriftScanner {
           // for the table
           List<KeyExtent> ke =
               context.getOfflineKeyExtentCache().lookup(scanState.tableId, scanState.range);
-          log.trace("Found extents: {}", ke);
           if (ke != null && ke.size() > 0) {
             loc = new TabletLocation(ke.get(0), "scan_server", "scan_server");
           }

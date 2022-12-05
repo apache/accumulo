@@ -261,9 +261,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       // for the table
       binnedRanges.clear();
       Map<KeyExtent,List<Range>> map = new HashMap<>();
-      context.getOfflineKeyExtentCache().lookup(this.tableId, ranges).forEach((pair, kes) -> {
+      context.getOfflineKeyExtentCache().lookup(this.tableId, ranges).forEach((range, kes) -> {
         kes.forEach(ke -> {
-          map.computeIfAbsent(ke, k -> new ArrayList<>()).add(pair.getSecond());
+          map.computeIfAbsent(ke, k -> new ArrayList<>()).add(range);
         });
       });
       log.trace("Found extents: {}", map);
