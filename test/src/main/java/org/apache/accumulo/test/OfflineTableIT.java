@@ -49,7 +49,7 @@ import com.google.common.collect.Iterables;
 
 public class OfflineTableIT extends SharedMiniClusterBase {
 
-  private static class OfflineTbaleITConfiguration implements MiniClusterConfigurationCallback {
+  private static class OfflineTableITConfiguration implements MiniClusterConfigurationCallback {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
@@ -61,7 +61,7 @@ public class OfflineTableIT extends SharedMiniClusterBase {
 
   @BeforeAll
   public static void start() throws Exception {
-    OfflineTbaleITConfiguration c = new OfflineTbaleITConfiguration();
+    OfflineTableITConfiguration c = new OfflineTableITConfiguration();
     SharedMiniClusterBase.startMiniClusterWithConfig(c);
   }
 
