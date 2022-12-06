@@ -21,6 +21,7 @@ package org.apache.accumulo.core.file.rfile;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -36,9 +37,11 @@ import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,26 +136,27 @@ public class RFileOperations extends FileOperations {
       String file = options.getFilename();
       FileSystem fs = options.getFileSystem();
 
-      outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
+      if (options.dropCacheBehind) {
+        EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
+        outputStream = fs.create(new Path(file), FsPermission.getDefault(), set, bufferSize,
+            (short) rep, blockSize, null);
+        try {
+          // Tell the DataNode that the file does not need to be cached in the OS page cache
+          outputStream.setDropBehind(Boolean.TRUE);
+          LOG.trace("Called setDropBehind(TRUE) for stream writing file {}", options.filename);
+        } catch (UnsupportedOperationException e) {
+          LOG.debug("setDropBehind not enabled for file: {}", options.filename);
+        } catch (IOException e) {
+          LOG.debug("IOException setting drop behind for file: {}, msg: {}", options.filename,
+              e.getMessage());
+        }
+      } else {
+        outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
+      }
     }
 
     BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
         conf, options.cryptoService);
-
-    if (options.dropCacheBehind) {
-      try {
-        // Tell the DataNode that the file does not need to be cached in the OS page cache
-        outputStream.setDropBehind(Boolean.TRUE);
-        LOG.trace("Called setDropBehind(TRUE) for stream writing file {}", options.filename);
-        // Sync the BCFile on close
-        _cbw.syncOnClose();
-      } catch (UnsupportedOperationException e) {
-        LOG.debug("setDropBehind not enabled for file: {}", options.filename);
-      } catch (IOException e) {
-        LOG.debug("IOException setting drop behind for file: {}, msg: {}", options.filename,
-            e.getMessage());
-      }
-    }
 
     return new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
   }
