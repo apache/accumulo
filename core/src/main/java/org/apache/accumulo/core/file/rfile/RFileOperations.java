@@ -139,7 +139,7 @@ public class RFileOperations extends FileOperations {
       if (options.dropCacheBehind) {
         EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
         outputStream = fs.create(new Path(file), FsPermission.getDefault(), set, bufferSize,
-            (short) rep, blockSize, null);
+            (short) rep, block, null);
         try {
           // Tell the DataNode that the file does not need to be cached in the OS page cache
           outputStream.setDropBehind(Boolean.TRUE);
