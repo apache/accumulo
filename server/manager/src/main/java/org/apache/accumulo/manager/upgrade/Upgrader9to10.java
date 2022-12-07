@@ -165,8 +165,10 @@ public class Upgrader9to10 implements Upgrader {
 
           if (((path.equals(Constants.ZROOT) || path.equals(Constants.ZROOT + Constants.ZINSTANCES))
               && !acls.equals(ZooDefs.Ids.OPEN_ACL_UNSAFE))
-              || (!privateWithAuth.equals(acls) && !publicWithAuth.equals(acls))) {
-            log.error("ZNode at {} has unexpected ACL: {}", path, acls);
+              || (!acls.containsAll(privateWithAuth) && !acls.containsAll(publicWithAuth))) {
+            log.error("ZNode at {} has unexpected ACL: {}, expected: {}", path, acls,
+                (path.equals(Constants.ZROOT) || path.equals(Constants.ZROOT + Constants.ZINSTANCES)
+                    ? ZooDefs.Ids.OPEN_ACL_UNSAFE : privateWithAuth + " or " + publicWithAuth));
             aclErrorOccurred.set(true);
           } else {
             log.trace("ZNode at {} has expected ACL.", path);
