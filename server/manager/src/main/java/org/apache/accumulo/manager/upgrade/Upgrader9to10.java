@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -143,35 +144,57 @@ public class Upgrader9to10 implements Upgrader {
     createScanServerNodes(context);
   }
 
+  static boolean isValidACL(InstanceId instanceId, String path, List<ACL> acls,
+      ACL accumuloCreatorAll, ACL worldRead) {
+    if (path.equals(Constants.ZROOT) || path.equals(Constants.ZROOT + Constants.ZINSTANCES)) {
+      if (ZooDefs.Ids.OPEN_ACL_UNSAFE.equals(acls)) {
+        log.trace("ZNode at {} has expected ACL.", path);
+        return true;
+      } else {
+        log.error("ZNode at {} has unexpected ACL: {}, expected: {}", path, acls,
+            ZooDefs.Ids.OPEN_ACL_UNSAFE);
+        return false;
+      }
+    } else if (path.equals(ZooUtil.getRoot(instanceId) + Constants.ZCONFIG)) {
+      if (acls.size() == 1 && acls.contains(accumuloCreatorAll)) {
+        log.trace("ZNode at {} has expected ACL.", path);
+        return true;
+      } else {
+        log.error("ZNode at {} has unexpected ACL: {}, expected: {}", path, acls,
+            accumuloCreatorAll);
+        return false;
+      }
+    } else {
+      if (acls.size() == 2 && acls.contains(accumuloCreatorAll) && acls.contains(worldRead)) {
+        log.trace("ZNode at {} has expected ACL.", path);
+        return true;
+      } else {
+        log.error("ZNode at {} has unexpected ACL: {}, expected: {} and {}", path, acls,
+            accumuloCreatorAll, worldRead);
+        return false;
+      }
+    }
+  }
+
   private void validateACLs(ServerContext context) {
 
     final AtomicBoolean aclErrorOccurred = new AtomicBoolean(false);
     final ZooReaderWriter zrw = context.getZooReaderWriter();
     final ZooKeeper zk = zrw.getZooKeeper();
     final String rootPath = context.getZooKeeperRoot();
+    final InstanceId instanceId = context.getInstanceID();
 
     final Id zkDigest =
         ZooUtil.getZkDigestAuthId(context.getConfiguration().get(Property.INSTANCE_SECRET));
-    final List<ACL> privateWithAuth = new ArrayList<>();
-    privateWithAuth.add(new ACL(ZooDefs.Perms.ALL, zkDigest));
-    final List<ACL> publicWithAuth = new ArrayList<>(privateWithAuth);
-    publicWithAuth.add(new ACL(ZooDefs.Perms.READ, ZooDefs.Ids.ANYONE_ID_UNSAFE));
+    final ACL accumuloCreatorAll = new ACL(ZooDefs.Perms.ALL, zkDigest);
+    final ACL worldRead = new ACL(ZooDefs.Perms.READ, ZooDefs.Ids.ANYONE_ID_UNSAFE);
 
     try {
       ZKUtil.visitSubTreeDFS(zk, rootPath, false, (rc, path, ctx, name) -> {
         try {
-          final Stat stat = new Stat();
-          final List<ACL> acls = zk.getACL(path, stat);
-
-          if (((path.equals(Constants.ZROOT) || path.equals(Constants.ZROOT + Constants.ZINSTANCES))
-              && !acls.equals(ZooDefs.Ids.OPEN_ACL_UNSAFE))
-              || (!acls.containsAll(privateWithAuth) && !acls.containsAll(publicWithAuth))) {
-            log.error("ZNode at {} has unexpected ACL: {}, expected: {}", path, acls,
-                (path.equals(Constants.ZROOT) || path.equals(Constants.ZROOT + Constants.ZINSTANCES)
-                    ? ZooDefs.Ids.OPEN_ACL_UNSAFE : privateWithAuth + " or " + publicWithAuth));
+          final List<ACL> acls = zk.getACL(path, new Stat());
+          if (!isValidACL(instanceId, path, acls, accumuloCreatorAll, worldRead)) {
             aclErrorOccurred.set(true);
-          } else {
-            log.trace("ZNode at {} has expected ACL.", path);
           }
         } catch (KeeperException | InterruptedException e) {
           log.error("Error getting ACL for path: {}", path, e);

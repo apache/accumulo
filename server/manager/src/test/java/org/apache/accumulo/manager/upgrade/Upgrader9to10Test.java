@@ -33,13 +33,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -47,10 +50,12 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ColumnUpdate;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -65,6 +70,9 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Id;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -401,5 +409,49 @@ public class Upgrader9to10Test {
 
     replay(context, volumeManager, dirs[0], dirs[1], dir0Files[0], dir1Files[0]);
     Upgrader9to10.dropSortedMapWALFiles(context);
+  }
+
+  @Test
+  public void testValidACLs() {
+    final Id zkDigest = ZooUtil.getZkDigestAuthId("DEFAULT");
+    final ACL accumuloCreatorAll = new ACL(ZooDefs.Perms.ALL, zkDigest);
+    final ACL worldRead = new ACL(ZooDefs.Perms.READ, ZooDefs.Ids.ANYONE_ID_UNSAFE);
+    final InstanceId iid = InstanceId.of(UUID.randomUUID());
+
+    List<ACL> publicPrivate = new ArrayList<>();
+    publicPrivate.add(worldRead);
+    publicPrivate.add(accumuloCreatorAll);
+    assertTrue(Upgrader9to10.isValidACL(iid, "/accumulo/" + iid + "/tables", publicPrivate,
+        accumuloCreatorAll, worldRead));
+
+    List<ACL> privatePublic = new ArrayList<>();
+    privatePublic.add(accumuloCreatorAll);
+    privatePublic.add(worldRead);
+    assertTrue(Upgrader9to10.isValidACL(iid, "/accumulo/" + iid + "/tables", publicPrivate,
+        accumuloCreatorAll, worldRead));
+
+    assertTrue(Upgrader9to10.isValidACL(iid, "/accumulo/" + iid + "/config",
+        Collections.singletonList(accumuloCreatorAll), accumuloCreatorAll, worldRead));
+    assertFalse(Upgrader9to10.isValidACL(iid, "/accumulo/" + iid + "/config", privatePublic,
+        accumuloCreatorAll, worldRead));
+    assertFalse(Upgrader9to10.isValidACL(iid, "/accumulo/" + iid + "/config", publicPrivate,
+        accumuloCreatorAll, worldRead));
+
+    List<ACL> invalidList = new ArrayList<>();
+    invalidList.add(accumuloCreatorAll);
+    invalidList.add(worldRead);
+    invalidList.add(new ACL(ZooDefs.Perms.ADMIN, ZooDefs.Ids.ANYONE_ID_UNSAFE));
+    assertFalse(Upgrader9to10.isValidACL(iid, "/accumulo/" + iid + "/tables", invalidList,
+        accumuloCreatorAll, worldRead));
+
+    assertTrue(Upgrader9to10.isValidACL(iid, Constants.ZROOT, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+        accumuloCreatorAll, worldRead));
+    assertTrue(Upgrader9to10.isValidACL(iid, Constants.ZROOT + Constants.ZINSTANCES,
+        ZooDefs.Ids.OPEN_ACL_UNSAFE, accumuloCreatorAll, worldRead));
+    assertFalse(Upgrader9to10.isValidACL(iid, Constants.ZROOT, publicPrivate, accumuloCreatorAll,
+        worldRead));
+    assertFalse(Upgrader9to10.isValidACL(iid, Constants.ZROOT + Constants.ZINSTANCES, publicPrivate,
+        accumuloCreatorAll, worldRead));
+
   }
 }
