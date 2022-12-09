@@ -16,19 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.data;
+package org.apache.accumulo.core.client;
 
-/**
- * Marker interface that declares the object is a type that represents a range
- */
-public interface RangedObject<T> {
+public class UncheckedAccumuloException extends RuntimeException {
 
-  /**
-   * Determines whether this object overlaps the candidate object
-   *
-   * @param candidate candidate object
-   * @return true if this objects range is equal to or overlaps the candidate range, else false
-   */
-  boolean overlaps(T candidate);
+  private static final long serialVersionUID = 1L;
+
+  public UncheckedAccumuloException() {
+    super();
+  }
+
+  public UncheckedAccumuloException(String message, Throwable cause, boolean enableSuppression,
+      boolean writableStackTrace) {
+    super(message, cause, enableSuppression, writableStackTrace);
+  }
+
+  public UncheckedAccumuloException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public UncheckedAccumuloException(String message) {
+    super(message);
+  }
+
+  public UncheckedAccumuloException(Throwable cause) {
+    super(cause);
+  }
 
 }

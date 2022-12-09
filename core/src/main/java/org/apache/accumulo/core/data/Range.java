@@ -36,7 +36,7 @@ import org.apache.hadoop.io.WritableComparable;
  *
  * @see Key
  */
-public class Range implements WritableComparable<Range>, RangedObject<Range> {
+public class Range implements WritableComparable<Range> {
 
   private Key start;
   private Key stop;
@@ -733,7 +733,6 @@ public class Range implements WritableComparable<Range>, RangedObject<Range> {
     return infiniteStopKey;
   }
 
-  @Override
   public boolean overlaps(Range candidate) {
 
     if (this.equals(candidate)) {

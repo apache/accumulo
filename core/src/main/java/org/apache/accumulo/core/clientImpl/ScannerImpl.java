@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.UncheckedAccumuloException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -159,7 +160,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
         String tableName = context.getTableName(tableId);
         context.requireNotOffline(tableId, tableName);
       } catch (TableNotFoundException e) {
-        throw new RuntimeException("Table not found", e);
+        throw new UncheckedAccumuloException("Table not found", e);
       }
     }
 

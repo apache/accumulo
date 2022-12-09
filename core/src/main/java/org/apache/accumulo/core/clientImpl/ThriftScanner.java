@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.UncheckedAccumuloException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -583,7 +584,8 @@ public class ThriftScanner {
           try {
             context.requireNotOffline(scanState.tableId, context.getTableName(scanState.tableId));
           } catch (TableNotFoundException e) {
-            throw new RuntimeException("Error scanning for table: " + scanState.tableId, e);
+            throw new UncheckedAccumuloException("Error scanning for table: " + scanState.tableId,
+                e);
           }
           newLoc = loc;
           delay = actions.getDelay();
