@@ -29,6 +29,10 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Client side object that can be used to interact with services that support operations against
+ * TabletServers. See {@link TabletServerThriftClient$Iface} for a list of supported operations.
+ */
 public class TabletServerThriftClient extends ThriftClientTypes<Client>
     implements TServerClient<Client> {
 

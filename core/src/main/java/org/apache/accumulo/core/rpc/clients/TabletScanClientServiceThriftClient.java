@@ -20,6 +20,10 @@ package org.apache.accumulo.core.rpc.clients;
 
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService.Client;
 
+/**
+ * Client side object that can be used to interact with services that support scan operations
+ * against tablets. See {@link TabletScanClientService$Iface} for a list of supported operations.
+ */
 public class TabletScanClientServiceThriftClient extends ThriftClientTypes<Client> {
 
   TabletScanClientServiceThriftClient(String serviceName) {

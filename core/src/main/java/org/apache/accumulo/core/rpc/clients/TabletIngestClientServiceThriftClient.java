@@ -20,6 +20,10 @@ package org.apache.accumulo.core.rpc.clients;
 
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService.Client;
 
+/**
+ * Client side object that can be used to interact with services that support ingest operations
+ * against tablets. See {@link TabletIngestClientService$Iface} for a list of supported operations.
+ */
 public class TabletIngestClientServiceThriftClient extends ThriftClientTypes<Client> {
 
   public TabletIngestClientServiceThriftClient(String serviceName) {
