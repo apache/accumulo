@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer.Ove
 import org.apache.accumulo.core.compaction.CompactionSettings;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
 import org.junit.jupiter.api.Test;
 
 public class ConfigurableCompactionStrategyTest {
@@ -77,6 +78,11 @@ public class ConfigurableCompactionStrategyTest {
 
       @Override
       public TableId getTableId() {
+        return null;
+      }
+
+      @Override
+      public TabletId getTabletId() {
         return null;
       }
 

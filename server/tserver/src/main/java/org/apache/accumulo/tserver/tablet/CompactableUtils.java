@@ -52,8 +52,10 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -262,6 +264,11 @@ public class CompactableUtils {
       public TableId getTableId() {
         return tablet.getExtent().tableId();
       }
+
+      @Override
+      public TabletId getTabletId() {
+        return new TabletIdImpl(tablet.getExtent());
+      }
     });
 
     if (overrides.getOverrides().isEmpty()) {
@@ -345,6 +352,11 @@ public class CompactableUtils {
       @Override
       public TableId getTableId() {
         return tablet.getExtent().tableId();
+      }
+
+      @Override
+      public TabletId getTabletId() {
+        return new TabletIdImpl(tablet.getExtent());
       }
 
       @Override
