@@ -35,12 +35,14 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FileOperations.WriterBuilder;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -50,6 +52,8 @@ import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterato
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -212,9 +216,18 @@ public class FileCompactor implements Callable<CompactionStats> {
     try {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getFileSystemByPath(outputFile.getPath());
-      mfw = fileFactory.newWriterBuilder()
+
+      boolean dropCacheBehindMajcOutput = !RootTable.ID.equals(this.extent.tableId())
+          && !MetadataTable.ID.equals(this.extent.tableId())
+          && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE);
+
+      WriterBuilder outBuilder = fileFactory.newWriterBuilder()
           .forFile(outputFile.getMetaInsert(), ns, ns.getConf(), cryptoService)
-          .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter()).build();
+          .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter());
+      if (dropCacheBehindMajcOutput) {
+        outBuilder.dropCachesBehind();
+      }
+      mfw = outBuilder.build();
 
       Map<String,Set<ByteSequence>> lGroups = getLocalityGroups(acuTableConf);
 
