@@ -390,6 +390,11 @@ public abstract class FileOperations {
       return this;
     }
 
+    public WriterBuilder dropCachesBehind() {
+      this.dropCacheBehind(true);
+      return this;
+    }
+
     public FileSKVWriter build() throws IOException {
       return openWriter(toWriterBuilderOptions(compression, outputStream, enableAccumuloStart));
     }
