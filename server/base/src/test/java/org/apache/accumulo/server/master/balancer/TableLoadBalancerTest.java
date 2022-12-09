@@ -144,8 +144,6 @@ public class TableLoadBalancerTest {
   public void test() {
     final ServerContext context = createMockContext();
     TableConfiguration conf = createMock(TableConfiguration.class);
-    // Eclipse might show @SuppressWarnings("removal") as unnecessary.
-    // Eclipse is wrong. See https://bugs.eclipse.org/bugs/show_bug.cgi?id=565271
     expect(conf.get(Property.TABLE_CLASSLOADER_CONTEXT)).andReturn("").anyTimes();
     expect(context.getTableConfiguration(EasyMock.anyObject())).andReturn(conf).anyTimes();
     replay(context, conf);

@@ -208,7 +208,7 @@ public class BulkImport extends ManagerRepo {
 
     AccumuloConfiguration serverConfig = manager.getConfiguration();
     ExecutorService workers = ThreadPools.getServerThreadPools().createExecutorService(serverConfig,
-        serverConfig.resolve(Property.MANAGER_RENAME_THREADS), false);
+        Property.MANAGER_RENAME_THREADS, false);
     List<Future<Exception>> results = new ArrayList<>();
 
     for (FileStatus file : mapFiles) {

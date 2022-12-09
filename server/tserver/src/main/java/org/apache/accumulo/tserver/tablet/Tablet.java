@@ -1685,8 +1685,7 @@ public class Tablet extends TabletBase {
   public void checkIfMinorCompactionNeededForLogs(List<DfsLogger> closedLogs) {
 
     // grab this outside of tablet lock.
-    Property prop = tableConfiguration.resolve(Property.TSERV_WAL_MAX_REFERENCED);
-    int maxLogs = tableConfiguration.getCount(prop);
+    int maxLogs = tableConfiguration.getCount(Property.TSERV_WAL_MAX_REFERENCED);
 
     String reason = null;
     synchronized (this) {
