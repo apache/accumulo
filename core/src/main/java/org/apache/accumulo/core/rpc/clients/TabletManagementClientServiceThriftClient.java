@@ -22,8 +22,7 @@ import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService.Clie
 
 /**
  * Client side object that can be used to interact with services that support management operations
- * against tablets. See {@link TabletManagementClientService$Iface} for a list of supported
- * operations.
+ * against tablets. See TabletManagementClientService$Iface for a list of supported operations.
  */
 public class TabletManagementClientServiceThriftClient extends ThriftClientTypes<Client> {
 
