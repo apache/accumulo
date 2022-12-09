@@ -138,7 +138,7 @@ public class CompactableImpl implements Compactable {
   // This interface exists for two purposes. First it allows abstraction of new and old
   // implementations for user pluggable file selection code. Second it facilitates placing code
   // outside of this class.
-  public static interface CompactionHelper {
+  public interface CompactionHelper {
     Set<StoredTabletFile> selectFiles(SortedMap<StoredTabletFile,DataFileValue> allFiles);
 
     Set<StoredTabletFile> getFilesToDrop();
@@ -380,8 +380,7 @@ public class CompactableImpl implements Compactable {
     /**
      * @return The set of tablet files that are candidates for compaction
      */
-    Set<StoredTabletFile> getCandidates(Set<StoredTabletFile> currFiles, CompactionKind kind,
-        boolean isCompactionStratConfigured) {
+    Set<StoredTabletFile> getCandidates(Set<StoredTabletFile> currFiles, CompactionKind kind) {
 
       if (!currFiles.containsAll(allCompactingFiles)) {
         log.trace("Ignoring because compacting not a subset {}", getExtent());
@@ -393,10 +392,6 @@ public class CompactableImpl implements Compactable {
 
       switch (kind) {
         case SYSTEM: {
-          if (isCompactionStratConfigured) {
-            return Set.of();
-          }
-
           return handleSystemCompaction(currFiles);
         }
         case SELECTOR:
@@ -1088,11 +1083,6 @@ public class CompactableImpl implements Compactable {
     return tablet.getExtent();
   }
 
-  @SuppressWarnings("removal")
-  private boolean isCompactionStratConfigured() {
-    return tablet.getTableConfiguration().isPropertySet(Property.TABLE_COMPACTION_STRATEGY);
-  }
-
   @Override
   public Optional<Files> getFiles(CompactionServiceId service, CompactionKind kind) {
 
@@ -1119,8 +1109,8 @@ public class CompactableImpl implements Compactable {
 
       var runningJobsCopy = Set.copyOf(runningJobs);
 
-      Set<StoredTabletFile> candidates = fileMgr.getCandidates(
-          Collections.unmodifiableSet(files.keySet()), kind, isCompactionStratConfigured());
+      Set<StoredTabletFile> candidates =
+          fileMgr.getCandidates(Collections.unmodifiableSet(files.keySet()), kind);
 
       if (candidates.isEmpty()) {
         return Optional.empty();

@@ -48,7 +48,6 @@ import org.junit.jupiter.api.Test;
  * A functional test that exercises hitting the max open file limit on a tablet server. This test
  * assumes there are one or two tablet servers.
  */
-@SuppressWarnings("removal")
 public class MaxOpenIT extends AccumuloClusterHarness {
 
   @Override
@@ -60,12 +59,10 @@ public class MaxOpenIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> conf = cfg.getSiteConfig();
     conf.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "4");
-    conf.put(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
-    conf.put(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), "2");
     cfg.setSiteConfig(conf);
   }
 
-  private String scanMaxOpenFiles, majcConcurrent, majcThreadMaxOpen;
+  private String scanMaxOpenFiles;
 
   @BeforeEach
   public void alterConfig() throws Exception {
@@ -73,8 +70,6 @@ public class MaxOpenIT extends AccumuloClusterHarness {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> sysConfig = iops.getSystemConfiguration();
       scanMaxOpenFiles = sysConfig.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey());
-      majcConcurrent = sysConfig.get(Property.TSERV_MAJC_MAXCONCURRENT.getKey());
-      majcThreadMaxOpen = sysConfig.get(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey());
     }
   }
 
@@ -84,12 +79,6 @@ public class MaxOpenIT extends AccumuloClusterHarness {
       InstanceOperations iops = client.instanceOperations();
       if (scanMaxOpenFiles != null) {
         iops.setProperty(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), scanMaxOpenFiles);
-      }
-      if (majcConcurrent != null) {
-        iops.setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), majcConcurrent);
-      }
-      if (majcThreadMaxOpen != null) {
-        iops.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), majcThreadMaxOpen);
       }
     }
   }

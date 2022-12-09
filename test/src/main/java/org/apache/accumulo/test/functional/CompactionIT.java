@@ -86,7 +86,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
-@SuppressWarnings("removal")
 public class CompactionIT extends AccumuloClusterHarness {
 
   public static class TestFilter extends Filter {
@@ -163,9 +162,7 @@ public class CompactionIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
-    cfg.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN, "4");
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
-    cfg.setProperty(Property.TSERV_MAJC_MAXCONCURRENT, "1");
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
