@@ -106,7 +106,7 @@ public class SecurityOperation {
   protected SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
       PermissionHandler pm) {
     this.context = context;
-    zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
+    zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZUSERS;
     zooCache = new ZooCache(context.getZooReader(), null);
     rootUserName = Suppliers.memoize(() -> new String(zooCache.get(zkUserPath), UTF_8));
     authorizor = author;
