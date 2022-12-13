@@ -45,6 +45,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileOperations.WriterBuilder;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
@@ -219,6 +220,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
       boolean dropCacheBehindMajcOutput = !RootTable.ID.equals(this.extent.tableId())
           && !MetadataTable.ID.equals(this.extent.tableId())
+          && !(env.getIteratorScope() == IteratorUtil.IteratorScope.minc)
           && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE);
 
       WriterBuilder outBuilder = fileFactory.newWriterBuilder()
@@ -387,8 +389,6 @@ public class FileCompactor implements Callable<CompactionStats> {
       SortedKeyValueIterator<Key,Value> delIter =
           DeletingIterator.wrap(citr, propagateDeletes, DeletingIterator.getBehavior(acuTableConf));
       ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
-
-      // if(env.getIteratorScope() )
 
       SystemIteratorEnvironment iterEnv =
           env.createIteratorEnv(context, acuTableConf, getExtent().tableId());
