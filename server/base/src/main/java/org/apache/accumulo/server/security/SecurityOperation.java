@@ -77,7 +77,7 @@ public class SecurityOperation {
   private final boolean isKerberos;
   private final Supplier<String> rootUserName;
   private final ZooCache zooCache;
-  private final String ZKUserPath;
+  private final String zkUserPath;
 
   protected final ServerContext context;
 
@@ -106,9 +106,9 @@ public class SecurityOperation {
   protected SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
       PermissionHandler pm) {
     this.context = context;
-    ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZUSERS;
+    zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZUSERS;
     zooCache = new ZooCache(context.getZooReader(), null);
-    rootUserName = Suppliers.memoize(() -> new String(zooCache.get(ZKUserPath), UTF_8));
+    rootUserName = Suppliers.memoize(() -> new String(zooCache.get(zkUserPath), UTF_8));
     authorizor = author;
     authenticator = authent;
     permHandle = pm;

@@ -46,14 +46,14 @@ public final class ZKAuthenticator implements Authenticator {
   private static final Logger log = LoggerFactory.getLogger(ZKAuthenticator.class);
 
   private ServerContext context;
-  private String ZKUserPath;
+  private String zkUserPath;
   private ZooCache zooCache;
 
   @Override
   public void initialize(ServerContext context) {
     this.context = context;
     zooCache = new ZooCache(context.getZooReader(), null);
-    ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZUSERS;
+    zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZUSERS;
   }
 
   /**
@@ -63,7 +63,7 @@ public final class ZKAuthenticator implements Authenticator {
     List<String> outdatedUsers = new LinkedList<>();
     try {
       listUsers().forEach(user -> {
-        String zpath = ZKUserPath + "/" + user;
+        String zpath = zkUserPath + "/" + user;
         byte[] zkData = zooCache.get(zpath);
         if (ZKSecurityTool.isOutdatedPass(zkData)) {
           outdatedUsers.add(user);
@@ -90,13 +90,13 @@ public final class ZKAuthenticator implements Authenticator {
       ZooReaderWriter zoo = context.getZooReaderWriter();
       synchronized (zooCache) {
         zooCache.clear();
-        if (zoo.exists(ZKUserPath)) {
-          zoo.recursiveDelete(ZKUserPath, NodeMissingPolicy.SKIP);
-          log.info("Removed {}/ from zookeeper", ZKUserPath);
+        if (zoo.exists(zkUserPath)) {
+          zoo.recursiveDelete(zkUserPath, NodeMissingPolicy.SKIP);
+          log.info("Removed {}/ from zookeeper", zkUserPath);
         }
 
         // prep parent node of users with root username
-        zoo.putPersistentData(ZKUserPath, principal.getBytes(UTF_8), NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(zkUserPath, principal.getBytes(UTF_8), NodeExistsPolicy.FAIL);
 
         constructUser(principal, ZKSecurityTool.createPass(token));
       }
@@ -115,13 +115,13 @@ public final class ZKAuthenticator implements Authenticator {
     synchronized (zooCache) {
       zooCache.clear();
       ZooReaderWriter zoo = context.getZooReaderWriter();
-      zoo.putPrivatePersistentData(ZKUserPath + "/" + user, pass, NodeExistsPolicy.FAIL);
+      zoo.putPrivatePersistentData(zkUserPath + "/" + user, pass, NodeExistsPolicy.FAIL);
     }
   }
 
   @Override
   public Set<String> listUsers() {
-    return new TreeSet<>(zooCache.getChildren(ZKUserPath));
+    return new TreeSet<>(zooCache.getChildren(zkUserPath));
   }
 
   @Override
@@ -152,7 +152,7 @@ public final class ZKAuthenticator implements Authenticator {
     try {
       synchronized (zooCache) {
         zooCache.clear();
-        context.getZooReaderWriter().recursiveDelete(ZKUserPath + "/" + user,
+        context.getZooReaderWriter().recursiveDelete(zkUserPath + "/" + user,
             NodeMissingPolicy.FAIL);
       }
     } catch (InterruptedException e) {
@@ -177,8 +177,8 @@ public final class ZKAuthenticator implements Authenticator {
     if (userExists(principal)) {
       try {
         synchronized (zooCache) {
-          zooCache.clear(ZKUserPath + "/" + principal);
-          context.getZooReaderWriter().putPrivatePersistentData(ZKUserPath + "/" + principal,
+          zooCache.clear(zkUserPath + "/" + principal);
+          context.getZooReaderWriter().putPrivatePersistentData(zkUserPath + "/" + principal,
               ZKSecurityTool.createPass(pt.getPassword()), NodeExistsPolicy.OVERWRITE);
         }
       } catch (KeeperException e) {
@@ -199,7 +199,7 @@ public final class ZKAuthenticator implements Authenticator {
 
   @Override
   public boolean userExists(String user) {
-    return zooCache.get(ZKUserPath + "/" + user) != null;
+    return zooCache.get(zkUserPath + "/" + user) != null;
   }
 
   @Override
@@ -215,7 +215,7 @@ public final class ZKAuthenticator implements Authenticator {
     }
     PasswordToken pt = (PasswordToken) token;
     byte[] zkData;
-    String zpath = ZKUserPath + "/" + principal;
+    String zpath = zkUserPath + "/" + principal;
     zkData = zooCache.get(zpath);
     boolean result = authenticateUser(principal, pt, zkData);
     if (!result) {
