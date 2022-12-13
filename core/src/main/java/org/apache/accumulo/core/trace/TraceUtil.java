@@ -131,8 +131,8 @@ public class TraceUtil {
   }
 
   /**
-   * Obtain {@link org.apache.accumulo.core.trace.thrift.TInfo} for the current context. This is
-   * used to send the current trace information to a remote process
+   * Obtain {@link org.apache.accumulo.core.clientImpl.thrift.TInfo} for the current context. This
+   * is used to send the current trace information to a remote process
    */
   public static TInfo traceInfo() {
     TInfo tinfo = new TInfo();
