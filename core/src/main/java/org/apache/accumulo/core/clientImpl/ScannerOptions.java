@@ -67,6 +67,8 @@ public class ScannerOptions implements ScannerBase {
 
   private ConsistencyLevel consistencyLevel = ConsistencyLevel.IMMEDIATE;
 
+  private String userData = null;
+
   protected ScannerOptions() {}
 
   public ScannerOptions(ScannerOptions so) {
@@ -186,6 +188,7 @@ public class ScannerOptions implements ScannerBase {
         dst.executionHints = src.executionHints;
 
         dst.consistencyLevel = src.consistencyLevel;
+        dst.userData = src.userData;
       }
     }
   }
@@ -285,6 +288,16 @@ public class ScannerOptions implements ScannerBase {
   @Override
   public void setConsistencyLevel(ConsistencyLevel level) {
     this.consistencyLevel = Objects.requireNonNull(level);
+  }
+
+  @Override
+  public String getUserData() {
+    return userData;
+  }
+
+  @Override
+  public void setUserData(String userData) {
+    this.userData = Objects.requireNonNull(userData);
   }
 
 }

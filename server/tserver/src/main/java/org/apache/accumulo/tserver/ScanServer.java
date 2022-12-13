@@ -823,7 +823,7 @@ public class ScanServer extends AbstractServer
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig,
       long batchTimeOut, String classLoaderContext, Map<String,String> executionHints,
-      long busyTimeout) throws ThriftSecurityException, NotServingTabletException,
+      long busyTimeout, String userData) throws ThriftSecurityException, NotServingTabletException,
       TooManyFilesException, TSampleNotPresentException, TException {
 
     KeyExtent extent = getKeyExtent(textent);
@@ -835,12 +835,14 @@ public class ScanServer extends AbstractServer
       InitialScan is = delegate.startScan(tinfo, credentials, extent, range, columns, batchSize,
           ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig,
           batchTimeOut, classLoaderContext, executionHints, getScanTabletResolver(tablet),
-          busyTimeout);
+          busyTimeout, userData);
+
+      LOG.debug("({}) started scan, id: {}", userData, is.getScanID());
 
       return is;
 
     } catch (AccumuloException | IOException e) {
-      LOG.error("Error starting scan", e);
+      LOG.error("({}) Error starting scan", userData, e);
       throw new RuntimeException(e);
     }
   }
@@ -849,8 +851,6 @@ public class ScanServer extends AbstractServer
   public ScanResult continueScan(TInfo tinfo, long scanID, long busyTimeout)
       throws NoSuchScanIDException, NotServingTabletException, TooManyFilesException,
       TSampleNotPresentException, TException {
-    LOG.debug("continue scan: {}", scanID);
-
     try (ScanReservation reservation = reserveFiles(scanID)) {
       return delegate.continueScan(tinfo, scanID, busyTimeout);
     }
@@ -858,7 +858,6 @@ public class ScanServer extends AbstractServer
 
   @Override
   public void closeScan(TInfo tinfo, long scanID) throws TException {
-    LOG.debug("close scan: {}", scanID);
     delegate.closeScan(tinfo, scanID);
   }
 
@@ -867,7 +866,7 @@ public class ScanServer extends AbstractServer
       Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       TSamplerConfiguration tSamplerConfig, long batchTimeOut, String contextArg,
-      Map<String,String> executionHints, long busyTimeout)
+      Map<String,String> executionHints, long busyTimeout, String userData)
       throws ThriftSecurityException, TSampleNotPresentException, TException {
 
     if (tbatch.size() == 0) {
@@ -894,15 +893,15 @@ public class ScanServer extends AbstractServer
 
       InitialMultiScan ims = delegate.startMultiScan(tinfo, credentials, tcolumns, ssiList, batch,
           ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
-          executionHints, getBatchScanTabletResolver(tablets), busyTimeout);
+          executionHints, getBatchScanTabletResolver(tablets), busyTimeout, userData);
 
-      LOG.debug("started scan: {}", ims.getScanID());
+      LOG.debug("({}) started scan, id: {}", userData, ims.getScanID());
       return ims;
     } catch (TException e) {
-      LOG.error("Error starting scan", e);
+      LOG.error("({}) Error starting scan", userData, e);
       throw e;
     } catch (AccumuloException e) {
-      LOG.error("Error starting scan", e);
+      LOG.error("({}) Error starting scan", userData, e);
       throw new RuntimeException(e);
     }
   }
@@ -910,8 +909,6 @@ public class ScanServer extends AbstractServer
   @Override
   public MultiScanResult continueMultiScan(TInfo tinfo, long scanID, long busyTimeout)
       throws NoSuchScanIDException, TSampleNotPresentException, TException {
-    LOG.debug("continue multi scan: {}", scanID);
-
     try (ScanReservation reservation = reserveFiles(scanID)) {
       return delegate.continueMultiScan(tinfo, scanID, busyTimeout);
     }
@@ -919,7 +916,6 @@ public class ScanServer extends AbstractServer
 
   @Override
   public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {
-    LOG.debug("close multi scan: {}", scanID);
     delegate.closeMultiScan(tinfo, scanID);
   }
 

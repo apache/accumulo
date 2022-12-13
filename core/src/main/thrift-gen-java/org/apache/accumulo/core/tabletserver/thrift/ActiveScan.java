@@ -42,6 +42,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
   private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.LIST, (short)13);
   private static final org.apache.thrift.protocol.TField SCAN_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("scanId", org.apache.thrift.protocol.TType.I64, (short)14);
   private static final org.apache.thrift.protocol.TField CLASS_LOADER_CONTEXT_FIELD_DESC = new org.apache.thrift.protocol.TField("classLoaderContext", org.apache.thrift.protocol.TType.STRING, (short)15);
+  private static final org.apache.thrift.protocol.TField USER_DATA_FIELD_DESC = new org.apache.thrift.protocol.TField("userData", org.apache.thrift.protocol.TType.STRING, (short)16);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ActiveScanStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ActiveScanTupleSchemeFactory();
@@ -68,6 +69,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
   public @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> authorizations; // required
   public long scanId; // optional
   public @org.apache.thrift.annotation.Nullable java.lang.String classLoaderContext; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String userData; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -92,7 +94,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     SSIO((short)12, "ssio"),
     AUTHORIZATIONS((short)13, "authorizations"),
     SCAN_ID((short)14, "scanId"),
-    CLASS_LOADER_CONTEXT((short)15, "classLoaderContext");
+    CLASS_LOADER_CONTEXT((short)15, "classLoaderContext"),
+    USER_DATA((short)16, "userData");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -136,6 +139,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
           return SCAN_ID;
         case 15: // CLASS_LOADER_CONTEXT
           return CLASS_LOADER_CONTEXT;
+        case 16: // USER_DATA
+          return USER_DATA;
         default:
           return null;
       }
@@ -222,6 +227,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.CLASS_LOADER_CONTEXT, new org.apache.thrift.meta_data.FieldMetaData("classLoaderContext", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.USER_DATA, new org.apache.thrift.meta_data.FieldMetaData("userData", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ActiveScan.class, metaDataMap);
   }
@@ -242,7 +249,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList,
     java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio,
     java.util.List<java.nio.ByteBuffer> authorizations,
-    java.lang.String classLoaderContext)
+    java.lang.String classLoaderContext,
+    java.lang.String userData)
   {
     this();
     this.client = client;
@@ -260,6 +268,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     this.ssio = ssio;
     this.authorizations = authorizations;
     this.classLoaderContext = classLoaderContext;
+    this.userData = userData;
   }
 
   /**
@@ -324,6 +333,9 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     if (other.isSetClassLoaderContext()) {
       this.classLoaderContext = other.classLoaderContext;
     }
+    if (other.isSetUserData()) {
+      this.userData = other.userData;
+    }
   }
 
   @Override
@@ -350,6 +362,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     setScanIdIsSet(false);
     this.scanId = 0;
     this.classLoaderContext = null;
+    this.userData = null;
   }
 
   @org.apache.thrift.annotation.Nullable
@@ -771,6 +784,31 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     }
   }
 
+  @org.apache.thrift.annotation.Nullable
+  public java.lang.String getUserData() {
+    return this.userData;
+  }
+
+  public ActiveScan setUserData(@org.apache.thrift.annotation.Nullable java.lang.String userData) {
+    this.userData = userData;
+    return this;
+  }
+
+  public void unsetUserData() {
+    this.userData = null;
+  }
+
+  /** Returns true if field userData is set (has been assigned a value) and false otherwise */
+  public boolean isSetUserData() {
+    return this.userData != null;
+  }
+
+  public void setUserDataIsSet(boolean value) {
+    if (!value) {
+      this.userData = null;
+    }
+  }
+
   @Override
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
@@ -886,6 +924,14 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       }
       break;
 
+    case USER_DATA:
+      if (value == null) {
+        unsetUserData();
+      } else {
+        setUserData((java.lang.String)value);
+      }
+      break;
+
     }
   }
 
@@ -935,6 +981,9 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     case CLASS_LOADER_CONTEXT:
       return getClassLoaderContext();
 
+    case USER_DATA:
+      return getUserData();
+
     }
     throw new java.lang.IllegalStateException();
   }
@@ -975,6 +1024,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       return isSetScanId();
     case CLASS_LOADER_CONTEXT:
       return isSetClassLoaderContext();
+    case USER_DATA:
+      return isSetUserData();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -1118,6 +1169,15 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         return false;
     }
 
+    boolean this_present_userData = true && this.isSetUserData();
+    boolean that_present_userData = true && that.isSetUserData();
+    if (this_present_userData || that_present_userData) {
+      if (!(this_present_userData && that_present_userData))
+        return false;
+      if (!this.userData.equals(that.userData))
+        return false;
+    }
+
     return true;
   }
 
@@ -1176,6 +1236,10 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     hashCode = hashCode * 8191 + ((isSetClassLoaderContext()) ? 131071 : 524287);
     if (isSetClassLoaderContext())
       hashCode = hashCode * 8191 + classLoaderContext.hashCode();
+
+    hashCode = hashCode * 8191 + ((isSetUserData()) ? 131071 : 524287);
+    if (isSetUserData())
+      hashCode = hashCode * 8191 + userData.hashCode();
 
     return hashCode;
   }
@@ -1328,6 +1392,16 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         return lastComparison;
       }
     }
+    lastComparison = java.lang.Boolean.compare(isSetUserData(), other.isSetUserData());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetUserData()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.userData, other.userData);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -1451,6 +1525,14 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       sb.append("null");
     } else {
       sb.append(this.classLoaderContext);
+    }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("userData:");
+    if (this.userData == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.userData);
     }
     first = false;
     sb.append(")");
@@ -1672,6 +1754,14 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 16: // USER_DATA
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.userData = iprot.readString();
+              struct.setUserDataIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -1791,6 +1881,11 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         oprot.writeString(struct.classLoaderContext);
         oprot.writeFieldEnd();
       }
+      if (struct.userData != null) {
+        oprot.writeFieldBegin(USER_DATA_FIELD_DESC);
+        oprot.writeString(struct.userData);
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -1852,7 +1947,10 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       if (struct.isSetClassLoaderContext()) {
         optionals.set(13);
       }
-      oprot.writeBitSet(optionals, 14);
+      if (struct.isSetUserData()) {
+        optionals.set(14);
+      }
+      oprot.writeBitSet(optionals, 15);
       if (struct.isSetClient()) {
         oprot.writeString(struct.client);
       }
@@ -1927,12 +2025,15 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       if (struct.isSetClassLoaderContext()) {
         oprot.writeString(struct.classLoaderContext);
       }
+      if (struct.isSetUserData()) {
+        oprot.writeString(struct.userData);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, ActiveScan struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(14);
+      java.util.BitSet incoming = iprot.readBitSet(15);
       if (incoming.get(0)) {
         struct.client = iprot.readString();
         struct.setClientIsSet(true);
@@ -2040,6 +2141,10 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       if (incoming.get(13)) {
         struct.classLoaderContext = iprot.readString();
         struct.setClassLoaderContextIsSet(true);
+      }
+      if (incoming.get(14)) {
+        struct.userData = iprot.readString();
+        struct.setUserDataIsSet(true);
       }
     }
   }

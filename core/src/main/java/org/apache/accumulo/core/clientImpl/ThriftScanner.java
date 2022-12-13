@@ -118,7 +118,7 @@ public class ThriftScanner {
         ScanState scanState = new ScanState(context, extent.tableId(), authorizations, range,
             fetchedColumns, size, serverSideIteratorList, serverSideIteratorOptions, false,
             Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, null, batchTimeOut, classLoaderContext,
-            null, false);
+            null, false, null);
 
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
@@ -128,7 +128,7 @@ public class ThriftScanner {
             scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
             scanState.readaheadThreshold, null, scanState.batchTimeOut, classLoaderContext,
-            scanState.executionHints, 0L);
+            scanState.executionHints, 0L, scanState.userData);
         if (waitForWrites) {
           serversWaitedForWrites.get(ttype).add(server);
         }
@@ -195,6 +195,8 @@ public class ThriftScanner {
 
     Duration busyTimeout;
 
+    String userData;
+
     TabletLocation getErrorLocation() {
       return prevLoc;
     }
@@ -204,7 +206,8 @@ public class ThriftScanner {
         List<IterInfo> serverSideIteratorList,
         Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated,
         long readaheadThreshold, SamplerConfiguration samplerConfig, long batchTimeOut,
-        String classLoaderContext, Map<String,String> executionHints, boolean useScanServer) {
+        String classLoaderContext, Map<String,String> executionHints, boolean useScanServer,
+        String userData) {
       this.context = context;
       this.authorizations = authorizations;
       this.classLoaderContext = classLoaderContext;
@@ -248,6 +251,8 @@ public class ThriftScanner {
       if (useScanServer) {
         scanAttempts = new ScanServerAttemptsImpl();
       }
+
+      this.userData = userData;
     }
   }
 
@@ -637,7 +642,8 @@ public class ThriftScanner {
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
             scanState.readaheadThreshold,
             SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
-            scanState.classLoaderContext, scanState.executionHints, busyTimeout);
+            scanState.classLoaderContext, scanState.executionHints, busyTimeout,
+            scanState.userData);
         if (waitForWrites) {
           serversWaitedForWrites.get(ttype).add(loc.tablet_location);
         }

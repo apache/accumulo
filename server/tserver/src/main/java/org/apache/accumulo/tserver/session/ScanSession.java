@@ -82,7 +82,7 @@ public abstract class ScanSession extends Session implements ScanInfo {
   private final TabletResolver tabletResolver;
 
   ScanSession(TCredentials credentials, ScanParameters scanParams,
-      Map<String,String> executionHints, TabletResolver tabletResolver) {
+      Map<String,String> executionHints, TabletResolver tabletResolver, String userData) {
     super(credentials);
     this.scanParams = scanParams;
     if (executionHints == null) {
@@ -91,6 +91,9 @@ public abstract class ScanSession extends Session implements ScanInfo {
       this.executionHints = Collections.unmodifiableMap(executionHints);
     }
     this.tabletResolver = tabletResolver;
+    if (userData != null) {
+      this.setUserData(userData);
+    }
   }
 
   @Override

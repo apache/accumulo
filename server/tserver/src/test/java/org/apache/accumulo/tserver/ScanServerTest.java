@@ -133,7 +133,7 @@ public class ScanServerTest {
     reservation.close();
     reservation.close();
     expect(handler.startScan(tinfo, tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false,
-        false, 10, tsc, 30L, classLoaderContext, execHints, resolver, 0L))
+        false, 10, tsc, 30L, classLoaderContext, execHints, resolver, 0L, null))
         .andReturn(new InitialScan(15, null));
     expect(handler.continueScan(tinfo, 15, 0L)).andReturn(new ScanResult());
     handler.closeScan(tinfo, 15);
@@ -148,7 +148,7 @@ public class ScanServerTest {
 
     TKeyExtent textent = createMock(TKeyExtent.class);
     InitialScan is = ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths,
-        false, false, 10, tsc, 30L, classLoaderContext, execHints, 0L);
+        false, false, 10, tsc, 30L, classLoaderContext, execHints, 0L, null);
     assertEquals(15, is.getScanID());
     ss.continueScan(tinfo, is.getScanID(), 0L);
     ss.closeScan(tinfo, is.getScanID());
@@ -172,7 +172,7 @@ public class ScanServerTest {
     Map<String,String> execHints = new HashMap<>();
 
     expect(handler.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false,
-        false, 10, tsc, 30L, classLoaderContext, execHints, 0L))
+        false, 10, tsc, 30L, classLoaderContext, execHints, 0L, null))
         .andReturn(new InitialScan(15, null));
     expect(handler.continueScan(tinfo, 15, 0L)).andReturn(new ScanResult());
     handler.closeScan(tinfo, 15);
@@ -185,7 +185,7 @@ public class ScanServerTest {
 
     assertThrows(NotServingTabletException.class, () -> {
       ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
-          tsc, 30L, classLoaderContext, execHints, 0L);
+          tsc, 30L, classLoaderContext, execHints, 0L, null);
     });
   }
 
@@ -224,7 +224,8 @@ public class ScanServerTest {
     reservation.close();
     reservation.close();
     expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, batch, ssio, auths, false, tsc, 30L,
-        classLoaderContext, execHints, resolver, 0L)).andReturn(new InitialMultiScan(15, null));
+        classLoaderContext, execHints, resolver, 0L, null))
+        .andReturn(new InitialMultiScan(15, null));
     expect(handler.continueMultiScan(tinfo, 15, 0L)).andReturn(new MultiScanResult());
     handler.closeMultiScan(tinfo, 15);
 
@@ -239,7 +240,7 @@ public class ScanServerTest {
     Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
     extents.put(createMock(TKeyExtent.class), ranges);
     InitialMultiScan is = ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths,
-        false, tsc, 30L, classLoaderContext, execHints, 0L);
+        false, tsc, 30L, classLoaderContext, execHints, 0L, null);
     assertEquals(15, is.getScanID());
     ss.continueMultiScan(tinfo, is.getScanID(), 0L);
     assertEquals(15, is.getScanID());
@@ -281,7 +282,7 @@ public class ScanServerTest {
 
     assertThrows(TException.class, () -> {
       ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths, false, tsc, 30L,
-          classLoaderContext, execHints, 0L);
+          classLoaderContext, execHints, 0L, null);
     });
     verify(handler);
   }

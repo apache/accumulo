@@ -370,7 +370,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * @return consistency level
    * @since 2.1.0
    */
-  public ConsistencyLevel getConsistencyLevel();
+  ConsistencyLevel getConsistencyLevel();
 
   /**
    * Set the desired consistency level for this scanner.
@@ -378,7 +378,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * @param level consistency level
    * @since 2.1.0
    */
-  public void setConsistencyLevel(ConsistencyLevel level);
+  void setConsistencyLevel(ConsistencyLevel level);
 
   /**
    * Stream the Scanner results sequentially from this scanner's iterator
@@ -389,5 +389,22 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
   default Stream<Entry<Key,Value>> stream() {
     return StreamSupport.stream(this.spliterator(), false);
   }
+
+  /**
+   * Set user data on the Scanner. This data will be added to server side information and logs for
+   * correlation.
+   *
+   * @param userData meaningful data that can be used to correlate server side information
+   * @since 3.0.0
+   */
+  void setUserData(String userData);
+
+  /**
+   * Set user data set on the Scanner.
+   *
+   * @return meaningful data that can be used to correlate server side information
+   * @since 3.0.0
+   */
+  String getUserData();
 
 }

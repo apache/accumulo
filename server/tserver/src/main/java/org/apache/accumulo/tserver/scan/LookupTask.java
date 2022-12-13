@@ -136,7 +136,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           interruptFlag.set(false);
 
         } catch (IOException e) {
-          log.warn("lookup failed for tablet " + extent, e);
+          log.warn("({}) lookup failed for tablet {}", session.getUserData(), extent, e);
           throw new RuntimeException(e);
         }
 
@@ -174,13 +174,14 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       addResult(multiScanResult);
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
-        log.warn("Iteration interrupted, when scan not cancelled", iie);
+        log.warn("({}) Iteration interrupted, when scan not cancelled", session.getUserData(), iie);
         addResult(iie);
       }
     } catch (SampleNotPresentException e) {
+      log.warn("({}) sample not present while doing multi-scan ", session.getUserData(), e);
       addResult(e);
     } catch (Exception e) {
-      log.warn("exception while doing multi-scan ", e);
+      log.warn("({}) exception while doing multi-scan ", session.getUserData(), e);
       addResult(e);
     } finally {
       Thread.currentThread().setName(oldThreadName);

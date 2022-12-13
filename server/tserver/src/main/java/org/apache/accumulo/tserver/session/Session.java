@@ -32,6 +32,7 @@ public class Session {
   public long startTime;
   State state = State.NEW;
   private final TCredentials credentials;
+  private String userData = "no userData";
 
   Session(TCredentials credentials) {
     this.credentials = credentials;
@@ -49,4 +50,13 @@ public class Session {
   public boolean cleanup() {
     return true;
   }
+
+  public String getUserData() {
+    return userData;
+  }
+
+  public void setUserData(String userData) {
+    this.userData = userData;
+  }
+
 }

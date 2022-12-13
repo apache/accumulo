@@ -45,8 +45,8 @@ public class MultiScanSession extends ScanSession {
 
   public MultiScanSession(TCredentials credentials, KeyExtent threadPoolExtent,
       Map<KeyExtent,List<Range>> queries, ScanParameters scanParams,
-      Map<String,String> executionHints, TabletResolver tabletResolver) {
-    super(credentials, scanParams, executionHints, tabletResolver);
+      Map<String,String> executionHints, TabletResolver tabletResolver, String userData) {
+    super(credentials, scanParams, executionHints, tabletResolver, userData);
     this.queries = queries;
     this.threadPoolExtent = threadPoolExtent;
     this.exents = Set.copyOf(queries.keySet());

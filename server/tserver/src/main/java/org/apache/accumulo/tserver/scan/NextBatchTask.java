@@ -70,6 +70,8 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
       TabletBase tablet = scanSession.getTabletResolver().getTablet(scanSession.extent);
 
       if (tablet == null) {
+        log.warn("({}) not serving tablet {}", scanSession.getUserData(),
+            scanSession.extent.toThrift());
         addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(
             scanSession.extent.toThrift()));
         return;
@@ -84,18 +86,23 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
       // problem somewhere
       addResult(batch);
     } catch (TabletClosedException e) {
+      log.warn("({}) not serving tablet {}", scanSession.getUserData(),
+          scanSession.extent.toThrift());
       addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(
           scanSession.extent.toThrift()));
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
-        log.warn("Iteration interrupted, when scan not cancelled", iie);
+        log.warn("({}) Iteration interrupted, when scan not cancelled", scanSession.getUserData(),
+            iie);
         addResult(iie);
       }
     } catch (TooManyFilesException | SampleNotPresentException e) {
+      log.warn("({}) exception while scanning tablet {}", scanSession.getUserData(),
+          scanSession.extent.toThrift());
       addResult(e);
     } catch (IOException | RuntimeException e) {
-      log.warn("exception while scanning tablet {} for {}", scanSession.extent, scanSession.client,
-          e);
+      log.warn("({}) exception while scanning tablet {} for {}", scanSession.getUserData(),
+          scanSession.extent, scanSession.client, e);
       addResult(e);
     } finally {
       runState.set(ScanRunState.FINISHED);

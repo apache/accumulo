@@ -99,6 +99,7 @@ struct ActiveScan {
   14:optional i64 scanId
   // name of the classloader context
   15:string classLoaderContext
+  16:string userData
 }
 
 enum TCompactionType {
@@ -220,6 +221,7 @@ service TabletScanClientService {
     15:string classLoaderContext
     16:map<string, string> executionHints
     17:i64 busyTimeout
+    18:string userData
   ) throws (
     1:client.ThriftSecurityException sec
     2:NotServingTabletException nste
@@ -261,6 +263,7 @@ service TabletScanClientService {
     11:string classLoaderContext
     12:map<string, string> executionHints
     13:i64 busyTimeout
+    14:string userData
   ) throws (
     1:client.ThriftSecurityException sec
     2:TSampleNotPresentException tsnpe

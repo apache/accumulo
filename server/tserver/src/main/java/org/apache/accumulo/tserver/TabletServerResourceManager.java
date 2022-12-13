@@ -807,12 +807,13 @@ public class TabletServerResourceManager {
       ThreadPoolExecutor executor = scanExecutors.get(prefs.getExecutorName());
       if (executor == null) {
         log.warn(
-            "For table id {}, {} dispatched to non-existent executor {} Using default executor.",
-            tablet.tableId(), dispatcher.getClass().getName(), prefs.getExecutorName());
+            "({}) For table id {}, {} dispatched to non-existent executor {} Using default executor.",
+            scanInfo.getUserData(), tablet.tableId(), dispatcher.getClass().getName(),
+            prefs.getExecutorName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
       } else if ("meta".equals(prefs.getExecutorName())) {
-        log.warn("For table id {}, {} dispatched to meta executor. Using default executor.",
-            tablet.tableId(), dispatcher.getClass().getName());
+        log.warn("({}) For table id {}, {} dispatched to meta executor. Using default executor.",
+            scanInfo.getUserData(), tablet.tableId(), dispatcher.getClass().getName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
       }
       executor.execute(task);
