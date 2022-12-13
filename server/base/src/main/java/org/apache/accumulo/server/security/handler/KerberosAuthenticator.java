@@ -54,7 +54,7 @@ public class KerberosAuthenticator implements Authenticator {
   private final ZKAuthenticator zkAuthenticator = new ZKAuthenticator();
   private ZooCache zooCache;
   private ServerContext context;
-  private String zkUserPath;
+  private String ZKUserPath;
   private UserImpersonation impersonation;
 
   @Override
@@ -63,7 +63,7 @@ public class KerberosAuthenticator implements Authenticator {
     zooCache = new ZooCache(context.getZooReader(), null);
     impersonation = new UserImpersonation(context.getConfiguration());
     zkAuthenticator.initialize(context);
-    zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZUSERS;
+    ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZUSERS;
   }
 
   @Override
@@ -75,7 +75,7 @@ public class KerberosAuthenticator implements Authenticator {
     synchronized (zooCache) {
       zooCache.clear();
       ZooReaderWriter zoo = context.getZooReaderWriter();
-      zoo.putPrivatePersistentData(zkUserPath + "/" + principal, new byte[0],
+      zoo.putPrivatePersistentData(ZKUserPath + "/" + principal, new byte[0],
           NodeExistsPolicy.FAIL);
     }
   }
@@ -87,15 +87,15 @@ public class KerberosAuthenticator implements Authenticator {
       ZooReaderWriter zoo = context.getZooReaderWriter();
       synchronized (zooCache) {
         zooCache.clear();
-        if (zoo.exists(zkUserPath)) {
-          zoo.recursiveDelete(zkUserPath, NodeMissingPolicy.SKIP);
-          log.info("Removed {}/ from zookeeper", zkUserPath);
+        if (zoo.exists(ZKUserPath)) {
+          zoo.recursiveDelete(ZKUserPath, NodeMissingPolicy.SKIP);
+          log.info("Removed {}/ from zookeeper", ZKUserPath);
         }
 
         // prep parent node of users with root username
         // ACCUMULO-4140 The root user needs to be stored un-base64 encoded in the znode's value
         byte[] principalData = principal.getBytes(UTF_8);
-        zoo.putPersistentData(zkUserPath, principalData, NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(ZKUserPath, principalData, NodeExistsPolicy.FAIL);
 
         // Create the root user in ZK using base64 encoded name (since the name is included in the
         // znode)
