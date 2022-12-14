@@ -56,6 +56,8 @@ public class StatusResource {
     Status managerStatus;
     Status gcStatus;
     Status tServerStatus = Status.ERROR;
+    Status coordinatorStatus = monitor.getCoordinatorHost().isPresent() ? Status.OK : Status.ERROR;
+
     ManagerMonitorInfo mmi = monitor.getMmi();
 
     if (mmi != null) {
@@ -95,7 +97,7 @@ public class StatusResource {
     }
 
     return new StatusInformation(managerStatus.toString(), gcStatus.toString(),
-        tServerStatus.toString(), monitor.recentLogs().numEvents(),
+        tServerStatus.toString(), coordinatorStatus.toString(), monitor.recentLogs().numEvents(),
         monitor.recentLogs().eventsIncludeErrors(), monitor.getProblemSummary().entrySet().size());
   }
 }

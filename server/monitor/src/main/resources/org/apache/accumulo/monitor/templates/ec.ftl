@@ -23,8 +23,7 @@
           <h3>${title}</h3>
         </div>
       </div>
-    <#if coordinatorRunning == true>
-      <div id="ecDiv">
+      <div id="ecDiv" style="display: none;">
         <div class="row">
           <div class="col-xs-12">
             <table id="coordinatorTable" class="table caption-top table-bordered table-striped table-condensed">
@@ -83,9 +82,6 @@
           </div>
         </div>
       </div>
-   <#else>
-    <div id="ccBanner">
+    <div id="ccBanner" style="display: none;">
       <div class="alert alert-danger" role="alert">Compaction Coordinator Not Running</div>
     </div>
-   </#if>
-
