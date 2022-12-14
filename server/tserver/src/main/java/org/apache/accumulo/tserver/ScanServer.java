@@ -66,6 +66,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
+import org.apache.accumulo.core.logging.ScanUserDataLogger;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -837,12 +838,12 @@ public class ScanServer extends AbstractServer
           batchTimeOut, classLoaderContext, executionHints, getScanTabletResolver(tablet),
           busyTimeout, userData);
 
-      LOG.debug("({}) started scan, id: {}", userData, is.getScanID());
+      ScanUserDataLogger.logDebug(LOG, userData, "started scan, id: {}", is.getScanID());
 
       return is;
 
     } catch (AccumuloException | IOException e) {
-      LOG.error("({}) Error starting scan", userData, e);
+      ScanUserDataLogger.logError(LOG, userData, "Error starting scan", e);
       throw new RuntimeException(e);
     }
   }
@@ -895,13 +896,13 @@ public class ScanServer extends AbstractServer
           ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
           executionHints, getBatchScanTabletResolver(tablets), busyTimeout, userData);
 
-      LOG.debug("({}) started scan, id: {}", userData, ims.getScanID());
+      ScanUserDataLogger.logDebug(LOG, userData, "started scan, id: {}", ims.getScanID());
       return ims;
     } catch (TException e) {
-      LOG.error("({}) Error starting scan", userData, e);
+      ScanUserDataLogger.logError(LOG, userData, "Error starting scan", e);
       throw e;
     } catch (AccumuloException e) {
-      LOG.error("({}) Error starting scan", userData, e);
+      ScanUserDataLogger.logError(LOG, userData, "Error starting scan", e);
       throw new RuntimeException(e);
     }
   }

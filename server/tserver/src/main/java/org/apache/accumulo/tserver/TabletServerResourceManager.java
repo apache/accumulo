@@ -53,6 +53,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.file.blockfile.impl.ScanCacheProvider;
+import org.apache.accumulo.core.logging.ScanUserDataLogger;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
@@ -806,14 +807,14 @@ public class TabletServerResourceManager {
 
       ThreadPoolExecutor executor = scanExecutors.get(prefs.getExecutorName());
       if (executor == null) {
-        log.warn(
-            "({}) For table id {}, {} dispatched to non-existent executor {} Using default executor.",
-            scanInfo.getUserData(), tablet.tableId(), dispatcher.getClass().getName(),
-            prefs.getExecutorName());
+        ScanUserDataLogger.logWarn(log, scanInfo.getUserData(),
+            "For table id {}, {} dispatched to non-existent executor {} Using default executor.",
+            tablet.tableId(), dispatcher.getClass().getName(), prefs.getExecutorName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
       } else if ("meta".equals(prefs.getExecutorName())) {
-        log.warn("({}) For table id {}, {} dispatched to meta executor. Using default executor.",
-            scanInfo.getUserData(), tablet.tableId(), dispatcher.getClass().getName());
+        ScanUserDataLogger.logWarn(log, scanInfo.getUserData(),
+            "For table id {}, {} dispatched to meta executor. Using default executor.",
+            tablet.tableId(), dispatcher.getClass().getName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
       }
       executor.execute(task);

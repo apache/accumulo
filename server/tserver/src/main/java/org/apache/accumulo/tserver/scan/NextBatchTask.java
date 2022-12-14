@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
+import org.apache.accumulo.core.logging.ScanUserDataLogger;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.SingleScanSession;
@@ -70,7 +71,7 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
       TabletBase tablet = scanSession.getTabletResolver().getTablet(scanSession.extent);
 
       if (tablet == null) {
-        log.warn("({}) not serving tablet {}", scanSession.getUserData(),
+        ScanUserDataLogger.logTrace(log, scanSession.getUserData(), "not serving tablet {}",
             scanSession.extent.toThrift());
         addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(
             scanSession.extent.toThrift()));
@@ -86,23 +87,23 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
       // problem somewhere
       addResult(batch);
     } catch (TabletClosedException e) {
-      log.warn("({}) not serving tablet {}", scanSession.getUserData(),
+      ScanUserDataLogger.logTrace(log, scanSession.getUserData(), "not serving tablet {}",
           scanSession.extent.toThrift());
       addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(
           scanSession.extent.toThrift()));
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
-        log.warn("({}) Iteration interrupted, when scan not cancelled", scanSession.getUserData(),
-            iie);
+        ScanUserDataLogger.logWarn(log, scanSession.getUserData(),
+            "Iteration interrupted, when scan not cancelled", iie);
         addResult(iie);
       }
     } catch (TooManyFilesException | SampleNotPresentException e) {
-      log.warn("({}) exception while scanning tablet {}", scanSession.getUserData(),
-          scanSession.extent.toThrift());
+      ScanUserDataLogger.logWarn(log, scanSession.getUserData(),
+          "exception while scanning tablet {}", e);
       addResult(e);
     } catch (IOException | RuntimeException e) {
-      log.warn("({}) exception while scanning tablet {} for {}", scanSession.getUserData(),
-          scanSession.extent, scanSession.client, e);
+      ScanUserDataLogger.logWarn(log, scanSession.getUserData(),
+          "exception while scanning tablet {} for {}", scanSession.extent, scanSession.client, e);
       addResult(e);
     } finally {
       runState.set(ScanRunState.FINISHED);

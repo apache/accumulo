@@ -39,6 +39,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
+import org.apache.accumulo.core.logging.ScanUserDataLogger;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.MultiScanSession;
@@ -136,7 +137,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           interruptFlag.set(false);
 
         } catch (IOException e) {
-          log.warn("({}) lookup failed for tablet {}", session.getUserData(), extent, e);
+          ScanUserDataLogger.logWarn(log, session.getUserData(), "lookup failed for tablet {}",
+              extent, e);
           throw new RuntimeException(e);
         }
 
@@ -174,14 +176,16 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       addResult(multiScanResult);
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
-        log.warn("({}) Iteration interrupted, when scan not cancelled", session.getUserData(), iie);
+        ScanUserDataLogger.logWarn(log, session.getUserData(),
+            "Iteration interrupted, when scan not cancelled", iie);
         addResult(iie);
       }
     } catch (SampleNotPresentException e) {
-      log.warn("({}) sample not present while doing multi-scan ", session.getUserData(), e);
+      ScanUserDataLogger.logWarn(log, session.getUserData(),
+          "sample not present while doing multi-scan", e);
       addResult(e);
     } catch (Exception e) {
-      log.warn("({}) exception while doing multi-scan ", session.getUserData(), e);
+      ScanUserDataLogger.logWarn(log, session.getUserData(), "exception while doing multi-scan", e);
       addResult(e);
     } finally {
       Thread.currentThread().setName(oldThreadName);
