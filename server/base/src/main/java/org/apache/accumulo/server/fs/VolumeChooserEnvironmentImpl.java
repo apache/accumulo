@@ -23,10 +23,9 @@ import java.util.Optional;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -35,17 +34,14 @@ import org.apache.hadoop.io.Text;
  * {@code VolumeChooserEnvironment} should result in more stable code over time than using this
  * class.
  */
-@SuppressWarnings("deprecation")
 public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
 
-  private final ServerContext context;
   private final Scope scope;
   private final Optional<TableId> tableId;
   private final Text endRow;
   private final ServiceEnvironment senv;
 
   public VolumeChooserEnvironmentImpl(Scope scope, ServerContext context) {
-    this.context = context;
     this.scope = Objects.requireNonNull(scope);
     this.tableId = Optional.empty();
     this.endRow = null;
@@ -53,7 +49,6 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
   }
 
   public VolumeChooserEnvironmentImpl(TableId tableId, Text endRow, ServerContext context) {
-    this.context = context;
     this.scope = Scope.TABLE;
     this.tableId = Optional.of(tableId);
     this.endRow = endRow;
@@ -62,7 +57,6 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
 
   public VolumeChooserEnvironmentImpl(Scope scope, TableId tableId, Text endRow,
       ServerContext context) {
-    this.context = context;
     this.scope = Objects.requireNonNull(scope);
     this.tableId = Optional.of(tableId);
     this.endRow = endRow;
@@ -89,16 +83,6 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
   }
 
   @Override
-  public boolean hasTableId() {
-    return tableId.isPresent();
-  }
-
-  @Override
-  public TableId getTableId() {
-    return tableId.get();
-  }
-
-  @Override
   public Scope getChooserScope() {
     return this.scope;
   }
@@ -106,11 +90,6 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
   @Override
   public ServiceEnvironment getServiceEnv() {
     return senv;
-  }
-
-  @Override
-  public FileSystem getFileSystem(String option) {
-    return context.getVolumeManager().getFileSystemByPath(new Path(option));
   }
 
   @Override
@@ -123,7 +102,7 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
     }
     VolumeChooserEnvironmentImpl other = (VolumeChooserEnvironmentImpl) obj;
     return getChooserScope() == other.getChooserScope()
-        && Objects.equals(getTableId(), other.getTableId());
+        && Objects.equals(tableId.get(), other.getTable().get());
   }
 
   @Override
