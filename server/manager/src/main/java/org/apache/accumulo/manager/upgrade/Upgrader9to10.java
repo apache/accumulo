@@ -46,7 +46,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -54,7 +53,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.file.FileOperations;
@@ -95,7 +93,6 @@ import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
-import org.apache.zookeeper.data.Id;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -144,36 +141,29 @@ public class Upgrader9to10 implements Upgrader {
     createScanServerNodes(context);
   }
 
-  static boolean isValidACL(InstanceId instanceId, String path, List<ACL> acls,
-      ACL accumuloCreatorAll, ACL worldRead) {
-    if (path.equals(Constants.ZROOT) || path.equals(Constants.ZROOT + Constants.ZINSTANCES)) {
-      if (ZooDefs.Ids.OPEN_ACL_UNSAFE.equals(acls)) {
-        log.trace("ZNode at {} has expected ACL.", path);
+  private static String extractAuthName(ACL acl) {
+    Objects.requireNonNull(acl, "provided ACL cannot be null");
+    try {
+      return acl.getId().getId().trim().split(":")[0];
+    } catch (Exception ex) {
+      log.debug("Invalid ACL passed, cannot parse id from '{}'", acl);
+      return "";
+    }
+  }
+
+  private static boolean canWrite(List<ACL> acls) {
+    if (ZooDefs.Ids.OPEN_ACL_UNSAFE.equals(acls)) {
+      return true;
+    }
+    ;
+    for (ACL acl : acls) {
+      String name = extractAuthName(acl);
+      if (("accumulo".equals(name) || "anyone".equals(name))
+          && acl.getPerms() >= ZooDefs.Perms.WRITE) {
         return true;
-      } else {
-        log.error("ZNode at {} has unexpected ACL: {}, expected: {}", path, acls,
-            ZooDefs.Ids.OPEN_ACL_UNSAFE);
-        return false;
-      }
-    } else if (path.equals(ZooUtil.getRoot(instanceId) + Constants.ZCONFIG)) {
-      if (acls.size() == 1 && acls.contains(accumuloCreatorAll)) {
-        log.trace("ZNode at {} has expected ACL.", path);
-        return true;
-      } else {
-        log.error("ZNode at {} has unexpected ACL: {}, expected: {}", path, acls,
-            accumuloCreatorAll);
-        return false;
-      }
-    } else {
-      if (acls.size() == 2 && acls.contains(accumuloCreatorAll) && acls.contains(worldRead)) {
-        log.trace("ZNode at {} has expected ACL.", path);
-        return true;
-      } else {
-        log.error("ZNode at {} has unexpected ACL: {}, expected: {} and {}", path, acls,
-            accumuloCreatorAll, worldRead);
-        return false;
       }
     }
+    return false;
   }
 
   private void validateACLs(ServerContext context) {
@@ -182,18 +172,15 @@ public class Upgrader9to10 implements Upgrader {
     final ZooReaderWriter zrw = context.getZooReaderWriter();
     final ZooKeeper zk = zrw.getZooKeeper();
     final String rootPath = context.getZooKeeperRoot();
-    final InstanceId instanceId = context.getInstanceID();
-
-    final Id zkDigest =
-        ZooUtil.getZkDigestAuthId(context.getConfiguration().get(Property.INSTANCE_SECRET));
-    final ACL accumuloCreatorAll = new ACL(ZooDefs.Perms.ALL, zkDigest);
-    final ACL worldRead = new ACL(ZooDefs.Perms.READ, ZooDefs.Ids.ANYONE_ID_UNSAFE);
 
     try {
       ZKUtil.visitSubTreeDFS(zk, rootPath, false, (rc, path, ctx, name) -> {
         try {
           final List<ACL> acls = zk.getACL(path, new Stat());
-          if (!isValidACL(instanceId, path, acls, accumuloCreatorAll, worldRead)) {
+          if (!canWrite(acls)) {
+            log.error(
+                "ZNode at {} does not have an ACL that allows accumulo to write to it. ZNode ACL will need to be modified. Current ACLs: {}",
+                path, acls);
             aclErrorOccurred.set(true);
           }
         } catch (KeeperException | InterruptedException e) {
@@ -202,9 +189,10 @@ public class Upgrader9to10 implements Upgrader {
         }
       });
       if (aclErrorOccurred.get()) {
-        throw new RuntimeException("Upgrade Failed! Error validating ZNode ACLs. "
-            + "Check the log for specific failed paths, check ZooKeeper troubleshooting in user documentation "
-            + "for instructions on how to fix.");
+        throw new RuntimeException(
+            "Upgrade precondition failed! ACLs will need to be modified for some ZooKeeper nodes. "
+                + "Check the log for specific failed paths, check ZooKeeper troubleshooting in user documentation "
+                + "for instructions on how to fix.");
       }
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Upgrade Failed! Error validating nodes under " + rootPath, e);
