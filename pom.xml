@@ -863,7 +863,7 @@
             <goals>clean deploy</goals>
             <preparationGoals>clean package</preparationGoals>
             <tagNameFormat>rel/@{project.version}</tagNameFormat>
-            <releaseProfiles>apache-release,accumulo-release</releaseProfiles>
+            <releaseProfiles>accumulo-release</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>
             <localCheckout>true</localCheckout>
@@ -1373,26 +1373,6 @@
         <skipTests>true</skipTests>
         <spotbugs.skip>true</spotbugs.skip>
       </properties>
-    </profile>
-    <profile>
-      <!-- set proper source assembly name with apache-release and don't attach here -->
-      <id>apache-release</id>
-      <build>
-        <pluginManagement>
-          <plugins>
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-assembly-plugin</artifactId>
-              <inherited>false</inherited>
-              <configuration>
-                <!-- source assembly gets attached in the assemble module -->
-                <attach>false</attach>
-                <finalName>accumulo-${project.version}</finalName>
-              </configuration>
-            </plugin>
-          </plugins>
-        </pluginManagement>
-      </build>
     </profile>
     <profile>
       <!-- off by default, but enable with '-P verifyformat' or '-DverifyFormat' -->
