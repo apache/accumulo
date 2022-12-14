@@ -24,7 +24,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -41,19 +41,12 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
 
   private static final Logger log = LoggerFactory.getLogger(RootTabletMutatorImpl.class);
 
-  @SuppressWarnings("deprecation")
-  private static class RootEnv
-      implements SystemEnvironment, org.apache.accumulo.core.constraints.Constraint.Environment {
+  private static class RootEnv implements SystemEnvironment, Constraint.Environment {
 
     private final ServerContext context;
 
     RootEnv(ServerContext context) {
       this.context = context;
-    }
-
-    @Override
-    public KeyExtent getExtent() {
-      return RootTable.EXTENT;
     }
 
     @Override
