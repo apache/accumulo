@@ -24,7 +24,6 @@ include "security.thrift"
 include "client.thrift"
 include "manager.thrift"
 include "master.thrift"
-include "trace.thrift"
 include "tabletserver.thrift"
 
 exception ConstraintViolationException {
@@ -43,7 +42,7 @@ service TabletIngestClientService {
 
   //the following calls support a batch update to multiple tablets on a tablet server
   data.UpdateID startUpdate(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:security.TCredentials credentials
     3:TDurability durability
   ) throws (
@@ -51,14 +50,14 @@ service TabletIngestClientService {
   )
 
   oneway void applyUpdates(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:data.UpdateID updateID
     3:data.TKeyExtent keyExtent
     4:list<data.TMutation> mutations
   )
 
   data.UpdateErrors closeUpdate(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:data.UpdateID updateID
   ) throws (
     1:tabletserver.NoSuchScanIDException nssi
@@ -66,7 +65,7 @@ service TabletIngestClientService {
 
   //the following call supports making a single update to a tablet
   void update(
-    4:trace.TInfo tinfo
+    4:client.TInfo tinfo
     1:security.TCredentials credentials
     2:data.TKeyExtent keyExtent
     3:data.TMutation mutation
@@ -78,7 +77,7 @@ service TabletIngestClientService {
   )
 
   data.TConditionalSession startConditionalUpdate(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:list<binary> authorizations
     4:string tableID
@@ -89,7 +88,7 @@ service TabletIngestClientService {
   )
 
   list<data.TCMResult> conditionalUpdate(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:data.UpdateID sessID
     3:data.CMBatch mutations
     4:list<string> symbols
@@ -98,18 +97,18 @@ service TabletIngestClientService {
   )
 
   void invalidateConditionalUpdate(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:data.UpdateID sessID
   )
 
   oneway void closeConditionalUpdate(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:data.UpdateID sessID
   )
 
   // on success, returns an empty list
   list<data.TKeyExtent> bulkImport(
-    3:trace.TInfo tinfo
+    3:client.TInfo tinfo
     1:security.TCredentials credentials
     4:i64 tid
     2:data.TabletFiles files
@@ -119,7 +118,7 @@ service TabletIngestClientService {
   )
 
   oneway void loadFiles(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:i64 tid
     4:string dir

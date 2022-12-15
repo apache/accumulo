@@ -24,7 +24,6 @@ include "security.thrift"
 include "client.thrift"
 include "manager.thrift"
 include "master.thrift"
-include "trace.thrift"
 include "tabletserver.thrift"
 
 exception TooManyFilesException {
@@ -77,7 +76,7 @@ service TabletScanClientService {
 
   // scan a range of keys
   data.InitialScan startScan(
-    11:trace.TInfo tinfo
+    11:client.TInfo tinfo
     1:security.TCredentials credentials
     2:data.TKeyExtent extent
     3:data.TRange range
@@ -104,7 +103,7 @@ service TabletScanClientService {
   )
 
   data.ScanResult continueScan(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:data.ScanID scanID
     3:i64 busyTimeout
   ) throws (
@@ -116,13 +115,13 @@ service TabletScanClientService {
   )
 
   oneway void closeScan(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:data.ScanID scanID
   )
 
   // scan over a series of ranges
   data.InitialMultiScan startMultiScan(
-    8:trace.TInfo tinfo
+    8:client.TInfo tinfo
     1:security.TCredentials credentials
     2:data.ScanBatch batch
     3:list<data.TColumn> columns
@@ -143,7 +142,7 @@ service TabletScanClientService {
   )
 
   data.MultiScanResult continueMultiScan(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:data.ScanID scanID
     3:i64 busyTimeout
   ) throws (
@@ -153,14 +152,14 @@ service TabletScanClientService {
   )
 
   void closeMultiScan(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:data.ScanID scanID
   ) throws (
     1:tabletserver.NoSuchScanIDException nssi
   )
 
   list<ActiveScan> getActiveScans(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec

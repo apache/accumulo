@@ -22,7 +22,6 @@ namespace cpp org.apache.accumulo.core.tablet.thrift
 include "data.thrift"
 include "security.thrift"
 include "client.thrift"
-include "trace.thrift"
 include "tabletserver.thrift"
 
 enum TUnloadTabletGoal {
@@ -35,14 +34,14 @@ enum TUnloadTabletGoal {
 service TabletManagementClientService {
 
   oneway void loadTablet(
-    5:trace.TInfo tinfo
+    5:client.TInfo tinfo
     1:security.TCredentials credentials
     4:string lock
     2:data.TKeyExtent extent
   )
 
   oneway void unloadTablet(
-    5:trace.TInfo tinfo
+    5:client.TInfo tinfo
     1:security.TCredentials credentials
     4:string lock
     2:data.TKeyExtent extent
@@ -51,7 +50,7 @@ service TabletManagementClientService {
   )
 
   void splitTablet(
-    4:trace.TInfo tinfo
+    4:client.TInfo tinfo
     1:security.TCredentials credentials
     2:data.TKeyExtent extent
     3:binary splitPoint
@@ -61,14 +60,14 @@ service TabletManagementClientService {
   )
 
   oneway void flushTablet(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string lock
     4:data.TKeyExtent extent
   )
 
   oneway void chop(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string lock
     4:data.TKeyExtent extent

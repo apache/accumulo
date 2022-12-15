@@ -22,7 +22,6 @@ namespace cpp org.apache.accumulo.core.master.thrift
 include "data.thrift"
 include "security.thrift"
 include "client.thrift"
-include "trace.thrift"
 
 struct Compacting {
   1:i32 running

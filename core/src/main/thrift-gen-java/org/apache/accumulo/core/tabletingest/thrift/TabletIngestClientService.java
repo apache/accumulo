@@ -29,49 +29,49 @@ public class TabletIngestClientService {
 
   public interface Iface {
 
-    public long startUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TDurability durability) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public long startUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TDurability durability) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void applyUpdates(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations) throws org.apache.thrift.TException;
+    public void applyUpdates(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations) throws org.apache.thrift.TException;
 
-    public org.apache.accumulo.core.dataImpl.thrift.UpdateErrors closeUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long updateID) throws org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException, org.apache.thrift.TException;
+    public org.apache.accumulo.core.dataImpl.thrift.UpdateErrors closeUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID) throws org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException, org.apache.thrift.TException;
 
-    public void update(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException, ConstraintViolationException, org.apache.thrift.TException;
+    public void update(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException, ConstraintViolationException, org.apache.thrift.TException;
 
-    public org.apache.accumulo.core.dataImpl.thrift.TConditionalSession startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public org.apache.accumulo.core.dataImpl.thrift.TConditionalSession startConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TCMResult> conditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations, java.util.List<java.lang.String> symbols) throws org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException, org.apache.thrift.TException;
+    public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TCMResult> conditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations, java.util.List<java.lang.String> symbols) throws org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException, org.apache.thrift.TException;
 
-    public void invalidateConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException;
+    public void invalidateConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException;
 
-    public void closeConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException;
+    public void closeConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException;
 
-    public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> bulkImport(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> bulkImport(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void loadFiles(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.thrift.TException;
+    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.thrift.TException;
 
   }
 
   public interface AsyncIface {
 
-    public void startUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler) throws org.apache.thrift.TException;
+    public void startUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler) throws org.apache.thrift.TException;
 
-    public void applyUpdates(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void applyUpdates(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void closeUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long updateID, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.UpdateErrors> resultHandler) throws org.apache.thrift.TException;
+    public void closeUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.UpdateErrors> resultHandler) throws org.apache.thrift.TException;
 
-    public void update(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void update(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> resultHandler) throws org.apache.thrift.TException;
+    public void startConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> resultHandler) throws org.apache.thrift.TException;
 
-    public void conditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations, java.util.List<java.lang.String> symbols, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TCMResult>> resultHandler) throws org.apache.thrift.TException;
+    public void conditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations, java.util.List<java.lang.String> symbols, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TCMResult>> resultHandler) throws org.apache.thrift.TException;
 
-    public void invalidateConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void invalidateConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void closeConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void closeConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void bulkImport(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> resultHandler) throws org.apache.thrift.TException;
+    public void bulkImport(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> resultHandler) throws org.apache.thrift.TException;
 
-    public void loadFiles(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -98,13 +98,13 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public long startUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TDurability durability) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public long startUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TDurability durability) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_startUpdate(tinfo, credentials, durability);
       return recv_startUpdate();
     }
 
-    public void send_startUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TDurability durability) throws org.apache.thrift.TException
+    public void send_startUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TDurability durability) throws org.apache.thrift.TException
     {
       startUpdate_args args = new startUpdate_args();
       args.setTinfo(tinfo);
@@ -127,12 +127,12 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void applyUpdates(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations) throws org.apache.thrift.TException
+    public void applyUpdates(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations) throws org.apache.thrift.TException
     {
       send_applyUpdates(tinfo, updateID, keyExtent, mutations);
     }
 
-    public void send_applyUpdates(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations) throws org.apache.thrift.TException
+    public void send_applyUpdates(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations) throws org.apache.thrift.TException
     {
       applyUpdates_args args = new applyUpdates_args();
       args.setTinfo(tinfo);
@@ -143,13 +143,13 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public org.apache.accumulo.core.dataImpl.thrift.UpdateErrors closeUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long updateID) throws org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException, org.apache.thrift.TException
+    public org.apache.accumulo.core.dataImpl.thrift.UpdateErrors closeUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID) throws org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException, org.apache.thrift.TException
     {
       send_closeUpdate(tinfo, updateID);
       return recv_closeUpdate();
     }
 
-    public void send_closeUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long updateID) throws org.apache.thrift.TException
+    public void send_closeUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID) throws org.apache.thrift.TException
     {
       closeUpdate_args args = new closeUpdate_args();
       args.setTinfo(tinfo);
@@ -171,13 +171,13 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void update(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException, ConstraintViolationException, org.apache.thrift.TException
+    public void update(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException, ConstraintViolationException, org.apache.thrift.TException
     {
       send_update(tinfo, credentials, keyExtent, mutation, durability);
       recv_update();
     }
 
-    public void send_update(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability) throws org.apache.thrift.TException
+    public void send_update(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability) throws org.apache.thrift.TException
     {
       update_args args = new update_args();
       args.setTinfo(tinfo);
@@ -205,13 +205,13 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public org.apache.accumulo.core.dataImpl.thrift.TConditionalSession startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public org.apache.accumulo.core.dataImpl.thrift.TConditionalSession startConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_startConditionalUpdate(tinfo, credentials, authorizations, tableID, durability, classLoaderContext);
       return recv_startConditionalUpdate();
     }
 
-    public void send_startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext) throws org.apache.thrift.TException
+    public void send_startConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext) throws org.apache.thrift.TException
     {
       startConditionalUpdate_args args = new startConditionalUpdate_args();
       args.setTinfo(tinfo);
@@ -237,13 +237,13 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TCMResult> conditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations, java.util.List<java.lang.String> symbols) throws org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException, org.apache.thrift.TException
+    public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TCMResult> conditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations, java.util.List<java.lang.String> symbols) throws org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException, org.apache.thrift.TException
     {
       send_conditionalUpdate(tinfo, sessID, mutations, symbols);
       return recv_conditionalUpdate();
     }
 
-    public void send_conditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations, java.util.List<java.lang.String> symbols) throws org.apache.thrift.TException
+    public void send_conditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations, java.util.List<java.lang.String> symbols) throws org.apache.thrift.TException
     {
       conditionalUpdate_args args = new conditionalUpdate_args();
       args.setTinfo(tinfo);
@@ -267,13 +267,13 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void invalidateConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException
+    public void invalidateConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException
     {
       send_invalidateConditionalUpdate(tinfo, sessID);
       recv_invalidateConditionalUpdate();
     }
 
-    public void send_invalidateConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException
+    public void send_invalidateConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException
     {
       invalidateConditionalUpdate_args args = new invalidateConditionalUpdate_args();
       args.setTinfo(tinfo);
@@ -289,12 +289,12 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void closeConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException
+    public void closeConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException
     {
       send_closeConditionalUpdate(tinfo, sessID);
     }
 
-    public void send_closeConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException
+    public void send_closeConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException
     {
       closeConditionalUpdate_args args = new closeConditionalUpdate_args();
       args.setTinfo(tinfo);
@@ -303,13 +303,13 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> bulkImport(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> bulkImport(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_bulkImport(tinfo, credentials, tid, files, setTime);
       return recv_bulkImport();
     }
 
-    public void send_bulkImport(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.thrift.TException
+    public void send_bulkImport(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.thrift.TException
     {
       bulkImport_args args = new bulkImport_args();
       args.setTinfo(tinfo);
@@ -334,12 +334,12 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void loadFiles(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.thrift.TException
+    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.thrift.TException
     {
       send_loadFiles(tinfo, credentials, tid, dir, files, setTime);
     }
 
-    public void send_loadFiles(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.thrift.TException
+    public void send_loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.thrift.TException
     {
       loadFiles_args args = new loadFiles_args();
       args.setTinfo(tinfo);
@@ -371,7 +371,7 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void startUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler) throws org.apache.thrift.TException {
+    public void startUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       startUpdate_call method_call = new startUpdate_call(tinfo, credentials, durability, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -379,10 +379,10 @@ public class TabletIngestClientService {
     }
 
     public static class startUpdate_call extends org.apache.thrift.async.TAsyncMethodCall<java.lang.Long> {
-      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private TDurability durability;
-      public startUpdate_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public startUpdate_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<java.lang.Long> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -412,7 +412,7 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void applyUpdates(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void applyUpdates(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       applyUpdates_call method_call = new applyUpdates_call(tinfo, updateID, keyExtent, mutations, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -420,11 +420,11 @@ public class TabletIngestClientService {
     }
 
     public static class applyUpdates_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
-      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private long updateID;
       private org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent;
       private java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations;
-      public applyUpdates_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public applyUpdates_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, true);
         this.tinfo = tinfo;
         this.updateID = updateID;
@@ -456,7 +456,7 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void closeUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long updateID, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.UpdateErrors> resultHandler) throws org.apache.thrift.TException {
+    public void closeUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.UpdateErrors> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       closeUpdate_call method_call = new closeUpdate_call(tinfo, updateID, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -464,9 +464,9 @@ public class TabletIngestClientService {
     }
 
     public static class closeUpdate_call extends org.apache.thrift.async.TAsyncMethodCall<org.apache.accumulo.core.dataImpl.thrift.UpdateErrors> {
-      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private long updateID;
-      public closeUpdate_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long updateID, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.UpdateErrors> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public closeUpdate_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.UpdateErrors> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.updateID = updateID;
@@ -494,7 +494,7 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void update(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void update(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       update_call method_call = new update_call(tinfo, credentials, keyExtent, mutation, durability, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -502,12 +502,12 @@ public class TabletIngestClientService {
     }
 
     public static class update_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
-      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent;
       private org.apache.accumulo.core.dataImpl.thrift.TMutation mutation;
       private TDurability durability;
-      public update_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public update_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -542,7 +542,7 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> resultHandler) throws org.apache.thrift.TException {
+    public void startConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       startConditionalUpdate_call method_call = new startConditionalUpdate_call(tinfo, credentials, authorizations, tableID, durability, classLoaderContext, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -550,13 +550,13 @@ public class TabletIngestClientService {
     }
 
     public static class startConditionalUpdate_call extends org.apache.thrift.async.TAsyncMethodCall<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> {
-      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private java.util.List<java.nio.ByteBuffer> authorizations;
       private java.lang.String tableID;
       private TDurability durability;
       private java.lang.String classLoaderContext;
-      public startConditionalUpdate_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public startConditionalUpdate_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -592,7 +592,7 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void conditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations, java.util.List<java.lang.String> symbols, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TCMResult>> resultHandler) throws org.apache.thrift.TException {
+    public void conditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations, java.util.List<java.lang.String> symbols, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TCMResult>> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       conditionalUpdate_call method_call = new conditionalUpdate_call(tinfo, sessID, mutations, symbols, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -600,11 +600,11 @@ public class TabletIngestClientService {
     }
 
     public static class conditionalUpdate_call extends org.apache.thrift.async.TAsyncMethodCall<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TCMResult>> {
-      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private long sessID;
       private java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations;
       private java.util.List<java.lang.String> symbols;
-      public conditionalUpdate_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations, java.util.List<java.lang.String> symbols, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TCMResult>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public conditionalUpdate_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations, java.util.List<java.lang.String> symbols, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TCMResult>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.sessID = sessID;
@@ -636,7 +636,7 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void invalidateConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void invalidateConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       invalidateConditionalUpdate_call method_call = new invalidateConditionalUpdate_call(tinfo, sessID, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -644,9 +644,9 @@ public class TabletIngestClientService {
     }
 
     public static class invalidateConditionalUpdate_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
-      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private long sessID;
-      public invalidateConditionalUpdate_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public invalidateConditionalUpdate_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.sessID = sessID;
@@ -675,7 +675,7 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void closeConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void closeConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       closeConditionalUpdate_call method_call = new closeConditionalUpdate_call(tinfo, sessID, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -683,9 +683,9 @@ public class TabletIngestClientService {
     }
 
     public static class closeConditionalUpdate_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
-      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private long sessID;
-      public closeConditionalUpdate_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public closeConditionalUpdate_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, true);
         this.tinfo = tinfo;
         this.sessID = sessID;
@@ -713,7 +713,7 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void bulkImport(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> resultHandler) throws org.apache.thrift.TException {
+    public void bulkImport(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       bulkImport_call method_call = new bulkImport_call(tinfo, credentials, tid, files, setTime, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -721,12 +721,12 @@ public class TabletIngestClientService {
     }
 
     public static class bulkImport_call extends org.apache.thrift.async.TAsyncMethodCall<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> {
-      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private long tid;
       private java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files;
       private boolean setTime;
-      public bulkImport_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public bulkImport_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -760,7 +760,7 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void loadFiles(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       loadFiles_call method_call = new loadFiles_call(tinfo, credentials, tid, dir, files, setTime, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -768,13 +768,13 @@ public class TabletIngestClientService {
     }
 
     public static class loadFiles_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
-      private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private long tid;
       private java.lang.String dir;
       private java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files;
       private boolean setTime;
-      public loadFiles_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public loadFiles_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, true);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -1800,7 +1800,7 @@ public class TabletIngestClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new startUpdate_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new startUpdate_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     /**
      * 
@@ -1885,7 +1885,7 @@ public class TabletIngestClientService {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.DURABILITY, new org.apache.thrift.meta_data.FieldMetaData("durability", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -1898,7 +1898,7 @@ public class TabletIngestClientService {
     }
 
     public startUpdate_args(
-      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       TDurability durability)
     {
@@ -1913,7 +1913,7 @@ public class TabletIngestClientService {
      */
     public startUpdate_args(startUpdate_args other) {
       if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
@@ -1936,11 +1936,11 @@ public class TabletIngestClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
 
-    public startUpdate_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+    public startUpdate_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -2025,7 +2025,7 @@ public class TabletIngestClientService {
         if (value == null) {
           unsetTinfo();
         } else {
-          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
         }
         break;
 
@@ -2283,7 +2283,7 @@ public class TabletIngestClientService {
           switch (schemeField.id) {
             case 2: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
                 struct.tinfo.read(iprot);
                 struct.setTinfoIsSet(true);
               } else { 
@@ -2383,7 +2383,7 @@ public class TabletIngestClientService {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
           struct.tinfo.read(iprot);
           struct.setTinfoIsSet(true);
         }
@@ -2898,7 +2898,7 @@ public class TabletIngestClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new applyUpdates_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new applyUpdates_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public long updateID; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent; // required
     public @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations; // required
@@ -2981,7 +2981,7 @@ public class TabletIngestClientService {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.UPDATE_ID, new org.apache.thrift.meta_data.FieldMetaData("updateID", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64          , "UpdateID")));
       tmpMap.put(_Fields.KEY_EXTENT, new org.apache.thrift.meta_data.FieldMetaData("keyExtent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -2997,7 +2997,7 @@ public class TabletIngestClientService {
     }
 
     public applyUpdates_args(
-      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       long updateID,
       org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent,
       java.util.List<org.apache.accumulo.core.dataImpl.thrift.TMutation> mutations)
@@ -3016,7 +3016,7 @@ public class TabletIngestClientService {
     public applyUpdates_args(applyUpdates_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
       this.updateID = other.updateID;
       if (other.isSetKeyExtent()) {
@@ -3046,11 +3046,11 @@ public class TabletIngestClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
 
-    public applyUpdates_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+    public applyUpdates_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -3166,7 +3166,7 @@ public class TabletIngestClientService {
         if (value == null) {
           unsetTinfo();
         } else {
-          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
         }
         break;
 
@@ -3464,7 +3464,7 @@ public class TabletIngestClientService {
           switch (schemeField.id) {
             case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
                 struct.tinfo.read(iprot);
                 struct.setTinfoIsSet(true);
               } else { 
@@ -3605,7 +3605,7 @@ public class TabletIngestClientService {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
           struct.tinfo.read(iprot);
           struct.setTinfoIsSet(true);
         }
@@ -3650,7 +3650,7 @@ public class TabletIngestClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new closeUpdate_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new closeUpdate_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public long updateID; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -3725,7 +3725,7 @@ public class TabletIngestClientService {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.UPDATE_ID, new org.apache.thrift.meta_data.FieldMetaData("updateID", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64          , "UpdateID")));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -3736,7 +3736,7 @@ public class TabletIngestClientService {
     }
 
     public closeUpdate_args(
-      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       long updateID)
     {
       this();
@@ -3751,7 +3751,7 @@ public class TabletIngestClientService {
     public closeUpdate_args(closeUpdate_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
       this.updateID = other.updateID;
     }
@@ -3769,11 +3769,11 @@ public class TabletIngestClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
 
-    public closeUpdate_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+    public closeUpdate_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -3823,7 +3823,7 @@ public class TabletIngestClientService {
         if (value == null) {
           unsetTinfo();
         } else {
-          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
         }
         break;
 
@@ -4030,7 +4030,7 @@ public class TabletIngestClientService {
           switch (schemeField.id) {
             case 2: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
                 struct.tinfo.read(iprot);
                 struct.setTinfoIsSet(true);
               } else { 
@@ -4108,7 +4108,7 @@ public class TabletIngestClientService {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
           struct.tinfo.read(iprot);
           struct.setTinfoIsSet(true);
         }
@@ -4627,7 +4627,7 @@ public class TabletIngestClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new update_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new update_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TMutation mutation; // required
@@ -4720,7 +4720,7 @@ public class TabletIngestClientService {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.KEY_EXTENT, new org.apache.thrift.meta_data.FieldMetaData("keyExtent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -4737,7 +4737,7 @@ public class TabletIngestClientService {
     }
 
     public update_args(
-      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent,
       org.apache.accumulo.core.dataImpl.thrift.TMutation mutation,
@@ -4756,7 +4756,7 @@ public class TabletIngestClientService {
      */
     public update_args(update_args other) {
       if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
@@ -4787,11 +4787,11 @@ public class TabletIngestClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
 
-    public update_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+    public update_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -4926,7 +4926,7 @@ public class TabletIngestClientService {
         if (value == null) {
           unsetTinfo();
         } else {
-          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
         }
         break;
 
@@ -5278,7 +5278,7 @@ public class TabletIngestClientService {
           switch (schemeField.id) {
             case 4: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
                 struct.tinfo.read(iprot);
                 struct.setTinfoIsSet(true);
               } else { 
@@ -5418,7 +5418,7 @@ public class TabletIngestClientService {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
           struct.tinfo.read(iprot);
           struct.setTinfoIsSet(true);
         }
@@ -6057,7 +6057,7 @@ public class TabletIngestClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new startConditionalUpdate_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new startConditionalUpdate_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> authorizations; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String tableID; // required
@@ -6154,7 +6154,7 @@ public class TabletIngestClientService {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.AUTHORIZATIONS, new org.apache.thrift.meta_data.FieldMetaData("authorizations", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -6174,7 +6174,7 @@ public class TabletIngestClientService {
     }
 
     public startConditionalUpdate_args(
-      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       java.util.List<java.nio.ByteBuffer> authorizations,
       java.lang.String tableID,
@@ -6195,7 +6195,7 @@ public class TabletIngestClientService {
      */
     public startConditionalUpdate_args(startConditionalUpdate_args other) {
       if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
@@ -6231,11 +6231,11 @@ public class TabletIngestClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
 
-    public startConditionalUpdate_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+    public startConditionalUpdate_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -6411,7 +6411,7 @@ public class TabletIngestClientService {
         if (value == null) {
           unsetTinfo();
         } else {
-          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
         }
         break;
 
@@ -6801,7 +6801,7 @@ public class TabletIngestClientService {
           switch (schemeField.id) {
             case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
                 struct.tinfo.read(iprot);
                 struct.setTinfoIsSet(true);
               } else { 
@@ -6981,7 +6981,7 @@ public class TabletIngestClientService {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(6);
         if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
           struct.tinfo.read(iprot);
           struct.setTinfoIsSet(true);
         }
@@ -7525,7 +7525,7 @@ public class TabletIngestClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new conditionalUpdate_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new conditionalUpdate_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public long sessID; // required
     public @org.apache.thrift.annotation.Nullable java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations; // required
     public @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> symbols; // required
@@ -7608,7 +7608,7 @@ public class TabletIngestClientService {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.SESS_ID, new org.apache.thrift.meta_data.FieldMetaData("sessID", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64          , "UpdateID")));
       tmpMap.put(_Fields.MUTATIONS, new org.apache.thrift.meta_data.FieldMetaData("mutations", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -7624,7 +7624,7 @@ public class TabletIngestClientService {
     }
 
     public conditionalUpdate_args(
-      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       long sessID,
       java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations,
       java.util.List<java.lang.String> symbols)
@@ -7643,7 +7643,7 @@ public class TabletIngestClientService {
     public conditionalUpdate_args(conditionalUpdate_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
       this.sessID = other.sessID;
       if (other.isSetMutations()) {
@@ -7685,11 +7685,11 @@ public class TabletIngestClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
 
-    public conditionalUpdate_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+    public conditionalUpdate_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -7816,7 +7816,7 @@ public class TabletIngestClientService {
         if (value == null) {
           unsetTinfo();
         } else {
-          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
         }
         break;
 
@@ -8111,7 +8111,7 @@ public class TabletIngestClientService {
           switch (schemeField.id) {
             case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
                 struct.tinfo.read(iprot);
                 struct.setTinfoIsSet(true);
               } else { 
@@ -8302,7 +8302,7 @@ public class TabletIngestClientService {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
           struct.tinfo.read(iprot);
           struct.setTinfoIsSet(true);
         }
@@ -8907,7 +8907,7 @@ public class TabletIngestClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new invalidateConditionalUpdate_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new invalidateConditionalUpdate_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public long sessID; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -8982,7 +8982,7 @@ public class TabletIngestClientService {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.SESS_ID, new org.apache.thrift.meta_data.FieldMetaData("sessID", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64          , "UpdateID")));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -8993,7 +8993,7 @@ public class TabletIngestClientService {
     }
 
     public invalidateConditionalUpdate_args(
-      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       long sessID)
     {
       this();
@@ -9008,7 +9008,7 @@ public class TabletIngestClientService {
     public invalidateConditionalUpdate_args(invalidateConditionalUpdate_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
       this.sessID = other.sessID;
     }
@@ -9026,11 +9026,11 @@ public class TabletIngestClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
 
-    public invalidateConditionalUpdate_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+    public invalidateConditionalUpdate_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -9080,7 +9080,7 @@ public class TabletIngestClientService {
         if (value == null) {
           unsetTinfo();
         } else {
-          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
         }
         break;
 
@@ -9287,7 +9287,7 @@ public class TabletIngestClientService {
           switch (schemeField.id) {
             case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
                 struct.tinfo.read(iprot);
                 struct.setTinfoIsSet(true);
               } else { 
@@ -9365,7 +9365,7 @@ public class TabletIngestClientService {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
           struct.tinfo.read(iprot);
           struct.setTinfoIsSet(true);
         }
@@ -9656,7 +9656,7 @@ public class TabletIngestClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new closeConditionalUpdate_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new closeConditionalUpdate_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public long sessID; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -9731,7 +9731,7 @@ public class TabletIngestClientService {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.SESS_ID, new org.apache.thrift.meta_data.FieldMetaData("sessID", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64          , "UpdateID")));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -9742,7 +9742,7 @@ public class TabletIngestClientService {
     }
 
     public closeConditionalUpdate_args(
-      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       long sessID)
     {
       this();
@@ -9757,7 +9757,7 @@ public class TabletIngestClientService {
     public closeConditionalUpdate_args(closeConditionalUpdate_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
       this.sessID = other.sessID;
     }
@@ -9775,11 +9775,11 @@ public class TabletIngestClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
 
-    public closeConditionalUpdate_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+    public closeConditionalUpdate_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -9829,7 +9829,7 @@ public class TabletIngestClientService {
         if (value == null) {
           unsetTinfo();
         } else {
-          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
         }
         break;
 
@@ -10036,7 +10036,7 @@ public class TabletIngestClientService {
           switch (schemeField.id) {
             case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
                 struct.tinfo.read(iprot);
                 struct.setTinfoIsSet(true);
               } else { 
@@ -10114,7 +10114,7 @@ public class TabletIngestClientService {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
           struct.tinfo.read(iprot);
           struct.setTinfoIsSet(true);
         }
@@ -10143,7 +10143,7 @@ public class TabletIngestClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new bulkImport_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new bulkImport_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public long tid; // required
     public @org.apache.thrift.annotation.Nullable java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files; // required
@@ -10231,7 +10231,7 @@ public class TabletIngestClientService {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.TID, new org.apache.thrift.meta_data.FieldMetaData("tid", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -10248,7 +10248,7 @@ public class TabletIngestClientService {
     }
 
     public bulkImport_args(
-      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       long tid,
       java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files,
@@ -10270,7 +10270,7 @@ public class TabletIngestClientService {
     public bulkImport_args(bulkImport_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
@@ -10322,11 +10322,11 @@ public class TabletIngestClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
 
-    public bulkImport_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+    public bulkImport_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -10460,7 +10460,7 @@ public class TabletIngestClientService {
         if (value == null) {
           unsetTinfo();
         } else {
-          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
         }
         break;
 
@@ -10796,7 +10796,7 @@ public class TabletIngestClientService {
           switch (schemeField.id) {
             case 3: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
                 struct.tinfo.read(iprot);
                 struct.setTinfoIsSet(true);
               } else { 
@@ -10986,7 +10986,7 @@ public class TabletIngestClientService {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
           struct.tinfo.read(iprot);
           struct.setTinfoIsSet(true);
         }
@@ -11593,7 +11593,7 @@ public class TabletIngestClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new loadFiles_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new loadFiles_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public long tid; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String dir; // required
@@ -11685,7 +11685,7 @@ public class TabletIngestClientService {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.TID, new org.apache.thrift.meta_data.FieldMetaData("tid", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -11708,7 +11708,7 @@ public class TabletIngestClientService {
     }
 
     public loadFiles_args(
-      org.apache.accumulo.core.trace.thrift.TInfo tinfo,
+      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       long tid,
       java.lang.String dir,
@@ -11732,7 +11732,7 @@ public class TabletIngestClientService {
     public loadFiles_args(loadFiles_args other) {
       __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
+        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
@@ -11788,11 +11788,11 @@ public class TabletIngestClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.trace.thrift.TInfo getTinfo() {
+    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
 
-    public loadFiles_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo) {
+    public loadFiles_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -11951,7 +11951,7 @@ public class TabletIngestClientService {
         if (value == null) {
           unsetTinfo();
         } else {
-          setTinfo((org.apache.accumulo.core.trace.thrift.TInfo)value);
+          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
         }
         break;
 
@@ -12331,7 +12331,7 @@ public class TabletIngestClientService {
           switch (schemeField.id) {
             case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
                 struct.tinfo.read(iprot);
                 struct.setTinfoIsSet(true);
               } else { 
@@ -12540,7 +12540,7 @@ public class TabletIngestClientService {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(6);
         if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
+          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
           struct.tinfo.read(iprot);
           struct.setTinfoIsSet(true);
         }

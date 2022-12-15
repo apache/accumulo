@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -47,7 +48,6 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletscan.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.tserver.ScanServer.ScanReservation;
 import org.apache.accumulo.tserver.session.ScanSession.TabletResolver;

@@ -24,7 +24,6 @@ include "security.thrift"
 include "client.thrift"
 include "manager.thrift"
 include "master.thrift"
-include "trace.thrift"
 
 exception NotServingTabletException {
   1:data.TKeyExtent extent
@@ -137,7 +136,7 @@ struct TCompactionStats{
 service TabletServerClientService {
 
   oneway void flush(
-    4:trace.TInfo tinfo
+    4:client.TInfo tinfo
     1:security.TCredentials credentials
     3:string lock
     2:string tableId
@@ -146,7 +145,7 @@ service TabletServerClientService {
   )
 
   oneway void compact(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string lock
     4:string tableId
@@ -155,14 +154,14 @@ service TabletServerClientService {
   )
 
   master.TabletServerStatus getTabletServerStatus(
-    3:trace.TInfo tinfo
+    3:client.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
   )
 
   list<TabletStats> getTabletStats(
-    3:trace.TInfo tinfo
+    3:client.TInfo tinfo
     1:security.TCredentials credentials
     2:string tableId
   ) throws (
@@ -170,14 +169,14 @@ service TabletServerClientService {
   )
 
   TabletStats getHistoricalStats(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
   )
 
   void halt(
-    3:trace.TInfo tinfo
+    3:client.TInfo tinfo
     1:security.TCredentials credentials
     2:string lock
   ) throws (
@@ -185,31 +184,31 @@ service TabletServerClientService {
   )
 
   oneway void fastHalt(
-    3:trace.TInfo tinfo
+    3:client.TInfo tinfo
     1:security.TCredentials credentials
     2:string lock
   )
 
   list<ActiveCompaction> getActiveCompactions(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
   )
 
   oneway void removeLogs(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:list<string> filenames
   )
 
   list<string> getActiveLogs(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
   )
 
   data.TSummaries startGetSummaries(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:data.TSummaryRequest request
   ) throws (
@@ -218,7 +217,7 @@ service TabletServerClientService {
   )
 
   data.TSummaries startGetSummariesForPartition(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:data.TSummaryRequest request
     4:i32 modulus
@@ -228,7 +227,7 @@ service TabletServerClientService {
   )
 
   data.TSummaries startGetSummariesFromFiles(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:data.TSummaryRequest request
     4:map<string, list<data.TRowRange>> files
@@ -237,21 +236,21 @@ service TabletServerClientService {
   )
 
   data.TSummaries contiuneGetSummaries(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:i64 sessionId
   ) throws (
     1:NoSuchScanIDException nssi
   )
   
   list<TCompactionQueueSummary> getCompactionQueueInfo(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
   )
   
   TExternalCompactionJob reserveCompactionJob(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string queueName
     4:i64 priority
@@ -262,7 +261,7 @@ service TabletServerClientService {
   )
   
   oneway void compactionJobFinished(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string externalCompactionId
     4:data.TKeyExtent extent
@@ -271,7 +270,7 @@ service TabletServerClientService {
   )
 
   oneway void compactionJobFailed(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string externalCompactionId
     4:data.TKeyExtent extent
