@@ -153,8 +153,8 @@ public class Upgrader9to10 implements Upgrader {
   }
 
   private static boolean canWrite(final Set<String> users, final List<ACL> acls) {
-    return ZooDefs.Ids.OPEN_ACL_UNSAFE.equals(acls) || acls.stream()
-        .anyMatch(a -> users.contains(extractAuthName(a)) && a.getPerms() >= ZooDefs.Perms.WRITE);
+    return acls.stream()
+        .anyMatch(a -> users.contains(extractAuthName(a)) && a.getPerms() == ZooDefs.Perms.ALL);
   }
 
   private void validateACLs(ServerContext context) {
