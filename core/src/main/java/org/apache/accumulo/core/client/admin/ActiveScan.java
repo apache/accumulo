@@ -96,4 +96,12 @@ public abstract class ActiveScan {
    * @since 1.5.0
    */
   public abstract long getIdleTime();
+
+  /**
+   * Set user data set on the Scanner.
+   *
+   * @return meaningful data that can be used to correlate server side information
+   * @since 3.0.0
+   */
+  public abstract String getUserData();
 }

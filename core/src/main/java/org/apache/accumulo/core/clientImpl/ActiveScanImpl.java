@@ -55,6 +55,7 @@ public class ActiveScanImpl extends ActiveScan {
   private Map<String,Map<String,String>> ssio;
   private String user;
   private Authorizations authorizations;
+  private String userData;
 
   ActiveScanImpl(ClientContext context,
       org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan)
@@ -81,6 +82,7 @@ public class ActiveScanImpl extends ActiveScan {
       this.ssiList.add(ii.iterName + "=" + ii.priority + "," + ii.className);
     }
     this.ssio = activeScan.ssio;
+    this.userData = activeScan.userData;
   }
 
   @Override
@@ -152,4 +154,10 @@ public class ActiveScanImpl extends ActiveScan {
   public long getIdleTime() {
     return idle;
   }
+
+  @Override
+  public String getUserData() {
+    return userData;
+  }
+
 }

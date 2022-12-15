@@ -70,6 +70,7 @@ public class ScanCommand extends Command {
   private Option contextOpt;
   private Option executionHintsOpt;
   private Option scanServerOpt;
+  private Option userDataOpt;
 
   protected void setupSampling(final String tableName, final CommandLine cl, final Shell shellState,
       ScannerBase scanner)
@@ -92,6 +93,14 @@ public class ScanCommand extends Command {
       return ConsistencyLevel.valueOf(arg.toUpperCase());
     } else {
       return ConsistencyLevel.IMMEDIATE;
+    }
+  }
+
+  protected String getUserData(CommandLine cl) {
+    if (cl.hasOption(userDataOpt.getOpt())) {
+      return cl.getOptionValue(userDataOpt.getOpt());
+    } else {
+      return "Accumulo Shell";
     }
   }
 
@@ -139,6 +148,8 @@ public class ScanCommand extends Command {
       } catch (IllegalArgumentException e) {
         Shell.log.error("Consistency Level argument must be immediate or eventual", e);
       }
+
+      scanner.setUserData(getUserData(cl));
 
       // output the records
 
@@ -447,6 +458,7 @@ public class ScanCommand extends Command {
     executionHintsOpt = new Option(null, "execution-hints", true, "Execution hints map");
     scanServerOpt =
         new Option("cl", "consistency-level", true, "set consistency level (experimental)");
+    userDataOpt = new Option("ud", "userdata", true, "user provided data for scan");
 
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
@@ -462,6 +474,7 @@ public class ScanCommand extends Command {
     contextOpt.setArgName("context");
     executionHintsOpt.setArgName("<key>=<value>{,<key>=<value>}");
     scanServerOpt.setArgName("immediate|eventual");
+    userDataOpt.setArgName("user-data");
 
     profileOpt = new Option("pn", "profile", true, "iterator profile name");
     profileOpt.setArgName("profile");
@@ -497,6 +510,7 @@ public class ScanCommand extends Command {
     o.addOption(contextOpt);
     o.addOption(executionHintsOpt);
     o.addOption(scanServerOpt);
+    o.addOption(userDataOpt);
 
     return o;
   }

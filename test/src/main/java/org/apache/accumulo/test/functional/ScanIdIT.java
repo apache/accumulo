@@ -58,6 +58,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -149,9 +150,17 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
       }
 
-      Set<Long> scanIds = getScanIds(client);
+      Pair<Set<Long>,Set<String>> scanInfo = getScanIds(client);
+      Set<Long> scanIds = scanInfo.getFirst();
+      Set<String> userData = scanInfo.getSecond();
       assertTrue(scanIds.size() >= NUM_SCANNERS,
           "Expected at least " + NUM_SCANNERS + " scanIds, but saw " + scanIds.size());
+      assertTrue(userData.size() >= NUM_SCANNERS,
+          "Expected at least " + NUM_SCANNERS + " user data, but saw " + userData.size());
+
+      for (int scannerIndex = 0; scannerIndex < NUM_SCANNERS; scannerIndex++) {
+        assertTrue(userData.contains("Scanner-Thread-" + scannerIndex));
+      }
 
       scanThreadsToClose.forEach(st -> {
         if (st.scanner != null) {
@@ -159,19 +168,22 @@ public class ScanIdIT extends AccumuloClusterHarness {
         }
       });
 
-      while (!(scanIds = getScanIds(client)).isEmpty()) {
+      scanIds = getScanIds(client).getFirst();
+      while (!scanIds.isEmpty()) {
         log.debug("Waiting for active scans to stop...");
         Thread.sleep(200);
+        scanIds = getScanIds(client).getFirst();
       }
       assertEquals(0, scanIds.size(), "Expected no scanIds after closing scanners");
 
     }
   }
 
-  private Set<Long> getScanIds(AccumuloClient client)
+  private Pair<Set<Long>,Set<String>> getScanIds(AccumuloClient client)
       throws AccumuloSecurityException, InterruptedException, AccumuloException {
     // all scanner have reported at least 1 result, so check for unique scan ids.
     Set<Long> scanIds = new HashSet<>();
+    Set<String> userData = new HashSet<>();
 
     List<String> tservers = client.instanceOperations().getTabletServers();
 
@@ -203,10 +215,11 @@ public class ScanIdIT extends AccumuloClusterHarness {
       for (ActiveScan scan : activeScans) {
         log.debug("Tserver {} scan id {} ({})", tserver, scan.getScanid(), scan.getTable());
         scanIds.add(scan.getScanid());
+        userData.add(scan.getUserData());
       }
     }
 
-    return scanIds;
+    return new Pair<>(scanIds, userData);
   }
 
   /**
@@ -260,6 +273,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
         scanner.setRange(new Range(new Text(Integer.toString(workerIndex)), new Text("9")));
 
         scanner.fetchColumnFamily(new Text("fam1"));
+
+        scanner.setUserData("Scanner-Thread-" + workerIndex);
 
         for (Map.Entry<Key,Value> entry : scanner) {
 

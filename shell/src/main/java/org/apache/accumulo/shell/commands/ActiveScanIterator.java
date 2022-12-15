@@ -47,11 +47,11 @@ class ActiveScanIterator implements Iterator<String> {
           var dur = new DurationFormat(as.getAge(), "");
           var dur2 = new DurationFormat(as.getLastContactTime(), "");
           scans.add(String.format(
-              "%21s |%21s |%9s |%9s |%7s |%6s |%8s |%8s |%10s |%20s |%10s |%20s |%10s | %s",
+              "%21s |%21s |%9s |%9s |%7s |%6s |%8s |%8s |%10s |%20s |%10s |%20s |%10s | %s | %s",
               tserver, as.getClient(), dur, dur2, as.getState(), as.getType(), as.getUser(),
               as.getTable(), as.getColumns(), as.getAuthorizations(),
               (as.getType() == ScanType.SINGLE ? as.getTablet() : "N/A"), as.getScanid(),
-              as.getSsiList(), as.getSsio()));
+              as.getSsiList(), as.getSsio(), as.getUserData()));
         }
       } catch (Exception e) {
         scans.add(tserver + " ERROR " + e.getMessage());
@@ -71,9 +71,9 @@ class ActiveScanIterator implements Iterator<String> {
 
     final String header = String.format(
         " %-21s| %-21s| %-9s| %-9s| %-7s| %-6s|"
-            + " %-8s| %-8s| %-10s| %-20s| %-10s| %-10s | %-20s | %s",
+            + " %-8s| %-8s| %-10s| %-20s| %-10s| %-10s | %-20s | %s | %s",
         "TABLET SERVER", "CLIENT", "AGE", "LAST", "STATE", "TYPE", "USER", "TABLE", "COLUMNS",
-        "AUTHORIZATIONS", "TABLET", "SCAN ID", "ITERATORS", "ITERATOR OPTIONS");
+        "AUTHORIZATIONS", "TABLET", "SCAN ID", "ITERATORS", "ITERATOR OPTIONS", "USER DATA");
 
     scansIter = Collections.singletonList(header).iterator();
   }
