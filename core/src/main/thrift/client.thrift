@@ -20,7 +20,6 @@ namespace java org.apache.accumulo.core.clientImpl.thrift
 namespace cpp org.apache.accumulo.core.clientImpl.thrift
 
 include "security.thrift"
-include "trace.thrift"
 
 enum TableOperation {
   CREATE

@@ -22,7 +22,6 @@ namespace cpp org.apache.accumulo.core.manager.thrift
 include "data.thrift"
 include "security.thrift"
 include "client.thrift"
-include "trace.thrift"
 include "master.thrift"
 
 struct DeadServer {
