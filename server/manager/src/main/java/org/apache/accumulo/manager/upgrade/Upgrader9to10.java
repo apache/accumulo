@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
@@ -151,19 +152,9 @@ public class Upgrader9to10 implements Upgrader {
     }
   }
 
-  private static boolean canWrite(List<ACL> acls) {
-    if (ZooDefs.Ids.OPEN_ACL_UNSAFE.equals(acls)) {
-      return true;
-    }
-    ;
-    for (ACL acl : acls) {
-      String name = extractAuthName(acl);
-      if (("accumulo".equals(name) || "anyone".equals(name))
-          && acl.getPerms() >= ZooDefs.Perms.WRITE) {
-        return true;
-      }
-    }
-    return false;
+  private static boolean canWrite(final Set<String> users, final List<ACL> acls) {
+    return ZooDefs.Ids.OPEN_ACL_UNSAFE.equals(acls) || acls.stream()
+        .anyMatch(a -> users.contains(extractAuthName(a)) && a.getPerms() >= ZooDefs.Perms.WRITE);
   }
 
   private void validateACLs(ServerContext context) {
@@ -172,12 +163,13 @@ public class Upgrader9to10 implements Upgrader {
     final ZooReaderWriter zrw = context.getZooReaderWriter();
     final ZooKeeper zk = zrw.getZooKeeper();
     final String rootPath = context.getZooKeeperRoot();
+    final Set<String> users = Set.of("accumulo", "anyone");
 
     try {
       ZKUtil.visitSubTreeDFS(zk, rootPath, false, (rc, path, ctx, name) -> {
         try {
           final List<ACL> acls = zk.getACL(path, new Stat());
-          if (!canWrite(acls)) {
+          if (!canWrite(users, acls)) {
             log.error(
                 "ZNode at {} does not have an ACL that allows accumulo to write to it. ZNode ACL will need to be modified. Current ACLs: {}",
                 path, acls);
