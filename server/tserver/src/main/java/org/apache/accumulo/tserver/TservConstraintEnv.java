@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.security.AuthorizationContainer;
@@ -30,9 +31,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.SystemEnvironment;
 import org.apache.accumulo.server.security.SecurityOperation;
 
-@SuppressWarnings("deprecation")
-public class TservConstraintEnv
-    implements SystemEnvironment, org.apache.accumulo.core.constraints.Constraint.Environment {
+public class TservConstraintEnv implements SystemEnvironment, Constraint.Environment {
 
   private final ServerContext context;
   private final TCredentials credentials;
@@ -47,11 +46,6 @@ public class TservConstraintEnv
 
   public void setExtent(KeyExtent ke) {
     this.ke = ke;
-  }
-
-  @Override
-  public KeyExtent getExtent() {
-    return ke;
   }
 
   @Override

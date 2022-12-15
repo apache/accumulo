@@ -255,7 +255,7 @@ function refreshECTables() {
 /**
  * Updates session storage then checks if the coordinator is running. If it is,
  * show the tables and hide the 'coordinator not running' banner. Else, vise-versa.
- * 
+ *
  * returns the coordinator status
  */
 async function refreshCoordinatorStatus() {

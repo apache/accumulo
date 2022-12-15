@@ -48,7 +48,7 @@
   </organization>
   <licenses>
     <license>
-      <name>Apache License, Version 2.0</name>
+      <name>Apache-2.0</name>
       <url>https://www.apache.org/licenses/LICENSE-2.0</url>
     </license>
   </licenses>
@@ -132,7 +132,6 @@
     <failsafe.groups />
     <failsafe.reuseForks>false</failsafe.reuseForks>
     <hadoop.version>3.3.4</hadoop.version>
-    <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <!-- prevent introduction of new compiler warnings -->
     <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
@@ -524,11 +523,6 @@
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-tools</artifactId>
         <version>${hadoop.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.htrace</groupId>
-        <artifactId>htrace-core4</artifactId>
-        <version>${htrace.hadoop.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.thrift</groupId>
