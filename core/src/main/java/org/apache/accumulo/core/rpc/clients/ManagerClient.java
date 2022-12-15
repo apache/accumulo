@@ -25,10 +25,11 @@ import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
+
+import com.google.common.net.HostAndPort;
 
 public interface ManagerClient<C extends TServiceClient> {
 

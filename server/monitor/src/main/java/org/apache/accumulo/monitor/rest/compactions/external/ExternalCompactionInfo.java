@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.apache.accumulo.core.util.HostAndPort;
+import com.google.common.net.HostAndPort;
 
 /**
  * Bag of everything going on with external compactions.
