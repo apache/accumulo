@@ -24,7 +24,6 @@ include "security.thrift"
 include "client.thrift"
 include "manager.thrift"
 include "master.thrift"
-include "trace.thrift"
 
 exception NotServingTabletException {
   1:data.TKeyExtent extent
@@ -202,7 +201,7 @@ service TabletScanClientService {
 
   // scan a range of keys
   data.InitialScan startScan(
-    11:trace.TInfo tinfo
+    11:client.TInfo tinfo
     1:security.TCredentials credentials
     2:data.TKeyExtent extent
     3:data.TRange range
@@ -229,7 +228,7 @@ service TabletScanClientService {
   )
 
   data.ScanResult continueScan(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:data.ScanID scanID
     3:i64 busyTimeout
   ) throws (
@@ -241,13 +240,13 @@ service TabletScanClientService {
   )
 
   oneway void closeScan(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:data.ScanID scanID
   )
 
   // scan over a series of ranges
   data.InitialMultiScan startMultiScan(
-    8:trace.TInfo tinfo
+    8:client.TInfo tinfo
     1:security.TCredentials credentials
     2:data.ScanBatch batch
     3:list<data.TColumn> columns
@@ -270,7 +269,7 @@ service TabletScanClientService {
   )
 
   data.MultiScanResult continueMultiScan(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:data.ScanID scanID
     3:i64 busyTimeout
   ) throws (
@@ -280,14 +279,14 @@ service TabletScanClientService {
   )
 
   void closeMultiScan(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:data.ScanID scanID
   ) throws (
     1:NoSuchScanIDException nssi
   )
 
   list<ActiveScan> getActiveScans(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
@@ -299,7 +298,7 @@ service TabletClientService {
 
   //the following calls support a batch update to multiple tablets on a tablet server
   data.UpdateID startUpdate(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:security.TCredentials credentials
     3:TDurability durability
   ) throws (
@@ -307,14 +306,14 @@ service TabletClientService {
   )
 
   oneway void applyUpdates(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:data.UpdateID updateID
     3:data.TKeyExtent keyExtent
     4:list<data.TMutation> mutations
   )
 
   data.UpdateErrors closeUpdate(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:data.UpdateID updateID
   ) throws (
     1:NoSuchScanIDException nssi
@@ -322,7 +321,7 @@ service TabletClientService {
 
   //the following call supports making a single update to a tablet
   void update(
-    4:trace.TInfo tinfo
+    4:client.TInfo tinfo
     1:security.TCredentials credentials
     2:data.TKeyExtent keyExtent
     3:data.TMutation mutation
@@ -334,7 +333,7 @@ service TabletClientService {
   )
 
   data.TConditionalSession startConditionalUpdate(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:list<binary> authorizations
     4:string tableID
@@ -345,7 +344,7 @@ service TabletClientService {
   )
 
   list<data.TCMResult> conditionalUpdate(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:data.UpdateID sessID
     3:data.CMBatch mutations
     4:list<string> symbols
@@ -354,18 +353,18 @@ service TabletClientService {
   )
 
   void invalidateConditionalUpdate(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:data.UpdateID sessID
   )
 
   oneway void closeConditionalUpdate(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:data.UpdateID sessID
   )
 
   // on success, returns an empty list
   list<data.TKeyExtent> bulkImport(
-    3:trace.TInfo tinfo
+    3:client.TInfo tinfo
     1:security.TCredentials credentials
     4:i64 tid
     2:data.TabletFiles files
@@ -375,7 +374,7 @@ service TabletClientService {
   )
 
   oneway void loadFiles(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:i64 tid
     4:string dir
@@ -384,7 +383,7 @@ service TabletClientService {
   )
 
   void splitTablet(
-    4:trace.TInfo tinfo
+    4:client.TInfo tinfo
     1:security.TCredentials credentials
     2:data.TKeyExtent extent
     3:binary splitPoint
@@ -394,14 +393,14 @@ service TabletClientService {
   )
 
   oneway void loadTablet(
-    5:trace.TInfo tinfo
+    5:client.TInfo tinfo
     1:security.TCredentials credentials
     4:string lock
     2:data.TKeyExtent extent
   )
 
   oneway void unloadTablet(
-    5:trace.TInfo tinfo
+    5:client.TInfo tinfo
     1:security.TCredentials credentials
     4:string lock
     2:data.TKeyExtent extent
@@ -410,7 +409,7 @@ service TabletClientService {
   )
 
   oneway void flush(
-    4:trace.TInfo tinfo
+    4:client.TInfo tinfo
     1:security.TCredentials credentials
     3:string lock
     2:string tableId
@@ -419,21 +418,21 @@ service TabletClientService {
   )
 
   oneway void flushTablet(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string lock
     4:data.TKeyExtent extent
   )
 
   oneway void chop(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string lock
     4:data.TKeyExtent extent
   )
 
   oneway void compact(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string lock
     4:string tableId
@@ -442,14 +441,14 @@ service TabletClientService {
   )
 
   master.TabletServerStatus getTabletServerStatus(
-    3:trace.TInfo tinfo
+    3:client.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
   )
 
   list<TabletStats> getTabletStats(
-    3:trace.TInfo tinfo
+    3:client.TInfo tinfo
     1:security.TCredentials credentials
     2:string tableId
   ) throws (
@@ -457,14 +456,14 @@ service TabletClientService {
   )
 
   TabletStats getHistoricalStats(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
   )
 
   void halt(
-    3:trace.TInfo tinfo
+    3:client.TInfo tinfo
     1:security.TCredentials credentials
     2:string lock
   ) throws (
@@ -472,31 +471,31 @@ service TabletClientService {
   )
 
   oneway void fastHalt(
-    3:trace.TInfo tinfo
+    3:client.TInfo tinfo
     1:security.TCredentials credentials
     2:string lock
   )
 
   list<ActiveCompaction> getActiveCompactions(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
   )
 
   oneway void removeLogs(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:list<string> filenames
   )
 
   list<string> getActiveLogs(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
   )
 
   data.TSummaries startGetSummaries(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:data.TSummaryRequest request
   ) throws (
@@ -505,7 +504,7 @@ service TabletClientService {
   )
 
   data.TSummaries startGetSummariesForPartition(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:data.TSummaryRequest request
     4:i32 modulus
@@ -515,7 +514,7 @@ service TabletClientService {
   )
 
   data.TSummaries startGetSummariesFromFiles(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:data.TSummaryRequest request
     4:map<string, list<data.TRowRange>> files
@@ -524,21 +523,21 @@ service TabletClientService {
   )
 
   data.TSummaries contiuneGetSummaries(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:i64 sessionId
   ) throws (
     1:NoSuchScanIDException nssi
   )
   
   list<TCompactionQueueSummary> getCompactionQueueInfo(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
   )
   
   TExternalCompactionJob reserveCompactionJob(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string queueName
     4:i64 priority
@@ -549,7 +548,7 @@ service TabletClientService {
   )
   
   oneway void compactionJobFinished(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string externalCompactionId
     4:data.TKeyExtent extent
@@ -558,7 +557,7 @@ service TabletClientService {
   )
 
   oneway void compactionJobFailed(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string externalCompactionId
     4:data.TKeyExtent extent

@@ -25,9 +25,9 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,8 +131,8 @@ public class TraceUtil {
   }
 
   /**
-   * Obtain {@link org.apache.accumulo.core.trace.thrift.TInfo} for the current context. This is
-   * used to send the current trace information to a remote process
+   * Obtain {@link org.apache.accumulo.core.clientImpl.thrift.TInfo} for the current context. This
+   * is used to send the current trace information to a remote process
    */
   public static TInfo traceInfo() {
     TInfo tinfo = new TInfo();
