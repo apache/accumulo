@@ -152,7 +152,7 @@ public class Upgrader9to10 implements Upgrader {
     }
   }
 
-  private static boolean canWrite(final Set<String> users, final List<ACL> acls) {
+  private static boolean hasAllPermissions(final Set<String> users, final List<ACL> acls) {
     return acls.stream()
         .anyMatch(a -> users.contains(extractAuthName(a)) && a.getPerms() == ZooDefs.Perms.ALL);
   }
@@ -169,7 +169,7 @@ public class Upgrader9to10 implements Upgrader {
       ZKUtil.visitSubTreeDFS(zk, rootPath, false, (rc, path, ctx, name) -> {
         try {
           final List<ACL> acls = zk.getACL(path, new Stat());
-          if (!canWrite(users, acls)) {
+          if (!hasAllPermissions(users, acls)) {
             log.error(
                 "ZNode at {} does not have an ACL that allows accumulo to write to it. ZNode ACL will need to be modified. Current ACLs: {}",
                 path, acls);
