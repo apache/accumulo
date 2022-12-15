@@ -98,7 +98,7 @@ public class VerifyTabletAssignments {
     final HashSet<KeyExtent> failures = new HashSet<>();
 
     Comparator<HostAndPort> comparator = Comparator.nullsFirst(
-            Comparator.comparing(HostAndPort::getHost).thenComparingInt(h -> h.getPortOrDefault(0)));
+        Comparator.comparing(HostAndPort::getHost).thenComparingInt(h -> h.getPortOrDefault(0)));
 
     Map<HostAndPort,List<KeyExtent>> extentsPerServer = new TreeMap<>(comparator);
 
