@@ -21,6 +21,7 @@ package org.apache.accumulo.core.util;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -29,57 +30,62 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
-class HostAndPortTest {
+import com.google.common.net.HostAndPort;
+
+class HostAndPortComparatorTest {
+
+  final static private Comparator<HostAndPort> COMPARATOR = new HostAndPortComparator();
 
   @Test
-  void testCompareTo() {
+  void testCompare() {
+
     HostAndPort hostAndPort1 = HostAndPort.fromString("example.info");
     HostAndPort hostAndPort2 = HostAndPort.fromString("example.com");
-    assertTrue(hostAndPort1.compareTo(hostAndPort2) > 0);
+    assertTrue(COMPARATOR.compare(hostAndPort1, hostAndPort2) > 0);
 
     HostAndPort hostPortSame = HostAndPort.fromString("www.test.com");
-    assertTrue(hostPortSame.compareTo(hostPortSame) == 0);
+    assertTrue(COMPARATOR.compare(hostPortSame, hostPortSame) == 0);
 
     hostAndPort1 = HostAndPort.fromString("www.example.com");
     hostAndPort2 = HostAndPort.fromString("www.example.com");
-    assertTrue(hostAndPort1.compareTo(hostAndPort2) == 0);
+    assertTrue(COMPARATOR.compare(hostAndPort1, hostAndPort2) == 0);
 
     hostAndPort1 = HostAndPort.fromString("192.0.2.1:80");
     hostAndPort2 = HostAndPort.fromString("192.0.2.1");
-    assertTrue(hostAndPort1.compareTo(hostAndPort2) > 0);
+    assertTrue(COMPARATOR.compare(hostAndPort1, hostAndPort2) > 0);
 
     hostAndPort1 = HostAndPort.fromString("[2001:db8::1]");
     hostAndPort2 = HostAndPort.fromString("[2001:db9::1]");
-    assertTrue(hostAndPort1.compareTo(hostAndPort2) < 0);
+    assertTrue(COMPARATOR.compare(hostAndPort1, hostAndPort2) < 0);
 
     hostAndPort1 = HostAndPort.fromString("2001:db8:3333:4444:5555:6676:7777:8888");
     hostAndPort2 = HostAndPort.fromString("2001:db8:3333:4444:5555:6666:7777:8888");
-    assertTrue(hostAndPort1.compareTo(hostAndPort2) > 0);
+    assertTrue(COMPARATOR.compare(hostAndPort1, hostAndPort2) > 0);
 
     hostAndPort1 = HostAndPort.fromString("192.0.2.1:80");
     hostAndPort2 = HostAndPort.fromString("192.1.2.1");
-    assertTrue(hostAndPort1.compareTo(hostAndPort2) < 0);
+    assertTrue(COMPARATOR.compare(hostAndPort1, hostAndPort2) < 0);
 
     hostAndPort1 = HostAndPort.fromString("12.1.2.1");
     hostAndPort2 = HostAndPort.fromString("192.1.2.1");
-    assertTrue(hostAndPort1.compareTo(hostAndPort2) < 0);
+    assertTrue(COMPARATOR.compare(hostAndPort1, hostAndPort2) < 0);
 
     hostAndPort1 = HostAndPort.fromString("wwww.example.com");
     hostAndPort2 = HostAndPort.fromString("192.1.2.1");
-    assertTrue(hostAndPort1.compareTo(hostAndPort2) > 0);
+    assertTrue(COMPARATOR.compare(hostAndPort1, hostAndPort2) > 0);
 
     hostAndPort1 = HostAndPort.fromString("2001:db8::1");
     hostAndPort2 = HostAndPort.fromString("2001:db9::1");
-    assertTrue(hostAndPort1.compareTo(hostAndPort2) < 0);
+    assertTrue(COMPARATOR.compare(hostAndPort1, hostAndPort2) < 0);
 
     hostAndPort1 = HostAndPort.fromString("");
     hostAndPort2 = HostAndPort.fromString("2001:db9::1");
-    assertTrue(hostAndPort1.compareTo(hostAndPort2) < 0);
-    assertTrue(hostAndPort2.compareTo(hostAndPort1) > 0);
+    assertTrue(COMPARATOR.compare(hostAndPort1, hostAndPort2) < 0);
+    assertTrue(COMPARATOR.compare(hostAndPort2, hostAndPort1) > 0);
 
     hostAndPort1 = HostAndPort.fromString("2001:db8::1");
     hostAndPort2 = null;
-    assertTrue(hostAndPort1.compareTo(hostAndPort2) > 0);
+    assertTrue(COMPARATOR.compare(hostAndPort1, hostAndPort2) > 0);
   }
 
   @Test
@@ -92,7 +98,8 @@ class HostAndPortTest {
             "2.2.2.2:10000", "192.12.2.1:79", "1.1.1.1:24", "1.1.1.1", "192.12.2.1:79", "a.b.c.d",
             "1.100.100.100", "2.2.2.2:9999", "a.b.b.d", "www.example.com", "www.alpha.org",
             "a.b.c.d:10", "a.b.b.d:10", "a.b.b.d:11")
-        .map(HostAndPort::fromString).collect(Collectors.toCollection(TreeSet::new));
+        .map(HostAndPort::fromString)
+        .collect(Collectors.toCollection(() -> new TreeSet<>(COMPARATOR)));
     hostPortSet.add(HostAndPort.fromParts("localhost", 1));
     hostPortSet.add(HostAndPort.fromParts("localhost", 000001));
 

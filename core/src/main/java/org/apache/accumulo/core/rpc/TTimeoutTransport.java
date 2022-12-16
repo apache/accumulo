@@ -28,13 +28,14 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.spi.SelectorProvider;
 
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.thrift.transport.TIOStreamTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * A utility class for setting up a {@link TTransport} with various necessary configurations for
