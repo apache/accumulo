@@ -27,7 +27,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -69,7 +68,7 @@ public class ZKPermHandler implements PermissionHandler {
     zooCache = new ZooCache(context.getZooReader(), null);
     zoo = context.getZooReaderWriter();
     InstanceId instanceId = context.getInstanceID();
-    zkUserPath = ZKSecurityTool.getInstancePath(instanceId) + Constants.ZUSERS;
+    zkUserPath = context.zkUserPath();
     ZKTablePath = ZKSecurityTool.getInstancePath(instanceId) + "/tables";
     ZKNamespacePath = ZKSecurityTool.getInstancePath(instanceId) + "/namespaces";
   }

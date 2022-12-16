@@ -24,7 +24,6 @@ import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -63,7 +62,7 @@ public class KerberosAuthenticator implements Authenticator {
     zooCache = new ZooCache(context.getZooReader(), null);
     impersonation = new UserImpersonation(context.getConfiguration());
     zkAuthenticator.initialize(context);
-    zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZUSERS;
+    zkUserPath = context.zkUserPath();
   }
 
   @Override

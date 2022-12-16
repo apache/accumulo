@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -53,7 +52,7 @@ public final class ZKAuthenticator implements Authenticator {
   public void initialize(ServerContext context) {
     this.context = context;
     zooCache = new ZooCache(context.getZooReader(), null);
-    zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZUSERS;
+    zkUserPath = context.zkUserPath();
   }
 
   /**

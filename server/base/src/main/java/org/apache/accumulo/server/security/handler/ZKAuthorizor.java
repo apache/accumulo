@@ -23,7 +23,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
@@ -51,7 +50,7 @@ public class ZKAuthorizor implements Authorizor {
   public void initialize(ServerContext context) {
     this.context = context;
     zooCache = new ZooCache(context.getZooReader(), null);
-    zkUserPath = ZKSecurityTool.getInstancePath(context.getInstanceID()) + Constants.ZUSERS;
+    zkUserPath = context.zkUserPath();
   }
 
   @Override
