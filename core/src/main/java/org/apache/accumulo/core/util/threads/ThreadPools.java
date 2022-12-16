@@ -248,9 +248,6 @@ public class ThreadPools {
       final Property p, boolean emitThreadPoolMetrics) {
 
     switch (p) {
-      case GENERAL_SIMPLETIMER_THREADPOOL_SIZE:
-        return createScheduledExecutorService(conf.getCount(p), "SimpleTimer",
-            emitThreadPoolMetrics);
       case GENERAL_THREADPOOL_SIZE:
         return createScheduledExecutorService(conf.getCount(p), "GeneralExecutor",
             emitThreadPoolMetrics);
@@ -470,10 +467,8 @@ public class ThreadPools {
    */
   public ScheduledThreadPoolExecutor
       createGeneralScheduledExecutorService(AccumuloConfiguration conf) {
-    @SuppressWarnings("deprecation")
-    Property oldProp = Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE;
-    Property prop = conf.resolve(Property.GENERAL_THREADPOOL_SIZE, oldProp);
-    return (ScheduledThreadPoolExecutor) createExecutorService(conf, prop, true);
+    return (ScheduledThreadPoolExecutor) createExecutorService(conf,
+        Property.GENERAL_THREADPOOL_SIZE, true);
   }
 
   /**

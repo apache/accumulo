@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer1;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.BufferedWriter;
 import java.io.OutputStreamWriter;

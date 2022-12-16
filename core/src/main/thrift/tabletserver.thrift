@@ -24,7 +24,6 @@ include "security.thrift"
 include "client.thrift"
 include "manager.thrift"
 include "master.thrift"
-include "trace.thrift"
 
 exception NotServingTabletException {
   1:data.TKeyExtent extent
