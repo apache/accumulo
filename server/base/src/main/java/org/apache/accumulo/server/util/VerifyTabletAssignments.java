@@ -20,7 +20,6 @@ package org.apache.accumulo.server.util;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +51,7 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.HostAndPortComparator;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -97,10 +97,7 @@ public class VerifyTabletAssignments {
 
     final HashSet<KeyExtent> failures = new HashSet<>();
 
-    Comparator<HostAndPort> comparator = Comparator.nullsFirst(
-        Comparator.comparing(HostAndPort::getHost).thenComparingInt(h -> h.getPortOrDefault(0)));
-
-    Map<HostAndPort,List<KeyExtent>> extentsPerServer = new TreeMap<>(comparator);
+    Map<HostAndPort,List<KeyExtent>> extentsPerServer = new TreeMap<>(new HostAndPortComparator());
 
     for (Entry<KeyExtent,String> entry : tabletLocations.entrySet()) {
       KeyExtent keyExtent = entry.getKey();
