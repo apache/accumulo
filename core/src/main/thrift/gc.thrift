@@ -20,7 +20,6 @@ namespace java org.apache.accumulo.core.gc.thrift
 namespace cpp org.apache.accumulo.core.gc.thrift
 
 include "security.thrift"
-include "trace.thrift"
 include "client.thrift"
 
 struct GcCycleStats {
@@ -43,7 +42,7 @@ struct GCStatus {
 service GCMonitorService {
 
   GCStatus getStatus(
-    2:trace.TInfo tinfo
+    2:client.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
