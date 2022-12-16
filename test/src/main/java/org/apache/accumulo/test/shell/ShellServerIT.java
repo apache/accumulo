@@ -102,9 +102,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Tag(SUNNY_DAY)
 public class ShellServerIT extends SharedMiniClusterBase {
 
-  @SuppressWarnings("removal")
-  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
-      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
+  private static final Property CONTEXT_CLASSPATH_PROPERTY = Property.CONTEXT_CLASSPATH_PROPERTY;
 
   private static final Logger log = LoggerFactory.getLogger(ShellServerIT.class);
 
@@ -1531,8 +1529,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     File fooFilterJar = initJar("/org/apache/accumulo/test/FooFilter.jar", "FooFilter", rootPath);
 
-    ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI()
-        + "," + fooConstraintJar.toURI(), true);
+    ts.exec("config -s " + CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI() + ","
+        + fooConstraintJar.toURI(), true);
 
     ts.exec("createtable " + table, true);
     ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=cx1",
@@ -1564,7 +1562,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert ok foo q v", true);
 
     ts.exec("deletetable -f " + table, true);
-    ts.exec("config -d " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
+    ts.exec("config -d " + CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
 
   }
 
@@ -1711,10 +1709,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.contains("class not found"));
     make10();
     setupFakeContextPath();
-    // Add the context to the table so that setiter works.
-    result = ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "="
-        + FAKE_CONTEXT_CLASSPATH);
-    assertEquals("root@miniInstance " + tableName + "> config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY
+    // Add the context to the table so that setter works.
+    result = ts.exec(
+        "config -s " + CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH);
+    assertEquals("root@miniInstance " + tableName + "> config -s " + CONTEXT_CLASSPATH_PROPERTY
         + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH + "\n", result);
 
     result = ts.exec("config -t " + tableName + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey()
@@ -1747,9 +1745,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     setupRealContextPath();
     // Define a new classloader context, but don't set it on the table
-    result = ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "="
-        + REAL_CONTEXT_CLASSPATH);
-    assertEquals("root@miniInstance " + tableName + "> config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY
+    result = ts.exec(
+        "config -s " + CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH);
+    assertEquals("root@miniInstance " + tableName + "> config -s " + CONTEXT_CLASSPATH_PROPERTY
         + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH + "\n", result);
     // Override the table classloader context with the REAL implementation of
     // ValueReversingIterator, which does reverse the value.

@@ -20,6 +20,8 @@ package org.apache.accumulo.core.classloader;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
@@ -32,6 +34,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,25 +52,28 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
   private static final Logger LOG = LoggerFactory.getLogger(DefaultContextClassLoaderFactory.class);
   private static final String className = DefaultContextClassLoaderFactory.class.getName();
 
-  @SuppressWarnings("removal")
-  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
-      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
+  private static final Property CONTEXT_CLASSPATH_PROPERTY = Property.CONTEXT_CLASSPATH_PROPERTY;
+
+  private static ContextManager contextManager;
 
   public DefaultContextClassLoaderFactory(final AccumuloConfiguration accConf) {
     if (!isInstantiated.compareAndSet(false, true)) {
       throw new IllegalStateException("Can only instantiate " + className + " once");
     }
     Supplier<Map<String,String>> contextConfigSupplier =
-        () -> accConf.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
+        () -> accConf.getAllPropertiesWithPrefix(CONTEXT_CLASSPATH_PROPERTY);
     setContextConfig(contextConfigSupplier);
     LOG.debug("ContextManager configuration set");
     startCleanupThread(accConf, contextConfigSupplier);
   }
 
-  @SuppressWarnings("deprecation")
   private static void setContextConfig(Supplier<Map<String,String>> contextConfigSupplier) {
-    org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
-        .setContextConfig(contextConfigSupplier);
+    var config = new ContextManager.DefaultContextsConfig(contextConfigSupplier);
+    try {
+      getContextManager().setContextConfig(config);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   private static void startCleanupThread(final AccumuloConfiguration conf,
@@ -77,7 +84,7 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
         .scheduleWithFixedDelay(Threads.createNamedRunnable(className + "-cleanup", () -> {
           LOG.trace("{}-cleanup thread, properties: {}", className, conf);
           Set<String> contextsInUse = contextConfigSupplier.get().keySet().stream()
-              .map(p -> p.substring(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey().length()))
+              .map(p -> p.substring(CONTEXT_CLASSPATH_PROPERTY.getKey().length()))
               .collect(Collectors.toSet());
           LOG.trace("{}-cleanup thread, contexts in use: {}", className, contextsInUse);
           removeUnusedContexts(contextsInUse);
@@ -86,17 +93,30 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
     LOG.debug("Context cleanup timer started at 60s intervals");
   }
 
-  @SuppressWarnings("deprecation")
-  private static void removeUnusedContexts(Set<String> contextsInUse) {
-    org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
-        .removeUnusedContexts(contextsInUse);
-  }
-
-  @SuppressWarnings("deprecation")
   @Override
   public ClassLoader getClassLoader(String contextName) {
-    return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
-        .getContextClassLoader(contextName);
+    try {
+      return getContextManager().getClassLoader(contextName);
+    } catch (IOException e) {
+      throw new UncheckedIOException(
+          "Error getting context class loader for context: " + contextName, e);
+    }
   }
 
+  public static void removeUnusedContexts(Set<String> contextsInUse) {
+    try {
+      getContextManager().removeUnusedContexts(contextsInUse);
+    } catch (IOException e) {
+      LOG.warn("{}", e.getMessage(), e);
+    }
+  }
+
+  private static synchronized ContextManager getContextManager() throws IOException {
+    if (contextManager == null) {
+      // getClassLoader();
+      contextManager = new ContextManager(AccumuloClassLoader.getClassLoader());
+    }
+
+    return contextManager;
+  }
 }

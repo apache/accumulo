@@ -18,9 +18,12 @@
  */
 package org.apache.accumulo.core.classloader;
 
+import java.io.IOException;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
+import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,7 +79,11 @@ public class ClassLoaderUtil {
     if (context != null && !context.isEmpty()) {
       return FACTORY.getClassLoader(context);
     } else {
-      return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.getClassLoader();
+      try {
+        return AccumuloClassLoader.getClassLoader();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 

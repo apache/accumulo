@@ -38,6 +38,7 @@ import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
+import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
@@ -194,20 +195,6 @@ public enum Property {
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of accumulo overall, but"
           + " do not have to be consistent throughout a cloud.",
-      "1.3.5"),
-  @Deprecated(since = "2.0.0")
-  GENERAL_DYNAMIC_CLASSPATHS(
-      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME,
-      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE,
-      PropertyType.STRING,
-      "A list of all of the places where changes "
-          + "in jars or classes will force a reload of the classloader. Built-in dynamic class "
-          + "loading will be removed in a future version. If this is needed, consider overriding "
-          + "the Java system class loader with one that has this feature "
-          + "(https://docs.oracle.com/javase/8/docs/api/java/lang/ClassLoader.html#getSystemClassLoader--). "
-          + "Additionally, this property no longer does property interpolation of environment "
-          + "variables, such as '$ACCUMULO_HOME'. Use commons-configuration syntax,"
-          + "'${env:ACCUMULO_HOME}' instead.",
       "1.3.5"),
   GENERAL_CONTEXT_CLASSLOADER_FACTORY("general.context.class.loader.factory", "",
       PropertyType.CLASSNAME,
@@ -1092,21 +1079,8 @@ public enum Property {
           + "constraint.",
       "2.0.0"),
 
-  // VFS ClassLoader properties
-
-  // this property shouldn't be used directly; it exists solely to document the default value
-  // defined by its use in AccumuloVFSClassLoader when generating the property documentation
-  @Deprecated(since = "2.1.0", forRemoval = true)
-  VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
-      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY,
-      "", PropertyType.STRING,
-      "Configuration for a system level vfs classloader. Accumulo jar can be"
-          + " configured here and loaded out of HDFS.",
-      "1.5.0"),
-  @Deprecated(since = "2.1.0", forRemoval = true)
-  VFS_CONTEXT_CLASSPATH_PROPERTY(
-      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY,
-      null, PropertyType.PREFIX,
+  // ClassLoader properties
+  CONTEXT_CLASSPATH_PROPERTY(ContextManager.CONTEXT_CLASSPATH_PROPERTY, null, PropertyType.PREFIX,
       "Properties in this category are define a classpath. These properties"
           + " start  with the category prefix, followed by a context name. The value is"
           + " a comma separated list of URIs. Supports full regex on filename alone."
@@ -1116,20 +1090,7 @@ public enum Property {
           + " `general.vfs.context.classpath.<name>.delegation=post`, where `<name>` is"
           + " your context name. If delegation is not specified, it defaults to loading"
           + " from parent classloader first.",
-      "1.5.0"),
-
-  // this property shouldn't be used directly; it exists solely to document the default value
-  // defined by its use in AccumuloVFSClassLoader when generating the property documentation
-  @Deprecated(since = "2.1.0", forRemoval = true)
-  VFS_CLASSLOADER_CACHE_DIR(
-      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.VFS_CACHE_DIR,
-      "${java.io.tmpdir}", PropertyType.ABSOLUTEPATH,
-      "The base directory to use for the vfs cache. The actual cached files will be located"
-          + " in a subdirectory, `accumulo-vfs-cache-<jvmProcessName>-${user.name}`, where"
-          + " `<jvmProcessName>` is determined by the JVM's internal management engine."
-          + " The cache will keep a soft reference to all of the classes loaded in the VM."
-          + " This should be on local disk on each node with sufficient space.",
-      "1.5.0"),
+      "3.0.0"),
 
   // Compactor properties
   @Experimental
@@ -1510,7 +1471,7 @@ public enum Property {
         || key.startsWith(Property.MANAGER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
-        || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey());
+        || key.startsWith(CONTEXT_CLASSPATH_PROPERTY.getKey());
   }
 
   /**

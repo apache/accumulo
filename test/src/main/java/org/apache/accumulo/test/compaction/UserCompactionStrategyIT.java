@@ -153,10 +153,10 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
       assertTrue(target.mkdirs() || target.isDirectory());
       var destFile = initJar("/org/apache/accumulo/test/TestCompactionStrat.jar",
           "TestCompactionStrat", target.getAbsolutePath());
-      c.instanceOperations().setProperty(
-          Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
+      c.instanceOperations().setProperty(Property.CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1",
+          destFile.toString());
       HashMap<String,String> props = new HashMap<>();
-      props.put(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "context1");
+      props.put(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "context");
       SortedSet<Text> splits = new TreeSet<>(Arrays.asList(new Text("efg")));
       var ntc = new NewTableConfiguration().setProperties(props).withSplits(splits);
       c.tableOperations().create(tableName, ntc);

@@ -53,8 +53,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class MiniAccumuloClusterClasspathTest extends WithTestNames {
 
   @SuppressWarnings("removal")
-  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
-      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
+  private static final Property CONTEXT_CLASSPATH_PROPERTY = Property.CONTEXT_CLASSPATH_PROPERTY;
 
   @TempDir
   private static File tempDir;
@@ -83,7 +82,7 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
     config.setZooKeeperPort(0);
     HashMap<String,String> site = new HashMap<>();
     site.put(Property.TSERV_WORKQ_THREADS.getKey(), "2");
-    site.put(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1", jarFile.toURI().toString());
+    site.put(CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1", jarFile.toURI().toString());
     config.setSiteConfig(site);
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();

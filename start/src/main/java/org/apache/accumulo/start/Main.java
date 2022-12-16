@@ -94,26 +94,13 @@ public class Main {
   public static synchronized ClassLoader getClassLoader() {
     if (classLoader == null) {
       try {
-        classLoader = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader").invoke(null);
+        classLoader = org.apache.accumulo.start.classloader.AccumuloClassLoader.getClassLoader();
         Thread.currentThread().setContextClassLoader(classLoader);
-      } catch (IOException | IllegalArgumentException | ReflectiveOperationException
-          | SecurityException e) {
+      } catch (IOException | IllegalArgumentException | SecurityException e) {
         die(e, "Problem initializing the class loader");
       }
     }
     return classLoader;
-  }
-
-  @Deprecated
-  private static synchronized Class<?> getVFSClassLoader()
-      throws IOException, ClassNotFoundException {
-    if (vfsClassLoader == null) {
-      Thread.currentThread().setContextClassLoader(
-          org.apache.accumulo.start.classloader.AccumuloClassLoader.getClassLoader());
-      vfsClassLoader = org.apache.accumulo.start.classloader.AccumuloClassLoader.getClassLoader()
-          .loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
-    }
-    return vfsClassLoader;
   }
 
   private static void execKeyword(final KeywordExecutable keywordExec, final String[] args) {

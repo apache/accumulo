@@ -53,10 +53,9 @@ import org.junit.jupiter.api.Test;
 public class ScannerContextIT extends AccumuloClusterHarness {
 
   private static final String CONTEXT = ScannerContextIT.class.getSimpleName();
-  @SuppressWarnings("removal")
-  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
-      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
-  private static final String CONTEXT_PROPERTY = VFS_CONTEXT_CLASSPATH_PROPERTY + CONTEXT;
+
+  private static final Property CONTEXT_CLASSPATH_PROPERTY = Property.CONTEXT_CLASSPATH_PROPERTY;
+  private static final String CONTEXT_PROPERTY = CONTEXT_CLASSPATH_PROPERTY + CONTEXT;
   private static final String CONTEXT_DIR = "file://" + System.getProperty("user.dir") + "/target";
   private static final String CONTEXT_CLASSPATH = CONTEXT_DIR + "/Test.jar";
   private static int ITERATIONS = 10;
@@ -137,7 +136,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       // Create two contexts FOO and ScanContextIT. The FOO context will point to a classpath
       // that contains nothing. The ScanContextIT context will point to the test iterators jar
       String tableContext = "FOO";
-      String tableContextProperty = VFS_CONTEXT_CLASSPATH_PROPERTY + tableContext;
+      String tableContextProperty = CONTEXT_CLASSPATH_PROPERTY + tableContext;
       String tableContextDir = "file://" + System.getProperty("user.dir") + "/target";
       String tableContextClasspath = tableContextDir + "/TestFoo.jar";
       // Define both contexts

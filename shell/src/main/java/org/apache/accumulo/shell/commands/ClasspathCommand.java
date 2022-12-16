@@ -30,9 +30,9 @@ public class ClasspathCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) {
 
     final PrintWriter writer = shellState.getWriter();
-    org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.printClassPath(s -> {
-      writer.print(s);
-    }, true);
+    // org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.printClassPath(s -> {
+    // writer.print(s);
+    // }, true);
     return 0;
   }
 

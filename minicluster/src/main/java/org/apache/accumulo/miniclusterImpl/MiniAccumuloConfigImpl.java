@@ -155,9 +155,6 @@ public class MiniAccumuloConfigImpl {
       @SuppressWarnings("deprecation")
       Property generalClasspaths = Property.GENERAL_CLASSPATHS;
       mergeProp(generalClasspaths.getKey(), libDir.getAbsolutePath() + "/[^.].*[.]jar");
-      @SuppressWarnings("deprecation")
-      Property generalDynamicClasspaths = Property.GENERAL_DYNAMIC_CLASSPATHS;
-      mergeProp(generalDynamicClasspaths.getKey(), libExtDir.getAbsolutePath() + "/[^.].*[.]jar");
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
       mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
       mergePropWithRandomPort(Property.MANAGER_CLIENTPORT.getKey());

@@ -19,25 +19,30 @@
 package org.apache.accumulo.start.classloader.vfs;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
-import org.apache.commons.vfs2.FileSystemException;
-import org.apache.commons.vfs2.FileSystemManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Deprecated
-class ContextManager {
+//@Deprecated
+public class ContextManager {
 
   private static final Logger log = LoggerFactory.getLogger(ContextManager.class);
 
+  public static final String CONTEXT_CLASSPATH_PROPERTY = "general.vfs.context.classpath.";
+
   // there is a lock per context so that one context can initialize w/o blocking another context
   private class Context {
-    AccumuloReloadingVFSClassLoader loader;
+    URLClassLoader loader;
     ContextConfig cconfig;
     boolean closed = false;
 
@@ -45,27 +50,28 @@ class ContextManager {
       this.cconfig = cconfig;
     }
 
-    synchronized ClassLoader getClassLoader() throws FileSystemException {
+    synchronized ClassLoader getClassLoader() throws IOException {
       if (closed) {
         return null;
       }
 
       if (loader == null) {
-        log.debug(
-            "ClassLoader not created for context {}, creating new one. uris: {}, preDelegation: {}",
-            cconfig.name, cconfig.uris, cconfig.preDelegation);
-        loader =
-            new AccumuloReloadingVFSClassLoader(cconfig.uris, vfs, parent, cconfig.preDelegation);
+        log.debug("ClassLoader not created for context {}, creating new one. uris: {}",
+            cconfig.name, cconfig.uris);
+        loader = new URLClassLoader(Arrays.stream(cconfig.uris.split(",")).map(url -> {
+          try {
+            return new URL("file://" + url);
+          } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+          }
+        }).collect(Collectors.toList()).toArray(new URL[] {}), parent);
       }
 
-      return loader.getClassLoader();
+      return loader;
     }
 
     synchronized void close() {
       closed = true;
-      if (loader != null) {
-        loader.close();
-      }
       loader = null;
     }
   }
@@ -73,11 +79,9 @@ class ContextManager {
   private Map<String,Context> contexts = new HashMap<>();
 
   private volatile ContextsConfig config;
-  private FileSystemManager vfs;
-  private ReloadingClassLoader parent;
+  private ClassLoader parent;
 
-  ContextManager(FileSystemManager vfs, ReloadingClassLoader parent) {
-    this.vfs = vfs;
+  public ContextManager(ClassLoader parent) {
     this.parent = parent;
   }
 
@@ -85,12 +89,10 @@ class ContextManager {
   public static class ContextConfig {
     final String name;
     final String uris;
-    final boolean preDelegation;
 
-    public ContextConfig(String name, String uris, boolean preDelegation) {
+    public ContextConfig(String name, String uris) {
       this.name = name;
       this.uris = uris;
-      this.preDelegation = preDelegation;
     }
 
     @Override
@@ -98,7 +100,7 @@ class ContextManager {
       if (o instanceof ContextConfig) {
         ContextConfig oc = (ContextConfig) o;
 
-        return name.equals(oc.name) && uris.equals(oc.uris) && preDelegation == oc.preDelegation;
+        return name.equals(oc.name) && uris.equals(oc.uris);
       }
 
       return false;
@@ -106,8 +108,7 @@ class ContextManager {
 
     @Override
     public int hashCode() {
-      return name.hashCode() + uris.hashCode()
-          + (preDelegation ? Boolean.TRUE : Boolean.FALSE).hashCode();
+      return name.hashCode() + uris.hashCode();
     }
   }
 
@@ -117,18 +118,17 @@ class ContextManager {
 
   public static class DefaultContextsConfig implements ContextsConfig {
 
-    private final Supplier<Map<String,String>> vfsContextClasspathPropertiesProvider;
+    private final Supplier<Map<String,String>> contextClasspathPropertiesProvider;
 
-    public DefaultContextsConfig(
-        Supplier<Map<String,String>> vfsContextClasspathPropertiesProvider) {
-      this.vfsContextClasspathPropertiesProvider = vfsContextClasspathPropertiesProvider;
+    public DefaultContextsConfig(Supplier<Map<String,String>> contextClasspathPropertiesProvider) {
+      this.contextClasspathPropertiesProvider = contextClasspathPropertiesProvider;
     }
 
     @Override
     public ContextConfig getContextConfig(String context) {
 
-      String prop = AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY + context;
-      Map<String,String> props = vfsContextClasspathPropertiesProvider.get();
+      String prop = CONTEXT_CLASSPATH_PROPERTY + context;
+      Map<String,String> props = contextClasspathPropertiesProvider.get();
 
       String uris = props.get(prop);
 
@@ -136,15 +136,7 @@ class ContextManager {
         return null;
       }
 
-      String delegate = props.get(prop + ".delegation");
-
-      boolean preDelegate = true;
-
-      if (delegate != null && delegate.trim().equalsIgnoreCase("post")) {
-        preDelegate = false;
-      }
-
-      return new ContextConfig(context, uris, preDelegate);
+      return new ContextConfig(context, uris);
     }
   }
 
@@ -158,7 +150,7 @@ class ContextManager {
     this.config = config;
   }
 
-  public ClassLoader getClassLoader(String contextName) throws FileSystemException {
+  public ClassLoader getClassLoader(String contextName) throws IOException {
 
     ContextConfig cconfig = config.getContextConfig(contextName);
 
