@@ -16,29 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.rpc;
+package org.apache.accumulo.core.util;
 
-import org.apache.thrift.server.TServer;
+import java.util.Comparator;
 
 import com.google.common.net.HostAndPort;
 
-/**
- * Encapsulate a Thrift server and the address, host and port, to which it is bound.
- */
-public class ServerAddress {
-  public final TServer server;
-  public final HostAndPort address;
+public class HostAndPortComparator implements Comparator<HostAndPort> {
 
-  public ServerAddress(TServer server, HostAndPort address) {
-    this.server = server;
-    this.address = address;
-  }
+  private static final Comparator<HostAndPort> COMPARATOR = Comparator.nullsFirst(
+      Comparator.comparing(HostAndPort::getHost).thenComparingInt(h -> h.getPortOrDefault(0)));
 
-  public TServer getServer() {
-    return server;
-  }
-
-  public HostAndPort getAddress() {
-    return address;
+  @Override
+  public int compare(HostAndPort o1, HostAndPort o2) {
+    return COMPARATOR.compare(o1, o2);
   }
 }

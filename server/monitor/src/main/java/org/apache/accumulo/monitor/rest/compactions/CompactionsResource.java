@@ -28,8 +28,9 @@ import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.monitor.Monitor;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * Generate a new Compaction list JSON object
