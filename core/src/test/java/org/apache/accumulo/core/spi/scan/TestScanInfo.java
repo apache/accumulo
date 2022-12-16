@@ -39,6 +39,7 @@ public class TestScanInfo implements ScanInfo {
   Stat runTimeStats = new Stat();
   Stat idleTimeStats = new Stat();
   Map<String,String> executionHints = Collections.emptyMap();
+  String userData;
 
   TestScanInfo(String testId, Type scanType, long creationTime, int... times) {
     this.testId = testId;
@@ -55,6 +56,8 @@ public class TestScanInfo implements ScanInfo {
     if (times.length > 0) {
       lastRunTime = OptionalLong.of(times[times.length - 1] + creationTime);
     }
+
+    userData = null;
   }
 
   TestScanInfo setExecutionHints(String k, String v) {
@@ -113,4 +116,10 @@ public class TestScanInfo implements ScanInfo {
   public Map<String,String> getExecutionHints() {
     return executionHints;
   }
+
+  @Override
+  public String getUserData() {
+    return userData;
+  }
+
 }

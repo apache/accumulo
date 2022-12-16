@@ -25,6 +25,8 @@ import org.slf4j.event.Level;
 import org.slf4j.helpers.AbstractLogger;
 import org.slf4j.spi.LoggingEventBuilder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ScanUserDataLogger extends AbstractLogger {
 
   private static final long serialVersionUID = 1L;
@@ -139,6 +141,8 @@ public class ScanUserDataLogger extends AbstractLogger {
   }
 
   @Override
+  @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED",
+      justification = "Return value is self, using fluent object in non-fluent manner")
   protected void handleNormalizedLoggingCall(Level level, Marker marker, String messagePattern,
       Object[] arguments, Throwable throwable) {
 

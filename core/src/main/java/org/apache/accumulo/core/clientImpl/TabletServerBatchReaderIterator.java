@@ -620,6 +620,11 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       public Map<String,String> getHints() {
         return options.executionHints;
       }
+
+      @Override
+      public String getUserData() {
+        return options.getUserData();
+      }
     };
 
     var actions = ecsm.selectServers(params);

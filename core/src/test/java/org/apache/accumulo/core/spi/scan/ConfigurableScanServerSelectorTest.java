@@ -126,6 +126,11 @@ public class ConfigurableScanServerSelectorTest {
     public Map<String,String> getHints() {
       return hints;
     }
+
+    @Override
+    public String getUserData() {
+      return "";
+    }
   }
 
   static class TestScanServerAttempt implements ScanServerAttempt {

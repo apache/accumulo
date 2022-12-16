@@ -549,6 +549,11 @@ public class ThriftScanner {
             }
             return scanState.executionHints;
           }
+
+          @Override
+          public String getUserData() {
+            return scanState.userData;
+          }
         };
 
         ScanServerSelections actions = context.getScanServerSelector().selectServers(params);

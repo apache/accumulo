@@ -125,4 +125,9 @@ public interface ScanInfo {
    * @return Hints set by a scanner using {@link ScannerBase#setExecutionHints(Map)}
    */
   Map<String,String> getExecutionHints();
+
+  /**
+   * @return user data set by a scanner using {@link ScannerBase#setUserData(String)}
+   */
+  String getUserData();
 }

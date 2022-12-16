@@ -105,6 +105,12 @@ public interface ScanServerSelector {
      *         were set, an empty map is returned.
      */
     Map<String,String> getHints();
+
+    /**
+     * @return user data set by a scanner using {@link ScannerBase#setUserData(String)}
+     */
+    String getUserData();
+
   }
 
   /**
