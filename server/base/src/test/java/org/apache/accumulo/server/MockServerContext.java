@@ -49,6 +49,7 @@ public class MockServerContext {
     var sc = get();
     expect(sc.getZooKeeperRoot()).andReturn("/accumulo/" + instanceID).anyTimes();
     expect(sc.getInstanceID()).andReturn(instanceID).anyTimes();
+    expect(sc.zkUserPath()).andReturn("/accumulo/" + instanceID + "/users").anyTimes();
     expect(sc.getZooKeepers()).andReturn(zk).anyTimes();
     expect(sc.getZooKeepersSessionTimeOut()).andReturn(zkTimeout).anyTimes();
     return sc;
