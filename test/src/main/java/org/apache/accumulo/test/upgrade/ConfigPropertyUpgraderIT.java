@@ -25,11 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -62,13 +65,35 @@ public class ConfigPropertyUpgraderIT {
   private static ZooKeeper zooKeeper;
   private static ZooReaderWriter zrw;
 
+  // Create legacy renamer for this test
+  private static final DeprecatedPropertyUtil.PropertyRenamer MASTER_MANAGER_RENAMER =
+      DeprecatedPropertyUtil.PropertyRenamer.renamePrefix("master.",
+          Property.MANAGER_PREFIX.getKey());
+  private static List<DeprecatedPropertyUtil.PropertyRenamer> renamers;
+
   private InstanceId instanceId = null;
 
   @TempDir
   private static File tempDir;
 
+  static {
+    try {
+      // Make the renamers list visible to be modified
+      final Field renamersField = DeprecatedPropertyUtil.class.getDeclaredField("renamers");
+      renamersField.setAccessible(true);
+      @SuppressWarnings("unchecked")
+      List<DeprecatedPropertyUtil.PropertyRenamer> renamers = (List<
+          DeprecatedPropertyUtil.PropertyRenamer>) renamersField.get(DeprecatedPropertyUtil.class);
+      ConfigPropertyUpgraderIT.renamers = renamers;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   @BeforeAll
   public static void setupZk() {
+    // Add back in legacy renamer for testing
+    renamers.add(MASTER_MANAGER_RENAMER);
 
     // using default zookeeper port - we don't have a full configuration
     testZk = new ZooKeeperTestingServer(tempDir);
@@ -81,6 +106,8 @@ public class ConfigPropertyUpgraderIT {
 
   @AfterAll
   public static void shutdownZK() throws Exception {
+    // Remove legacy renamer after testing is over
+    renamers.remove(MASTER_MANAGER_RENAMER);
     testZk.close();
   }
 
