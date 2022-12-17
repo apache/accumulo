@@ -69,6 +69,8 @@ import org.apache.thrift.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.primitives.Ints;
+
 /**
  * Factory methods for creating Thrift server objects
  */
@@ -221,7 +223,8 @@ public class TServerUtils {
       long timeBetweenThreadChecks, long maxMessageSize) throws TTransportException {
 
     final TNonblockingServerSocket transport =
-        new TNonblockingServerSocket(new InetSocketAddress(address.getHost(), address.getPort()));
+        new TNonblockingServerSocket(new InetSocketAddress(address.getHost(), address.getPort()), 0,
+            Ints.saturatedCast(maxMessageSize));
 
     TThreadedSelectorServer.Args options = new TThreadedSelectorServer.Args(transport);
 
@@ -256,7 +259,8 @@ public class TServerUtils {
       long maxMessageSize) throws TTransportException {
 
     final TNonblockingServerSocket transport =
-        new TNonblockingServerSocket(new InetSocketAddress(address.getHost(), address.getPort()));
+        new TNonblockingServerSocket(new InetSocketAddress(address.getHost(), address.getPort()), 0,
+            Ints.saturatedCast(maxMessageSize));
     final CustomNonBlockingServer.Args options = new CustomNonBlockingServer.Args(transport);
 
     options.protocolFactory(protocolFactory);
