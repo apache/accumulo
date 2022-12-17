@@ -127,9 +127,14 @@ public class ConfigCommand extends Command {
       value = pair[1];
 
       if (tableName != null) {
-        if (!Property.isValidTablePropertyKey(property)) {
-          throw new BadArgumentException("Invalid per-table property.", fullCommand,
-              fullCommand.indexOf(property));
+        if (!Property.isTablePropertyValid(property, value)) {
+          if (!Property.isValidTablePropertyKey(property)) {
+            throw new BadArgumentException("Invalid per-table property.", fullCommand,
+                fullCommand.indexOf(property));
+          } else {
+            throw new BadArgumentException("Invalid property value.", fullCommand,
+                fullCommand.indexOf(value));
+          }
         }
         if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) {
           new ColumnVisibility(value); // validate that it is a valid expression
@@ -137,9 +142,14 @@ public class ConfigCommand extends Command {
         shellState.getAccumuloClient().tableOperations().setProperty(tableName, property, value);
         Shell.log.debug("Successfully set table configuration option.");
       } else if (namespace != null) {
-        if (!Property.isValidTablePropertyKey(property)) {
-          throw new BadArgumentException("Invalid per-table property.", fullCommand,
-              fullCommand.indexOf(property));
+        if (!Property.isTablePropertyValid(property, value)) {
+          if (!Property.isValidTablePropertyKey(property)) {
+            throw new BadArgumentException("Invalid per-table property.", fullCommand,
+                fullCommand.indexOf(property));
+          } else {
+            throw new BadArgumentException("Invalid property value.", fullCommand,
+                fullCommand.indexOf(value));
+          }
         }
         if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) {
           new ColumnVisibility(value); // validate that it is a valid expression
@@ -151,6 +161,12 @@ public class ConfigCommand extends Command {
         if (!Property.isValidZooPropertyKey(property)) {
           throw new BadArgumentException("Property cannot be modified in zookeeper", fullCommand,
               fullCommand.indexOf(property));
+        }
+        if (!Property.getPropertyByKey(property).getType().isValidFormat(value)) {
+          throw new BadArgumentException(
+              "Invalid Property value (requires type: "
+                  + Property.getPropertyByKey(property).getType().toString() + ")",
+              fullCommand, fullCommand.indexOf(value));
         }
         shellState.getAccumuloClient().instanceOperations().setProperty(property, value);
         Shell.log.debug("Successfully set system configuration option.");
