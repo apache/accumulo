@@ -95,6 +95,20 @@ public class PropertyTest {
     }
   }
 
+  @Test
+  public void testBooleans() {
+    for (Property prop : Property.values()) {
+      if (prop.getType().equals(PropertyType.BOOLEAN)) {
+        assertFalse(prop.getType().isValidFormat("foo"));
+        assertTrue(prop.getType().isValidFormat(null));
+        assertTrue(prop.getType().isValidFormat("true"));
+        assertTrue(prop.getType().isValidFormat("True"));
+        assertTrue(prop.getType().isValidFormat("false"));
+        assertTrue(prop.getType().isValidFormat("False"));
+      }
+    }
+  }
+
   // This test verifies all "sensitive" properties are properly marked as sensitive
   @Test
   public void testSensitiveKeys() {
