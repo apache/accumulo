@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.apache.accumulo.test.functional.ConfigurableMacBase.configureForSsl;
 
 import java.time.Duration;
@@ -32,10 +31,8 @@ import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.thrift.TConfiguration;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-@Tag(SUNNY_DAY)
 public class ThriftMaxFrameSizeIT extends AccumuloClusterHarness {
 
   private ThriftServerType serverType;
@@ -56,36 +53,36 @@ public class ThriftMaxFrameSizeIT extends AccumuloClusterHarness {
 
   @Nested
   class TestDefault extends TestMaxFrameSize {
-    {
+    TestDefault() {
       serverType = ThriftServerType.getDefault();
     }
   }
 
   @Nested
   class TestThreadedSelector extends TestMaxFrameSize {
-    {
+    TestThreadedSelector() {
       serverType = ThriftServerType.THREADED_SELECTOR;
     }
   }
 
   @Nested
   class TestCustomHsHa extends TestMaxFrameSize {
-    {
+    TestCustomHsHa() {
       serverType = ThriftServerType.CUSTOM_HS_HA;
     }
   }
 
   @Nested
   class TestThreadPool extends TestMaxFrameSize {
-    {
+    TestThreadPool() {
       serverType = ThriftServerType.THREADPOOL;
     }
   }
 
   @Nested
   class TestSsl extends TestMaxFrameSize {
-    {
-      serverType = ThriftServerType.SSL;
+    TestSsl() {
+      serverType = ThriftServerType.THREADPOOL;
     }
   }
 
