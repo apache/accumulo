@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -37,7 +38,7 @@ import org.apache.hadoop.io.Text;
  * <p>
  * This class is safe to cache locally.
  */
-public class TimeoutTabletLocator extends SyncingTabletLocator {
+public class TimeoutTabletCache extends SyncingTabletCache {
 
   private long timeout;
   private Long firstFailTime = null;
@@ -54,16 +55,21 @@ public class TimeoutTabletLocator extends SyncingTabletLocator {
     firstFailTime = null;
   }
 
-  public TimeoutTabletLocator(long timeout, final ClientContext context, final TableId table) {
+  public TimeoutTabletCache(long timeout, Supplier<TabletCache> getLocatorFunction) {
+    super(getLocatorFunction);
+    this.timeout = timeout;
+  }
+
+  public TimeoutTabletCache(long timeout, final ClientContext context, final TableId table) {
     super(context, table);
     this.timeout = timeout;
   }
 
   @Override
-  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-      boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public CachedTablet locateTablet(ClientContext context, Text row, boolean skipRow, boolean retry)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     try {
-      TabletLocation ret = super.locateTablet(context, row, skipRow, retry);
+      CachedTablet ret = super.locateTablet(context, row, skipRow, retry);
 
       if (ret == null) {
         failed();

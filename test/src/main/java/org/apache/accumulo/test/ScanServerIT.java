@@ -36,7 +36,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
-import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -154,15 +153,22 @@ public class ScanServerIT extends SharedMiniClusterBase {
       String tableName = getUniqueNames(1)[0];
 
       createTableAndIngest(client, tableName, null, 10, 10, "colf");
+
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new Range());
+        scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
+        assertEquals(100, Iterables.size(scanner));
+      }
+
       client.tableOperations().offline(tableName, true);
 
-      assertThrows(TableOfflineException.class, () -> {
-        try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-          scanner.setRange(new Range());
-          scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-          assertEquals(100, Iterables.size(scanner));
-        } // when the scanner is closed, all open sessions should be closed
-      });
+      // TODO need to ensure that immediate scan still fails
+
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new Range());
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        assertEquals(100, Iterables.size(scanner));
+      } // when the scanner is closed, all open sessions should be closed
     }
   }
 

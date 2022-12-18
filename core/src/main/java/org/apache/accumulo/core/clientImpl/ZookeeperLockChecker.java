@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.clientImpl;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletServerLockChecker;
+import org.apache.accumulo.core.clientImpl.TabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 

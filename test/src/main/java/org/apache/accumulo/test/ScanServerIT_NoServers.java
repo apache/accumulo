@@ -25,13 +25,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
-import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
@@ -130,14 +132,23 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
       createTableAndIngest(client, tableName, null, 10, 10, "colf");
       client.tableOperations().offline(tableName, true);
 
-      assertThrows(TableOfflineException.class, () -> {
+      assertThrows(TimedOutException.class, () -> {
         try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
           scanner.setRange(new Range());
           scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+          scanner.setTimeout(3, TimeUnit.SECONDS);
+          assertEquals(100, Iterables.size(scanner));
+        } // when the scanner is closed, all open sessions should be closed
+      });
+
+      assertThrows(TimedOutException.class, () -> {
+        try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
+          scanner.setRanges(List.of(new Range()));
+          scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+          scanner.setTimeout(3, TimeUnit.SECONDS);
           assertEquals(100, Iterables.size(scanner));
         } // when the scanner is closed, all open sessions should be closed
       });
     }
   }
-
 }

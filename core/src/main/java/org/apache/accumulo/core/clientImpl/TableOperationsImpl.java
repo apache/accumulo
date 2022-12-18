@@ -91,7 +91,7 @@ import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.clientImpl.TabletCache.CachedTablet;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
@@ -539,7 +539,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private void addSplits(SplitEnv env, SortedSet<Text> partitionKeys) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, AccumuloServerException {
 
-    TabletLocator tabLocator = TabletLocator.getLocator(context, env.tableId);
+    TabletCache tabLocator = TabletCache.getInstance(context, env.tableId);
     for (Text split : partitionKeys) {
       boolean successful = false;
       int attempt = 0;
@@ -553,7 +553,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         attempt++;
 
-        TabletLocation tl = tabLocator.locateTablet(context, split, false, false);
+        CachedTablet tl = tabLocator.locateTablet(context, split, false, false);
 
         if (tl == null) {
           context.requireTableExists(env.tableId, env.tableName);
@@ -561,7 +561,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           continue;
         }
 
-        HostAndPort address = HostAndPort.fromString(tl.tablet_location);
+        HostAndPort address = HostAndPort.fromString(tl.getTserverLocation());
 
         try {
           TabletClientService.Client client =
@@ -572,15 +572,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
             if (log.isTraceEnabled()) {
               log.trace("tid={} Splitting tablet {} on {} at {}", Thread.currentThread().getId(),
-                  tl.tablet_extent, address, split);
+                  tl.getExtent(), address, split);
               timer = new OpTimer().start();
             }
 
-            client.splitTablet(TraceUtil.traceInfo(), context.rpcCreds(),
-                tl.tablet_extent.toThrift(), TextUtil.getByteBuffer(split));
+            client.splitTablet(TraceUtil.traceInfo(), context.rpcCreds(), tl.getExtent().toThrift(),
+                TextUtil.getByteBuffer(split));
 
             // just split it, might as well invalidate it in the cache
-            tabLocator.invalidateCache(tl.tablet_extent);
+            tabLocator.invalidateCache(tl.getExtent());
 
             if (timer != null) {
               timer.stop();
@@ -605,10 +605,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
                 + " Seen {} failures.", split, env.tableName, locationFailures);
           }
 
-          tabLocator.invalidateCache(tl.tablet_extent);
+          tabLocator.invalidateCache(tl.getExtent());
           continue;
         } catch (TException e) {
-          tabLocator.invalidateCache(context, tl.tablet_location);
+          tabLocator.invalidateCache(context, tl.getTserverLocation());
           continue;
         }
 
@@ -1250,7 +1250,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     TableId tableId = context.getTableId(tableName);
-    TabletLocator tl = TabletLocator.getLocator(context, tableId);
+    TabletCache tl = TabletCache.getInstance(context, tableId);
     // its possible that the cache could contain complete, but old information about a tables
     // tablets... so clear it
     tl.invalidateCache();
@@ -1530,7 +1530,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    TabletLocator tabLocator = TabletLocator.getLocator(context, context.getTableId(tableName));
+    TabletCache tabLocator = TabletCache.getInstance(context, context.getTableId(tableName));
     tabLocator.invalidateCache();
   }
 
@@ -1931,7 +1931,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     requireNonNull(ranges, "ranges must be non null");
 
     TableId tableId = context.getTableId(tableName);
-    TabletLocator locator = TabletLocator.getLocator(context, tableId);
+    TabletCache locator = TabletCache.getInstance(context, tableId);
 
     List<Range> rangeList = null;
     if (ranges instanceof List) {
