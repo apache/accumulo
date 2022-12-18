@@ -64,11 +64,7 @@ public class LegacyPropData {
     names.add(new PropNode(zkRoot + "/users", null));
     names.add(new PropNode(zkRoot + "/wals", null));
     names.add(new PropNode(zkRoot + "/bulk_failed_copyq/locks", null));
-    names.add(new PropNode(zkRoot + "/config/master.bulk.retries", "4"));
-    names.add(new PropNode(zkRoot + "/config/master.bulk.timeout", "10m"));
     names.add(new PropNode(zkRoot + "/config/table.bloom.enabled", "true"));
-    names.add(new PropNode(zkRoot + "/config/master.bulk.rename.threadpool.size", "10"));
-    names.add(new PropNode(zkRoot + "/config/master.bulk.threadpool.size", "4"));
     names.add(new PropNode(zkRoot + "/dead/tservers", null));
     names.add(new PropNode(zkRoot + "/gc/lock", null));
     names.add(new PropNode(zkRoot + "/gc/lock/zlock-0000000000", null));
