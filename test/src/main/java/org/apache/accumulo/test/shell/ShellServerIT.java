@@ -1511,14 +1511,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testPerTableClasspathLegacyJar() throws Exception {
-    final String table = getUniqueNames(1)[0];
-    File fooConstraintJar =
-        initJar("/org/apache/accumulo/test/FooConstraint.jar", "FooContraint", rootPath);
-    verifyPerTableClasspath(table, fooConstraintJar);
-  }
-
-  @Test
   public void testPerTableClasspath_2_1_Jar() throws Exception {
     final String table = getUniqueNames(1)[0];
     File fooConstraintJar =
