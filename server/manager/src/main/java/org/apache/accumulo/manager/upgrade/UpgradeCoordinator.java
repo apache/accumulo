@@ -105,8 +105,11 @@ public class UpgradeCoordinator {
   private static Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);
 
   private int currentVersion;
-  private Map<Integer,Upgrader> upgraders = Map.of(AccumuloDataVersion.SHORTEN_RFILE_KEYS,
-      new Upgrader8to9(), AccumuloDataVersion.CRYPTO_CHANGES, new Upgrader9to10());
+  // map of "current version" -> upgrader to next version.
+  private Map<Integer,
+      Upgrader> upgraders = Map.of(AccumuloDataVersion.SHORTEN_RFILE_KEYS, new Upgrader8to9(),
+          AccumuloDataVersion.CRYPTO_CHANGES, new Upgrader9to10(),
+          AccumuloDataVersion.ROOT_TABLET_META_CHANGES, new Upgrader10to11());
 
   private volatile UpgradeStatus status;
 
@@ -152,8 +155,13 @@ public class UpgradeCoordinator {
         abortIfFateTransactions(context);
 
         for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
-          log.info("Upgrading Zookeeper from data version {}", v);
-          upgraders.get(v).upgradeZookeeper(context);
+          log.info("Upgrading Zookeeper from data version {} target version {}", v,
+              AccumuloDataVersion.get());
+          var upgrader = upgraders.get(v);
+          log.info("UPGRADER: version:{} upgrader: {}", v, upgrader);
+          if (upgrader != null) {
+            upgrader.upgradeZookeeper(context);
+          }
         }
       }
 
@@ -179,15 +187,21 @@ public class UpgradeCoordinator {
           .submit(() -> {
             try {
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
-                log.info("Upgrading Root from data version {}", v);
-                upgraders.get(v).upgradeRoot(context);
+                log.info("Upgrading Root from data version {} target version {}", v,
+                    AccumuloDataVersion.get());
+                if (upgraders.get(v) != null) {
+                  upgraders.get(v).upgradeRoot(context);
+                }
               }
 
               setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
-                log.info("Upgrading Metadata from data version {}", v);
-                upgraders.get(v).upgradeMetadata(context);
+                log.info("Upgrading Metadata from data version {} target version {}", v,
+                    AccumuloDataVersion.get());
+                if (upgraders.get(v) != null) {
+                  upgraders.get(v).upgradeMetadata(context);
+                }
               }
 
               log.info("Updating persistent data version.");
