@@ -190,7 +190,7 @@ public enum Property {
       "The class which provides crypto services for on-disk file encryption. The default does nothing. To enable "
           + "encryption, replace this classname with an implementation of the"
           + "org.apache.accumulo.core.spi.crypto.CryptoFactory interface.",
-      "X.X.X"),
+      "2.1.0"),
 
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
@@ -1033,11 +1033,11 @@ public enum Property {
   // Crypto-related properties
   @Experimental
   TABLE_CRYPTO_PREFIX("table.crypto.opts.", null, PropertyType.PREFIX,
-      "Properties related to on-disk file encryption.", "X.X.X"),
+      "Properties related to on-disk file encryption.", "2.1.0"),
   @Experimental
   @Sensitive
   TABLE_CRYPTO_SENSITIVE_PREFIX("table.crypto.opts.sensitive.", null, PropertyType.PREFIX,
-      "Sensitive properties related to on-disk file encryption.", "X.X.X"),
+      "Sensitive properties related to on-disk file encryption.", "2.1.0"),
   TABLE_SCAN_DISPATCHER("table.scan.dispatcher", SimpleScanDispatcher.class.getName(),
       PropertyType.CLASSNAME,
       "This class is used to dynamically dispatch scans to configured scan executors.  Configured "
