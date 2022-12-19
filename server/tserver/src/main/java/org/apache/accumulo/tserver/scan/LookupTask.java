@@ -48,6 +48,7 @@ import org.apache.accumulo.tserver.tablet.Tablet.LookupResult;
 import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 public class LookupTask extends ScanTask<MultiScanResult> {
 
@@ -137,8 +138,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           interruptFlag.set(false);
 
         } catch (IOException e) {
-          ScanUserDataLogger.logWarn(log, session.getUserData(), "lookup failed for tablet {}",
-              extent, e);
+          ScanUserDataLogger.log(Level.WARN, log, session.getUserData(),
+              "lookup failed for tablet {}", extent, e);
           throw new RuntimeException(e);
         }
 
@@ -176,16 +177,17 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       addResult(multiScanResult);
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
-        ScanUserDataLogger.logWarn(log, session.getUserData(),
+        ScanUserDataLogger.log(Level.WARN, log, session.getUserData(),
             "Iteration interrupted, when scan not cancelled", iie);
         addResult(iie);
       }
     } catch (SampleNotPresentException e) {
-      ScanUserDataLogger.logWarn(log, session.getUserData(),
+      ScanUserDataLogger.log(Level.WARN, log, session.getUserData(),
           "sample not present while doing multi-scan", e);
       addResult(e);
     } catch (Exception e) {
-      ScanUserDataLogger.logWarn(log, session.getUserData(), "exception while doing multi-scan", e);
+      ScanUserDataLogger.log(Level.WARN, log, session.getUserData(),
+          "exception while doing multi-scan", e);
       addResult(e);
     } finally {
       Thread.currentThread().setName(oldThreadName);

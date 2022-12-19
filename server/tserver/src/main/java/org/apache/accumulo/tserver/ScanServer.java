@@ -112,6 +112,7 @@ import org.apache.zookeeper.KeeperException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import com.beust.jcommander.Parameter;
 import com.github.benmanes.caffeine.cache.CacheLoader;
@@ -838,12 +839,12 @@ public class ScanServer extends AbstractServer
           batchTimeOut, classLoaderContext, executionHints, getScanTabletResolver(tablet),
           busyTimeout, userData);
 
-      ScanUserDataLogger.logDebug(LOG, userData, "started scan, id: {}", is.getScanID());
+      ScanUserDataLogger.log(Level.DEBUG, LOG, userData, "started scan, id: {}", is.getScanID());
 
       return is;
 
     } catch (AccumuloException | IOException e) {
-      ScanUserDataLogger.logError(LOG, userData, "Error starting scan", e);
+      ScanUserDataLogger.log(Level.ERROR, LOG, userData, "Error starting scan", e);
       throw new RuntimeException(e);
     }
   }
@@ -896,13 +897,13 @@ public class ScanServer extends AbstractServer
           ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
           executionHints, getBatchScanTabletResolver(tablets), busyTimeout, userData);
 
-      ScanUserDataLogger.logDebug(LOG, userData, "started scan, id: {}", ims.getScanID());
+      ScanUserDataLogger.log(Level.DEBUG, LOG, userData, "started scan, id: {}", ims.getScanID());
       return ims;
     } catch (TException e) {
-      ScanUserDataLogger.logError(LOG, userData, "Error starting scan", e);
+      ScanUserDataLogger.log(Level.ERROR, LOG, userData, "Error starting scan", e);
       throw e;
     } catch (AccumuloException e) {
-      ScanUserDataLogger.logError(LOG, userData, "Error starting scan", e);
+      ScanUserDataLogger.log(Level.ERROR, LOG, userData, "Error starting scan", e);
       throw new RuntimeException(e);
     }
   }

@@ -86,6 +86,7 @@ import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import com.google.common.collect.Collections2;
 
@@ -161,7 +162,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
       TSampleNotPresentException, ScanServerBusyException {
 
-    ScanUserDataLogger.logTrace(log, userData, "starting scan", (Object[]) null);
+    ScanUserDataLogger.log(Level.TRACE, log, userData, "starting scan", (Object[]) null);
 
     server.getScanMetrics().incrementStartScan(1.0D);
 
@@ -170,18 +171,19 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     try {
       namespaceId = server.getContext().getNamespaceId(tableId);
     } catch (TableNotFoundException e1) {
-      ScanUserDataLogger.logError(null, userData, "not serving tablet {}", extent.toThrift());
+      ScanUserDataLogger.log(Level.ERROR, null, userData, "not serving tablet {}",
+          extent.toThrift());
       throw new NotServingTabletException(extent.toThrift());
     }
     if (!security.canScan(credentials, tableId, namespaceId, range, columns, ssiList, ssio,
         authorizations)) {
-      ScanUserDataLogger.logError(null, userData, "permission denied", (Object[]) null);
+      ScanUserDataLogger.log(Level.ERROR, null, userData, "permission denied", (Object[]) null);
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
 
     if (!security.authenticatedUserHasAuthorizations(credentials, authorizations)) {
-      ScanUserDataLogger.logError(null, userData, "bad authorizations", (Object[]) null);
+      ScanUserDataLogger.log(Level.ERROR, null, userData, "bad authorizations", (Object[]) null);
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.BAD_AUTHORIZATIONS);
     }
@@ -202,7 +204,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     TabletBase tablet = tabletResolver.getTablet(extent);
     if (tablet == null) {
-      ScanUserDataLogger.logTrace(null, userData, "not serving tablet {}", extent.toThrift());
+      ScanUserDataLogger.log(Level.TRACE, null, userData, "not serving tablet {}",
+          extent.toThrift());
       throw new NotServingTabletException(extent.toThrift());
     }
 
@@ -226,8 +229,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     try {
       scanResult = continueScan(tinfo, sid, scanSession, busyTimeout);
     } catch (NoSuchScanIDException e) {
-      ScanUserDataLogger.logError(log, userData, "The impossible happened - scan id does not exist",
-          e);
+      ScanUserDataLogger.log(Level.ERROR, log, userData,
+          "The impossible happened - scan id does not exist", e);
       throw new RuntimeException();
     } finally {
       server.getSessionManager().unreserveSession(sid);
@@ -259,7 +262,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
       TSampleNotPresentException, ScanServerBusyException {
 
-    ScanUserDataLogger.logTrace(log, scanSession.getUserData(), "continue scan, id: {}", scanID);
+    ScanUserDataLogger.log(Level.TRACE, log, scanSession.getUserData(), "continue scan, id: {}",
+        scanID);
 
     server.getScanMetrics().incrementContinueScan(1.0D);
 
@@ -309,7 +313,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       return new ScanResult(param, true);
     } catch (Exception t) {
       server.getSessionManager().removeSession(scanID);
-      ScanUserDataLogger.logWarn(log, scanSession.getUserData(), "Failed to get next batch", t);
+      ScanUserDataLogger.log(Level.WARN, log, scanSession.getUserData(), "Failed to get next batch",
+          t);
       throw new RuntimeException(t);
     }
 
@@ -344,7 +349,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     if (ss != null) {
       long t2 = System.currentTimeMillis();
 
-      ScanUserDataLogger.logTrace(log, ss.getUserData(), "close scan, id: {}", scanID);
+      ScanUserDataLogger.log(Level.TRACE, log, ss.getUserData(), "close scan, id: {}", scanID);
 
       if (log.isTraceEnabled()) {
         log.trace(String.format("ScanSess tid %s %s %,d entries in %.2f secs, nbTimes = [%s] ",
@@ -391,7 +396,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       long busyTimeout, String userData)
       throws ThriftSecurityException, TSampleNotPresentException, ScanServerBusyException {
 
-    ScanUserDataLogger.logTrace(log, userData, "starting scan");
+    ScanUserDataLogger.log(Level.TRACE, log, userData, "starting scan");
 
     server.getScanMetrics().incrementStartScan(1.0D);
 
@@ -420,7 +425,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
             SecurityErrorCode.BAD_AUTHORIZATIONS);
       }
     } catch (ThriftSecurityException tse) {
-      ScanUserDataLogger.logError(log, userData, "{} is not authorized", tse);
+      ScanUserDataLogger.log(Level.ERROR, log, userData, "{} is not authorized", tse);
       throw tse;
     }
 
@@ -485,7 +490,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
   private MultiScanResult continueMultiScan(long scanID, MultiScanSession session, long busyTimeout)
       throws TSampleNotPresentException, ScanServerBusyException {
 
-    ScanUserDataLogger.logTrace(log, session.getUserData(), "continue multi scan, id: {}", scanID);
+    ScanUserDataLogger.log(Level.TRACE, log, session.getUserData(), "continue multi scan, id: {}",
+        scanID);
 
     server.getScanMetrics().incrementContinueScan(1.0D);
 
@@ -506,7 +512,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       if (e.getCause() instanceof SampleNotPresentException) {
         throw new TSampleNotPresentException();
       } else {
-        ScanUserDataLogger.logWarn(log, session.getUserData(), "Failed to get multiscan result", e);
+        ScanUserDataLogger.log(Level.WARN, log, session.getUserData(),
+            "Failed to get multiscan result", e);
         throw new RuntimeException(e);
       }
     } catch (CancellationException ce) {
@@ -515,8 +522,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
         server.getScanMetrics().incrementScanBusyTimeout(1.0D);
         throw new ScanServerBusyException();
       } else {
-        ScanUserDataLogger.logWarn(log, session.getUserData(), "Failed to get multiscan result",
-            ce);
+        ScanUserDataLogger.log(Level.WARN, log, session.getUserData(),
+            "Failed to get multiscan result", ce);
         throw new RuntimeException(ce);
       }
     } catch (TimeoutException e1) {
@@ -528,7 +535,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       return new MultiScanResult(results, failures, fullScans, null, null, false, true);
     } catch (Exception t) {
       server.getSessionManager().removeSession(scanID);
-      ScanUserDataLogger.logWarn(log, session.getUserData(), "Failed to get multiscan result", t);
+      ScanUserDataLogger.log(Level.WARN, log, session.getUserData(),
+          "Failed to get multiscan result", t);
       throw new RuntimeException(t);
     }
   }
@@ -542,7 +550,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     if (session == null) {
       throw new NoSuchScanIDException();
     }
-    ScanUserDataLogger.logTrace(log, session.getUserData(), "close multi scan, id: {}", scanID);
+    ScanUserDataLogger.log(Level.TRACE, log, session.getUserData(), "close multi scan, id: {}",
+        scanID);
 
     long t2 = System.currentTimeMillis();
 

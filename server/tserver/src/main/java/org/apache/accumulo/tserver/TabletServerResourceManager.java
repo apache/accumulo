@@ -79,6 +79,7 @@ import org.apache.accumulo.tserver.session.ScanSession;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
@@ -807,12 +808,12 @@ public class TabletServerResourceManager {
 
       ThreadPoolExecutor executor = scanExecutors.get(prefs.getExecutorName());
       if (executor == null) {
-        ScanUserDataLogger.logWarn(log, scanInfo.getUserData(),
+        ScanUserDataLogger.log(Level.WARN, log, scanInfo.getUserData(),
             "For table id {}, {} dispatched to non-existent executor {} Using default executor.",
             tablet.tableId(), dispatcher.getClass().getName(), prefs.getExecutorName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
       } else if ("meta".equals(prefs.getExecutorName())) {
-        ScanUserDataLogger.logWarn(log, scanInfo.getUserData(),
+        ScanUserDataLogger.log(Level.WARN, log, scanInfo.getUserData(),
             "For table id {}, {} dispatched to meta executor. Using default executor.",
             tablet.tableId(), dispatcher.getClass().getName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
