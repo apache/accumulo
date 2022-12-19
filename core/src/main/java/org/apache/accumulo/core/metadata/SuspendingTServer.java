@@ -21,7 +21,8 @@ package org.apache.accumulo.core.metadata;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.HostAndPort;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * For a suspended tablet, the time of suspension and the server it was suspended from.

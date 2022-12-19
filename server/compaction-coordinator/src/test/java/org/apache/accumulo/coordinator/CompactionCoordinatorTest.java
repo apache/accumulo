@@ -52,7 +52,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.server.AbstractServer;
@@ -72,6 +71,7 @@ import org.powermock.core.classloader.annotations.SuppressStaticInitializationFo
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({CompactionCoordinator.class, DeadCompactionDetector.class, ThriftUtil.class,

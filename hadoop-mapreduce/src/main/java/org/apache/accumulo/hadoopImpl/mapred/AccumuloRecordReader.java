@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.hadoopImpl.mapred;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.net.InetAddress;

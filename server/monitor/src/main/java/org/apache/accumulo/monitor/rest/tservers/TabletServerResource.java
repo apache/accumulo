@@ -49,11 +49,12 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.manager.ManagerResource;
 import org.apache.accumulo.server.manager.state.DeadServerList;
 import org.apache.accumulo.server.util.ActionStatsUpdator;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * Generates tserver lists as JSON objects

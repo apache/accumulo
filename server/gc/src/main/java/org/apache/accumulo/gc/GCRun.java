@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.gc;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -60,7 +61,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
@@ -207,7 +207,7 @@ public class GCRun implements GarbageCollectionEnvironment {
         }
         ioe.addSuppressed(e);
         log.error("Error getting tables from ZooKeeper, retrying in {} seconds", retries, e);
-        UtilWaitThread.sleepUninterruptibly(retries, TimeUnit.SECONDS);
+        sleepUninterruptibly(retries, TimeUnit.SECONDS);
       }
     }
     throw ioe;
