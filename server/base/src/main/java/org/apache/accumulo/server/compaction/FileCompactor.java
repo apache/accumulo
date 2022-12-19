@@ -218,15 +218,17 @@ public class FileCompactor implements Callable<CompactionStats> {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getFileSystemByPath(outputFile.getPath());
 
-      boolean dropCacheBehindMajcOutput = !RootTable.ID.equals(this.extent.tableId())
+      final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
+
+      final boolean dropCacheBehindOutput = !RootTable.ID.equals(this.extent.tableId())
           && !MetadataTable.ID.equals(this.extent.tableId())
-          && !(env.getIteratorScope() == IteratorUtil.IteratorScope.minc)
-          && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE);
+          && ((isMinC && acuTableConf.getBoolean(Property.TABLE_MINC_OUTPUT_DROP_CACHE))
+              || (!isMinC && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE)));
 
       WriterBuilder outBuilder = fileFactory.newWriterBuilder()
           .forFile(outputFile.getMetaInsert(), ns, ns.getConf(), cryptoService)
           .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter());
-      if (dropCacheBehindMajcOutput) {
+      if (dropCacheBehindOutput) {
         outBuilder.dropCachesBehind();
       }
       mfw = outBuilder.build();
