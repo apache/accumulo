@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.tserver;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalFixedDelay;
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalScheduledTask;
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchNonCriticalScheduledTask;
@@ -97,7 +97,6 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
@@ -166,6 +165,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
+import com.google.common.net.HostAndPort;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -303,12 +303,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }), 5, 5, TimeUnit.SECONDS);
     watchNonCriticalScheduledTask(future);
 
-    @SuppressWarnings("deprecation")
-    final long walMaxSize =
-        aconf.getAsBytes(aconf.resolve(Property.TSERV_WAL_MAX_SIZE, Property.TSERV_WALOG_MAX_SIZE));
-    @SuppressWarnings("deprecation")
-    final long walMaxAge = aconf
-        .getTimeInMillis(aconf.resolve(Property.TSERV_WAL_MAX_AGE, Property.TSERV_WALOG_MAX_AGE));
+    final long walMaxSize = aconf.getAsBytes(Property.TSERV_WAL_MAX_SIZE);
+    final long walMaxAge = aconf.getTimeInMillis(Property.TSERV_WAL_MAX_AGE);
     final long minBlockSize =
         context.getHadoopConf().getLong("dfs.namenode.fs-limits.min-block-size", 0);
     if (minBlockSize != 0 && minBlockSize > walMaxSize) {
@@ -318,18 +314,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           + " or decrease dfs.namenode.fs-limits.min-block-size in hdfs-site.xml.");
     }
 
-    @SuppressWarnings("deprecation")
     final long toleratedWalCreationFailures =
-        aconf.getCount(aconf.resolve(Property.TSERV_WAL_TOLERATED_CREATION_FAILURES,
-            Property.TSERV_WALOG_TOLERATED_CREATION_FAILURES));
-    @SuppressWarnings("deprecation")
+        aconf.getCount(Property.TSERV_WAL_TOLERATED_CREATION_FAILURES);
     final long walFailureRetryIncrement =
-        aconf.getTimeInMillis(aconf.resolve(Property.TSERV_WAL_TOLERATED_WAIT_INCREMENT,
-            Property.TSERV_WALOG_TOLERATED_WAIT_INCREMENT));
-    @SuppressWarnings("deprecation")
+        aconf.getTimeInMillis(Property.TSERV_WAL_TOLERATED_WAIT_INCREMENT);
     final long walFailureRetryMax =
-        aconf.getTimeInMillis(aconf.resolve(Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION,
-            Property.TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION));
+        aconf.getTimeInMillis(Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION);
     final RetryFactory walCreationRetryFactory =
         Retry.builder().maxRetries(toleratedWalCreationFailures)
             .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)

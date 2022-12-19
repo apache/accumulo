@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.security.SecureRandom;

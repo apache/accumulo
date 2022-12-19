@@ -40,11 +40,11 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
 
 public class RootTabletStateStoreTest {
 
