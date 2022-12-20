@@ -22,9 +22,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.ZNAMESPACES;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 import static org.apache.accumulo.core.Constants.ZTABLE_STATE;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_PREFIX;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -105,8 +105,14 @@ public class Upgrader10to11 implements Upgrader {
   private void deleteReplMetadataEntries(final ServerContext context) {
     try (BatchDeleter deleter =
         context.createBatchDeleter(MetadataTable.NAME, Authorizations.EMPTY, 10)) {
-      deleter.setRanges(Collections.singletonList(
-          new Range(REPLICATION_ID.canonical() + ";", REPLICATION_ID.canonical() + "<")));
+
+      Range repTableRange =
+          new Range(REPLICATION_ID.canonical() + ";", true, REPLICATION_ID.canonical() + "<", true);
+      // copied from MetadataSchema 2.1 (removed in 3.0)
+      Range repWalRange =
+          new Range(RESERVED_PREFIX + "repl", true, RESERVED_PREFIX + "repm", false);
+
+      deleter.setRanges(List.of(repTableRange, repWalRange));
       deleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException ex) {
       throw new IllegalStateException("failed to remove replication info from metadata table", ex);
