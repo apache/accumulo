@@ -210,5 +210,4 @@ public class ZooReader {
     // non-transient issue should always be thrown and handled by the caller
     return false;
   }
-
 }
