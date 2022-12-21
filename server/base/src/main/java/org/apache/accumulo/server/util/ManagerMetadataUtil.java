@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -205,11 +206,15 @@ public class ManagerMetadataUtil {
     }
 
     TServerInstance self = getTServerInstance(address, zooLock);
-    tablet.putLocation(self, LocationType.LAST);
+    // if the location mode is 'locality'', then preserve the current compaction location in the
+    // last location value
+    if ("locality".equals(context.getConfiguration().get(Property.GENERAL_LOCATION_MODE))) {
+      tablet.putLocation(self, LocationType.LAST);
 
-    // remove the old location
-    if (lastLocation != null && !lastLocation.equals(self)) {
-      tablet.deleteLocation(lastLocation, LocationType.LAST);
+      // remove the old location
+      if (lastLocation != null && !lastLocation.equals(self)) {
+        tablet.deleteLocation(lastLocation, LocationType.LAST);
+      }
     }
 
     if (ecid.isPresent()) {
@@ -240,11 +245,15 @@ public class ManagerMetadataUtil {
       newFile = Optional.of(newDatafile.insert());
 
       TServerInstance self = getTServerInstance(address, zooLock);
-      tablet.putLocation(self, LocationType.LAST);
+      // if the location mode is 'locality'', then preserve the current compaction location in the
+      // last location value
+      if ("locality".equals(context.getConfiguration().get(Property.GENERAL_LOCATION_MODE))) {
+        tablet.putLocation(self, LocationType.LAST);
 
-      // remove the old location
-      if (lastLocation != null && !lastLocation.equals(self)) {
-        tablet.deleteLocation(lastLocation, LocationType.LAST);
+        // remove the old location
+        if (lastLocation != null && !lastLocation.equals(self)) {
+          tablet.deleteLocation(lastLocation, LocationType.LAST);
+        }
       }
     }
     tablet.putFlushId(flushId);

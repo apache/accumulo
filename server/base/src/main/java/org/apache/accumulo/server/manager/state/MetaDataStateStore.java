@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
@@ -102,6 +103,11 @@ class MetaDataStateStore implements TabletStateStore {
       for (TabletLocationState tls : tablets) {
         TabletMutator tabletMutator = tabletsMutator.mutateTablet(tls.extent);
         if (tls.current != null) {
+          // if the location more is assignment, then preserve the current location in the last
+          // location value
+          if ("assignment".equals(context.getConfiguration().get(Property.GENERAL_LOCATION_MODE))) {
+            tabletMutator.putLocation(tls.current, LocationType.LAST);
+          }
           tabletMutator.deleteLocation(tls.current, LocationType.CURRENT);
           if (logsForDeadServers != null) {
             List<Path> logs = logsForDeadServers.get(tls.current);
