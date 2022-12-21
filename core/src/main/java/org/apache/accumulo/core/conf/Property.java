@@ -550,6 +550,13 @@ public enum Property {
       "If a thread blocks more than this period of time waiting to get file permits,"
           + " debugging information will be written."),
 
+  TSERV_PRESERVE_LOCATION("tserver.preserve.tablet.location", "false", PropertyType.BOOLEAN,
+      "When a tablet is unloaded/suspended, the current location is preserved in the last location."
+          + " This is to allow a system's tablet locations to be retained when restarting a system."
+          + " Note that if this is used then the last location cannot be used for data locality purposes."
+          + " Also note that master.startup.tserver properties might need to be set as well to ensure"
+          + " the tserver is available before tablets are assigned."),
+
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo garbage collector."),
