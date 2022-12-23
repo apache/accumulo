@@ -432,7 +432,7 @@ public class GCRun implements GarbageCollectionEnvironment {
    */
   boolean moveToTrash(Path path) throws IOException {
     final VolumeManager fs = context.getVolumeManager();
-    if (!isUsingTrash()) {
+    if (!isUsingTrash() && (!isSkipTrashImportsOnly() || path.getName().startsWith("I"))) {
       return false;
     }
     try {
@@ -449,6 +449,13 @@ public class GCRun implements GarbageCollectionEnvironment {
    */
   boolean isUsingTrash() {
     return !config.getBoolean(Property.GC_TRASH_IGNORE);
+  }
+
+  /**
+   * Checks if the volume manager should only skip trash for files that are not bulk imports
+   */
+  boolean isSkipTrashImportsOnly() {
+    return config.getBoolean(Property.GC_TRASH_IGNORE_IMPORTS_ONLY);
   }
 
   /**

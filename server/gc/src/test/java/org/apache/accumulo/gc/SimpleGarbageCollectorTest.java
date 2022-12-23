@@ -138,6 +138,19 @@ public class SimpleGarbageCollectorTest {
   }
 
   @Test
+  public void testMoveToTrash_NotUsingTrash_importsOnlyEnabled() throws Exception {
+    systemConfig.set(Property.GC_TRASH_IGNORE.getKey(), "true");
+    systemConfig.set(Property.GC_TRASH_IGNORE_IMPORTS_ONLY.getKey(), "true");
+    Path iFilePath = new Path("Ifile");
+    Path notIFilePath = new Path("notIfile");
+    expect(volMgr.moveToTrash(notIFilePath)).andReturn(true);
+    replay(volMgr);
+    assertFalse(gc.moveToTrash(iFilePath));
+    assertTrue(gc.moveToTrash(notIFilePath));
+    verify(volMgr);
+  }
+
+  @Test
   public void testIsDir() {
     assertTrue(SimpleGarbageCollector.isDir("tid1/dir1"));
     assertTrue(SimpleGarbageCollector.isDir("/dir1"));
