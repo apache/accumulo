@@ -550,13 +550,6 @@ public enum Property {
       "If a thread blocks more than this period of time waiting to get file permits,"
           + " debugging information will be written."),
 
-  TSERV_PRESERVE_LOCATION("tserver.preserve.tablet.location", "false", PropertyType.BOOLEAN,
-      "When a tablet is unloaded/suspended, the current location is preserved in the last location."
-          + " This is to allow a system's tablet locations to be retained when restarting a system."
-          + " Note that if this is used then the last location cannot be used for data locality purposes."
-          + " Also note that master.startup.tserver properties might need to be set as well to ensure"
-          + " the tserver is available before tablets are assigned."),
-
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo garbage collector."),
@@ -857,6 +850,14 @@ public enum Property {
       "For tablets belonging to this table: When a tablet server dies, allow"
           + " the tablet server this duration to revive before reassigning its tablets"
           + " to other tablet servers."),
+
+  TABLE_LOCATION_MODE("table.location.mode", "locality", PropertyType.LAST_LOCATION_MODE,
+      "Describes how the system will assign tablets initially."
+          + " If 'locality' is the mode, then the system will assign tablets based on the data locality (e.g. the last major compaction location)."
+          + " If 'assignment' is the mode, then tablets will be initially assigned to the last place they were assigned which could be"
+          + " different then where they were last compacted given balancing activities."
+          + " Also note that master.startup.tserver properties might need to be set as well to ensure"
+          + " the tserver is available before tablets are initially assigned."),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(

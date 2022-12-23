@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -254,7 +255,11 @@ public class MasterMetadataUtil {
           new Value(("" + compactionId).getBytes()));
 
     TServerInstance self = getTServerInstance(address, zooLock);
-    self.putLastLocation(m);
+    // if the location mode is 'locality'', then preserve the current compaction location in the
+    // last location value
+    if ("locality".equals(context.getConfiguration().get(Property.TABLE_LOCATION_MODE))) {
+      self.putLastLocation(m);
+    }
 
     // remove the old location
     if (lastLocation != null && !lastLocation.equals(self))
@@ -281,8 +286,8 @@ public class MasterMetadataUtil {
       }
       return;
     }
-    Mutation m = getUpdateForTabletDataFile(extent, path, mergeFile, dfv, time, filesInUseByScans,
-        address, zooLock, unusedWalLogs, lastLocation, flushId);
+    Mutation m = getUpdateForTabletDataFile(context, extent, path, mergeFile, dfv, time,
+        filesInUseByScans, address, zooLock, unusedWalLogs, lastLocation, flushId);
     MetadataTableUtil.update(context, zooLock, m, extent);
   }
 
@@ -319,21 +324,30 @@ public class MasterMetadataUtil {
    *
    * @return A Mutation to update a tablet from the given information
    */
-  private static Mutation getUpdateForTabletDataFile(KeyExtent extent, FileRef path,
-      FileRef mergeFile, DataFileValue dfv, String time, Set<FileRef> filesInUseByScans,
-      String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation,
-      long flushId) {
+  private static Mutation getUpdateForTabletDataFile(ClientContext context, KeyExtent extent,
+      FileRef path, FileRef mergeFile, DataFileValue dfv, String time,
+      Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs,
+      TServerInstance lastLocation, long flushId) {
     Mutation m = new Mutation(extent.getMetadataEntry());
 
     if (dfv.getNumEntries() > 0) {
       m.put(DataFileColumnFamily.NAME, path.meta(), new Value(dfv.encode()));
       TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes(UTF_8)));
-      // stuff in this location
-      TServerInstance self = getTServerInstance(address, zooLock);
-      self.putLastLocation(m);
-      // erase the old location
-      if (lastLocation != null && !lastLocation.equals(self))
-        lastLocation.clearLastLocation(m);
+
+      // if the location mode is 'locality'', then preserve the current compaction location in the
+      // last location value
+      if ("locality".equals(context.getConfiguration().get(Property.TABLE_LOCATION_MODE))) {
+        // stuff in this location
+        TServerInstance self = getTServerInstance(address, zooLock);
+        self.putLastLocation(m);
+        // erase the old location
+        if (lastLocation != null && !lastLocation.equals(self))
+          // @TODO: this does not make any sense to me as this will simply clear out the location we
+          // just set a couple lines previously
+          // clearLastLocation will clear the "last" location no matter what the value is
+          lastLocation.clearLastLocation(m);
+      }
+
     }
     if (unusedWalLogs != null) {
       for (String entry : unusedWalLogs) {

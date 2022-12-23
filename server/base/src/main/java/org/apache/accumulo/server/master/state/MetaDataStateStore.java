@@ -140,8 +140,9 @@ public class MetaDataStateStore extends TabletStateStore {
       for (TabletLocationState tls : tablets) {
         Mutation m = new Mutation(tls.extent.getMetadataEntry());
         if (tls.current != null) {
-          // if configured, preserve the current location as the last location
-          if (context.getConfiguration().getBoolean(Property.TSERV_PRESERVE_LOCATION)) {
+          // if the location more is assignment, then preserve the current location in the last
+          // location value
+          if ("assignment".equals(context.getConfiguration().get(Property.TABLE_LOCATION_MODE))) {
             tls.current.putLastLocation(m);
           }
           tls.current.clearLocation(m);
