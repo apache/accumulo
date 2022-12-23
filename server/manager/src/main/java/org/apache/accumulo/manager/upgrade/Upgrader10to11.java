@@ -24,12 +24,14 @@ import static org.apache.accumulo.core.Constants.ZTABLES;
 import static org.apache.accumulo.core.Constants.ZTABLE_STATE;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_PREFIX;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -42,12 +44,15 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,6 +102,7 @@ public class Upgrader10to11 implements Upgrader {
   public void upgradeMetadata(final ServerContext context) {
     log.info("upgrade metadata entries");
     deleteReplMetadataEntries(context);
+    deleteReplHdfsFiles(context);
   }
 
   /**
@@ -116,6 +122,29 @@ public class Upgrader10to11 implements Upgrader {
       deleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException ex) {
       throw new IllegalStateException("failed to remove replication info from metadata table", ex);
+    }
+  }
+
+  private void deleteReplHdfsFiles(final ServerContext context) {
+
+    VolumeManager vmfs = context.getVolumeManager();
+    // FileSystem fs = vmfs.getFileSystemByPath(outputFile.getPath());
+    try {
+      for (Volume volume : vmfs.getVolumes()) {
+        String dirUri = volume.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + REPLICATION_ID.canonical();
+        Path replPath = new Path(dirUri);
+        if (volume.getFileSystem().exists(replPath)) {
+          try {
+            log.debug("Removing replication dir and files in hdfs {}", replPath);
+            volume.getFileSystem().delete(replPath, true);
+          } catch (IOException ex) {
+            log.error("Unable to remove replication dir and files from " + replPath + ": " + ex);
+          }
+        }
+      }
+    } catch (IOException ex) {
+      log.error("Unable to remove replication dir and files: " + ex);
     }
   }
 
@@ -197,7 +226,7 @@ public class Upgrader10to11 implements Upgrader {
    * Return a list of property keys that match replication iterator settings. This is specifically a
    * narrow filter to avoid potential matches with user define or properties that contain
    * replication in the property name (specifically table.file.replication which set hdfs block
-   * replication.
+   * replication.)
    */
   List<String> filterReplConfigKeys(Set<String> keys) {
     String REPL_ITERATOR_PATTERN = "^table\\.iterator\\.(majc|minc|scan)\\.replcombiner$";
