@@ -51,11 +51,12 @@ import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
 
 public class Upgrader10to11 implements Upgrader {
 
@@ -125,12 +126,10 @@ public class Upgrader10to11 implements Upgrader {
     }
   }
 
-  private void deleteReplHdfsFiles(final ServerContext context) {
-
-    VolumeManager vmfs = context.getVolumeManager();
-    // FileSystem fs = vmfs.getFileSystemByPath(outputFile.getPath());
+  @VisibleForTesting
+  void deleteReplHdfsFiles(final ServerContext context) {
     try {
-      for (Volume volume : vmfs.getVolumes()) {
+      for (Volume volume : context.getVolumeManager().getVolumes()) {
         String dirUri = volume.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
             + REPLICATION_ID.canonical();
         Path replPath = new Path(dirUri);

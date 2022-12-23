@@ -23,9 +23,12 @@ import static org.apache.accumulo.core.Constants.ZNAMESPACES;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 import static org.apache.accumulo.core.Constants.ZTABLE_STATE;
 import static org.apache.accumulo.manager.upgrade.Upgrader10to11.buildRepTablePath;
+import static org.easymock.EasyMock.anyBoolean;
 import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.isA;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,18 +45,22 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class UpgraderRemoveReplicationTest {
-  private static final Logger log = LoggerFactory.getLogger(UpgraderRemoveReplicationTest.class);
+class Upgrader10to11Test {
+  private static final Logger log = LoggerFactory.getLogger(Upgrader10to11Test.class);
 
   private InstanceId instanceId = null;
   private ServerContext context = null;
@@ -190,5 +197,39 @@ class UpgraderRemoveReplicationTest {
 
     assertEquals(6, filtered.size());
     log.info("F:{}", filtered);
+  }
+
+  @Test
+  public void removeFromHdfsTest() throws Exception {
+    ServerContext context = createMock(ServerContext.class);
+    VolumeManager vm = createMock(VolumeManager.class);
+    FileSystem fs = createMock(FileSystem.class);
+
+    Volume v1 = createMock(Volume.class);
+    Volume v2 = createMock(Volume.class);
+
+    expect(context.getVolumeManager()).andReturn(vm).anyTimes();
+    expect(vm.getVolumes()).andReturn(List.of(v1, v2)).anyTimes();
+
+    expect(v1.getBasePath()).andReturn("hdfs://accumulo1").anyTimes();
+    expect(v1.getFileSystem()).andReturn(fs).anyTimes();
+
+    expect(v2.getBasePath()).andReturn("hdfs://accumulo2").anyTimes();
+    expect(v2.getFileSystem()).andReturn(fs).anyTimes();
+
+    expect(fs.exists(isA(Path.class))).andReturn(true).once();
+    expect(fs.exists(isA(Path.class))).andReturn(true).once();
+
+    expect(fs.delete(eq(new Path("hdfs://accumulo1/tables/+rep")), anyBoolean())).andReturn(true)
+        .once();
+    expect(fs.delete(eq(new Path("hdfs://accumulo2/tables/+rep")), anyBoolean())).andReturn(true)
+        .once();
+
+    replay(context, vm, fs, v1, v2);
+
+    Upgrader10to11 upgrader = new Upgrader10to11();
+    upgrader.deleteReplHdfsFiles(context);
+
+    verify(context, vm, fs, v1, v2);
   }
 }
