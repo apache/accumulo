@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.Objects;
 
+import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,8 +46,9 @@ public class ConfigCheckUtil {
    * @param entries iterable through configuration keys and values
    * @throws ConfigCheckException if a fatal configuration error is found
    */
-  public static void validate(Iterable<Entry<String,String>> entries) {
+  public static void validate(Iterable<Entry<String,String>> entries, AbstractId<?> source) {
     String instanceZkTimeoutValue = null;
+    String idName = source != null ? source.toString() : "site";
     for (Entry<String,String> entry : entries) {
       String key = entry.getKey();
       String value = entry.getValue();
@@ -54,12 +56,12 @@ public class ConfigCheckUtil {
       if (prop == null && Property.isValidPropertyKey(key)) {
         continue; // unknown valid property (i.e. has proper prefix)
       } else if (prop == null) {
-        log.warn(PREFIX + "unrecognized property key (" + key + ")");
+        log.warn(PREFIX + "unrecognized property key ({}) for {}", key, idName);
       } else if (prop.getType() == PropertyType.PREFIX) {
-        fatal(PREFIX + "incomplete property key (" + key + ")");
+        fatal(PREFIX + "incomplete property key (" + key + ") for " + idName);
       } else if (!prop.getType().isValidFormat(value)) {
         fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType()
-            + ") : " + value);
+            + ") : " + value + " for " + idName);
       }
 
       if (key.equals(Property.INSTANCE_ZK_TIMEOUT.getKey())) {
@@ -128,7 +130,7 @@ public class ConfigCheckUtil {
   }
 
   /**
-   * The exception thrown when {@link ConfigCheckUtil#validate(Iterable)} fails.
+   * The exception thrown when {@link ConfigCheckUtil#validate(Iterable, AbstractId)} fails.
    */
   public static class ConfigCheckException extends RuntimeException {
     private static final long serialVersionUID = 1L;
