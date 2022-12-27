@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.upgrade;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -155,13 +156,11 @@ public class UpgradeCoordinator {
         abortIfFateTransactions(context);
 
         for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
-          log.info("Upgrading Zookeeper from data version {} target version {}", v,
+          log.info("Upgrading Zookeeper - current version {} as step towards target version {}", v,
               AccumuloDataVersion.get());
           var upgrader = upgraders.get(v);
-          log.info("UPGRADER: version:{} upgrader: {}", v, upgrader);
-          if (upgrader != null) {
-            upgrader.upgradeZookeeper(context);
-          }
+          Objects.requireNonNull(upgrader, "Failed to find upgrader for version " + currentVersion);
+          upgrader.upgradeZookeeper(context);
         }
       }
 
@@ -187,7 +186,7 @@ public class UpgradeCoordinator {
           .submit(() -> {
             try {
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
-                log.info("Upgrading Root from data version {} target version {}", v,
+                log.info("Upgrading Root - current version {} as step towards target version {}", v,
                     AccumuloDataVersion.get());
                 if (upgraders.get(v) != null) {
                   upgraders.get(v).upgradeRoot(context);
@@ -197,7 +196,8 @@ public class UpgradeCoordinator {
               setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
-                log.info("Upgrading Metadata from data version {} target version {}", v,
+                log.info(
+                    "Upgrading Metadata - current version {} as step towards target version {}", v,
                     AccumuloDataVersion.get());
                 if (upgraders.get(v) != null) {
                   upgraders.get(v).upgradeMetadata(context);

@@ -39,7 +39,7 @@ public class AccumuloDataVersion {
   /**
    * version (11) reflects removal of replication starting with 3.0
    */
-  public static final int REMOVE_REPLICATION = 11;
+  public static final int REMOVE_DEPRECATIONS_FOR_VERSION_3 = 11;
 
   /**
    * version (10) reflects changes to how root tablet metadata is serialized in zookeeper starting
@@ -69,7 +69,7 @@ public class AccumuloDataVersion {
    * <li>version (4) moves logging to HDFS in 1.5.0
    * </ul>
    */
-  private static final int CURRENT_VERSION = REMOVE_REPLICATION;
+  private static final int CURRENT_VERSION = REMOVE_DEPRECATIONS_FOR_VERSION_3;
 
   /**
    * Get the current Accumulo Data Version. See Javadoc of static final integers for a detailed
