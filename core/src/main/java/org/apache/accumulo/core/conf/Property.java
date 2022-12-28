@@ -291,6 +291,14 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC"),
 
+  GENERAL_LOCATION_MODE("general.location.mode", "locality", PropertyType.LAST_LOCATION_MODE,
+      "Describes how the system will assign tablets initially."
+          + " If 'locality' is the mode, then the system will assign tablets based on the data locality (e.g. the last major compaction location)."
+          + " If 'assignment' is the mode, then tablets will be initially assigned to the last place they were assigned which could be"
+          + " different then where they were last compacted given balancing activities."
+          + " Also note that master.startup.tserver properties might need to be set as well to ensure"
+          + " the tserver is available before tablets are initially assigned."),
+
   // properties that are specific to master server behavior
   MASTER_PREFIX("master.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the master server"),
@@ -850,14 +858,6 @@ public enum Property {
       "For tablets belonging to this table: When a tablet server dies, allow"
           + " the tablet server this duration to revive before reassigning its tablets"
           + " to other tablet servers."),
-
-  TABLE_LOCATION_MODE("table.location.mode", "locality", PropertyType.LAST_LOCATION_MODE,
-      "Describes how the system will assign tablets initially."
-          + " If 'locality' is the mode, then the system will assign tablets based on the data locality (e.g. the last major compaction location)."
-          + " If 'assignment' is the mode, then tablets will be initially assigned to the last place they were assigned which could be"
-          + " different then where they were last compacted given balancing activities."
-          + " Also note that master.startup.tserver properties might need to be set as well to ensure"
-          + " the tserver is available before tablets are initially assigned."),
 
   // VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(

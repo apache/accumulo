@@ -257,7 +257,7 @@ public class MasterMetadataUtil {
     TServerInstance self = getTServerInstance(address, zooLock);
     // if the location mode is 'locality'', then preserve the current compaction location in the
     // last location value
-    if ("locality".equals(context.getConfiguration().get(Property.TABLE_LOCATION_MODE))) {
+    if ("locality".equals(context.getConfiguration().get(Property.GENERAL_LOCATION_MODE))) {
       self.putLastLocation(m);
     }
 
@@ -336,15 +336,12 @@ public class MasterMetadataUtil {
 
       // if the location mode is 'locality'', then preserve the current compaction location in the
       // last location value
-      if ("locality".equals(context.getConfiguration().get(Property.TABLE_LOCATION_MODE))) {
+      if ("locality".equals(context.getConfiguration().get(Property.GENERAL_LOCATION_MODE))) {
         // stuff in this location
         TServerInstance self = getTServerInstance(address, zooLock);
         self.putLastLocation(m);
         // erase the old location
         if (lastLocation != null && !lastLocation.equals(self))
-          // @TODO: this does not make any sense to me as this will simply clear out the location we
-          // just set a couple lines previously
-          // clearLastLocation will clear the "last" location no matter what the value is
           lastLocation.clearLastLocation(m);
       }
 

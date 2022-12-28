@@ -142,7 +142,7 @@ public class MetaDataStateStore extends TabletStateStore {
         if (tls.current != null) {
           // if the location more is assignment, then preserve the current location in the last
           // location value
-          if ("assignment".equals(context.getConfiguration().get(Property.TABLE_LOCATION_MODE))) {
+          if ("assignment".equals(context.getConfiguration().get(Property.GENERAL_LOCATION_MODE))) {
             tls.current.putLastLocation(m);
           }
           tls.current.clearLocation(m);
