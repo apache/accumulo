@@ -27,24 +27,27 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_P
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStore;
@@ -56,14 +59,19 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-
 public class Upgrader10to11 implements Upgrader {
 
   private static final Logger log = LoggerFactory.getLogger(Upgrader10to11.class);
 
   // Included for upgrade code usage any other usage post 3.0 should not be used.
   private static final TableId REPLICATION_ID = TableId.of("+rep");
+
+  private static final Range REP_TABLE_RANGE =
+      new Range(REPLICATION_ID.canonical() + ";", true, REPLICATION_ID.canonical() + "<", true);
+
+  // copied from MetadataSchema 2.1 (removed in 3.0)
+  private static final Range REP_WAL_RANGE =
+      new Range(RESERVED_PREFIX + "repl", true, RESERVED_PREFIX + "repm", false);
 
   public Upgrader10to11() {
     super();
@@ -102,8 +110,42 @@ public class Upgrader10to11 implements Upgrader {
   @Override
   public void upgradeMetadata(final ServerContext context) {
     log.info("upgrade metadata entries");
+    List<String> replTableFiles = readReplFilesFromMetadata(context);
     deleteReplMetadataEntries(context);
-    deleteReplHdfsFiles(context);
+    deleteReplTableFiles(context, replTableFiles);
+  }
+
+  List<String> readReplFilesFromMetadata(final ServerContext context) {
+    List<String> results = new ArrayList<>();
+    try (Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      scanner.setRange(REP_TABLE_RANGE);
+      for (Map.Entry<Key,Value> entry : scanner) {
+        String f = entry.getKey()
+            .getColumnQualifier(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME).toString();
+        results.add(f);
+      }
+    } catch (TableNotFoundException ex) {
+      throw new IllegalStateException("failed to read replication files from metadata", ex);
+    }
+    return results;
+  }
+
+  void deleteReplTableFiles(final ServerContext context, final List<String> replTableFiles) {
+    var volMgr = context.getVolumeManager();
+    for (String filename : replTableFiles) {
+      try {
+        log.trace("removing replication table file: {}", filename);
+        if (!volMgr.delete(new Path(filename))) {
+          log.info(
+              "Failed to delete replication table file {}. It may need to be deleted manually.",
+              filename);
+        }
+      } catch (IOException ex) {
+        log.info("Failed to delete replication table file {}. It may need to be deleted manually.",
+            filename, ex);
+      }
+    }
   }
 
   /**
@@ -112,38 +154,10 @@ public class Upgrader10to11 implements Upgrader {
   private void deleteReplMetadataEntries(final ServerContext context) {
     try (BatchDeleter deleter =
         context.createBatchDeleter(MetadataTable.NAME, Authorizations.EMPTY, 10)) {
-
-      Range repTableRange =
-          new Range(REPLICATION_ID.canonical() + ";", true, REPLICATION_ID.canonical() + "<", true);
-      // copied from MetadataSchema 2.1 (removed in 3.0)
-      Range repWalRange =
-          new Range(RESERVED_PREFIX + "repl", true, RESERVED_PREFIX + "repm", false);
-
-      deleter.setRanges(List.of(repTableRange, repWalRange));
+      deleter.setRanges(List.of(REP_TABLE_RANGE, REP_WAL_RANGE));
       deleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException ex) {
       throw new IllegalStateException("failed to remove replication info from metadata table", ex);
-    }
-  }
-
-  @VisibleForTesting
-  void deleteReplHdfsFiles(final ServerContext context) {
-    try {
-      for (Volume volume : context.getVolumeManager().getVolumes()) {
-        String dirUri = volume.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-            + REPLICATION_ID.canonical();
-        Path replPath = new Path(dirUri);
-        if (volume.getFileSystem().exists(replPath)) {
-          try {
-            log.debug("Removing replication dir and files in hdfs {}", replPath);
-            volume.getFileSystem().delete(replPath, true);
-          } catch (IOException ex) {
-            log.error("Unable to remove replication dir and files from " + replPath + ": " + ex);
-          }
-        }
-      }
-    } catch (IOException ex) {
-      log.error("Unable to remove replication dir and files: " + ex);
     }
   }
 
@@ -215,7 +229,7 @@ public class Upgrader10to11 implements Upgrader {
       var props = p.asMap();
       List<String> filtered = filterReplConfigKeys(props.keySet());
       if (filtered.size() > 0) {
-        log.debug("Upgrade filter replication iterators for: {}", storeKey);
+        log.trace("Upgrade filtering replication iterators for id: {}", storeKey);
         propStore.removeProperties(storeKey, filtered);
       }
     }
