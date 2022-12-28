@@ -18,6 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
+import java.time.Duration;
+
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -33,12 +39,6 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-
 public class LocalityLocationModeIT extends ConfigurableMacBase {
 
   @Override
@@ -49,7 +49,7 @@ public class LocalityLocationModeIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     try (AccumuloClient c =
-                 getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
+        getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
       String tableName = super.getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       String tableId = c.tableOperations().tableIdMap().get(tableName);
@@ -69,7 +69,8 @@ public class LocalityLocationModeIT extends ConfigurableMacBase {
         bw.addMutation(m);
       }
       // assert that the default mode is "locality"
-      assertEquals("locality", c.instanceOperations().getSystemConfiguration().get(Property.GENERAL_LOCATION_MODE.getKey()));
+      assertEquals("locality", c.instanceOperations().getSystemConfiguration()
+          .get(Property.GENERAL_LOCATION_MODE.getKey()));
 
       // no last location should be set yet
       TabletLocationState unflushed = getTabletLocationState(c, tableId);

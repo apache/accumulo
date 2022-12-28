@@ -18,6 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
+import java.time.Duration;
+
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -29,18 +35,11 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
-
-import java.time.Duration;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class AssignmentLocationModeIT extends ConfigurableMacBase {
 
@@ -57,7 +56,7 @@ public class AssignmentLocationModeIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     try (AccumuloClient c =
-                 getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
+        getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
       String tableName = super.getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       String tableId = c.tableOperations().tableIdMap().get(tableName);
@@ -77,7 +76,8 @@ public class AssignmentLocationModeIT extends ConfigurableMacBase {
         bw.addMutation(m);
       }
       // assert that the default mode is "assignment"
-      assertEquals("assignment", c.instanceOperations().getSystemConfiguration().get(Property.GENERAL_LOCATION_MODE.getKey()));
+      assertEquals("assignment", c.instanceOperations().getSystemConfiguration()
+          .get(Property.GENERAL_LOCATION_MODE.getKey()));
 
       // last location should not be set yet
       TabletLocationState unflushed = getTabletLocationState(c, tableId);
@@ -85,7 +85,8 @@ public class AssignmentLocationModeIT extends ConfigurableMacBase {
       assertNull(unflushed.last);
       assertNull(newTablet.future);
 
-      // This should give it a last location if the mode were "locality", but should not for "assignment"
+      // This should give it a last location if the mode were "locality", but should not for
+      // "assignment"
       c.tableOperations().flush(tableName, null, null, true);
 
       TabletLocationState flushed = getTabletLocationState(c, tableId);
