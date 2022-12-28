@@ -275,12 +275,13 @@ public enum Property {
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory", "", PropertyType.CLASSNAME,
       "Name of class that implements MeterRegistryFactory", "2.1.0"),
   GENERAL_LOCATION_MODE("general.location.mode", "locality", PropertyType.LAST_LOCATION_MODE,
-          "Describes how the system will assign tablets initially."
-                  + " If 'locality' is the mode, then the system will assign tablets based on the data locality (e.g. the last major compaction location)."
-                  + " If 'assignment' is the mode, then tablets will be initially assigned to the last place they were assigned which could be"
-                  + " different then where they were last compacted given balancing activities."
-                  + " Also note that manger.startup.tserver properties might need to be set as well to ensure"
-                  + " the tserver is available before tablets are initially assigned.", "3.0.0"),
+      "Describes how the system will assign tablets initially."
+          + " If 'locality' is the mode, then the system will assign tablets based on the data locality (e.g. the last major compaction location)."
+          + " If 'assignment' is the mode, then tablets will be initially assigned to the last place they were assigned which could be"
+          + " different then where they were last compacted given balancing activities."
+          + " Also note that manger.startup.tserver properties might need to be set as well to ensure"
+          + " the tserver is available before tablets are initially assigned.",
+      "3.0.0"),
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server. "
