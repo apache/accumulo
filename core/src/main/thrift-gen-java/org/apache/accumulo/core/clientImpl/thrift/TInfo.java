@@ -22,13 +22,13 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.trace.thrift;
+package org.apache.accumulo.core.clientImpl.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
 public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, java.io.Serializable, Cloneable, Comparable<TInfo> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TInfo");
 
-  private static final org.apache.thrift.protocol.TField HEADERS_FIELD_DESC = new org.apache.thrift.protocol.TField("headers", org.apache.thrift.protocol.TType.MAP, (short)3);
+  private static final org.apache.thrift.protocol.TField HEADERS_FIELD_DESC = new org.apache.thrift.protocol.TField("headers", org.apache.thrift.protocol.TType.MAP, (short)1);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TInfoStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TInfoTupleSchemeFactory();
@@ -37,7 +37,7 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    HEADERS((short)3, "headers");
+    HEADERS((short)1, "headers");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -53,7 +53,7 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
     @org.apache.thrift.annotation.Nullable
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 3: // HEADERS
+        case 1: // HEADERS
           return HEADERS;
         default:
           return null;
@@ -344,18 +344,18 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
           break;
         }
         switch (schemeField.id) {
-          case 3: // HEADERS
+          case 1: // HEADERS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map0 = iprot.readMapBegin();
-                struct.headers = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map0.size);
-                @org.apache.thrift.annotation.Nullable java.lang.String _key1;
-                @org.apache.thrift.annotation.Nullable java.lang.String _val2;
-                for (int _i3 = 0; _i3 < _map0.size; ++_i3)
+                org.apache.thrift.protocol.TMap _map18 = iprot.readMapBegin();
+                struct.headers = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map18.size);
+                @org.apache.thrift.annotation.Nullable java.lang.String _key19;
+                @org.apache.thrift.annotation.Nullable java.lang.String _val20;
+                for (int _i21 = 0; _i21 < _map18.size; ++_i21)
                 {
-                  _key1 = iprot.readString();
-                  _val2 = iprot.readString();
-                  struct.headers.put(_key1, _val2);
+                  _key19 = iprot.readString();
+                  _val20 = iprot.readString();
+                  struct.headers.put(_key19, _val20);
                 }
                 iprot.readMapEnd();
               }
@@ -384,10 +384,10 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
         oprot.writeFieldBegin(HEADERS_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.headers.size()));
-          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter4 : struct.headers.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter22 : struct.headers.entrySet())
           {
-            oprot.writeString(_iter4.getKey());
-            oprot.writeString(_iter4.getValue());
+            oprot.writeString(_iter22.getKey());
+            oprot.writeString(_iter22.getValue());
           }
           oprot.writeMapEnd();
         }
@@ -419,10 +419,10 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
       if (struct.isSetHeaders()) {
         {
           oprot.writeI32(struct.headers.size());
-          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter5 : struct.headers.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter23 : struct.headers.entrySet())
           {
-            oprot.writeString(_iter5.getKey());
-            oprot.writeString(_iter5.getValue());
+            oprot.writeString(_iter23.getKey());
+            oprot.writeString(_iter23.getValue());
           }
         }
       }
@@ -434,15 +434,15 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
       java.util.BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map6 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
-          struct.headers = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map6.size);
-          @org.apache.thrift.annotation.Nullable java.lang.String _key7;
-          @org.apache.thrift.annotation.Nullable java.lang.String _val8;
-          for (int _i9 = 0; _i9 < _map6.size; ++_i9)
+          org.apache.thrift.protocol.TMap _map24 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+          struct.headers = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map24.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _key25;
+          @org.apache.thrift.annotation.Nullable java.lang.String _val26;
+          for (int _i27 = 0; _i27 < _map24.size; ++_i27)
           {
-            _key7 = iprot.readString();
-            _val8 = iprot.readString();
-            struct.headers.put(_key7, _val8);
+            _key25 = iprot.readString();
+            _val26 = iprot.readString();
+            struct.headers.put(_key25, _val26);
           }
         }
         struct.setHeadersIsSet(true);

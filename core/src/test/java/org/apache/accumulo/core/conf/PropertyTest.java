@@ -98,20 +98,19 @@ public class PropertyTest {
   // This test verifies all "sensitive" properties are properly marked as sensitive
   @Test
   public void testSensitiveKeys() {
-    // add trace token, because it's a sensitive property not in the default configuration
+    // add instance.crypto.opts, because it's a sensitive property not in the default configuration
     ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
-    conf.set("trace.token.property.blah", "something");
+    conf.set("instance.crypto.opts.sensitive.blah", "something");
 
     // ignores duplicates because ConfigurationCopy already de-duplicates
     Collector<Entry<String,String>,?,TreeMap<String,String>> treeMapCollector =
         Collectors.toMap(Entry::getKey, Entry::getValue, (a, b) -> a, TreeMap::new);
 
-    @SuppressWarnings("deprecation")
     Predicate<Entry<String,String>> sensitiveNames =
         e -> e.getKey().equals(Property.INSTANCE_SECRET.getKey())
             || e.getKey().toLowerCase().contains("password")
             || e.getKey().toLowerCase().endsWith("secret")
-            || e.getKey().startsWith(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey());
+            || e.getKey().startsWith(Property.INSTANCE_CRYPTO_SENSITIVE_PREFIX.getKey());
 
     Predicate<Entry<String,String>> isMarkedSensitive = e -> Property.isSensitive(e.getKey());
 
@@ -120,8 +119,8 @@ public class PropertyTest {
     TreeMap<String,String> actual = StreamSupport.stream(conf.spliterator(), false)
         .filter(isMarkedSensitive).collect(treeMapCollector);
 
-    // make sure trace token property wasn't excluded from both
-    assertEquals("something", expected.get("trace.token.property.blah"));
+    // make sure instance.crypto.opts property wasn't excluded from both
+    assertEquals("something", expected.get("instance.crypto.opts.sensitive.blah"));
     assertEquals(expected, actual);
   }
 
@@ -143,9 +142,6 @@ public class PropertyTest {
     assertTrue(Property.INSTANCE_SECRET.isSensitive());
     assertFalse(Property.INSTANCE_VOLUMES.isSensitive());
 
-    @SuppressWarnings("deprecation")
-    Property deprecatedProp = Property.GENERAL_CLASSPATHS;
-    assertTrue(deprecatedProp.isDeprecated());
     assertFalse(Property.INSTANCE_VOLUMES_REPLACEMENTS.isDeprecated());
   }
 

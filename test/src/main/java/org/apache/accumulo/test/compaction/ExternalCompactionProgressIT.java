@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;

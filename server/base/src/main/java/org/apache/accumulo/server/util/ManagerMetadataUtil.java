@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.util;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import java.util.ArrayList;
 import java.util.Collection;

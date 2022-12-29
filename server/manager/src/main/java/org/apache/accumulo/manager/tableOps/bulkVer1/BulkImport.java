@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer1;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -207,10 +207,8 @@ public class BulkImport extends ManagerRepo {
     final UniqueNameAllocator namer = manager.getUniqueNameAllocator();
 
     AccumuloConfiguration serverConfig = manager.getConfiguration();
-    @SuppressWarnings("deprecation")
     ExecutorService workers = ThreadPools.getServerThreadPools().createExecutorService(serverConfig,
-        serverConfig.resolve(Property.MANAGER_RENAME_THREADS, Property.MANAGER_BULK_RENAME_THREADS),
-        false);
+        Property.MANAGER_RENAME_THREADS, false);
     List<Future<Exception>> results = new ArrayList<>();
 
     for (FileStatus file : mapFiles) {

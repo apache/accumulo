@@ -22,7 +22,6 @@ namespace cpp org.apache.accumulo.core.manager.thrift
 include "data.thrift"
 include "security.thrift"
 include "client.thrift"
-include "trace.thrift"
 include "master.thrift"
 
 struct DeadServer {
@@ -101,7 +100,7 @@ service FateService {
 
   // register a fate operation by reserving an opid
   i64 beginFateOperation(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
@@ -110,7 +109,7 @@ service FateService {
 
   // initiate execution of the fate operation; set autoClean to true if not waiting for completion
   void executeFateOperation(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:i64 opid
     4:FateOperation op
@@ -125,7 +124,7 @@ service FateService {
 
   // wait for completion of the operation and get the returned exception, if any
   string waitForFateOperation(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:i64 opid
   ) throws (
@@ -136,7 +135,7 @@ service FateService {
 
   // clean up fate operation if autoClean was not set, after waiting
   void finishFateOperation(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:i64 opid
   ) throws (
@@ -146,7 +145,7 @@ service FateService {
 
   // cancel a fate operation
   bool cancelFateOperation(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:i64 opid
   ) throws (
@@ -160,7 +159,7 @@ service ManagerClientService {
 
   // table management methods
   i64 initiateFlush(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
   ) throws (
@@ -170,7 +169,7 @@ service ManagerClientService {
   )
 
   void waitForFlush(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
     4:binary startRow
@@ -184,7 +183,7 @@ service ManagerClientService {
   )
 
   void setTableProperty(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
     4:string property
@@ -196,7 +195,7 @@ service ManagerClientService {
   )
 
   void modifyTableProperties(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
     4:client.TVersionedProperties vProperties
@@ -208,7 +207,7 @@ service ManagerClientService {
   )
 
   void removeTableProperty(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
     4:string property
@@ -219,7 +218,7 @@ service ManagerClientService {
   )
 
   void setNamespaceProperty(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
     4:string property
@@ -231,7 +230,7 @@ service ManagerClientService {
   )
 
   void modifyNamespaceProperties(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
     4:client.TVersionedProperties vProperties
@@ -243,7 +242,7 @@ service ManagerClientService {
   )
 
   void removeNamespaceProperty(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
     4:string property
@@ -255,7 +254,7 @@ service ManagerClientService {
 
   // system management methods
   void setManagerGoalState(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:ManagerGoalState state
   ) throws (
@@ -264,7 +263,7 @@ service ManagerClientService {
   )
 
   void shutdown(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:bool stopTabletServers
   ) throws (
@@ -273,7 +272,7 @@ service ManagerClientService {
   )
 
   void shutdownTabletServer(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tabletServer
     4:bool force
@@ -283,7 +282,7 @@ service ManagerClientService {
   )
 
   void setSystemProperty(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string property
     4:string value
@@ -293,7 +292,7 @@ service ManagerClientService {
   )
  
   void modifySystemProperties(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:client.TVersionedProperties vProperties
   ) throws (
@@ -303,7 +302,7 @@ service ManagerClientService {
   )
 
   void removeSystemProperty(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string property
   ) throws (
@@ -313,7 +312,7 @@ service ManagerClientService {
 
   // system monitoring methods
   ManagerMonitorInfo getManagerStats(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
@@ -321,21 +320,21 @@ service ManagerClientService {
   )
 
   void waitForBalance(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
   ) throws (
     1:client.ThriftNotActiveServiceException tnase
   )
 
   // tablet server reporting
   oneway void reportSplitExtent(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string serverName
     4:TabletSplit split
   )
 
   oneway void reportTabletStatus(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string serverName
     4:TabletLoadState status
@@ -343,7 +342,7 @@ service ManagerClientService {
   )
 
   list<string> getActiveTservers(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
@@ -352,7 +351,7 @@ service ManagerClientService {
 
   // Delegation token request
   security.TDelegationToken getDelegationToken(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:security.TDelegationTokenConfig cfg
   ) throws (

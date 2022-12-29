@@ -16,28 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.master.state;
+package org.apache.accumulo.core.util;
 
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.TServerInstance;
+import java.util.Comparator;
 
-/**
- * @deprecated since 2.1.0. Use balancers in org.apache.accumulo.core.spi.balancer instead.
- */
-@Deprecated(since = "2.1.0")
-public class TabletMigration {
-  public KeyExtent tablet;
-  public TServerInstance oldServer;
-  public TServerInstance newServer;
+import com.google.common.net.HostAndPort;
 
-  public TabletMigration(KeyExtent extent, TServerInstance before, TServerInstance after) {
-    this.tablet = extent;
-    this.oldServer = before;
-    this.newServer = after;
-  }
+public class HostAndPortComparator implements Comparator<HostAndPort> {
+
+  private static final Comparator<HostAndPort> COMPARATOR = Comparator.nullsFirst(
+      Comparator.comparing(HostAndPort::getHost).thenComparingInt(h -> h.getPortOrDefault(0)));
 
   @Override
-  public String toString() {
-    return tablet + ": " + oldServer + " -> " + newServer;
+  public int compare(HostAndPort o1, HostAndPort o2) {
+    return COMPARATOR.compare(o1, o2);
   }
 }

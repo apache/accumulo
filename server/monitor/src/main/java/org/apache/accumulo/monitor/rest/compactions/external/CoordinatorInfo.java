@@ -21,7 +21,7 @@ package org.apache.accumulo.monitor.rest.compactions.external;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.accumulo.core.util.HostAndPort;
+import com.google.common.net.HostAndPort;
 
 public class CoordinatorInfo {
 
