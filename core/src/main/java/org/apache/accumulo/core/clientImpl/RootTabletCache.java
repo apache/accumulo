@@ -69,7 +69,7 @@ public class RootTabletCache extends TabletCache {
   }
 
   @Override
-  public List<Range> binRanges(ClientContext context, List<Range> ranges,
+  public List<Range> locateTablets(ClientContext context, List<Range> ranges,
       BiConsumer<CachedTablet,Range> rangeConsumer) {
 
     CachedTablet rootCachedTablet = getRootTabletLocation(context);

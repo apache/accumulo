@@ -68,15 +68,14 @@ public abstract class TabletCache {
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
-  // TODO rename to lookupRanges
-  public abstract List<Range> binRanges(ClientContext context, List<Range> ranges,
+  public abstract List<Range> locateTablets(ClientContext context, List<Range> ranges,
       BiConsumer<CachedTablet,Range> rangeConsumer)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   public List<Range> binRanges(ClientContext context, List<Range> ranges,
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    return binRanges(context, ranges,
+    return locateTablets(context, ranges,
         ((cachedTablet, range) -> TabletCacheImpl.addRange(binnedRanges, cachedTablet, range)));
   }
 
@@ -187,14 +186,10 @@ public abstract class TabletCache {
 
   public static synchronized TabletCache getInstance(ClientContext context, TableId tableId,
       ScannerBase.ConsistencyLevel consistency) {
-    // TODO does getTableState use cache?
     if (consistency == ScannerBase.ConsistencyLevel.EVENTUAL
         && context.getTableState(tableId) == TableState.OFFLINE) {
       return getOfflineCache(context, tableId);
     }
-
-    // TODO maybe throw exception if table offline? dont want attempt to scan online table to clear
-    // cache
 
     return getInstance(context, tableId);
   }

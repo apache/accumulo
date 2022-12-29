@@ -273,7 +273,7 @@ public class TabletCacheImpl extends TabletCache {
     return false;
   }
 
-  private List<Range> binRanges(ClientContext context, List<Range> ranges,
+  private List<Range> locateTablets(ClientContext context, List<Range> ranges,
       BiConsumer<CachedTablet,Range> rangeConsumer, boolean useCache, LockCheckerSession lcSession)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     List<Range> failures = new ArrayList<>();
@@ -341,7 +341,7 @@ public class TabletCacheImpl extends TabletCache {
   }
 
   @Override
-  public List<Range> binRanges(ClientContext context, List<Range> ranges,
+  public List<Range> locateTablets(ClientContext context, List<Range> ranges,
       BiConsumer<CachedTablet,Range> rangeConsumer)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
@@ -370,7 +370,7 @@ public class TabletCacheImpl extends TabletCache {
       // sort ranges... therefore try binning ranges using only the cache
       // and sort whatever fails and retry
 
-      failures = binRanges(context, ranges, rangeConsumer, true, lcSession);
+      failures = locateTablets(context, ranges, rangeConsumer, true, lcSession);
     } finally {
       rLock.unlock();
     }
@@ -382,7 +382,7 @@ public class TabletCacheImpl extends TabletCache {
       // try lookups again
       wLock.lock();
       try {
-        failures = binRanges(context, failures, rangeConsumer, false, lcSession);
+        failures = locateTablets(context, failures, rangeConsumer, false, lcSession);
       } finally {
         wLock.unlock();
       }
@@ -736,8 +736,7 @@ public class TabletCacheImpl extends TabletCache {
 
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
-      // TODO ignores failures
-      parent.binRanges(context, lookups,
+      parent.locateTablets(context, lookups,
           (cachedTablet, range) -> addRange(binnedRanges, cachedTablet, range));
 
       // randomize server order

@@ -364,13 +364,11 @@ public class ThriftScanner {
         scanState.busyTimeout = Duration.ZERO;
         log.trace("For tablet {} scan server selector chose tablet_server", loc.getExtent());
       } else {
-        // TODO no scan server or tserver is available to handle request, what to do?
         log.trace("For tablet {} no scan servers or tablet servers are available", loc.getExtent());
         addr = null;
         delay = Duration.ZERO;
       }
 
-      // TODO integrate with other sleep in loop?
       if (!delay.isZero()) {
         try {
           Thread.sleep(delay.toMillis());

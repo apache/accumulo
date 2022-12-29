@@ -293,6 +293,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
 
         if (System.currentTimeMillis() - startTime > timeout) {
+          //TODO exception used for timeout is inconsistent
           throw new TimedOutException(
               "Failed to find servers to process scans before timeout was exceeded.");
         }
@@ -651,7 +652,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     Map<KeyExtent,String> extentToTserverMap = new HashMap<>();
     Map<KeyExtent,List<Range>> extentToRangesMap = new HashMap<>();
 
-    List<Range> failures = tabletCache.binRanges(context, ranges, (cachedTablet, range) -> {
+    List<Range> failures = tabletCache.locateTablets(context, ranges, (cachedTablet, range) -> {
       if (cachedTablet.hasTserverLocation()) {
         extentToTserverMap.put(cachedTablet.getExtent(), cachedTablet.getTserverLocation());
       }

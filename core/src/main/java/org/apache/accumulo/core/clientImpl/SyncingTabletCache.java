@@ -81,10 +81,10 @@ public class SyncingTabletCache extends TabletCache {
   }
 
   @Override
-  public List<Range> binRanges(ClientContext context, List<Range> ranges,
+  public List<Range> locateTablets(ClientContext context, List<Range> ranges,
       BiConsumer<CachedTablet,Range> rangeConsumer)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    return syncLocator().binRanges(context, ranges, rangeConsumer);
+    return syncLocator().locateTablets(context, ranges, rangeConsumer);
   }
 
   @Override
