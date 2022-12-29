@@ -294,7 +294,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
 
         if (System.currentTimeMillis() - startTime > timeout) {
-          //TODO exception used for timeout is inconsistent
+          // TODO exception used for timeout is inconsistent
           throw new TimedOutException(
               "Failed to find servers to process scans before timeout was exceeded.");
         }
