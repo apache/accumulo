@@ -41,7 +41,7 @@ import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
-public class AssignmentLocationModeIT extends ConfigurableMacBase {
+public class AssignLocationModeIT extends ConfigurableMacBase {
 
   @Override
   protected Duration defaultTimeout() {
@@ -50,7 +50,7 @@ public class AssignmentLocationModeIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
-    cfg.setProperty(Property.GENERAL_LOCATION_MODE, "assignment");
+    cfg.setProperty(Property.TSERV_LAST_LOCATION_MODE, "assign");
   }
 
   @Test
@@ -66,7 +66,8 @@ public class AssignmentLocationModeIT extends ConfigurableMacBase {
         UtilWaitThread.sleep(250);
         newTablet = getTabletLocationState(c, tableId);
       } while (newTablet.current == null);
-      assertNull(newTablet.last);
+      // this would be null if the mode was not "assign"
+      assertEquals(newTablet.current, newTablet.last);
       assertNull(newTablet.future);
 
       // put something in it
@@ -75,38 +76,29 @@ public class AssignmentLocationModeIT extends ConfigurableMacBase {
         m.put("b", "c", "d");
         bw.addMutation(m);
       }
-      // assert that the default mode is "assignment"
-      assertEquals("assignment", c.instanceOperations().getSystemConfiguration()
-          .get(Property.GENERAL_LOCATION_MODE.getKey()));
+      // assert that the default mode is "assign"
+      assertEquals("assign", c.instanceOperations().getSystemConfiguration()
+          .get(Property.TSERV_LAST_LOCATION_MODE.getKey()));
 
       // last location should not be set yet
       TabletLocationState unflushed = getTabletLocationState(c, tableId);
       assertEquals(newTablet.current, unflushed.current);
-      assertNull(unflushed.last);
+      assertEquals(newTablet.current, unflushed.last);
       assertNull(newTablet.future);
 
-      // This should give it a last location if the mode were "locality", but should not for
-      // "assignment"
-      c.tableOperations().flush(tableName, null, null, true);
-
-      TabletLocationState flushed = getTabletLocationState(c, tableId);
-      assertEquals(newTablet.current, flushed.current);
-      assertNull(unflushed.last);
-      assertNull(newTablet.future);
-
-      // take the tablet offline, now last should be set
+      // take the tablet offline
       c.tableOperations().offline(tableName, true);
       TabletLocationState offline = getTabletLocationState(c, tableId);
       assertNull(offline.future);
       assertNull(offline.current);
-      assertEquals(flushed.current, offline.last);
+      assertEquals(newTablet.current, offline.last);
 
       // put it back online, should have the same last location
       c.tableOperations().online(tableName, true);
       TabletLocationState online = getTabletLocationState(c, tableId);
       assertNull(online.future);
       assertNotNull(online.current);
-      assertEquals(offline.last, online.last);
+      assertEquals(newTablet.last, online.last);
     }
   }
 

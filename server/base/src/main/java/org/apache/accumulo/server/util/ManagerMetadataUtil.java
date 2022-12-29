@@ -208,7 +208,7 @@ public class ManagerMetadataUtil {
     TServerInstance self = getTServerInstance(address, zooLock);
     // if the location mode is 'locality'', then preserve the current compaction location in the
     // last location value
-    if ("locality".equals(context.getConfiguration().get(Property.GENERAL_LOCATION_MODE))) {
+    if ("compact".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
       tablet.putLocation(self, LocationType.LAST);
 
       // remove the old location
@@ -247,7 +247,7 @@ public class ManagerMetadataUtil {
       TServerInstance self = getTServerInstance(address, zooLock);
       // if the location mode is 'locality'', then preserve the current compaction location in the
       // last location value
-      if ("locality".equals(context.getConfiguration().get(Property.GENERAL_LOCATION_MODE))) {
+      if ("compact".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
         tablet.putLocation(self, LocationType.LAST);
 
         // remove the old location

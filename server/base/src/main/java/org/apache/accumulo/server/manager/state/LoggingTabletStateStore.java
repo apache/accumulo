@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.net.HostAndPort;
@@ -52,22 +53,23 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments)
+  public void setFutureLocations(ServerContext context, Collection<Assignment> assignments)
       throws DistributedStoreException {
-    wrapped.setFutureLocations(assignments);
+    wrapped.setFutureLocations(context, assignments);
     assignments.forEach(assignment -> TabletLogger.assigned(assignment.tablet, assignment.server));
   }
 
   @Override
-  public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
-    wrapped.setLocations(assignments);
+  public void setLocations(ServerContext context, Collection<Assignment> assignments)
+      throws DistributedStoreException {
+    wrapped.setLocations(context, assignments);
     assignments.forEach(assignment -> TabletLogger.loaded(assignment.tablet, assignment.server));
   }
 
   @Override
-  public void unassign(Collection<TabletLocationState> tablets,
+  public void unassign(ServerContext context, Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
-    wrapped.unassign(tablets, logsForDeadServers);
+    wrapped.unassign(context, tablets, logsForDeadServers);
 
     if (logsForDeadServers == null) {
       logsForDeadServers = Map.of();
@@ -79,10 +81,10 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void suspend(Collection<TabletLocationState> tablets,
+  public void suspend(ServerContext context, Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
-    wrapped.suspend(tablets, logsForDeadServers, suspensionTimestamp);
+    wrapped.suspend(context, tablets, logsForDeadServers, suspensionTimestamp);
 
     if (logsForDeadServers == null) {
       logsForDeadServers = Map.of();

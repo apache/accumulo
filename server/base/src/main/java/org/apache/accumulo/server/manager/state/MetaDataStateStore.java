@@ -32,6 +32,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 
 class MetaDataStateStore implements TabletStateStore {
@@ -58,12 +59,18 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
+  public void setLocations(ServerContext context, Collection<Assignment> assignments)
+      throws DistributedStoreException {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (Assignment assignment : assignments) {
-        tabletsMutator.mutateTablet(assignment.tablet)
-            .putLocation(assignment.server, LocationType.CURRENT)
-            .deleteLocation(assignment.server, LocationType.FUTURE).deleteSuspension().mutate();
+        TabletMutator mutation = tabletsMutator.mutateTablet(assignment.tablet);
+        mutation.putLocation(assignment.server, LocationType.CURRENT);
+        if ("assign".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
+          mutation.putLocation(assignment.server, LocationType.LAST);
+        }
+        mutation.deleteLocation(assignment.server, LocationType.FUTURE);
+        mutation.deleteSuspension();
+        mutation.mutate();
       }
     } catch (RuntimeException ex) {
       throw new DistributedStoreException(ex);
@@ -71,7 +78,7 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments)
+  public void setFutureLocations(ServerContext context, Collection<Assignment> assignments)
       throws DistributedStoreException {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (Assignment assignment : assignments) {
@@ -84,28 +91,28 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   @Override
-  public void unassign(Collection<TabletLocationState> tablets,
+  public void unassign(ServerContext context, Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
-    unassign(tablets, logsForDeadServers, -1);
+    unassign(context, tablets, logsForDeadServers, -1);
   }
 
   @Override
-  public void suspend(Collection<TabletLocationState> tablets,
+  public void suspend(ServerContext context, Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
-    unassign(tablets, logsForDeadServers, suspensionTimestamp);
+    unassign(context, tablets, logsForDeadServers, suspensionTimestamp);
   }
 
-  private void unassign(Collection<TabletLocationState> tablets,
+  private void unassign(ServerContext context, Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (TabletLocationState tls : tablets) {
         TabletMutator tabletMutator = tabletsMutator.mutateTablet(tls.extent);
         if (tls.current != null) {
-          // if the location more is assignment, then preserve the current location in the last
+          // if the location mode is assignment, then preserve the current location in the last
           // location value
-          if ("assignment".equals(context.getConfiguration().get(Property.GENERAL_LOCATION_MODE))) {
+          if ("unload".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
             tabletMutator.putLocation(tls.current, LocationType.LAST);
           }
           tabletMutator.deleteLocation(tls.current, LocationType.CURRENT);

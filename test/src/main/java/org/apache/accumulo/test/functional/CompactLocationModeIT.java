@@ -39,7 +39,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.junit.jupiter.api.Test;
 
-public class LocalityLocationModeIT extends ConfigurableMacBase {
+public class CompactLocationModeIT extends ConfigurableMacBase {
 
   @Override
   protected Duration defaultTimeout() {
@@ -68,9 +68,9 @@ public class LocalityLocationModeIT extends ConfigurableMacBase {
         m.put("b", "c", "d");
         bw.addMutation(m);
       }
-      // assert that the default mode is "locality"
-      assertEquals("locality", c.instanceOperations().getSystemConfiguration()
-          .get(Property.GENERAL_LOCATION_MODE.getKey()));
+      // assert that the default mode is "compact"
+      assertEquals("compact", c.instanceOperations().getSystemConfiguration()
+          .get(Property.TSERV_LAST_LOCATION_MODE.getKey()));
 
       // no last location should be set yet
       TabletLocationState unflushed = getTabletLocationState(c, tableId);
