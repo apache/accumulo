@@ -140,7 +140,7 @@ class ZooTabletStateStore implements TabletStateStore {
     tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
     if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
       TabletMetadata lastMetadata =
-              ample.readTablet(assignment.tablet, TabletMetadata.ColumnType.LAST);
+          ample.readTablet(assignment.tablet, TabletMetadata.ColumnType.LAST);
       if (lastMetadata != null && lastMetadata.getLast() != null) {
         if (!lastMetadata.getLast().equals(assignment.server)) {
           tabletMutator.putLocation(assignment.server, LocationType.LAST);
@@ -171,8 +171,7 @@ class ZooTabletStateStore implements TabletStateStore {
     tabletMutator.deleteLocation(tls.futureOrCurrent(), LocationType.FUTURE);
     tabletMutator.deleteLocation(tls.futureOrCurrent(), LocationType.CURRENT);
     if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-      TabletMetadata lastMetadata =
-              ample.readTablet(tls.extent, TabletMetadata.ColumnType.LAST);
+      TabletMetadata lastMetadata = ample.readTablet(tls.extent, TabletMetadata.ColumnType.LAST);
       if (lastMetadata != null && lastMetadata.getLast() != null) {
         if (!lastMetadata.getLast().equals(tls.futureOrCurrent())) {
           tabletMutator.putLocation(tls.futureOrCurrent(), LocationType.LAST);

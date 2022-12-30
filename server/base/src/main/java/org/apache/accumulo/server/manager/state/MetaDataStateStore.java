@@ -59,8 +59,7 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setLocations(Collection<Assignment> assignments)
-      throws DistributedStoreException {
+  public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (Assignment assignment : assignments) {
         TabletMutator mutation = tabletsMutator.mutateTablet(assignment.tablet);
