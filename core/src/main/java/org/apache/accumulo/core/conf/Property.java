@@ -727,7 +727,7 @@ public enum Property {
           + " summary data, that is not currently in cache, from RFiles.",
       "2.0.0"),
   TSERV_LAST_LOCATION_MODE("tserver.last.location.mode", "compact", PropertyType.LAST_LOCATION_MODE,
-      "Describes how the system will assign tablets initially by defining how the 'last' location is updated."
+      "Describes how the system will record the 'last' location for tablets, which can be used for assigning them when a cluster restarts."
           + " If 'compact' is the mode, then the system will assign tablets based on the data locality (e.g. the last compaction location)."
           + " If 'assign' is the mode, then tablets will be initially assigned to the last place they were assigned."
           + " If 'unload' is the mode, then tablets will be initially assigned to the last place they were unloaded from (i.e. requires a clean shutdown)."
