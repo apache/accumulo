@@ -729,7 +729,7 @@ public enum Property {
   TSERV_LAST_LOCATION_MODE("tserver.last.location.mode", "compact", PropertyType.LAST_LOCATION_MODE,
       "Describes how the system will record the 'last' location for tablets, which can be used for assigning them when a cluster restarts."
           + " If 'compact' is the mode, then the system will record the location where the tablet's most recent compaction occurred."
-          + " If 'assign' is the mode, then tablets will be initially assigned to the last place they were assigned."
+          + " If 'assign' is the mode, then the most recently assigned location will be recorded."
           + " If 'unload' is the mode, then tablets will be initially assigned to the last place they were unloaded from (i.e. requires a clean shutdown)."
           + " Also note that manger.startup.tserver properties might need to be set as well to ensure"
           + " the tserver is available before tablets are initially assigned.",
