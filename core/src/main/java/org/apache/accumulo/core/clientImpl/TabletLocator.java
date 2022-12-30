@@ -187,9 +187,9 @@ public abstract class TabletLocator {
     return tl;
   }
 
-  //TODO rename to getInstance
+  // TODO rename to getInstance
   public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId,
-                                                      ScannerBase.ConsistencyLevel consistency) {
+      ScannerBase.ConsistencyLevel consistency) {
     if (consistency == ScannerBase.ConsistencyLevel.EVENTUAL
         && context.getTableState(tableId) == TableState.OFFLINE) {
       return getOfflineCache(context, tableId);
@@ -198,7 +198,7 @@ public abstract class TabletLocator {
     return getLocator(context, tableId);
   }
 
-  //TODO rename to getInstance
+  // TODO rename to getInstance
   public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
         + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
@@ -249,7 +249,7 @@ public abstract class TabletLocator {
     });
   }
 
-  //TODO rename to CachedTablets
+  // TODO rename to CachedTablets
   public static class TabletLocations {
 
     private final List<TabletLocation> locations;
@@ -269,7 +269,7 @@ public abstract class TabletLocator {
     }
   }
 
-  //TODO rename to CachedTablet
+  // TODO rename to CachedTablet
   public static class TabletLocation {
 
     private static final Interner<String> interner = new Interner<>();
