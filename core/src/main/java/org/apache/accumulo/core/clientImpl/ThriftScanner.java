@@ -595,6 +595,8 @@ public class ThriftScanner {
           sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
         } catch (TException e) {
           if (addr.serverType == ServerType.TSERVER) {
+            // only tsever locations are in cache, invalidating a scan server would not find
+            // anything the cache
             TabletLocator.getLocator(context, scanState.tableId, scanState.getConsistencyLevel())
                 .invalidateCache(context, addr.serverAddress);
           }

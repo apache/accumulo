@@ -56,6 +56,8 @@ import org.apache.hadoop.io.WritableComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class TabletLocatorImpl extends TabletLocator {
@@ -173,6 +175,9 @@ public class TabletLocatorImpl extends TabletLocator {
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+
+    Preconditions.checkState(getMode() == Mode.ONLINE,
+        "Tried to bin mutations for an offline table");
 
     OpTimer timer = null;
 
@@ -428,10 +433,17 @@ public class TabletLocatorImpl extends TabletLocator {
   public void invalidateCache(ClientContext context, String server) {
     int invalidatedCount = 0;
 
+    if (getMode() == Mode.OFFLINE) {
+      // this cache has no server locations, so there is nothing to do
+      log.trace("invalidate cache for server called on offline table, ignoring. table={} server={}",
+          tableId, server);
+      return;
+    }
+
     wLock.lock();
     try {
       for (TabletLocation cacheEntry : metaCache.values()) {
-        if (cacheEntry.hasTserverLocation() && cacheEntry.getTserverLocation().equals(server)) {
+        if (cacheEntry.getTserverLocation().equals(server)) {
           badExtents.add(cacheEntry.getExtent());
           invalidatedCount++;
         }

@@ -63,17 +63,46 @@ public abstract class TabletLocator {
     return isValid;
   }
 
+  /**
+   * This method finds a tablet that contains the specified row. When {@link #getMode()} returns
+   * OFFLINE the behavior of this method is that it will always return a {@link TabletLocation} but
+   * it will not have a location. When {@link #getMode()} returns ONLINE this method will only
+   * return something if the tablet containing the row has a location, otherwise it will return
+   * null.
+   */
   public abstract TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
       boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
+  /**
+   * This methods bins mutations to the tablets where the mutation would be written. This method
+   * only functions when {@link #getMode()} is ONLINE, otherwise it throws an exception. If the
+   * tablet containing a mutation has a location it will be binned to the supplied map, otherwise
+   * its binned to the supplied failure list.
+   */
   public abstract <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
+  /**
+   * This method finds what tablets overlap a given set of ranges, passing each range and its
+   * associated tablet to the range consumer. If a range overlaps multiple tablets then it can be
+   * passed to the range consumer multiple times. When {@link #getMode()} returns OFFLINE this
+   * method should map every range to one ore more tablets, and those tablets will not have a
+   * location. When {@link #getMode()} returns ONLINE ranges are only mapped to tablets with a
+   * location, any range that overlaps a tablet without a location will be returned in the list of
+   * failure ranges.
+   *
+   */
   public abstract List<Range> locateTablets(ClientContext context, List<Range> ranges,
       BiConsumer<TabletLocation,Range> rangeConsumer)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
+  /**
+   * The behavior of this method is similar to
+   * {@link #locateTablets(ClientContext, List, BiConsumer)}, except it bins ranges to the passed in
+   * binnedRanges map instead of passing them to a consumer.
+   *
+   */
   public List<Range> binRanges(ClientContext context, List<Range> ranges,
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
@@ -98,7 +127,16 @@ public abstract class TabletLocator {
   public abstract Mode getMode();
 
   public enum Mode {
-    OFFLINE, ONLINE
+    /**
+     * When a {@link TabletLocator} is in this mode it will cache all tablets that exist in the
+     * metadata table, but the cache entries will have not location.
+     */
+    OFFLINE,
+    /**
+     * When a {@link TabletLocator} is in this mode it will cache only tablets from the metadata
+     * table that have a location.
+     */
+    ONLINE
   }
 
   private static class LocatorKey {
@@ -189,6 +227,11 @@ public abstract class TabletLocator {
   }
 
   // TODO rename to getInstance
+
+  /**
+   * Returns a {@link TabletLocator} for an online table, unless the consistency level is EVENTUAL
+   * and the table is currently offline in which case an offline {@link TabletLocator} is returned.
+   */
   public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId,
       ScannerBase.ConsistencyLevel consistency) {
     if (consistency == ScannerBase.ConsistencyLevel.EVENTUAL
@@ -200,6 +243,10 @@ public abstract class TabletLocator {
   }
 
   // TODO rename to getInstance
+
+  /**
+   * Returns a {@link TabletLocator} for an online table, so {@link #getMode()} would return ONLINE.
+   */
   public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
         + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
