@@ -33,7 +33,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 
 class MetaDataStateStore implements TabletStateStore {
@@ -60,7 +59,7 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setLocations(ServerContext context, Collection<Assignment> assignments)
+  public void setLocations(Collection<Assignment> assignments)
       throws DistributedStoreException {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (Assignment assignment : assignments) {
@@ -89,7 +88,7 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   @Override
-  public void setFutureLocations(ServerContext context, Collection<Assignment> assignments)
+  public void setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (Assignment assignment : assignments) {
@@ -102,19 +101,19 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   @Override
-  public void unassign(ServerContext context, Collection<TabletLocationState> tablets,
+  public void unassign(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
-    unassign(context, tablets, logsForDeadServers, -1);
+    unassign(tablets, logsForDeadServers, -1);
   }
 
   @Override
-  public void suspend(ServerContext context, Collection<TabletLocationState> tablets,
+  public void suspend(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
-    unassign(context, tablets, logsForDeadServers, suspensionTimestamp);
+    unassign(tablets, logsForDeadServers, suspensionTimestamp);
   }
 
-  private void unassign(ServerContext context, Collection<TabletLocationState> tablets,
+  private void unassign(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
     try (var tabletsMutator = ample.mutateTablets()) {

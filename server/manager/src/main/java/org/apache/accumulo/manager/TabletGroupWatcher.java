@@ -883,9 +883,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           deadTablets.subList(0, maxServersToShow));
       Manager.log.debug("logs for dead servers: {}", deadLogs);
       if (canSuspendTablets()) {
-        store.suspend(manager.getContext(), deadTablets, deadLogs, manager.getSteadyTime());
+        store.suspend(deadTablets, deadLogs, manager.getSteadyTime());
       } else {
-        store.unassign(manager.getContext(), deadTablets, deadLogs);
+        store.unassign(deadTablets, deadLogs);
       }
       markDeadServerLogsAsClosed(wals, deadLogs);
       manager.nextEvent.event(
@@ -947,7 +947,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     if (!tLists.assignments.isEmpty()) {
       Manager.log.info(String.format("Assigning %d tablets", tLists.assignments.size()));
-      store.setFutureLocations(manager.getContext(), tLists.assignments);
+      store.setFutureLocations(tLists.assignments);
     }
     tLists.assignments.addAll(tLists.assigned);
     for (Assignment a : tLists.assignments) {
