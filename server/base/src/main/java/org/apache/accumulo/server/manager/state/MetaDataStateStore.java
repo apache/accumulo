@@ -30,6 +30,7 @@ import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
@@ -65,8 +66,18 @@ class MetaDataStateStore implements TabletStateStore {
       for (Assignment assignment : assignments) {
         TabletMutator mutation = tabletsMutator.mutateTablet(assignment.tablet);
         mutation.putLocation(assignment.server, LocationType.CURRENT);
-        if ("assign".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-          mutation.putLocation(assignment.server, LocationType.LAST);
+        if ("assignment"
+            .equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
+          TabletMetadata lastMetadata =
+              ample.readTablet(assignment.tablet, TabletMetadata.ColumnType.LAST);
+          if (lastMetadata != null && lastMetadata.getLast() != null) {
+            if (!lastMetadata.getLast().equals(assignment.server)) {
+              mutation.putLocation(assignment.server, LocationType.LAST);
+              mutation.deleteLocation(lastMetadata.getLast(), LocationType.LAST);
+            }
+          } else {
+            mutation.putLocation(assignment.server, LocationType.LAST);
+          }
         }
         mutation.deleteLocation(assignment.server, LocationType.FUTURE);
         mutation.deleteSuspension();
@@ -112,8 +123,18 @@ class MetaDataStateStore implements TabletStateStore {
         if (tls.current != null) {
           // if the location mode is assignment, then preserve the current location in the last
           // location value
-          if ("unload".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-            tabletMutator.putLocation(tls.current, LocationType.LAST);
+          if ("assignment"
+              .equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
+            TabletMetadata lastMetadata =
+                ample.readTablet(tls.extent, TabletMetadata.ColumnType.LAST);
+            if (lastMetadata != null && lastMetadata.getLast() != null) {
+              if (!lastMetadata.getLast().equals(tls.current)) {
+                tabletMutator.putLocation(tls.current, LocationType.LAST);
+                tabletMutator.deleteLocation(lastMetadata.getLast(), LocationType.LAST);
+              }
+            } else {
+              tabletMutator.putLocation(tls.current, LocationType.LAST);
+            }
           }
           tabletMutator.deleteLocation(tls.current, LocationType.CURRENT);
           if (logsForDeadServers != null) {

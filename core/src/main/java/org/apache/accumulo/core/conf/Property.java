@@ -726,13 +726,13 @@ public enum Property {
       "The number of threads on each tablet server available to retrieve"
           + " summary data, that is not currently in cache, from RFiles.",
       "2.0.0"),
-  TSERV_LAST_LOCATION_MODE("tserver.last.location.mode", "compact", PropertyType.LAST_LOCATION_MODE,
+  TSERV_LAST_LOCATION_MODE("tserver.last.location.mode", "compaction",
+      PropertyType.LAST_LOCATION_MODE,
       "Describes how the system will record the 'last' location for tablets, which can be used for assigning them when a cluster restarts."
-          + " If 'compact' is the mode, then the system will record the location where the tablet's most recent compaction occurred."
-          + " If 'assign' is the mode, then the most recently assigned location will be recorded."
-          + " If 'unload' is the mode, then tablets will be initially assigned to the last place they were unloaded from (i.e. requires a clean shutdown)."
+          + " If 'compaction' is the mode, then the system will record the location where the tablet's most recent compaction occurred."
+          + " If 'assignment' is the mode, then the most recently assigned location will be recorded."
           + " Also note that manger.startup.tserver properties might need to be set as well to ensure"
-          + " the tserver is available before tablets are initially assigned.",
+          + " the tserver is available before tablets are initially assigned if the 'last' location is to be used.",
       "3.0.0"),
 
   // accumulo garbage collector properties

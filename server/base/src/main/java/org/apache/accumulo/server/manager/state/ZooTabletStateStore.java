@@ -137,7 +137,7 @@ class ZooTabletStateStore implements TabletStateStore {
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
     tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
-    if ("assign".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
+    if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
       tabletMutator.putLocation(assignment.server, LocationType.LAST);
     }
     tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
@@ -160,7 +160,7 @@ class ZooTabletStateStore implements TabletStateStore {
 
     tabletMutator.deleteLocation(tls.futureOrCurrent(), LocationType.FUTURE);
     tabletMutator.deleteLocation(tls.futureOrCurrent(), LocationType.CURRENT);
-    if ("unload".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
+    if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
       tabletMutator.putLocation(tls.futureOrCurrent(), LocationType.LAST);
     }
     if (logsForDeadServers != null) {

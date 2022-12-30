@@ -69,7 +69,7 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
         bw.addMutation(m);
       }
       // assert that the default mode is "compact"
-      assertEquals("compact", c.instanceOperations().getSystemConfiguration()
+      assertEquals("compaction", c.instanceOperations().getSystemConfiguration()
           .get(Property.TSERV_LAST_LOCATION_MODE.getKey()));
 
       // no last location should be set yet

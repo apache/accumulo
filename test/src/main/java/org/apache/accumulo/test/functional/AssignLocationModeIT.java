@@ -50,7 +50,7 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
-    cfg.setProperty(Property.TSERV_LAST_LOCATION_MODE, "assign");
+    cfg.setProperty(Property.TSERV_LAST_LOCATION_MODE, "assignment");
   }
 
   @Test
@@ -77,7 +77,7 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
         bw.addMutation(m);
       }
       // assert that the default mode is "assign"
-      assertEquals("assign", c.instanceOperations().getSystemConfiguration()
+      assertEquals("assignment", c.instanceOperations().getSystemConfiguration()
           .get(Property.TSERV_LAST_LOCATION_MODE.getKey()));
 
       // last location should not be set yet

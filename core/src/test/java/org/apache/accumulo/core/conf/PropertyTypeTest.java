@@ -146,7 +146,7 @@ public class PropertyTypeTest extends WithTestNames {
 
   @Test
   public void testTypeLAST_LOCATION_MODE() {
-    valid(null, "compact", "assign", "unload");
+    valid(null, "compaction", "assignment");
     invalid("", "other");
   }
 
