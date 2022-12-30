@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -206,6 +207,11 @@ public abstract class TabletLocator {
     TabletLocator tl = locators.get(key);
 
     if (tl != null && tl.getMode() == Mode.OFFLINE) {
+      if (context.getTableState(tableId, true) == TableState.OFFLINE) {
+        // do not want to clear offline cache when the table is offline. Request for the online
+        // cache can come in even if the table is offline.
+        throw new TableOfflineException(tableId, null);
+      }
       tl.invalidateCache();
       locators.remove(key);
       tl = null;
@@ -304,6 +310,15 @@ public abstract class TabletLocator {
       return tablet_extent;
     }
 
+    /**
+     * Wether or not a tserver location is present is determined by how the {@link TabletLocator}
+     * that created this object was obtained. For tablet locators obtained from
+     * {@link #getLocator(ClientContext, TableId)} there will always be a location present. For
+     * locators obtained from
+     * {@link #getLocator(ClientContext, TableId, ScannerBase.ConsistencyLevel)} if the consistency
+     * level is eventual and the table is offline, then locations will never be present. Otherwise
+     * locations are always present.
+     */
     public boolean hasTserverLocation() {
       return tserverLocation != null;
     }
