@@ -39,10 +39,10 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
-import org.apache.accumulo.core.clientImpl.TabletCache;
-import org.apache.accumulo.core.clientImpl.TabletCache.CachedTablet;
-import org.apache.accumulo.core.clientImpl.TabletCache.CachedTablets;
-import org.apache.accumulo.core.clientImpl.TabletCacheImpl.TabletLocationObtainer;
+import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocations;
+import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletLocationObtainer;
 import org.apache.accumulo.core.clientImpl.TabletServerBatchReaderIterator;
 import org.apache.accumulo.core.clientImpl.TabletServerBatchReaderIterator.ResultReceiver;
 import org.apache.accumulo.core.clientImpl.ThriftScanner;
@@ -66,12 +66,12 @@ import org.slf4j.LoggerFactory;
 
 public class MetadataLocationObtainer implements TabletLocationObtainer {
   private static final Logger log = LoggerFactory.getLogger(MetadataLocationObtainer.class);
-  private final TabletCache.Mode mode;
+  private final TabletLocator.Mode mode;
 
   private SortedSet<Column> locCols;
   private ArrayList<Column> columns;
 
-  public MetadataLocationObtainer(TabletCache.Mode mode) {
+  public MetadataLocationObtainer(TabletLocator.Mode mode) {
 
     locCols = new TreeSet<>();
     locCols.add(new Column(TextUtil.getBytes(CurrentLocationColumnFamily.NAME), null, null));
@@ -81,8 +81,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
 
   @Override
-  public CachedTablets lookupTablet(ClientContext context, CachedTablet src, Text row, Text stopRow,
-      TabletCache parent) throws AccumuloSecurityException, AccumuloException {
+  public TabletLocations lookupTablet(ClientContext context, TabletLocation src, Text row, Text stopRow,
+                                      TabletLocator parent) throws AccumuloSecurityException, AccumuloException {
 
     try {
 
@@ -171,8 +171,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
 
   @Override
-  public List<CachedTablet> lookupTablets(ClientContext context, String tserver,
-      Map<KeyExtent,List<Range>> tabletsRanges, TabletCache parent)
+  public List<TabletLocation> lookupTablets(ClientContext context, String tserver,
+                                            Map<KeyExtent,List<Range>> tabletsRanges, TabletLocator parent)
       throws AccumuloSecurityException, AccumuloException {
 
     final TreeMap<Key,Value> results = new TreeMap<>();
@@ -216,16 +216,16 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
 
   @Override
-  public TabletCache.Mode getMode() {
+  public TabletLocator.Mode getMode() {
     return mode;
   }
 
-  public static CachedTablets getMetadataLocationEntries(SortedMap<Key,Value> entries,
-      TabletCache.Mode mode) {
+  public static TabletLocations getMetadataLocationEntries(SortedMap<Key,Value> entries,
+                                                           TabletLocator.Mode mode) {
     Text location = null;
     Text session = null;
 
-    List<CachedTablet> results = new ArrayList<>();
+    List<TabletLocation> results = new ArrayList<>();
     ArrayList<KeyExtent> locationless = new ArrayList<>();
 
     Text lastRowFromKey = new Text();
@@ -258,10 +258,10 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
         KeyExtent ke = KeyExtent.fromMetaPrevRow(entry);
 
-        if (mode == TabletCache.Mode.OFFLINE) {
-          results.add(new CachedTablet(ke));
+        if (mode == TabletLocator.Mode.OFFLINE) {
+          results.add(new TabletLocation(ke));
         } else if (location != null) {
-          results.add(new CachedTablet(ke, location.toString(), session.toString()));
+          results.add(new TabletLocation(ke, location.toString(), session.toString()));
         } else {
           locationless.add(ke);
         }
@@ -270,6 +270,6 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       }
     }
 
-    return new CachedTablets(results, locationless);
+    return new TabletLocations(results, locationless);
   }
 }

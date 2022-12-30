@@ -110,7 +110,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private Set<String> timedoutServers;
   private final long timeout;
 
-  private TabletCache locator;
+  private TabletLocator locator;
 
   private ScanServerAttemptsImpl scanAttempts = new ScanServerAttemptsImpl();
 
@@ -131,8 +131,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.options = new ScannerOptions(scannerOptions);
     resultsQueue = new ArrayBlockingQueue<>(numThreads);
 
-    this.locator = new TimeoutTabletCache(timeout,
-        () -> TabletCache.getInstance(context, tableId, scannerOptions.getConsistencyLevel()));
+    this.locator = new TimeoutTabletLocator(timeout,
+        () -> TabletLocator.getInstance(context, tableId, scannerOptions.getConsistencyLevel()));
 
     timeoutTrackers = Collections.synchronizedMap(new HashMap<>());
     timedoutServers = Collections.synchronizedSet(new HashSet<>());
@@ -244,8 +244,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     doLookups(binnedRanges, receiver, columns, ssd);
   }
 
-  private ScanServerData binRanges(TabletCache tabletCache, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+  private ScanServerData binRanges(TabletLocator tabletLocator, List<Range> ranges,
+                                   Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     int lastFailureSize = Integer.MAX_VALUE;
@@ -261,10 +261,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       List<Range> failures;
 
       if (options.getConsistencyLevel().equals(ConsistencyLevel.IMMEDIATE)) {
-        failures = tabletCache.binRanges(context, ranges, binnedRanges);
+        failures = tabletLocator.binRanges(context, ranges, binnedRanges);
         ssd = new ScanServerData();
       } else if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
-        ssd = binRangesForScanServers(tabletCache, ranges, binnedRanges);
+        ssd = binRangesForScanServers(tabletLocator, ranges, binnedRanges);
         failures = ssd.failures;
       } else {
         throw new IllegalStateException();
@@ -644,8 +644,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
   }
 
-  private ScanServerData binRangesForScanServers(TabletCache tabletCache, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+  private ScanServerData binRangesForScanServers(TabletLocator tabletLocator, List<Range> ranges,
+                                                 Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
 
     ScanServerSelector ecsm = context.getScanServerSelector();
@@ -653,7 +653,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     Map<KeyExtent,String> extentToTserverMap = new HashMap<>();
     Map<KeyExtent,List<Range>> extentToRangesMap = new HashMap<>();
 
-    List<Range> failures = tabletCache.locateTablets(context, ranges, (cachedTablet, range) -> {
+    List<Range> failures = tabletLocator.locateTablets(context, ranges, (cachedTablet, range) -> {
       if (cachedTablet.hasTserverLocation()) {
         extentToTserverMap.put(cachedTablet.getExtent(), cachedTablet.getTserverLocation());
       }

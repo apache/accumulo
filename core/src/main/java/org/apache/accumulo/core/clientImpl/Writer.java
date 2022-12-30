@@ -26,7 +26,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.TabletCache.CachedTablet;
+import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -89,7 +89,7 @@ public class Writer {
     }
 
     while (true) {
-      CachedTablet tabLoc = TabletCache.getInstance(context, tableId).locateTablet(context,
+      TabletLocation tabLoc = TabletLocator.getInstance(context, tableId).locateTablet(context,
           new Text(m.getRow()), false, true);
 
       if (tabLoc == null) {
@@ -104,15 +104,15 @@ public class Writer {
         return;
       } catch (NotServingTabletException e) {
         log.trace("Not serving tablet, server = {}", parsedLocation);
-        TabletCache.getInstance(context, tableId).invalidateCache(tabLoc.getExtent());
+        TabletLocator.getInstance(context, tableId).invalidateCache(tabLoc.getExtent());
       } catch (ConstraintViolationException cve) {
         log.error("error sending update to {}", parsedLocation, cve);
         // probably do not need to invalidate cache, but it does not hurt
-        TabletCache.getInstance(context, tableId).invalidateCache(tabLoc.getExtent());
+        TabletLocator.getInstance(context, tableId).invalidateCache(tabLoc.getExtent());
         throw cve;
       } catch (TException e) {
         log.error("error sending update to {}", parsedLocation, e);
-        TabletCache.getInstance(context, tableId).invalidateCache(tabLoc.getExtent());
+        TabletLocator.getInstance(context, tableId).invalidateCache(tabLoc.getExtent());
       }
 
       sleepUninterruptibly(500, MILLISECONDS);

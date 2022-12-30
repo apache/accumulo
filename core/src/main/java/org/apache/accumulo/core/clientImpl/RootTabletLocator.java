@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.TabletCacheImpl.TabletServerLockChecker;
+import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -44,25 +44,25 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RootTabletCache extends TabletCache {
+public class RootTabletLocator extends TabletLocator {
 
   private final TabletServerLockChecker lockChecker;
 
-  RootTabletCache(TabletServerLockChecker lockChecker) {
+  RootTabletLocator(TabletServerLockChecker lockChecker) {
     this.lockChecker = lockChecker;
   }
 
   @Override
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures) {
-    CachedTablet rootCachedTablet = getRootTabletLocation(context);
-    if (rootCachedTablet != null) {
+    TabletLocation rootTabletLocation = getRootTabletLocation(context);
+    if (rootTabletLocation != null) {
       TabletServerMutations<T> tsm =
-          new TabletServerMutations<>(rootCachedTablet.getTserverSession());
+          new TabletServerMutations<>(rootTabletLocation.getTserverSession());
       for (T mutation : mutations) {
         tsm.addMutation(RootTable.EXTENT, mutation);
       }
-      binnedMutations.put(rootCachedTablet.getTserverLocation(), tsm);
+      binnedMutations.put(rootTabletLocation.getTserverLocation(), tsm);
     } else {
       failures.addAll(mutations);
     }
@@ -70,12 +70,12 @@ public class RootTabletCache extends TabletCache {
 
   @Override
   public List<Range> locateTablets(ClientContext context, List<Range> ranges,
-      BiConsumer<CachedTablet,Range> rangeConsumer) {
+      BiConsumer<TabletLocation,Range> rangeConsumer) {
 
-    CachedTablet rootCachedTablet = getRootTabletLocation(context);
-    if (rootCachedTablet != null) {
+    TabletLocation rootTabletLocation = getRootTabletLocation(context);
+    if (rootTabletLocation != null) {
       for (Range range : ranges) {
-        rangeConsumer.accept(rootCachedTablet, range);
+        rangeConsumer.accept(rootTabletLocation, range);
       }
       return Collections.emptyList();
     }
@@ -97,13 +97,13 @@ public class RootTabletCache extends TabletCache {
 
   @Override
   public Mode getMode() {
-    return TabletCache.Mode.ONLINE;
+    return TabletLocator.Mode.ONLINE;
   }
 
   @Override
   public void invalidateCache() {}
 
-  protected CachedTablet getRootTabletLocation(ClientContext context) {
+  protected TabletLocation getRootTabletLocation(ClientContext context) {
     Logger log = LoggerFactory.getLogger(this.getClass());
 
     OpTimer timer = null;
@@ -130,16 +130,16 @@ public class RootTabletCache extends TabletCache {
     String server = loc.getHostPort();
 
     if (lockChecker.isLockHeld(server, loc.getSession())) {
-      return new CachedTablet(RootTable.EXTENT, server, loc.getSession());
+      return new TabletLocation(RootTable.EXTENT, server, loc.getSession());
     } else {
       return null;
     }
   }
 
   @Override
-  public CachedTablet locateTablet(ClientContext context, Text row, boolean skipRow,
-      boolean retry) {
-    CachedTablet location = getRootTabletLocation(context);
+  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
+                                     boolean retry) {
+    TabletLocation location = getRootTabletLocation(context);
     // Always retry when finding the root tablet
     while (retry && location == null) {
       sleepUninterruptibly(500, MILLISECONDS);

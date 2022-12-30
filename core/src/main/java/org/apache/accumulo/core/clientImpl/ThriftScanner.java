@@ -44,7 +44,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.clientImpl.TabletCache.CachedTablet;
+import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
@@ -171,9 +171,9 @@ public class ThriftScanner {
   static class ScanAddress {
     final String serverAddress;
     final ServerType serverType;
-    final CachedTablet tabletInfo;
+    final TabletLocation tabletInfo;
 
-    public ScanAddress(String serverAddress, ServerType serverType, CachedTablet tabletInfo) {
+    public ScanAddress(String serverAddress, ServerType serverType, TabletLocation tabletInfo) {
       this.serverAddress = Objects.requireNonNull(serverAddress);
       this.serverType = Objects.requireNonNull(serverType);
       this.tabletInfo = Objects.requireNonNull(tabletInfo);
@@ -307,7 +307,7 @@ public class ThriftScanner {
   }
 
   private static ScanAddress getScanServerAddress(ClientContext context, ScanState scanState,
-      CachedTablet loc) {
+      TabletLocation loc) {
     Preconditions.checkArgument(scanState.runOnScanServer);
 
     ScanAddress addr = null;
@@ -397,11 +397,11 @@ public class ThriftScanner {
         throw new TimedOutException("Failed to find server to process scan before timeout elapsed");
       }
 
-      CachedTablet loc = null;
+      TabletLocation loc = null;
 
       Span child1 = TraceUtil.startSpan(ThriftScanner.class, "scan::locateTablet");
       try (Scope locateSpan = child1.makeCurrent()) {
-        loc = TabletCache.getInstance(context, scanState.tableId, scanState.getConsistencyLevel())
+        loc = TabletLocator.getInstance(context, scanState.tableId, scanState.getConsistencyLevel())
             .locateTablet(context, scanState.startRow, scanState.skipStartRow, false);
 
         if (loc == null) {
@@ -521,7 +521,7 @@ public class ThriftScanner {
           }
           lastError = error;
 
-          TabletCache.getInstance(context, scanState.tableId, scanState.getConsistencyLevel())
+          TabletLocator.getInstance(context, scanState.tableId, scanState.getConsistencyLevel())
               .invalidateCache(addr.getExtent());
 
           // no need to try the current scan id somewhere else
@@ -595,7 +595,7 @@ public class ThriftScanner {
           sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
         } catch (TException e) {
           if (addr.serverType == ServerType.TSERVER) {
-            TabletCache.getInstance(context, scanState.tableId, scanState.getConsistencyLevel())
+            TabletLocator.getInstance(context, scanState.tableId, scanState.getConsistencyLevel())
                 .invalidateCache(context, addr.serverAddress);
           }
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage()

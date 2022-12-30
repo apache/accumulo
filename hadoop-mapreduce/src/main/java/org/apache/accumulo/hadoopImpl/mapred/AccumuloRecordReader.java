@@ -48,7 +48,7 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.TabletCache;
+import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -330,7 +330,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
 
         // get the metadata information for these ranges
         Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
-        TabletCache tl;
+        TabletLocator tl;
         try {
           if (tableConfig.isOfflineScan()) {
             binnedRanges = binOfflineTable(job, tableId, ranges, callingClass);

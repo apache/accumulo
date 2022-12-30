@@ -46,7 +46,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletCache;
+import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -302,7 +302,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
   protected static TabletClientService.Iface getClient(ClientContext context, KeyExtent extent)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TTransportException {
-    TabletCache locator = TabletCache.getInstance(context, extent.tableId());
+    TabletLocator locator = TabletLocator.getInstance(context, extent.tableId());
 
     locator.invalidateCache(extent);
 
