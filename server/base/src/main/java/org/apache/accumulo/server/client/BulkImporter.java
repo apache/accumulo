@@ -128,7 +128,7 @@ public class BulkImporter {
         Collections.synchronizedSortedMap(new TreeMap<>());
 
     ClientService.Client client = null;
-    final TabletLocator locator = TabletLocator.getInstance(context, tableId);
+    final TabletLocator locator = TabletLocator.getLocator(context, tableId);
 
     try {
       final Map<Path,List<TabletLocation>> assignments =
@@ -346,7 +346,7 @@ public class BulkImporter {
   }
 
   private Map<Path,List<AssignmentInfo>> estimateSizes(final VolumeManager vm,
-                                                       Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads) {
+      Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads) {
 
     long t1 = System.currentTimeMillis();
     final Map<Path,Long> mapFileSizes = new TreeMap<>();
@@ -444,8 +444,8 @@ public class BulkImporter {
   }
 
   private Map<Path,List<KeyExtent>> assignMapFiles(VolumeManager fs,
-                                                   Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads,
-                                                   int numMapThreads) {
+      Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads,
+      int numMapThreads) {
     timer.start(Timers.EXAMINE_MAP_FILES);
     Map<Path,List<AssignmentInfo>> assignInfo =
         estimateSizes(fs, assignments, paths, numMapThreads);
@@ -619,12 +619,12 @@ public class BulkImporter {
   }
 
   public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager fs,
-                                                            TabletLocator locator, Path file, CryptoService cs) throws Exception {
+      TabletLocator locator, Path file, CryptoService cs) throws Exception {
     return findOverlappingTablets(context, fs, locator, file, null, null, cs);
   }
 
   public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager fs,
-                                                            TabletLocator locator, Path file, KeyExtent failed, CryptoService cs) throws Exception {
+      TabletLocator locator, Path file, KeyExtent failed, CryptoService cs) throws Exception {
     locator.invalidateCache(failed);
     Text start = getStartRowForExtent(failed);
     return findOverlappingTablets(context, fs, locator, file, start, failed.endRow(), cs);
@@ -644,7 +644,7 @@ public class BulkImporter {
   static final byte[] byte0 = {0};
 
   public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager vm,
-                                                            TabletLocator locator, Path file, Text startRow, Text endRow, CryptoService cs)
+      TabletLocator locator, Path file, Text startRow, Text endRow, CryptoService cs)
       throws Exception {
     List<TabletLocation> result = new ArrayList<>();
     Collection<ByteSequence> columnFamilies = Collections.emptyList();

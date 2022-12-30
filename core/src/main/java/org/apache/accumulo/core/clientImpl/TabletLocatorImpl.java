@@ -82,7 +82,7 @@ public class TabletLocatorImpl extends TabletLocator {
 
   protected TableId tableId;
   protected TabletLocator parent;
-  protected TreeMap<Text, TabletLocation> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
+  protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
   protected TabletLocationObtainer locationObtainer;
   private TabletServerLockChecker lockChecker;
   protected Text lastTabletRow;
@@ -97,10 +97,10 @@ public class TabletLocatorImpl extends TabletLocator {
      * @return null when unable to read information successfully
      */
     TabletLocations lookupTablet(ClientContext context, TabletLocation src, Text row, Text stopRow,
-                                 TabletLocator parent) throws AccumuloSecurityException, AccumuloException;
+        TabletLocator parent) throws AccumuloSecurityException, AccumuloException;
 
     List<TabletLocation> lookupTablets(ClientContext context, String tserver,
-                                       Map<KeyExtent,List<Range>> map, TabletLocator parent)
+        Map<KeyExtent,List<Range>> map, TabletLocator parent)
         throws AccumuloSecurityException, AccumuloException;
 
     Mode getMode();
@@ -159,7 +159,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   public TabletLocatorImpl(TableId tableId, TabletLocator parent, TabletLocationObtainer tlo,
-                           TabletServerLockChecker tslc) {
+      TabletServerLockChecker tslc) {
     this.tableId = tableId;
     this.parent = parent;
     this.locationObtainer = tlo;
@@ -274,7 +274,8 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   private List<Range> locateTablets(ClientContext context, List<Range> ranges,
-                                    BiConsumer<TabletLocation,Range> rangeConsumer, boolean useCache, LockCheckerSession lcSession)
+      BiConsumer<TabletLocation,Range> rangeConsumer, boolean useCache,
+      LockCheckerSession lcSession)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     List<Range> failures = new ArrayList<>();
     List<TabletLocation> tabletLocations = new ArrayList<>();
@@ -469,8 +470,8 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   @Override
-  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow, boolean retry)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
+      boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     OpTimer timer = null;
 
@@ -551,8 +552,8 @@ public class TabletLocatorImpl extends TabletLocator {
         // create new location if current prevEndRow == endRow
         if ((lastEndRow != null) && (ke.prevEndRow() != null)
             && ke.prevEndRow().equals(lastEndRow)) {
-          locToCache =
-              new TabletLocation(new KeyExtent(ke.tableId(), ke.endRow(), lastEndRow), tabletLocation);
+          locToCache = new TabletLocation(new KeyExtent(ke.tableId(), ke.endRow(), lastEndRow),
+              tabletLocation);
         } else {
           locToCache = tabletLocation;
         }
@@ -599,19 +600,19 @@ public class TabletLocatorImpl extends TabletLocator {
     }
   }
 
-  static void removeOverlapping(TreeMap<Text, TabletLocation> metaCache, KeyExtent nke) {
-    Iterator<Entry<Text, TabletLocation>> iter = null;
+  static void removeOverlapping(TreeMap<Text,TabletLocation> metaCache, KeyExtent nke) {
+    Iterator<Entry<Text,TabletLocation>> iter = null;
 
     if (nke.prevEndRow() == null) {
       iter = metaCache.entrySet().iterator();
     } else {
       Text row = rowAfterPrevRow(nke);
-      SortedMap<Text, TabletLocation> tailMap = metaCache.tailMap(row);
+      SortedMap<Text,TabletLocation> tailMap = metaCache.tailMap(row);
       iter = tailMap.entrySet().iterator();
     }
 
     while (iter.hasNext()) {
-      Entry<Text, TabletLocation> entry = iter.next();
+      Entry<Text,TabletLocation> entry = iter.next();
 
       KeyExtent ke = entry.getValue().getExtent();
 
@@ -642,7 +643,7 @@ public class TabletLocatorImpl extends TabletLocator {
 
   private TabletLocation locateTabletInCache(Text row) {
 
-    Entry<Text, TabletLocation> entry = metaCache.ceilingEntry(row);
+    Entry<Text,TabletLocation> entry = metaCache.ceilingEntry(row);
 
     if (entry != null) {
       KeyExtent ke = entry.getValue().getExtent();
@@ -654,7 +655,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   protected TabletLocation _locateTablet(ClientContext context, Text row, boolean skipRow,
-                                         boolean retry, boolean lock, LockCheckerSession lcSession)
+      boolean retry, boolean lock, LockCheckerSession lcSession)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     if (skipRow) {
@@ -693,14 +694,14 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   private TabletLocation lookupTabletLocationAndCheckLock(ClientContext context, Text row,
-                                                          boolean retry, LockCheckerSession lcSession)
+      boolean retry, LockCheckerSession lcSession)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     lookupTabletLocation(context, row, retry, lcSession);
     return lcSession.checkLock(locateTabletInCache(row));
   }
 
   private TabletLocation processInvalidatedAndCheckLock(ClientContext context,
-                                                        LockCheckerSession lcSession, Text row)
+      LockCheckerSession lcSession, Text row)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     processInvalidated(context, lcSession);
     return lcSession.checkLock(locateTabletInCache(row));

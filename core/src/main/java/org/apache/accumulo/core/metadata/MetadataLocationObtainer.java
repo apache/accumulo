@@ -81,8 +81,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
 
   @Override
-  public TabletLocations lookupTablet(ClientContext context, TabletLocation src, Text row, Text stopRow,
-                                      TabletLocator parent) throws AccumuloSecurityException, AccumuloException {
+  public TabletLocations lookupTablet(ClientContext context, TabletLocation src, Text row,
+      Text stopRow, TabletLocator parent) throws AccumuloSecurityException, AccumuloException {
 
     try {
 
@@ -172,7 +172,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
   @Override
   public List<TabletLocation> lookupTablets(ClientContext context, String tserver,
-                                            Map<KeyExtent,List<Range>> tabletsRanges, TabletLocator parent)
+      Map<KeyExtent,List<Range>> tabletsRanges, TabletLocator parent)
       throws AccumuloSecurityException, AccumuloException {
 
     final TreeMap<Key,Value> results = new TreeMap<>();
@@ -221,7 +221,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
 
   public static TabletLocations getMetadataLocationEntries(SortedMap<Key,Value> entries,
-                                                           TabletLocator.Mode mode) {
+      TabletLocator.Mode mode) {
     Text location = null;
     Text session = null;
 

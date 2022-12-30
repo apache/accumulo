@@ -179,14 +179,15 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       Set<TServerInstance> tserverSet = new HashSet<>();
       Set<TServerInstance> metadataServerSet = new HashSet<>();
 
-      TabletLocator tl = TabletLocator.getInstance(ctx, MetadataTable.ID);
+      TabletLocator tl = TabletLocator.getLocator(ctx, MetadataTable.ID);
       for (TabletLocationState tls : locs.locationStates.values()) {
         if (tls.current != null) {
           // add to set of all servers
           tserverSet.add(tls.current);
 
           // get server that the current tablets metadata is on
-          TabletLocator.TabletLocation tab = tl.locateTablet(ctx, tls.extent.toMetaRow(), false, false);
+          TabletLocator.TabletLocation tab =
+              tl.locateTablet(ctx, tls.extent.toMetaRow(), false, false);
           // add it to the set of servers with metadata
           metadataServerSet.add(new TServerInstance(tab.getTserverLocation(),
               Long.valueOf(tab.getTserverSession(), 16)));

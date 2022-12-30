@@ -302,7 +302,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
   protected static TabletClientService.Iface getClient(ClientContext context, KeyExtent extent)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TTransportException {
-    TabletLocator locator = TabletLocator.getInstance(context, extent.tableId());
+    TabletLocator locator = TabletLocator.getLocator(context, extent.tableId());
 
     locator.invalidateCache(extent);
 

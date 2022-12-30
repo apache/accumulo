@@ -539,7 +539,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private void addSplits(SplitEnv env, SortedSet<Text> partitionKeys) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, AccumuloServerException {
 
-    TabletLocator tabLocator = TabletLocator.getInstance(context, env.tableId);
+    TabletLocator tabLocator = TabletLocator.getLocator(context, env.tableId);
     for (Text split : partitionKeys) {
       boolean successful = false;
       int attempt = 0;
@@ -1250,7 +1250,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     TableId tableId = context.getTableId(tableName);
-    TabletLocator tl = TabletLocator.getInstance(context, tableId);
+    TabletLocator tl = TabletLocator.getLocator(context, tableId);
     // its possible that the cache could contain complete, but old information about a tables
     // tablets... so clear it
     tl.invalidateCache();
@@ -1530,7 +1530,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    TabletLocator tabLocator = TabletLocator.getInstance(context, context.getTableId(tableName));
+    TabletLocator tabLocator = TabletLocator.getLocator(context, context.getTableId(tableName));
     tabLocator.invalidateCache();
   }
 
@@ -1931,7 +1931,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     requireNonNull(ranges, "ranges must be non null");
 
     TableId tableId = context.getTableId(tableName);
-    TabletLocator locator = TabletLocator.getInstance(context, tableId);
+    TabletLocator locator = TabletLocator.getLocator(context, tableId);
 
     List<Range> rangeList = null;
     if (ranges instanceof List) {

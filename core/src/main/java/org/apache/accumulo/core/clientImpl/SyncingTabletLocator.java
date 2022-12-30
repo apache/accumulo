@@ -52,7 +52,7 @@ public class SyncingTabletLocator extends TabletLocator {
   }
 
   public SyncingTabletLocator(final ClientContext context, final TableId tableId) {
-    this(() -> TabletLocator.getInstance(context, tableId));
+    this(() -> TabletLocator.getLocator(context, tableId));
   }
 
   private TabletLocator syncLocator() {
@@ -68,8 +68,8 @@ public class SyncingTabletLocator extends TabletLocator {
   }
 
   @Override
-  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow, boolean retry)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
+      boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     return syncLocator().locateTablet(context, row, skipRow, retry);
   }
 

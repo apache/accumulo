@@ -89,7 +89,7 @@ public class Writer {
     }
 
     while (true) {
-      TabletLocation tabLoc = TabletLocator.getInstance(context, tableId).locateTablet(context,
+      TabletLocation tabLoc = TabletLocator.getLocator(context, tableId).locateTablet(context,
           new Text(m.getRow()), false, true);
 
       if (tabLoc == null) {
@@ -104,15 +104,15 @@ public class Writer {
         return;
       } catch (NotServingTabletException e) {
         log.trace("Not serving tablet, server = {}", parsedLocation);
-        TabletLocator.getInstance(context, tableId).invalidateCache(tabLoc.getExtent());
+        TabletLocator.getLocator(context, tableId).invalidateCache(tabLoc.getExtent());
       } catch (ConstraintViolationException cve) {
         log.error("error sending update to {}", parsedLocation, cve);
         // probably do not need to invalidate cache, but it does not hurt
-        TabletLocator.getInstance(context, tableId).invalidateCache(tabLoc.getExtent());
+        TabletLocator.getLocator(context, tableId).invalidateCache(tabLoc.getExtent());
         throw cve;
       } catch (TException e) {
         log.error("error sending update to {}", parsedLocation, e);
-        TabletLocator.getInstance(context, tableId).invalidateCache(tabLoc.getExtent());
+        TabletLocator.getLocator(context, tableId).invalidateCache(tabLoc.getExtent());
       }
 
       sleepUninterruptibly(500, MILLISECONDS);

@@ -49,6 +49,7 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
+//TODO rename to TabletCache
 public abstract class TabletLocator {
 
   /**
@@ -62,7 +63,7 @@ public abstract class TabletLocator {
   }
 
   public abstract TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-                                              boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+      boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   public abstract <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
@@ -127,7 +128,7 @@ public abstract class TabletLocator {
 
   }
 
-  private static final HashMap<LocatorKey, TabletLocator> locators = new HashMap<>();
+  private static final HashMap<LocatorKey,TabletLocator> locators = new HashMap<>();
   private static boolean enabled = true;
 
   public static synchronized void clearLocators() {
@@ -150,7 +151,8 @@ public abstract class TabletLocator {
     enabled = true;
   }
 
-  private static synchronized TabletLocator getOfflineCache(ClientContext context, TableId tableId) {
+  private static synchronized TabletLocator getOfflineCache(ClientContext context,
+      TableId tableId) {
     Preconditions.checkArgument(!RootTable.ID.equals(tableId) && !MetadataTable.ID.equals(tableId));
 
     LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
@@ -164,19 +166,20 @@ public abstract class TabletLocator {
 
     if (tl == null) {
       MetadataLocationObtainer mlo = new MetadataLocationObtainer(Mode.OFFLINE);
-      TabletLocatorImpl.TabletServerLockChecker tslc = new TabletLocatorImpl.TabletServerLockChecker() {
-        @Override
-        public boolean isLockHeld(String tserver, String session) {
-          return true;
-        }
+      TabletLocatorImpl.TabletServerLockChecker tslc =
+          new TabletLocatorImpl.TabletServerLockChecker() {
+            @Override
+            public boolean isLockHeld(String tserver, String session) {
+              return true;
+            }
 
-        @Override
-        public void invalidateCache(String server) {
+            @Override
+            public void invalidateCache(String server) {
 
-        }
-      };
+            }
+          };
 
-      tl = new TabletLocatorImpl(tableId, getInstance(context, MetadataTable.ID), mlo, tslc);
+      tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo, tslc);
 
       locators.put(key, tl);
     }
@@ -184,17 +187,19 @@ public abstract class TabletLocator {
     return tl;
   }
 
-  public static synchronized TabletLocator getInstance(ClientContext context, TableId tableId,
-                                                       ScannerBase.ConsistencyLevel consistency) {
+  //TODO rename to getInstance
+  public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId,
+                                                      ScannerBase.ConsistencyLevel consistency) {
     if (consistency == ScannerBase.ConsistencyLevel.EVENTUAL
         && context.getTableState(tableId) == TableState.OFFLINE) {
       return getOfflineCache(context, tableId);
     }
 
-    return getInstance(context, tableId);
+    return getLocator(context, tableId);
   }
 
-  public static synchronized TabletLocator getInstance(ClientContext context, TableId tableId) {
+  //TODO rename to getInstance
+  public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
         + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
     LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
@@ -212,10 +217,10 @@ public abstract class TabletLocator {
       if (RootTable.ID.equals(tableId)) {
         tl = new RootTabletLocator(new ZookeeperLockChecker(context));
       } else if (MetadataTable.ID.equals(tableId)) {
-        tl = new TabletLocatorImpl(MetadataTable.ID, getInstance(context, RootTable.ID), mlo,
+        tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
             new ZookeeperLockChecker(context));
       } else {
-        tl = new TabletLocatorImpl(tableId, getInstance(context, MetadataTable.ID), mlo,
+        tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
             new ZookeeperLockChecker(context));
       }
       locators.put(key, tl);
@@ -244,6 +249,7 @@ public abstract class TabletLocator {
     });
   }
 
+  //TODO rename to CachedTablets
   public static class TabletLocations {
 
     private final List<TabletLocation> locations;
@@ -263,6 +269,7 @@ public abstract class TabletLocator {
     }
   }
 
+  //TODO rename to CachedTablet
   public static class TabletLocation {
 
     private static final Interner<String> interner = new Interner<>();

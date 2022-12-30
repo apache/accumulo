@@ -75,7 +75,7 @@ public class BulkImporterTest {
 
     @Override
     public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-                                       boolean retry) {
+        boolean retry) {
       return new TabletLocation(fakeMetaData.tailSet(new KeyExtent(tableId, row, null)).first(),
           "localhost", "1");
     }

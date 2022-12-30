@@ -138,7 +138,7 @@ public class RootTabletLocator extends TabletLocator {
 
   @Override
   public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-                                     boolean retry) {
+      boolean retry) {
     TabletLocation location = getRootTabletLocation(context);
     // Always retry when finding the root tablet
     while (retry && location == null) {

@@ -132,7 +132,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     resultsQueue = new ArrayBlockingQueue<>(numThreads);
 
     this.locator = new TimeoutTabletLocator(timeout,
-        () -> TabletLocator.getInstance(context, tableId, scannerOptions.getConsistencyLevel()));
+        () -> TabletLocator.getLocator(context, tableId, scannerOptions.getConsistencyLevel()));
 
     timeoutTrackers = Collections.synchronizedMap(new HashMap<>());
     timedoutServers = Collections.synchronizedSet(new HashSet<>());
@@ -245,7 +245,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private ScanServerData binRanges(TabletLocator tabletLocator, List<Range> ranges,
-                                   Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     int lastFailureSize = Integer.MAX_VALUE;
@@ -645,7 +645,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private ScanServerData binRangesForScanServers(TabletLocator tabletLocator, List<Range> ranges,
-                                                 Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
 
     ScanServerSelector ecsm = context.getScanServerSelector();

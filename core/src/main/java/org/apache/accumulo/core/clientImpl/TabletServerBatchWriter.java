@@ -660,7 +660,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     private final ThreadPoolExecutor binningThreadPool;
     private final Map<String,TabletServerMutations<Mutation>> serversMutations;
     private final Set<String> queued;
-    private final Map<TableId, TabletLocator> locators;
+    private final Map<TableId,TabletLocator> locators;
 
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
