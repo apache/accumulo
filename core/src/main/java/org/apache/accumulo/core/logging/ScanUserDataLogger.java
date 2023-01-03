@@ -25,7 +25,7 @@ import org.slf4j.event.Level;
 public class ScanUserDataLogger {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScanUserDataLogger.class);
-  private static final String FORMAT = "(%s) ";
+  private static final String FORMAT = "(%s) %s";
 
   /**
    * Utility method that will log the msg and args to the calling class' logger (classLogger) if the
@@ -44,7 +44,11 @@ public class ScanUserDataLogger {
       classLogger.atLevel(level).log(msg, args);
     }
     if (LOG.isEnabledForLevel(level)) {
-      LOG.atLevel(level).log(String.format(FORMAT, userData), args);
+      if (args == null) {
+        LOG.atLevel(level).log(String.format(FORMAT, userData, msg));
+      } else {
+        LOG.atLevel(level).log(String.format(FORMAT, userData, msg), args);
+      }
     }
   }
 }
