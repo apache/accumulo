@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -62,6 +63,14 @@ public class ConfigPropertyUpgraderIT {
   private static ZooKeeper zooKeeper;
   private static ZooReaderWriter zrw;
 
+  private static final String TEST_DEPRECATED_PREFIX = "upgrader.test.deprecated.";
+  private static final String TEST_UPGRADED_PREFIX = "upgrader.test.upgraded.";
+
+  // Create legacy renamer for this test
+  private static final DeprecatedPropertyUtil.PropertyRenamer TEST_PROP_RENAMER =
+      DeprecatedPropertyUtil.PropertyRenamer.renamePrefix(TEST_DEPRECATED_PREFIX,
+          TEST_UPGRADED_PREFIX);
+
   private InstanceId instanceId = null;
 
   @TempDir
@@ -69,6 +78,7 @@ public class ConfigPropertyUpgraderIT {
 
   @BeforeAll
   public static void setupZk() {
+    DeprecatedPropertyUtil.getPropertyRenamers().add(TEST_PROP_RENAMER);
 
     // using default zookeeper port - we don't have a full configuration
     testZk = new ZooKeeperTestingServer(tempDir);
@@ -81,6 +91,8 @@ public class ConfigPropertyUpgraderIT {
 
   @AfterAll
   public static void shutdownZK() throws Exception {
+    DeprecatedPropertyUtil.getPropertyRenamers().remove(TEST_PROP_RENAMER);
+
     testZk.close();
   }
 
@@ -97,7 +109,18 @@ public class ConfigPropertyUpgraderIT {
         .anyTimes();
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
 
+    // Add dummy legacy properties for testing
+    String zkRoot = ZooUtil.getRoot(instanceId);
     List<LegacyPropData.PropNode> nodes = LegacyPropData.getData(instanceId);
+    nodes.add(new LegacyPropData.PropNode(
+        zkRoot + Constants.ZCONFIG + "/" + TEST_DEPRECATED_PREFIX + "prop1", "4"));
+    nodes.add(new LegacyPropData.PropNode(
+        zkRoot + Constants.ZCONFIG + "/" + TEST_DEPRECATED_PREFIX + "prop2", "10m"));
+    nodes.add(new LegacyPropData.PropNode(
+        zkRoot + Constants.ZCONFIG + "/" + TEST_DEPRECATED_PREFIX + "prop3", "10"));
+    nodes.add(new LegacyPropData.PropNode(
+        zkRoot + Constants.ZCONFIG + "/" + TEST_DEPRECATED_PREFIX + "prop4", "4"));
+
     for (LegacyPropData.PropNode node : nodes) {
       zrw.putPersistentData(node.getPath(), node.getData(), ZooUtil.NodeExistsPolicy.SKIP);
     }
@@ -139,13 +162,12 @@ public class ConfigPropertyUpgraderIT {
     }
 
     Map<String,String> props = vProps.asMap();
-
-    // also validates that rname from deprecated master to manager occured.
     assertEquals(5, props.size());
-    assertEquals("4", props.get("manager.bulk.retries"));
-    assertEquals("10m", props.get("manager.bulk.timeout"));
-    assertEquals("10", props.get("manager.bulk.rename.threadpool.size"));
-    assertEquals("4", props.get("manager.bulk.threadpool.size"));
+    // also validates that rename occurred from deprecated to upgraded names
+    assertEquals("4", props.get(TEST_UPGRADED_PREFIX + "prop1"));
+    assertEquals("10m", props.get(TEST_UPGRADED_PREFIX + "prop2"));
+    assertEquals("10", props.get(TEST_UPGRADED_PREFIX + "prop3"));
+    assertEquals("4", props.get(TEST_UPGRADED_PREFIX + "prop4"));
 
     assertEquals("true", props.get("table.bloom.enabled"));
 
