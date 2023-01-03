@@ -45,6 +45,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileOperations.WriterBuilder;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
@@ -217,14 +218,17 @@ public class FileCompactor implements Callable<CompactionStats> {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getFileSystemByPath(outputFile.getPath());
 
-      boolean dropCacheBehindMajcOutput = !RootTable.ID.equals(this.extent.tableId())
+      final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
+
+      final boolean dropCacheBehindOutput = !RootTable.ID.equals(this.extent.tableId())
           && !MetadataTable.ID.equals(this.extent.tableId())
-          && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE);
+          && ((isMinC && acuTableConf.getBoolean(Property.TABLE_MINC_OUTPUT_DROP_CACHE))
+              || (!isMinC && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE)));
 
       WriterBuilder outBuilder = fileFactory.newWriterBuilder()
           .forFile(outputFile.getMetaInsert(), ns, ns.getConf(), cryptoService)
           .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter());
-      if (dropCacheBehindMajcOutput) {
+      if (dropCacheBehindOutput) {
         outBuilder.dropCachesBehind();
       }
       mfw = outBuilder.build();
@@ -387,8 +391,6 @@ public class FileCompactor implements Callable<CompactionStats> {
       SortedKeyValueIterator<Key,Value> delIter =
           DeletingIterator.wrap(citr, propagateDeletes, DeletingIterator.getBehavior(acuTableConf));
       ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
-
-      // if(env.getIteratorScope() )
 
       SystemIteratorEnvironment iterEnv =
           env.createIteratorEnv(context, acuTableConf, getExtent().tableId());

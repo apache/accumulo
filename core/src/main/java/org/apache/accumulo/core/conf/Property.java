@@ -815,6 +815,11 @@ public enum Property {
       "1.3.5"),
   TABLE_ARBITRARY_PROP_PREFIX("table.custom.", null, PropertyType.PREFIX,
       "Prefix to be used for user defined arbitrary properties.", "1.7.0"),
+  TABLE_MINC_OUTPUT_DROP_CACHE("table.compaction.minor.output.drop.cache", "false",
+      PropertyType.BOOLEAN,
+      "Setting this property to true will call"
+          + "FSDataOutputStream.setDropBehind(true) on the minor compaction output stream.",
+      "2.1.1"),
   TABLE_MAJC_OUTPUT_DROP_CACHE("table.compaction.major.output.drop.cache", "false",
       PropertyType.BOOLEAN,
       "Setting this property to true will call"
