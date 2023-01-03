@@ -100,7 +100,7 @@ public class ScanCommand extends Command {
     if (cl.hasOption(userDataOpt.getOpt())) {
       return cl.getOptionValue(userDataOpt.getOpt());
     } else {
-      return "Accumulo Shell";
+      return "";
     }
   }
 
@@ -149,7 +149,8 @@ public class ScanCommand extends Command {
         Shell.log.error("Consistency Level argument must be immediate or eventual", e);
       }
 
-      scanner.setUserData(getUserData(cl));
+      String ud = "shell-" + shellState.getAccumuloClient().whoami() + "-" + getUserData(cl);
+      scanner.setUserData(ud);
 
       // output the records
 

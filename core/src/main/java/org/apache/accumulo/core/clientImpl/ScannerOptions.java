@@ -67,7 +67,7 @@ public class ScannerOptions implements ScannerBase {
 
   private ConsistencyLevel consistencyLevel = ConsistencyLevel.IMMEDIATE;
 
-  private String userData = null;
+  private String userData = "";
 
   protected ScannerOptions() {}
 

@@ -119,7 +119,7 @@ public class ThriftScanner {
         ScanState scanState = new ScanState(context, extent.tableId(), authorizations, range,
             fetchedColumns, size, serverSideIteratorList, serverSideIteratorOptions, false,
             Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, null, batchTimeOut, classLoaderContext,
-            null, false, null);
+            null, false, "");
 
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);

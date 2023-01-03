@@ -129,5 +129,7 @@ public interface ScanInfo {
   /**
    * @return user data set by a scanner using {@link ScannerBase#setUserData(String)}
    */
-  String getUserData();
+  default String getUserData() {
+    return "";
+  }
 }

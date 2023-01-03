@@ -57,7 +57,7 @@ public class TestScanInfo implements ScanInfo {
       lastRunTime = OptionalLong.of(times[times.length - 1] + creationTime);
     }
 
-    userData = null;
+    userData = "";
   }
 
   TestScanInfo setExecutionHints(String k, String v) {
