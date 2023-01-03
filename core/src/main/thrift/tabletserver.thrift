@@ -29,21 +29,7 @@ exception NotServingTabletException {
   1:data.TKeyExtent extent
 }
 
-exception TooManyFilesException {
-  1:data.TKeyExtent extent
-}
-
-exception TSampleNotPresentException {
-  1:data.TKeyExtent extent
-}
-
 exception NoSuchScanIDException {}
-
-exception ScanServerBusyException {}
-
-exception ConstraintViolationException {
-  1:list<data.TConstraintViolationSummary> violationSummaries
-}
 
 struct ActionStats {
   1:i32 status
@@ -70,37 +56,6 @@ struct TabletStats {
   8:i64 splitCreationTime
 }
 
-enum ScanType {
-  SINGLE
-  BATCH
-}
-
-enum ScanState {
-  IDLE
-  RUNNING
-  QUEUED
-}
-
-struct ActiveScan {
-  2:string client
-  3:string user
-  4:string tableId
-  5:i64 age
-  6:i64 idleTime
-  7:ScanType type
-  8:ScanState state
-  9:data.TKeyExtent extent
-  10:list<data.TColumn> columns
-  11:list<data.IterInfo> ssiList
-  // Server Side Iterator Options
-  12:map<string, map<string, string>> ssio
-  13:list<binary> authorizations
-  14:optional i64 scanId
-  // name of the classloader context
-  15:string classLoaderContext
-  16:string userData
-}
-
 enum TCompactionType {
   MINOR
   MERGE
@@ -114,14 +69,6 @@ enum TCompactionReason {
   CHOP
   IDLE
   CLOSE
-}
-
-enum TDurability {
-  DEFAULT = 0
-  SYNC = 1
-  FLUSH = 2
-  LOG = 3
-  NONE = 4
 }
 
 struct ActiveCompaction {
@@ -147,18 +94,6 @@ struct TIteratorSetting {
 
 struct IteratorConfig {
   1:list<TIteratorSetting> iterators
-}
-
-struct TSamplerConfiguration {
-  1:string className
-  2:map<string, string> options
-}
-
-enum TUnloadTabletGoal {
-  UNKNOWN
-  UNASSIGNED
-  SUSPENDED
-  DELETED
 }
 
 struct InputFile {
@@ -198,216 +133,7 @@ struct TCompactionStats{
   3:i64 fileSize;
 }
 
-service TabletScanClientService {
-
-  // scan a range of keys
-  data.InitialScan startScan(
-    11:client.TInfo tinfo
-    1:security.TCredentials credentials
-    2:data.TKeyExtent extent
-    3:data.TRange range
-    4:list<data.TColumn> columns
-    5:i32 batchSize
-    6:list<data.IterInfo> ssiList
-    7:map<string, map<string, string>> ssio
-    8:list<binary> authorizations
-    9:bool waitForWrites
-    10:bool isolated
-    12:i64 readaheadThreshold
-    13:TSamplerConfiguration samplerConfig
-    14:i64 batchTimeOut
-    // name of the classloader context
-    15:string classLoaderContext
-    16:map<string, string> executionHints
-    17:i64 busyTimeout
-    18:string userData
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:NotServingTabletException nste
-    3:TooManyFilesException tmfe
-    4:TSampleNotPresentException tsnpe
-    5:ScanServerBusyException ssbe
-  )
-
-  data.ScanResult continueScan(
-    2:client.TInfo tinfo
-    1:data.ScanID scanID
-    3:i64 busyTimeout
-  ) throws (
-    1:NoSuchScanIDException nssi
-    2:NotServingTabletException nste
-    3:TooManyFilesException tmfe
-    4:TSampleNotPresentException tsnpe
-    5:ScanServerBusyException ssbe
-  )
-
-  oneway void closeScan(
-    2:client.TInfo tinfo
-    1:data.ScanID scanID
-  )
-
-  // scan over a series of ranges
-  data.InitialMultiScan startMultiScan(
-    8:client.TInfo tinfo
-    1:security.TCredentials credentials
-    2:data.ScanBatch batch
-    3:list<data.TColumn> columns
-    4:list<data.IterInfo> ssiList
-    5:map<string, map<string, string>> ssio
-    6:list<binary> authorizations
-    7:bool waitForWrites
-    9:TSamplerConfiguration samplerConfig
-    10:i64 batchTimeOut
-    // name of the classloader context
-    11:string classLoaderContext
-    12:map<string, string> executionHints
-    13:i64 busyTimeout
-    14:string userData
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:TSampleNotPresentException tsnpe
-    3:ScanServerBusyException ssbe
-  )
-
-  data.MultiScanResult continueMultiScan(
-    2:client.TInfo tinfo
-    1:data.ScanID scanID
-    3:i64 busyTimeout
-  ) throws (
-    1:NoSuchScanIDException nssi
-    2:TSampleNotPresentException tsnpe
-    3:ScanServerBusyException ssbe
-  )
-
-  void closeMultiScan(
-    2:client.TInfo tinfo
-    1:data.ScanID scanID
-  ) throws (
-    1:NoSuchScanIDException nssi
-  )
-
-  list<ActiveScan> getActiveScans(
-    2:client.TInfo tinfo
-    1:security.TCredentials credentials
-  ) throws (
-    1:client.ThriftSecurityException sec
-  )
-
-}
-
-service TabletClientService {
-
-  //the following calls support a batch update to multiple tablets on a tablet server
-  data.UpdateID startUpdate(
-    2:client.TInfo tinfo
-    1:security.TCredentials credentials
-    3:TDurability durability
-  ) throws (
-    1:client.ThriftSecurityException sec
-  )
-
-  oneway void applyUpdates(
-    1:client.TInfo tinfo
-    2:data.UpdateID updateID
-    3:data.TKeyExtent keyExtent
-    4:list<data.TMutation> mutations
-  )
-
-  data.UpdateErrors closeUpdate(
-    2:client.TInfo tinfo
-    1:data.UpdateID updateID
-  ) throws (
-    1:NoSuchScanIDException nssi
-  )
-
-  //the following call supports making a single update to a tablet
-  void update(
-    4:client.TInfo tinfo
-    1:security.TCredentials credentials
-    2:data.TKeyExtent keyExtent
-    3:data.TMutation mutation
-    5:TDurability durability
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:NotServingTabletException nste
-    3:ConstraintViolationException cve
-  )
-
-  data.TConditionalSession startConditionalUpdate(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:list<binary> authorizations
-    4:string tableID
-    5:TDurability durability
-    6:string classLoaderContext
-  ) throws (
-    1:client.ThriftSecurityException sec
-  )
-
-  list<data.TCMResult> conditionalUpdate(
-    1:client.TInfo tinfo
-    2:data.UpdateID sessID
-    3:data.CMBatch mutations
-    4:list<string> symbols
-  ) throws (
-    1:NoSuchScanIDException nssi
-  )
-
-  void invalidateConditionalUpdate(
-    1:client.TInfo tinfo
-    2:data.UpdateID sessID
-  )
-
-  oneway void closeConditionalUpdate(
-    1:client.TInfo tinfo
-    2:data.UpdateID sessID
-  )
-
-  // on success, returns an empty list
-  list<data.TKeyExtent> bulkImport(
-    3:client.TInfo tinfo
-    1:security.TCredentials credentials
-    4:i64 tid
-    2:data.TabletFiles files
-    5:bool setTime
-  ) throws (
-    1:client.ThriftSecurityException sec
-  )
-
-  oneway void loadFiles(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:i64 tid
-    4:string dir
-    5:map<data.TKeyExtent, map<string, data.MapFileInfo>> files
-    6:bool setTime
-  )
-
-  void splitTablet(
-    4:client.TInfo tinfo
-    1:security.TCredentials credentials
-    2:data.TKeyExtent extent
-    3:binary splitPoint
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:NotServingTabletException nste
-  )
-
-  oneway void loadTablet(
-    5:client.TInfo tinfo
-    1:security.TCredentials credentials
-    4:string lock
-    2:data.TKeyExtent extent
-  )
-
-  oneway void unloadTablet(
-    5:client.TInfo tinfo
-    1:security.TCredentials credentials
-    4:string lock
-    2:data.TKeyExtent extent
-    6:TUnloadTabletGoal goal
-    7:i64 requestTime
-  )
+service TabletServerClientService {
 
   oneway void flush(
     4:client.TInfo tinfo
@@ -416,20 +142,6 @@ service TabletClientService {
     2:string tableId
     5:binary startRow
     6:binary endRow
-  )
-
-  oneway void flushTablet(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string lock
-    4:data.TKeyExtent extent
-  )
-
-  oneway void chop(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string lock
-    4:data.TKeyExtent extent
   )
 
   oneway void compact(
