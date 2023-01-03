@@ -30,6 +30,8 @@ public enum Prefix {
 
   public static Prefix fromPrefix(String prefix) {
     switch (prefix) {
+      case "I":
+        return BULK_IMPORT;
       case "F":
         return MINOR_COMPACTION;
       case "C":
