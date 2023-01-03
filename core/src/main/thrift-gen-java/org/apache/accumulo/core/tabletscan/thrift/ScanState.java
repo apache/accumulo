@@ -22,19 +22,17 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.tabletserver.thrift;
+package org.apache.accumulo.core.tabletscan.thrift;
 
 
-public enum TDurability implements org.apache.thrift.TEnum {
-  DEFAULT(0),
-  SYNC(1),
-  FLUSH(2),
-  LOG(3),
-  NONE(4);
+public enum ScanState implements org.apache.thrift.TEnum {
+  IDLE(0),
+  RUNNING(1),
+  QUEUED(2);
 
   private final int value;
 
-  private TDurability(int value) {
+  private ScanState(int value) {
     this.value = value;
   }
 
@@ -51,18 +49,14 @@ public enum TDurability implements org.apache.thrift.TEnum {
    * @return null if the value is not found.
    */
   @org.apache.thrift.annotation.Nullable
-  public static TDurability findByValue(int value) { 
+  public static ScanState findByValue(int value) { 
     switch (value) {
       case 0:
-        return DEFAULT;
+        return IDLE;
       case 1:
-        return SYNC;
+        return RUNNING;
       case 2:
-        return FLUSH;
-      case 3:
-        return LOG;
-      case 4:
-        return NONE;
+        return QUEUED;
       default:
         return null;
     }

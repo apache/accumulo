@@ -42,7 +42,7 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
@@ -86,7 +86,8 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
       TableId tableId) throws AccumuloException, AccumuloSecurityException {
     log.debug("Scanning tablet server {} for table {}", tabletServerId, tableId);
     try {
-      TabletClientService.Client client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
+      TabletServerClientService.Client client = ThriftUtil.getClient(
+          ThriftClientTypes.TABLET_SERVER,
           HostAndPort.fromParts(tabletServerId.getHost(), tabletServerId.getPort()), getContext());
       try {
         return client

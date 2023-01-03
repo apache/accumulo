@@ -132,8 +132,8 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
 import org.apache.accumulo.core.summary.SummaryCollection;
+import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
@@ -564,8 +564,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         HostAndPort address = HostAndPort.fromString(tl.tablet_location);
 
         try {
-          TabletClientService.Client client =
-              ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
+          TabletManagementClientService.Client client =
+              ThriftUtil.getClient(ThriftClientTypes.TABLET_MGMT, address, context);
           try {
 
             OpTimer timer = null;
