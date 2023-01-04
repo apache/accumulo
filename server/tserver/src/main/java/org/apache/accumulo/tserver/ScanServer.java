@@ -603,10 +603,11 @@ public class ScanServer extends AbstractServer
             LOG.info("RFFS {} extent unable to load {} as metadata no longer referencing files",
                 myReservationId, extent);
             failures.add(extent);
+          } else {
+            // remove files that are still referenced
+            filesToReserve.removeAll(metadataAfter.getFiles());
           }
 
-          // remove files that are still referenced
-          filesToReserve.removeAll(metadataAfter.getFiles());
         }
 
         // if this is not empty it means some files that we reserved are no longer referenced by
