@@ -444,22 +444,32 @@ public class ScanServer extends AbstractServer
     private final Collection<StoredTabletFile> files;
     private final long myReservationId;
     private final Map<KeyExtent,TabletMetadata> tabletsMetadata;
+    private final Map<TKeyExtent,List<TRange>> failures;
 
-    ScanReservation(Map<KeyExtent,TabletMetadata> tabletsMetadata, long myReservationId) {
+    /* This constructor is called when starting a scan */
+    ScanReservation(Map<KeyExtent,TabletMetadata> tabletsMetadata, long myReservationId,
+        Map<TKeyExtent,List<TRange>> failures) {
       this.tabletsMetadata = tabletsMetadata;
+      this.failures = failures;
       this.files = tabletsMetadata.values().stream().flatMap(tm -> tm.getFiles().stream())
           .collect(Collectors.toUnmodifiableSet());
       this.myReservationId = myReservationId;
     }
 
+    /* This constructor is called when continuing a scan */
     ScanReservation(Collection<StoredTabletFile> files, long myReservationId) {
       this.tabletsMetadata = null;
+      this.failures = null;
       this.files = files;
       this.myReservationId = myReservationId;
     }
 
     public TabletMetadata getTabletMetadata(KeyExtent extent) {
       return tabletsMetadata.get(extent);
+    }
+
+    public Map<TKeyExtent,List<TRange>> getFailures() {
+      return this.failures;
     }
 
     SnapshotTablet newTablet(ScanServer server, KeyExtent extent) throws IOException {
@@ -489,7 +499,7 @@ public class ScanServer extends AbstractServer
   }
 
   private Map<KeyExtent,TabletMetadata> reserveFilesInner(Collection<KeyExtent> extents,
-      long myReservationId) throws NotServingTabletException, AccumuloException {
+      long myReservationId, Set<KeyExtent> failures) throws AccumuloException {
     // RFS is an acronym for Reference files for scan
     LOG.debug("RFFS {} ensuring files are referenced for scan of extents {}", myReservationId,
         extents);
@@ -500,13 +510,13 @@ public class ScanServer extends AbstractServer
       var tabletMetadata = tabletsMetadata.get(extent);
       if (tabletMetadata == null) {
         LOG.info("RFFS {} extent not found in metadata table {}", myReservationId, extent);
-        throw new NotServingTabletException(extent.toThrift());
+        failures.add(extent);
       }
 
       if (!AssignmentHandler.checkTabletMetadata(extent, null, tabletMetadata, true)) {
         LOG.info("RFFS {} extent unable to load {} as AssignmentHandler returned false",
             myReservationId, extent);
-        throw new NotServingTabletException(extent.toThrift());
+        failures.add(extent);
       }
     }
 
@@ -592,7 +602,7 @@ public class ScanServer extends AbstractServer
             getContext().getAmple().deleteScanServerFileReferences(refs);
             LOG.info("RFFS {} extent unable to load {} as metadata no longer referencing files",
                 myReservationId, extent);
-            throw new NotServingTabletException(extent.toThrift());
+            failures.add(extent);
           }
 
           // remove files that are still referenced
@@ -633,17 +643,24 @@ public class ScanServer extends AbstractServer
     }
   }
 
-  protected ScanReservation reserveFiles(Collection<KeyExtent> extents)
-      throws NotServingTabletException, AccumuloException {
+  protected ScanReservation reserveFiles(Map<KeyExtent,List<TRange>> extents)
+      throws AccumuloException {
 
     long myReservationId = nextScanReservationId.incrementAndGet();
 
-    Map<KeyExtent,TabletMetadata> tabletsMetadata = reserveFilesInner(extents, myReservationId);
+    Set<KeyExtent> failedReservations = new HashSet<>();
+    Map<KeyExtent,TabletMetadata> tabletsMetadata =
+        reserveFilesInner(extents.keySet(), myReservationId, failedReservations);
     while (tabletsMetadata == null) {
-      tabletsMetadata = reserveFilesInner(extents, myReservationId);
+      tabletsMetadata = reserveFilesInner(extents.keySet(), myReservationId, failedReservations);
     }
+    // Convert failures
+    Map<TKeyExtent,List<TRange>> failures = new HashMap<>();
+    failedReservations.forEach(extent -> {
+      failures.put(extent.toThrift(), extents.get(extent));
+    });
 
-    return new ScanReservation(tabletsMetadata, myReservationId);
+    return new ScanReservation(tabletsMetadata, myReservationId, failures);
   }
 
   protected ScanReservation reserveFiles(long scanId) throws NoSuchScanIDException {
@@ -827,8 +844,12 @@ public class ScanServer extends AbstractServer
       TooManyFilesException, TSampleNotPresentException, TException {
 
     KeyExtent extent = getKeyExtent(textent);
+    try (ScanReservation reservation =
+        reserveFiles(Map.of(extent, Collections.singletonList(range)))) {
 
-    try (ScanReservation reservation = reserveFiles(Collections.singleton(extent))) {
+      if (reservation.getFailures().containsKey(textent)) {
+        throw new NotServingTabletException(extent.toThrift());
+      }
 
       TabletBase tablet = reservation.newTablet(this, extent);
 
@@ -881,7 +902,7 @@ public class ScanServer extends AbstractServer
       batch.put(extent, entry.getValue());
     }
 
-    try (ScanReservation reservation = reserveFiles(batch.keySet())) {
+    try (ScanReservation reservation = reserveFiles(batch)) {
 
       HashMap<KeyExtent,TabletBase> tablets = new HashMap<>();
       batch.keySet().forEach(extent -> {
@@ -895,6 +916,10 @@ public class ScanServer extends AbstractServer
       InitialMultiScan ims = delegate.startMultiScan(tinfo, credentials, tcolumns, ssiList, batch,
           ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
           executionHints, getBatchScanTabletResolver(tablets), busyTimeout);
+
+      if (!reservation.getFailures().isEmpty()) {
+        ims.result.setFailures(reservation.getFailures());
+      }
 
       LOG.debug("started scan: {}", ims.getScanID());
       return ims;
