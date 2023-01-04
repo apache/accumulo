@@ -747,7 +747,7 @@ public enum Property {
   GC_TRASH_IGNORE("gc.trash.ignore", "false", PropertyType.BOOLEAN,
       "Do not use the Trash, even if it is configured.", "1.5.0"),
   GC_TRASH_IGNORE_IMPORTS_ONLY("gc.trash.ignore.imports.only", "false", PropertyType.BOOLEAN,
-      "Skip trash only for Import files when gc.trash.ignore is true.", "2.1.0"),
+      "Skip trash only for Import files when gc.trash.ignore is true.", "3.0.0"),
   GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
       "Provides listing of files to be deleted but does not delete any files", "2.1.0"),
   GC_USE_FULL_COMPACTION("gc.post.metadata.action", "flush", PropertyType.GC_POST_ACTION,
