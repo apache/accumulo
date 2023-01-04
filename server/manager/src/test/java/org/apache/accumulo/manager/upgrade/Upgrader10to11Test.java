@@ -19,8 +19,6 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.Constants.ZNAMESPACES;
-import static org.apache.accumulo.core.Constants.ZTABLES;
 import static org.apache.accumulo.core.Constants.ZTABLE_STATE;
 import static org.apache.accumulo.manager.upgrade.Upgrader10to11.buildRepTablePath;
 import static org.easymock.EasyMock.createMock;
@@ -42,10 +40,11 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,12 +78,12 @@ class Upgrader10to11Test {
     expect(zrw.exists(buildRepTablePath(instanceId))).andReturn(true).once();
     expect(zrw.getData(buildRepTablePath(instanceId) + ZTABLE_STATE))
         .andReturn(TableState.OFFLINE.name().getBytes(UTF_8)).once();
-    expect(zrw.getChildren(ZooUtil.getRoot(instanceId) + ZNAMESPACES)).andReturn(List.of()).once();
-    expect(zrw.getChildren(ZooUtil.getRoot(instanceId) + ZTABLES)).andReturn(List.of()).once();
     zrw.recursiveDelete(buildRepTablePath(instanceId), ZooUtil.NodeMissingPolicy.SKIP);
     expectLastCall().once();
 
-    expect(propStore.get(SystemPropKey.of(instanceId))).andReturn(new VersionedProperties()).once();
+    expect(propStore.get(TablePropKey.of(instanceId, MetadataTable.ID)))
+        .andReturn(new VersionedProperties()).once();
+
     replay(context, zrw, propStore);
 
     Upgrader10to11 upgrader = new Upgrader10to11();
@@ -112,11 +111,10 @@ class Upgrader10to11Test {
     expect(zrw.exists(buildRepTablePath(instanceId))).andReturn(true).once();
     expect(zrw.getData(buildRepTablePath(instanceId) + ZTABLE_STATE))
         .andReturn(TableState.OFFLINE.name().getBytes(UTF_8)).once();
-    expect(zrw.getChildren(ZooUtil.getRoot(instanceId) + ZNAMESPACES)).andReturn(List.of()).once();
-    expect(zrw.getChildren(ZooUtil.getRoot(instanceId) + ZTABLES)).andReturn(List.of()).once();
     zrw.recursiveDelete(buildRepTablePath(instanceId), ZooUtil.NodeMissingPolicy.SKIP);
     expectLastCall().once();
-    expect(propStore.get(SystemPropKey.of(instanceId))).andReturn(new VersionedProperties()).once();
+    expect(propStore.get(TablePropKey.of(instanceId, MetadataTable.ID)))
+        .andReturn(new VersionedProperties()).once();
 
     replay(context, zrw, propStore);
 

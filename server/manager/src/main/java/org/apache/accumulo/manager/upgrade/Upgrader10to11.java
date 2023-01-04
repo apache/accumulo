@@ -19,12 +19,11 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.Constants.ZNAMESPACES;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 import static org.apache.accumulo.core.Constants.ZTABLE_STATE;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_PREFIX;
+import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,12 +32,13 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.BatchDeleter;
+import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -49,12 +49,10 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
-import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,7 +94,7 @@ public class Upgrader10to11 implements Upgrader {
           "Replication table is not offline. Cannot continue with upgrade that will remove replication with replication active");
     }
 
-    deleteReplicationConfigs(zrw, iid, context.getPropStore());
+    cleanMetaConfig(iid, context.getPropStore());
 
     deleteReplicationTableZkEntries(zrw, iid);
 
@@ -132,20 +130,30 @@ public class Upgrader10to11 implements Upgrader {
   }
 
   void deleteReplTableFiles(final ServerContext context, final List<String> replTableFiles) {
-    var volMgr = context.getVolumeManager();
-    for (String filename : replTableFiles) {
-      try {
-        log.trace("removing replication table file: {}", filename);
-        if (!volMgr.delete(new Path(filename))) {
-          log.info(
-              "Failed to delete replication table file {}. It may need to be deleted manually.",
-              filename);
-        }
-      } catch (IOException ex) {
-        log.info("Failed to delete replication table file {}. It may need to be deleted manually.",
-            filename, ex);
+    // write delete mutations
+    boolean haveFailures = false;
+    try (BatchWriter writer = context.createBatchWriter(MetadataTable.NAME)) {
+      for (String filename : replTableFiles) {
+        Mutation m = createDelMutation(filename);
+        log.debug("Add delete mutation: file: {}, mutation: {}", filename, m.prettyPrint());
+        writer.addMutation(m);
       }
+    } catch (MutationsRejectedException ex) {
+      log.debug("Failed to write mutation {}", ex.getMessage());
+      haveFailures = true;
+    } catch (TableNotFoundException ex) {
+      throw new IllegalStateException("failed to read replication files from metadata", ex);
     }
+    if (haveFailures) {
+      throw new IllegalStateException(
+          "deletes rejected adding deletion mutations for replication file entries, check log");
+    }
+  }
+
+  private Mutation createDelMutation(String path) {
+    Mutation delFlag = new Mutation(new Text(MetadataSchema.DeletesSection.encodeRow(path)));
+    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, MetadataSchema.DeletesSection.SkewedKeyValue.NAME);
+    return delFlag;
   }
 
   /**
@@ -221,17 +229,20 @@ public class Upgrader10to11 implements Upgrader {
     }
   }
 
-  private void deleteReplicationConfigs(ZooReaderWriter zrw, InstanceId iid, PropStore propStore) {
-    List<PropStoreKey<?>> ids = getPropKeysFromZkIds(zrw, iid);
-    for (PropStoreKey<?> storeKey : ids) {
-      log.trace("Upgrade - remove replication iterators checking: {} ", storeKey);
-      var p = propStore.get(storeKey);
-      var props = p.asMap();
-      List<String> filtered = filterReplConfigKeys(props.keySet());
-      if (filtered.size() > 0) {
-        log.trace("Upgrade filtering replication iterators for id: {}", storeKey);
-        propStore.removeProperties(storeKey, filtered);
-      }
+  private void cleanMetaConfig(final InstanceId iid, final PropStore propStore) {
+    PropStoreKey<TableId> metaKey = TablePropKey.of(iid, MetadataTable.ID);
+    var p = propStore.get(metaKey);
+    var props = p.asMap();
+    List<String> filtered = filterReplConfigKeys(props.keySet());
+    // add replication status formatter to remove list.
+    String v = props.get("table.formatter");
+    if (v != null && v.compareTo("org.apache.accumulo.server.replication.StatusFormatter") == 0) {
+      filtered.add("table.formatter");
+    }
+
+    if (filtered.size() > 0) {
+      log.trace("Upgrade filtering replication iterators for id: {}", metaKey);
+      propStore.removeProperties(metaKey, filtered);
     }
   }
 
@@ -241,7 +252,7 @@ public class Upgrader10to11 implements Upgrader {
    * replication in the property name (specifically table.file.replication which set hdfs block
    * replication.)
    */
-  List<String> filterReplConfigKeys(Set<String> keys) {
+  private List<String> filterReplConfigKeys(Set<String> keys) {
     String REPL_ITERATOR_PATTERN = "^table\\.iterator\\.(majc|minc|scan)\\.replcombiner$";
     String REPL_COLUMN_PATTERN =
         "^table\\.iterator\\.(majc|minc|scan)\\.replcombiner\\.opt\\.columns$";
@@ -249,36 +260,5 @@ public class Upgrader10to11 implements Upgrader {
     Pattern p = Pattern.compile("(" + REPL_ITERATOR_PATTERN + "|" + REPL_COLUMN_PATTERN + ")");
 
     return keys.stream().filter(e -> p.matcher(e).find()).collect(Collectors.toList());
-  }
-
-  /**
-   * Create a list of propStore keys reading the table ids directly from ZooKeeper.
-   */
-  private List<PropStoreKey<?>> getPropKeysFromZkIds(final ZooReaderWriter zrw,
-      final InstanceId iid) {
-
-    List<PropStoreKey<?>> result = new ArrayList<>();
-
-    result.add(SystemPropKey.of(iid));
-
-    // namespaces
-    String nsRoot = ZooUtil.getRoot(iid) + ZNAMESPACES;
-    try {
-      List<String> c = zrw.getChildren(nsRoot);
-      c.forEach(ns -> result.add(NamespacePropKey.of(iid, NamespaceId.of(ns))));
-    } catch (KeeperException | InterruptedException ex) {
-      throw new IllegalStateException("Failed to read namespace ids from " + nsRoot, ex);
-    }
-
-    // tables
-    String tRoot = ZooUtil.getRoot(iid) + ZTABLES;
-    try {
-      List<String> c = zrw.getChildren(tRoot);
-      c.forEach(t -> result.add(TablePropKey.of(iid, TableId.of(t))));
-    } catch (KeeperException | InterruptedException ex) {
-      throw new IllegalStateException("Failed to read table ids from " + nsRoot, ex);
-    }
-
-    return result;
   }
 }
