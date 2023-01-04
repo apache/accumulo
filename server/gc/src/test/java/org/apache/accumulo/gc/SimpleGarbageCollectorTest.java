@@ -141,14 +141,19 @@ public class SimpleGarbageCollectorTest {
   public void testMoveToTrash_NotUsingTrash_importsOnlyEnabled() throws Exception {
     systemConfig.set(Property.GC_TRASH_IGNORE.getKey(), "true");
     systemConfig.set(Property.GC_TRASH_IGNORE_IMPORTS_ONLY.getKey(), "true");
-    Path iFilePath = new Path("Ifile");
-    Path iFileWithFullPath = new Path("hdfs://namenode/accumulo/Ifile");
-    Path notIFilePath = new Path("notIfile");
+    Path iFilePath = new Path("I0000070.rf");
+    Path iFileWithFullPath =
+        new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/I0000070.rf");
+    Path notIFilePath = new Path("F0000070.rf");
+    Path notIFileWithFullPath =
+        new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf");
     expect(volMgr.moveToTrash(notIFilePath)).andReturn(true).times(1);
+    expect(volMgr.moveToTrash(notIFileWithFullPath)).andReturn(true).times(1);
     replay(volMgr);
     assertFalse(gc.moveToTrash(iFilePath));
     assertFalse(gc.moveToTrash(iFileWithFullPath));
     assertTrue(gc.moveToTrash(notIFilePath));
+    assertTrue(gc.moveToTrash(notIFileWithFullPath));
     verify(volMgr);
   }
 
