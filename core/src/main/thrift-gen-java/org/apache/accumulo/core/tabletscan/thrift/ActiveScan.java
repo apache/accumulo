@@ -42,7 +42,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
   private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.LIST, (short)13);
   private static final org.apache.thrift.protocol.TField SCAN_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("scanId", org.apache.thrift.protocol.TType.I64, (short)14);
   private static final org.apache.thrift.protocol.TField CLASS_LOADER_CONTEXT_FIELD_DESC = new org.apache.thrift.protocol.TField("classLoaderContext", org.apache.thrift.protocol.TType.STRING, (short)15);
-  private static final org.apache.thrift.protocol.TField USER_DATA_FIELD_DESC = new org.apache.thrift.protocol.TField("userData", org.apache.thrift.protocol.TType.STRING, (short)16);
+  private static final org.apache.thrift.protocol.TField CORRELATION_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("correlationId", org.apache.thrift.protocol.TType.STRING, (short)16);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ActiveScanStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ActiveScanTupleSchemeFactory();
@@ -69,7 +69,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
   public @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> authorizations; // required
   public long scanId; // optional
   public @org.apache.thrift.annotation.Nullable java.lang.String classLoaderContext; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String userData; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String correlationId; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -95,7 +95,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     AUTHORIZATIONS((short)13, "authorizations"),
     SCAN_ID((short)14, "scanId"),
     CLASS_LOADER_CONTEXT((short)15, "classLoaderContext"),
-    USER_DATA((short)16, "userData");
+    CORRELATION_ID((short)16, "correlationId");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -139,8 +139,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
           return SCAN_ID;
         case 15: // CLASS_LOADER_CONTEXT
           return CLASS_LOADER_CONTEXT;
-        case 16: // USER_DATA
-          return USER_DATA;
+        case 16: // CORRELATION_ID
+          return CORRELATION_ID;
         default:
           return null;
       }
@@ -227,7 +227,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.CLASS_LOADER_CONTEXT, new org.apache.thrift.meta_data.FieldMetaData("classLoaderContext", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.USER_DATA, new org.apache.thrift.meta_data.FieldMetaData("userData", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.CORRELATION_ID, new org.apache.thrift.meta_data.FieldMetaData("correlationId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ActiveScan.class, metaDataMap);
@@ -250,7 +250,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio,
     java.util.List<java.nio.ByteBuffer> authorizations,
     java.lang.String classLoaderContext,
-    java.lang.String userData)
+    java.lang.String correlationId)
   {
     this();
     this.client = client;
@@ -268,7 +268,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     this.ssio = ssio;
     this.authorizations = authorizations;
     this.classLoaderContext = classLoaderContext;
-    this.userData = userData;
+    this.correlationId = correlationId;
   }
 
   /**
@@ -333,8 +333,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     if (other.isSetClassLoaderContext()) {
       this.classLoaderContext = other.classLoaderContext;
     }
-    if (other.isSetUserData()) {
-      this.userData = other.userData;
+    if (other.isSetCorrelationId()) {
+      this.correlationId = other.correlationId;
     }
   }
 
@@ -362,7 +362,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     setScanIdIsSet(false);
     this.scanId = 0;
     this.classLoaderContext = null;
-    this.userData = null;
+    this.correlationId = null;
   }
 
   @org.apache.thrift.annotation.Nullable
@@ -785,27 +785,27 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
   }
 
   @org.apache.thrift.annotation.Nullable
-  public java.lang.String getUserData() {
-    return this.userData;
+  public java.lang.String getCorrelationId() {
+    return this.correlationId;
   }
 
-  public ActiveScan setUserData(@org.apache.thrift.annotation.Nullable java.lang.String userData) {
-    this.userData = userData;
+  public ActiveScan setCorrelationId(@org.apache.thrift.annotation.Nullable java.lang.String correlationId) {
+    this.correlationId = correlationId;
     return this;
   }
 
-  public void unsetUserData() {
-    this.userData = null;
+  public void unsetCorrelationId() {
+    this.correlationId = null;
   }
 
-  /** Returns true if field userData is set (has been assigned a value) and false otherwise */
-  public boolean isSetUserData() {
-    return this.userData != null;
+  /** Returns true if field correlationId is set (has been assigned a value) and false otherwise */
+  public boolean isSetCorrelationId() {
+    return this.correlationId != null;
   }
 
-  public void setUserDataIsSet(boolean value) {
+  public void setCorrelationIdIsSet(boolean value) {
     if (!value) {
-      this.userData = null;
+      this.correlationId = null;
     }
   }
 
@@ -924,11 +924,11 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       }
       break;
 
-    case USER_DATA:
+    case CORRELATION_ID:
       if (value == null) {
-        unsetUserData();
+        unsetCorrelationId();
       } else {
-        setUserData((java.lang.String)value);
+        setCorrelationId((java.lang.String)value);
       }
       break;
 
@@ -981,8 +981,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     case CLASS_LOADER_CONTEXT:
       return getClassLoaderContext();
 
-    case USER_DATA:
-      return getUserData();
+    case CORRELATION_ID:
+      return getCorrelationId();
 
     }
     throw new java.lang.IllegalStateException();
@@ -1024,8 +1024,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       return isSetScanId();
     case CLASS_LOADER_CONTEXT:
       return isSetClassLoaderContext();
-    case USER_DATA:
-      return isSetUserData();
+    case CORRELATION_ID:
+      return isSetCorrelationId();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -1169,12 +1169,12 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         return false;
     }
 
-    boolean this_present_userData = true && this.isSetUserData();
-    boolean that_present_userData = true && that.isSetUserData();
-    if (this_present_userData || that_present_userData) {
-      if (!(this_present_userData && that_present_userData))
+    boolean this_present_correlationId = true && this.isSetCorrelationId();
+    boolean that_present_correlationId = true && that.isSetCorrelationId();
+    if (this_present_correlationId || that_present_correlationId) {
+      if (!(this_present_correlationId && that_present_correlationId))
         return false;
-      if (!this.userData.equals(that.userData))
+      if (!this.correlationId.equals(that.correlationId))
         return false;
     }
 
@@ -1237,9 +1237,9 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     if (isSetClassLoaderContext())
       hashCode = hashCode * 8191 + classLoaderContext.hashCode();
 
-    hashCode = hashCode * 8191 + ((isSetUserData()) ? 131071 : 524287);
-    if (isSetUserData())
-      hashCode = hashCode * 8191 + userData.hashCode();
+    hashCode = hashCode * 8191 + ((isSetCorrelationId()) ? 131071 : 524287);
+    if (isSetCorrelationId())
+      hashCode = hashCode * 8191 + correlationId.hashCode();
 
     return hashCode;
   }
@@ -1392,12 +1392,12 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetUserData(), other.isSetUserData());
+    lastComparison = java.lang.Boolean.compare(isSetCorrelationId(), other.isSetCorrelationId());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetUserData()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.userData, other.userData);
+    if (isSetCorrelationId()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.correlationId, other.correlationId);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -1528,11 +1528,11 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("userData:");
-    if (this.userData == null) {
+    sb.append("correlationId:");
+    if (this.correlationId == null) {
       sb.append("null");
     } else {
-      sb.append(this.userData);
+      sb.append(this.correlationId);
     }
     first = false;
     sb.append(")");
@@ -1754,10 +1754,10 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 16: // USER_DATA
+          case 16: // CORRELATION_ID
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.userData = iprot.readString();
-              struct.setUserDataIsSet(true);
+              struct.correlationId = iprot.readString();
+              struct.setCorrelationIdIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -1881,9 +1881,9 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         oprot.writeString(struct.classLoaderContext);
         oprot.writeFieldEnd();
       }
-      if (struct.userData != null) {
-        oprot.writeFieldBegin(USER_DATA_FIELD_DESC);
-        oprot.writeString(struct.userData);
+      if (struct.correlationId != null) {
+        oprot.writeFieldBegin(CORRELATION_ID_FIELD_DESC);
+        oprot.writeString(struct.correlationId);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
@@ -1947,7 +1947,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       if (struct.isSetClassLoaderContext()) {
         optionals.set(13);
       }
-      if (struct.isSetUserData()) {
+      if (struct.isSetCorrelationId()) {
         optionals.set(14);
       }
       oprot.writeBitSet(optionals, 15);
@@ -2025,8 +2025,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       if (struct.isSetClassLoaderContext()) {
         oprot.writeString(struct.classLoaderContext);
       }
-      if (struct.isSetUserData()) {
-        oprot.writeString(struct.userData);
+      if (struct.isSetCorrelationId()) {
+        oprot.writeString(struct.correlationId);
       }
     }
 
@@ -2143,8 +2143,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         struct.setClassLoaderContextIsSet(true);
       }
       if (incoming.get(14)) {
-        struct.userData = iprot.readString();
-        struct.setUserDataIsSet(true);
+        struct.correlationId = iprot.readString();
+        struct.setCorrelationIdIsSet(true);
       }
     }
   }

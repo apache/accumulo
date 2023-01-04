@@ -67,7 +67,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
-import org.apache.accumulo.core.logging.ScanUserDataLogger;
+import org.apache.accumulo.core.logging.CorrelationIdLogger;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -825,8 +825,8 @@ public class ScanServer extends AbstractServer
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig,
       long batchTimeOut, String classLoaderContext, Map<String,String> executionHints,
-      long busyTimeout, String userData) throws ThriftSecurityException, NotServingTabletException,
-      TooManyFilesException, TSampleNotPresentException, TException {
+      long busyTimeout, String correlationId) throws ThriftSecurityException,
+      NotServingTabletException, TooManyFilesException, TSampleNotPresentException, TException {
 
     KeyExtent extent = getKeyExtent(textent);
 
@@ -837,14 +837,15 @@ public class ScanServer extends AbstractServer
       InitialScan is = delegate.startScan(tinfo, credentials, extent, range, columns, batchSize,
           ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig,
           batchTimeOut, classLoaderContext, executionHints, getScanTabletResolver(tablet),
-          busyTimeout, userData);
+          busyTimeout, correlationId);
 
-      ScanUserDataLogger.log(Level.DEBUG, LOG, userData, "started scan, id: {}", is.getScanID());
+      CorrelationIdLogger.log(Level.DEBUG, LOG, correlationId, "started scan, id: {}",
+          is.getScanID());
 
       return is;
 
     } catch (AccumuloException | IOException e) {
-      ScanUserDataLogger.log(Level.ERROR, LOG, userData, "Error starting scan", e);
+      CorrelationIdLogger.log(Level.ERROR, LOG, correlationId, "Error starting scan", e);
       throw new RuntimeException(e);
     }
   }
@@ -868,7 +869,7 @@ public class ScanServer extends AbstractServer
       Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       TSamplerConfiguration tSamplerConfig, long batchTimeOut, String contextArg,
-      Map<String,String> executionHints, long busyTimeout, String userData)
+      Map<String,String> executionHints, long busyTimeout, String correlationId)
       throws ThriftSecurityException, TSampleNotPresentException, TException {
 
     if (tbatch.size() == 0) {
@@ -895,15 +896,16 @@ public class ScanServer extends AbstractServer
 
       InitialMultiScan ims = delegate.startMultiScan(tinfo, credentials, tcolumns, ssiList, batch,
           ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
-          executionHints, getBatchScanTabletResolver(tablets), busyTimeout, userData);
+          executionHints, getBatchScanTabletResolver(tablets), busyTimeout, correlationId);
 
-      ScanUserDataLogger.log(Level.DEBUG, LOG, userData, "started scan, id: {}", ims.getScanID());
+      CorrelationIdLogger.log(Level.DEBUG, LOG, correlationId, "started scan, id: {}",
+          ims.getScanID());
       return ims;
     } catch (TException e) {
-      ScanUserDataLogger.log(Level.ERROR, LOG, userData, "Error starting scan", e);
+      CorrelationIdLogger.log(Level.ERROR, LOG, correlationId, "Error starting scan", e);
       throw e;
     } catch (AccumuloException e) {
-      ScanUserDataLogger.log(Level.ERROR, LOG, userData, "Error starting scan", e);
+      CorrelationIdLogger.log(Level.ERROR, LOG, correlationId, "Error starting scan", e);
       throw new RuntimeException(e);
     }
   }

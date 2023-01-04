@@ -22,9 +22,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
-public class ScanUserDataLogger {
+public class CorrelationIdLogger {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ScanUserDataLogger.class);
+  private static final Logger LOG = LoggerFactory.getLogger(CorrelationIdLogger.class);
   private static final String FORMAT = "(%s) %s";
 
   /**
@@ -34,20 +34,21 @@ public class ScanUserDataLogger {
    *
    * @param level slf4j log level
    * @param classLogger calling class' slf4j logger
-   * @param userData scan userData value
+   * @param correlationId meaningful data that applications can use to correlate server side
+   *        information
    * @param msg log message
-   * @param args log message argument
+   * @param args log message arguments
    */
-  public static void log(Level level, Logger classLogger, String userData, String msg,
+  public static void log(Level level, Logger classLogger, String correlationId, String msg,
       Object... args) {
     if (classLogger != null && classLogger.isEnabledForLevel(level)) {
       classLogger.atLevel(level).log(msg, args);
     }
     if (LOG.isEnabledForLevel(level)) {
       if (args == null) {
-        LOG.atLevel(level).log(String.format(FORMAT, userData, msg));
+        LOG.atLevel(level).log(String.format(FORMAT, correlationId, msg));
       } else {
-        LOG.atLevel(level).log(String.format(FORMAT, userData, msg), args);
+        LOG.atLevel(level).log(String.format(FORMAT, correlationId, msg), args);
       }
     }
   }

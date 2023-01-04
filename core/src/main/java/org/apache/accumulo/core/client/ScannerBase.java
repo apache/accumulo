@@ -391,20 +391,20 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
   }
 
   /**
-   * Set user data on the Scanner. This data will be added to server side information and logs for
-   * correlation.
+   * Set correlationId on the Scanner. This data will be added to server side logs for correlation.
    *
-   * @param userData meaningful data that can be used to correlate server side information
+   * @param correlationId meaningful data that applications can use to correlate server side
+   *        information
    * @since 3.0.0
    */
-  void setUserData(String userData);
+  void setCorrelationId(String correlationId);
 
   /**
-   * Set user data set on the Scanner.
+   * Get Scanner correlationId.
    *
-   * @return meaningful data that can be used to correlate server side information
+   * @return correlationId
    * @since 3.0.0
    */
-  String getUserData();
+  String getCorrelationId();
 
 }

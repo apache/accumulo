@@ -39,7 +39,7 @@ public class TestScanInfo implements ScanInfo {
   Stat runTimeStats = new Stat();
   Stat idleTimeStats = new Stat();
   Map<String,String> executionHints = Collections.emptyMap();
-  String userData;
+  String correlationId;
 
   TestScanInfo(String testId, Type scanType, long creationTime, int... times) {
     this.testId = testId;
@@ -57,7 +57,7 @@ public class TestScanInfo implements ScanInfo {
       lastRunTime = OptionalLong.of(times[times.length - 1] + creationTime);
     }
 
-    userData = "";
+    correlationId = "";
   }
 
   TestScanInfo setExecutionHints(String k, String v) {
@@ -118,8 +118,8 @@ public class TestScanInfo implements ScanInfo {
   }
 
   @Override
-  public String getUserData() {
-    return userData;
+  public String getCorrelationId() {
+    return correlationId;
   }
 
 }

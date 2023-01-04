@@ -102,8 +102,8 @@ public class ThriftScanner {
       String server, SortedMap<Key,Value> results, SortedSet<Column> fetchedColumns,
       List<IterInfo> serverSideIteratorList,
       Map<String,Map<String,String>> serverSideIteratorOptions, int size,
-      Authorizations authorizations, long batchTimeOut, String classLoaderContext)
-      throws AccumuloException, AccumuloSecurityException {
+      Authorizations authorizations, long batchTimeOut, String classLoaderContext,
+      String correlationId) throws AccumuloException, AccumuloSecurityException {
     if (server == null) {
       throw new AccumuloException(new IOException());
     }
@@ -119,7 +119,7 @@ public class ThriftScanner {
         ScanState scanState = new ScanState(context, extent.tableId(), authorizations, range,
             fetchedColumns, size, serverSideIteratorList, serverSideIteratorOptions, false,
             Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, null, batchTimeOut, classLoaderContext,
-            null, false, "");
+            null, false, correlationId);
 
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
@@ -129,7 +129,7 @@ public class ThriftScanner {
             scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
             scanState.readaheadThreshold, null, scanState.batchTimeOut, classLoaderContext,
-            scanState.executionHints, 0L, scanState.userData);
+            scanState.executionHints, 0L, scanState.correlationId);
         if (waitForWrites) {
           serversWaitedForWrites.get(ttype).add(server);
         }
@@ -196,7 +196,7 @@ public class ThriftScanner {
 
     Duration busyTimeout;
 
-    String userData;
+    String correlationId;
 
     TabletLocation getErrorLocation() {
       return prevLoc;
@@ -208,7 +208,7 @@ public class ThriftScanner {
         Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated,
         long readaheadThreshold, SamplerConfiguration samplerConfig, long batchTimeOut,
         String classLoaderContext, Map<String,String> executionHints, boolean useScanServer,
-        String userData) {
+        String correlationId) {
       this.context = context;
       this.authorizations = authorizations;
       this.classLoaderContext = classLoaderContext;
@@ -253,7 +253,7 @@ public class ThriftScanner {
         scanAttempts = new ScanServerAttemptsImpl();
       }
 
-      this.userData = userData;
+      this.correlationId = correlationId;
     }
   }
 
@@ -552,8 +552,8 @@ public class ThriftScanner {
           }
 
           @Override
-          public String getUserData() {
-            return scanState.userData;
+          public String getCorrelationId() {
+            return scanState.correlationId;
           }
         };
 
@@ -649,7 +649,7 @@ public class ThriftScanner {
             scanState.readaheadThreshold,
             SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
             scanState.classLoaderContext, scanState.executionHints, busyTimeout,
-            scanState.userData);
+            scanState.correlationId);
         if (waitForWrites) {
           serversWaitedForWrites.get(ttype).add(loc.tablet_location);
         }

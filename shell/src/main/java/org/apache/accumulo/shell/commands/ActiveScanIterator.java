@@ -51,7 +51,7 @@ class ActiveScanIterator implements Iterator<String> {
               tserver, as.getClient(), dur, dur2, as.getState(), as.getType(), as.getUser(),
               as.getTable(), as.getColumns(), as.getAuthorizations(),
               (as.getType() == ScanType.SINGLE ? as.getTablet() : "N/A"), as.getScanid(),
-              as.getSsiList(), as.getSsio(), as.getUserData()));
+              as.getSsiList(), as.getSsio(), as.getCorrelationId()));
         }
       } catch (Exception e) {
         scans.add(tserver + " ERROR " + e.getMessage());

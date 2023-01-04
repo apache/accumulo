@@ -55,7 +55,7 @@ public class ActiveScanImpl extends ActiveScan {
   private Map<String,Map<String,String>> ssio;
   private String user;
   private Authorizations authorizations;
-  private String userData;
+  private String correlationId;
 
   ActiveScanImpl(ClientContext context,
       org.apache.accumulo.core.tabletscan.thrift.ActiveScan activeScan)
@@ -82,7 +82,7 @@ public class ActiveScanImpl extends ActiveScan {
       this.ssiList.add(ii.iterName + "=" + ii.priority + "," + ii.className);
     }
     this.ssio = activeScan.ssio;
-    this.userData = activeScan.userData;
+    this.correlationId = activeScan.correlationId;
   }
 
   @Override
@@ -156,8 +156,8 @@ public class ActiveScanImpl extends ActiveScan {
   }
 
   @Override
-  public String getUserData() {
-    return userData;
+  public String getCorrelationId() {
+    return correlationId;
   }
 
 }

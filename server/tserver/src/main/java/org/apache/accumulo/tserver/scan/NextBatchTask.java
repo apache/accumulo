@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
-import org.apache.accumulo.core.logging.ScanUserDataLogger;
+import org.apache.accumulo.core.logging.CorrelationIdLogger;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.SingleScanSession;
@@ -72,8 +72,8 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
       TabletBase tablet = scanSession.getTabletResolver().getTablet(scanSession.extent);
 
       if (tablet == null) {
-        ScanUserDataLogger.log(Level.TRACE, log, scanSession.getUserData(), "not serving tablet {}",
-            scanSession.extent.toThrift());
+        CorrelationIdLogger.log(Level.TRACE, log, scanSession.getCorrelationId(),
+            "not serving tablet {}", scanSession.extent.toThrift());
         addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(
             scanSession.extent.toThrift()));
         return;
@@ -88,22 +88,22 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
       // problem somewhere
       addResult(batch);
     } catch (TabletClosedException e) {
-      ScanUserDataLogger.log(Level.TRACE, log, scanSession.getUserData(), "not serving tablet {}",
-          scanSession.extent.toThrift());
+      CorrelationIdLogger.log(Level.TRACE, log, scanSession.getCorrelationId(),
+          "not serving tablet {}", scanSession.extent.toThrift());
       addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(
           scanSession.extent.toThrift()));
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
-        ScanUserDataLogger.log(Level.WARN, log, scanSession.getUserData(),
+        CorrelationIdLogger.log(Level.WARN, log, scanSession.getCorrelationId(),
             "Iteration interrupted, when scan not cancelled", iie);
         addResult(iie);
       }
     } catch (TooManyFilesException | SampleNotPresentException e) {
-      ScanUserDataLogger.log(Level.WARN, log, scanSession.getUserData(),
+      CorrelationIdLogger.log(Level.WARN, log, scanSession.getCorrelationId(),
           "exception while scanning tablet {}", e);
       addResult(e);
     } catch (IOException | RuntimeException e) {
-      ScanUserDataLogger.log(Level.WARN, log, scanSession.getUserData(),
+      CorrelationIdLogger.log(Level.WARN, log, scanSession.getCorrelationId(),
           "exception while scanning tablet {} for {}", scanSession.extent, scanSession.client, e);
       addResult(e);
     } finally {

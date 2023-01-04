@@ -39,7 +39,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
-import org.apache.accumulo.core.logging.ScanUserDataLogger;
+import org.apache.accumulo.core.logging.CorrelationIdLogger;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.MultiScanSession;
@@ -138,7 +138,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           interruptFlag.set(false);
 
         } catch (IOException e) {
-          ScanUserDataLogger.log(Level.WARN, log, session.getUserData(),
+          CorrelationIdLogger.log(Level.WARN, log, session.getCorrelationId(),
               "lookup failed for tablet {}", extent, e);
           throw new RuntimeException(e);
         }
@@ -177,16 +177,16 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       addResult(multiScanResult);
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
-        ScanUserDataLogger.log(Level.WARN, log, session.getUserData(),
+        CorrelationIdLogger.log(Level.WARN, log, session.getCorrelationId(),
             "Iteration interrupted, when scan not cancelled", iie);
         addResult(iie);
       }
     } catch (SampleNotPresentException e) {
-      ScanUserDataLogger.log(Level.WARN, log, session.getUserData(),
+      CorrelationIdLogger.log(Level.WARN, log, session.getCorrelationId(),
           "sample not present while doing multi-scan", e);
       addResult(e);
     } catch (Exception e) {
-      ScanUserDataLogger.log(Level.WARN, log, session.getUserData(),
+      CorrelationIdLogger.log(Level.WARN, log, session.getCorrelationId(),
           "exception while doing multi-scan", e);
       addResult(e);
     } finally {

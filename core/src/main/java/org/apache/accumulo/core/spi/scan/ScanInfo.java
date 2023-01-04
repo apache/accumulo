@@ -127,9 +127,11 @@ public interface ScanInfo {
   Map<String,String> getExecutionHints();
 
   /**
-   * @return user data set by a scanner using {@link ScannerBase#setUserData(String)}
+   * @return correlationId set by a scanner using {@link ScannerBase#setCorrelationId(String)}
+   *
+   * @since 3.0.0
    */
-  default String getUserData() {
+  default String getCorrelationId() {
     return "";
   }
 }

@@ -67,7 +67,7 @@ public class ScannerOptions implements ScannerBase {
 
   private ConsistencyLevel consistencyLevel = ConsistencyLevel.IMMEDIATE;
 
-  private String userData = "";
+  private String correlationId = "";
 
   protected ScannerOptions() {}
 
@@ -188,7 +188,7 @@ public class ScannerOptions implements ScannerBase {
         dst.executionHints = src.executionHints;
 
         dst.consistencyLevel = src.consistencyLevel;
-        dst.userData = src.userData;
+        dst.correlationId = src.correlationId;
       }
     }
   }
@@ -291,13 +291,13 @@ public class ScannerOptions implements ScannerBase {
   }
 
   @Override
-  public String getUserData() {
-    return userData;
+  public String getCorrelationId() {
+    return correlationId;
   }
 
   @Override
-  public void setUserData(String userData) {
-    this.userData = Objects.requireNonNull(userData);
+  public void setCorrelationId(String correlationId) {
+    this.correlationId = Objects.requireNonNull(correlationId);
   }
 
 }

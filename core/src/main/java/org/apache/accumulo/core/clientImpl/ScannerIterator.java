@@ -86,7 +86,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
             size, options.serverSideIteratorList, options.serverSideIteratorOptions, isolated,
             readaheadThreshold, options.getSamplerConfiguration(), options.batchTimeOut,
             options.classLoaderContext, options.executionHints,
-            options.getConsistencyLevel() == ConsistencyLevel.EVENTUAL, options.getUserData());
+            options.getConsistencyLevel() == ConsistencyLevel.EVENTUAL, options.getCorrelationId());
 
     // If we want to start readahead immediately, don't wait for hasNext to be called
     if (readaheadThreshold == 0L) {

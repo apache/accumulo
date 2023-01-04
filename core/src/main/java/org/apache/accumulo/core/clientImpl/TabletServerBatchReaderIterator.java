@@ -623,8 +623,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       }
 
       @Override
-      public String getUserData() {
-        return options.getUserData();
+      public String getCorrelationId() {
+        return options.getCorrelationId();
       }
     };
 
@@ -833,7 +833,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
             SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
             options.batchTimeOut, options.classLoaderContext, execHints, busyTimeout,
-            options.getUserData());
+            options.getCorrelationId());
         if (waitForWrites) {
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
         }

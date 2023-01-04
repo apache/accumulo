@@ -100,8 +100,9 @@ public abstract class ActiveScan {
   /**
    * Set user data set on the Scanner.
    *
-   * @return meaningful data that can be used to correlate server side information
+   * @return correlationId meaningful data that applications can use to correlate server side
+   *         information
    * @since 3.0.0
    */
-  public abstract String getUserData();
+  public abstract String getCorrelationId();
 }

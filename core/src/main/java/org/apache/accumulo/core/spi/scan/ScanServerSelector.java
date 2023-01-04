@@ -107,9 +107,11 @@ public interface ScanServerSelector {
     Map<String,String> getHints();
 
     /**
-     * @return user data set by a scanner using {@link ScannerBase#setUserData(String)}
+     * @return correlationId set by a scanner using {@link ScannerBase#setCorrelationId(String)}
+     *
+     * @since 3.0.0
      */
-    String getUserData();
+    String getCorrelationId();
 
   }
 

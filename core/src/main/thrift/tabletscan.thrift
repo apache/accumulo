@@ -69,7 +69,7 @@ struct ActiveScan {
   14:optional i64 scanId
   // name of the classloader context
   15:string classLoaderContext
-  16:string userData
+  16:string correlationId
 }
 
 
@@ -95,7 +95,7 @@ service TabletScanClientService {
     15:string classLoaderContext
     16:map<string, string> executionHints
     17:i64 busyTimeout
-    18:string userData
+    18:string correlationId
   ) throws (
     1:client.ThriftSecurityException sec
     2:tabletserver.NotServingTabletException nste
@@ -137,7 +137,7 @@ service TabletScanClientService {
     11:string classLoaderContext
     12:map<string, string> executionHints
     13:i64 busyTimeout
-    14:string userData
+    14:string correlationId
   ) throws (
     1:client.ThriftSecurityException sec
     2:TSampleNotPresentException tsnpe

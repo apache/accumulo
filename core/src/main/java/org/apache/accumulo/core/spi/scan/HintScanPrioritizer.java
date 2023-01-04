@@ -24,7 +24,7 @@ import java.util.Comparator;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.logging.ScanUserDataLogger;
+import org.apache.accumulo.core.logging.CorrelationIdLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
@@ -82,7 +82,7 @@ public class HintScanPrioritizer implements ScanPrioritizer {
     String prio = si.getExecutionHints().get("priority");
     if (prio != null) {
       try {
-        ScanUserDataLogger.log(Level.TRACE, null, si.getUserData(),
+        CorrelationIdLogger.log(Level.TRACE, null, si.getCorrelationId(),
             "HintScanPrioritizer - scan has priority: {}", prio);
         return Integer.parseInt(prio);
       } catch (NumberFormatException nfe) {

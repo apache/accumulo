@@ -381,7 +381,7 @@ public class SessionManager {
             ScanType.SINGLE, state, ss.extent.toThrift(),
             params.getColumnSet().stream().map(Column::toThrift).collect(Collectors.toList()),
             params.getSsiList(), params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
-            params.getClassLoaderContext(), ss.getUserData());
+            params.getClassLoaderContext(), ss.getCorrelationId());
 
         // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in
         // ActiveScan constructor
@@ -417,7 +417,7 @@ public class SessionManager {
             ScanType.BATCH, state, mss.threadPoolExtent.toThrift(),
             params.getColumnSet().stream().map(Column::toThrift).collect(Collectors.toList()),
             params.getSsiList(), params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
-            params.getClassLoaderContext(), mss.getUserData()));
+            params.getClassLoaderContext(), mss.getCorrelationId()));
       }
     }));
 

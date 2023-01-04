@@ -35,7 +35,7 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.logging.ScanUserDataLogger;
+import org.apache.accumulo.core.logging.CorrelationIdLogger;
 import org.slf4j.event.Level;
 
 import com.google.common.base.Preconditions;
@@ -369,7 +369,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
           (Math.abs(hashCode.asInt()) + RANDOM.nextInt(numServers)) % orderedScanServers.size();
 
       serverToUse = orderedScanServers.get(serverIndex);
-      ScanUserDataLogger.log(Level.TRACE, null, params.getUserData(),
+      CorrelationIdLogger.log(Level.TRACE, null, params.getCorrelationId(),
           "ScanServerSelector selected server {} for tablet {}", serverToUse, tablet);
       serversToUse.put(tablet, serverToUse);
     }

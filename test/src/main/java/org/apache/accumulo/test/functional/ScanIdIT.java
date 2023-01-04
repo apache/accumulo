@@ -152,14 +152,14 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
       Pair<Set<Long>,Set<String>> scanInfo = getScanIds(client);
       Set<Long> scanIds = scanInfo.getFirst();
-      Set<String> userData = scanInfo.getSecond();
+      Set<String> correlationIds = scanInfo.getSecond();
       assertTrue(scanIds.size() >= NUM_SCANNERS,
           "Expected at least " + NUM_SCANNERS + " scanIds, but saw " + scanIds.size());
-      assertTrue(userData.size() >= NUM_SCANNERS,
-          "Expected at least " + NUM_SCANNERS + " user data, but saw " + userData.size());
+      assertTrue(correlationIds.size() >= NUM_SCANNERS,
+          "Expected at least " + NUM_SCANNERS + " user data, but saw " + correlationIds.size());
 
       for (int scannerIndex = 0; scannerIndex < NUM_SCANNERS; scannerIndex++) {
-        assertTrue(userData.contains("Scanner-Thread-" + scannerIndex));
+        assertTrue(correlationIds.contains("Scanner-Thread-" + scannerIndex));
       }
 
       scanThreadsToClose.forEach(st -> {
@@ -183,7 +183,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
       throws AccumuloSecurityException, InterruptedException, AccumuloException {
     // all scanner have reported at least 1 result, so check for unique scan ids.
     Set<Long> scanIds = new HashSet<>();
-    Set<String> userData = new HashSet<>();
+    Set<String> correlationIds = new HashSet<>();
 
     List<String> tservers = client.instanceOperations().getTabletServers();
 
@@ -215,11 +215,11 @@ public class ScanIdIT extends AccumuloClusterHarness {
       for (ActiveScan scan : activeScans) {
         log.debug("Tserver {} scan id {} ({})", tserver, scan.getScanid(), scan.getTable());
         scanIds.add(scan.getScanid());
-        userData.add(scan.getUserData());
+        correlationIds.add(scan.getCorrelationId());
       }
     }
 
-    return new Pair<>(scanIds, userData);
+    return new Pair<>(scanIds, correlationIds);
   }
 
   /**
@@ -274,7 +274,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
         scanner.fetchColumnFamily(new Text("fam1"));
 
-        scanner.setUserData("Scanner-Thread-" + workerIndex);
+        scanner.setCorrelationId("Scanner-Thread-" + workerIndex);
 
         for (Map.Entry<Key,Value> entry : scanner) {
 

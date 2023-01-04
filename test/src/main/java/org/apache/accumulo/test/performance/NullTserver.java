@@ -154,7 +154,7 @@ public class NullTserver {
         Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns, List<IterInfo> ssiList,
         Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
         TSamplerConfiguration tsc, long batchTimeOut, String context,
-        Map<String,String> executionHints, long busyTimeout, String userData) {
+        Map<String,String> executionHints, long busyTimeout, String correlationId) {
       return null;
     }
 
@@ -164,7 +164,7 @@ public class NullTserver {
         Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
         boolean isolated, long readaheadThreshold, TSamplerConfiguration tsc, long batchTimeOut,
         String classLoaderContext, Map<String,String> executionHints, long busyTimeout,
-        String userData) {
+        String correlationId) {
       return null;
     }
 

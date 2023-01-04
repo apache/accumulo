@@ -128,7 +128,7 @@ public class ConfigurableScanServerSelectorTest {
     }
 
     @Override
-    public String getUserData() {
+    public String getCorrelationId() {
       return "";
     }
   }

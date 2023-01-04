@@ -40,8 +40,8 @@ public class SingleScanSession extends ScanSession {
 
   public SingleScanSession(TCredentials credentials, KeyExtent extent, ScanParameters scanParams,
       long readaheadThreshold, Map<String,String> executionHints, TabletResolver tabletResolver,
-      String userData) {
-    super(credentials, scanParams, executionHints, tabletResolver, userData);
+      String correlationId) {
+    super(credentials, scanParams, executionHints, tabletResolver, correlationId);
     this.extent = extent;
     this.readaheadThreshold = readaheadThreshold;
   }

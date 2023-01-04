@@ -32,7 +32,7 @@ public class Session {
   public long startTime;
   State state = State.NEW;
   private final TCredentials credentials;
-  private String userData = "no userData";
+  private String correlationId = "";
 
   Session(TCredentials credentials) {
     this.credentials = credentials;
@@ -51,12 +51,12 @@ public class Session {
     return true;
   }
 
-  public String getUserData() {
-    return userData;
+  public String getCorrelationId() {
+    return correlationId;
   }
 
-  public void setUserData(String userData) {
-    this.userData = userData;
+  public void setCorrelationId(String correlationId) {
+    this.correlationId = correlationId;
   }
 
 }
