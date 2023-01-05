@@ -130,6 +130,10 @@ public class Upgrader10to11 implements Upgrader {
   }
 
   void deleteReplTableFiles(final ServerContext context, final List<String> replTableFiles) {
+    // short circuit if there are no files
+    if (replTableFiles.isEmpty()) {
+      return;
+    }
     // write delete mutations
     boolean haveFailures = false;
     try (BatchWriter writer = context.createBatchWriter(MetadataTable.NAME)) {

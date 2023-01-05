@@ -50,7 +50,7 @@ public class UpgradeCoordinator {
 
   public enum UpgradeStatus {
     /**
-     * This signifies the upgrade status is in the process of being determined. Its best to assume
+     * This signifies the upgrade status is in the process of being determined. It is best to assume
      * nothing is upgraded when seeing this.
      */
     INITIAL {
@@ -103,11 +103,11 @@ public class UpgradeCoordinator {
     public abstract boolean isParentLevelUpgraded(KeyExtent extent);
   }
 
-  private static Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);
+  private static final Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);
 
   private int currentVersion;
   // map of "current version" -> upgrader to next version.
-  private Map<Integer,
+  private final Map<Integer,
       Upgrader> upgraders = Map.of(AccumuloDataVersion.SHORTEN_RFILE_KEYS, new Upgrader8to9(),
           AccumuloDataVersion.CRYPTO_CHANGES, new Upgrader9to10(),
           AccumuloDataVersion.ROOT_TABLET_META_CHANGES, new Upgrader10to11());
@@ -254,13 +254,13 @@ public class UpgradeCoordinator {
    * need to make sure there are no queued transactions from a previous version before continuing an
    * upgrade. The status of the operations is irrelevant; those in SUCCESSFUL status cause the same
    * problem as those just queued.
-   *
+   * <p>
    * Note that the Manager should not allow write access to Fate until after all upgrade steps are
    * complete.
-   *
+   * <p>
    * Should be called as a guard before performing any upgrade steps, after determining that an
    * upgrade is needed.
-   *
+   * <p>
    * see ACCUMULO-2519
    */
   @SuppressFBWarnings(value = "DM_EXIT",
