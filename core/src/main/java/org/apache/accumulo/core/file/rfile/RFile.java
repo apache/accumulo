@@ -100,12 +100,13 @@ public class RFile {
     private static class FreeMemoryUpdater implements Runnable {
 
       private final ReentrantLock lock = new ReentrantLock();
-      private AtomicReference<CountDownLatch> REF = new AtomicReference<>(new CountDownLatch(1));
+      private final AtomicReference<CountDownLatch> latch_ref =
+          new AtomicReference<>(new CountDownLatch(1));
 
       public void update() {
         lock.lock();
         try {
-          REF.get().countDown();
+          latch_ref.get().countDown();
         } finally {
           lock.unlock();
         }
@@ -115,12 +116,18 @@ public class RFile {
       public void run() {
         try {
           while (true) {
-            CountDownLatch latch = REF.get();
+            CountDownLatch latch = latch_ref.get();
+            // TODO: Could use latch.await(long, TimeUnit) to update free memory
+            // when GC does not occur. It's probable that memory allocations
+            // will occur without GC happening, depending on the memory pool
+            // sizes.
             latch.await();
+            // acquiring a lock here so that we don't miss a call to update() while
+            // we are getting the current free memory
             lock.lock();
             try {
               FREE_MEMORY.set(Runtime.getRuntime().freeMemory());
-              REF.set(new CountDownLatch(1));
+              latch_ref.set(new CountDownLatch(1));
             } finally {
               lock.unlock();
             }
@@ -132,10 +139,10 @@ public class RFile {
 
     }
 
-    private static boolean IS_ENABLED =
+    private static final boolean IS_ENABLED =
         Boolean.parseBoolean(System.getProperty("EnableRFileMemoryProtection", "false"));
-    private static AtomicLong FREE_MEMORY = new AtomicLong(0);
-    private static FreeMemoryUpdater UPDATER = new FreeMemoryUpdater();
+    private static final AtomicLong FREE_MEMORY = new AtomicLong(Runtime.getRuntime().freeMemory());
+    private static final FreeMemoryUpdater UPDATER = new FreeMemoryUpdater();
 
     static {
       if (IS_ENABLED) {
