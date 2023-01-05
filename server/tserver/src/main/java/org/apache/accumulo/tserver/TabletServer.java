@@ -593,8 +593,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     thriftClientHandler = newTabletClientHandler(watcher, writeTracker);
     scanClientHandler = newThriftScanClientHandler(writeTracker);
 
-    TProcessor processor = ThriftProcessorTypes.getTabletServerTProcessor(clientHandler,
-        thriftClientHandler, scanClientHandler, getContext());
+    TProcessor processor =
+        ThriftProcessorTypes.getTabletServerTProcessor(clientHandler, thriftClientHandler,
+            scanClientHandler, thriftClientHandler, thriftClientHandler, getContext());
     HostAndPort address = startServer(getConfiguration(), clientAddress.getHost(), processor);
     log.info("address = {}", address);
     return address;

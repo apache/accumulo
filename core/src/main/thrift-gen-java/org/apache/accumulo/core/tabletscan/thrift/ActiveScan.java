@@ -22,7 +22,7 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.tabletserver.thrift;
+package org.apache.accumulo.core.tabletscan.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
 public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveScan._Fields>, java.io.Serializable, Cloneable, Comparable<ActiveScan> {
@@ -1545,7 +1545,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
             break;
           case 7: // TYPE
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-              struct.type = org.apache.accumulo.core.tabletserver.thrift.ScanType.findByValue(iprot.readI32());
+              struct.type = org.apache.accumulo.core.tabletscan.thrift.ScanType.findByValue(iprot.readI32());
               struct.setTypeIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -1553,7 +1553,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
             break;
           case 8: // STATE
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-              struct.state = org.apache.accumulo.core.tabletserver.thrift.ScanState.findByValue(iprot.readI32());
+              struct.state = org.apache.accumulo.core.tabletscan.thrift.ScanState.findByValue(iprot.readI32());
               struct.setStateIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -1571,14 +1571,14 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
           case 10: // COLUMNS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list8 = iprot.readListBegin();
-                struct.columns = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TColumn>(_list8.size);
-                @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TColumn _elem9;
-                for (int _i10 = 0; _i10 < _list8.size; ++_i10)
+                org.apache.thrift.protocol.TList _list10 = iprot.readListBegin();
+                struct.columns = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TColumn>(_list10.size);
+                @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TColumn _elem11;
+                for (int _i12 = 0; _i12 < _list10.size; ++_i12)
                 {
-                  _elem9 = new org.apache.accumulo.core.dataImpl.thrift.TColumn();
-                  _elem9.read(iprot);
-                  struct.columns.add(_elem9);
+                  _elem11 = new org.apache.accumulo.core.dataImpl.thrift.TColumn();
+                  _elem11.read(iprot);
+                  struct.columns.add(_elem11);
                 }
                 iprot.readListEnd();
               }
@@ -1590,14 +1590,14 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
           case 11: // SSI_LIST
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list11 = iprot.readListBegin();
-                struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(_list11.size);
-                @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.IterInfo _elem12;
-                for (int _i13 = 0; _i13 < _list11.size; ++_i13)
+                org.apache.thrift.protocol.TList _list13 = iprot.readListBegin();
+                struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(_list13.size);
+                @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.IterInfo _elem14;
+                for (int _i15 = 0; _i15 < _list13.size; ++_i15)
                 {
-                  _elem12 = new org.apache.accumulo.core.dataImpl.thrift.IterInfo();
-                  _elem12.read(iprot);
-                  struct.ssiList.add(_elem12);
+                  _elem14 = new org.apache.accumulo.core.dataImpl.thrift.IterInfo();
+                  _elem14.read(iprot);
+                  struct.ssiList.add(_elem14);
                 }
                 iprot.readListEnd();
               }
@@ -1609,27 +1609,27 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
           case 12: // SSIO
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map14 = iprot.readMapBegin();
-                struct.ssio = new java.util.HashMap<java.lang.String,java.util.Map<java.lang.String,java.lang.String>>(2*_map14.size);
-                @org.apache.thrift.annotation.Nullable java.lang.String _key15;
-                @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> _val16;
-                for (int _i17 = 0; _i17 < _map14.size; ++_i17)
+                org.apache.thrift.protocol.TMap _map16 = iprot.readMapBegin();
+                struct.ssio = new java.util.HashMap<java.lang.String,java.util.Map<java.lang.String,java.lang.String>>(2*_map16.size);
+                @org.apache.thrift.annotation.Nullable java.lang.String _key17;
+                @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> _val18;
+                for (int _i19 = 0; _i19 < _map16.size; ++_i19)
                 {
-                  _key15 = iprot.readString();
+                  _key17 = iprot.readString();
                   {
-                    org.apache.thrift.protocol.TMap _map18 = iprot.readMapBegin();
-                    _val16 = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map18.size);
-                    @org.apache.thrift.annotation.Nullable java.lang.String _key19;
-                    @org.apache.thrift.annotation.Nullable java.lang.String _val20;
-                    for (int _i21 = 0; _i21 < _map18.size; ++_i21)
+                    org.apache.thrift.protocol.TMap _map20 = iprot.readMapBegin();
+                    _val18 = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map20.size);
+                    @org.apache.thrift.annotation.Nullable java.lang.String _key21;
+                    @org.apache.thrift.annotation.Nullable java.lang.String _val22;
+                    for (int _i23 = 0; _i23 < _map20.size; ++_i23)
                     {
-                      _key19 = iprot.readString();
-                      _val20 = iprot.readString();
-                      _val16.put(_key19, _val20);
+                      _key21 = iprot.readString();
+                      _val22 = iprot.readString();
+                      _val18.put(_key21, _val22);
                     }
                     iprot.readMapEnd();
                   }
-                  struct.ssio.put(_key15, _val16);
+                  struct.ssio.put(_key17, _val18);
                 }
                 iprot.readMapEnd();
               }
@@ -1641,13 +1641,13 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
           case 13: // AUTHORIZATIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list22 = iprot.readListBegin();
-                struct.authorizations = new java.util.ArrayList<java.nio.ByteBuffer>(_list22.size);
-                @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem23;
-                for (int _i24 = 0; _i24 < _list22.size; ++_i24)
+                org.apache.thrift.protocol.TList _list24 = iprot.readListBegin();
+                struct.authorizations = new java.util.ArrayList<java.nio.ByteBuffer>(_list24.size);
+                @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem25;
+                for (int _i26 = 0; _i26 < _list24.size; ++_i26)
                 {
-                  _elem23 = iprot.readBinary();
-                  struct.authorizations.add(_elem23);
+                  _elem25 = iprot.readBinary();
+                  struct.authorizations.add(_elem25);
                 }
                 iprot.readListEnd();
               }
@@ -1728,9 +1728,9 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         oprot.writeFieldBegin(COLUMNS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.columns.size()));
-          for (org.apache.accumulo.core.dataImpl.thrift.TColumn _iter25 : struct.columns)
+          for (org.apache.accumulo.core.dataImpl.thrift.TColumn _iter27 : struct.columns)
           {
-            _iter25.write(oprot);
+            _iter27.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1740,9 +1740,9 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         oprot.writeFieldBegin(SSI_LIST_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.ssiList.size()));
-          for (org.apache.accumulo.core.dataImpl.thrift.IterInfo _iter26 : struct.ssiList)
+          for (org.apache.accumulo.core.dataImpl.thrift.IterInfo _iter28 : struct.ssiList)
           {
-            _iter26.write(oprot);
+            _iter28.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1752,15 +1752,15 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         oprot.writeFieldBegin(SSIO_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, struct.ssio.size()));
-          for (java.util.Map.Entry<java.lang.String, java.util.Map<java.lang.String,java.lang.String>> _iter27 : struct.ssio.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.util.Map<java.lang.String,java.lang.String>> _iter29 : struct.ssio.entrySet())
           {
-            oprot.writeString(_iter27.getKey());
+            oprot.writeString(_iter29.getKey());
             {
-              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, _iter27.getValue().size()));
-              for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter28 : _iter27.getValue().entrySet())
+              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, _iter29.getValue().size()));
+              for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter30 : _iter29.getValue().entrySet())
               {
-                oprot.writeString(_iter28.getKey());
-                oprot.writeString(_iter28.getValue());
+                oprot.writeString(_iter30.getKey());
+                oprot.writeString(_iter30.getValue());
               }
               oprot.writeMapEnd();
             }
@@ -1773,9 +1773,9 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         oprot.writeFieldBegin(AUTHORIZATIONS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.authorizations.size()));
-          for (java.nio.ByteBuffer _iter29 : struct.authorizations)
+          for (java.nio.ByteBuffer _iter31 : struct.authorizations)
           {
-            oprot.writeBinary(_iter29);
+            oprot.writeBinary(_iter31);
           }
           oprot.writeListEnd();
         }
@@ -1880,33 +1880,33 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       if (struct.isSetColumns()) {
         {
           oprot.writeI32(struct.columns.size());
-          for (org.apache.accumulo.core.dataImpl.thrift.TColumn _iter30 : struct.columns)
+          for (org.apache.accumulo.core.dataImpl.thrift.TColumn _iter32 : struct.columns)
           {
-            _iter30.write(oprot);
+            _iter32.write(oprot);
           }
         }
       }
       if (struct.isSetSsiList()) {
         {
           oprot.writeI32(struct.ssiList.size());
-          for (org.apache.accumulo.core.dataImpl.thrift.IterInfo _iter31 : struct.ssiList)
+          for (org.apache.accumulo.core.dataImpl.thrift.IterInfo _iter33 : struct.ssiList)
           {
-            _iter31.write(oprot);
+            _iter33.write(oprot);
           }
         }
       }
       if (struct.isSetSsio()) {
         {
           oprot.writeI32(struct.ssio.size());
-          for (java.util.Map.Entry<java.lang.String, java.util.Map<java.lang.String,java.lang.String>> _iter32 : struct.ssio.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.util.Map<java.lang.String,java.lang.String>> _iter34 : struct.ssio.entrySet())
           {
-            oprot.writeString(_iter32.getKey());
+            oprot.writeString(_iter34.getKey());
             {
-              oprot.writeI32(_iter32.getValue().size());
-              for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter33 : _iter32.getValue().entrySet())
+              oprot.writeI32(_iter34.getValue().size());
+              for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter35 : _iter34.getValue().entrySet())
               {
-                oprot.writeString(_iter33.getKey());
-                oprot.writeString(_iter33.getValue());
+                oprot.writeString(_iter35.getKey());
+                oprot.writeString(_iter35.getValue());
               }
             }
           }
@@ -1915,9 +1915,9 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       if (struct.isSetAuthorizations()) {
         {
           oprot.writeI32(struct.authorizations.size());
-          for (java.nio.ByteBuffer _iter34 : struct.authorizations)
+          for (java.nio.ByteBuffer _iter36 : struct.authorizations)
           {
-            oprot.writeBinary(_iter34);
+            oprot.writeBinary(_iter36);
           }
         }
       }
@@ -1954,11 +1954,11 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         struct.setIdleTimeIsSet(true);
       }
       if (incoming.get(5)) {
-        struct.type = org.apache.accumulo.core.tabletserver.thrift.ScanType.findByValue(iprot.readI32());
+        struct.type = org.apache.accumulo.core.tabletscan.thrift.ScanType.findByValue(iprot.readI32());
         struct.setTypeIsSet(true);
       }
       if (incoming.get(6)) {
-        struct.state = org.apache.accumulo.core.tabletserver.thrift.ScanState.findByValue(iprot.readI32());
+        struct.state = org.apache.accumulo.core.tabletscan.thrift.ScanState.findByValue(iprot.readI32());
         struct.setStateIsSet(true);
       }
       if (incoming.get(7)) {
@@ -1968,67 +1968,67 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       }
       if (incoming.get(8)) {
         {
-          org.apache.thrift.protocol.TList _list35 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.columns = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TColumn>(_list35.size);
-          @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TColumn _elem36;
-          for (int _i37 = 0; _i37 < _list35.size; ++_i37)
+          org.apache.thrift.protocol.TList _list37 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.columns = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TColumn>(_list37.size);
+          @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TColumn _elem38;
+          for (int _i39 = 0; _i39 < _list37.size; ++_i39)
           {
-            _elem36 = new org.apache.accumulo.core.dataImpl.thrift.TColumn();
-            _elem36.read(iprot);
-            struct.columns.add(_elem36);
+            _elem38 = new org.apache.accumulo.core.dataImpl.thrift.TColumn();
+            _elem38.read(iprot);
+            struct.columns.add(_elem38);
           }
         }
         struct.setColumnsIsSet(true);
       }
       if (incoming.get(9)) {
         {
-          org.apache.thrift.protocol.TList _list38 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(_list38.size);
-          @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.IterInfo _elem39;
-          for (int _i40 = 0; _i40 < _list38.size; ++_i40)
+          org.apache.thrift.protocol.TList _list40 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(_list40.size);
+          @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.IterInfo _elem41;
+          for (int _i42 = 0; _i42 < _list40.size; ++_i42)
           {
-            _elem39 = new org.apache.accumulo.core.dataImpl.thrift.IterInfo();
-            _elem39.read(iprot);
-            struct.ssiList.add(_elem39);
+            _elem41 = new org.apache.accumulo.core.dataImpl.thrift.IterInfo();
+            _elem41.read(iprot);
+            struct.ssiList.add(_elem41);
           }
         }
         struct.setSsiListIsSet(true);
       }
       if (incoming.get(10)) {
         {
-          org.apache.thrift.protocol.TMap _map41 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP); 
-          struct.ssio = new java.util.HashMap<java.lang.String,java.util.Map<java.lang.String,java.lang.String>>(2*_map41.size);
-          @org.apache.thrift.annotation.Nullable java.lang.String _key42;
-          @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> _val43;
-          for (int _i44 = 0; _i44 < _map41.size; ++_i44)
+          org.apache.thrift.protocol.TMap _map43 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP); 
+          struct.ssio = new java.util.HashMap<java.lang.String,java.util.Map<java.lang.String,java.lang.String>>(2*_map43.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _key44;
+          @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> _val45;
+          for (int _i46 = 0; _i46 < _map43.size; ++_i46)
           {
-            _key42 = iprot.readString();
+            _key44 = iprot.readString();
             {
-              org.apache.thrift.protocol.TMap _map45 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
-              _val43 = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map45.size);
-              @org.apache.thrift.annotation.Nullable java.lang.String _key46;
-              @org.apache.thrift.annotation.Nullable java.lang.String _val47;
-              for (int _i48 = 0; _i48 < _map45.size; ++_i48)
+              org.apache.thrift.protocol.TMap _map47 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+              _val45 = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map47.size);
+              @org.apache.thrift.annotation.Nullable java.lang.String _key48;
+              @org.apache.thrift.annotation.Nullable java.lang.String _val49;
+              for (int _i50 = 0; _i50 < _map47.size; ++_i50)
               {
-                _key46 = iprot.readString();
-                _val47 = iprot.readString();
-                _val43.put(_key46, _val47);
+                _key48 = iprot.readString();
+                _val49 = iprot.readString();
+                _val45.put(_key48, _val49);
               }
             }
-            struct.ssio.put(_key42, _val43);
+            struct.ssio.put(_key44, _val45);
           }
         }
         struct.setSsioIsSet(true);
       }
       if (incoming.get(11)) {
         {
-          org.apache.thrift.protocol.TList _list49 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
-          struct.authorizations = new java.util.ArrayList<java.nio.ByteBuffer>(_list49.size);
-          @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem50;
-          for (int _i51 = 0; _i51 < _list49.size; ++_i51)
+          org.apache.thrift.protocol.TList _list51 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
+          struct.authorizations = new java.util.ArrayList<java.nio.ByteBuffer>(_list51.size);
+          @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem52;
+          for (int _i53 = 0; _i53 < _list51.size; ++_i53)
           {
-            _elem50 = iprot.readBinary();
-            struct.authorizations.add(_elem50);
+            _elem52 = iprot.readBinary();
+            struct.authorizations.add(_elem52);
           }
         }
         struct.setAuthorizationsIsSet(true);

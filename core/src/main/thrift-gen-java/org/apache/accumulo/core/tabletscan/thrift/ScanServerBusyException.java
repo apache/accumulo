@@ -22,22 +22,20 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.tabletserver.thrift;
+package org.apache.accumulo.core.tabletscan.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-public class TooManyFilesException extends org.apache.thrift.TException implements org.apache.thrift.TBase<TooManyFilesException, TooManyFilesException._Fields>, java.io.Serializable, Cloneable, Comparable<TooManyFilesException> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TooManyFilesException");
+public class ScanServerBusyException extends org.apache.thrift.TException implements org.apache.thrift.TBase<ScanServerBusyException, ScanServerBusyException._Fields>, java.io.Serializable, Cloneable, Comparable<ScanServerBusyException> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ScanServerBusyException");
 
-  private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
-  private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TooManyFilesExceptionStandardSchemeFactory();
-  private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TooManyFilesExceptionTupleSchemeFactory();
+  private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ScanServerBusyExceptionStandardSchemeFactory();
+  private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ScanServerBusyExceptionTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    EXTENT((short)1, "extent");
+;
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -53,8 +51,6 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
     @org.apache.thrift.annotation.Nullable
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // EXTENT
-          return EXTENT;
         default:
           return null;
       }
@@ -96,82 +92,34 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
       return _fieldName;
     }
   }
-
-  // isset id assignments
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.EXTENT, new org.apache.thrift.meta_data.FieldMetaData("extent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TooManyFilesException.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ScanServerBusyException.class, metaDataMap);
   }
 
-  public TooManyFilesException() {
-  }
-
-  public TooManyFilesException(
-    org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent)
-  {
-    this();
-    this.extent = extent;
+  public ScanServerBusyException() {
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public TooManyFilesException(TooManyFilesException other) {
-    if (other.isSetExtent()) {
-      this.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other.extent);
-    }
+  public ScanServerBusyException(ScanServerBusyException other) {
   }
 
   @Override
-  public TooManyFilesException deepCopy() {
-    return new TooManyFilesException(this);
+  public ScanServerBusyException deepCopy() {
+    return new ScanServerBusyException(this);
   }
 
   @Override
   public void clear() {
-    this.extent = null;
-  }
-
-  @org.apache.thrift.annotation.Nullable
-  public org.apache.accumulo.core.dataImpl.thrift.TKeyExtent getExtent() {
-    return this.extent;
-  }
-
-  public TooManyFilesException setExtent(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) {
-    this.extent = extent;
-    return this;
-  }
-
-  public void unsetExtent() {
-    this.extent = null;
-  }
-
-  /** Returns true if field extent is set (has been assigned a value) and false otherwise */
-  public boolean isSetExtent() {
-    return this.extent != null;
-  }
-
-  public void setExtentIsSet(boolean value) {
-    if (!value) {
-      this.extent = null;
-    }
   }
 
   @Override
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
-    case EXTENT:
-      if (value == null) {
-        unsetExtent();
-      } else {
-        setExtent((org.apache.accumulo.core.dataImpl.thrift.TKeyExtent)value);
-      }
-      break;
-
     }
   }
 
@@ -179,9 +127,6 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
   @Override
   public java.lang.Object getFieldValue(_Fields field) {
     switch (field) {
-    case EXTENT:
-      return getExtent();
-
     }
     throw new java.lang.IllegalStateException();
   }
@@ -194,33 +139,22 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
     }
 
     switch (field) {
-    case EXTENT:
-      return isSetExtent();
     }
     throw new java.lang.IllegalStateException();
   }
 
   @Override
   public boolean equals(java.lang.Object that) {
-    if (that instanceof TooManyFilesException)
-      return this.equals((TooManyFilesException)that);
+    if (that instanceof ScanServerBusyException)
+      return this.equals((ScanServerBusyException)that);
     return false;
   }
 
-  public boolean equals(TooManyFilesException that) {
+  public boolean equals(ScanServerBusyException that) {
     if (that == null)
       return false;
     if (this == that)
       return true;
-
-    boolean this_present_extent = true && this.isSetExtent();
-    boolean that_present_extent = true && that.isSetExtent();
-    if (this_present_extent || that_present_extent) {
-      if (!(this_present_extent && that_present_extent))
-        return false;
-      if (!this.extent.equals(that.extent))
-        return false;
-    }
 
     return true;
   }
@@ -229,31 +163,17 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
   public int hashCode() {
     int hashCode = 1;
 
-    hashCode = hashCode * 8191 + ((isSetExtent()) ? 131071 : 524287);
-    if (isSetExtent())
-      hashCode = hashCode * 8191 + extent.hashCode();
-
     return hashCode;
   }
 
   @Override
-  public int compareTo(TooManyFilesException other) {
+  public int compareTo(ScanServerBusyException other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
 
-    lastComparison = java.lang.Boolean.compare(isSetExtent(), other.isSetExtent());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetExtent()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.extent, other.extent);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     return 0;
   }
 
@@ -275,16 +195,9 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
 
   @Override
   public java.lang.String toString() {
-    java.lang.StringBuilder sb = new java.lang.StringBuilder("TooManyFilesException(");
+    java.lang.StringBuilder sb = new java.lang.StringBuilder("ScanServerBusyException(");
     boolean first = true;
 
-    sb.append("extent:");
-    if (this.extent == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.extent);
-    }
-    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -292,9 +205,6 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
   public void validate() throws org.apache.thrift.TException {
     // check for required fields
     // check for sub-struct validity
-    if (extent != null) {
-      extent.validate();
-    }
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -313,17 +223,17 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
     }
   }
 
-  private static class TooManyFilesExceptionStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+  private static class ScanServerBusyExceptionStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
     @Override
-    public TooManyFilesExceptionStandardScheme getScheme() {
-      return new TooManyFilesExceptionStandardScheme();
+    public ScanServerBusyExceptionStandardScheme getScheme() {
+      return new ScanServerBusyExceptionStandardScheme();
     }
   }
 
-  private static class TooManyFilesExceptionStandardScheme extends org.apache.thrift.scheme.StandardScheme<TooManyFilesException> {
+  private static class ScanServerBusyExceptionStandardScheme extends org.apache.thrift.scheme.StandardScheme<ScanServerBusyException> {
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol iprot, TooManyFilesException struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, ScanServerBusyException struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -333,15 +243,6 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
           break;
         }
         switch (schemeField.id) {
-          case 1: // EXTENT
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-              struct.extent.read(iprot);
-              struct.setExtentIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -354,52 +255,33 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
     }
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol oprot, TooManyFilesException struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, ScanServerBusyException struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.extent != null) {
-        oprot.writeFieldBegin(EXTENT_FIELD_DESC);
-        struct.extent.write(oprot);
-        oprot.writeFieldEnd();
-      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
 
   }
 
-  private static class TooManyFilesExceptionTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+  private static class ScanServerBusyExceptionTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
     @Override
-    public TooManyFilesExceptionTupleScheme getScheme() {
-      return new TooManyFilesExceptionTupleScheme();
+    public ScanServerBusyExceptionTupleScheme getScheme() {
+      return new ScanServerBusyExceptionTupleScheme();
     }
   }
 
-  private static class TooManyFilesExceptionTupleScheme extends org.apache.thrift.scheme.TupleScheme<TooManyFilesException> {
+  private static class ScanServerBusyExceptionTupleScheme extends org.apache.thrift.scheme.TupleScheme<ScanServerBusyException> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, TooManyFilesException struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, ScanServerBusyException struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet optionals = new java.util.BitSet();
-      if (struct.isSetExtent()) {
-        optionals.set(0);
-      }
-      oprot.writeBitSet(optionals, 1);
-      if (struct.isSetExtent()) {
-        struct.extent.write(oprot);
-      }
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, TooManyFilesException struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, ScanServerBusyException struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(1);
-      if (incoming.get(0)) {
-        struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-        struct.extent.read(iprot);
-        struct.setExtentIsSet(true);
-      }
     }
   }
 

@@ -18,15 +18,15 @@
  */
 package org.apache.accumulo.core.rpc.clients;
 
-import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService.Client;
+import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService.Client;
 
 /**
- * Client side object that can be used to interact with services that support scan operations
- * against tablets. See TabletScanClientService$Iface for a list of supported operations.
+ * Client side object that can be used to interact with services that support management operations
+ * against tablets. See TabletManagementClientService$Iface for a list of supported operations.
  */
-public class TabletScanClientServiceThriftClient extends ThriftClientTypes<Client> {
+public class TabletManagementClientServiceThriftClient extends ThriftClientTypes<Client> {
 
-  TabletScanClientServiceThriftClient(String serviceName) {
+  public TabletManagementClientServiceThriftClient(String serviceName) {
     super(serviceName, new Client.Factory());
   }
 
