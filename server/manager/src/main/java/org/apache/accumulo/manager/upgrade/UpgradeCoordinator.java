@@ -159,7 +159,8 @@ public class UpgradeCoordinator {
           log.info("Upgrading Zookeeper - current version {} as step towards target version {}", v,
               AccumuloDataVersion.get());
           var upgrader = upgraders.get(v);
-          Objects.requireNonNull(upgrader, "Failed to find upgrader for version " + currentVersion);
+          Objects.requireNonNull(upgrader,
+              "upgrade ZooKeeper: failed to find upgrader for version " + currentVersion);
           upgrader.upgradeZookeeper(context);
         }
       }
@@ -188,9 +189,10 @@ public class UpgradeCoordinator {
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
                 log.info("Upgrading Root - current version {} as step towards target version {}", v,
                     AccumuloDataVersion.get());
-                if (upgraders.get(v) != null) {
-                  upgraders.get(v).upgradeRoot(context);
-                }
+                var upgrader = upgraders.get(v);
+                Objects.requireNonNull(upgrader,
+                    "upgrade root: failed to find root upgrader for version " + currentVersion);
+                upgraders.get(v).upgradeRoot(context);
               }
 
               setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
@@ -199,9 +201,10 @@ public class UpgradeCoordinator {
                 log.info(
                     "Upgrading Metadata - current version {} as step towards target version {}", v,
                     AccumuloDataVersion.get());
-                if (upgraders.get(v) != null) {
-                  upgraders.get(v).upgradeMetadata(context);
-                }
+                var upgrader = upgraders.get(v);
+                Objects.requireNonNull(upgrader,
+                    "upgrade metadata: failed to find upgrader for version " + currentVersion);
+                upgraders.get(v).upgradeMetadata(context);
               }
 
               log.info("Updating persistent data version.");
