@@ -916,10 +916,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             }
 
             TServerInstance lastLocation = unassigned.get(assignment.getKey());
-            if (lastLocation != null && !assignment.getValue().equals(lastLocation)) {
+            if (lastLocation != null
+                && !assignment.getValue().getHostPort().equals(lastLocation.getHostPort())) {
               Manager.log.warn(
                   "balancer assigned {} to {} which is not the suggested location of {}",
-                  assignment.getKey(), assignment.getValue(), lastLocation);
+                  assignment.getKey(), assignment.getValue().getHostPort(),
+                  lastLocation.getHostPort());
             }
 
             tLists.assignments.add(new Assignment(assignment.getKey(), assignment.getValue()));
