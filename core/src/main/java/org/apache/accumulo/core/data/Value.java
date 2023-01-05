@@ -26,6 +26,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.function.Supplier;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
@@ -178,6 +179,15 @@ public class Value implements WritableComparable<Object> {
   @Override
   public void readFields(final DataInput in) throws IOException {
     this.value = new byte[in.readInt()];
+    in.readFully(this.value, 0, this.value.length);
+  }
+
+  public void readFields(final DataInput in, Supplier<Long> freeMemorySupplier) throws IOException {
+    int length = in.readInt();
+    while (freeMemorySupplier.get() < length) {
+      Thread.onSpinWait();
+    }
+    this.value = new byte[length];
     in.readFully(this.value, 0, this.value.length);
   }
 

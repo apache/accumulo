@@ -26,6 +26,8 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -38,7 +40,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
+
+import javax.management.Notification;
+import javax.management.NotificationEmitter;
+import javax.management.NotificationListener;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.Sampler;
@@ -74,6 +84,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.Local
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MutableByteSequence;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
@@ -83,6 +94,82 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 public class RFile {
+
+  private static class RFileMemoryProtection implements NotificationListener {
+
+    private static class FreeMemoryUpdater implements Runnable {
+
+      private final ReentrantLock lock = new ReentrantLock();
+      private AtomicReference<CountDownLatch> REF = new AtomicReference<>(new CountDownLatch(1));
+
+      public void update() {
+        lock.lock();
+        try {
+          REF.get().countDown();
+        } finally {
+          lock.unlock();
+        }
+      }
+
+      @Override
+      public void run() {
+        try {
+          while (true) {
+            CountDownLatch latch = REF.get();
+            latch.await();
+            lock.lock();
+            try {
+              FREE_MEMORY.set(Runtime.getRuntime().freeMemory());
+              REF.set(new CountDownLatch(1));
+            } finally {
+              lock.unlock();
+            }
+          }
+        } catch (InterruptedException e) {
+          throw new RuntimeException("RFileMemoryProtection thread interrupted");
+        }
+      }
+
+    }
+
+    private static boolean IS_ENABLED =
+        Boolean.parseBoolean(System.getProperty("EnableRFileMemoryProtection", "false"));
+    private static AtomicLong FREE_MEMORY = new AtomicLong(0);
+    private static FreeMemoryUpdater UPDATER = new FreeMemoryUpdater();
+
+    static {
+      if (IS_ENABLED) {
+        List<GarbageCollectorMXBean> gcMBeans = ManagementFactory.getGarbageCollectorMXBeans();
+        NotificationListener listener = new RFileMemoryProtection();
+        gcMBeans.forEach(
+            mb -> ((NotificationEmitter) mb).addNotificationListener(listener, null, null));
+        Threads.createThread("RFileMemoryProtectionThread", UPDATER).start();
+      }
+    }
+
+    private RFileMemoryProtection() {}
+
+    static boolean isEnabled() {
+      return IS_ENABLED;
+    }
+
+    static long getFreeMemory() {
+      return FREE_MEMORY.get();
+    }
+
+    @Override
+    public void handleNotification(Notification n, Object callbackObject) {
+      // TODO: Replace "com.sun.management.gc.notification" with reference to
+      // GarbageCollectionNotificationInfo.GARBAGE_COLLECTION_NOTIFICATION. Need to figure
+      // out how to get jdk.management module enabled in IDE and for compilation
+      if (n.getType().equals("com.sun.management.gc.notification")) {
+        // We just got a notification that a GC completed in one of the GC memory pools. Queue up
+        // an action to determine amount of free memory
+        UPDATER.update();
+      }
+    }
+
+  }
 
   public static final String EXTENSION = "rf";
 
@@ -868,7 +955,11 @@ public class RFile {
 
       prevKey = rk.getKey();
       rk.readFields(currBlock);
-      val.readFields(currBlock);
+      if (RFileMemoryProtection.isEnabled()) {
+        val.readFields(currBlock, () -> RFileMemoryProtection.getFreeMemory());
+      } else {
+        val.readFields(currBlock);
+      }
 
       if (metricsGatherer != null) {
         metricsGatherer.addMetric(rk.getKey(), val);
@@ -1059,8 +1150,11 @@ public class RFile {
                 tmpRk.setPrevKey(bie.getPrevKey());
                 tmpRk.readFields(currBlock);
                 val = new Value();
-
-                val.readFields(currBlock);
+                if (RFileMemoryProtection.isEnabled()) {
+                  val.readFields(currBlock, () -> RFileMemoryProtection.getFreeMemory());
+                } else {
+                  val.readFields(currBlock);
+                }
                 valbs = new MutableByteSequence(val.get(), 0, val.getSize());
 
                 // just consumed one key from the input stream, so subtract one from entries left
