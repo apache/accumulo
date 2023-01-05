@@ -135,18 +135,18 @@ public class Upgrader10to11 implements Upgrader {
     try (BatchWriter writer = context.createBatchWriter(MetadataTable.NAME)) {
       for (String filename : replTableFiles) {
         Mutation m = createDelMutation(filename);
-        log.debug("Add delete mutation: file: {}, mutation: {}", filename, m.prettyPrint());
+        log.debug("Adding delete marker for file: {}", filename);
         writer.addMutation(m);
       }
     } catch (MutationsRejectedException ex) {
-      log.debug("Failed to write mutation {}", ex.getMessage());
+      log.debug("Failed to write delete marker {}", ex.getMessage());
       haveFailures = true;
     } catch (TableNotFoundException ex) {
       throw new IllegalStateException("failed to read replication files from metadata", ex);
     }
     if (haveFailures) {
       throw new IllegalStateException(
-          "deletes rejected adding deletion mutations for replication file entries, check log");
+          "deletes rejected adding deletion marker for replication file entries, check log");
     }
   }
 
