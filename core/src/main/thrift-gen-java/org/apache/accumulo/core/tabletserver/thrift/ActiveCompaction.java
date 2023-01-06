@@ -1254,13 +1254,13 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
           case 3: // INPUT_FILES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list52 = iprot.readListBegin();
-                struct.inputFiles = new java.util.ArrayList<java.lang.String>(_list52.size);
-                @org.apache.thrift.annotation.Nullable java.lang.String _elem53;
-                for (int _i54 = 0; _i54 < _list52.size; ++_i54)
+                org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
+                struct.inputFiles = new java.util.ArrayList<java.lang.String>(_list0.size);
+                @org.apache.thrift.annotation.Nullable java.lang.String _elem1;
+                for (int _i2 = 0; _i2 < _list0.size; ++_i2)
                 {
-                  _elem53 = iprot.readString();
-                  struct.inputFiles.add(_elem53);
+                  _elem1 = iprot.readString();
+                  struct.inputFiles.add(_elem1);
                 }
                 iprot.readListEnd();
               }
@@ -1320,14 +1320,14 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
           case 10: // SSI_LIST
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list55 = iprot.readListBegin();
-                struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(_list55.size);
-                @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.IterInfo _elem56;
-                for (int _i57 = 0; _i57 < _list55.size; ++_i57)
+                org.apache.thrift.protocol.TList _list3 = iprot.readListBegin();
+                struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(_list3.size);
+                @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.IterInfo _elem4;
+                for (int _i5 = 0; _i5 < _list3.size; ++_i5)
                 {
-                  _elem56 = new org.apache.accumulo.core.dataImpl.thrift.IterInfo();
-                  _elem56.read(iprot);
-                  struct.ssiList.add(_elem56);
+                  _elem4 = new org.apache.accumulo.core.dataImpl.thrift.IterInfo();
+                  _elem4.read(iprot);
+                  struct.ssiList.add(_elem4);
                 }
                 iprot.readListEnd();
               }
@@ -1339,27 +1339,27 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
           case 11: // SSIO
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map58 = iprot.readMapBegin();
-                struct.ssio = new java.util.HashMap<java.lang.String,java.util.Map<java.lang.String,java.lang.String>>(2*_map58.size);
-                @org.apache.thrift.annotation.Nullable java.lang.String _key59;
-                @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> _val60;
-                for (int _i61 = 0; _i61 < _map58.size; ++_i61)
+                org.apache.thrift.protocol.TMap _map6 = iprot.readMapBegin();
+                struct.ssio = new java.util.HashMap<java.lang.String,java.util.Map<java.lang.String,java.lang.String>>(2*_map6.size);
+                @org.apache.thrift.annotation.Nullable java.lang.String _key7;
+                @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> _val8;
+                for (int _i9 = 0; _i9 < _map6.size; ++_i9)
                 {
-                  _key59 = iprot.readString();
+                  _key7 = iprot.readString();
                   {
-                    org.apache.thrift.protocol.TMap _map62 = iprot.readMapBegin();
-                    _val60 = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map62.size);
-                    @org.apache.thrift.annotation.Nullable java.lang.String _key63;
-                    @org.apache.thrift.annotation.Nullable java.lang.String _val64;
-                    for (int _i65 = 0; _i65 < _map62.size; ++_i65)
+                    org.apache.thrift.protocol.TMap _map10 = iprot.readMapBegin();
+                    _val8 = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map10.size);
+                    @org.apache.thrift.annotation.Nullable java.lang.String _key11;
+                    @org.apache.thrift.annotation.Nullable java.lang.String _val12;
+                    for (int _i13 = 0; _i13 < _map10.size; ++_i13)
                     {
-                      _key63 = iprot.readString();
-                      _val64 = iprot.readString();
-                      _val60.put(_key63, _val64);
+                      _key11 = iprot.readString();
+                      _val12 = iprot.readString();
+                      _val8.put(_key11, _val12);
                     }
                     iprot.readMapEnd();
                   }
-                  struct.ssio.put(_key59, _val60);
+                  struct.ssio.put(_key7, _val8);
                 }
                 iprot.readMapEnd();
               }
@@ -1396,9 +1396,9 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
         oprot.writeFieldBegin(INPUT_FILES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.inputFiles.size()));
-          for (java.lang.String _iter66 : struct.inputFiles)
+          for (java.lang.String _iter14 : struct.inputFiles)
           {
-            oprot.writeString(_iter66);
+            oprot.writeString(_iter14);
           }
           oprot.writeListEnd();
         }
@@ -1434,9 +1434,9 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
         oprot.writeFieldBegin(SSI_LIST_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.ssiList.size()));
-          for (org.apache.accumulo.core.dataImpl.thrift.IterInfo _iter67 : struct.ssiList)
+          for (org.apache.accumulo.core.dataImpl.thrift.IterInfo _iter15 : struct.ssiList)
           {
-            _iter67.write(oprot);
+            _iter15.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1446,15 +1446,15 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
         oprot.writeFieldBegin(SSIO_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, struct.ssio.size()));
-          for (java.util.Map.Entry<java.lang.String, java.util.Map<java.lang.String,java.lang.String>> _iter68 : struct.ssio.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.util.Map<java.lang.String,java.lang.String>> _iter16 : struct.ssio.entrySet())
           {
-            oprot.writeString(_iter68.getKey());
+            oprot.writeString(_iter16.getKey());
             {
-              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, _iter68.getValue().size()));
-              for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter69 : _iter68.getValue().entrySet())
+              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, _iter16.getValue().size()));
+              for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter17 : _iter16.getValue().entrySet())
               {
-                oprot.writeString(_iter69.getKey());
-                oprot.writeString(_iter69.getValue());
+                oprot.writeString(_iter17.getKey());
+                oprot.writeString(_iter17.getValue());
               }
               oprot.writeMapEnd();
             }
@@ -1525,9 +1525,9 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       if (struct.isSetInputFiles()) {
         {
           oprot.writeI32(struct.inputFiles.size());
-          for (java.lang.String _iter70 : struct.inputFiles)
+          for (java.lang.String _iter18 : struct.inputFiles)
           {
-            oprot.writeString(_iter70);
+            oprot.writeString(_iter18);
           }
         }
       }
@@ -1552,24 +1552,24 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       if (struct.isSetSsiList()) {
         {
           oprot.writeI32(struct.ssiList.size());
-          for (org.apache.accumulo.core.dataImpl.thrift.IterInfo _iter71 : struct.ssiList)
+          for (org.apache.accumulo.core.dataImpl.thrift.IterInfo _iter19 : struct.ssiList)
           {
-            _iter71.write(oprot);
+            _iter19.write(oprot);
           }
         }
       }
       if (struct.isSetSsio()) {
         {
           oprot.writeI32(struct.ssio.size());
-          for (java.util.Map.Entry<java.lang.String, java.util.Map<java.lang.String,java.lang.String>> _iter72 : struct.ssio.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.util.Map<java.lang.String,java.lang.String>> _iter20 : struct.ssio.entrySet())
           {
-            oprot.writeString(_iter72.getKey());
+            oprot.writeString(_iter20.getKey());
             {
-              oprot.writeI32(_iter72.getValue().size());
-              for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter73 : _iter72.getValue().entrySet())
+              oprot.writeI32(_iter20.getValue().size());
+              for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter21 : _iter20.getValue().entrySet())
               {
-                oprot.writeString(_iter73.getKey());
-                oprot.writeString(_iter73.getValue());
+                oprot.writeString(_iter21.getKey());
+                oprot.writeString(_iter21.getValue());
               }
             }
           }
@@ -1592,13 +1592,13 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       }
       if (incoming.get(2)) {
         {
-          org.apache.thrift.protocol.TList _list74 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
-          struct.inputFiles = new java.util.ArrayList<java.lang.String>(_list74.size);
-          @org.apache.thrift.annotation.Nullable java.lang.String _elem75;
-          for (int _i76 = 0; _i76 < _list74.size; ++_i76)
+          org.apache.thrift.protocol.TList _list22 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
+          struct.inputFiles = new java.util.ArrayList<java.lang.String>(_list22.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _elem23;
+          for (int _i24 = 0; _i24 < _list22.size; ++_i24)
           {
-            _elem75 = iprot.readString();
-            struct.inputFiles.add(_elem75);
+            _elem23 = iprot.readString();
+            struct.inputFiles.add(_elem23);
           }
         }
         struct.setInputFilesIsSet(true);
@@ -1629,40 +1629,40 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       }
       if (incoming.get(9)) {
         {
-          org.apache.thrift.protocol.TList _list77 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(_list77.size);
-          @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.IterInfo _elem78;
-          for (int _i79 = 0; _i79 < _list77.size; ++_i79)
+          org.apache.thrift.protocol.TList _list25 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(_list25.size);
+          @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.IterInfo _elem26;
+          for (int _i27 = 0; _i27 < _list25.size; ++_i27)
           {
-            _elem78 = new org.apache.accumulo.core.dataImpl.thrift.IterInfo();
-            _elem78.read(iprot);
-            struct.ssiList.add(_elem78);
+            _elem26 = new org.apache.accumulo.core.dataImpl.thrift.IterInfo();
+            _elem26.read(iprot);
+            struct.ssiList.add(_elem26);
           }
         }
         struct.setSsiListIsSet(true);
       }
       if (incoming.get(10)) {
         {
-          org.apache.thrift.protocol.TMap _map80 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP); 
-          struct.ssio = new java.util.HashMap<java.lang.String,java.util.Map<java.lang.String,java.lang.String>>(2*_map80.size);
-          @org.apache.thrift.annotation.Nullable java.lang.String _key81;
-          @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> _val82;
-          for (int _i83 = 0; _i83 < _map80.size; ++_i83)
+          org.apache.thrift.protocol.TMap _map28 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP); 
+          struct.ssio = new java.util.HashMap<java.lang.String,java.util.Map<java.lang.String,java.lang.String>>(2*_map28.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _key29;
+          @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> _val30;
+          for (int _i31 = 0; _i31 < _map28.size; ++_i31)
           {
-            _key81 = iprot.readString();
+            _key29 = iprot.readString();
             {
-              org.apache.thrift.protocol.TMap _map84 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
-              _val82 = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map84.size);
-              @org.apache.thrift.annotation.Nullable java.lang.String _key85;
-              @org.apache.thrift.annotation.Nullable java.lang.String _val86;
-              for (int _i87 = 0; _i87 < _map84.size; ++_i87)
+              org.apache.thrift.protocol.TMap _map32 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+              _val30 = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map32.size);
+              @org.apache.thrift.annotation.Nullable java.lang.String _key33;
+              @org.apache.thrift.annotation.Nullable java.lang.String _val34;
+              for (int _i35 = 0; _i35 < _map32.size; ++_i35)
               {
-                _key85 = iprot.readString();
-                _val86 = iprot.readString();
-                _val82.put(_key85, _val86);
+                _key33 = iprot.readString();
+                _val34 = iprot.readString();
+                _val30.put(_key33, _val34);
               }
             }
-            struct.ssio.put(_key81, _val82);
+            struct.ssio.put(_key29, _val30);
           }
         }
         struct.setSsioIsSet(true);
