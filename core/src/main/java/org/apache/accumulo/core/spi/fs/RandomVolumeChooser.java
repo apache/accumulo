@@ -21,10 +21,8 @@ package org.apache.accumulo.core.spi.fs;
 import java.security.SecureRandom;
 import java.util.Set;
 
-import org.apache.accumulo.core.conf.Property;
-
 /**
- * A {@link VolumeChooser} that selects a volume at random from the list of provided volumes. 
+ * A {@link VolumeChooser} that selects a volume at random from the list of provided volumes.
  *
  * @since 2.1.0
  */
