@@ -42,6 +42,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.manager.Manager;
@@ -220,8 +221,8 @@ public class PrepBulkImport extends ManagerRepo {
 
     for (FileStatus file : files) {
       // since these are only valid files we know it has an extension
-      String newName =
-          "I" + namer.getNextName() + "." + FilenameUtils.getExtension(file.getPath().getName());
+      String newName = FilePrefix.BULK_IMPORT + namer.getNextName() + "."
+          + FilenameUtils.getExtension(file.getPath().getName());
       oldToNewNameMap.put(file.getPath().getName(), new Path(bulkDir, newName).getName());
     }
 
