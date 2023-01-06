@@ -182,10 +182,14 @@ public class Value implements WritableComparable<Object> {
     in.readFully(this.value, 0, this.value.length);
   }
 
-  public void readFields(final DataInput in, Supplier<Long> freeMemorySupplier) throws IOException {
+  public void readFields(final DataInput in, int sizeThreshold, Supplier<Long> freeMemorySupplier)
+      throws IOException {
     int length = in.readInt();
-    while (freeMemorySupplier.get() < length) {
-      Thread.onSpinWait();
+    if (length > sizeThreshold) {
+      // Wait until enough bytes are free before constructing the value
+      while (freeMemorySupplier.get() < (long) (length * 1.02)) {
+        Thread.onSpinWait();
+      }
     }
     this.value = new byte[length];
     in.readFully(this.value, 0, this.value.length);

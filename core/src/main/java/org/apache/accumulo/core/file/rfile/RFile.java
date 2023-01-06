@@ -100,13 +100,13 @@ public class RFile {
     private static class FreeMemoryUpdater implements Runnable {
 
       private final ReentrantLock lock = new ReentrantLock();
-      private final AtomicReference<CountDownLatch> latch_ref =
+      private final AtomicReference<CountDownLatch> latchRef =
           new AtomicReference<>(new CountDownLatch(1));
 
       public void update() {
         lock.lock();
         try {
-          latch_ref.get().countDown();
+          latchRef.get().countDown();
         } finally {
           lock.unlock();
         }
@@ -116,7 +116,7 @@ public class RFile {
       public void run() {
         try {
           while (true) {
-            CountDownLatch latch = latch_ref.get();
+            CountDownLatch latch = latchRef.get();
             // TODO: Could use latch.await(long, TimeUnit) to update free memory
             // when GC does not occur. It's probable that memory allocations
             // will occur without GC happening, depending on the memory pool
@@ -127,7 +127,7 @@ public class RFile {
             lock.lock();
             try {
               FREE_MEMORY.set(Runtime.getRuntime().freeMemory());
-              latch_ref.set(new CountDownLatch(1));
+              latchRef.set(new CountDownLatch(1));
             } finally {
               lock.unlock();
             }
@@ -139,13 +139,27 @@ public class RFile {
 
     }
 
-    private static final boolean IS_ENABLED =
-        Boolean.parseBoolean(System.getProperty("EnableRFileMemoryProtection", "false"));
-    private static final AtomicLong FREE_MEMORY = new AtomicLong(Runtime.getRuntime().freeMemory());
+    private static final Runtime RUNTIME = Runtime.getRuntime();
+    private static final Logger LOG = LoggerFactory.getLogger(RFileMemoryProtection.class);
+    private static final String ENABLED_PROPERTY = "EnableRFileMemoryProtection";
+    private static final String SIZE_THRESHOLD_PROPERTY = "RFileMemoryProtectionSizeThreshold";
+    private static final AtomicLong FREE_MEMORY = new AtomicLong(RUNTIME.freeMemory());
     private static final FreeMemoryUpdater UPDATER = new FreeMemoryUpdater();
 
+    private static boolean IS_ENABLED = false;
+    private static int SIZE_THRESHOLD = (int) (RUNTIME.maxMemory() * 0.05);
+
     static {
+      IS_ENABLED = Boolean.parseBoolean(System.getProperty(ENABLED_PROPERTY, "false"));
       if (IS_ENABLED) {
+        try {
+          SIZE_THRESHOLD = Integer.parseInt(
+              System.getProperty(SIZE_THRESHOLD_PROPERTY, Integer.toString(SIZE_THRESHOLD)));
+        } catch (NumberFormatException e) {
+          LOG.warn("{} system property value is not a valid Integer: {}", SIZE_THRESHOLD_PROPERTY,
+              SIZE_THRESHOLD);
+        }
+        LOG.info("Enabled for Value sizes over {}", SIZE_THRESHOLD);
         List<GarbageCollectorMXBean> gcMBeans = ManagementFactory.getGarbageCollectorMXBeans();
         NotificationListener listener = new RFileMemoryProtection();
         gcMBeans.forEach(
@@ -162,6 +176,10 @@ public class RFile {
 
     static long getFreeMemory() {
       return FREE_MEMORY.get();
+    }
+
+    static int getValueSizeThreshold() {
+      return SIZE_THRESHOLD;
     }
 
     @Override
@@ -963,7 +981,8 @@ public class RFile {
       prevKey = rk.getKey();
       rk.readFields(currBlock);
       if (RFileMemoryProtection.isEnabled()) {
-        val.readFields(currBlock, () -> RFileMemoryProtection.getFreeMemory());
+        val.readFields(currBlock, RFileMemoryProtection.getValueSizeThreshold(),
+            () -> RFileMemoryProtection.getFreeMemory());
       } else {
         val.readFields(currBlock);
       }
@@ -1158,7 +1177,8 @@ public class RFile {
                 tmpRk.readFields(currBlock);
                 val = new Value();
                 if (RFileMemoryProtection.isEnabled()) {
-                  val.readFields(currBlock, () -> RFileMemoryProtection.getFreeMemory());
+                  val.readFields(currBlock, RFileMemoryProtection.getValueSizeThreshold(),
+                      () -> RFileMemoryProtection.getFreeMemory());
                 } else {
                   val.readFields(currBlock);
                 }

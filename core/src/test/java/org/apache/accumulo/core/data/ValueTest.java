@@ -177,7 +177,7 @@ public class ValueTest {
         if (times.get() < 5) {
           return 1L;
         } else {
-          return (long) DATA.length;
+          return (long) (DATA.length * 1.03);
         }
       }
     };
@@ -190,7 +190,7 @@ public class ValueTest {
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
     DataInputStream dis = new DataInputStream(bais);
     Value v2 = new Value();
-    v2.readFields(dis, freeMemorySupplier);
+    v2.readFields(dis, 1, freeMemorySupplier);
     dis.close();
     assertArrayEquals(DATA, v2.get());
     assertEquals(5, times.get());
