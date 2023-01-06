@@ -21,18 +21,30 @@ package org.apache.accumulo.core.spi.fs;
 import java.security.SecureRandom;
 import java.util.Set;
 
+import org.apache.accumulo.core.conf.Property;
+
 /**
+ * A {@link VolumeChooser} that selects a volume at random from the list of provided volumes. This
+ * class is currently the default volume chooser as set by {@link Property#GENERAL_VOLUME_CHOOSER}.
+ *
  * @since 2.1.0
  */
 public class RandomVolumeChooser implements VolumeChooser {
   private static final SecureRandom random = new SecureRandom();
 
+  /**
+   * Selects a volume at random from the provided set of volumes. The environment scope is not
+   * utilized.
+   */
   @Override
   public String choose(VolumeChooserEnvironment env, Set<String> options) {
     String[] optionsArray = options.toArray(new String[0]);
     return optionsArray[random.nextInt(optionsArray.length)];
   }
 
+  /**
+   * @return same set of volume options that were originally provided.
+   */
   @Override
   public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options) {
     return options;
