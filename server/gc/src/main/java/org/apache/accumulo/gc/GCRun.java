@@ -443,29 +443,34 @@ public class GCRun implements GarbageCollectionEnvironment {
   }
 
   private boolean shouldUseTrash(Path path) {
+    // If gc.trash.ignore.imports.only is set to true and
+    // this is a bulk import file, then return false so
+    // that we don't use the trash. Otherwise, use the value
+    // of gc.trash.ignore
+    if (isSkipTrashImportsOnly() && path.getName().startsWith("I")) {
+      return false;
+    }
 
-    // If this is a bulk import file, then we will skipTrash if
-    // the gc.trash.ignore.imports.only is set to true.
-    boolean forceBulkImportSkipTrash = isSkipTrashImportsOnly() && !path.getName().startsWith("I");
-
-    if (isUsingTrash() || forceBulkImportSkipTrash) {
+    if (isUsingTrash()) {
       return true;
     }
     return false;
-
   }
 
   /**
-   * Checks if the volume manager should move files to the trash rather than delete them.
+   * if gc.trash.ignore is set to true, then we won't use the trash even if it is configured.
    *
-   * @return true if trash is used
+   * @return true if gc.trash.ignore is false
    */
   boolean isUsingTrash() {
     return !config.getBoolean(Property.GC_TRASH_IGNORE);
   }
 
   /**
-   * Checks if the volume manager should only skip trash for files that are not bulk imports
+   * if gc.trash.ignore.imports.only is set to true, then we won't use the trash for bulk import
+   * files, even if gc.trash.ignore is set to true.
+   *
+   * @return value of gc.trash.ignore.imports.only
    */
   boolean isSkipTrashImportsOnly() {
     return config.getBoolean(Property.GC_TRASH_IGNORE_IMPORTS_ONLY);
