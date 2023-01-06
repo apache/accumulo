@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.file;
 
+import java.util.stream.Stream;
+
 public enum FilePrefix {
 
   BULK_IMPORT("I"), MINOR_COMPACTION("F"), MAJOR_COMPACTION("C"), MAJOR_COMPACTION_ALL_FILES("A");
@@ -29,18 +31,8 @@ public enum FilePrefix {
   }
 
   public static FilePrefix fromPrefix(String prefix) {
-    switch (prefix) {
-      case "I":
-        return BULK_IMPORT;
-      case "F":
-        return MINOR_COMPACTION;
-      case "C":
-        return MAJOR_COMPACTION;
-      case "A":
-        return MAJOR_COMPACTION_ALL_FILES;
-      default:
-        throw new IllegalArgumentException("Unknown prefix type: " + prefix);
-    }
+    return Stream.of(FilePrefix.values()).filter(p -> p.prefix.equals(prefix)).findAny()
+        .orElseThrow(() -> new IllegalArgumentException("Unknown prefix type: " + prefix));
   }
 
   public String toPrefix() {
