@@ -18,17 +18,17 @@
  */
 package org.apache.accumulo.core.file;
 
-public enum Prefix {
+public enum FilePrefix {
 
   BULK_IMPORT("I"), MINOR_COMPACTION("F"), MAJOR_COMPACTION("C"), MAJOR_COMPACTION_ALL_FILES("A");
 
   String prefix;
 
-  Prefix(String prefix) {
+  FilePrefix(String prefix) {
     this.prefix = prefix;
   }
 
-  public static Prefix fromPrefix(String prefix) {
+  public static FilePrefix fromPrefix(String prefix) {
     switch (prefix) {
       case "I":
         return BULK_IMPORT;
