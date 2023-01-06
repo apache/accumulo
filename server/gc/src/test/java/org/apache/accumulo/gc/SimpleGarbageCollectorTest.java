@@ -45,6 +45,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -63,6 +64,7 @@ public class SimpleGarbageCollectorTest {
   private ServerContext context;
   private Credentials credentials;
   private SimpleGarbageCollector gc;
+  private GCRun env;
   private ConfigurationCopy systemConfig;
   private static SiteConfiguration siteConfig = SiteConfiguration.empty().build();
 
@@ -106,7 +108,8 @@ public class SimpleGarbageCollectorTest {
   public void testInit() {
     assertSame(volMgr, gc.getContext().getVolumeManager());
     assertEquals(credentials, gc.getContext().getCredentials());
-    assertTrue(gc.isUsingTrash());
+    env = new GCRun(DataLevel.USER, context);
+    assertTrue(env.isUsingTrash());
     assertEquals(1000L, gc.getStartDelay());
     assertEquals(2, gc.getNumDeleteThreads());
     assertFalse(gc.inSafeMode()); // false by default
@@ -117,7 +120,8 @@ public class SimpleGarbageCollectorTest {
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andReturn(true);
     replay(volMgr);
-    assertTrue(gc.moveToTrash(path));
+    env = new GCRun(DataLevel.USER, context);
+    assertTrue(env.moveToTrash(path));
     verify(volMgr);
   }
 
@@ -126,7 +130,8 @@ public class SimpleGarbageCollectorTest {
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andThrow(new FileNotFoundException());
     replay(volMgr);
-    assertFalse(gc.moveToTrash(path));
+    env = new GCRun(DataLevel.USER, context);
+    assertFalse(env.moveToTrash(path));
     verify(volMgr);
   }
 
@@ -134,12 +139,14 @@ public class SimpleGarbageCollectorTest {
   public void testMoveToTrash_NotUsingTrash() throws Exception {
     systemConfig.set(Property.GC_TRASH_IGNORE.getKey(), "true");
     Path path = createMock(Path.class);
-    assertFalse(gc.moveToTrash(path));
+    env = new GCRun(DataLevel.USER, context);
+    assertFalse(env.isUsingTrash());
+    assertFalse(env.moveToTrash(path));
   }
 
   @Test
   public void testMoveToTrash_NotUsingTrash_importsOnlyEnabled() throws Exception {
-    systemConfig.set(Property.GC_TRASH_IGNORE.getKey(), "true");
+    systemConfig.set(Property.GC_TRASH_IGNORE.getKey(), "false");
     systemConfig.set(Property.GC_TRASH_IGNORE_IMPORTS_ONLY.getKey(), "true");
     Path iFilePath = new Path("I0000070.rf");
     Path iFileWithFullPath =
@@ -150,10 +157,13 @@ public class SimpleGarbageCollectorTest {
     expect(volMgr.moveToTrash(notIFilePath)).andReturn(true).times(1);
     expect(volMgr.moveToTrash(notIFileWithFullPath)).andReturn(true).times(1);
     replay(volMgr);
-    assertFalse(gc.moveToTrash(iFilePath));
-    assertFalse(gc.moveToTrash(iFileWithFullPath));
-    assertTrue(gc.moveToTrash(notIFilePath));
-    assertTrue(gc.moveToTrash(notIFileWithFullPath));
+    env = new GCRun(DataLevel.USER, context);
+    assertTrue(env.isUsingTrash());
+    assertTrue(env.isSkipTrashImportsOnly());
+    assertFalse(env.moveToTrash(iFilePath));
+    assertFalse(env.moveToTrash(iFileWithFullPath));
+    assertTrue(env.moveToTrash(notIFilePath));
+    assertTrue(env.moveToTrash(notIFileWithFullPath));
     verify(volMgr);
   }
 

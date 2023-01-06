@@ -20,8 +20,6 @@ package org.apache.accumulo.gc;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -57,7 +55,6 @@ import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
-import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,22 +106,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
    */
   long getStartDelay() {
     return getConfiguration().getTimeInMillis(Property.GC_CYCLE_START);
-  }
-
-  /**
-   * Checks if the volume manager should move files to the trash rather than delete them.
-   *
-   * @return true if trash is used
-   */
-  boolean isUsingTrash() {
-    return !getConfiguration().getBoolean(Property.GC_TRASH_IGNORE);
-  }
-
-  /**
-   * Checks if the volume manager should only skip trash for files that are not bulk imports
-   */
-  boolean isSkipTrashImportsOnly() {
-    return getConfiguration().getBoolean(Property.GC_TRASH_IGNORE_IMPORTS_ONLY);
   }
 
   /**
@@ -249,7 +230,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           Span walSpan = TraceUtil.startSpan(this.getClass(), "walogs");
           try (Scope walScope = walSpan.makeCurrent()) {
             GarbageCollectWriteAheadLogs walogCollector =
-                new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet, isUsingTrash());
+                new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet);
             log.info("Beginning garbage collection of write-ahead logs");
             walogCollector.collect(status);
             gcCycleMetrics.setLastWalCollect(status.lastLog);
@@ -331,39 +312,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     log.info("Number of successfully deleted data files: {}", status.current.deleted);
     log.info("Number of data files delete failures: {}", status.current.errors);
     log.info("Number of bulk imports in progress: {}", status.current.bulks);
-  }
-
-  /**
-   * Moves a file to trash. If this garbage collector is not using trash, this method returns false
-   * and leaves the file alone. If the file is missing, this method returns false as opposed to
-   * throwing an exception.
-   *
-   * @return true if the file was moved to trash
-   * @throws IOException if the volume manager encountered a problem
-   */
-  boolean moveToTrash(Path path) throws IOException {
-    final VolumeManager fs = getContext().getVolumeManager();
-    if (!shouldUseTrash(path)) {
-      return false;
-    }
-    try {
-      return fs.moveToTrash(path);
-    } catch (FileNotFoundException ex) {
-      return false;
-    }
-  }
-
-  private boolean shouldUseTrash(Path path) {
-
-    // If this is a bulk import file, then we will skipTrash if
-    // the gc.trash.ignore.imports.only is set to true.
-    boolean forceBulkImportSkipTrash = isSkipTrashImportsOnly() && !path.getName().startsWith("I");
-
-    if (isUsingTrash() || forceBulkImportSkipTrash) {
-      return true;
-    }
-    return false;
-
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {

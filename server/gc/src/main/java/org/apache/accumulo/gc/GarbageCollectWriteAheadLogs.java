@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -70,13 +71,12 @@ public class GarbageCollectWriteAheadLogs {
    *
    * @param context the collection server's context
    * @param fs volume manager to use
-   * @param useTrash true to move files to trash rather than delete them
    */
   GarbageCollectWriteAheadLogs(final ServerContext context, final VolumeManager fs,
-      final LiveTServerSet liveServers, boolean useTrash) {
+      final LiveTServerSet liveServers) {
     this.context = context;
     this.fs = fs;
-    this.useTrash = useTrash;
+    this.useTrash = !context.getConfiguration().getBoolean(Property.GC_TRASH_IGNORE);
     this.liveServers = liveServers;
     this.walMarker = new WalStateManager(context);
     this.store = () -> Iterators.concat(
