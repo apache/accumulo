@@ -24,8 +24,7 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.Property;
 
 /**
- * A {@link VolumeChooser} that selects a volume at random from the list of provided volumes. This
- * class is currently the default volume chooser as set by {@link Property#GENERAL_VOLUME_CHOOSER}.
+ * A {@link VolumeChooser} that selects a volume at random from the list of provided volumes. 
  *
  * @since 2.1.0
  */
