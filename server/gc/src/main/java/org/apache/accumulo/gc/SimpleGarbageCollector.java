@@ -343,7 +343,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
    */
   boolean moveToTrash(Path path) throws IOException {
     final VolumeManager fs = getContext().getVolumeManager();
-    if (!isUsingTrash() && (!isSkipTrashImportsOnly() || path.getName().startsWith("I"))) {
+    if (!shouldUseTrash(path)) {
       return false;
     }
     try {
@@ -351,6 +351,19 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     } catch (FileNotFoundException ex) {
       return false;
     }
+  }
+
+  private boolean shouldUseTrash(Path path) {
+
+    // If this is a bulk import file, then we will skipTrash if
+    // the gc.trash.ignore.imports.only is set to true.
+    boolean forceBulkImportSkipTrash = isSkipTrashImportsOnly() && !path.getName().startsWith("I");
+
+    if (isUsingTrash() || forceBulkImportSkipTrash) {
+      return true;
+    }
+    return false;
+
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
