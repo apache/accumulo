@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.util;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -257,7 +259,7 @@ public class SlowOps {
         return true;
       }
 
-      UtilWaitThread.sleepUninterruptibly(3, TimeUnit.SECONDS);
+      sleepUninterruptibly(3, TimeUnit.SECONDS);
     } while ((System.nanoTime() - startWaitNanos) < maxWaitNanos);
 
     log.debug("Could not find compaction for {} after {} seconds", tableName,

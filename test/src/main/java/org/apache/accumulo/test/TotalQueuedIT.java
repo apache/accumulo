@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -33,13 +33,14 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.net.HostAndPort;
 
 public class TotalQueuedIT extends ConfigurableMacBase {
 
@@ -127,8 +128,8 @@ public class TotalQueuedIT extends ConfigurableMacBase {
   private long getSyncs(AccumuloClient c) throws Exception {
     ServerContext context = getServerContext();
     for (String address : c.instanceOperations().getTabletServers()) {
-      TabletClientService.Client client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
-          HostAndPort.fromString(address), context);
+      TabletServerClientService.Client client = ThriftUtil
+          .getClient(ThriftClientTypes.TABLET_SERVER, HostAndPort.fromString(address), context);
       TabletServerStatus status = client.getTabletServerStatus(null, context.rpcCreds());
       return status.syncs;
     }

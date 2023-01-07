@@ -20,12 +20,9 @@ package org.apache.accumulo.core.conf;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.Arrays;
 import java.util.function.BiConsumer;
 
-import org.apache.commons.configuration2.BaseConfiguration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -65,36 +62,6 @@ public class DeprecatedPropertyUtilTest {
     // 'old.test' -> 'middle.test' -> 'new.test'
     String newProp2 = DeprecatedPropertyUtil.getReplacementName("old.test", NOOP);
     assertEquals("new.test", newProp2);
-  }
-
-  @Test
-  public void testMasterManagerPropertyRename() {
-    Arrays.stream(Property.values()).filter(p -> p.getType() != PropertyType.PREFIX)
-        .filter(p -> p.getKey().startsWith(Property.MANAGER_PREFIX.getKey())).forEach(p -> {
-          String oldProp =
-              "master." + p.getKey().substring(Property.MANAGER_PREFIX.getKey().length());
-          assertEquals(p.getKey(), DeprecatedPropertyUtil.getReplacementName(oldProp, NOOP));
-        });
-  }
-
-  @Test
-  public void testSanityCheckManagerProperties() {
-    var config = new BaseConfiguration();
-    config.setProperty("regular.prop1", "value");
-    config.setProperty("regular.prop2", "value");
-    assertEquals(2, config.size());
-    DeprecatedPropertyUtil.sanityCheckManagerProperties(config); // should succeed
-    config.setProperty("master.deprecatedProp", "value");
-    assertEquals(3, config.size());
-    DeprecatedPropertyUtil.sanityCheckManagerProperties(config); // should succeed
-    config.setProperty("manager.replacementProp", "value");
-    assertEquals(4, config.size());
-    assertThrows(IllegalStateException.class,
-        () -> DeprecatedPropertyUtil.sanityCheckManagerProperties(config),
-        "Sanity check should fail when 'master.*' and 'manager.*' appear in same config");
-    config.clearProperty("master.deprecatedProp");
-    assertEquals(3, config.size());
-    DeprecatedPropertyUtil.sanityCheckManagerProperties(config); // should succeed
   }
 
 }

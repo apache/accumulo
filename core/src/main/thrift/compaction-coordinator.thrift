@@ -23,7 +23,6 @@ include "client.thrift"
 include "data.thrift"
 include "security.thrift"
 include "tabletserver.thrift"
-include "trace.thrift"
 
 enum TCompactionState {
   # Coordinator should set state to ASSIGNED when getCompactionJob is called by Compactor

@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -63,6 +63,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.logging.TabletLogger;
@@ -248,14 +249,16 @@ public class Tablet extends TabletBase {
     return dirUri;
   }
 
-  TabletFile getNextMapFilename(String prefix) throws IOException {
+  TabletFile getNextMapFilename(FilePrefix prefix) throws IOException {
     String extension = FileOperations.getNewFileExtension(tableConfiguration);
-    return new TabletFile(new Path(chooseTabletDir() + "/" + prefix
+    return new TabletFile(new Path(chooseTabletDir() + "/" + prefix.toPrefix()
         + context.getUniqueNameAllocator().getNextName() + "." + extension));
   }
 
   TabletFile getNextMapFilenameForMajc(boolean propagateDeletes) throws IOException {
-    String tmpFileName = getNextMapFilename(!propagateDeletes ? "A" : "C").getMetaInsert() + "_tmp";
+    String tmpFileName = getNextMapFilename(
+        !propagateDeletes ? FilePrefix.MAJOR_COMPACTION_ALL_FILES : FilePrefix.MAJOR_COMPACTION)
+        .getMetaInsert() + "_tmp";
     return new TabletFile(new Path(tmpFileName));
   }
 
@@ -1685,10 +1688,7 @@ public class Tablet extends TabletBase {
   public void checkIfMinorCompactionNeededForLogs(List<DfsLogger> closedLogs) {
 
     // grab this outside of tablet lock.
-    @SuppressWarnings("deprecation")
-    Property prop = tableConfiguration.resolve(Property.TSERV_WAL_MAX_REFERENCED,
-        Property.TSERV_WALOG_MAX_REFERENCED, Property.TABLE_MINC_LOGS_MAX);
-    int maxLogs = tableConfiguration.getCount(prop);
+    int maxLogs = tableConfiguration.getCount(Property.TSERV_WAL_MAX_REFERENCED);
 
     String reason = null;
     synchronized (this) {

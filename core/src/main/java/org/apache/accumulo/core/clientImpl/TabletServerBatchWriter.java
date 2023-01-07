@@ -68,11 +68,10 @@ import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.TApplicationException;
@@ -83,6 +82,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
+import com.google.common.net.HostAndPort;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -933,13 +933,13 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       try {
         final HostAndPort parsedServer = HostAndPort.fromString(location);
-        final TabletClientService.Iface client;
+        final TabletIngestClientService.Iface client;
 
         if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis()) {
-          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context,
+          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, parsedServer, context,
               timeoutTracker.getTimeOut());
         } else {
-          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
+          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, parsedServer, context);
         }
 
         try {
