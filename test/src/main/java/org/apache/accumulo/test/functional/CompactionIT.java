@@ -23,15 +23,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -148,6 +151,22 @@ public class CompactionIT extends AccumuloClusterHarness {
       return new Selection(matches);
     }
 
+  }
+
+  /**
+   * CompactionSelector that selects nothing for testing
+   */
+  public static class EmptyCompactionSelector implements CompactionSelector {
+
+    @Override
+    public void init(InitParameters iparams) {
+
+    }
+
+    @Override
+    public Selection select(SelectionParameters sparams) {
+      return new Selection(Set.of());
+    }
   }
 
   private static final Logger log = LoggerFactory.getLogger(CompactionIT.class);
@@ -542,12 +561,103 @@ public class CompactionIT extends AccumuloClusterHarness {
     }
   }
 
+  @Test
+  public void testSelectNoFiles() throws Exception {
+
+    // Adapted from the now removed UserCompactionStrategyIT class
+    // Test a compaction selector that selects no files. In this case there is no work to,
+    // so we want to ensure it does not hang
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+
+      writeFlush(c, tableName, "a");
+      writeFlush(c, tableName, "b");
+
+      CompactionConfig config = new CompactionConfig()
+          .setSelector(new PluginConfig(EmptyCompactionSelector.class.getName(), Map.of()))
+          .setWait(true);
+      c.tableOperations().compact(tableName, config);
+
+      assertEquals(Set.of("a", "b"), getRows(c, tableName));
+    }
+
+  }
+
+  @Test
+  public void testConcurrent() throws Exception {
+    // two compactions without iterators or strategy should be able to run concurrently
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+
+      // write random data because its very unlikely it will compress
+      writeRandomValue(c, tableName, 1 << 16);
+      writeRandomValue(c, tableName, 1 << 16);
+
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(false));
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+
+      assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
+
+      writeRandomValue(c, tableName, 1 << 16);
+
+      IteratorSetting iterConfig = new IteratorSetting(30, SlowIterator.class);
+      SlowIterator.setSleepTime(iterConfig, 1000);
+
+      long t1 = System.currentTimeMillis();
+      c.tableOperations().compact(tableName,
+          new CompactionConfig().setWait(false).setIterators(java.util.Arrays.asList(iterConfig)));
+      try {
+        // this compaction should fail because previous one set iterators
+        c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+        if (System.currentTimeMillis() - t1 < 2000) {
+          fail("Expected compaction to fail because another concurrent compaction set iterators");
+        }
+      } catch (AccumuloException e) {}
+    }
+  }
+
   private int countFiles(AccumuloClient c) throws Exception {
     try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.fetchColumnFamily(new Text(TabletColumnFamily.NAME));
       s.fetchColumnFamily(new Text(DataFileColumnFamily.NAME));
       return Iterators.size(s.iterator());
     }
+  }
+
+  private void writeRandomValue(AccumuloClient c, String tableName, int size) throws Exception {
+    byte[] data1 = new byte[size];
+    random.nextBytes(data1);
+
+    try (BatchWriter bw = c.createBatchWriter(tableName)) {
+      Mutation m1 = new Mutation("r" + random.nextInt(909090));
+      m1.put("data", "bl0b", new Value(data1));
+      bw.addMutation(m1);
+    }
+    c.tableOperations().flush(tableName, null, null, true);
+  }
+
+  private Set<String> getRows(AccumuloClient c, String tableName) throws TableNotFoundException {
+    Set<String> rows = new HashSet<>();
+    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> entry : scanner) {
+        rows.add(entry.getKey().getRowData().toString());
+      }
+    }
+    return rows;
+  }
+
+  private void writeFlush(AccumuloClient client, String tablename, String row) throws Exception {
+    try (BatchWriter bw = client.createBatchWriter(tablename)) {
+      Mutation m = new Mutation(row);
+      m.put("", "", "");
+      bw.addMutation(m);
+    }
+    client.tableOperations().flush(tablename, null, null, true);
   }
 
 }

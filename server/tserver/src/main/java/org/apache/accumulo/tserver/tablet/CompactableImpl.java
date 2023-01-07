@@ -141,8 +141,6 @@ public class CompactableImpl implements Compactable {
   public interface CompactionHelper {
     Set<StoredTabletFile> selectFiles(SortedMap<StoredTabletFile,DataFileValue> allFiles);
 
-    Set<StoredTabletFile> getFilesToDrop();
-
     Map<String,String> getConfigOverrides(Set<CompactableFile> files);
 
   }
@@ -1048,8 +1046,7 @@ public class CompactableImpl implements Compactable {
           fileMgr.cancelSelection();
         }
       } else {
-        var allSelected =
-            allFiles.keySet().equals(Sets.union(selectingFiles, localHelper.getFilesToDrop()));
+        var allSelected = allFiles.keySet().equals(selectingFiles);
         synchronized (this) {
           fileMgr.finishSelection(selectingFiles, allSelected);
         }
@@ -1291,7 +1288,7 @@ public class CompactableImpl implements Compactable {
       stats = CompactableUtils.compact(tablet, job, cInfo, compactEnv, compactFiles, tmpFileName);
 
       newFile = CompactableUtils.bringOnline(tablet.getDatafileManager(), cInfo, stats,
-          compactFiles, allFiles, kind, tmpFileName);
+          compactFiles, tmpFileName);
 
       TabletLogger.compacted(getExtent(), job, newFile.orElse(null));
 

@@ -323,11 +323,6 @@ public class CompactableUtils {
     public Map<String,String> getConfigOverrides(Set<CompactableFile> files) {
       return null;
     }
-
-    @Override
-    public Set<StoredTabletFile> getFilesToDrop() {
-      return Set.of();
-    }
   }
 
   private static final class UserCompactionHelper implements CompactionHelper {
@@ -371,11 +366,6 @@ public class CompactableUtils {
       }
 
       return null;
-    }
-
-    @Override
-    public Set<StoredTabletFile> getFilesToDrop() {
-      return Set.of();
     }
   }
 
@@ -459,16 +449,9 @@ public class CompactableUtils {
    */
   static Optional<StoredTabletFile> bringOnline(DatafileManager datafileManager,
       CompactableImpl.CompactionInfo cInfo, CompactionStats stats,
-      Map<StoredTabletFile,DataFileValue> compactFiles,
-      SortedMap<StoredTabletFile,DataFileValue> allFiles, CompactionKind kind,
-      TabletFile compactTmpName) throws IOException {
-    if (kind == CompactionKind.USER || kind == CompactionKind.SELECTOR) {
-      cInfo.localHelper.getFilesToDrop().forEach(f -> {
-        if (allFiles.containsKey(f)) {
-          compactFiles.put(f, allFiles.get(f));
-        }
-      });
-    }
+      Map<StoredTabletFile,DataFileValue> compactFiles, TabletFile compactTmpName)
+      throws IOException {
+
     var dfv = new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
     return datafileManager.bringMajorCompactionOnline(compactFiles.keySet(), compactTmpName,
         cInfo.checkCompactionId, cInfo.selectedFiles, dfv, Optional.empty());

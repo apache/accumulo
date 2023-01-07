@@ -473,11 +473,8 @@ public class SummaryIT extends SharedMiniClusterBase {
     // data to know if there are too many foos.
     PluginConfig csc = new PluginConfig(FooSelector.class.getName());
     CompactionConfig compactConfig = new CompactionConfig().setSelector(csc);
-    compactionTest(compactConfig);
-  }
-
-  private void compactionTest(CompactionConfig compactConfig) throws Exception {
     final String table = getUniqueNames(1)[0];
+
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
       SummarizerConfiguration sc1 =
