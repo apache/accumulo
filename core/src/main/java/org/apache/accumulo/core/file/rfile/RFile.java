@@ -127,6 +127,7 @@ public class RFile {
             lock.lock();
             try {
               FREE_MEMORY.set(Runtime.getRuntime().freeMemory());
+              LOG.info("Free Memory set to: {}", FREE_MEMORY.get());
               latchRef.set(new CountDownLatch(1));
             } finally {
               lock.unlock();
@@ -141,8 +142,8 @@ public class RFile {
 
     private static final Runtime RUNTIME = Runtime.getRuntime();
     private static final Logger LOG = LoggerFactory.getLogger(RFileMemoryProtection.class);
-    private static final String ENABLED_PROPERTY = "EnableRFileMemoryProtection";
-    private static final String SIZE_THRESHOLD_PROPERTY = "RFileMemoryProtectionSizeThreshold";
+    public static final String ENABLED_PROPERTY = "EnableRFileMemoryProtection";
+    public static final String SIZE_THRESHOLD_PROPERTY = "RFileMemoryProtectionSizeThreshold";
     private static final AtomicLong FREE_MEMORY = new AtomicLong(RUNTIME.freeMemory());
     private static final FreeMemoryUpdater UPDATER = new FreeMemoryUpdater();
 
@@ -175,6 +176,7 @@ public class RFile {
     }
 
     static long getFreeMemory() {
+      LOG.info("getFreeMemory called from Value.readFields");
       return FREE_MEMORY.get();
     }
 
@@ -190,6 +192,7 @@ public class RFile {
       if (n.getType().equals("com.sun.management.gc.notification")) {
         // We just got a notification that a GC completed in one of the GC memory pools. Queue up
         // an action to determine amount of free memory
+        LOG.info("GC Notification");
         UPDATER.update();
       }
     }
