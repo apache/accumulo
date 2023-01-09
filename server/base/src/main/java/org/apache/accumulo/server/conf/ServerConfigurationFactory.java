@@ -105,7 +105,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
         context.getPropStore().registerAsListener(TablePropKey.of(context, tableId), deleteWatcher);
         var conf =
             new TableConfiguration(context, tableId, getNamespaceConfigurationForTable(tableId));
-        ConfigCheckUtil.validate(conf, tableId.toString());
+        ConfigCheckUtil.validate(conf, "table id: " + tableId.toString());
+
         return conf;
       }
       return null;
@@ -129,7 +130,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       context.getPropStore().registerAsListener(NamespacePropKey.of(context, namespaceId),
           deleteWatcher);
       var conf = new NamespaceConfiguration(context, namespaceId, getSystemConfiguration());
-      ConfigCheckUtil.validate(conf, namespaceId.toString());
+      ConfigCheckUtil.validate(conf, "namespace id: " + namespaceId.toString());
       return conf;
     });
   }
