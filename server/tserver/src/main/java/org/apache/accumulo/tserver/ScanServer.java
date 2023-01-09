@@ -468,6 +468,10 @@ public class ScanServer extends AbstractServer
       return tabletsMetadata.get(extent);
     }
 
+    public Set<KeyExtent> getTabletMetadataExtents() {
+      return tabletsMetadata.keySet();
+    }
+
     public Map<TKeyExtent,List<TRange>> getFailures() {
       return this.failures;
     }
@@ -498,6 +502,10 @@ public class ScanServer extends AbstractServer
     }
   }
 
+  /*
+   * All extents passed in should end up in either the returned map or the failures set, but no
+   * extent should be in both.
+   */
   private Map<KeyExtent,TabletMetadata> reserveFilesInner(Collection<KeyExtent> extents,
       long myReservationId, Set<KeyExtent> failures) throws AccumuloException {
     // RFS is an acronym for Reference files for scan
@@ -517,6 +525,7 @@ public class ScanServer extends AbstractServer
         LOG.info("RFFS {} extent unable to load {} as AssignmentHandler returned false",
             myReservationId, extent);
         failures.add(extent);
+        tabletsMetadata.remove(extent);
       }
     }
 
@@ -603,6 +612,7 @@ public class ScanServer extends AbstractServer
             LOG.info("RFFS {} extent unable to load {} as metadata no longer referencing files",
                 myReservationId, extent);
             failures.add(extent);
+            tabletsMetadata.remove(extent);
           } else {
             // remove files that are still referenced
             filesToReserve.removeAll(metadataAfter.getFiles());
@@ -653,8 +663,18 @@ public class ScanServer extends AbstractServer
     Map<KeyExtent,TabletMetadata> tabletsMetadata =
         reserveFilesInner(extents.keySet(), myReservationId, failedReservations);
     while (tabletsMetadata == null) {
+      failedReservations.clear();
       tabletsMetadata = reserveFilesInner(extents.keySet(), myReservationId, failedReservations);
     }
+
+    // validate that the tablet metadata set and failure set are disjoint and that the
+    // tablet metadata set and failure set contain all of the extents
+    if (!Collections.disjoint(tabletsMetadata.keySet(), failedReservations)
+        || !extents.keySet().equals(Sets.union(tabletsMetadata.keySet(), failedReservations))) {
+      throw new IllegalStateException("bug in reserverFilesInner " + extents.keySet() + ","
+          + tabletsMetadata.keySet() + "," + failedReservations);
+    }
+
     // Convert failures
     Map<TKeyExtent,List<TRange>> failures = new HashMap<>();
     failedReservations.forEach(extent -> {
@@ -906,7 +926,7 @@ public class ScanServer extends AbstractServer
     try (ScanReservation reservation = reserveFiles(batch)) {
 
       HashMap<KeyExtent,TabletBase> tablets = new HashMap<>();
-      batch.keySet().forEach(extent -> {
+      reservation.getTabletMetadataExtents().forEach(extent -> {
         try {
           tablets.put(extent, reservation.newTablet(this, extent));
         } catch (IOException e) {
@@ -917,10 +937,6 @@ public class ScanServer extends AbstractServer
       InitialMultiScan ims = delegate.startMultiScan(tinfo, credentials, tcolumns, ssiList, batch,
           ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
           executionHints, getBatchScanTabletResolver(tablets), busyTimeout);
-
-      if (!reservation.getFailures().isEmpty()) {
-        ims.result.setFailures(reservation.getFailures());
-      }
 
       LOG.debug("started scan: {}", ims.getScanID());
       return ims;

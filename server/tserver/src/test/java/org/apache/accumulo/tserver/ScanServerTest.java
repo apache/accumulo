@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -223,6 +224,7 @@ public class ScanServerTest {
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
     expect(reservation.newTablet(ss, extent)).andReturn(tablet);
+    expect(reservation.getTabletMetadataExtents()).andReturn(Set.of(extent));
     expect(reservation.getFailures()).andReturn(Map.of());
     reservation.close();
     reservation.close();
@@ -283,6 +285,7 @@ public class ScanServerTest {
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
     expect(reservation.newTablet(ss, extent)).andReturn(tablet);
+    expect(reservation.getTabletMetadataExtents()).andReturn(Set.of());
     expect(reservation.getFailures()).andReturn(Map.of(textent, ranges)).anyTimes();
     reservation.close();
     reservation.close();
@@ -306,7 +309,7 @@ public class ScanServerTest {
     InitialMultiScan is = ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths,
         false, tsc, 30L, classLoaderContext, execHints, 0L);
     assertEquals(15, is.getScanID());
-    assertEquals(1, is.getResult().getFailuresSize());
+    assertEquals(0, is.getResult().getFailuresSize());
 
   }
 
