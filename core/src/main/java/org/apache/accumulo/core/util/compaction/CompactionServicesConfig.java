@@ -27,7 +27,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 
 import com.google.common.collect.Sets;
 
@@ -47,72 +46,13 @@ public class CompactionServicesConfig {
 
   public static final CompactionServiceId DEFAULT_SERVICE = CompactionServiceId.of("default");
 
-  @SuppressWarnings("removal")
-  private long getDefaultThroughput(AccumuloConfiguration aconf) {
-    if (aconf.isPropertySet(Property.TSERV_MAJC_THROUGHPUT)) {
-      return aconf.getAsBytes(Property.TSERV_MAJC_THROUGHPUT);
-    }
-
+  private long getDefaultThroughput() {
     return ConfigurationTypeHelper
         .getMemoryAsBytes(Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT.getDefaultValue());
   }
 
-  @SuppressWarnings("removal")
   private Map<String,String> getConfiguration(AccumuloConfiguration aconf) {
-
-    Map<String,String> configs =
-        aconf.getAllPropertiesWithPrefix(Property.TSERV_COMPACTION_SERVICE_PREFIX);
-
-    // check if deprecated properties for compaction executor are set
-    if (aconf.isPropertySet(Property.TSERV_MAJC_MAXCONCURRENT)) {
-
-      String defaultServicePrefix =
-          Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + DEFAULT_SERVICE.canonical() + ".";
-
-      // check if any properties for the default compaction service are set
-      boolean defaultServicePropsSet = configs.keySet().stream()
-          .filter(key -> key.startsWith(defaultServicePrefix)).map(Property::getPropertyByKey)
-          .anyMatch(prop -> prop == null || aconf.isPropertySet(prop));
-
-      if (defaultServicePropsSet) {
-
-        String warning = "The deprecated property " + Property.TSERV_MAJC_MAXCONCURRENT.getKey()
-            + " was set. Properties with the prefix " + defaultServicePrefix
-            + " were also set which replace the deprecated properties. The deprecated property "
-            + "was therefore ignored.";
-
-        deprecationWarningConsumer.accept(warning);
-
-      } else {
-        String numThreads = aconf.get(Property.TSERV_MAJC_MAXCONCURRENT);
-
-        // Its possible a user has configured the other compaction services, but not the default
-        // service. In this case want to produce a config with the default service configs
-        // overridden using deprecated configs.
-
-        HashMap<String,String> configsCopy = new HashMap<>(configs);
-
-        Map<String,String> defaultServiceConfigs =
-            Map.of(defaultServicePrefix + "planner", DefaultCompactionPlanner.class.getName(),
-                defaultServicePrefix + "planner.opts.executors",
-                "[{'name':'deprecated', 'numThreads':" + numThreads + "}]");
-
-        configsCopy.putAll(defaultServiceConfigs);
-
-        String warning = "The deprecated property " + Property.TSERV_MAJC_MAXCONCURRENT.getKey()
-            + " was set. Properties with the prefix " + defaultServicePrefix
-            + " were not set, these should replace the deprecated properties. The old properties "
-            + "were automatically mapped to the new properties in process creating : "
-            + defaultServiceConfigs + ".";
-
-        deprecationWarningConsumer.accept(warning);
-
-        configs = Map.copyOf(configsCopy);
-      }
-    }
-
-    return configs;
-
+    return aconf.getAllPropertiesWithPrefix(Property.TSERV_COMPACTION_SERVICE_PREFIX);
   }
 
   public CompactionServicesConfig(AccumuloConfiguration aconf,
@@ -130,7 +70,7 @@ public class CompactionServicesConfig {
         planners.put(tokens[0], val);
       } else if (tokens.length == 3 && tokens[1].equals("rate") && tokens[2].equals("limit")) {
         var eprop = Property.getPropertyByKey(prop);
-        if (eprop == null || aconf.isPropertySet(eprop) || !isDeprecatedThroughputSet(aconf)) {
+        if (eprop == null || aconf.isPropertySet(eprop)) {
           rateLimits.put(tokens[0], ConfigurationTypeHelper.getFixedMemoryAsBytes(val));
         }
       } else {
@@ -138,7 +78,7 @@ public class CompactionServicesConfig {
       }
     });
 
-    defaultRateLimit = getDefaultThroughput(aconf);
+    defaultRateLimit = getDefaultThroughput();
 
     var diff = Sets.difference(options.keySet(), planners.keySet());
 
@@ -147,11 +87,6 @@ public class CompactionServicesConfig {
           "Incomplete compaction service definitions, missing planner class " + diff);
     }
 
-  }
-
-  @SuppressWarnings("removal")
-  private boolean isDeprecatedThroughputSet(AccumuloConfiguration aconf) {
-    return aconf.isPropertySet(Property.TSERV_MAJC_THROUGHPUT);
   }
 
   public long getRateLimit(String serviceName) {
