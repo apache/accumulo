@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.memory.MemoryProtection;
 import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.accumulo.core.util.UnsynchronizedBuffer;
 import org.apache.hadoop.io.Writable;
@@ -445,7 +446,10 @@ public class RelativeKey implements Writable {
   private static void read(DataInput in, MutableByteSequence mbseqDestination, int len)
       throws IOException {
     if (mbseqDestination.getBackingArray().length < len) {
-      mbseqDestination.setArray(new byte[UnsynchronizedBuffer.nextArraySize(len)], 0, 0);
+      final int nextArraySize = UnsynchronizedBuffer.nextArraySize(len);
+      MemoryProtection.protect(nextArraySize, () -> {
+        mbseqDestination.setArray(new byte[nextArraySize], 0, 0);
+      });
     }
 
     in.readFully(mbseqDestination.getBackingArray(), 0, len);

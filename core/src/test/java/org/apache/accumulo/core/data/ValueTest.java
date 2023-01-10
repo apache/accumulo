@@ -35,8 +35,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
@@ -162,38 +160,6 @@ public class ValueTest {
     v2.readFields(dis);
     dis.close();
     assertArrayEquals(DATA, v2.get());
-  }
-
-  @Test
-  public void testWriteSupplierRead() throws Exception {
-
-    final AtomicInteger times = new AtomicInteger(0);
-
-    Supplier<Long> freeMemorySupplier = new Supplier<Long>() {
-
-      @Override
-      public Long get() {
-        times.incrementAndGet();
-        if (times.get() < 5) {
-          return 1L;
-        } else {
-          return (long) (DATA.length * 1.03);
-        }
-      }
-    };
-
-    Value v = new Value(DATA);
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    DataOutputStream dos = new DataOutputStream(baos);
-    v.write(dos);
-    dos.close();
-    ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-    DataInputStream dis = new DataInputStream(bais);
-    Value v2 = new Value();
-    v2.readFields(dis, 1, freeMemorySupplier);
-    dis.close();
-    assertArrayEquals(DATA, v2.get());
-    assertEquals(5, times.get());
   }
 
   @Test

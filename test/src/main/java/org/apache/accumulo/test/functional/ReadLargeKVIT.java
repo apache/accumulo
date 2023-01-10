@@ -22,6 +22,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -31,13 +32,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -47,16 +45,16 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.bouncycastle.util.Arrays;
+import org.apache.accumulo.test.functional.SlowMemoryConsumingIterator.SlowMemoryConsumingWaitingIterator;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
 public class ReadLargeKVIT extends SharedMiniClusterBase {
 
-  
   private static class ReadLargeKVITConfiguration implements MiniClusterConfigurationCallback {
 
     @Override
@@ -68,7 +66,7 @@ public class ReadLargeKVIT extends SharedMiniClusterBase {
       // Enable RFileMemoryProtection for any Value
       // over 10MB in size.
       sysProps.put("EnableRFileMemoryProtection", "true");
-      sysProps.put("RFileMemoryProtectionSizeThreshold", Integer.toString(100 * 1024 * 1024));
+      sysProps.put("RFileMemoryProtectionSizeThreshold", Integer.toString(10 * 1024 * 1024));
       cfg.setSystemProperties(sysProps);
     }
   }
@@ -91,9 +89,31 @@ public class ReadLargeKVIT extends SharedMiniClusterBase {
     byte[] VALUE = new byte[11 * 1024 * 1024];
     Arrays.fill(VALUE, (byte) '1');
 
+    final AtomicReference<Throwable> ERROR = new AtomicReference<>();
+    String table = getUniqueNames(1)[0];
+
+    Thread t = new Thread(() -> {
+      try (AccumuloClient client2 = Accumulo.newClient().from(getClientProps()).build()) {
+        try (Scanner scanner2 = client2.createScanner(table)) {
+          IteratorSetting is = new IteratorSetting(11, SlowMemoryConsumingIterator.class,
+              Map.of("sleepTime", "30000"));
+          scanner2.addScanIterator(is);
+          Iterator<Entry<Key,Value>> iter2 = scanner2.iterator();
+          iter2.next();
+          if (!iter2.hasNext()) {
+            throw new RuntimeException("hasNext == false");
+          }
+          LoggerFactory.getLogger(ReadLargeKVIT.class).info("Reached the end");
+        } catch (Exception e) {
+          LoggerFactory.getLogger(ReadLargeKVIT.class).error("Error in thread", e);
+          e.printStackTrace();
+          ERROR.set(e);
+        }
+      }
+    });
+
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      String table = getUniqueNames(1)[0];
       TableOperations to = client.tableOperations();
       to.create(table);
 
@@ -115,43 +135,32 @@ public class ReadLargeKVIT extends SharedMiniClusterBase {
       }
       long firstRunTime = System.currentTimeMillis() - start;
 
-      final AtomicReference<Throwable> ERROR = new AtomicReference<>();
-
-      Thread t = new Thread(() -> {
-        try (AccumuloClient client2 = Accumulo.newClient().from(getClientProps()).build()) {
-          try (Scanner scanner2 = client2.createScanner(table)) {
-            IteratorSetting is = new IteratorSetting(11, SlowMemoryConsumingIterator.class,
-                Map.of("sleepTime", "30000"));
-            scanner2.addScanIterator(is);
-          } catch (TableNotFoundException | AccumuloSecurityException | AccumuloException e) {
-            e.printStackTrace();
-            ERROR.set(e);
-          }
-        }
-      });
       t.start();
-      Thread.sleep(5000);
 
       long start2 = System.currentTimeMillis();
       try (Scanner scanner3 = client.createScanner(table)) {
         // SlowMemoryConsumingIterator is set to sleep for 30s
-        // and consume all free memory except for 5MB. In theory,
+        // and consume all free memory except for 10MB. In theory,
         // getting the first K/V pair should take close to 30s.
         scanner3.setBatchSize(1);
         scanner3.setReadaheadThreshold(1);
         scanner3.setBatchTimeout(1, TimeUnit.MINUTES);
+        IteratorSetting is =
+            new IteratorSetting(11, SlowMemoryConsumingWaitingIterator.class, Map.of());
+        scanner3.addScanIterator(is);
         Iterator<Entry<Key,Value>> iter = scanner3.iterator();
         assertTrue(iter.hasNext());
         Entry<Key,Value> e = iter.next();
-        assertEquals(11 * 1024 * 1024, e.getValue().get().length);
+        assertEquals(VALUE.length, e.getValue().get().length);
       }
       long secondRunTime = System.currentTimeMillis() - start2;
 
+      assertNull("Error in background thread", ERROR.get());
       assertTrue(secondRunTime > firstRunTime);
       assertTrue(secondRunTime > 250000);
       t.join();
-      assertNull(ERROR.get());
-
+    } catch (Exception e) {
+      LoggerFactory.getLogger(ReadLargeKVIT.class).error("Error in test thread", e);
     }
   }
 

@@ -26,8 +26,6 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.lang.management.GarbageCollectorMXBean;
-import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,15 +38,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantLock;
-
-import javax.management.Notification;
-import javax.management.NotificationEmitter;
-import javax.management.NotificationListener;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.Sampler;
@@ -81,10 +71,10 @@ import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroup;
 import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroupContext;
 import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroupSeekCache;
+import org.apache.accumulo.core.memory.MemoryProtection;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MutableByteSequence;
-import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
@@ -94,110 +84,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 public class RFile {
-
-  private static class RFileMemoryProtection implements NotificationListener {
-
-    private static class FreeMemoryUpdater implements Runnable {
-
-      private final ReentrantLock lock = new ReentrantLock();
-      private final AtomicReference<CountDownLatch> latchRef =
-          new AtomicReference<>(new CountDownLatch(1));
-
-      public void update() {
-        lock.lock();
-        try {
-          latchRef.get().countDown();
-        } finally {
-          lock.unlock();
-        }
-      }
-
-      @Override
-      public void run() {
-        try {
-          while (true) {
-            CountDownLatch latch = latchRef.get();
-            // TODO: Could use latch.await(long, TimeUnit) to update free memory
-            // when GC does not occur. It's probable that memory allocations
-            // will occur without GC happening, depending on the memory pool
-            // sizes.
-            latch.await();
-            // acquiring a lock here so that we don't miss a call to update() while
-            // we are getting the current free memory
-            lock.lock();
-            try {
-              FREE_MEMORY.set(Runtime.getRuntime().freeMemory());
-              LOG.info("Free Memory set to: {}", FREE_MEMORY.get());
-              latchRef.set(new CountDownLatch(1));
-            } finally {
-              lock.unlock();
-            }
-          }
-        } catch (InterruptedException e) {
-          throw new RuntimeException("RFileMemoryProtection thread interrupted");
-        }
-      }
-
-    }
-
-    private static final Runtime RUNTIME = Runtime.getRuntime();
-    private static final Logger LOG = LoggerFactory.getLogger(RFileMemoryProtection.class);
-    public static final String ENABLED_PROPERTY = "EnableRFileMemoryProtection";
-    public static final String SIZE_THRESHOLD_PROPERTY = "RFileMemoryProtectionSizeThreshold";
-    private static final AtomicLong FREE_MEMORY = new AtomicLong(RUNTIME.freeMemory());
-    private static final FreeMemoryUpdater UPDATER = new FreeMemoryUpdater();
-
-    private static boolean IS_ENABLED = false;
-    private static int SIZE_THRESHOLD = (int) (RUNTIME.maxMemory() * 0.05);
-
-    static {
-      IS_ENABLED = Boolean.parseBoolean(System.getProperty(ENABLED_PROPERTY, "false"));
-      if (IS_ENABLED) {
-        try {
-          SIZE_THRESHOLD = Integer.parseInt(
-              System.getProperty(SIZE_THRESHOLD_PROPERTY, Integer.toString(SIZE_THRESHOLD)));
-        } catch (NumberFormatException e) {
-          LOG.warn("{} system property value is not a valid Integer: {}", SIZE_THRESHOLD_PROPERTY,
-              SIZE_THRESHOLD);
-        }
-        LOG.info("Enabled for Value sizes over {}", SIZE_THRESHOLD);
-        List<GarbageCollectorMXBean> gcMBeans = ManagementFactory.getGarbageCollectorMXBeans();
-        NotificationListener listener = new RFileMemoryProtection();
-        gcMBeans.forEach(
-            mb -> ((NotificationEmitter) mb).addNotificationListener(listener, null, null));
-        Threads.createThread("RFileMemoryProtectionThread", UPDATER).start();
-      }
-    }
-
-    private RFileMemoryProtection() {}
-
-    static boolean isEnabled() {
-      return IS_ENABLED;
-    }
-
-    static long getFreeMemory() {
-      LOG.info("getFreeMemory called from Value.readFields");
-      return FREE_MEMORY.get();
-    }
-
-    static int getValueSizeThreshold() {
-      return SIZE_THRESHOLD;
-    }
-
-    @Override
-    public void handleNotification(Notification n, Object callbackObject) {
-      // TODO: Replace "com.sun.management.gc.notification" with reference to
-      // GarbageCollectionNotificationInfo.GARBAGE_COLLECTION_NOTIFICATION. Need to figure
-      // out how to get jdk.management module enabled in IDE and for compilation
-      if (n.getType().equals("com.sun.management.gc.notification")) {
-        // We just got a notification that a GC completed in one of the GC memory pools. Queue up
-        // an action to determine amount of free memory
-        LOG.info("GC Notification");
-        UPDATER.update();
-      }
-    }
-
-  }
 
   public static final String EXTENSION = "rf";
 
@@ -983,12 +869,7 @@ public class RFile {
 
       prevKey = rk.getKey();
       rk.readFields(currBlock);
-      if (RFileMemoryProtection.isEnabled()) {
-        val.readFields(currBlock, RFileMemoryProtection.getValueSizeThreshold(),
-            () -> RFileMemoryProtection.getFreeMemory());
-      } else {
-        val.readFields(currBlock);
-      }
+      val.readFields(currBlock);
 
       if (metricsGatherer != null) {
         metricsGatherer.addMetric(rk.getKey(), val);
@@ -1107,7 +988,10 @@ public class RFile {
               RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey(), entriesLeft);
           if (skippr.skipped > 0) {
             entriesLeft -= skippr.skipped;
-            val = new Value(valbs.toArray());
+            final MutableByteSequence valbsRef = valbs;
+            MemoryProtection.protect(valbsRef.length(), () -> {
+              val = new Value(valbsRef.toArray());
+            });
             prevKey = skippr.prevKey;
             rk = skippr.rk;
           }
@@ -1179,12 +1063,7 @@ public class RFile {
                 tmpRk.setPrevKey(bie.getPrevKey());
                 tmpRk.readFields(currBlock);
                 val = new Value();
-                if (RFileMemoryProtection.isEnabled()) {
-                  val.readFields(currBlock, RFileMemoryProtection.getValueSizeThreshold(),
-                      () -> RFileMemoryProtection.getFreeMemory());
-                } else {
-                  val.readFields(currBlock);
-                }
+                val.readFields(currBlock);
                 valbs = new MutableByteSequence(val.get(), 0, val.getSize());
 
                 // just consumed one key from the input stream, so subtract one from entries left
@@ -1199,7 +1078,10 @@ public class RFile {
               RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, currKey, entriesLeft);
           prevKey = skippr.prevKey;
           entriesLeft -= skippr.skipped;
-          val = new Value(valbs.toArray());
+          final MutableByteSequence valbsRef = valbs;
+          MemoryProtection.protect(valbsRef.length(), () -> {
+            val = new Value(valbsRef.toArray());
+          });
           // set rk when everything above is successful, if exception
           // occurs rk will not be set
           rk = skippr.rk;

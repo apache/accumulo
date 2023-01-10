@@ -26,8 +26,8 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.function.Supplier;
 
+import org.apache.accumulo.core.memory.MemoryProtection;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
@@ -178,21 +178,11 @@ public class Value implements WritableComparable<Object> {
 
   @Override
   public void readFields(final DataInput in) throws IOException {
-    this.value = new byte[in.readInt()];
-    in.readFully(this.value, 0, this.value.length);
-  }
-
-  public void readFields(final DataInput in, int sizeThreshold, Supplier<Long> freeMemorySupplier)
-      throws IOException {
     int length = in.readInt();
-    if (length > sizeThreshold) {
-      // Wait until enough bytes are free before constructing the value
-      while (freeMemorySupplier.get() < (long) (length * 1.02)) {
-        Thread.onSpinWait();
-      }
-    }
-    this.value = new byte[length];
-    in.readFully(this.value, 0, this.value.length);
+    MemoryProtection.protect(length, () -> {
+      this.value = new byte[length];
+      in.readFully(this.value, 0, this.value.length);
+    });
   }
 
   @Override
