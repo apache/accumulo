@@ -54,6 +54,7 @@ import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
+import org.apache.accumulo.server.mem.LowMemoryDetectorConfiguration;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -100,6 +101,26 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new ServerOpts(), args)) {
       gc.runServer();
     }
+  }
+
+  @Override
+  protected LowMemoryDetectorConfiguration getLowMemoryDetectorProperties() {
+    return new LowMemoryDetectorConfiguration() {
+      @Override
+      public Property activeProperty() {
+        return Property.GC_LOW_MEM_DETECTOR_ACTIVE;
+      }
+
+      @Override
+      public Property checkIntervalProperty() {
+        return Property.GC_LOW_MEM_DETECTOR_INTERVAL;
+      }
+
+      @Override
+      public Property freeMemoryThresholdProperty() {
+        return Property.GC_LOW_MEM_DETECTOR_THRESHOLD;
+      }
+    };
   }
 
   /**

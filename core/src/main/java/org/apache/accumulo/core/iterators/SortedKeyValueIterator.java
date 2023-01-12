@@ -149,4 +149,15 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * @exception UnsupportedOperationException if not supported.
    */
   SortedKeyValueIterator<K,V> deepCopy(IteratorEnvironment env);
+
+  /**
+   * Returns true when running in a server process and the GarbageCollectionLogger determines that
+   * the server is running low on memory. This is useful for iterators that aggregate KV pairs or
+   * perform long running operations that create a lot of garbage.
+   *
+   * @return true if running in server process and server is running low on memory
+   */
+  default boolean isRunningLowOnMemory() {
+    return false;
+  }
 }

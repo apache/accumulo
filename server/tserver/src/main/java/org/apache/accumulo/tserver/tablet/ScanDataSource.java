@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -69,15 +70,17 @@ class ScanDataSource implements DataSource {
   private final ScanParameters scanParams;
   private final boolean loadIters;
   private final byte[] defaultLabels;
+  private final Supplier<Boolean> lowMemory;
 
   ScanDataSource(TabletBase tablet, ScanParameters scanParams, boolean loadIters,
-      AtomicBoolean interruptFlag) {
+      AtomicBoolean interruptFlag, Supplier<Boolean> lowMemory) {
     this.tablet = tablet;
     this.expectedDeletionCount = tablet.getDataSourceDeletions();
     this.scanParams = scanParams;
     this.interruptFlag = interruptFlag;
     this.loadIters = loadIters;
     this.defaultLabels = tablet.getDefaultSecurityLabels();
+    this.lowMemory = lowMemory;
     if (log.isTraceEnabled()) {
       log.trace("new scan data source, tablet: {}, params: {}, loadIterators: {}", this.tablet,
           this.scanParams, this.loadIters);
@@ -177,9 +180,10 @@ class ScanDataSource implements DataSource {
 
     MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());
 
-    TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(tablet.getContext(),
-        IteratorScope.scan, tablet.getTableConfiguration(), tablet.getExtent().tableId(),
-        fileManager, files, scanParams.getAuthorizations(), samplerConfig, new ArrayList<>());
+    TabletIteratorEnvironment iterEnv =
+        new TabletIteratorEnvironment(tablet.getContext(), IteratorScope.scan,
+            tablet.getTableConfiguration(), tablet.getExtent().tableId(), fileManager, files,
+            scanParams.getAuthorizations(), samplerConfig, new ArrayList<>(), lowMemory);
 
     statsIterator = new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter(),
         tablet.getScanMetrics().getScannedCounter());

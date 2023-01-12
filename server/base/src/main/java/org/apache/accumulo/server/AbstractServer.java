@@ -19,6 +19,8 @@
 package org.apache.accumulo.server;
 
 import java.util.Objects;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
@@ -26,6 +28,9 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.mem.LowMemoryDetector;
+import org.apache.accumulo.server.mem.LowMemoryDetectorConfiguration;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +41,7 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
   protected final String applicationName;
   private final String hostname;
   private final Logger log;
+  private final LowMemoryDetector lowMemDetector;
 
   protected AbstractServer(String appName, ServerOpts opts, String[] args) {
     this.log = LoggerFactory.getLogger(getClass().getName());
@@ -54,6 +60,21 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       context.enforceKerberosLogin();
     }
+    this.lowMemDetector = new LowMemoryDetector(getLowMemoryDetectorProperties());
+    startLowMemoryDetector();
+  }
+
+  protected abstract LowMemoryDetectorConfiguration getLowMemoryDetectorProperties();
+
+  protected void startLowMemoryDetector() {
+    ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(
+        () -> lowMemDetector.logGCInfo(getConfiguration()), 0,
+        lowMemDetector.getIntervalMillis(getConfiguration()), TimeUnit.MILLISECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
+  }
+
+  public LowMemoryDetector getLowMemoryDetector() {
+    return this.lowMemDetector;
   }
 
   /**

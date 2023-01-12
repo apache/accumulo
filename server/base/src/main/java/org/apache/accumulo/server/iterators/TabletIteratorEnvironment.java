@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -60,6 +61,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   private final Authorizations authorizations; // these will only be supplied during scan scope
   private SamplerConfiguration samplerConfig;
   private boolean enableSampleForDeepCopy;
+  private final Supplier<Boolean> lowMemory;
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
       AccumuloConfiguration tableConfig, TableId tableId) {
@@ -77,13 +79,16 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.userCompaction = false;
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
+    this.lowMemory = () -> {
+      return false;
+    };
   }
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
       AccumuloConfiguration tableConfig, TableId tableId, ScanFileManager trm,
       Map<TabletFile,DataFileValue> files, Authorizations authorizations,
       SamplerConfigurationImpl samplerConfig,
-      ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators) {
+      ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators, Supplier<Boolean> lowMemory) {
     if (scope == IteratorScope.majc) {
       throw new IllegalArgumentException("must set if compaction is full");
     }
@@ -105,6 +110,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     }
 
     this.topLevelIterators = topLevelIterators;
+    this.lowMemory = lowMemory;
   }
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope, boolean fullMajC,
@@ -124,6 +130,9 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.userCompaction = kind.equals(CompactionKind.USER);
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
+    this.lowMemory = () -> {
+      return false;
+    };
   }
 
   @Deprecated(since = "2.0.0")
@@ -218,7 +227,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     }
 
     return new TabletIteratorEnvironment(context, scope, tableConfig, tableId, trm, files,
-        authorizations, sci, topLevelIterators);
+        authorizations, sci, topLevelIterators, lowMemory);
   }
 
   @Override
@@ -236,4 +245,10 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   public TableId getTableId() {
     return tableId;
   }
+
+  @Override
+  public boolean isRunningLowOnMemory() {
+    return lowMemory.get();
+  }
+
 }

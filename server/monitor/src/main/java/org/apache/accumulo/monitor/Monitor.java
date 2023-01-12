@@ -81,6 +81,7 @@ import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
+import org.apache.accumulo.server.mem.LowMemoryDetectorConfiguration;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.util.TableInfoUtil;
@@ -241,6 +242,26 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
       return count;
     }
+  }
+
+  @Override
+  protected LowMemoryDetectorConfiguration getLowMemoryDetectorProperties() {
+    return new LowMemoryDetectorConfiguration() {
+      @Override
+      public Property activeProperty() {
+        return Property.MONITOR_LOW_MEM_DETECTOR_ACTIVE;
+      }
+
+      @Override
+      public Property checkIntervalProperty() {
+        return Property.MONITOR_LOW_MEM_DETECTOR_INTERVAL;
+      }
+
+      @Override
+      public Property freeMemoryThresholdProperty() {
+        return Property.MONITOR_LOW_MEM_DETECTOR_THRESHOLD;
+      }
+    };
   }
 
   public void fetchData() {

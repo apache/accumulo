@@ -348,6 +348,16 @@ public enum Property {
           + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
           + "threshold is set greater than 0. Added with version 1.10",
       "1.10.0"),
+  MANAGER_LOW_MEM_DETECTOR_ACTIVE("manager.low.mem.detector.active", "false", PropertyType.BOOLEAN,
+      "By default the LowMemoryDetector is passive, it just logs that memory is low. Setting this to true"
+          + " may change the behavior of server components that check the LowMemoryDetector state",
+      "3.0.0"),
+  MANAGER_LOW_MEM_DETECTOR_INTERVAL("manager.low.mem.detector.interval", "5s",
+      PropertyType.TIMEDURATION, "The number of milliseconds between low memory checks", "3.0.0"),
+  MANAGER_LOW_MEM_DETECTOR_THRESHOLD("manager.low.mem.detector.treshold", "0.05",
+      PropertyType.FRACTION,
+      "The percentage of total memory that must be free for the LowMemoryDetector to do nothing",
+      "3.0.0"),
   // properties that are specific to scan server behavior
   @Experimental
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
@@ -374,6 +384,19 @@ public enum Property {
   @Experimental
   SSERV_CLIENTPORT("sserver.port.client", "9996", PropertyType.PORT,
       "The port used for handling client connections on the tablet servers", "2.1.0"),
+  @Experimental
+  SSERV_LOW_MEM_DETECTOR_ACTIVE("sserver.low.mem.detector.active", "false", PropertyType.BOOLEAN,
+      "By default the LowMemoryDetector is passive, it just logs that memory is low. Setting this to true"
+          + " may change the behavior of server components that check the LowMemoryDetector state",
+      "3.0.0"),
+  @Experimental
+  SSERV_LOW_MEM_DETECTOR_INTERVAL("sserver.low.mem.detector.interval", "5s",
+      PropertyType.TIMEDURATION, "The number of milliseconds between low memory checks", "3.0.0"),
+  @Experimental
+  SSERV_LOW_MEM_DETECTOR_THRESHOLD("sserver.low.mem.detector.treshold", "0.05",
+      PropertyType.FRACTION,
+      "The percentage of total memory that must be free for the LowMemoryDetector to do nothing",
+      "3.0.0"),
   @Experimental
   SSERV_MAX_MESSAGE_SIZE("sserver.server.message.size.max", "1G", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a scan server.", "2.1.0"),
@@ -640,6 +663,16 @@ public enum Property {
   TSERV_LOG_BUSY_TABLETS_INTERVAL("tserver.log.busy.tablets.interval", "1h",
       PropertyType.TIMEDURATION, "Time interval between logging out busy tablets information.",
       "1.10.0"),
+  TSERV_LOW_MEM_DETECTOR_ACTIVE("tserver.low.mem.detector.active", "false", PropertyType.BOOLEAN,
+      "By default the LowMemoryDetector is passive, it just logs that memory is low. Setting this to true"
+          + " may change the behavior of server components that check the LowMemoryDetector state",
+      "3.0.0"),
+  TSERV_LOW_MEM_DETECTOR_INTERVAL("tserver.low.mem.detector.interval", "5s",
+      PropertyType.TIMEDURATION, "The number of milliseconds between low memory checks", "3.0.0"),
+  TSERV_LOW_MEM_DETECTOR_THRESHOLD("tserver.low.mem.detector.treshold", "0.05",
+      PropertyType.FRACTION,
+      "The percentage of total memory that must be free for the LowMemoryDetector to do nothing",
+      "3.0.0"),
   TSERV_HOLD_TIME_SUICIDE("tserver.hold.time.max", "5m", PropertyType.TIMEDURATION,
       "The maximum time for a tablet server to be in the \"memory full\" state."
           + " If the tablet server cannot write out memory in this much time, it will"
@@ -723,6 +756,15 @@ public enum Property {
       "The listening port for the garbage collector's monitor service", "1.3.5"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
       "The number of threads used to delete RFiles and write-ahead logs", "1.3.5"),
+  GC_LOW_MEM_DETECTOR_ACTIVE("gc.low.mem.detector.active", "false", PropertyType.BOOLEAN,
+      "By default the LowMemoryDetector is passive, it just logs that memory is low. Setting this to true"
+          + " may change the behavior of server components that check the LowMemoryDetector state",
+      "3.0.0"),
+  GC_LOW_MEM_DETECTOR_INTERVAL("gc.low.mem.detector.interval", "5s", PropertyType.TIMEDURATION,
+      "The number of milliseconds between low memory checks", "3.0.0"),
+  GC_LOW_MEM_DETECTOR_THRESHOLD("gc.low.mem.detector.treshold", "0.05", PropertyType.FRACTION,
+      "The percentage of total memory that must be free for the LowMemoryDetector to do nothing",
+      "3.0.0"),
   GC_TRASH_IGNORE("gc.trash.ignore", "false", PropertyType.BOOLEAN,
       "Do not use the Trash, even if it is configured.", "1.5.0"),
   GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
@@ -779,6 +821,16 @@ public enum Property {
           + " The resources that are used by default can be seen in"
           + " accumulo/server/monitor/src/main/resources/templates/default.ftl",
       "2.0.0"),
+  MONITOR_LOW_MEM_DETECTOR_ACTIVE("monitor.low.mem.detector.active", "false", PropertyType.BOOLEAN,
+      "By default the LowMemoryDetector is passive, it just logs that memory is low. Setting this to true"
+          + " may change the behavior of server components that check the LowMemoryDetector state",
+      "3.0.0"),
+  MONITOR_LOW_MEM_DETECTOR_INTERVAL("monitor.low.mem.detector.interval", "5s",
+      PropertyType.TIMEDURATION, "The number of milliseconds between low memory checks", "3.0.0"),
+  MONITOR_LOW_MEM_DETECTOR_THRESHOLD("monitor.low.mem.detector.treshold", "0.05",
+      PropertyType.FRACTION,
+      "The percentage of total memory that must be free for the LowMemoryDetector to do nothing",
+      "3.0.0"),
 
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
@@ -1121,6 +1173,20 @@ public enum Property {
   @Experimental
   COMPACTOR_MAX_MESSAGE_SIZE("compactor.message.size.max", "10M", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a tablet server.", "2.1.0"),
+  @Experimental
+  COMPACTOR_LOW_MEM_DETECTOR_ACTIVE("compactor.low.mem.detector.active", "false",
+      PropertyType.BOOLEAN,
+      "By default the LowMemoryDetector is passive, it just logs that memory is low. Setting this to true"
+          + " may change the behavior of server components that check the LowMemoryDetector state",
+      "3.0.0"),
+  @Experimental
+  COMPACTOR_LOW_MEM_DETECTOR_INTERVAL("compactor.low.mem.detector.interval", "5s",
+      PropertyType.TIMEDURATION, "The number of milliseconds between low memory checks", "3.0.0"),
+  @Experimental
+  COMPACTOR_LOW_MEM_DETECTOR_THRESHOLD("compactor.low.mem.detector.treshold", "0.05",
+      PropertyType.FRACTION,
+      "The percentage of total memory that must be free for the LowMemoryDetector to do nothing",
+      "3.0.0"),
   // CompactionCoordinator properties
   @Experimental
   COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,
@@ -1134,6 +1200,21 @@ public enum Property {
   COMPACTION_COORDINATOR_CLIENTPORT("compaction.coordinator.port.client", "9132", PropertyType.PORT,
       "The port used for handling Thrift client connections on the compaction coordinator server",
       "2.1.0"),
+  @Experimental
+  COMPACTION_COORDINATOR_LOW_MEM_DETECTOR_ACTIVE("compaction.coordinator.low.mem.detector.active",
+      "false", PropertyType.BOOLEAN,
+      "By default the LowMemoryDetector is passive, it just logs that memory is low. Setting this to true"
+          + " may change the behavior of server components that check the LowMemoryDetector state",
+      "3.0.0"),
+  @Experimental
+  COMPACTION_COORDINATOR_LOW_MEM_DETECTOR_INTERVAL(
+      "compaction.coordinator.low.mem.detector.interval", "5s", PropertyType.TIMEDURATION,
+      "The number of milliseconds between low memory checks", "3.0.0"),
+  @Experimental
+  COMPACTION_COORDINATOR_LOW_MEM_DETECTOR_THRESHOLD(
+      "compaction.coordinator.low.mem.detector.treshold", "0.05", PropertyType.FRACTION,
+      "The percentage of total memory that must be free for the LowMemoryDetector to do nothing",
+      "3.0.0"),
   @Experimental
   COMPACTION_COORDINATOR_MINTHREADS("compaction.coordinator.threads.minimum", "1",
       PropertyType.COUNT, "The minimum number of threads to use to handle incoming requests.",

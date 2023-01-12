@@ -28,7 +28,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -50,6 +49,7 @@ import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
@@ -158,7 +158,24 @@ public class CompactorTest {
 
   }
 
-  public class SuccessfulCompactor extends Compactor {
+  public class BaseTestCompactor extends Compactor {
+
+    private LowMemoryDetector lmd;
+
+    protected BaseTestCompactor(CompactorServerOpts opts, String[] args,
+        AccumuloConfiguration conf) {
+      super(opts, args, conf);
+      lmd = new LowMemoryDetector(getLowMemoryDetectorProperties());
+    }
+
+    @Override
+    public LowMemoryDetector getLowMemoryDetector() {
+      return lmd;
+    }
+
+  }
+
+  public class SuccessfulCompactor extends BaseTestCompactor {
 
     private final Logger LOG = LoggerFactory.getLogger(SuccessfulCompactor.class);
 
@@ -188,9 +205,6 @@ public class CompactorTest {
 
     @Override
     protected void setupSecurity() {}
-
-    @Override
-    protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {}
 
     @Override
     protected void printStartupMsg() {}

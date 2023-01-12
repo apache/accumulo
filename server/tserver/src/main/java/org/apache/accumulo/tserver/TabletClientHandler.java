@@ -1072,7 +1072,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       Halt.halt(1, () -> {
         log.info("Tablet server no longer holds lock during checkPermission() : {}, exiting",
             request);
-        server.getGcLogger().logGCInfo(server.getConfiguration());
+        server.getLowMemoryDetector().logGCInfo(server.getConfiguration());
       });
     }
 
@@ -1260,7 +1260,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     Halt.halt(0, () -> {
       log.info("Manager requested tablet server halt");
-      server.gcLogger.logGCInfo(server.getConfiguration());
+      server.getLowMemoryDetector().logGCInfo(server.getConfiguration());
       server.requestStop();
       try {
         server.getLock().unlock();

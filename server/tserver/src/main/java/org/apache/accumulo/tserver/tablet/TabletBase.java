@@ -57,10 +57,15 @@ import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager;
+import org.apache.accumulo.tserver.TabletServerResourceManager.LowMemorySupplier;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.util.concurrent.Uninterruptibles;
+
+import io.micrometer.core.instrument.Counter;
 
 /**
  * This class exists to share code for scanning a tablet between {@link Tablet} and
@@ -87,10 +92,19 @@ public abstract class TabletBase {
 
   protected final TableConfiguration tableConfiguration;
 
+  private final LowMemorySupplier lowMem;
+  private final boolean isUserTable;
+  private final Counter pauseScanStart;
+  private final Counter returnScanEarly;
+
   public TabletBase(TabletHostingServer server, KeyExtent extent) {
     this.context = server.getContext();
     this.server = server;
     this.extent = extent;
+    this.lowMem = server.getResourceManager().getLowMemorySupplier();
+    this.isUserTable = !extent.isMeta();
+    this.pauseScanStart = server.getScanMetrics().getPausedForMemoryCounter();
+    this.returnScanEarly = server.getScanMetrics().getEarlyReturnForMemoryCounter();
 
     TableConfiguration tblConf = context.getTableConfiguration(extent.tableId());
     if (tblConf == null) {
@@ -133,7 +147,9 @@ public abstract class TabletBase {
 
   protected ScanDataSource createDataSource(ScanParameters scanParams, boolean loadIters,
       AtomicBoolean interruptFlag) {
-    return new ScanDataSource(this, scanParams, loadIters, interruptFlag);
+    return new ScanDataSource(this, scanParams, loadIters, interruptFlag, () -> {
+      return lowMem.apply(null);
+    });
   }
 
   public Scanner createScanner(Range range, ScanParameters scanParams,
@@ -175,6 +191,13 @@ public abstract class TabletBase {
   }
 
   public abstract void close(boolean b) throws IOException;
+
+  private boolean isServerRunningLowOnMemory(Counter counter, String msg) {
+    if (isUserTable && lowMem.apply(counter)) {
+      log.info(msg, extent);
+    }
+    return false;
+  }
 
   public Tablet.LookupResult lookup(List<Range> ranges, List<KVEntry> results,
       ScanParameters scanParams, long maxResultSize, AtomicBoolean interruptFlag)
@@ -229,7 +252,10 @@ public abstract class TabletBase {
   Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, ScanParameters scanParams)
       throws IOException {
 
-    // log.info("In nextBatch..");
+    while (isServerRunningLowOnMemory(pauseScanStart,
+        "Not starting next batch because low on memory, extent: {}")) {
+      Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+    }
 
     long batchTimeOut = scanParams.getBatchTimeOut();
 
@@ -279,7 +305,10 @@ public abstract class TabletBase {
 
       boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
 
-      if (resultSize >= maxResultsSize || results.size() >= scanParams.getMaxEntries() || timesUp) {
+      boolean runningLowOnMemory = isServerRunningLowOnMemory(returnScanEarly,
+          "Not continuing next batch because low on memory, extent: {}");
+      if (runningLowOnMemory || resultSize >= maxResultsSize
+          || results.size() >= scanParams.getMaxEntries() || timesUp) {
         continueKey = new Key(key);
         skipContinueKey = true;
         break;
@@ -318,6 +347,11 @@ public abstract class TabletBase {
   private Tablet.LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges,
       List<KVEntry> results, ScanParameters scanParams, long maxResultsSize) throws IOException {
 
+    while (isServerRunningLowOnMemory(pauseScanStart,
+        "Not starting lookup because low on memory, extent: {}")) {
+      Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+    }
+
     Tablet.LookupResult lookupResult = new Tablet.LookupResult();
 
     boolean exceededMemoryUsage = false;
@@ -346,7 +380,9 @@ public abstract class TabletBase {
 
       boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
 
-      if (exceededMemoryUsage || tabletClosed || timesUp || yielded) {
+      boolean runningLowOnMemory = isServerRunningLowOnMemory(returnScanEarly,
+          "Not continuing lookup because low on memory, extent: {}");
+      if (runningLowOnMemory || exceededMemoryUsage || tabletClosed || timesUp || yielded) {
         lookupResult.unfinishedRanges.add(range);
         continue;
       }
@@ -377,7 +413,9 @@ public abstract class TabletBase {
 
           timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
 
-          if (exceededMemoryUsage || timesUp) {
+          runningLowOnMemory = isServerRunningLowOnMemory(returnScanEarly,
+              "Not continuing lookup because low on memory, extent: {}");
+          if (runningLowOnMemory || exceededMemoryUsage || timesUp) {
             addUnfinishedRange(lookupResult, range, key);
             break;
           }

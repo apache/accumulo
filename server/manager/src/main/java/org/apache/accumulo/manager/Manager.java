@@ -124,6 +124,7 @@ import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MergeState;
 import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
+import org.apache.accumulo.server.mem.LowMemoryDetectorConfiguration;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -448,6 +449,26 @@ public class Manager extends AbstractServer
 
   public String getZooKeeperRoot() {
     return getContext().getZooKeeperRoot();
+  }
+
+  @Override
+  protected LowMemoryDetectorConfiguration getLowMemoryDetectorProperties() {
+    return new LowMemoryDetectorConfiguration() {
+      @Override
+      public Property activeProperty() {
+        return Property.MANAGER_LOW_MEM_DETECTOR_ACTIVE;
+      }
+
+      @Override
+      public Property checkIntervalProperty() {
+        return Property.MANAGER_LOW_MEM_DETECTOR_INTERVAL;
+      }
+
+      @Override
+      public Property freeMemoryThresholdProperty() {
+        return Property.MANAGER_LOW_MEM_DETECTOR_THRESHOLD;
+      }
+    };
   }
 
   public TServerConnection getConnection(TServerInstance server) {

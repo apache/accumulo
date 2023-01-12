@@ -41,6 +41,8 @@ public class TabletServerScanMetrics implements MetricsProducer {
   private Counter continueScanCalls;
   private Counter closeScanCalls;
   private Counter busyTimeoutReturned;
+  private Counter pausedForMemory;
+  private Counter earlyReturnForMemory;
 
   private final LongAdder lookupCount = new LongAdder();
   private final LongAdder queryResultCount = new LongAdder();
@@ -119,6 +121,14 @@ public class TabletServerScanMetrics implements MetricsProducer {
     busyTimeoutReturned.increment(value);
   }
 
+  public Counter getPausedForMemoryCounter() {
+    return pausedForMemory;
+  }
+
+  public Counter getEarlyReturnForMemoryCounter() {
+    return earlyReturnForMemory;
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
     Gauge.builder(METRICS_SCAN_OPEN_FILES, openFiles::get)
@@ -150,6 +160,12 @@ public class TabletServerScanMetrics implements MetricsProducer {
         .description("Query rate (bytes/sec)").register(registry);
     Gauge.builder(METRICS_TSERVER_SCANNED_ENTRIES, this, TabletServerScanMetrics::getScannedCount)
         .description("Scanned rate").register(registry);
+    pausedForMemory = Counter.builder(METRICS_SCAN_PAUSED_FOR_MEM)
+        .description("scan paused due to server being low on memory")
+        .tags(MetricsUtil.getCommonTags()).register(registry);
+    earlyReturnForMemory = Counter.builder(METRICS_SCAN_RETURN_FOR_MEM)
+        .description("scan returned results early due to server being low on memory")
+        .tags(MetricsUtil.getCommonTags()).register(registry);
   }
 
 }

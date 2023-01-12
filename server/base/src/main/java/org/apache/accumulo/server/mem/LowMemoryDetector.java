@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server;
+package org.apache.accumulo.server.mem;
 
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -31,16 +31,30 @@ import org.apache.accumulo.core.util.Halt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GarbageCollectionLogger {
-  private static final Logger log = LoggerFactory.getLogger(GarbageCollectionLogger.class);
+public class LowMemoryDetector {
+  private static final Logger log = LoggerFactory.getLogger(LowMemoryDetector.class);
 
   private final HashMap<String,Long> prevGcTime = new HashMap<>();
   private long lastMemorySize = 0;
   private long gcTimeIncreasedCount = 0;
   private static long lastMemoryCheckTime = 0;
   private static final Lock memCheckTimeLock = new ReentrantLock();
+  private volatile boolean runningLowOnMemory = false;
+  private final LowMemoryDetectorConfiguration configuration;
+
+  public LowMemoryDetector(LowMemoryDetectorConfiguration config) {
+    this.configuration = config;
+  }
+
+  public long getIntervalMillis(AccumuloConfiguration conf) {
+    return conf.getTimeInMillis(this.configuration.checkIntervalProperty());
+  }
 
   public void logGCInfo(AccumuloConfiguration conf) {
+
+    Double freeMemoryPercentage =
+        conf.getFraction(this.configuration.freeMemoryThresholdProperty());
+    boolean isActive = conf.getBoolean(this.configuration.activeProperty());
 
     memCheckTimeLock.lock();
     try {
@@ -81,9 +95,14 @@ public class GarbageCollectionLogger {
         gcTimeIncreasedCount = 0;
       } else {
         gcTimeIncreasedCount++;
-        if (gcTimeIncreasedCount > 3 && mem < rt.maxMemory() * 0.05) {
+        if (gcTimeIncreasedCount > 3 && mem < rt.maxMemory() * freeMemoryPercentage) {
+          if (isActive) {
+            runningLowOnMemory = true;
+          }
           log.warn("Running low on memory");
           gcTimeIncreasedCount = 0;
+        } else {
+          runningLowOnMemory = false;
         }
       }
 
@@ -125,6 +144,10 @@ public class GarbageCollectionLogger {
     } finally {
       memCheckTimeLock.unlock();
     }
+  }
+
+  public boolean isRunningLowOnMemory() {
+    return runningLowOnMemory;
   }
 
 }
