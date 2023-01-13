@@ -49,9 +49,9 @@ import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
 import org.apache.accumulo.test.metrics.TestStatsDSink;
 import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Before;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class MemoryStarvedScanIT extends SharedMiniClusterBase {
@@ -123,7 +123,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     metricConsumer.join();
   }
 
-  @Before
+  @BeforeEach
   public void beforeEach() throws Exception {
     // Reset the client side counters
     SCAN_START_DELAYED.reset();
