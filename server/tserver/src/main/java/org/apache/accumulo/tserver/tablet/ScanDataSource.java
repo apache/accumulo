@@ -48,6 +48,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
 import org.apache.accumulo.server.fs.FileManager.ScanFileManager;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.scan.ScanParameters;
@@ -70,10 +71,10 @@ class ScanDataSource implements DataSource {
   private final ScanParameters scanParams;
   private final boolean loadIters;
   private final byte[] defaultLabels;
-  private final Supplier<Boolean> lowMemory;
+  private final Supplier<LowMemoryDetector> lowMemory;
 
   ScanDataSource(TabletBase tablet, ScanParameters scanParams, boolean loadIters,
-      AtomicBoolean interruptFlag, Supplier<Boolean> lowMemory) {
+      AtomicBoolean interruptFlag, Supplier<LowMemoryDetector> lowMemory) {
     this.tablet = tablet;
     this.expectedDeletionCount = tablet.getDataSourceDeletions();
     this.scanParams = scanParams;

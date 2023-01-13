@@ -43,6 +43,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.fs.FileManager.ScanFileManager;
+import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.hadoop.fs.Path;
 
 public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
@@ -61,7 +62,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   private final Authorizations authorizations; // these will only be supplied during scan scope
   private SamplerConfiguration samplerConfig;
   private boolean enableSampleForDeepCopy;
-  private final Supplier<Boolean> lowMemory;
+  private final Supplier<LowMemoryDetector> lowMemory;
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
       AccumuloConfiguration tableConfig, TableId tableId) {
@@ -80,7 +81,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
     this.lowMemory = () -> {
-      return false;
+      return null;
     };
   }
 
@@ -88,7 +89,8 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
       AccumuloConfiguration tableConfig, TableId tableId, ScanFileManager trm,
       Map<TabletFile,DataFileValue> files, Authorizations authorizations,
       SamplerConfigurationImpl samplerConfig,
-      ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators, Supplier<Boolean> lowMemory) {
+      ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators,
+      Supplier<LowMemoryDetector> lowMemory) {
     if (scope == IteratorScope.majc) {
       throw new IllegalArgumentException("must set if compaction is full");
     }
@@ -131,7 +133,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
     this.lowMemory = () -> {
-      return false;
+      return null;
     };
   }
 
@@ -248,7 +250,11 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
 
   @Override
   public boolean isRunningLowOnMemory() {
-    return lowMemory.get();
+    LowMemoryDetector lmd = lowMemory.get();
+    if (lmd != null) {
+      return lmd.isRunningLowOnMemory();
+    }
+    return false;
   }
 
 }

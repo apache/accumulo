@@ -103,6 +103,7 @@ public class LowMemoryDetector {
           gcTimeIncreasedCount = 0;
         } else {
           runningLowOnMemory = false;
+          log.warn("Not running low on memory");
         }
       }
 

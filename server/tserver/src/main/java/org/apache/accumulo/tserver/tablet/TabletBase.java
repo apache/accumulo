@@ -54,18 +54,16 @@ import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.TooManyFilesException;
+import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager;
-import org.apache.accumulo.tserver.TabletServerResourceManager.LowMemorySupplier;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.Uninterruptibles;
-
-import io.micrometer.core.instrument.Counter;
 
 /**
  * This class exists to share code for scanning a tablet between {@link Tablet} and
@@ -92,10 +90,8 @@ public abstract class TabletBase {
 
   protected final TableConfiguration tableConfiguration;
 
-  private final LowMemorySupplier lowMem;
+  private final LowMemoryDetector lowMem;
   private final boolean isUserTable;
-  private final Counter pauseScanStart;
-  private final Counter returnScanEarly;
 
   public TabletBase(TabletHostingServer server, KeyExtent extent) {
     this.context = server.getContext();
@@ -103,8 +99,6 @@ public abstract class TabletBase {
     this.extent = extent;
     this.lowMem = server.getResourceManager().getLowMemorySupplier();
     this.isUserTable = !extent.isMeta();
-    this.pauseScanStart = server.getScanMetrics().getPausedForMemoryCounter();
-    this.returnScanEarly = server.getScanMetrics().getEarlyReturnForMemoryCounter();
 
     TableConfiguration tblConf = context.getTableConfiguration(extent.tableId());
     if (tblConf == null) {
@@ -148,7 +142,7 @@ public abstract class TabletBase {
   protected ScanDataSource createDataSource(ScanParameters scanParams, boolean loadIters,
       AtomicBoolean interruptFlag) {
     return new ScanDataSource(this, scanParams, loadIters, interruptFlag, () -> {
-      return lowMem.apply(null);
+      return lowMem;
     });
   }
 
@@ -192,9 +186,10 @@ public abstract class TabletBase {
 
   public abstract void close(boolean b) throws IOException;
 
-  private boolean isServerRunningLowOnMemory(Counter counter, String msg) {
-    if (isUserTable && lowMem.apply(counter)) {
+  private boolean isServerRunningLowOnMemory(final String msg) {
+    if (isUserTable && lowMem.isRunningLowOnMemory()) {
       log.info(msg, extent);
+      return true;
     }
     return false;
   }
@@ -252,8 +247,9 @@ public abstract class TabletBase {
   Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, ScanParameters scanParams)
       throws IOException {
 
-    while (isServerRunningLowOnMemory(pauseScanStart,
+    while (isServerRunningLowOnMemory(
         "Not starting next batch because low on memory, extent: {}")) {
+      server.getScanMetrics().incrementScanPausedForLowMemory();
       Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }
 
@@ -305,8 +301,11 @@ public abstract class TabletBase {
 
       boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
 
-      boolean runningLowOnMemory = isServerRunningLowOnMemory(returnScanEarly,
-          "Not continuing next batch because low on memory, extent: {}");
+      boolean runningLowOnMemory =
+          isServerRunningLowOnMemory("Not continuing next batch because low on memory, extent: {}");
+      if (runningLowOnMemory) {
+        server.getScanMetrics().incrementEarlyReturnForLowMemory();
+      }
       if (runningLowOnMemory || resultSize >= maxResultsSize
           || results.size() >= scanParams.getMaxEntries() || timesUp) {
         continueKey = new Key(key);
@@ -347,8 +346,8 @@ public abstract class TabletBase {
   private Tablet.LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges,
       List<KVEntry> results, ScanParameters scanParams, long maxResultsSize) throws IOException {
 
-    while (isServerRunningLowOnMemory(pauseScanStart,
-        "Not starting lookup because low on memory, extent: {}")) {
+    while (isServerRunningLowOnMemory("Not starting lookup because low on memory, extent: {}")) {
+      server.getScanMetrics().incrementScanPausedForLowMemory();
       Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }
 
@@ -380,8 +379,11 @@ public abstract class TabletBase {
 
       boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
 
-      boolean runningLowOnMemory = isServerRunningLowOnMemory(returnScanEarly,
-          "Not continuing lookup because low on memory, extent: {}");
+      boolean runningLowOnMemory =
+          isServerRunningLowOnMemory("Not continuing lookup because low on memory, extent: {}");
+      if (runningLowOnMemory) {
+        server.getScanMetrics().incrementEarlyReturnForLowMemory();
+      }
       if (runningLowOnMemory || exceededMemoryUsage || tabletClosed || timesUp || yielded) {
         lookupResult.unfinishedRanges.add(range);
         continue;
@@ -413,8 +415,11 @@ public abstract class TabletBase {
 
           timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
 
-          runningLowOnMemory = isServerRunningLowOnMemory(returnScanEarly,
-              "Not continuing lookup because low on memory, extent: {}");
+          runningLowOnMemory =
+              isServerRunningLowOnMemory("Not continuing lookup because low on memory, extent: {}");
+          if (runningLowOnMemory) {
+            server.getScanMetrics().incrementEarlyReturnForLowMemory();
+          }
           if (runningLowOnMemory || exceededMemoryUsage || timesUp) {
             addUnfinishedRange(lookupResult, range, key);
             break;

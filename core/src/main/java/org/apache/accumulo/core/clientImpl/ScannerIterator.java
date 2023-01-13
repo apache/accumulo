@@ -151,12 +151,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       synchronized (scanState) {
         // this is synchronized so its mutually exclusive with closing
         Preconditions.checkState(!closed.get(), "Scanner was closed");
-        try {
-          batch = ThriftScanner.scan(scanState.context, scanState, timeOut);
-        } catch (Exception e) {
-          LoggerFactory.getLogger(ScannerIterator.class).error("Scanner threw error", e);
-          throw e;
-        }
+        batch = ThriftScanner.scan(scanState.context, scanState, timeOut);
       }
     } while (batch != null && batch.isEmpty());
 

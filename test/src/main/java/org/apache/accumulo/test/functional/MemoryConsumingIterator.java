@@ -38,8 +38,6 @@ public class MemoryConsumingIterator extends WrappingIterator {
 
   private static final Logger LOG = LoggerFactory.getLogger(MemoryConsumingIterator.class);
 
-  private static final int MEMORY_BUFFER_SIZE = 36 * 1024 * 1024;
-
   private static final List<byte[]> BUFFERS = new ArrayList<>();
 
   public static void freeBuffers() {
@@ -53,13 +51,22 @@ public class MemoryConsumingIterator extends WrappingIterator {
     long maxConfiguredMemory = runtime.maxMemory();
     long allocatedMemory = runtime.totalMemory();
     long allocatedFreeMemory = runtime.freeMemory();
-    long freeMem = (maxConfiguredMemory - (allocatedMemory - allocatedFreeMemory));
-    if (freeMem > Integer.MAX_VALUE) {
+    long freeMemory = maxConfiguredMemory - (allocatedMemory - allocatedFreeMemory);
+    long minimumFreeMemoryThreshold =
+        (long) (maxConfiguredMemory * MemoryStarvedScanIT.FREE_MEMORY_THRESHOLD);
+
+    int amountToConsume = 0;
+    if (freeMemory > minimumFreeMemoryThreshold) {
+      amountToConsume = (int) (freeMemory - (minimumFreeMemoryThreshold - 1048576));
+    }
+    if (amountToConsume > Integer.MAX_VALUE) {
       throw new IllegalStateException(
           "Unsupported memory size for tablet server when using this iterator");
     }
-    int free = (int) freeMem;
-    return Math.max(0, (free - MEMORY_BUFFER_SIZE));
+    amountToConsume = Math.max(0, amountToConsume);
+    LOG.info("max: {}, free: {}, minFree: {}, amountToConsume: {}", maxConfiguredMemory, freeMemory,
+        minimumFreeMemoryThreshold, amountToConsume);
+    return amountToConsume;
   }
 
   @Override

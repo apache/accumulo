@@ -86,33 +86,11 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.micrometer.core.instrument.Counter;
 
 /**
  * ResourceManager is responsible for managing the resources of all tablets within a tablet server.
  */
 public class TabletServerResourceManager {
-
-  public static class LowMemorySupplier implements Function<Counter,Boolean> {
-
-    private final LowMemoryDetector lmd;
-
-    public LowMemorySupplier(LowMemoryDetector gcl) {
-      this.lmd = gcl;
-    }
-
-    @Override
-    public Boolean apply(Counter counter) {
-      if (lmd.isRunningLowOnMemory()) {
-        if (counter != null) {
-          counter.increment(1.0D);
-        }
-        return true;
-      }
-      return false;
-    }
-
-  }
 
   private static final Logger log = LoggerFactory.getLogger(TabletServerResourceManager.class);
 
@@ -145,7 +123,7 @@ public class TabletServerResourceManager {
   private final ServerContext context;
 
   private Cache<String,Long> fileLenCache;
-  private final LowMemorySupplier lowMemorySupplier;
+  private final LowMemoryDetector lowMemorySupplier;
 
   /**
    * This method creates a task that changes the number of core and maximum threads on the thread
@@ -403,10 +381,10 @@ public class TabletServerResourceManager {
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().schedule(
         new AssignmentWatcher(acuConf, context, activeAssignments), 5000, TimeUnit.MILLISECONDS));
 
-    lowMemorySupplier = new LowMemorySupplier(tserver.getLowMemoryDetector());
+    lowMemorySupplier = tserver.getLowMemoryDetector();
   }
 
-  public LowMemorySupplier getLowMemorySupplier() {
+  public LowMemoryDetector getLowMemorySupplier() {
     return lowMemorySupplier;
   }
 
