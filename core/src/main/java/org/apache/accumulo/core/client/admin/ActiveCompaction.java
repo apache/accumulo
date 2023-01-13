@@ -29,16 +29,11 @@ import org.apache.accumulo.core.data.TabletId;
  */
 public abstract class ActiveCompaction {
 
-  public static enum CompactionType {
+  public enum CompactionType {
     /**
      * compaction to flush a tablets memory
      */
     MINOR,
-    /**
-     * Accumulo no longer does merging minor compactions.
-     */
-    @Deprecated(since = "2.1.0", forRemoval = true)
-    MERGE,
     /**
      * compaction that merges a subset of a tablets files into one file
      */
@@ -49,7 +44,7 @@ public abstract class ActiveCompaction {
     FULL
   }
 
-  public static enum CompactionReason {
+  public enum CompactionReason {
     /**
      * compaction initiated by user
      */

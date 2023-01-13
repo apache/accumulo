@@ -37,7 +37,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class CompactCommand extends TableOperation {
-  private Option noFlushOption, waitOpt, profileOpt, cancelOpt, strategyOpt, strategyConfigOpt;
+  private Option noFlushOption, waitOpt, profileOpt, cancelOpt;
 
   // file selection and file output options
   private Option enameOption, epathOption, sizeLtOption, sizeGtOption, minFilesOption,
@@ -117,10 +117,10 @@ public class CompactCommand extends TableOperation {
     put(cl, sopts, copts, outIndexBlockSizeOpt, CompactionSettings.OUTPUT_INDEX_BLOCK_SIZE_OPT);
     put(cl, sopts, copts, outReplication, CompactionSettings.OUTPUT_REPLICATION_OPT);
 
-    if ((!sopts.isEmpty() || !copts.isEmpty()) && (cl.hasOption(strategyOpt.getOpt())
-        || cl.hasOption(selectorOpt.getLongOpt()) || cl.hasOption(configurerOpt.getLongOpt()))) {
+    if ((!sopts.isEmpty() || !copts.isEmpty())
+        && (cl.hasOption(selectorOpt.getLongOpt()) || cl.hasOption(configurerOpt.getLongOpt()))) {
       throw new IllegalArgumentException(
-          "Can not specify compaction strategy/selector/configurer with file selection and file output options.");
+          "Can not specify compaction selector/configurer with file selection and file output options.");
     }
 
     if (!sopts.isEmpty()) {
@@ -172,23 +172,14 @@ public class CompactCommand extends TableOperation {
 
     setupConfigurableCompaction(cl, compactionConfig);
 
-    if (cl.hasOption(strategyOpt.getOpt())) {
-      if (cl.hasOption(selectorOpt.getLongOpt()) || cl.hasOption(configurerOpt.getLongOpt())) {
-        throw new IllegalArgumentException(
-            "Can not specify a strategy with a selector or configurer");
-      }
-      configureCompactionStrat(cl);
-    } else {
-      if (cl.hasOption(selectorOpt.getLongOpt())) {
-        compactionConfig.setSelector(new PluginConfig(cl.getOptionValue(selectorOpt.getLongOpt()),
-            ShellUtil.parseMapOpt(cl, selectorConfigOpt)));
-      }
+    if (cl.hasOption(selectorOpt.getLongOpt())) {
+      compactionConfig.setSelector(new PluginConfig(cl.getOptionValue(selectorOpt.getLongOpt()),
+          ShellUtil.parseMapOpt(cl, selectorConfigOpt)));
+    }
 
-      if (cl.hasOption(configurerOpt.getLongOpt())) {
-        compactionConfig
-            .setConfigurer(new PluginConfig(cl.getOptionValue(configurerOpt.getLongOpt()),
-                ShellUtil.parseMapOpt(cl, configurerConfigOpt)));
-      }
+    if (cl.hasOption(configurerOpt.getLongOpt())) {
+      compactionConfig.setConfigurer(new PluginConfig(cl.getOptionValue(configurerOpt.getLongOpt()),
+          ShellUtil.parseMapOpt(cl, configurerConfigOpt)));
     }
 
     if (cl.hasOption(hintsOption.getLongOpt())) {
@@ -196,14 +187,6 @@ public class CompactCommand extends TableOperation {
     }
 
     return super.execute(fullCommand, cl, shellState);
-  }
-
-  @SuppressWarnings("removal")
-  private void configureCompactionStrat(final CommandLine cl) {
-    var csc = new org.apache.accumulo.core.client.admin.CompactionStrategyConfig(
-        cl.getOptionValue(strategyOpt.getOpt()));
-    csc.setOptions(ShellUtil.parseMapOpt(cl, strategyConfigOpt));
-    compactionConfig.setCompactionStrategy(csc);
   }
 
   private Option newLAO(String lopt, String desc) {
@@ -225,12 +208,6 @@ public class CompactCommand extends TableOperation {
     profileOpt = new Option("pn", "profile", true, "Iterator profile name.");
     profileOpt.setArgName("profile");
     opts.addOption(profileOpt);
-
-    strategyOpt = new Option("s", "strategy", true, "compaction strategy class name");
-    opts.addOption(strategyOpt);
-    strategyConfigOpt = new Option("sc", "strategyConfig", true,
-        "Key value options for compaction strategy.  Expects <prop>=<value>{,<prop>=<value>}");
-    opts.addOption(strategyConfigOpt);
 
     hintsOption = newLAO("exec-hints",
         "Compaction execution hints.  Expects <prop>=<value>{,<prop>=<value>}");

@@ -37,6 +37,11 @@ import java.util.Set;
 public class AccumuloDataVersion {
 
   /**
+   * version (11) reflects removal of replication starting with 3.0
+   */
+  public static final int REMOVE_DEPRECATIONS_FOR_VERSION_3 = 11;
+
+  /**
    * version (10) reflects changes to how root tablet metadata is serialized in zookeeper starting
    * with 2.1. See {@link org.apache.accumulo.core.metadata.schema.RootTabletMetadata}.
    */
@@ -64,7 +69,7 @@ public class AccumuloDataVersion {
    * <li>version (4) moves logging to HDFS in 1.5.0
    * </ul>
    */
-  private static final int CURRENT_VERSION = ROOT_TABLET_META_CHANGES;
+  private static final int CURRENT_VERSION = REMOVE_DEPRECATIONS_FOR_VERSION_3;
 
   /**
    * Get the current Accumulo Data Version. See Javadoc of static final integers for a detailed
@@ -77,5 +82,5 @@ public class AccumuloDataVersion {
   }
 
   public static final Set<Integer> CAN_RUN =
-      Set.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, CURRENT_VERSION);
+      Set.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, ROOT_TABLET_META_CHANGES, CURRENT_VERSION);
 }
