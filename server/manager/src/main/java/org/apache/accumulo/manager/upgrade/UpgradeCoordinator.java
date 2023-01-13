@@ -107,10 +107,8 @@ public class UpgradeCoordinator {
 
   private int currentVersion;
   // map of "current version" -> upgrader to next version.
-  private final Map<Integer,
-      Upgrader> upgraders = Map.of(AccumuloDataVersion.SHORTEN_RFILE_KEYS, new Upgrader8to9(),
-          AccumuloDataVersion.CRYPTO_CHANGES, new Upgrader9to10(),
-          AccumuloDataVersion.ROOT_TABLET_META_CHANGES, new Upgrader10to11());
+  private final Map<Integer,Upgrader> upgraders =
+      Map.of(AccumuloDataVersion.ROOT_TABLET_META_CHANGES, new Upgrader10to11());
 
   private volatile UpgradeStatus status;
 
@@ -142,10 +140,13 @@ public class UpgradeCoordinator {
         "Not currently in a suitable state to do zookeeper upgrade %s", status);
 
     try {
-      int cv = context.getServerDirs()
-          .getAccumuloPersistentVersion(context.getVolumeManager().getFirst());
-      ServerContext.ensureDataVersionCompatible(cv);
+      int cv = AccumuloDataVersion.getCurrentVersion(context);
       this.currentVersion = cv;
+
+      if (cv < AccumuloDataVersion.ROOT_TABLET_META_CHANGES) {
+        throw new UnsupportedOperationException(
+            "Upgrading from a version before 2.1 is not supported. Upgrade to 2.1 before upgrading to 3.x");
+      }
 
       if (cv == AccumuloDataVersion.get()) {
         status = UpgradeStatus.COMPLETE;

@@ -135,7 +135,8 @@ public class ServerContextTest {
     // ensure this fails with older versions; the oldest supported version is hard-coded here
     // to ensure we don't unintentionally break upgrade support; changing this should be a conscious
     // decision and this check will ensure we don't overlook it
-    final int oldestSupported = 8;
+    // as of 3.0 we will only support upgrades from 2.1
+    final int oldestSupported = AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
     final int currentVersion = AccumuloDataVersion.get();
     IntConsumer shouldPass = ServerContext::ensureDataVersionCompatible;
     IntConsumer shouldFail = v -> assertThrows(IllegalStateException.class,

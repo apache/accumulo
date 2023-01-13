@@ -48,18 +48,6 @@ public class AccumuloDataVersion {
   public static final int ROOT_TABLET_META_CHANGES = 10;
 
   /**
-   * version (9) reflects changes to crypto that resulted in RFiles and WALs being serialized
-   * differently in version 2.0.0. Also RFiles in 2.0.0 may have summary data.
-   */
-  public static final int CRYPTO_CHANGES = 9;
-
-  /**
-   * version (8) reflects changes to RFile index (ACCUMULO-1124) AND the change to WAL tracking in
-   * ZK in version 1.8.0
-   */
-  public static final int SHORTEN_RFILE_KEYS = 8;
-
-  /**
    * Historic data versions
    *
    * <ul>
@@ -81,6 +69,18 @@ public class AccumuloDataVersion {
     return CURRENT_VERSION;
   }
 
-  public static final Set<Integer> CAN_RUN =
-      Set.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, ROOT_TABLET_META_CHANGES, CURRENT_VERSION);
+  public static final Set<Integer> CAN_RUN = Set.of(ROOT_TABLET_META_CHANGES, CURRENT_VERSION);
+
+  /**
+   * Get the stored, current working version.
+   *
+   * @param context the server context
+   * @return the stored data version
+   */
+  public static int getCurrentVersion(ServerContext context) {
+    int cv =
+        context.getServerDirs().getAccumuloPersistentVersion(context.getVolumeManager().getFirst());
+    ServerContext.ensureDataVersionCompatible(cv);
+    return cv;
+  }
 }
