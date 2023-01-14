@@ -127,30 +127,14 @@ public class ConfigCommand extends Command {
       value = pair[1];
 
       if (tableName != null) {
-        if (!Property.isTablePropertyValid(property, value)) {
-          if (!Property.isValidTablePropertyKey(property)) {
-            throw new BadArgumentException("Invalid per-table property.", fullCommand,
-                fullCommand.indexOf(property));
-          } else {
-            throw new BadArgumentException("Invalid property value.", fullCommand,
-                fullCommand.indexOf(value));
-          }
-        }
+        validatePropertyType(property, value, fullCommand, tableName);
         if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) {
           new ColumnVisibility(value); // validate that it is a valid expression
         }
         shellState.getAccumuloClient().tableOperations().setProperty(tableName, property, value);
         Shell.log.debug("Successfully set table configuration option.");
       } else if (namespace != null) {
-        if (!Property.isTablePropertyValid(property, value)) {
-          if (!Property.isValidTablePropertyKey(property)) {
-            throw new BadArgumentException("Invalid per-table property.", fullCommand,
-                fullCommand.indexOf(property));
-          } else {
-            throw new BadArgumentException("Invalid property value.", fullCommand,
-                fullCommand.indexOf(value));
-          }
-        }
+        validatePropertyType(property, value, fullCommand, namespace);
         if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) {
           new ColumnVisibility(value); // validate that it is a valid expression
         }
@@ -158,16 +142,7 @@ public class ConfigCommand extends Command {
             value);
         Shell.log.debug("Successfully set table configuration option.");
       } else {
-        if (!Property.isValidZooPropertyKey(property)) {
-          throw new BadArgumentException("Property cannot be modified in zookeeper", fullCommand,
-              fullCommand.indexOf(property));
-        }
-        if (!Property.getPropertyByKey(property).getType().isValidFormat(value)) {
-          throw new BadArgumentException(
-              "Invalid Property value (requires type: "
-                  + Property.getPropertyByKey(property).getType().toString() + ")",
-              fullCommand, fullCommand.indexOf(value));
-        }
+        validatePropertyType(property, value, fullCommand);
         shellState.getAccumuloClient().instanceOperations().setProperty(property, value);
         Shell.log.debug("Successfully set system configuration option.");
       }
@@ -367,6 +342,31 @@ public class ConfigCommand extends Command {
       }
     }
     return 0;
+  }
+
+  private void validatePropertyType(String property, String value, String fullCommand,
+      String tableName) throws BadArgumentException {
+    if (tableName != null) {
+      if (!Property.isValidTablePropertyKey(property)) {
+        throw new BadArgumentException("Invalid per-table property: " + property, fullCommand,
+            fullCommand.indexOf(property));
+      }
+    }
+    if (!Property.isValidZooPropertyKey(property)) {
+      throw new BadArgumentException("Property " + property + " cannot be modified in zookeeper",
+          fullCommand, fullCommand.indexOf(property));
+    }
+    if (!Property.getPropertyByKey(property).getType().isValidFormat(value)) {
+      throw new BadArgumentException(
+          "Invalid Property value (requires type: "
+              + Property.getPropertyByKey(property).getType().toString() + ")",
+          fullCommand, fullCommand.indexOf(value));
+    }
+  }
+
+  private void validatePropertyType(String property, String value, String fullCommand)
+      throws BadArgumentException {
+    validatePropertyType(property, value, fullCommand, null);
   }
 
   private boolean matchTheFilterText(CommandLine cl, String key, String value) {
