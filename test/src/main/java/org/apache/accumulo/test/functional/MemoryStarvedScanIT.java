@@ -156,7 +156,8 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
   private void freeServerMemory(AccumuloClient client, String table) throws Exception {
     try (Scanner scanner = client.createScanner(table)) {
       scanner.addScanIterator(new IteratorSetting(11, MemoryFreeingIterator.class, Map.of()));
-      scanner.iterator(); // init'ing the iterator should be enough to free the memory
+      @SuppressWarnings("unused")
+      Iterator<Entry<Key,Value>> iter = scanner.iterator(); // init'ing the iterator should be enough to free the memory
     }
   }
 
