@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
-import org.slf4j.LoggerFactory;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
@@ -124,14 +123,10 @@ public class TabletServerScanMetrics implements MetricsProducer {
 
   public void incrementScanPausedForLowMemory() {
     pausedForMemory.increment();
-    LoggerFactory.getLogger(TabletServerScanMetrics.class).info("Paused for memory: {}",
-        pausedForMemory.count());
   }
 
   public void incrementEarlyReturnForLowMemory() {
     earlyReturnForMemory.increment();
-    LoggerFactory.getLogger(TabletServerScanMetrics.class).info("Returned for memory: {}",
-        earlyReturnForMemory.count());
   }
 
   @Override
