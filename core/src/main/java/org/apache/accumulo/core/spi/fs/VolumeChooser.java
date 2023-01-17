@@ -23,13 +23,18 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.Property;
 
 /**
- * Helper used to select from a set of Volume URIs. N.B. implementations must be threadsafe.
- * VolumeChooser.equals will be used for internal caching.
- *
+ * Helper used to select a volume from a set of Volume URIs.
  * <p>
- * Implementations may wish to store configuration in Accumulo's system configuration using the
- * {@link Property#GENERAL_ARBITRARY_PROP_PREFIX}. They may also benefit from using per-table
- * configuration using {@link Property#TABLE_ARBITRARY_PROP_PREFIX}.
+ * Volumes will be selected based on defined option criteria. Note: Implementations must be
+ * threadsafe.<br>
+ * VolumeChooser.equals will be used for internal caching.<br>
+ * <p>
+ * Property Details:<br>
+ * {@link Property#GENERAL_ARBITRARY_PROP_PREFIX} and {@link Property#TABLE_ARBITRARY_PROP_PREFIX}
+ * can be used to define user-specific properties to ensure separation from Accumulo System
+ * defaults.<br>
+ *
+ * Note: The default VolumeChooser implementation is set by {@link Property#GENERAL_VOLUME_CHOOSER}.
  *
  * @since 2.1.0
  */
@@ -40,19 +45,18 @@ public interface VolumeChooser {
    *
    * @param env the server environment provided by the calling framework
    * @param options the list of volumes to choose from
-   * @return one of the options
+   * @return a volume from the list of volume options
    */
   String choose(VolumeChooserEnvironment env, Set<String> options);
 
   /**
-   * Return the subset of volumes that could possibly be chosen by this chooser across all
-   * invocations of {@link #choose(VolumeChooserEnvironment, Set)}. Currently this is used to
-   * determine if all of the volumes that could be chosen for write ahead logs support the needed
-   * filesystem operations. There may be other use cases in the future.
+   * Return the subset of all possible volumes that could be chosen across all invocations of
+   * {@link #choose(VolumeChooserEnvironment, Set)}.<br>
    *
-   * @param env the server environment provided by the calling framework
-   * @param options the subset of volumes to choose from
-   * @return array of valid options
+   * This is currently used to determine if the chosen volumes can support the required filesystem
+   * operations for write ahead logs.<br>
+   *
+   * There may be other use cases in the future.
    */
   Set<String> choosable(VolumeChooserEnvironment env, Set<String> options);
 }

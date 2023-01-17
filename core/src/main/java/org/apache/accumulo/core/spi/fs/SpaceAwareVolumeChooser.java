@@ -41,7 +41,7 @@ import com.google.common.cache.LoadingCache;
 
 /**
  * A {@link PreferredVolumeChooser} that takes remaining HDFS space into account when making a
- * volume choice rather than a simpler round robin. The list of volumes to use can be limited using
+ * volume choice rather than a simpler round-robin. The list of volumes to use can be limited using
  * the same properties as {@link PreferredVolumeChooser}
  *
  * @since 2.1.0
