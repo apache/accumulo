@@ -31,7 +31,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -209,19 +208,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     determineMaxFilesToCompact(params);
   }
 
-  @SuppressWarnings("removal")
   private void determineMaxFilesToCompact(InitParameters params) {
-    String fqo = params.getFullyQualifiedOption("maxOpen");
-    if (!params.getServiceEnvironment().getConfiguration().isSet(fqo)
-        && params.getServiceEnvironment().getConfiguration()
-            .isSet(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey())) {
-      log.warn("The property " + Property.TSERV_MAJC_THREAD_MAXOPEN.getKey()
-          + " was set, it is deprecated.  Set the " + fqo + " option instead.");
-      this.maxFilesToCompact = Integer.parseInt(params.getServiceEnvironment().getConfiguration()
-          .get(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey()));
-    } else {
-      this.maxFilesToCompact = Integer.parseInt(params.getOptions().getOrDefault("maxOpen", "10"));
-    }
+    this.maxFilesToCompact = Integer.parseInt(params.getOptions().getOrDefault("maxOpen", "10"));
   }
 
   @Override

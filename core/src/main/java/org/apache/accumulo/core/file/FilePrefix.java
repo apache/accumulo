@@ -16,14 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.compaction;
+package org.apache.accumulo.core.file;
 
-import org.apache.accumulo.core.conf.Property;
+import java.util.stream.Stream;
 
-public class CompactionRateLimitingDeprecatedIT extends CompactionRateLimitingIT {
-  @Override
-  @SuppressWarnings("removal")
-  protected Property getThroughputProp() {
-    return Property.TSERV_MAJC_THROUGHPUT;
+public enum FilePrefix {
+
+  BULK_IMPORT("I"), MINOR_COMPACTION("F"), MAJOR_COMPACTION("C"), MAJOR_COMPACTION_ALL_FILES("A");
+
+  String prefix;
+
+  FilePrefix(String prefix) {
+    this.prefix = prefix;
   }
+
+  public static FilePrefix fromPrefix(String prefix) {
+    return Stream.of(FilePrefix.values()).filter(p -> p.prefix.equals(prefix)).findAny()
+        .orElseThrow(() -> new IllegalArgumentException("Unknown prefix type: " + prefix));
+  }
+
+  public String toPrefix() {
+    return this.prefix;
+  }
+
 }
