@@ -28,10 +28,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -64,7 +64,6 @@ public class ScanServerTest {
     private KeyExtent extent;
     private TabletResolver resolver;
     private ScanReservation reservation;
-    private boolean loadTabletFailure = false;
 
     protected TestScanServer(ScanServerOpts opts, String[] args) {
       super(opts, args);
@@ -92,11 +91,8 @@ public class ScanServerTest {
     }
 
     @Override
-    protected ScanReservation reserveFiles(Collection<KeyExtent> extents)
-        throws NotServingTabletException, AccumuloException {
-      if (loadTabletFailure) {
-        throw new NotServingTabletException();
-      }
+    protected ScanReservation reserveFiles(Map<KeyExtent,List<TRange>> extents)
+        throws AccumuloException {
       return reservation;
     }
 
@@ -129,6 +125,7 @@ public class ScanServerTest {
     TabletResolver resolver = createMock(TabletResolver.class);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
+    expect(reservation.getFailures()).andReturn(Map.of());
     expect(reservation.newTablet(ss, sextent)).andReturn(tablet);
     reservation.close();
     reservation.close();
@@ -156,13 +153,15 @@ public class ScanServerTest {
   }
 
   @Test
-  public void testTabletLoadFailure() throws Exception {
+  public void testScanTabletLoadFailure() throws Exception {
     handler = createMock(ThriftScanClientHandler.class);
 
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
+    KeyExtent extent = createMock(KeyExtent.class);
     TKeyExtent textent = createMock(TKeyExtent.class);
     TRange trange = createMock(TRange.class);
+    List<TRange> ranges = new ArrayList<>();
     List<TColumn> tcols = new ArrayList<>();
     List<IterInfo> titer = new ArrayList<>();
     Map<String,Map<String,String>> ssio = new HashMap<>();
@@ -170,18 +169,22 @@ public class ScanServerTest {
     TSamplerConfiguration tsc = createMock(TSamplerConfiguration.class);
     String classLoaderContext = new String();
     Map<String,String> execHints = new HashMap<>();
+    ScanReservation reservation = createMock(ScanReservation.class);
 
     expect(handler.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false,
         false, 10, tsc, 30L, classLoaderContext, execHints, 0L))
         .andReturn(new InitialScan(15, null));
+    expect(reservation.getFailures()).andReturn(Map.of(textent, ranges));
+    reservation.close();
     expect(handler.continueScan(tinfo, 15, 0L)).andReturn(new ScanResult());
     handler.closeScan(tinfo, 15);
 
-    replay(handler);
+    replay(handler, reservation);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
+    ss.extent = extent;
     ss.delegate = handler;
-    ss.loadTabletFailure = true;
+    ss.reservation = reservation;
 
     assertThrows(NotServingTabletException.class, () -> {
       ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
@@ -221,6 +224,8 @@ public class ScanServerTest {
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
     expect(reservation.newTablet(ss, extent)).andReturn(tablet);
+    expect(reservation.getTabletMetadataExtents()).andReturn(Set.of(extent));
+    expect(reservation.getFailures()).andReturn(Map.of());
     reservation.close();
     reservation.close();
     expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, batch, ssio, auths, false, tsc, 30L,
@@ -245,6 +250,67 @@ public class ScanServerTest {
     assertEquals(15, is.getScanID());
     ss.closeMultiScan(tinfo, is.getScanID());
     verify(handler);
+  }
+
+  @Test
+  public void testBatchScanTabletLoadFailure() throws Exception {
+    handler = createMock(ThriftScanClientHandler.class);
+
+    TInfo tinfo = createMock(TInfo.class);
+    TCredentials tcreds = createMock(TCredentials.class);
+    List<TRange> ranges = new ArrayList<>();
+    KeyExtent extent = createMock(KeyExtent.class);
+    TKeyExtent textent = createMock(TKeyExtent.class);
+    ScanReservation reservation = createMock(ScanReservation.class);
+    SnapshotTablet tablet = createMock(SnapshotTablet.class);
+    Map<KeyExtent,List<TRange>> batch = new HashMap<>();
+    batch.put(extent, ranges);
+    List<TColumn> tcols = new ArrayList<>();
+    List<IterInfo> titer = new ArrayList<>();
+    Map<String,Map<String,String>> ssio = new HashMap<>();
+    List<ByteBuffer> auths = new ArrayList<>();
+    TSamplerConfiguration tsc = createMock(TSamplerConfiguration.class);
+    String classLoaderContext = new String();
+    Map<String,String> execHints = new HashMap<>();
+    Map<KeyExtent,TabletBase> tablets = new HashMap<>();
+    TabletResolver resolver = new TabletResolver() {
+      @Override
+      public TabletBase getTablet(KeyExtent extent) {
+        return tablets.get(extent);
+      }
+
+      @Override
+      public void close() {}
+    };
+
+    TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
+    expect(reservation.newTablet(ss, extent)).andReturn(tablet);
+    expect(reservation.getTabletMetadataExtents()).andReturn(Set.of());
+    expect(reservation.getFailures()).andReturn(Map.of(textent, ranges)).anyTimes();
+    reservation.close();
+    reservation.close();
+    InitialMultiScan ims = new InitialMultiScan(15, null);
+    ims.setResult(new MultiScanResult());
+    expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, batch, ssio, auths, false, tsc, 30L,
+        classLoaderContext, execHints, resolver, 0L)).andReturn(ims);
+    expect(handler.continueMultiScan(tinfo, 15, 0L)).andReturn(new MultiScanResult());
+    handler.closeMultiScan(tinfo, 15);
+
+    replay(reservation, handler);
+
+    ss.delegate = handler;
+    ss.extent = extent;
+    ss.resolver = resolver;
+    ss.reservation = reservation;
+    ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
+
+    Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
+    extents.put(textent, ranges);
+    InitialMultiScan is = ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths,
+        false, tsc, 30L, classLoaderContext, execHints, 0L);
+    assertEquals(15, is.getScanID());
+    assertEquals(0, is.getResult().getFailuresSize());
+
   }
 
   @Test
