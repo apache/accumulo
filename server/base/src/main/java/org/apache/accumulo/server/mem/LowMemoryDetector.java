@@ -37,8 +37,8 @@ public class LowMemoryDetector {
   private final HashMap<String,Long> prevGcTime = new HashMap<>();
   private long lastMemorySize = 0;
   private long gcTimeIncreasedCount = 0;
-  private static long lastMemoryCheckTime = 0;
-  private static final Lock memCheckTimeLock = new ReentrantLock();
+  private long lastMemoryCheckTime = 0;
+  private final Lock memCheckTimeLock = new ReentrantLock();
   private volatile boolean runningLowOnMemory = false;
   private final LowMemoryDetectorConfiguration configuration;
 

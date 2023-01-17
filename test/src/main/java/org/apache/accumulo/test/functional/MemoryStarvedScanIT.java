@@ -194,7 +194,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testPausesDuringScan() throws Exception {
+  public void testScanPauses() throws Exception {
 
     String table = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -208,7 +208,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
           Scanner memoryConsumingScanner = client.createScanner(table)) {
 
         dataConsumingScanner.addScanIterator(
-            new IteratorSetting(11, SlowIterator.class, Map.of("sleepTime", "1000")));
+            new IteratorSetting(11, SlowIterator.class, Map.of("sleepTime", "500")));
         dataConsumingScanner.setBatchSize(1);
         dataConsumingScanner.setReadaheadThreshold(Long.MAX_VALUE);
         Iterator<Entry<Key,Value>> iter = dataConsumingScanner.iterator();
@@ -234,9 +234,6 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         Iterator<Entry<Key,Value>> consumingIter = memoryConsumingScanner.iterator();
         assertTrue(consumingIter.hasNext());
 
-        // memoryConsumingScanner uses the SlowIterator, wait a few seconds.
-        Thread.sleep(2000);
-
         // Confirm that some data was fetched by the memoryConsumingScanner
         int currentCount = fetched.get();
         assertTrue(currentCount > 0 && currentCount < 100);
@@ -246,7 +243,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         // and that the scan delay counter has increased.
         Double returned = SCAN_RETURNED_EARLY.doubleValue();
         Double paused = SCAN_START_DELAYED.doubleValue();
-        Thread.sleep(2000);
+        Thread.sleep(1500);
         assertEquals(currentCount, fetched.get());
         assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
         assertTrue(SCAN_RETURNED_EARLY.doubleValue() >= returned);
@@ -254,7 +251,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         // Perform the check again
         paused = SCAN_START_DELAYED.doubleValue();
         returned = SCAN_RETURNED_EARLY.doubleValue();
-        Thread.sleep(2000);
+        Thread.sleep(1500);
         assertEquals(currentCount, fetched.get());
         assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
         assertTrue(SCAN_RETURNED_EARLY.doubleValue() == returned);
@@ -303,7 +300,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testPausesDuringBatchScan() throws Exception {
+  public void testBatchScanPauses() throws Exception {
 
     String table = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -317,7 +314,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
           Scanner memoryConsumingScanner = client.createScanner(table)) {
 
         dataConsumingScanner.addScanIterator(
-            new IteratorSetting(11, SlowIterator.class, Map.of("sleepTime", "1000")));
+            new IteratorSetting(11, SlowIterator.class, Map.of("sleepTime", "500")));
         dataConsumingScanner.setRanges(Collections.singletonList(new Range()));
         Iterator<Entry<Key,Value>> iter = dataConsumingScanner.iterator();
         AtomicInteger fetched = new AtomicInteger(0);
@@ -342,9 +339,6 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         Iterator<Entry<Key,Value>> consumingIter = memoryConsumingScanner.iterator();
         assertTrue(consumingIter.hasNext());
 
-        // memoryConsumingScanner uses the SlowIterator, wait a few seconds.
-        Thread.sleep(2000);
-
         // Confirm that some data was fetched by the memoryConsumingScanner
         int currentCount = fetched.get();
         assertTrue(currentCount > 0 && currentCount < 100);
@@ -354,7 +348,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         // and that the scan delay counter has increased.
         Double returned = SCAN_RETURNED_EARLY.doubleValue();
         Double paused = SCAN_START_DELAYED.doubleValue();
-        Thread.sleep(2000);
+        Thread.sleep(1500);
         assertEquals(currentCount, fetched.get());
         assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
         assertTrue(SCAN_RETURNED_EARLY.doubleValue() >= returned);
@@ -362,7 +356,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         // Perform the check again
         paused = SCAN_START_DELAYED.doubleValue();
         returned = SCAN_RETURNED_EARLY.doubleValue();
-        Thread.sleep(2000);
+        Thread.sleep(1500);
         assertEquals(currentCount, fetched.get());
         assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
         assertTrue(SCAN_RETURNED_EARLY.doubleValue() == returned);

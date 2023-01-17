@@ -66,7 +66,7 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
 
   protected abstract LowMemoryDetectorConfiguration getLowMemoryDetectorProperties();
 
-  protected void startLowMemoryDetector() {
+  private void startLowMemoryDetector() {
     ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(
         () -> lowMemDetector.logGCInfo(getConfiguration()), 0,
         lowMemDetector.getIntervalMillis(getConfiguration()), TimeUnit.MILLISECONDS);
