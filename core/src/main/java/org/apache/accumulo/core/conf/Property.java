@@ -356,7 +356,7 @@ public enum Property {
       PropertyType.TIMEDURATION, "The number of milliseconds between low memory checks", "3.0.0"),
   MANAGER_LOW_MEM_DETECTOR_THRESHOLD("manager.low.mem.detector.treshold", "0.05",
       PropertyType.FRACTION,
-      "The percentage of total memory that must be free for the LowMemoryDetector to do nothing",
+      "The LowMemoryDetector will report when free memory drops below this percentage of total memory",
       "3.0.0"),
   // properties that are specific to scan server behavior
   @Experimental
@@ -395,7 +395,7 @@ public enum Property {
   @Experimental
   SSERV_LOW_MEM_DETECTOR_THRESHOLD("sserver.low.mem.detector.treshold", "0.05",
       PropertyType.FRACTION,
-      "The percentage of total memory that must be free for the LowMemoryDetector to do nothing",
+      "The LowMemoryDetector will report when free memory drops below this percentage of total memory",
       "3.0.0"),
   @Experimental
   SSERV_MAX_MESSAGE_SIZE("sserver.server.message.size.max", "1G", PropertyType.BYTES,
@@ -671,7 +671,7 @@ public enum Property {
       PropertyType.TIMEDURATION, "The number of milliseconds between low memory checks", "3.0.0"),
   TSERV_LOW_MEM_DETECTOR_THRESHOLD("tserver.low.mem.detector.treshold", "0.05",
       PropertyType.FRACTION,
-      "The percentage of total memory that must be free for the LowMemoryDetector to do nothing",
+      "The LowMemoryDetector will report when free memory drops below this percentage of total memory",
       "3.0.0"),
   TSERV_HOLD_TIME_SUICIDE("tserver.hold.time.max", "5m", PropertyType.TIMEDURATION,
       "The maximum time for a tablet server to be in the \"memory full\" state."
@@ -763,7 +763,7 @@ public enum Property {
   GC_LOW_MEM_DETECTOR_INTERVAL("gc.low.mem.detector.interval", "5s", PropertyType.TIMEDURATION,
       "The number of milliseconds between low memory checks", "3.0.0"),
   GC_LOW_MEM_DETECTOR_THRESHOLD("gc.low.mem.detector.treshold", "0.05", PropertyType.FRACTION,
-      "The percentage of total memory that must be free for the LowMemoryDetector to do nothing",
+      "The LowMemoryDetector will report when free memory drops below this percentage of total memory",
       "3.0.0"),
   GC_TRASH_IGNORE("gc.trash.ignore", "false", PropertyType.BOOLEAN,
       "Do not use the Trash, even if it is configured.", "1.5.0"),
@@ -829,7 +829,7 @@ public enum Property {
       PropertyType.TIMEDURATION, "The number of milliseconds between low memory checks", "3.0.0"),
   MONITOR_LOW_MEM_DETECTOR_THRESHOLD("monitor.low.mem.detector.treshold", "0.05",
       PropertyType.FRACTION,
-      "The percentage of total memory that must be free for the LowMemoryDetector to do nothing",
+      "The LowMemoryDetector will report when free memory drops below this percentage of total memory",
       "3.0.0"),
 
   // per table properties
@@ -1185,7 +1185,7 @@ public enum Property {
   @Experimental
   COMPACTOR_LOW_MEM_DETECTOR_THRESHOLD("compactor.low.mem.detector.treshold", "0.05",
       PropertyType.FRACTION,
-      "The percentage of total memory that must be free for the LowMemoryDetector to do nothing",
+      "The LowMemoryDetector will report when free memory drops below this percentage of total memory",
       "3.0.0"),
   // CompactionCoordinator properties
   @Experimental
@@ -1213,7 +1213,7 @@ public enum Property {
   @Experimental
   COMPACTION_COORDINATOR_LOW_MEM_DETECTOR_THRESHOLD(
       "compaction.coordinator.low.mem.detector.treshold", "0.05", PropertyType.FRACTION,
-      "The percentage of total memory that must be free for the LowMemoryDetector to do nothing",
+      "The LowMemoryDetector will report when free memory drops below this percentage of total memory",
       "3.0.0"),
   @Experimental
   COMPACTION_COORDINATOR_MINTHREADS("compaction.coordinator.threads.minimum", "1",

@@ -157,7 +157,8 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     try (Scanner scanner = client.createScanner(table)) {
       scanner.addScanIterator(new IteratorSetting(11, MemoryFreeingIterator.class, Map.of()));
       @SuppressWarnings("unused")
-      Iterator<Entry<Key,Value>> iter = scanner.iterator(); // init'ing the iterator should be enough to free the memory
+      Iterator<Entry<Key,Value>> iter = scanner.iterator(); // init'ing the iterator should be
+                                                            // enough to free the memory
     }
   }
 
