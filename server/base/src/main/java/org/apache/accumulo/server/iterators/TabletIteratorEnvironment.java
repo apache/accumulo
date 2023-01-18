@@ -236,5 +236,4 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   public TableId getTableId() {
     return tableId;
   }
-
 }
