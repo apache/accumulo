@@ -158,24 +158,7 @@ public class CompactorTest {
 
   }
 
-  public class BaseTestCompactor extends Compactor {
-
-    private LowMemoryDetector lmd;
-
-    protected BaseTestCompactor(CompactorServerOpts opts, String[] args,
-        AccumuloConfiguration conf) {
-      super(opts, args, conf);
-      lmd = new LowMemoryDetector(getLowMemoryDetectorProperties());
-    }
-
-    @Override
-    public LowMemoryDetector getLowMemoryDetector() {
-      return lmd;
-    }
-
-  }
-
-  public class SuccessfulCompactor extends BaseTestCompactor {
+  public class SuccessfulCompactor extends Compactor {
 
     private final Logger LOG = LoggerFactory.getLogger(SuccessfulCompactor.class);
 
@@ -346,6 +329,7 @@ public class CompactorTest {
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    expect(context.getLowMemoryDetector()).andReturn(new LowMemoryDetector()).anyTimes();
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
@@ -394,6 +378,7 @@ public class CompactorTest {
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    expect(context.getLowMemoryDetector()).andReturn(new LowMemoryDetector()).anyTimes();
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
@@ -442,6 +427,7 @@ public class CompactorTest {
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    expect(context.getLowMemoryDetector()).andReturn(new LowMemoryDetector()).anyTimes();
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();

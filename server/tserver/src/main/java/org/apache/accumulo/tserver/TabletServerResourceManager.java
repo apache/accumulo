@@ -71,7 +71,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.fs.FileManager;
 import org.apache.accumulo.server.fs.FileManager.ScanFileManager;
-import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.tserver.memory.LargestFirstMemoryManager;
 import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.apache.accumulo.tserver.memory.TabletMemoryReport;
@@ -123,7 +122,6 @@ public class TabletServerResourceManager {
   private final ServerContext context;
 
   private Cache<String,Long> fileLenCache;
-  private final LowMemoryDetector lowMemorySupplier;
 
   /**
    * This method creates a task that changes the number of core and maximum threads on the thread
@@ -381,11 +379,6 @@ public class TabletServerResourceManager {
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().schedule(
         new AssignmentWatcher(acuConf, context, activeAssignments), 5000, TimeUnit.MILLISECONDS));
 
-    lowMemorySupplier = tserver.getLowMemoryDetector();
-  }
-
-  public LowMemoryDetector getLowMemorySupplier() {
-    return lowMemorySupplier;
   }
 
   /**

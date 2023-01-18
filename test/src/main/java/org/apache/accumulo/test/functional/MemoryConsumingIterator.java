@@ -57,7 +57,7 @@ public class MemoryConsumingIterator extends WrappingIterator {
 
     int amountToConsume = 0;
     if (freeMemory > minimumFreeMemoryThreshold) {
-      amountToConsume = (int) (freeMemory - (minimumFreeMemoryThreshold - 1048576));
+      amountToConsume = (int) (freeMemory - (minimumFreeMemoryThreshold - 10485760));
     }
     if (amountToConsume > Integer.MAX_VALUE) {
       throw new IllegalStateException(
@@ -80,7 +80,7 @@ public class MemoryConsumingIterator extends WrappingIterator {
         BUFFERS.add(new byte[amountToConsume]);
         LOG.info("memory allocated");
       } else {
-        LOG.info("Waiting for GCLogger to recognize low on memory condition.");
+        LOG.info("Waiting for LowMemoryDetector to recognize low on memory condition.");
       }
       Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
     }

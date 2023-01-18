@@ -37,24 +37,21 @@ public class LowMemoryDetector {
   private final HashMap<String,Long> prevGcTime = new HashMap<>();
   private long lastMemorySize = 0;
   private long gcTimeIncreasedCount = 0;
-  private long lastMemoryCheckTime = 0;
-  private final Lock memCheckTimeLock = new ReentrantLock();
+  private static long lastMemoryCheckTime = 0;
+  private static final Lock memCheckTimeLock = new ReentrantLock();
   private volatile boolean runningLowOnMemory = false;
-  private final LowMemoryDetectorConfiguration configuration;
-
-  public LowMemoryDetector(LowMemoryDetectorConfiguration config) {
-    this.configuration = config;
-  }
 
   public long getIntervalMillis(AccumuloConfiguration conf) {
-    return conf.getTimeInMillis(this.configuration.checkIntervalProperty());
+    return conf.getTimeInMillis(Property.GENERAL_LOW_MEM_DETECTOR_INTERVAL);
+  }
+
+  public boolean isRunningLowOnMemory() {
+    return runningLowOnMemory;
   }
 
   public void logGCInfo(AccumuloConfiguration conf) {
 
-    Double freeMemoryPercentage =
-        conf.getFraction(this.configuration.freeMemoryThresholdProperty());
-    boolean isActive = conf.getBoolean(this.configuration.activeProperty());
+    Double freeMemoryPercentage = conf.getFraction(Property.GENERAL_LOW_MEM_DETECTOR_THRESHOLD);
 
     memCheckTimeLock.lock();
     try {
@@ -96,9 +93,7 @@ public class LowMemoryDetector {
       } else {
         gcTimeIncreasedCount++;
         if (gcTimeIncreasedCount > 3 && mem < rt.maxMemory() * freeMemoryPercentage) {
-          if (isActive) {
-            runningLowOnMemory = true;
-          }
+          runningLowOnMemory = true;
           log.warn("Running low on memory");
           gcTimeIncreasedCount = 0;
         } else {
@@ -145,10 +140,6 @@ public class LowMemoryDetector {
     } finally {
       memCheckTimeLock.unlock();
     }
-  }
-
-  public boolean isRunningLowOnMemory() {
-    return runningLowOnMemory;
   }
 
 }

@@ -65,10 +65,10 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
       // Configure the LowMemoryDetector in the TabletServer
       // check on 1s intervals and set low mem condition if more than 80% of
       // the heap is used.
-      cfg.setProperty(Property.TSERV_LOW_MEM_DETECTOR_ACTIVE, "true");
-      cfg.setProperty(Property.TSERV_LOW_MEM_DETECTOR_INTERVAL, "5s");
-      cfg.setProperty(Property.TSERV_LOW_MEM_DETECTOR_THRESHOLD,
+      cfg.setProperty(Property.GENERAL_LOW_MEM_DETECTOR_INTERVAL, "5s");
+      cfg.setProperty(Property.GENERAL_LOW_MEM_DETECTOR_THRESHOLD,
           Double.toString(FREE_MEMORY_THRESHOLD));
+      cfg.setProperty(Property.GENERAL_LOW_MEM_SCAN_PROTECTION, "true");
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
       // to push all metrics to the sink we started.
       cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");

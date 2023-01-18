@@ -54,7 +54,6 @@ import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.TooManyFilesException;
-import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager;
@@ -90,15 +89,16 @@ public abstract class TabletBase {
 
   protected final TableConfiguration tableConfiguration;
 
-  private final LowMemoryDetector lowMem;
   private final boolean isUserTable;
+  private final boolean scanLowMemProtection;
 
   public TabletBase(TabletHostingServer server, KeyExtent extent) {
     this.context = server.getContext();
     this.server = server;
     this.extent = extent;
-    this.lowMem = server.getResourceManager().getLowMemorySupplier();
     this.isUserTable = !extent.isMeta();
+    this.scanLowMemProtection =
+        context.getConfiguration().getBoolean(Property.GENERAL_LOW_MEM_SCAN_PROTECTION);
 
     TableConfiguration tblConf = context.getTableConfiguration(extent.tableId());
     if (tblConf == null) {
@@ -141,9 +141,7 @@ public abstract class TabletBase {
 
   protected ScanDataSource createDataSource(ScanParameters scanParams, boolean loadIters,
       AtomicBoolean interruptFlag) {
-    return new ScanDataSource(this, scanParams, loadIters, interruptFlag, () -> {
-      return lowMem;
-    });
+    return new ScanDataSource(this, scanParams, loadIters, interruptFlag);
   }
 
   public Scanner createScanner(Range range, ScanParameters scanParams,
@@ -187,7 +185,8 @@ public abstract class TabletBase {
   public abstract void close(boolean b) throws IOException;
 
   private boolean isServerRunningLowOnMemory(final String msg) {
-    if (isUserTable && lowMem.isRunningLowOnMemory()) {
+    if (scanLowMemProtection && isUserTable
+        && context.getLowMemoryDetector().isRunningLowOnMemory()) {
       log.info(msg, extent);
       return true;
     }

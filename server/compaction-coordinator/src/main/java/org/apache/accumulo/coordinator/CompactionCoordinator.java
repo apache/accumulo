@@ -78,7 +78,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
-import org.apache.accumulo.server.mem.LowMemoryDetectorConfiguration;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -150,26 +149,6 @@ public class CompactionCoordinator extends AbstractServer
   @Override
   public AccumuloConfiguration getConfiguration() {
     return aconf;
-  }
-
-  @Override
-  protected LowMemoryDetectorConfiguration getLowMemoryDetectorProperties() {
-    return new LowMemoryDetectorConfiguration() {
-      @Override
-      public Property activeProperty() {
-        return Property.COMPACTION_COORDINATOR_LOW_MEM_DETECTOR_ACTIVE;
-      }
-
-      @Override
-      public Property checkIntervalProperty() {
-        return Property.COMPACTION_COORDINATOR_LOW_MEM_DETECTOR_INTERVAL;
-      }
-
-      @Override
-      public Property freeMemoryThresholdProperty() {
-        return Property.COMPACTION_COORDINATOR_LOW_MEM_DETECTOR_THRESHOLD;
-      }
-    };
   }
 
   protected CompactionFinalizer

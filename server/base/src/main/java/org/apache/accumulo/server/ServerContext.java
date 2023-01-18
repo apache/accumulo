@@ -66,6 +66,7 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
@@ -102,6 +103,7 @@ public class ServerContext extends ClientContext {
   private final Supplier<ScheduledThreadPoolExecutor> sharedScheduledThreadPool;
   private final Supplier<AuditedSecurityOperation> securityOperation;
   private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
+  private final Supplier<LowMemoryDetector> lowMemoryDetector;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -127,6 +129,7 @@ public class ServerContext extends ClientContext {
     securityOperation =
         memoize(() -> new AuditedSecurityOperation(this, SecurityOperation.getAuthorizor(this),
             SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
+    lowMemoryDetector = memoize(() -> new LowMemoryDetector());
   }
 
   /**
@@ -449,6 +452,10 @@ public class ServerContext extends ClientContext {
 
   public String zkUserPath() {
     return zkUserPath.get();
+  }
+
+  public LowMemoryDetector getLowMemoryDetector() {
+    return lowMemoryDetector.get();
   }
 
 }

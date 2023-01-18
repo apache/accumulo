@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -43,7 +42,6 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.fs.FileManager.ScanFileManager;
-import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.hadoop.fs.Path;
 
 public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
@@ -62,7 +60,6 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   private final Authorizations authorizations; // these will only be supplied during scan scope
   private SamplerConfiguration samplerConfig;
   private boolean enableSampleForDeepCopy;
-  private final Supplier<LowMemoryDetector> lowMemory;
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
       AccumuloConfiguration tableConfig, TableId tableId) {
@@ -80,17 +77,13 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.userCompaction = false;
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
-    this.lowMemory = () -> {
-      return null;
-    };
   }
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
       AccumuloConfiguration tableConfig, TableId tableId, ScanFileManager trm,
       Map<TabletFile,DataFileValue> files, Authorizations authorizations,
       SamplerConfigurationImpl samplerConfig,
-      ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators,
-      Supplier<LowMemoryDetector> lowMemory) {
+      ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators) {
     if (scope == IteratorScope.majc) {
       throw new IllegalArgumentException("must set if compaction is full");
     }
@@ -112,7 +105,6 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     }
 
     this.topLevelIterators = topLevelIterators;
-    this.lowMemory = lowMemory;
   }
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope, boolean fullMajC,
@@ -132,9 +124,6 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.userCompaction = kind.equals(CompactionKind.USER);
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
-    this.lowMemory = () -> {
-      return null;
-    };
   }
 
   @Deprecated(since = "2.0.0")
@@ -229,7 +218,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     }
 
     return new TabletIteratorEnvironment(context, scope, tableConfig, tableId, trm, files,
-        authorizations, sci, topLevelIterators, lowMemory);
+        authorizations, sci, topLevelIterators);
   }
 
   @Override
@@ -246,15 +235,6 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   @Override
   public TableId getTableId() {
     return tableId;
-  }
-
-  @Override
-  public boolean isRunningLowOnMemory() {
-    LowMemoryDetector lmd = lowMemory.get();
-    if (lmd != null) {
-      return lmd.isRunningLowOnMemory();
-    }
-    return false;
   }
 
 }

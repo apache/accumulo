@@ -99,7 +99,6 @@ import org.apache.accumulo.server.compaction.RetryableThriftCall;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.mem.LowMemoryDetectorConfiguration;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -168,26 +167,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
     startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
     printStartupMsg();
-  }
-
-  @Override
-  protected LowMemoryDetectorConfiguration getLowMemoryDetectorProperties() {
-    return new LowMemoryDetectorConfiguration() {
-      @Override
-      public Property activeProperty() {
-        return Property.COMPACTOR_LOW_MEM_DETECTOR_ACTIVE;
-      }
-
-      @Override
-      public Property checkIntervalProperty() {
-        return Property.COMPACTOR_LOW_MEM_DETECTOR_INTERVAL;
-      }
-
-      @Override
-      public Property freeMemoryThresholdProperty() {
-        return Property.COMPACTOR_LOW_MEM_DETECTOR_THRESHOLD;
-      }
-    };
   }
 
   @Override
@@ -294,7 +273,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       public void lostLock(final LockLossReason reason) {
         Halt.halt(1, () -> {
           LOG.error("Compactor lost lock (reason = {}), exiting.", reason);
-          getLowMemoryDetector().logGCInfo(getConfiguration());
+          getContext().getLowMemoryDetector().logGCInfo(getConfiguration());
         });
       }
 
@@ -805,7 +784,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
       }
 
-      getLowMemoryDetector().logGCInfo(getConfiguration());
+      getContext().getLowMemoryDetector().logGCInfo(getConfiguration());
       LOG.info("stop requested. exiting ... ");
       try {
         if (null != compactorLock) {

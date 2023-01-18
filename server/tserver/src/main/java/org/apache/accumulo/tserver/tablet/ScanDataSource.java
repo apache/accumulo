@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -48,7 +47,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
 import org.apache.accumulo.server.fs.FileManager.ScanFileManager;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
-import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.scan.ScanParameters;
@@ -71,17 +69,15 @@ class ScanDataSource implements DataSource {
   private final ScanParameters scanParams;
   private final boolean loadIters;
   private final byte[] defaultLabels;
-  private final Supplier<LowMemoryDetector> lowMemory;
 
   ScanDataSource(TabletBase tablet, ScanParameters scanParams, boolean loadIters,
-      AtomicBoolean interruptFlag, Supplier<LowMemoryDetector> lowMemory) {
+      AtomicBoolean interruptFlag) {
     this.tablet = tablet;
     this.expectedDeletionCount = tablet.getDataSourceDeletions();
     this.scanParams = scanParams;
     this.interruptFlag = interruptFlag;
     this.loadIters = loadIters;
     this.defaultLabels = tablet.getDefaultSecurityLabels();
-    this.lowMemory = lowMemory;
     if (log.isTraceEnabled()) {
       log.trace("new scan data source, tablet: {}, params: {}, loadIterators: {}", this.tablet,
           this.scanParams, this.loadIters);
@@ -181,10 +177,9 @@ class ScanDataSource implements DataSource {
 
     MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());
 
-    TabletIteratorEnvironment iterEnv =
-        new TabletIteratorEnvironment(tablet.getContext(), IteratorScope.scan,
-            tablet.getTableConfiguration(), tablet.getExtent().tableId(), fileManager, files,
-            scanParams.getAuthorizations(), samplerConfig, new ArrayList<>(), lowMemory);
+    TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(tablet.getContext(),
+        IteratorScope.scan, tablet.getTableConfiguration(), tablet.getExtent().tableId(),
+        fileManager, files, scanParams.getAuthorizations(), samplerConfig, new ArrayList<>());
 
     statsIterator = new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter(),
         tablet.getScanMetrics().getScannedCounter());

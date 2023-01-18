@@ -89,7 +89,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.mem.LowMemoryDetectorConfiguration;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -261,26 +260,6 @@ public class ScanServer extends AbstractServer
     return new ThriftScanClientHandler(this, writeTracker);
   }
 
-  @Override
-  protected LowMemoryDetectorConfiguration getLowMemoryDetectorProperties() {
-    return new LowMemoryDetectorConfiguration() {
-      @Override
-      public Property activeProperty() {
-        return Property.SSERV_LOW_MEM_DETECTOR_ACTIVE;
-      }
-
-      @Override
-      public Property checkIntervalProperty() {
-        return Property.SSERV_LOW_MEM_DETECTOR_INTERVAL;
-      }
-
-      @Override
-      public Property freeMemoryThresholdProperty() {
-        return Property.SSERV_LOW_MEM_DETECTOR_THRESHOLD;
-      }
-    };
-  }
-
   /**
    * Start the thrift service to handle incoming client requests
    *
@@ -344,7 +323,7 @@ public class ScanServer extends AbstractServer
             if (!serverStopRequested) {
               LOG.error("Lost tablet server lock (reason = {}), exiting.", reason);
             }
-            getLowMemoryDetector().logGCInfo(getConfiguration());
+            context.getLowMemoryDetector().logGCInfo(getConfiguration());
           });
         }
 
@@ -425,7 +404,7 @@ public class ScanServer extends AbstractServer
         LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
       }
 
-      getLowMemoryDetector().logGCInfo(getConfiguration());
+      context.getLowMemoryDetector().logGCInfo(getConfiguration());
       LOG.info("stop requested. exiting ... ");
       try {
         if (null != lock) {

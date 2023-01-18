@@ -26,7 +26,6 @@ import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
@@ -57,8 +56,6 @@ public interface TabletHostingServer {
   ServiceLock getLock();
 
   ZooCache getManagerLockCache();
-
-  LowMemoryDetector getLowMemoryDetector();
 
   BlockCacheManager.Configuration getBlockCacheConfiguration(AccumuloConfiguration acuConf);
 }

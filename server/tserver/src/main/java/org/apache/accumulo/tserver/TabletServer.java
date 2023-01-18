@@ -119,7 +119,6 @@ import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.manager.recovery.RecoveryPath;
-import org.apache.accumulo.server.mem.LowMemoryDetectorConfiguration;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -351,26 +350,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       authKeyWatcher = null;
     }
     config();
-  }
-
-  @Override
-  protected LowMemoryDetectorConfiguration getLowMemoryDetectorProperties() {
-    return new LowMemoryDetectorConfiguration() {
-      @Override
-      public Property activeProperty() {
-        return Property.TSERV_LOW_MEM_DETECTOR_ACTIVE;
-      }
-
-      @Override
-      public Property checkIntervalProperty() {
-        return Property.TSERV_LOW_MEM_DETECTOR_INTERVAL;
-      }
-
-      @Override
-      public Property freeMemoryThresholdProperty() {
-        return Property.TSERV_LOW_MEM_DETECTOR_THRESHOLD;
-      }
-    };
   }
 
   public InstanceId getInstanceID() {
@@ -655,7 +634,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             if (!serverStopRequested) {
               log.error("Lost tablet server lock (reason = {}), exiting.", reason);
             }
-            getLowMemoryDetector().logGCInfo(getConfiguration());
+            context.getLowMemoryDetector().logGCInfo(getConfiguration());
           });
         }
 
@@ -894,7 +873,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       log.warn("Failed to close filesystem : {}", e.getMessage(), e);
     }
 
-    getLowMemoryDetector().logGCInfo(getConfiguration());
+    context.getLowMemoryDetector().logGCInfo(getConfiguration());
 
     log.info("TServerInfo: stop requested. exiting ... ");
 
