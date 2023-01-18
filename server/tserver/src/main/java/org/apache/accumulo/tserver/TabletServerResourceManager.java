@@ -378,7 +378,6 @@ public class TabletServerResourceManager {
     // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().schedule(
         new AssignmentWatcher(acuConf, context, activeAssignments), 5000, TimeUnit.MILLISECONDS));
-
   }
 
   /**
