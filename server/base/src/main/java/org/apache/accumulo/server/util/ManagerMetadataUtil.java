@@ -206,7 +206,7 @@ public class ManagerMetadataUtil {
     }
 
     TServerInstance self = getTServerInstance(address, zooLock);
-    // if the location mode is 'locality'', then preserve the current compaction location in the
+    // if the location mode is 'compaction', then preserve the current compaction location in the
     // last location value
     if ("compaction".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
       tablet.putLocation(self, LocationType.LAST);
