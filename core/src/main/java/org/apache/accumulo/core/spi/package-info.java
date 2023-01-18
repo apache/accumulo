@@ -52,7 +52,7 @@
  * </ul>
  *
  * <p>
- * Before this package was created many plugin interface were created for Accumulo. These plugin
+ * Before this package was created many plugin interfaces were created for Accumulo. These plugin
  * interfaces used internal Accumulo types, which transitively used other internal types. This
  * undisciplined use of any types made it impractical to reason about, analyze, or make any
  * guarantees about plugin stability. This package was created to solve that problem. Hopefully
