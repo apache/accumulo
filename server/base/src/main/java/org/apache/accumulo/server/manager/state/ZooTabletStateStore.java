@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
@@ -36,6 +35,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,18 +138,8 @@ class ZooTabletStateStore implements TabletStateStore {
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
     tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
-    if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-      TabletMetadata lastMetadata =
-          ample.readTablet(assignment.tablet, TabletMetadata.ColumnType.LAST);
-      if (lastMetadata != null && lastMetadata.getLast() != null) {
-        if (!lastMetadata.getLast().equals(assignment.server)) {
-          tabletMutator.putLocation(assignment.server, LocationType.LAST);
-          tabletMutator.deleteLocation(lastMetadata.getLast(), LocationType.LAST);
-        }
-      } else {
-        tabletMutator.putLocation(assignment.server, LocationType.LAST);
-      }
-    }
+    ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator,
+        assignment.tablet, assignment.server);
     tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
 
     tabletMutator.mutate();
@@ -170,17 +160,8 @@ class ZooTabletStateStore implements TabletStateStore {
 
     tabletMutator.deleteLocation(tls.futureOrCurrent(), LocationType.FUTURE);
     tabletMutator.deleteLocation(tls.futureOrCurrent(), LocationType.CURRENT);
-    if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-      TabletMetadata lastMetadata = ample.readTablet(tls.extent, TabletMetadata.ColumnType.LAST);
-      if (lastMetadata != null && lastMetadata.getLast() != null) {
-        if (!lastMetadata.getLast().equals(tls.futureOrCurrent())) {
-          tabletMutator.putLocation(tls.futureOrCurrent(), LocationType.LAST);
-          tabletMutator.deleteLocation(lastMetadata.getLast(), LocationType.LAST);
-        }
-      } else {
-        tabletMutator.putLocation(tls.futureOrCurrent(), LocationType.LAST);
-      }
-    }
+    ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator, tls.extent,
+        tls.futureOrCurrent());
     if (logsForDeadServers != null) {
       List<Path> logs = logsForDeadServers.get(tls.futureOrCurrent());
       if (logs != null) {
