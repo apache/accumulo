@@ -103,7 +103,7 @@ public class ZooAclUtil {
       }
       // check if not accumulo and any perm bit other than read is set
       if (!"accumulo".equals(name) && ((a.getPerms() & ~ZooDefs.Perms.READ) != 0)) {
-        result.setAnyMayUpdate();
+        result.setOthersMayUpdate();
       }
       // check if not accumulo and any read perm is set
       if (!"accumulo".equals(name) && ((a.getPerms() & ZooDefs.Perms.READ) != 0)) {
@@ -121,7 +121,7 @@ public class ZooAclUtil {
    * <li>It is expected that the authenticated Accumulo session will have cdrwa (ALL ZooKeeper
    * permissions). {@link #accumuloHasFull() accumuloHasFull()} should true.
    * <li>Typically, no other users should have permissions to modify any node in ZooKeeper under the
-   * /accumulo path except for /accumulo/instances path {@link #anyMayUpdate() anyMayUpdate()}
+   * /accumulo path except for /accumulo/instances path {@link #othersMayUpdate() othersMayUpdate()}
    * return false.
    * <li>Most ZooKeeper nodes permit world read - a few are sensitive and are accessible only by the
    * authenticated Accumulo sessions. {@link #anyCanRead() anyCanRead()} returns true.
@@ -129,7 +129,7 @@ public class ZooAclUtil {
    */
   public static class ZkAccumuloAclStatus {
     private boolean accumuloHasFull = false;
-    private boolean anyMayUpdate = false;
+    private boolean othersMayUpdate = false;
     private boolean anyCanRead = false;
 
     public boolean accumuloHasFull() {
@@ -140,12 +140,12 @@ public class ZooAclUtil {
       this.accumuloHasFull = true;
     }
 
-    public boolean anyMayUpdate() {
-      return anyMayUpdate;
+    public boolean othersMayUpdate() {
+      return othersMayUpdate;
     }
 
-    public void setAnyMayUpdate() {
-      this.anyMayUpdate = true;
+    public void setOthersMayUpdate() {
+      this.othersMayUpdate = true;
     }
 
     public boolean anyCanRead() {
@@ -159,7 +159,7 @@ public class ZooAclUtil {
     @Override
     public String toString() {
       return "ZkAccumuloAclStatus{accumuloHasFull=" + accumuloHasFull + ", anyMayUpdate="
-          + anyMayUpdate + ", anyCanRead=" + anyCanRead + '}';
+          + othersMayUpdate + ", anyCanRead=" + anyCanRead + '}';
     }
   }
 

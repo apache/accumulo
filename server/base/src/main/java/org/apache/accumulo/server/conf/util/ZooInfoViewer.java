@@ -321,7 +321,7 @@ public class ZooInfoViewer implements KeywordExecutable {
         }
 
         String otherUpdate;
-        if (aclStatus.anyMayUpdate() || aclStatus.anyCanRead()) {
+        if (aclStatus.othersMayUpdate() || aclStatus.anyCanRead()) {
           otherUpdate = "NOT_PRIVATE";
         } else {
           otherUpdate = "PRIVATE";

@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class ZooAclUtilTest {
+public class ZooAclUtilTest {
 
   private static final Logger log = LoggerFactory.getLogger(ZooAclUtilTest.class);
 
@@ -64,24 +64,24 @@ class ZooAclUtilTest {
     ACL a1 = new ACL(ZooDefs.Perms.ALL, new Id("digest", "accumulo:abcd123"));
     ZooAclUtil.ZkAccumuloAclStatus status = ZooAclUtil.checkWritableAuth(List.of(a1));
     assertTrue(status.accumuloHasFull());
-    assertFalse(status.anyMayUpdate());
+    assertFalse(status.othersMayUpdate());
     assertFalse(status.anyCanRead());
 
     ACL a2 = new ACL(ZooDefs.Perms.ALL, new Id("digest", "someone:abcd123"));
     status = ZooAclUtil.checkWritableAuth(List.of(a2));
     assertFalse(status.accumuloHasFull());
-    assertTrue(status.anyMayUpdate());
+    assertTrue(status.othersMayUpdate());
     assertTrue(status.anyCanRead());
 
     ACL a3 = new ACL(ZooDefs.Perms.READ, new Id("digest", "reader"));
     status = ZooAclUtil.checkWritableAuth(List.of(a3));
     assertFalse(status.accumuloHasFull());
-    assertFalse(status.anyMayUpdate());
+    assertFalse(status.othersMayUpdate());
     assertTrue(status.anyCanRead());
 
     status = ZooAclUtil.checkWritableAuth(List.of(a1, a2, a3));
     assertTrue(status.accumuloHasFull());
-    assertTrue(status.anyMayUpdate());
+    assertTrue(status.othersMayUpdate());
     assertTrue(status.anyCanRead());
   }
 }
