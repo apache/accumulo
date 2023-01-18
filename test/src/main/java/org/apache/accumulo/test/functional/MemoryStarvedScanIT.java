@@ -338,7 +338,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         memoryConsumingScanner.setReadaheadThreshold(Long.MAX_VALUE);
 
         t.start();
-        
+
         // Wait until the dataConsumingScanner has started fetching data
         int currentCount = fetched.get();
         while (currentCount == 0) {

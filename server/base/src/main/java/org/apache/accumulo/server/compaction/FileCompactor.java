@@ -433,8 +433,7 @@ public class FileCompactor implements Callable<CompactionStats> {
               metrics.incrementMajCPause();
             }
             Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
-          }))
-            ;
+          })) {}
 
           mfw.append(itr.getTopKey(), itr.getTopValue());
           itr.next();

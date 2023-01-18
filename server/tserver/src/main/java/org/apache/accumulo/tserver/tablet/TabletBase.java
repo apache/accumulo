@@ -241,8 +241,7 @@ public abstract class TabletBase {
       log.info("Not starting next batch because low on memory, extent: {}", extent);
       server.getScanMetrics().incrementScanPausedForLowMemory();
       Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
-    }))
-      ;
+    })) {}
 
     long batchTimeOut = scanParams.getBatchTimeOut();
 
@@ -345,8 +344,7 @@ public abstract class TabletBase {
       log.info("Not starting lookup because low on memory, extent: {}", extent);
       server.getScanMetrics().incrementScanPausedForLowMemory();
       Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
-    }))
-      ;
+    })) {}
 
     Tablet.LookupResult lookupResult = new Tablet.LookupResult();
 
