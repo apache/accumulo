@@ -731,7 +731,7 @@ public enum Property {
       "Describes how the system will record the 'last' location for tablets, which can be used for assigning them when a cluster restarts."
           + " If 'compaction' is the mode, then the system will record the location where the tablet's most recent compaction occurred."
           + " If 'assignment' is the mode, then the most recently assigned location will be recorded."
-          + " Also note that manger.startup.tserver properties might need to be set as well to ensure"
+          + " The manager.startup.tserver properties might also need to be set to ensure"
           + " the tserver is available before tablets are initially assigned if the 'last' location is to be used.",
       "3.0.0"),
 
