@@ -20,12 +20,15 @@ package org.apache.accumulo.test.functional;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+
+import com.google.common.util.concurrent.Uninterruptibles;
 
 public class MemoryFreeingIterator extends WrappingIterator {
 
@@ -34,6 +37,10 @@ public class MemoryFreeingIterator extends WrappingIterator {
       IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     MemoryConsumingIterator.freeBuffers();
+    while (this.isRunningLowOnMemory()) {
+      // wait for LowMemoryDetector to recognize the memory is free.
+      Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+    }
   }
 
 }

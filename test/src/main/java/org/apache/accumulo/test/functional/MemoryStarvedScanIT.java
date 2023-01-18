@@ -130,7 +130,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     SCAN_START_DELAYED.reset();
   }
 
-  private void consumeServerMemory(Scanner scanner, String table) throws Exception {
+  static void consumeServerMemory(Scanner scanner, String table) throws Exception {
     // This iterator will attempt to consume all free memory in the TabletServer
     scanner.addScanIterator(new IteratorSetting(11, MemoryConsumingIterator.class, Map.of()));
     scanner.setBatchSize(1);
@@ -153,7 +153,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     assertTrue(iter.hasNext());
   }
 
-  private void freeServerMemory(AccumuloClient client, String table) throws Exception {
+  static void freeServerMemory(AccumuloClient client, String table) throws Exception {
     try (Scanner scanner = client.createScanner(table)) {
       scanner.addScanIterator(new IteratorSetting(11, MemoryFreeingIterator.class, Map.of()));
       @SuppressWarnings("unused")
@@ -188,7 +188,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
         freeServerMemory(client, table);
       } finally {
-        client.tableOperations().delete(table);
+        to.delete(table);
       }
     }
   }
@@ -227,7 +227,13 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         memoryConsumingScanner.setReadaheadThreshold(Long.MAX_VALUE);
 
         t.start();
-        Thread.sleep(5000); // let the thread start and consume some data
+
+        // Wait until the dataConsumingScanner has started fetching data
+        int currentCount = fetched.get();
+        while (currentCount == 0) {
+          Thread.sleep(500);
+          currentCount = fetched.get();
+        }
 
         // This should block until the GarbageCollectionLogger runs and notices that the
         // VM is low on memory.
@@ -235,7 +241,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         assertTrue(consumingIter.hasNext());
 
         // Confirm that some data was fetched by the memoryConsumingScanner
-        int currentCount = fetched.get();
+        currentCount = fetched.get();
         assertTrue(currentCount > 0 && currentCount < 100);
 
         // Grab the current paused count, wait two seconds and then confirm that
@@ -262,7 +268,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         t.join();
         assertEquals(30, fetched.get());
       } finally {
-        client.tableOperations().delete(table);
+        to.delete(table);
       }
     }
   }
@@ -294,7 +300,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
         freeServerMemory(client, table);
       } finally {
-        client.tableOperations().delete(table);
+        to.delete(table);
       }
     }
   }
@@ -332,15 +338,21 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         memoryConsumingScanner.setReadaheadThreshold(Long.MAX_VALUE);
 
         t.start();
-        Thread.sleep(5000); // let the thread start and consume some data
+        
+        // Wait until the dataConsumingScanner has started fetching data
+        int currentCount = fetched.get();
+        while (currentCount == 0) {
+          Thread.sleep(500);
+          currentCount = fetched.get();
+        }
 
         // This should block until the GarbageCollectionLogger runs and notices that the
         // VM is low on memory.
         Iterator<Entry<Key,Value>> consumingIter = memoryConsumingScanner.iterator();
         assertTrue(consumingIter.hasNext());
 
-        // Confirm that some data was fetched by the memoryConsumingScanner
-        int currentCount = fetched.get();
+        // Confirm that some data was fetched by the dataConsumingScanner
+        currentCount = fetched.get();
         assertTrue(currentCount > 0 && currentCount < 100);
 
         // Grab the current paused count, wait two seconds and then confirm that
@@ -367,7 +379,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         t.join();
         assertEquals(30, fetched.get());
       } finally {
-        client.tableOperations().delete(table);
+        to.delete(table);
       }
     }
   }

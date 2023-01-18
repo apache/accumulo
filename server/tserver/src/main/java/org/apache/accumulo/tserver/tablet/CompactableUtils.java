@@ -439,7 +439,7 @@ public class CompactableUtils {
 
     FileCompactor compactor = new FileCompactor(tablet.getContext(), tablet.getExtent(),
         compactFiles, tmpFileName, cInfo.propagateDeletes, cenv, cInfo.iters, compactionConfig,
-        tableConf.getCryptoService());
+        tableConf.getCryptoService(), tablet.getPausedCompactionMetrics());
 
     return compactor.call();
   }

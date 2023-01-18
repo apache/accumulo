@@ -22,10 +22,12 @@ public class CompactionStats {
   private long entriesRead;
   private long entriesWritten;
   private long fileSize;
+  private int timesPaused;
 
-  public CompactionStats(long er, long ew) {
+  public CompactionStats(long er, long ew, int tp) {
     this.setEntriesRead(er);
     this.setEntriesWritten(ew);
+    this.setTimesPaused(tp);
   }
 
   public CompactionStats() {}
@@ -46,9 +48,18 @@ public class CompactionStats {
     return entriesWritten;
   }
 
+  public long getTimesPaused() {
+    return timesPaused;
+  }
+
+  public void setTimesPaused(int timesPaused) {
+    this.timesPaused = timesPaused;
+  }
+
   public void add(CompactionStats mcs) {
     this.entriesRead += mcs.entriesRead;
     this.entriesWritten += mcs.entriesWritten;
+    this.timesPaused += mcs.timesPaused;
   }
 
   public void setFileSize(long fileSize) {

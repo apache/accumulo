@@ -270,10 +270,22 @@ public enum Property {
       PropertyType.FRACTION,
       "The LowMemoryDetector will report when free memory drops below this percentage of total memory",
       "3.0.0"),
-  GENERAL_LOW_MEM_SCAN_PROTECTION("general.low.mem.scan.protection", "false", PropertyType.BOOLEAN,
-      "Scans running in the server processes may be paused or return results early when the server "
+  GENERAL_LOW_MEM_SCAN_PROTECTION("general.low.mem.protection.scan", "false", PropertyType.BOOLEAN,
+      "Scans may be paused or return results early when the server "
           + "is low on memory and this property is set to true. Enabling this property will incur a slight "
-          + "scan performance penalty",
+          + "scan performance penalty when the server is not low on memory",
+      "3.0.0"),
+  GENERAL_LOW_MEM_MINC_PROTECTION("general.low.mem.protection.compaction.minc", "false",
+      PropertyType.BOOLEAN,
+      "Minor compactions may be paused when the server "
+          + "is low on memory and this property is set to true. Enabling this property will incur a slight "
+          + "compaction performance penalty when the server is not low on memory",
+      "3.0.0"),
+  GENERAL_LOW_MEM_MAJC_PROTECTION("general.low.mem.protection.compaction.majc", "false",
+      PropertyType.BOOLEAN,
+      "Major compactions may be paused when the server "
+          + "is low on memory and this property is set to true. Enabling this property will incur a slight "
+          + "compaction performance penalty when the server is not low on memory",
       "3.0.0"),
   GENERAL_MAX_SCANNER_RETRY_PERIOD("general.max.scanner.retry.period", "5s",
       PropertyType.TIMEDURATION,

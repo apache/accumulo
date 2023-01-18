@@ -24,14 +24,26 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LowMemoryDetector {
+
+  @FunctionalInterface
+  public static interface Action {
+    void execute();
+  }
+
+  public enum DetectionScope {
+    MINC, MAJC, SCAN
+  };
+
   private static final Logger log = LoggerFactory.getLogger(LowMemoryDetector.class);
 
   private final HashMap<String,Long> prevGcTime = new HashMap<>();
@@ -47,6 +59,41 @@ public class LowMemoryDetector {
 
   public boolean isRunningLowOnMemory() {
     return runningLowOnMemory;
+  }
+
+  /**
+   * @param context server context
+   * @param scope whether this is being checked in the context of scan or compact code
+   * @param isUserTable boolean as to whether the table being scanned / compacted is a user table.
+   *        No action is taken for system tables.
+   * @param action Action to perform when this method returns true
+   * @return true if server running low on memory
+   */
+  public boolean isRunningLowOnMemory(ServerContext context, DetectionScope scope,
+      Supplier<Boolean> isUserTable, Action action) {
+    if (isUserTable.get()) {
+      Property p = null;
+      switch (scope) {
+        case SCAN:
+          p = Property.GENERAL_LOW_MEM_SCAN_PROTECTION;
+          break;
+        case MINC:
+          p = Property.GENERAL_LOW_MEM_MINC_PROTECTION;
+          break;
+        case MAJC:
+          p = Property.GENERAL_LOW_MEM_MAJC_PROTECTION;
+          break;
+        default:
+          throw new IllegalArgumentException("Unknown scope: " + scope);
+      }
+      boolean isEnabled = context.getConfiguration().getBoolean(p);
+      // Only incur the penalty of accessing the volatile variable when enabled for this scope
+      if (isEnabled) {
+        action.execute();
+        return runningLowOnMemory;
+      }
+    }
+    return false;
   }
 
   public void logGCInfo(AccumuloConfiguration conf) {

@@ -83,6 +83,7 @@ struct ActiveCompaction {
   9:i64 entriesWritten
   10:list<data.IterInfo> ssiList
   11:map<string, map<string, string>> ssio
+  12:i64 timesPaused
 }
 
 struct TIteratorSetting {
