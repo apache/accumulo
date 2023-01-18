@@ -36,7 +36,9 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
 public class CompactLocationModeIT extends ConfigurableMacBase {
@@ -44,6 +46,11 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
+  }
+
+  @Override
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
+    cfg.setProperty(Property.TSERV_LAST_LOCATION_MODE, "compaction");
   }
 
   @Test
