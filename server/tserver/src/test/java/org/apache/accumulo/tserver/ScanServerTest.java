@@ -294,7 +294,7 @@ public class ScanServerTest {
     InitialMultiScan ims = new InitialMultiScan(15, null);
     ims.setResult(new MultiScanResult());
     expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, batch, ssio, auths, false, tsc, 30L,
-        classLoaderContext, execHints, resolver, 0L)).andReturn(ims);
+        classLoaderContext, execHints, resolver, 0L, null)).andReturn(ims);
     expect(handler.continueMultiScan(tinfo, 15, 0L)).andReturn(new MultiScanResult());
     handler.closeMultiScan(tinfo, 15);
 
@@ -309,7 +309,7 @@ public class ScanServerTest {
     Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
     extents.put(textent, ranges);
     InitialMultiScan is = ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths,
-        false, tsc, 30L, classLoaderContext, execHints, 0L);
+        false, tsc, 30L, classLoaderContext, execHints, 0L, null);
     assertEquals(15, is.getScanID());
     assertEquals(0, is.getResult().getFailuresSize());
 
