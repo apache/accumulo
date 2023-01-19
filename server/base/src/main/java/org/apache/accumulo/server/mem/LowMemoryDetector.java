@@ -49,8 +49,8 @@ public class LowMemoryDetector {
   private final HashMap<String,Long> prevGcTime = new HashMap<>();
   private long lastMemorySize = 0;
   private long gcTimeIncreasedCount = 0;
-  private static long lastMemoryCheckTime = 0;
-  private static final Lock memCheckTimeLock = new ReentrantLock();
+  private long lastMemoryCheckTime = 0;
+  private final Lock memCheckTimeLock = new ReentrantLock();
   private volatile boolean runningLowOnMemory = false;
 
   public long getIntervalMillis(AccumuloConfiguration conf) {
@@ -144,8 +144,14 @@ public class LowMemoryDetector {
           log.warn("Running low on memory");
           gcTimeIncreasedCount = 0;
         } else {
+          // If we were running low on memory, but are not any longer, than log at warn
+          // so that it shows up in the logs
+          if (runningLowOnMemory) {
+            log.warn("Not running low on memory");
+          } else {
+            log.debug("Not running low on memory");
+          }
           runningLowOnMemory = false;
-          log.warn("Not running low on memory");
         }
       }
 

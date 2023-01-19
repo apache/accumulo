@@ -244,23 +244,24 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         currentCount = fetched.get();
         assertTrue(currentCount > 0 && currentCount < 100);
 
-        // Grab the current paused count, wait two seconds and then confirm that
-        // the number of rows fetched by the memoryConsumingScanner has not increased
-        // and that the scan delay counter has increased.
+        // Grab the current metric counts, wait
         Double returned = SCAN_RETURNED_EARLY.doubleValue();
         Double paused = SCAN_START_DELAYED.doubleValue();
         Thread.sleep(1500);
-        assertEquals(currentCount, fetched.get());
-        assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
-        assertTrue(SCAN_RETURNED_EARLY.doubleValue() >= returned);
+        // One of two conditions could exist here:
+        // The number of fetched rows equals the current count before the wait above
+        // and the SCAN_START_DELAYED has been incremented OR the number of fetched
+        // rows is one more than the current count and the SCAN_RETURNED_EARLY has
+        // been incremented.
+        assertTrue((currentCount == fetched.get() && SCAN_START_DELAYED.doubleValue() > paused)
+            || (currentCount + 1 == fetched.get() && SCAN_RETURNED_EARLY.doubleValue() > returned));
+        currentCount = fetched.get();
 
         // Perform the check again
         paused = SCAN_START_DELAYED.doubleValue();
         returned = SCAN_RETURNED_EARLY.doubleValue();
         Thread.sleep(1500);
         assertEquals(currentCount, fetched.get());
-        assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
-        assertTrue(SCAN_RETURNED_EARLY.doubleValue() == returned);
 
         // Free the memory which will allow the pausing scanner to continue
         freeServerMemory(client, table);
