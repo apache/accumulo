@@ -358,7 +358,7 @@ public class TabletLocatorImpl extends TabletLocator {
         }
       } else {
         // TODO maybe remove debug
-        log.debug("For rannge {} ignoring non-contiguous extents {} ", range,
+        log.info("For rannge {} {} ignoring non-contiguous extents {} ", range, useCache,
             tabletLocations.stream().map(tloc -> tloc.getExtent()).collect(Collectors.toList()));
         failures.add(range);
         // TODO need to clear the extents from the cache... actually may not need to anything
