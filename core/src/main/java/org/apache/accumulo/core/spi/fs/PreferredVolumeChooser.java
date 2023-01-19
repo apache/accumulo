@@ -23,17 +23,102 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.accumulo.core.volume.Volume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@link RandomVolumeChooser} that limits its choices from a given set of options to the subset
- * of those options preferred for a particular table. Defaults to selecting from all of the options
- * presented. Can be customized via the table property table.custom.volume.preferred, which should
- * contain a comma separated list of {@link Volume} URIs. Note that both the property name and the
- * format of its value are specific to this particular implementation.
+ * A {@link RandomVolumeChooser} that selects preferred volumes to use from the provided volume
+ * options. Preferred Volumes are set on either the per-table, per-scope, or default configuration
+ * level. Configuration details are overridden based on the top-down "Default","Site","System"
+ * scopes.
+ * <p>
+ * Defaults to selecting a volume at random from the provided volume options.
+ *
+ * <p>
+ * Property Details:
+ * <p>
+ * Preferred volumes can be set on a per-table basis via the custom property
+ * {@code volume.preferred}.
+ *
+ * <p>
+ * This property should contain a comma separated list of {@link Volume} URIs. Since this is a
+ * custom property, it can be accessed under the prefix {@code table.custom}.<br>
+ *
+ * The {@code volume.preferred} property can be set at various configuration levels depending on the
+ * scope. Note: Both the property name and the format of its value are specific to this particular
+ * implementation.
+ * <table border="1">
+ * <caption>Scope Property Lookups and Defaults locations</caption>
+ * <tr>
+ * <th>Scope</th>
+ * <th>Property Value Lookup</th>
+ * <th>Default Property Lookup</th>
+ * </tr>
+ * <tr>
+ * <td>{@code Scope.DEFAULT}</td>
+ * <td>{@code general.custom.volume.preferred.default}</td>
+ * <td>Throws RuntimeException if not set</td>
+ * </tr>
+ * <tr>
+ * <td>{@code Scope.INIT}</td>
+ * <td>{@code general.custom.volume.preferred.init}</td>
+ * <td>{@code general.custom.volume.preferred.default}</td>
+ * </tr>
+ * <tr>
+ * <td>{@code Scope.LOGGER}</td>
+ * <td>{@code general.custom.volume.preferred.logger}</td>
+ * <td>{@code general.custom.volume.preferred.default}</td>
+ * </tr>
+ * <tr>
+ * <td>{@code Scope.TABLE}</td>
+ * <td>{@code table.custom.volume.preferred}</td>
+ * <td>{@code general.custom.volume.preferred.default}</td>
+ * </tr>
+ * </table>
+ * <br>
+ * <p>
+ * Examples of expected usage:
+ * <ul>
+ * <li>Separate metadata table and write ahead logs from general data location.
+ *
+ * <pre>
+ * <code>
+ * // Set list of volumes
+ * instance.volumes=hdfs://namenode_A/accumulo,hdfs://namenode_B/general
+ * // Enable the preferred volume chooser
+ * general.volume.chooser=org.apache.accumulo.core.spi.fs.PreferredVolumeChooser
+ * // Set default preferred volume
+ * general.custom.volume.preferred.default=hdfs://namenode_B/general
+ * // Set write-ahead log preferred volume
+ * general.custom.volume.preferred.logger=hdfs://namenode_A/accumulo
+ * // Initialize and start accumulo
+ * // Once accumulo is up, open the shell and configure the metadata table to use a preferred volume
+ * config -t accumulo.metadata -s table.custom.volume.preferred=hdfs://namenode_A/accumulo
+ * </code>
+ * </pre>
+ *
+ * </li>
+ * <li>Allow general data to use all volumes, but limit a specific table to a preferred volume
+ *
+ * <pre>
+ * <code>
+ * // Set list of volumes
+ * instance.volumes=hdfs://namenode/accumulo,hdfs://namenode/accumulo_select
+ * // Enable the preferred volume chooser
+ * general.volume.chooser=org.apache.accumulo.core.spi.fs.PreferredVolumeChooser
+ * // Set default preferred volumes
+ * general.custom.volume.preferred.default=hdfs://namenode/accumulo,hdfs://namenode/accumulo_select
+ * // Initialize and start accumulo
+ * // Once accumulo is up, open the shell and configure the metadata table to use a preferred volume
+ * config -t accumulo.metadata -s table.custom.volume.preferred=hdfs://namenode/accumulo_select
+ * </code>
+ * </pre>
+ *
+ * </li>
+ * </ul>
  *
  * @since 2.1.0
  */
@@ -58,6 +143,14 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     return choice;
   }
 
+  /**
+   *
+   * Returns the subset of volumes that match the defined preferred volumes value
+   *
+   * @param env the server environment provided by the calling framework
+   * @param options the subset of volumes to choose from
+   * @return an array of preferred volumes that are a subset of {@link Property#INSTANCE_VOLUMES}
+   */
   @Override
   public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options) {
     return getPreferredVolumes(env, options);
