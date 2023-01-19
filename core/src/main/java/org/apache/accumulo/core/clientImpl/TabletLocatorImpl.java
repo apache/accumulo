@@ -38,6 +38,7 @@ import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -337,8 +338,30 @@ public class TabletLocatorImpl extends TabletLocator {
         tabletLocations.add(tl);
       }
 
-      for (TabletLocation tl2 : tabletLocations) {
-        rangeConsumer.accept(tl2, range);
+      var tlIter = tabletLocations.iterator();
+      var prevExtent = tlIter.next().getExtent();
+
+      boolean continguous = true;
+
+      while (tlIter.hasNext()) {
+        var currExtent = tlIter.next().getExtent();
+        if (currExtent.prevEndRow() == null || prevExtent.endRow() == null
+            || !currExtent.prevEndRow().equals(prevExtent.endRow())) {
+          continguous = false;
+        }
+        prevExtent = currExtent;
+      }
+
+      if (continguous) {
+        for (TabletLocation tl2 : tabletLocations) {
+          rangeConsumer.accept(tl2, range);
+        }
+      } else {
+        // TODO maybe remove debug
+        log.debug("For rannge {} ignoring non-contiguous extents {} ", range,
+            tabletLocations.stream().map(tloc -> tloc.getExtent()).collect(Collectors.toList()));
+        failures.add(range);
+        // TODO need to clear the extents from the cache... actually may not need to anything
       }
 
     }

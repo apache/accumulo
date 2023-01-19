@@ -468,6 +468,17 @@ public class TabletLocatorImplTest {
         createNewKeyExtent("0", "g", null), createNewKeyExtent("0", "r", "g")));
   }
 
+  @Test
+  public void testRemoveOverLapping3() {
+
+    var e1 = createNewKeyExtent("0", "000411127", null);
+    var e2 = createNewKeyExtent("0", "000505490", "000411127");
+    var e3 = createNewKeyExtent("0", "000620565", "000178618");
+    var mc = createMetaCache(e3, "l1");
+    runTest(mc, e1, Set.of());
+    runTest(mc, e2, Set.of());
+  }
+
   static class TServers {
     private final Map<String,Map<KeyExtent,SortedMap<Key,Value>>> tservers = new HashMap<>();
   }
