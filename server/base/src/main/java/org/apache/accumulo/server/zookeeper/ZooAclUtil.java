@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.fate.zookeeper;
+package org.apache.accumulo.server.zookeeper;
 
 import static java.util.Objects.requireNonNull;
 
@@ -48,9 +48,8 @@ public class ZooAclUtil {
 
   /**
    * translate the ZooKeeper ACL perm bits into a string. The output order is cdrwa (when all perms
-   * are set)
-   *
-   * Mirrors `org.apache.zookeeper.ZKUtil.getPermString()` added in more recent ZooKeeper versions.
+   * are set) Copied from `org.apache.zookeeper.ZKUtil.getPermString()` added in more recent
+   * ZooKeeper versions.
    */
   public static String translateZooPerm(final int perm) {
     if (perm == ZooDefs.Perms.ALL) {
