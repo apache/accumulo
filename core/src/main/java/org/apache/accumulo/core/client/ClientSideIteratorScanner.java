@@ -213,7 +213,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     smi = new ScannerTranslatorImpl(scanner, scanner.getSamplerConfiguration());
     this.range = scanner.getRange();
     this.size = scanner.getBatchSize();
-    this.timeOut = scanner.getTimeout(MILLISECONDS);
+    this.scanTimeOut = scanner.getTimeout(MILLISECONDS);
     this.batchTimeOut = scanner.getTimeout(MILLISECONDS);
     this.readaheadThreshold = scanner.getReadaheadThreshold();
     SamplerConfiguration samplerConfig = scanner.getSamplerConfiguration();
@@ -232,7 +232,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     smi.scanner.setBatchSize(size);
-    smi.scanner.setTimeout(timeOut, MILLISECONDS);
+    smi.scanner.setTimeout(scanTimeOut, MILLISECONDS);
     smi.scanner.setBatchTimeout(batchTimeOut, MILLISECONDS);
     smi.scanner.setReadaheadThreshold(readaheadThreshold);
     if (isolated) {

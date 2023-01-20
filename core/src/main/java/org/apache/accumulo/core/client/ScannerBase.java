@@ -84,7 +84,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
   void updateScanIteratorOption(String iteratorName, String key, String value);
 
   /**
-   * Adds a column family to the list of columns that will be fetched by this scanner. By default
+   * Adds a column family to the list of columns that will be fetched by this scanner. By default,
    * when no columns have been added the scanner fetches all columns. To fetch multiple column
    * families call this function multiple times.
    *
@@ -101,7 +101,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
   void fetchColumnFamily(Text col);
 
   /**
-   * Adds a column family to the list of columns that will be fetched by this scanner. By default
+   * Adds a column family to the list of columns that will be fetched by this scanner. By default,
    * when no columns have been added the scanner fetches all columns. To fetch multiple column
    * families call this function multiple times.
    *
@@ -123,12 +123,12 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
 
   /**
    * Adds a column to the list of columns that will be fetched by this scanner. The column is
-   * identified by family and qualifier. By default when no columns have been added the scanner
+   * identified by family and qualifier. By default, when no columns have been added the scanner
    * fetches all columns.
    *
    * <p>
    * <b>WARNING</b>. Using this method with custom iterators may have unexpected results. Iterators
-   * have control over which column families are fetched. However iterators have no control over
+   * have control over which column families are fetched. However, iterators have no control over
    * which column qualifiers are fetched. When this method is called it activates a system iterator
    * that only allows the requested family/qualifier pairs through. This low level filtering
    * prevents custom iterators from requesting additional column families when calling seek.
@@ -152,7 +152,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
 
   /**
    * Adds a column to the list of columns that will be fetched by this scanner. The column is
-   * identified by family and qualifier. By default when no columns have been added the scanner
+   * identified by family and qualifier. By default, when no columns have been added the scanner
    * fetches all columns. See the warning on {@link #fetchColumn(Text, Text)}
    *
    *
@@ -238,11 +238,11 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
 
   /**
    * Setting this will cause the scanner to read sample data, as long as that sample data was
-   * generated with the given configuration. By default this is not set and all data is read.
+   * generated with the given configuration. By default, this is not set and all data is read.
    *
    * <p>
    * One way to use this method is as follows, where the sampler configuration is obtained from the
-   * table configuration. Sample data can be generated in many different ways, so its important to
+   * table configuration. Sample data can be generated in many different ways, so it is important to
    * verify the sample data configuration meets expectations.
    *
    * <pre>
@@ -262,7 +262,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    *
    * <p>
    * If sample data is not present or sample data was generated with a different configuration, then
-   * the scanner iterator will throw a {@link SampleNotPresentException}. Also if a table's sampler
+   * the scanner iterator will throw a {@link SampleNotPresentException}. Also, if a table's sampler
    * configuration is changed while a scanner is iterating over a table, a
    * {@link SampleNotPresentException} may be thrown.
    *
@@ -370,7 +370,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * @return consistency level
    * @since 2.1.0
    */
-  public ConsistencyLevel getConsistencyLevel();
+  ConsistencyLevel getConsistencyLevel();
 
   /**
    * Set the desired consistency level for this scanner.
@@ -378,7 +378,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * @param level consistency level
    * @since 2.1.0
    */
-  public void setConsistencyLevel(ConsistencyLevel level);
+  void setConsistencyLevel(ConsistencyLevel level);
 
   /**
    * Stream the Scanner results sequentially from this scanner's iterator

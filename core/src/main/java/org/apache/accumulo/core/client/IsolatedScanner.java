@@ -49,7 +49,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     private Entry<Key,Value> nextRowStart;
     private Iterator<Entry<Key,Value>> rowIter;
     private ByteSequence lastRow = null;
-    private long timeout;
+    private long iteratorTimeout;
 
     private final Scanner scanner;
     private ScannerOptions opts;
@@ -125,7 +125,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
       synchronized (scanner) {
         scanner.enableIsolation();
         scanner.setBatchSize(batchSize);
-        scanner.setTimeout(timeout, MILLISECONDS);
+        scanner.setTimeout(iteratorTimeout, MILLISECONDS);
         scanner.setRange(r);
         scanner.setReadaheadThreshold(readaheadThreshold);
         setOptions((ScannerOptions) scanner, opts);
@@ -139,7 +139,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
       this.scanner = scanner;
       this.opts = new ScannerOptions(opts);
       this.range = range;
-      this.timeout = timeout;
+      this.iteratorTimeout = timeout;
       this.batchSize = batchSize;
       this.readaheadThreshold = readaheadThreshold;
 
@@ -227,7 +227,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   public IsolatedScanner(Scanner scanner, RowBufferFactory bufferFactory) {
     this.scanner = scanner;
     this.range = scanner.getRange();
-    this.timeOut = scanner.getTimeout(MILLISECONDS);
+    this.scanTimeOut = scanner.getTimeout(MILLISECONDS);
     this.batchTimeOut = scanner.getBatchTimeout(MILLISECONDS);
     this.batchSize = scanner.getBatchSize();
     this.readaheadThreshold = scanner.getReadaheadThreshold();
@@ -236,8 +236,8 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
 
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
-    return new RowBufferingIterator(scanner, this, range, timeOut, batchSize, readaheadThreshold,
-        bufferFactory);
+    return new RowBufferingIterator(scanner, this, range, scanTimeOut, batchSize,
+        readaheadThreshold, bufferFactory);
   }
 
   @Override

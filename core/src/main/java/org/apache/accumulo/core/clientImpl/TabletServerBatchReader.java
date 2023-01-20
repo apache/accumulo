@@ -116,6 +116,6 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     }
 
     return new TabletServerBatchReaderIterator(context, tableId, tableName, authorizations, ranges,
-        numThreads, queryThreadPool, this, timeOut);
+        numThreads, queryThreadPool, this, scanTimeOut);
   }
 }
