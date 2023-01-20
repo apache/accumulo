@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,7 +106,7 @@ public class ConfigOpts extends Help {
       if (propArgs.length == 2) {
         value = propArgs[1].trim();
       } else { // if property is boolean then its mere existence assumes true
-        value = Property.isValidBooleanPropertyKey(key) ? "true" : "";
+        value = Property.getPropertyByKey(key).getType() == PropertyType.BOOLEAN ? "true" : "";
       }
       if (key.isEmpty() || value.isEmpty()) {
         throw new IllegalArgumentException("Invalid command line -o option: " + prop);
