@@ -77,7 +77,6 @@ import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.compaction.TestCompactionStrategy;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -764,14 +763,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("compact -w");
     assertEquals(1, countFiles(tableId));
 
-    // test compaction strategy
-    ts.exec("insert z 1 2 v900");
-    ts.exec("compact -w -s " + TestCompactionStrategy.class.getName()
-        + " -sc inputPrefix=F,dropPrefix=A");
-    assertEquals(1, countFiles(tableId));
-    ts.exec("scan", true, "v900", true);
-    ts.exec("scan", true, "v901", false);
-
     ts.exec("deletetable -f " + table);
   }
 
@@ -886,18 +877,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("compact -t " + clone2 + " -w --sf-no-sample");
 
     assertEquals(3, countFiles(clone2Id));
-  }
-
-  @Test
-  public void testCompactionSelectionAndStrategy() throws Exception {
-
-    final String table = getUniqueNames(1)[0];
-
-    ts.exec("createtable " + table);
-
-    // expect this to fail
-    ts.exec("compact -t " + table + " -w --sf-ename F.* -s "
-        + TestCompactionStrategy.class.getName() + " -sc inputPrefix=F,dropPrefix=A", false);
   }
 
   @Test

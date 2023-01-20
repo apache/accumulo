@@ -16,12 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.compaction;
+package org.apache.accumulo.core.file;
 
-@Deprecated(since = "2.1.0", forRemoval = true)
-public enum MajorCompactionReason {
-  // do not change the order, the order of this enum determines the order
-  // in which queued major compactions are executed
-  USER, CHOP, NORMAL, IDLE
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.junit.jupiter.api.Test;
+
+public class FilePrefixTest {
+
+  @Test
+  public void testPrefixes() {
+    assertEquals(FilePrefix.BULK_IMPORT, FilePrefix.fromPrefix("I"));
+    assertEquals(FilePrefix.MINOR_COMPACTION, FilePrefix.fromPrefix("F"));
+    assertEquals(FilePrefix.MAJOR_COMPACTION, FilePrefix.fromPrefix("C"));
+    assertEquals(FilePrefix.MAJOR_COMPACTION_ALL_FILES, FilePrefix.fromPrefix("A"));
+    assertThrows(IllegalArgumentException.class, () -> {
+      FilePrefix.fromPrefix("B");
+    });
+  }
 
 }
