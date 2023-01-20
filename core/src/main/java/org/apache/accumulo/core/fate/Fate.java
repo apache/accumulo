@@ -235,6 +235,9 @@ public class Fate<T> {
    * Launches the specified number of worker threads.
    */
   public void startTransactionRunners(AccumuloConfiguration conf) {
+    if (executor != null) {
+      throw new IllegalStateException("Fate.startTransactionRunners called twice.");
+    }
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
         Property.MANAGER_FATE_THREADPOOL_SIZE, true);
     fatePoolWatcher =
@@ -400,7 +403,9 @@ public class Fate<T> {
   public void shutdown() {
     keepRunning.set(false);
     fatePoolWatcher.shutdown();
-    executor.shutdown();
+    if (executor != null) {
+      executor.shutdown();
+    }
   }
 
 }
