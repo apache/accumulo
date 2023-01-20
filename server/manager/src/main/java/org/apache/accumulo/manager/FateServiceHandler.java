@@ -214,7 +214,8 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         for (Map.Entry<String,String> entry : options.entrySet()) {
-          if (!Property.isTablePropertyValid(entry.getKey(), entry.getValue())) {
+          if (!(Property.isValidProperty(entry.getKey(), entry.getValue())
+              || Property.isValidTablePropertyKey(entry.getKey()))) {
             throw new ThriftTableOperationException(null, tableName, tableOp,
                 TableOperationExceptionType.OTHER,
                 "Property or value not valid " + entry.getKey() + "=" + entry.getValue());
@@ -313,7 +314,8 @@ class FateServiceHandler implements FateService.Iface {
             continue;
           }
 
-          if (!Property.isTablePropertyValid(entry.getKey(), entry.getValue())) {
+          if (!(Property.isValidProperty(entry.getKey(), entry.getValue())
+              || Property.isValidTablePropertyKey(entry.getKey()))) {
             throw new ThriftTableOperationException(null, tableName, tableOp,
                 TableOperationExceptionType.OTHER,
                 "Property or value not valid " + entry.getKey() + "=" + entry.getValue());

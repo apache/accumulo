@@ -56,8 +56,12 @@ public final class PropUtil {
   protected static void validateProperties(final ServerContext context,
       final PropStoreKey<?> propStoreKey, final Map<String,String> properties) {
     for (Map.Entry<String,String> prop : properties.entrySet()) {
-      if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
-        throw new IllegalArgumentException("Invalid property for : " + propStoreKey + " name: "
+      if (!Property.isValidProperty(prop.getKey(), prop.getValue())) {
+        String exceptionMessage = "Invalid property for : ";
+        if (!Property.isValidTablePropertyKey(prop.getKey())) {
+          exceptionMessage = "Invalid Table property for : ";
+        }
+        throw new IllegalArgumentException(exceptionMessage + propStoreKey + " name: "
             + prop.getKey() + ", value: " + prop.getValue());
       }
     }

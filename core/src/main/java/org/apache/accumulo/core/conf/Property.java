@@ -1421,16 +1421,19 @@ public enum Property {
 
   /**
    * Checks if the given property and value are valid. A property is valid if the property key is
-   * valid see {@link #isValidTablePropertyKey} and that the value is a valid format for the type
-   * see {@link PropertyType#isValidFormat}.
+   * valid see {@link #isValidPropertyKey} and that the value is a valid format for the type see
+   * {@link PropertyType#isValidFormat}.
    *
    * @param key property key
    * @param value property value
    * @return true if key is valid (recognized, or has a recognized prefix)
    */
-  public static boolean isTablePropertyValid(final String key, final String value) {
+  public static boolean isValidProperty(final String key, final String value) {
     Property p = getPropertyByKey(key);
-    return (p == null || p.getType().isValidFormat(value)) && isValidTablePropertyKey(key);
+    if (p == null) {
+      return false;
+    }
+    return (isValidPropertyKey(key) && p.getType().isValidFormat(value));
   }
 
   /**
