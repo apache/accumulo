@@ -20,7 +20,6 @@ package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -52,7 +51,6 @@ import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -167,7 +165,6 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  @Disabled("Scanner.setTimeout does not work, issue #2606")
   @Timeout(value = 20)
   public void testScannerTimeout() throws Exception {
     // Configure the client to use different scan server selector property values
@@ -187,8 +184,8 @@ public class ScanServerIT extends SharedMiniClusterBase {
         scanner.addScanIterator(slow);
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        scanner.setTimeout(10, TimeUnit.SECONDS);
-        assertFalse(scanner.stream().findAny().isPresent(),
+        scanner.setTimeout(500, TimeUnit.MILLISECONDS);
+        assertThrows(RuntimeException.class, () -> scanner.stream().findAny().isPresent(),
             "The scanner should not see any entries");
       }
     }
