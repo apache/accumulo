@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -1113,6 +1114,82 @@ public class TabletLocatorImplTest {
 
     runTest(tableName, ranges, metaCache, expected4,
         nrl(nr("0", "11"), nr("1", "2"), nr("0", "4"), nr("2", "4")));
+  }
+
+  @Test
+  public void testBinRangesNonContiguousExtents() throws Exception {
+
+    // This test exercises a bug that was seen in the tablet locator code.
+
+    KeyExtent e1 = nke("foo", "05", null);
+    KeyExtent e2 = nke("foo", "1", "05");
+    KeyExtent e3 = nke("foo", "2", "05");
+
+    Text tableName = new Text("foo");
+
+    TServers tservers = new TServers();
+    TabletLocatorImpl metaCache =
+        createLocators(tservers, "tserver1", "tserver2", "foo", e1, "l1", e2, "l1");
+
+    List<Range> ranges = nrl(nr("01", "07"));
+    Map<String,Map<KeyExtent,List<Range>>> expected =
+        createExpectedBinnings("l1", nol(e1, nrl(nr("01", "07")), e2, nrl(nr("01", "07"))));
+
+    // The following will result in extents e1 and e2 being placed in the cache.
+    runTest(tableName, ranges, metaCache, expected, nrl());
+
+    // Add e3 to the metadata table. Extent e3 could not be added earlier in the test because it
+    // overlaps e2. If e2 and e3 are seen in the same metadata read then one will be removed from
+    // the cache because the cache can never contain overlapping extents.
+    setLocation(tservers, "tserver2", MTE, e3, "l1");
+
+    // The following test reproduces a bug. Extents e1 and e2 are in the cache. Extent e3 overlaps
+    // e2 but is not in the cache. The range used by the test overlaps e1,e2,and e3. The bug was
+    // that for this situation the binRanges code in tablet locator used to return e1,e2,and e3. The
+    // desired behavior is that the range fails for this situation. This tablet locator bug caused
+    // the batch scanner to return duplicate data.
+    ranges = nrl(nr("01", "17"));
+    runTest(tableName, ranges, metaCache, new HashMap<>(), nrl(nr("01", "17")));
+
+    // After the above test fails it should cause e3 to be added to the cache. Because e3 overlaps
+    // e2, when e3 is added then e2 is removed. Therefore, the following binRanges call should
+    // succeed and find the range overlaps e1 and e3.
+    expected = createExpectedBinnings("l1", nol(e1, nrl(nr("01", "17")), e3, nrl(nr("01", "17"))));
+    runTest(tableName, ranges, metaCache, expected, nrl());
+  }
+
+  @Test
+  public void testIsContiguous() {
+    TabletLocation e1 = new TabletLocation(nke("foo", "1", null), "l1", "1");
+    TabletLocation e2 = new TabletLocation(nke("foo", "2", "1"), "l1", "1");
+    TabletLocation e3 = new TabletLocation(nke("foo", "3", "2"), "l1", "1");
+    TabletLocation e4 = new TabletLocation(nke("foo", null, "3"), "l1", "1");
+
+    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e3, e4)));
+    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e3)));
+    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e2, e3, e4)));
+    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e2, e3)));
+    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e1)));
+    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e2)));
+    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e4)));
+
+    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e4)));
+    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e3, e4)));
+
+    TabletLocation e5 = new TabletLocation(nke("foo", null, null), "l1", "1");
+    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e3, e4, e5)));
+    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e5, e1, e2, e3, e4)));
+    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e3, e5)));
+    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e5, e2, e3, e4)));
+    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e5)));
+
+    TabletLocation e6 = new TabletLocation(nke("foo", null, "1"), "l1", "1");
+
+    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e3, e6)));
+
+    TabletLocation e7 = new TabletLocation(nke("foo", "33", "11"), "l1", "1");
+
+    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e7, e4)));
   }
 
   @Test
