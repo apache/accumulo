@@ -19,11 +19,13 @@
 package org.apache.accumulo.test.functional;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -32,9 +34,11 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.jupiter.api.Test;
 
@@ -48,9 +52,10 @@ public class TimeoutIT extends AccumuloClusterHarness {
   @Test
   public void run() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String[] tableNames = getUniqueNames(2);
+      String[] tableNames = getUniqueNames(3);
       testBatchWriterTimeout(client, tableNames[0]);
       testBatchScannerTimeout(client, tableNames[1]);
+      testScannerTimeout(client, tableNames[2]);
     }
   }
 
@@ -104,4 +109,46 @@ public class TimeoutIT extends AccumuloClusterHarness {
     }
   }
 
+  public void testScannerTimeout(AccumuloClient client, String tableName) throws Exception {
+    client.tableOperations().create(tableName);
+
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
+      Mutation m = new Mutation("r1");
+      m.put("cf1", "cq1", "v1");
+      m.put("cf1", "cq2", "v2");
+      m.put("cf1", "cq3", "v3");
+      m.put("cf1", "cq4", "v4");
+      bw.addMutation(m);
+    }
+
+    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.setRange(new Range());
+
+      scanner.setTimeout(500, TimeUnit.MILLISECONDS);
+      IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
+      iterSetting.addOption("sleepTime", 100 + "");
+      iterSetting.addOption("seekSleepTime", 100 + "");
+
+      scanner.addScanIterator(iterSetting);
+
+      final AtomicInteger count = new AtomicInteger(0);
+      // should not timeout
+      scanner.forEach((k, v) -> count.incrementAndGet());
+      assertEquals(4, count.get());
+    }
+
+    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.setRange(new Range());
+
+      scanner.setTimeout(500, TimeUnit.MILLISECONDS);
+      IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
+      iterSetting.addOption("sleepTime", 5000 + "");
+      iterSetting.addOption("seekSleepTime", 5000 + "");
+
+      scanner.addScanIterator(iterSetting);
+
+      assertThrows(RuntimeException.class, () -> scanner.iterator().next(),
+          "scanner did not time out");
+    }
+  }
 }
