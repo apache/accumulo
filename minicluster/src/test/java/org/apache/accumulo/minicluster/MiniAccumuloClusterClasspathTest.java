@@ -52,9 +52,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterClasspathTest extends WithTestNames {
 
-  @SuppressWarnings("removal")
-  private static final Property CONTEXT_CLASSPATH_PROPERTY = Property.CONTEXT_CLASSPATH_PROPERTY;
-
   @TempDir
   private static File tempDir;
 
@@ -62,7 +59,7 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
   public static final String ROOT_USER = "root";
 
   public static File testDir;
-
+  private static File jarFile;
   private static MiniAccumuloCluster accumulo;
 
   @BeforeAll
@@ -73,7 +70,7 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
 
-    File jarFile = new File(tempDir, "iterator.jar");
+    jarFile = new File(tempDir, "iterator.jar");
     FileUtils.copyURLToFile(
         requireNonNull(MiniAccumuloClusterClasspathTest.class.getResource("/FooFilter.jar")),
         jarFile);
@@ -82,7 +79,6 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
     config.setZooKeeperPort(0);
     HashMap<String,String> site = new HashMap<>();
     site.put(Property.TSERV_WORKQ_THREADS.getKey(), "2");
-    site.put(CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1", jarFile.toURI().toString());
     config.setSiteConfig(site);
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
@@ -102,7 +98,8 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
       final String tableName = testName();
 
       var ntc = new NewTableConfiguration();
-      ntc.setProperties(Map.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "cx1"));
+      ntc.setProperties(
+          Map.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), jarFile.toURI().toString()));
       ntc.attachIterator(
           new IteratorSetting(100, "foocensor", "org.apache.accumulo.test.FooFilter"));
 

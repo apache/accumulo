@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.start;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -45,13 +44,11 @@ public class Main {
     // Preload classes that cause a deadlock between the ServiceLoader and the DFSClient when
     // using the VFSClassLoader with jars in HDFS.
     ClassLoader loader = getClassLoader();
-    Class<?> confClass = null;
+    Class<?> confClass;
     try {
-      @SuppressWarnings("deprecation")
-      var deprecatedConfClass = org.apache.accumulo.start.classloader.AccumuloClassLoader
-          .getClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
-      confClass = deprecatedConfClass;
-      Object conf = null;
+      confClass =
+          ClassLoader.getSystemClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
+      Object conf;
       try {
         conf = confClass.getDeclaredConstructor().newInstance();
         try {
@@ -94,9 +91,9 @@ public class Main {
   public static synchronized ClassLoader getClassLoader() {
     if (classLoader == null) {
       try {
-        classLoader = org.apache.accumulo.start.classloader.AccumuloClassLoader.getClassLoader();
+        classLoader = ClassLoader.getSystemClassLoader();
         Thread.currentThread().setContextClassLoader(classLoader);
-      } catch (IOException | IllegalArgumentException | SecurityException e) {
+      } catch (IllegalArgumentException | SecurityException e) {
         die(e, "Problem initializing the class loader");
       }
     }

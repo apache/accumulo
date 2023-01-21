@@ -152,9 +152,6 @@ public class MiniAccumuloConfigImpl {
       // since there is a small amount of memory, check more frequently for majc... setting may not
       // be needed in 1.5
       mergeProp(Property.TSERV_MAJC_DELAY.getKey(), "3");
-      @SuppressWarnings("deprecation")
-      Property generalClasspaths = Property.GENERAL_CLASSPATHS;
-      mergeProp(generalClasspaths.getKey(), libDir.getAbsolutePath() + "/[^.].*[.]jar");
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
       mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
       mergePropWithRandomPort(Property.MANAGER_CLIENTPORT.getKey());

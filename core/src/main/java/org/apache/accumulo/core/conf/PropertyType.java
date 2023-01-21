@@ -107,8 +107,7 @@ public enum PropertyType {
           + "config file using '${env:ACCUMULO_HOME}' or similar."),
 
   ABSOLUTEPATH("absolute path",
-      x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute()
-          || x.equals(Property.CONTEXT_CLASSPATH_PROPERTY.getDefaultValue()),
+      x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute(),
       "An absolute filesystem path. The filesystem depends on the property."
           + " This is the same as path, but enforces that its root is explicitly specified."),
 

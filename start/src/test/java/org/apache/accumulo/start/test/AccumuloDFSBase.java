@@ -22,7 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 
-import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
+import org.apache.accumulo.start.util.MiniDFSUtil;
 import org.apache.commons.vfs2.CacheStrategy;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.cache.DefaultFilesCache;

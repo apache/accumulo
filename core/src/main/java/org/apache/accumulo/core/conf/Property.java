@@ -38,7 +38,6 @@ import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
-import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
@@ -1045,19 +1044,6 @@ public enum Property {
           + "constraint.",
       "2.0.0"),
 
-  // ClassLoader properties
-  CONTEXT_CLASSPATH_PROPERTY(ContextManager.CONTEXT_CLASSPATH_PROPERTY, null, PropertyType.PREFIX,
-      "Properties in this category are define a classpath. These properties"
-          + " start  with the category prefix, followed by a context name. The value is"
-          + " a comma separated list of URIs. Supports full regex on filename alone."
-          + " For example, general.vfs.context.classpath.cx1=hdfs://nn1:9902/mylibdir/*.jar."
-          + " You can enable post delegation for a context, which will load classes from the"
-          + " context first instead of the parent first. Do this by setting"
-          + " `general.vfs.context.classpath.<name>.delegation=post`, where `<name>` is"
-          + " your context name. If delegation is not specified, it defaults to loading"
-          + " from parent classloader first.",
-      "3.0.0"),
-
   // Compactor properties
   @Experimental
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
@@ -1130,17 +1116,7 @@ public enum Property {
   @Experimental
   COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
       "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
-      "The interval at which to check the tservers for external compactions.", "2.1.0"),
-  // deprecated properties grouped at the end to reference property that replaces them
-  @Deprecated(since = "2.0.0")
-  GENERAL_CLASSPATHS(org.apache.accumulo.start.classloader.AccumuloClassLoader.GENERAL_CLASSPATHS,
-      "", PropertyType.STRING,
-      "The class path should instead be configured"
-          + " by the launch environment (for example, accumulo-env.sh). A list of all"
-          + " of the places to look for a class. Order does matter, as it will look for"
-          + " the jar starting in the first location to the last. Supports full regex"
-          + " on filename alone.",
-      "1.3.5");
+      "The interval at which to check the tservers for external compactions.", "2.1.0");
 
   private final String key;
   private final String defaultValue;
@@ -1435,8 +1411,7 @@ public enum Property {
         || key.startsWith(Property.TSERV_PREFIX.getKey())
         || key.startsWith(Property.MANAGER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
-        || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
-        || key.startsWith(CONTEXT_CLASSPATH_PROPERTY.getKey());
+        || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey());
   }
 
   /**

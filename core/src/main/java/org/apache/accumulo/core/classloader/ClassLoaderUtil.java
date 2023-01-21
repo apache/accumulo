@@ -18,12 +18,9 @@
  */
 package org.apache.accumulo.core.classloader;
 
-import java.io.IOException;
-
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +44,7 @@ public class ClassLoaderUtil {
         // load the default implementation
         LOG.info("Using default {}, which is subject to change in a future release",
             ContextClassLoaderFactory.class.getName());
-        FACTORY = new DefaultContextClassLoaderFactory(conf);
+        FACTORY = new DefaultContextClassLoaderFactory();
       } else {
         // load user's selected implementation
         try {
@@ -74,16 +71,15 @@ public class ClassLoaderUtil {
     FACTORY = null;
   }
 
-  @SuppressWarnings("deprecation")
+  public static ClassLoader getClassLoader() {
+    return getClassLoader(null);
+  }
+
   public static ClassLoader getClassLoader(String context) {
     if (context != null && !context.isEmpty()) {
       return FACTORY.getClassLoader(context);
     } else {
-      try {
-        return AccumuloClassLoader.getClassLoader();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+      return ClassLoader.getSystemClassLoader();
     }
   }
 

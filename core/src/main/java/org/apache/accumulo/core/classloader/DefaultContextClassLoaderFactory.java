@@ -18,26 +18,20 @@
  */
 package org.apache.accumulo.core.classloader;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ScheduledFuture;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
-import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
-import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * The default implementation of ContextClassLoaderFactory. This implementation is subject to change
@@ -52,71 +46,49 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
   private static final Logger LOG = LoggerFactory.getLogger(DefaultContextClassLoaderFactory.class);
   private static final String className = DefaultContextClassLoaderFactory.class.getName();
 
-  private static final Property CONTEXT_CLASSPATH_PROPERTY = Property.CONTEXT_CLASSPATH_PROPERTY;
+  // Do we set a max size here and how long until we expire the classloader?
+  private final Cache<String,Context> contexts =
+      Caffeine.newBuilder().maximumSize(100).expireAfterAccess(1, TimeUnit.DAYS).build();
 
-  private static ContextManager contextManager;
-
-  public DefaultContextClassLoaderFactory(final AccumuloConfiguration accConf) {
+  public DefaultContextClassLoaderFactory() {
     if (!isInstantiated.compareAndSet(false, true)) {
       throw new IllegalStateException("Can only instantiate " + className + " once");
     }
-    Supplier<Map<String,String>> contextConfigSupplier =
-        () -> accConf.getAllPropertiesWithPrefix(CONTEXT_CLASSPATH_PROPERTY);
-    setContextConfig(contextConfigSupplier);
-    LOG.debug("ContextManager configuration set");
-    startCleanupThread(accConf, contextConfigSupplier);
-  }
-
-  private static void setContextConfig(Supplier<Map<String,String>> contextConfigSupplier) {
-    var config = new ContextManager.DefaultContextsConfig(contextConfigSupplier);
-    try {
-      getContextManager().setContextConfig(config);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-  }
-
-  private static void startCleanupThread(final AccumuloConfiguration conf,
-      final Supplier<Map<String,String>> contextConfigSupplier) {
-    ScheduledFuture<?> future = ThreadPools.getClientThreadPools((t, e) -> {
-      LOG.error("context classloader cleanup thread has failed.", e);
-    }).createGeneralScheduledExecutorService(conf)
-        .scheduleWithFixedDelay(Threads.createNamedRunnable(className + "-cleanup", () -> {
-          LOG.trace("{}-cleanup thread, properties: {}", className, conf);
-          Set<String> contextsInUse = contextConfigSupplier.get().keySet().stream()
-              .map(p -> p.substring(CONTEXT_CLASSPATH_PROPERTY.getKey().length()))
-              .collect(Collectors.toSet());
-          LOG.trace("{}-cleanup thread, contexts in use: {}", className, contextsInUse);
-          removeUnusedContexts(contextsInUse);
-        }), 1, 1, MINUTES);
-    ThreadPools.watchNonCriticalScheduledTask(future);
-    LOG.debug("Context cleanup timer started at 60s intervals");
   }
 
   @Override
   public ClassLoader getClassLoader(String contextName) {
-    try {
-      return getContextManager().getClassLoader(contextName);
-    } catch (IOException e) {
-      throw new UncheckedIOException(
-          "Error getting context class loader for context: " + contextName, e);
+    if (contextName == null) {
+      throw new IllegalArgumentException("Unknown context");
+    }
+
+    final ClassLoader loader = contexts.get(contextName, Context::new).getClassLoader();
+
+    LOG.debug("Returning classloader {} for context {}", loader.getClass().getName(), contextName);
+    return loader;
+  }
+
+  private static class Context {
+    private final String contextName;
+    private ClassLoader loader;
+
+    Context(String contextName) {
+      this.contextName = contextName;
+    }
+
+    synchronized ClassLoader getClassLoader() {
+      if (loader == null) {
+        LOG.debug("ClassLoader not created for context, creating new one. uris: {}", contextName);
+        loader = new URLClassLoader(Arrays.stream(contextName.split(",")).map(url -> {
+          try {
+            return new URL(url);
+          } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+          }
+        }).collect(Collectors.toList()).toArray(new URL[] {}), ClassLoader.getSystemClassLoader());
+      }
+      return loader;
     }
   }
 
-  public static void removeUnusedContexts(Set<String> contextsInUse) {
-    try {
-      getContextManager().removeUnusedContexts(contextsInUse);
-    } catch (IOException e) {
-      LOG.warn("{}", e.getMessage(), e);
-    }
-  }
-
-  private static synchronized ContextManager getContextManager() throws IOException {
-    if (contextManager == null) {
-      // getClassLoader();
-      contextManager = new ContextManager(AccumuloClassLoader.getClassLoader());
-    }
-
-    return contextManager;
-  }
 }
