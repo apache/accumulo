@@ -39,10 +39,22 @@ import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class TimeoutIT extends AccumuloClusterHarness {
+public class TimeoutIT extends SharedMiniClusterBase {
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   @Override
   protected Duration defaultTimeout() {
@@ -50,105 +62,107 @@ public class TimeoutIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void run() throws Exception {
+  public void testBatchWriterTimeout() throws Exception {
+    String tableName = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String[] tableNames = getUniqueNames(3);
-      testBatchWriterTimeout(client, tableNames[0]);
-      testBatchScannerTimeout(client, tableNames[1]);
-      testScannerTimeout(client, tableNames[2]);
+      client.tableOperations().create(tableName);
+      client.tableOperations().addConstraint(tableName, SlowConstraint.class.getName());
+
+      // give constraint time to propagate through zookeeper
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
+
+      BatchWriter bw = client.createBatchWriter(tableName,
+          new BatchWriterConfig().setTimeout(3, TimeUnit.SECONDS));
+
+      Mutation mut = new Mutation("r1");
+      mut.put("cf1", "cq1", "v1");
+
+      bw.addMutation(mut);
+      var mre =
+          assertThrows(MutationsRejectedException.class, bw::close, "batch writer did not timeout");
+      if (mre.getCause() instanceof TimedOutException) {
+        return;
+      }
+      throw mre;
     }
   }
 
-  public void testBatchWriterTimeout(AccumuloClient client, String tableName) throws Exception {
-    client.tableOperations().create(tableName);
-    client.tableOperations().addConstraint(tableName, SlowConstraint.class.getName());
+  @Test
+  public void testBatchScannerTimeout() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(tableName);
 
-    // give constraint time to propagate through zookeeper
-    sleepUninterruptibly(1, TimeUnit.SECONDS);
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        Mutation m = new Mutation("r1");
+        m.put("cf1", "cq1", "v1");
+        m.put("cf1", "cq2", "v2");
+        m.put("cf1", "cq3", "v3");
+        m.put("cf1", "cq4", "v4");
+        bw.addMutation(m);
+      }
 
-    BatchWriter bw = client.createBatchWriter(tableName,
-        new BatchWriterConfig().setTimeout(3, TimeUnit.SECONDS));
+      try (BatchScanner bs = client.createBatchScanner(tableName)) {
+        bs.setRanges(Collections.singletonList(new Range()));
 
-    Mutation mut = new Mutation("r1");
-    mut.put("cf1", "cq1", "v1");
+        // should not timeout
+        bs.forEach((k, v) -> {});
 
-    bw.addMutation(mut);
-    var mre =
-        assertThrows(MutationsRejectedException.class, bw::close, "batch writer did not timeout");
-    if (mre.getCause() instanceof TimedOutException) {
-      return;
-    }
-    throw mre;
-  }
+        bs.setTimeout(5, TimeUnit.SECONDS);
+        IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
+        iterSetting.addOption("sleepTime", 2000 + "");
+        bs.addScanIterator(iterSetting);
 
-  public void testBatchScannerTimeout(AccumuloClient client, String tableName) throws Exception {
-    client.tableOperations().create(tableName);
-
-    try (BatchWriter bw = client.createBatchWriter(tableName)) {
-      Mutation m = new Mutation("r1");
-      m.put("cf1", "cq1", "v1");
-      m.put("cf1", "cq2", "v2");
-      m.put("cf1", "cq3", "v3");
-      m.put("cf1", "cq4", "v4");
-      bw.addMutation(m);
-    }
-
-    try (BatchScanner bs = client.createBatchScanner(tableName)) {
-      bs.setRanges(Collections.singletonList(new Range()));
-
-      // should not timeout
-      bs.forEach((k, v) -> {});
-
-      bs.setTimeout(5, TimeUnit.SECONDS);
-      IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
-      iterSetting.addOption("sleepTime", 2000 + "");
-      bs.addScanIterator(iterSetting);
-
-      assertThrows(TimedOutException.class, () -> bs.iterator().next(),
-          "batch scanner did not time out");
+        assertThrows(TimedOutException.class, () -> bs.iterator().next(),
+            "batch scanner did not time out");
+      }
     }
   }
 
-  public void testScannerTimeout(AccumuloClient client, String tableName) throws Exception {
-    client.tableOperations().create(tableName);
+  @Test
+  public void testScannerTimeout() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(tableName);
 
-    try (BatchWriter bw = client.createBatchWriter(tableName)) {
-      Mutation m = new Mutation("r1");
-      m.put("cf1", "cq1", "v1");
-      m.put("cf1", "cq2", "v2");
-      m.put("cf1", "cq3", "v3");
-      m.put("cf1", "cq4", "v4");
-      bw.addMutation(m);
-    }
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        Mutation m = new Mutation("r1");
+        m.put("cf1", "cq1", "v1");
+        m.put("cf1", "cq2", "v2");
+        m.put("cf1", "cq3", "v3");
+        m.put("cf1", "cq4", "v4");
+        bw.addMutation(m);
+      }
 
-    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-      scanner.setRange(new Range());
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new Range());
 
-      scanner.setTimeout(500, TimeUnit.MILLISECONDS);
-      IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
-      iterSetting.addOption("sleepTime", 100 + "");
-      iterSetting.addOption("seekSleepTime", 100 + "");
+        scanner.setTimeout(5000, TimeUnit.MILLISECONDS);
+        IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
+        iterSetting.addOption("sleepTime", 100 + "");
+        iterSetting.addOption("seekSleepTime", 100 + "");
 
-      scanner.addScanIterator(iterSetting);
+        scanner.addScanIterator(iterSetting);
 
-      final AtomicInteger count = new AtomicInteger(0);
-      // should not timeout
-      scanner.forEach((k, v) -> count.incrementAndGet());
-      assertEquals(4, count.get());
-    }
+        final AtomicInteger count = new AtomicInteger(0);
+        // should not timeout
+        scanner.forEach((k, v) -> count.incrementAndGet());
+        assertEquals(4, count.get());
+      }
 
-    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-      scanner.setRange(new Range());
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new Range());
 
-      scanner.setTimeout(500, TimeUnit.MILLISECONDS);
-      IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
-      iterSetting.addOption("sleepTime", 5000 + "");
-      iterSetting.addOption("seekSleepTime", 5000 + "");
+        scanner.setTimeout(500, TimeUnit.MILLISECONDS);
+        IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
+        iterSetting.addOption("sleepTime", 5000 + "");
+        iterSetting.addOption("seekSleepTime", 5000 + "");
 
-      scanner.addScanIterator(iterSetting);
+        scanner.addScanIterator(iterSetting);
 
-      assertThrows(RuntimeException.class, () -> scanner.iterator().next(),
-          "scanner did not time out");
+        assertThrows(RuntimeException.class, () -> scanner.iterator().next(),
+            "scanner did not time out");
+      }
     }
   }
 }
