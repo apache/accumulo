@@ -97,6 +97,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.Uninterruptibles;
 
 public class CompactionCoordinator extends AbstractServer
     implements CompactionCoordinatorService.Iface, LiveTServerSet.Listener {
@@ -347,6 +348,7 @@ public class CompactionCoordinator extends AbstractServer
           iter.remove();
         }
       }
+      Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
 
     // remove any queues that were seen in the past, but were not seen in the latest gathering of

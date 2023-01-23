@@ -150,6 +150,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.RateLimiter;
+import com.google.common.util.concurrent.Uninterruptibles;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
@@ -217,7 +218,7 @@ public class Manager extends AbstractServer
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
   private final AtomicBoolean managerUpgrading = new AtomicBoolean(false);
 
-  private ExecutorService tp = null;
+  private ExecutorService tableInformationStatusPool = null;
 
   @Override
   public synchronized ManagerState getManagerState() {
@@ -964,7 +965,7 @@ public class Manager extends AbstractServer
         // unresponsive tservers.
         sleepUninterruptibly(Math.max(1, rpcTimeout / 120_000), TimeUnit.MILLISECONDS);
       }
-      tasks.add(tp.submit(() -> {
+      tasks.add(tableInformationStatusPool.submit(() -> {
         try {
           Thread t = Thread.currentThread();
           String oldName = t.getName();
@@ -1015,16 +1016,25 @@ public class Manager extends AbstractServer
         }
       }));
     }
-
+    long timeToWaitForCompletion = Math.max(10000, rpcTimeout / 3);
+    long currTime = System.currentTimeMillis();
+    long timeToCancelTasks = currTime + timeToWaitForCompletion;
     // Wait for all tasks to complete
     while (!tasks.isEmpty()) {
+      boolean cancel = (currTime > timeToCancelTasks);
       Iterator<Future<?>> iter = tasks.iterator();
       while (iter.hasNext()) {
         Future<?> f = iter.next();
-        if (f.isDone()) {
-          iter.remove();
+        if (cancel) {
+          f.cancel(true);
+        } else {
+          if (f.isDone()) {
+            iter.remove();
+          }
         }
       }
+      Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+      currTime = System.currentTimeMillis();
     }
 
     // Threads may still modify map after shutdownNow is called, so create an immutable snapshot.
@@ -1100,8 +1110,8 @@ public class Manager extends AbstractServer
 
     context.getTableManager().addObserver(this);
 
-    tp = ThreadPools.getServerThreadPools().createExecutorService(getConfiguration(),
-        Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
+    tableInformationStatusPool = ThreadPools.getServerThreadPools()
+        .createExecutorService(getConfiguration(), Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
 
     Thread statusThread = Threads.createThread("Status Thread", new StatusThread());
     statusThread.start();
@@ -1258,14 +1268,7 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Exception stopping status thread", e);
     }
 
-    tp.shutdown();
-    try {
-      final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
-      tp.awaitTermination(Math.max(10000, rpcTimeout / 3), TimeUnit.MILLISECONDS);
-    } catch (InterruptedException e) {
-      log.debug("Interrupted while fetching status");
-    }
-    tp.shutdownNow();
+    tableInformationStatusPool.shutdownNow();
 
     // Signal that we want it to stop, and wait for it to do so.
     if (authenticationTokenKeyManager != null) {
