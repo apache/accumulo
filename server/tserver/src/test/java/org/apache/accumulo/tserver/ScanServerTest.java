@@ -126,7 +126,7 @@ public class ScanServerTest {
     TabletResolver resolver = createMock(TabletResolver.class);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    expect(reservation.getFailures()).andReturn(Map.of());
+    expect(reservation.getFailures()).andReturn(Map.of()).times(2);
     expect(reservation.newTablet(ss, sextent)).andReturn(tablet);
     reservation.close();
     reservation.close();
