@@ -53,7 +53,7 @@ public class ScannerOptions implements ScannerBase {
 
   protected SortedSet<Column> fetchedColumns = new TreeSet<>();
 
-  protected long timeOut = Long.MAX_VALUE;
+  protected long retryTimeout = Long.MAX_VALUE;
 
   protected long batchTimeOut = Long.MAX_VALUE;
 
@@ -197,20 +197,20 @@ public class ScannerOptions implements ScannerBase {
 
   @Override
   public synchronized void setTimeout(long timeout, TimeUnit timeUnit) {
-    if (timeOut < 0) {
-      throw new IllegalArgumentException("TimeOut must be positive : " + timeOut);
+    if (timeout < 0) {
+      throw new IllegalArgumentException("TimeOut must be positive : " + timeout);
     }
 
     if (timeout == 0) {
-      this.timeOut = Long.MAX_VALUE;
+      this.retryTimeout = Long.MAX_VALUE;
     } else {
-      this.timeOut = timeUnit.toMillis(timeout);
+      this.retryTimeout = timeUnit.toMillis(timeout);
     }
   }
 
   @Override
   public synchronized long getTimeout(TimeUnit timeunit) {
-    return timeunit.convert(timeOut, MILLISECONDS);
+    return timeunit.convert(retryTimeout, MILLISECONDS);
   }
 
   @Override
@@ -241,8 +241,8 @@ public class ScannerOptions implements ScannerBase {
 
   @Override
   public void setBatchTimeout(long timeout, TimeUnit timeUnit) {
-    if (timeOut < 0) {
-      throw new IllegalArgumentException("Batch timeout must be positive : " + timeOut);
+    if (timeout < 0) {
+      throw new IllegalArgumentException("Batch timeout must be positive : " + timeout);
     }
     if (timeout == 0) {
       this.batchTimeOut = Long.MAX_VALUE;
