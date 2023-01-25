@@ -428,7 +428,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public void setSystemProperty(TInfo info, TCredentials c, String property, String value)
-      throws ThriftSecurityException, ThriftPropertyException {
+      throws TException {
     if (!manager.security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     }
@@ -437,11 +437,11 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       SystemPropUtil.setSystemProperty(manager.getContext(), property, value);
       updatePlugins(property);
     } catch (IllegalArgumentException iae) {
-      // throw the exception here so it is not caught and converted to a generic TException
-      throw iae;
+      Manager.log.error("Set Invalid Property: " + property + " value: " + value, iae);
+      throw new ThriftPropertyException(property, value, "Property is invalid");
     } catch (Exception e) {
       Manager.log.error("Problem setting config property in zookeeper", e);
-      throw new ThriftPropertyException(property, value, e.getMessage());
+      throw new TException(e.getMessage());
     }
   }
 
@@ -459,6 +459,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         updatePlugins(entry.getKey());
       }
     } catch (IllegalArgumentException iae) {
+      Manager.log.error("Problem setting invalid config property in zookeeper", iae);
       throw new ThriftPropertyException("Modify Properties", "failed", iae.getMessage());
     } catch (ConcurrentModificationException cme) {
       log.warn("Error modifying system properties, properties have changed", cme);
