@@ -55,7 +55,7 @@ public class ScannerOptions implements ScannerBase {
 
   protected long retryTimeout = Long.MAX_VALUE;
 
-  protected long batchTimeOut = Long.MAX_VALUE;
+  protected long batchTimeout = Long.MAX_VALUE;
 
   private String regexIterName = null;
 
@@ -180,7 +180,7 @@ public class ScannerOptions implements ScannerBase {
         }
 
         dst.samplerConfig = src.samplerConfig;
-        dst.batchTimeOut = src.batchTimeOut;
+        dst.batchTimeout = src.batchTimeout;
 
         // its an immutable map, so can avoid copy here
         dst.executionHints = src.executionHints;
@@ -245,15 +245,15 @@ public class ScannerOptions implements ScannerBase {
       throw new IllegalArgumentException("Batch timeout must be positive : " + timeout);
     }
     if (timeout == 0) {
-      this.batchTimeOut = Long.MAX_VALUE;
+      this.batchTimeout = Long.MAX_VALUE;
     } else {
-      this.batchTimeOut = timeUnit.toMillis(timeout);
+      this.batchTimeout = timeUnit.toMillis(timeout);
     }
   }
 
   @Override
   public long getBatchTimeout(TimeUnit timeUnit) {
-    return timeUnit.convert(batchTimeOut, MILLISECONDS);
+    return timeUnit.convert(batchTimeout, MILLISECONDS);
   }
 
   @Override
