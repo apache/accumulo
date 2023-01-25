@@ -76,7 +76,13 @@ public class SystemPropUtil {
     if (!Property.isValidZooPropertyKey(property)) {
       IllegalArgumentException iae =
           new IllegalArgumentException("Zookeeper property is not mutable: " + property);
-      log.debug("Attempted to set zookeeper property.  It is not mutable", iae);
+      log.debug("Encountered error setting zookeeper property", iae);
+      throw iae;
+    }
+    if (!Property.isValidProperty(property, value)) {
+      IllegalArgumentException iae = new IllegalArgumentException(
+          "Property " + property + " with value: " + value + " is not valid");
+      log.debug("Encountered error setting zookeeper property", iae);
       throw iae;
     }
 
