@@ -98,7 +98,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private Map<String,TimeoutTracker> timeoutTrackers;
   private Set<String> timedoutServers;
-  private final long timeout;
+  private final long retryTimeout;
 
   private TabletLocator locator;
 
@@ -108,7 +108,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   public TabletServerBatchReaderIterator(ClientContext context, String tableId,
       Authorizations authorizations, ArrayList<Range> ranges, int numThreads,
-      ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout) {
+      ExecutorService queryThreadPool, ScannerOptions scannerOptions, long retryTimeout) {
 
     this.context = context;
     this.instance = context.getInstance();
@@ -119,12 +119,12 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.options = new ScannerOptions(scannerOptions);
     resultsQueue = new ArrayBlockingQueue<>(numThreads);
 
-    this.locator = new TimeoutTabletLocator(timeout, context, tableId);
+    this.locator = new TimeoutTabletLocator(retryTimeout, context, tableId);
 
     timeoutTrackers = Collections
         .synchronizedMap(new HashMap<String,TabletServerBatchReaderIterator.TimeoutTracker>());
     timedoutServers = Collections.synchronizedSet(new HashSet<String>());
-    this.timeout = timeout;
+    this.retryTimeout = retryTimeout;
 
     if (options.fetchedColumns.size() > 0) {
       ArrayList<Range> ranges2 = new ArrayList<>(ranges.size());
@@ -361,7 +361,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       try {
         TimeoutTracker timeoutTracker = timeoutTrackers.get(tsLocation);
         if (timeoutTracker == null) {
-          timeoutTracker = new TimeoutTracker(tsLocation, timedoutServers, timeout);
+          timeoutTracker = new TimeoutTracker(tsLocation, timedoutServers, retryTimeout);
           timeoutTrackers.put(tsLocation, timeoutTracker);
         }
         doLookup(context, tsLocation, tabletsRanges, tsFailures, unscanned, receiver, columns,
@@ -686,7 +686,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             options.serverSideIteratorList, options.serverSideIteratorOptions,
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
             SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
-            options.batchTimeOut, options.classLoaderContext);
+            options.batchTimeout, options.classLoaderContext);
         if (waitForWrites)
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
 
