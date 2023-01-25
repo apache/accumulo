@@ -90,6 +90,12 @@ exception ThriftSecurityException {
   2:SecurityErrorCode code
 }
 
+exception ThriftPropertyException {
+  1:string property
+  2:string value
+  3:string description
+}
+
 exception ThriftTableOperationException {
   1:string tableId
   2:string tableName
