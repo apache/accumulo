@@ -193,6 +193,7 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException tope
     3:client.ThriftNotActiveServiceException tnase
+    4:client.ThriftPropertyException tpe
   )
 
   void modifyTableProperties(
@@ -205,6 +206,7 @@ service ManagerClientService {
     2:client.ThriftTableOperationException tope
     3:client.ThriftNotActiveServiceException tnase
     4:client.ThriftConcurrentModificationException tcme
+    5:client.ThriftPropertyException tpe
   )
 
   void removeTableProperty(
@@ -228,6 +230,7 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException tope
     3:client.ThriftNotActiveServiceException tnase
+    4:client.ThriftPropertyException tpe
   )
 
   void modifyNamespaceProperties(
@@ -290,6 +293,7 @@ service ManagerClientService {
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
+    3:client.ThriftPropertyException tpe
   )
  
   void modifySystemProperties(
@@ -300,6 +304,7 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
     3:client.ThriftConcurrentModificationException tcme
+    4:client.ThriftPropertyException tpe
   )
 
   void removeSystemProperty(

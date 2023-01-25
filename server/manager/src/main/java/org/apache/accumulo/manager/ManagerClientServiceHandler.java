@@ -49,6 +49,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
@@ -245,19 +246,23 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public void removeTableProperty(TInfo info, TCredentials credentials, String tableName,
-      String property) throws ThriftSecurityException, ThriftTableOperationException {
+      String property)
+      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
     alterTableProperty(credentials, tableName, property, null, TableOperation.REMOVE_PROPERTY);
   }
 
   @Override
   public void setTableProperty(TInfo info, TCredentials credentials, String tableName,
-      String property, String value) throws ThriftSecurityException, ThriftTableOperationException {
+      String property, String value)
+      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
     alterTableProperty(credentials, tableName, property, value, TableOperation.SET_PROPERTY);
   }
 
   @Override
   public void modifyTableProperties(TInfo tinfo, TCredentials credentials, String tableName,
-      TVersionedProperties properties) throws TException {
+      TVersionedProperties properties)
+      throws ThriftSecurityException, ThriftTableOperationException,
+      ThriftConcurrentModificationException, ThriftPropertyException {
     final TableId tableId = ClientServiceHandler.checkTableId(manager.getContext(), tableName,
         TableOperation.SET_PROPERTY);
     NamespaceId namespaceId = getNamespaceIdFromTableId(TableOperation.SET_PROPERTY, tableId);
@@ -282,6 +287,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throw new ThriftTableOperationException(tableId.canonical(), tableName,
           TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
           "Error modifying table properties: tableId: " + tableId.canonical());
+    } catch (IllegalArgumentException iae) {
+      throw new ThriftPropertyException();
     }
 
   }
@@ -421,7 +428,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public void setSystemProperty(TInfo info, TCredentials c, String property, String value)
-      throws TException {
+      throws ThriftSecurityException, ThriftPropertyException {
     if (!manager.security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     }
@@ -434,7 +441,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throw iae;
     } catch (Exception e) {
       Manager.log.error("Problem setting config property in zookeeper", e);
-      throw new TException(e.getMessage());
+      throw new ThriftPropertyException(property, value, e.getMessage());
     }
   }
 
@@ -452,8 +459,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         updatePlugins(entry.getKey());
       }
     } catch (IllegalArgumentException iae) {
-      // throw the exception here so it is not caught and converted to a generic TException
-      throw iae;
+      throw new ThriftPropertyException("Modify Properties", "failed", iae.getMessage());
     } catch (ConcurrentModificationException cme) {
       log.warn("Error modifying system properties, properties have changed", cme);
       throw new ThriftConcurrentModificationException(cme.getMessage());
@@ -465,7 +471,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public void setNamespaceProperty(TInfo tinfo, TCredentials credentials, String ns,
-      String property, String value) throws ThriftSecurityException, ThriftTableOperationException {
+      String property, String value)
+      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
     alterNamespaceProperty(credentials, ns, property, value, TableOperation.SET_PROPERTY);
   }
 
@@ -494,18 +501,21 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throw new ThriftTableOperationException(namespaceId.canonical(), ns,
           TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
           "Error modifying namespace properties");
+    } catch (IllegalArgumentException iae) {
+      throw new ThriftPropertyException("All properties", "failed", iae.getMessage());
     }
   }
 
   @Override
   public void removeNamespaceProperty(TInfo tinfo, TCredentials credentials, String ns,
-      String property) throws ThriftSecurityException, ThriftTableOperationException {
+      String property)
+      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
     alterNamespaceProperty(credentials, ns, property, null, TableOperation.REMOVE_PROPERTY);
   }
 
   private void alterNamespaceProperty(TCredentials c, String namespace, String property,
       String value, TableOperation op)
-      throws ThriftSecurityException, ThriftTableOperationException {
+      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
 
     NamespaceId namespaceId =
         ClientServiceHandler.checkNamespaceId(manager.getContext(), namespace, op);
@@ -529,11 +539,14 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       log.info("Error altering namespace property", ex);
       throw new ThriftTableOperationException(namespaceId.canonical(), namespace, op,
           TableOperationExceptionType.OTHER, "Problem altering namespace property");
+    } catch (IllegalArgumentException iae) {
+      throw new ThriftPropertyException(property, value, iae.getMessage());
     }
   }
 
   private void alterTableProperty(TCredentials c, String tableName, String property, String value,
-      TableOperation op) throws ThriftSecurityException, ThriftTableOperationException {
+      TableOperation op)
+      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
     final TableId tableId = ClientServiceHandler.checkTableId(manager.getContext(), tableName, op);
     NamespaceId namespaceId = getNamespaceIdFromTableId(op, tableId);
     if (!manager.security.canAlterTable(c, tableId, namespaceId)) {
@@ -557,6 +570,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throw new ThriftTableOperationException(tableId.canonical(), tableName, op,
           TableOperationExceptionType.OTHER, "Invalid table property, tried to set: tableId: "
               + tableId.canonical() + " to: " + property + "=" + value);
+    } catch (IllegalArgumentException iae) {
+      throw new ThriftPropertyException(property, value, iae.getMessage());
     }
   }
 
