@@ -51,6 +51,8 @@ public class AccumuloDataVersion {
    * Historic data versions
    *
    * <ul>
+   * <li>version (9) RFiles and wal crypto serialization changes. RFile summary data in 2.0.0</li>
+   * <li>version (8) RFile index (ACCUMULO-1124) and wal tracking in ZK</li>
    * <li>version (7) also reflects the addition of a replication table in 1.7.0
    * <li>version (6) reflects the addition of a separate root table (ACCUMULO-1481) in 1.6.0 -
    * <li>version (5) moves delete file markers for the metadata table into the root tablet

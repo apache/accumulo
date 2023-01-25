@@ -38,9 +38,16 @@ import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class UpgradeChecker {
+/**
+ * Provide checks before upgraders run that can perform checks that the environment from previous
+ * versions match expectations. Checks include:
+ * <ul>
+ * <li>ACL validation of ZooKeeper nodes</li>
+ * </ul>
+ */
+public class PreUpgradeValidation {
 
-  private final static Logger log = LoggerFactory.getLogger(UpgradeChecker.class);
+  private final static Logger log = LoggerFactory.getLogger(PreUpgradeValidation.class);
 
   public void validate(final ServerContext context, final EventCoordinator eventCoordinator) {
     int cv = AccumuloDataVersion.getCurrentVersion(context);
