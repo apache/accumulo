@@ -55,7 +55,7 @@ public class PropertyTest {
         assertNull(prop.getDefaultValue(),
             "PREFIX property " + prop.name() + " has unexpected non-null default value.");
       } else {
-        assertTrue(prop.getType().isValidFormat(prop.getDefaultValue()),
+        assertTrue(Property.isValidProperty(prop.getKey(), prop.getDefaultValue()),
             "Property " + prop + " has invalid default value " + prop.getDefaultValue()
                 + " for type " + prop.getType());
       }
@@ -88,9 +88,24 @@ public class PropertyTest {
     for (Property prop : Property.values()) {
       if (prop.getType().equals(PropertyType.PORT)) {
         int port = Integer.parseInt(prop.getDefaultValue());
+        assertTrue(Property.isValidProperty(prop.getKey(), Integer.toString(port)));
         assertFalse(usedPorts.contains(port), "Port already in use: " + port);
         usedPorts.add(port);
         assertTrue(port > 1023 && port < 65536, "Port out of range of valid ports: " + port);
+      }
+    }
+  }
+
+  @Test
+  public void testBooleans() {
+    for (Property prop : Property.values()) {
+      if (prop.getType().equals(PropertyType.BOOLEAN)) {
+        assertFalse(Property.isValidProperty(prop.getKey(), "foo"));
+        assertTrue(Property.isValidProperty(prop.getKey(), null));
+        assertTrue(Property.isValidProperty(prop.getKey(), "true"));
+        assertTrue(Property.isValidProperty(prop.getKey(), "True"));
+        assertTrue(Property.isValidProperty(prop.getKey(), "false"));
+        assertTrue(Property.isValidProperty(prop.getKey(), "False"));
       }
     }
   }
