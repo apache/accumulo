@@ -26,6 +26,9 @@ import static org.apache.accumulo.core.Constants.ZROOT;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 import static org.apache.accumulo.core.Constants.ZTABLE_NAME;
 import static org.apache.accumulo.core.Constants.ZTABLE_NAMESPACE;
+import static org.apache.accumulo.server.zookeeper.ZooAclUtil.checkWritableAuth;
+import static org.apache.accumulo.server.zookeeper.ZooAclUtil.extractAuthName;
+import static org.apache.accumulo.server.zookeeper.ZooAclUtil.translateZooPerm;
 
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
@@ -38,6 +41,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,8 +68,13 @@ import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ReadyMonitor;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
+import org.apache.accumulo.server.zookeeper.ZooAclUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZKUtil;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,6 +90,7 @@ public class ZooInfoViewer implements KeywordExecutable {
   private static final DateTimeFormatter tsFormat =
       DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC));
   private static final Logger log = LoggerFactory.getLogger(ZooInfoViewer.class);
+
   private final NullWatcher nullWatcher =
       new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
 
@@ -153,6 +163,9 @@ public class ZooInfoViewer implements KeywordExecutable {
         printProps(iid, zooReader, opts, writer);
       }
 
+      if (opts.printAcls) {
+        printAcls(iid, opts, writer);
+      }
       writer.println("-----------------------------------------------");
     }
   }
@@ -270,6 +283,90 @@ public class ZooInfoViewer implements KeywordExecutable {
       writer.printf("%s%-9s => %24s\n", INDENT, e.getKey(), e.getValue());
     }
     writer.println();
+  }
+
+  private void printAcls(final InstanceId iid, final Opts opts, final PrintWriter writer) {
+
+    Map<String,List<ACL>> aclMap = new TreeMap<>();
+
+    writer.printf("Output format:\n");
+    writer.printf("ACCUMULO_PERM:OTHER_PERM path user_acls...\n\n");
+
+    writer.printf("ZooKeeper acls for instance ID: %s\n\n", iid.canonical());
+
+    ZooKeeper zooKeeper = new ZooReaderWriter(opts.getSiteConfiguration()).getZooKeeper();
+
+    String instanceRoot = ZooUtil.getRoot(iid);
+
+    final Stat stat = new Stat();
+
+    recursiveAclRead(zooKeeper, ZROOT + ZINSTANCES, stat, aclMap);
+
+    recursiveAclRead(zooKeeper, instanceRoot, stat, aclMap);
+
+    // print formatting
+    aclMap.forEach((path, acl) -> {
+      if (acl == null) {
+        writer.printf("ERROR_ACCUMULO_MISSING_SOME: '%s' : none\n", path);
+      } else {
+        // sort for consistent presentation
+        acl.sort(Comparator.comparing(a -> a.getId().getId()));
+        ZooAclUtil.ZkAccumuloAclStatus aclStatus = checkWritableAuth(acl);
+
+        String authStatus;
+        if (aclStatus.accumuloHasFull()) {
+          authStatus = "ACCUMULO_OKAY";
+        } else {
+          authStatus = "ERROR_ACCUMULO_MISSING_SOME";
+        }
+
+        String otherUpdate;
+        if (aclStatus.othersMayUpdate() || aclStatus.anyCanRead()) {
+          otherUpdate = "NOT_PRIVATE";
+        } else {
+          otherUpdate = "PRIVATE";
+        }
+
+        writer.printf("%s:%s %s", authStatus, otherUpdate, path);
+        boolean addSeparator = false;
+        for (ACL a : acl) {
+          if (addSeparator) {
+            writer.printf(",");
+          }
+          writer.printf(" %s:%s", translateZooPerm(a.getPerms()), extractAuthName(a));
+          addSeparator = true;
+        }
+      }
+      writer.println("");
+    });
+    writer.flush();
+  }
+
+  private void recursiveAclRead(final ZooKeeper zooKeeper, final String rootPath, final Stat stat,
+      final Map<String,List<ACL>> aclMap) {
+    try {
+      ZKUtil.visitSubTreeDFS(zooKeeper, rootPath, false, (rc, path, ctx, name) -> {
+        try {
+          final List<ACL> acls = zooKeeper.getACL(path, stat);
+          // List<ACL> acl = getAcls(childPath, dummy);
+          aclMap.put(path, acls);
+
+        } catch (KeeperException.NoNodeException ex) {
+          throw new IllegalStateException("Node removed during processing", ex);
+        } catch (KeeperException ex) {
+          throw new IllegalStateException("ZooKeeper exception during processing", ex);
+        } catch (InterruptedException ex) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException("interrupted during processing", ex);
+        }
+      });
+    } catch (KeeperException ex) {
+      throw new IllegalStateException("ZooKeeper exception during processing", ex);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("interrupted during processing", ex);
+    }
+
   }
 
   /**
@@ -449,6 +546,13 @@ public class ZooInfoViewer implements KeywordExecutable {
     @Parameter(names = {"--outfile"},
         description = "Write the output to a file, if the file exists will not be overwritten.")
     public String outfile = "";
+
+    @Parameter(names = {"--print-acls"},
+        description = "print the current acls for all ZooKeeper nodes. The acls are evaluated in context of Accumulo "
+            + "operations. Context: ACCUMULO_OKAY | ERROR_ACCUMULO_MISSING_SOME - Accumulo requires cdwra for ZooKeeper "
+            + " nodes that it uses. PRIVATE | NOT_PRIVATE - other than configuration, most nodes are world read-able "
+            + "(NOT_PRIVATE) to permit client access")
+    public boolean printAcls = false;
 
     @Parameter(names = {"--print-id-map"},
         description = "print the namespace and table id, name mappings stored in ZooKeeper")

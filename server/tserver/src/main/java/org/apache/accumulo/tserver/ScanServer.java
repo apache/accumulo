@@ -44,6 +44,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -458,7 +459,7 @@ public class ScanServer extends AbstractServer
     /* This constructor is called when continuing a scan */
     ScanReservation(Collection<StoredTabletFile> files, long myReservationId) {
       this.tabletsMetadata = null;
-      this.failures = null;
+      this.failures = Map.of();
       this.files = files;
       this.myReservationId = myReservationId;
     }
@@ -524,6 +525,10 @@ public class ScanServer extends AbstractServer
         LOG.info("RFFS {} extent unable to load {} as AssignmentHandler returned false",
             myReservationId, extent);
         failures.add(extent);
+        if (!(tabletsMetadata instanceof HashMap)) {
+          // the map returned by getTabletMetadata may not be mutable
+          tabletsMetadata = new HashMap<>(tabletsMetadata);
+        }
         tabletsMetadata.remove(extent);
       }
     }
@@ -611,12 +616,15 @@ public class ScanServer extends AbstractServer
             LOG.info("RFFS {} extent unable to load {} as metadata no longer referencing files",
                 myReservationId, extent);
             failures.add(extent);
+            if (!(tabletsMetadata instanceof HashMap)) {
+              // the map returned by getTabletMetadata may not be mutable
+              tabletsMetadata = new HashMap<>(tabletsMetadata);
+            }
             tabletsMetadata.remove(extent);
           } else {
             // remove files that are still referenced
             filesToReserve.removeAll(metadataAfter.getFiles());
           }
-
         }
 
         // if this is not empty it means some files that we reserved are no longer referenced by
@@ -727,9 +735,15 @@ public class ScanServer extends AbstractServer
       return Set.copyOf(session.getTabletResolver().getTablet(sss.extent).getDatafiles().keySet());
     } else if (session instanceof MultiScanSession) {
       var mss = (MultiScanSession) session;
-      return mss.exents.stream()
-          .flatMap(e -> mss.getTabletResolver().getTablet(e).getDatafiles().keySet().stream())
-          .collect(Collectors.toUnmodifiableSet());
+      return mss.exents.stream().flatMap(e -> {
+        var tablet = mss.getTabletResolver().getTablet(e);
+        if (tablet == null) {
+          // not all tablets passed to a multiscan are present in the metadata table
+          return Stream.empty();
+        } else {
+          return tablet.getDatafiles().keySet().stream();
+        }
+      }).collect(Collectors.toUnmodifiableSet());
     } else {
       throw new IllegalArgumentException("Unknown session type " + session.getClass().getName());
     }
@@ -893,6 +907,7 @@ public class ScanServer extends AbstractServer
     LOG.debug("continue scan: {}", scanID);
 
     try (ScanReservation reservation = reserveFiles(scanID)) {
+      Preconditions.checkState(reservation.getFailures().isEmpty());
       return delegate.continueScan(tinfo, scanID, busyTimeout);
     }
   }
@@ -954,6 +969,7 @@ public class ScanServer extends AbstractServer
     LOG.debug("continue multi scan: {}", scanID);
 
     try (ScanReservation reservation = reserveFiles(scanID)) {
+      Preconditions.checkState(reservation.getFailures().isEmpty());
       return delegate.continueMultiScan(tinfo, scanID, busyTimeout);
     }
   }
