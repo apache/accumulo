@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
+import static org.apache.accumulo.server.AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
+import static org.apache.accumulo.server.AccumuloDataVersion.dataVersionToReleaseName;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
@@ -108,7 +111,7 @@ public class UpgradeCoordinator {
   private int currentVersion;
   // map of "current version" -> upgrader to next version.
   private final Map<Integer,Upgrader> upgraders =
-      Map.of(AccumuloDataVersion.ROOT_TABLET_META_CHANGES, new Upgrader10to11());
+      Map.of(ROOT_TABLET_META_CHANGES, new Upgrader10to11());
 
   private volatile UpgradeStatus status;
 
@@ -143,9 +146,12 @@ public class UpgradeCoordinator {
       int cv = AccumuloDataVersion.getCurrentVersion(context);
       this.currentVersion = cv;
 
-      if (cv < AccumuloDataVersion.ROOT_TABLET_META_CHANGES) {
-        throw new UnsupportedOperationException(
-            "Upgrading from a version before 2.1 is not supported. Upgrade to 2.1 before upgrading to 3.x");
+      int oldestVersion = ROOT_TABLET_META_CHANGES;
+      if (cv < oldestVersion) {
+        String oldRelease = dataVersionToReleaseName(oldestVersion);
+        throw new UnsupportedOperationException("Upgrading from a version before " + oldRelease
+            + " data version (" + oldestVersion + ") is not supported. Upgrade to at least "
+            + oldRelease + " before upgrading to " + Constants.VERSION);
       }
 
       if (cv == AccumuloDataVersion.get()) {

@@ -22,16 +22,16 @@ import java.util.Set;
 
 /**
  * Class representing the version of data stored in Accumulo.
- *
+ * <p>
  * This version is separate but related to the file specific version in
  * {@link org.apache.accumulo.core.file.rfile.RFile}. A version change to RFile will reflect a
  * version change to the AccumuloDataVersion. But a version change to the AccumuloDataVersion may
  * not affect the version number in RFile. For example, changes made to other parts of Accumulo that
  * affects how data is stored, like the metadata table, would change the AccumuloDataVersion number
  * here but not in RFile.
- *
+ * <p>
  * This number is stored in HDFS under {@link org.apache.accumulo.core.Constants#VERSION_DIR}.
- *
+ * <p>
  * This class is used for checking the version during server startup and upgrades.
  */
 public class AccumuloDataVersion {
@@ -84,5 +84,15 @@ public class AccumuloDataVersion {
         context.getServerDirs().getAccumuloPersistentVersion(context.getVolumeManager().getFirst());
     ServerContext.ensureDataVersionCompatible(cv);
     return cv;
+  }
+
+  public static String dataVersionToReleaseName(final int version) {
+    switch (version) {
+      case ROOT_TABLET_META_CHANGES:
+        return "2.1";
+      case REMOVE_DEPRECATIONS_FOR_VERSION_3:
+        return "3.0";
+    }
+    throw new IllegalArgumentException("Unsupported data version " + version);
   }
 }
