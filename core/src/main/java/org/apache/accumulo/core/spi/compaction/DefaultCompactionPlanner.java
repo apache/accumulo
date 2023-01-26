@@ -32,8 +32,6 @@ import java.util.Set;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
@@ -111,8 +109,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 
 public class DefaultCompactionPlanner implements CompactionPlanner {
-
-  private static final Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
 
   public static class ExecutorConfig {
     String type;
