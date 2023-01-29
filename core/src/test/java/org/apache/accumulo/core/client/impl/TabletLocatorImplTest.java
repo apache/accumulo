@@ -1159,6 +1159,48 @@ public class TabletLocatorImplTest {
   }
 
   @Test
+  public void testBinRangesNonContiguousExtentsAndMultipleRanges() throws Exception {
+    KeyExtent e1 = nke("foo", "c", null);
+    KeyExtent e2 = nke("foo", "g", "c");
+    KeyExtent e3 = nke("foo", "k", "c");
+    KeyExtent e4 = nke("foo", "n", "k");
+    KeyExtent e5 = nke("foo", "q", "n");
+    KeyExtent e6 = nke("foo", "s", "n");
+    KeyExtent e7 = nke("foo", null, "s");
+
+    Text tableName = new Text("foo");
+
+    TServers tservers = new TServers();
+    TabletLocatorImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo", e1, "l1",
+        e2, "l1", e4, "l1", e5, "l1", e7, "l1");
+
+    Range r1 = nr("art", "cooking"); // overlaps e1 e2
+    Range r2 = nr("loop", "nope"); // overlaps e4 e5
+    Range r3 = nr("silly", "sunny"); // overlaps e7
+
+    Map<String,Map<KeyExtent,List<Range>>> expected = createExpectedBinnings("l1",
+        nol(e1, nrl(r1), e2, nrl(r1), e4, nrl(r2), e5, nrl(r2), e7, nrl(r3)));
+    runTest(tableName, nrl(r1, r2, r3), metaCache, expected, nrl());
+
+    setLocation(tservers, "tserver2", MTE, e3, "l1");
+
+    Range r4 = nr("art", "good"); // overlaps e1 e3
+    Range r5 = nr("gum", "run"); // overlaps e3 e4 e6
+
+    expected = createExpectedBinnings("l1", nol(e7, nrl(r3)));
+    runTest(tableName, nrl(r4, r5, r3), metaCache, expected, nrl(r4, r5));
+
+    setLocation(tservers, "tserver2", MTE, e6, "l1");
+
+    expected = createExpectedBinnings("l1", nol(e1, nrl(r4), e3, nrl(r4), e7, nrl(r3)));
+    runTest(tableName, nrl(r4, r5, r3), metaCache, expected, nrl(r5));
+
+    expected = createExpectedBinnings("l1",
+        nol(e1, nrl(r4), e3, nrl(r4, r5), e4, nrl(r5), e6, nrl(r5), e7, nrl(r3)));
+    runTest(tableName, nrl(r4, r5, r3), metaCache, expected, nrl());
+  }
+
+  @Test
   public void testIsContiguous() {
     TabletLocation e1 = new TabletLocation(nke("foo", "1", null), "l1", "1");
     TabletLocation e2 = new TabletLocation(nke("foo", "2", "1"), "l1", "1");
