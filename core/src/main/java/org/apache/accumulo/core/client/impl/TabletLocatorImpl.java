@@ -358,6 +358,8 @@ public class TabletLocatorImpl extends TabletLocator {
         }
       } else {
         failures.add(range);
+        if (!useCache)
+          lookupFailed = true;
       }
 
     }
