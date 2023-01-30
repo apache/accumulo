@@ -49,7 +49,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
@@ -69,6 +68,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.manager.thrift.TabletSplit;
+import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -437,7 +437,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       SystemPropUtil.setSystemProperty(manager.getContext(), property, value);
       updatePlugins(property);
     } catch (IllegalArgumentException iae) {
-      Manager.log.error("Set Invalid Property: " + property + " value: " + value, iae);
+      Manager.log.error("Problem setting invalid property", iae);
       throw new ThriftPropertyException(property, value, "Property is invalid");
     } catch (Exception e) {
       Manager.log.error("Problem setting config property in zookeeper", e);
@@ -459,8 +459,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         updatePlugins(entry.getKey());
       }
     } catch (IllegalArgumentException iae) {
-      Manager.log.error("Problem setting invalid config property in zookeeper", iae);
-      throw new ThriftPropertyException("Modify Properties", "failed", iae.getMessage());
+      Manager.log.error("Problem setting invalid property", iae);
+      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
     } catch (ConcurrentModificationException cme) {
       log.warn("Error modifying system properties, properties have changed", cme);
       throw new ThriftConcurrentModificationException(cme.getMessage());

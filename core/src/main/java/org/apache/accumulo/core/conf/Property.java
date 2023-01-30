@@ -1712,7 +1712,7 @@ public enum Property {
   public static boolean isValidProperty(final String key, final String value) {
     Property p = getPropertyByKey(key);
     if (p == null) {
-      // If a key doesn't exist yet, then check if it's a valid prefix
+      // If a key doesn't exist yet, then check if it follows a valid prefix
       return validPrefixes.stream().anyMatch(key::startsWith);
     }
     return (isValidPropertyKey(key) && p.getType().isValidFormat(value));

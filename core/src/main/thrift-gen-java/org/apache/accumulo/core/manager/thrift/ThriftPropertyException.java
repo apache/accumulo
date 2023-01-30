@@ -22,7 +22,7 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.clientImpl.thrift;
+package org.apache.accumulo.core.manager.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
 public class ThriftPropertyException extends org.apache.thrift.TException implements org.apache.thrift.TBase<ThriftPropertyException, ThriftPropertyException._Fields>, java.io.Serializable, Cloneable, Comparable<ThriftPropertyException> {
@@ -611,5 +611,6 @@ public class ThriftPropertyException extends org.apache.thrift.TException implem
   private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
     return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
   }
+  private static void unusedMethod() {}
 }
 

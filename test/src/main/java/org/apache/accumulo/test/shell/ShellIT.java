@@ -37,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.shell.Shell;
 import org.jline.reader.LineReader;
@@ -468,6 +470,93 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("grep r -st -f 1", true, expectedTimestamp);
     exec("setauths -c", true);
     exec("deletetable t -f", true, "Table: [t] has been deleted");
+  }
+
+  @Test
+  void configTest() throws IOException {
+    Shell.log.debug("Starting config property type test -------------------------");
+
+    String testTable = "test";
+    exec("createtable " + testTable, true);
+
+    for (Property property : Property.values()) {
+      PropertyType propertyType = property.getType();
+      String invalidValue, validValue = property.getDefaultValue();
+
+      // Skip test if we can't set this property via shell
+      if (!Property.isValidZooPropertyKey(property.getKey())) {
+        Shell.log.debug("Property {} with type {} cannot be modified by shell", property.getKey(),
+            propertyType.toString());
+        continue;
+      }
+
+      switch (propertyType) {
+        case PATH:
+        case PREFIX:
+        case STRING:
+          Shell.log.debug("Skipping " + propertyType + " Property Types");
+          continue;
+        case TIMEDURATION:
+          invalidValue = "1h30min";
+          break;
+        case BYTES:
+          invalidValue = "1M500k";
+          break;
+        case MEMORY:
+          invalidValue = "1.5G";
+          break;
+        case HOSTLIST:
+          invalidValue = ":1000";
+          break;
+        case PORT:
+          invalidValue = "65539";
+          break;
+        case COUNT:
+          invalidValue = "-1";
+          break;
+        case FRACTION:
+          invalidValue = "10Percent";
+          break;
+        case ABSOLUTEPATH:
+          invalidValue = "~/foo";
+          break;
+        case CLASSNAME:
+          Shell.log.debug("CLASSNAME properties currently fail this test");
+          Shell.log.debug("Regex used for CLASSNAME property types may need to be modified");
+          continue;
+        case CLASSNAMELIST:
+          invalidValue = "String,Object";
+          break;
+        case DURABILITY:
+          invalidValue = "rinse";
+          break;
+        case GC_POST_ACTION:
+          invalidValue = "expand";
+          break;
+        case BOOLEAN:
+          invalidValue = "fooFalse";
+          break;
+        case URI:
+          invalidValue = "12///\\{}:;123!";
+          break;
+        default:
+          Shell.log
+              .debug("Property Type: " + propertyType.toString() + " has no defined test case");
+          invalidValue = "foo";
+      }
+      String setCommand = "config -s ";
+      if (Property.isValidTablePropertyKey(property.getKey())) {
+        setCommand = "config -t " + testTable + " -s ";
+      }
+      Shell.log.debug("Testing Property {} with Type {}", property.getKey(),
+          propertyType.toString());
+      Shell.log.debug("Invalid property value of \"{}\"", invalidValue);
+      exec(setCommand + property.getKey() + "=" + invalidValue, false,
+          "ThriftPropertyException(property:" + property.getKey() + ", value:" + invalidValue
+              + ", description:");
+      exec(setCommand + property.getKey() + "=" + validValue, true);
+    }
+    exec("deletetable " + testTable + " -f", true);
   }
 
   @Test
