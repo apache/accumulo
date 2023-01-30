@@ -43,12 +43,12 @@ public abstract class SynchronousLoadingBlockCache implements BlockCache {
   SynchronousLoadingBlockCache(int numLocks) {
     loadLocks = new Lock[numLocks];
     for (int i = 0; i < loadLocks.length; i++) {
-      loadLocks[i] = new ReentrantLock();
+      loadLocks[i] = new ReentrantLock(true);
     }
   }
 
   public SynchronousLoadingBlockCache() {
-    this(2017);
+    this(5003);
   }
 
   private Map<String,byte[]> resolveDependencies(Map<String,Loader> loaderDeps) {
