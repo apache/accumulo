@@ -209,7 +209,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   public void createTableWithBadProperties()
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     TableOperations tableOps = accumuloClient.tableOperations();
-    String t0 = StringUtils.repeat('a', MAX_TABLE_NAME_LEN - 1);
+    String t0 = getUniqueNames(1)[0];
     tableOps.create(t0);
     assertTrue(tableOps.exists(t0));
     assertThrows(AccumuloException.class,
