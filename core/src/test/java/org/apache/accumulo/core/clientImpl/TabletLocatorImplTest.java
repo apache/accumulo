@@ -19,8 +19,8 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -58,7 +58,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -1090,8 +1089,6 @@ public class TabletLocatorImplTest {
     KeyExtent e2 = createNewKeyExtent("foo", "1", "05");
     KeyExtent e3 = createNewKeyExtent("foo", "2", "05");
 
-    Text tableName = new Text("foo");
-
     TServers tservers = new TServers();
     TabletLocatorImpl metaCache =
         createLocators(tservers, "tserver1", "tserver2", "foo", e1, "l1", e2, "l1");
@@ -1136,8 +1133,6 @@ public class TabletLocatorImplTest {
     KeyExtent e5 = createNewKeyExtent("foo", "q", "n");
     KeyExtent e6 = createNewKeyExtent("foo", "s", "n");
     KeyExtent e7 = createNewKeyExtent("foo", null, "s");
-
-    Text tableName = new Text("foo");
 
     TServers tservers = new TServers();
     TabletLocatorImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo", e1, "l1",
@@ -1186,23 +1181,23 @@ public class TabletLocatorImplTest {
     TabletLocation e3 = new TabletLocation(createNewKeyExtent("foo", "3", "2"), "l1", "1");
     TabletLocation e4 = new TabletLocation(createNewKeyExtent("foo", null, "3"), "l1", "1");
 
-    Assert.assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e3, e4)));
-    Assert.assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e3)));
-    Assert.assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e2, e3, e4)));
-    Assert.assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e2, e3)));
-    Assert.assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e1)));
-    Assert.assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e2)));
-    Assert.assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e4)));
+    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e3, e4)));
+    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e3)));
+    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e2, e3, e4)));
+    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e2, e3)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e1)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e2)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e4)));
 
-    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e4)));
-    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e3, e4)));
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e4)));
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e3, e4)));
 
     TabletLocation e5 = new TabletLocation(createNewKeyExtent("foo", null, null), "l1", "1");
-    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e3, e4, e5)));
-    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e5, e1, e2, e3, e4)));
-    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e3, e5)));
-    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e5, e2, e3, e4)));
-    Assert.assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e5)));
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3, e4, e5)));
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e5, e1, e2, e3, e4)));
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3, e5)));
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e5, e2, e3, e4)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e5)));
 
     TabletLocation e6 = new TabletLocation(createNewKeyExtent("foo", null, "1"), "l1", "1");
 
