@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -83,7 +82,7 @@ public class TabletLocatorImplTest {
   }
 
   static List<Range> createNewRangeList(Range... ranges) {
-    return Arrays.asList(ranges);
+    return List.of(ranges);
   }
 
   static class RangeLocation {
@@ -257,7 +256,7 @@ public class TabletLocatorImplTest {
   }
 
   static List<Mutation> createNewMutationList(Mutation... ma) {
-    return Arrays.asList(ma);
+    return List.of(ma);
   }
 
   private void runTest(TabletLocatorImpl metaCache, List<Mutation> ml,
@@ -269,7 +268,7 @@ public class TabletLocatorImplTest {
     verify(emb, binnedMutations);
 
     ArrayList<String> afs = new ArrayList<>();
-    ArrayList<String> efs = new ArrayList<>(Arrays.asList(efailures));
+    ArrayList<String> efs = new ArrayList<>(List.of(efailures));
 
     for (Mutation mutation : afailures) {
       afs.add(new String(mutation.getRow()));
@@ -1181,10 +1180,10 @@ public class TabletLocatorImplTest {
     TabletLocation e3 = new TabletLocation(createNewKeyExtent("foo", "3", "2"), "l1", "1");
     TabletLocation e4 = new TabletLocation(createNewKeyExtent("foo", null, "3"), "l1", "1");
 
-    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e3, e4)));
-    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e3)));
-    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e2, e3, e4)));
-    assertTrue(TabletLocatorImpl.isContiguous(Arrays.asList(e2, e3)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3, e4)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e2, e3, e4)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e2, e3)));
     assertTrue(TabletLocatorImpl.isContiguous(List.of(e1)));
     assertTrue(TabletLocatorImpl.isContiguous(List.of(e2)));
     assertTrue(TabletLocatorImpl.isContiguous(List.of(e4)));
@@ -1201,11 +1200,11 @@ public class TabletLocatorImplTest {
 
     TabletLocation e6 = new TabletLocation(createNewKeyExtent("foo", null, "1"), "l1", "1");
 
-    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e3, e6)));
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3, e6)));
 
     TabletLocation e7 = new TabletLocation(createNewKeyExtent("foo", "33", "11"), "l1", "1");
 
-    assertFalse(TabletLocatorImpl.isContiguous(Arrays.asList(e1, e2, e7, e4)));
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e7, e4)));
   }
 
   @Test
