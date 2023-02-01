@@ -486,7 +486,7 @@ public class ShellIT extends SharedMiniClusterBase {
       // Skip test if we can't set this property via shell
       if (!Property.isValidZooPropertyKey(property.getKey())) {
         Shell.log.debug("Property {} with type {} cannot be modified by shell", property.getKey(),
-            propertyType.toString());
+            propertyType);
         continue;
       }
 
@@ -540,16 +540,14 @@ public class ShellIT extends SharedMiniClusterBase {
           invalidValue = "12///\\{}:;123!";
           break;
         default:
-          Shell.log
-              .debug("Property Type: " + propertyType.toString() + " has no defined test case");
+          Shell.log.debug("Property Type: " + propertyType + " has no defined test case");
           invalidValue = "foo";
       }
       String setCommand = "config -s ";
       if (Property.isValidTablePropertyKey(property.getKey())) {
         setCommand = "config -t " + testTable + " -s ";
       }
-      Shell.log.debug("Testing Property {} with Type {}", property.getKey(),
-          propertyType.toString());
+      Shell.log.debug("Testing Property {} with Type {}", property.getKey(), propertyType);
       Shell.log.debug("Invalid property value of \"{}\"", invalidValue);
       exec(setCommand + property.getKey() + "=" + invalidValue, false,
           "ThriftPropertyException(property:" + property.getKey() + ", value:" + invalidValue
