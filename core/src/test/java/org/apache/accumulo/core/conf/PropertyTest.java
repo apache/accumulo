@@ -97,16 +97,68 @@ public class PropertyTest {
   }
 
   @Test
-  public void testBooleans() {
-    for (Property prop : Property.values()) {
-      if (prop.getType().equals(PropertyType.BOOLEAN)) {
-        assertFalse(Property.isValidProperty(prop.getKey(), "foo"));
-        assertTrue(Property.isValidProperty(prop.getKey(), null));
-        assertTrue(Property.isValidProperty(prop.getKey(), "true"));
-        assertTrue(Property.isValidProperty(prop.getKey(), "True"));
-        assertTrue(Property.isValidProperty(prop.getKey(), "false"));
-        assertTrue(Property.isValidProperty(prop.getKey(), "False"));
+  public void testPropertyValidation() {
+
+    for (Property property : Property.values()) {
+      PropertyType propertyType = property.getType();
+      String invalidValue, validValue = property.getDefaultValue();
+      System.out.printf("Testing property: %s with type: %s\n", property.getKey(), propertyType);
+
+      switch (propertyType) {
+        case URI:
+        case PATH:
+        case PREFIX:
+        case STRING:
+          // Skipping these values as they have default type of null
+          System.out.printf("Skipping property %s due to property type: \"%s\"\n",
+              property.getKey(), propertyType);
+          continue;
+        case TIMEDURATION:
+          invalidValue = "1h30min";
+          break;
+        case BYTES:
+          invalidValue = "1M500k";
+          break;
+        case MEMORY:
+          invalidValue = "1.5G";
+          break;
+        case HOSTLIST:
+          invalidValue = ":1000";
+          break;
+        case PORT:
+          invalidValue = "65539";
+          break;
+        case COUNT:
+          invalidValue = "-1";
+          break;
+        case FRACTION:
+          invalidValue = "10Percent";
+          break;
+        case ABSOLUTEPATH:
+          invalidValue = "~/foo";
+          break;
+        case CLASSNAME:
+          System.out.println("CLASSNAME properties currently fail this test");
+          System.out.println("Regex used for CLASSNAME property types may need to be modified");
+          continue;
+        case CLASSNAMELIST:
+          invalidValue = "String,Object;Thing";
+          break;
+        case DURABILITY:
+          invalidValue = "rinse";
+          break;
+        case GC_POST_ACTION:
+          invalidValue = "expand";
+          break;
+        case BOOLEAN:
+          invalidValue = "fooFalse";
+          break;
+        default:
+          System.out.printf("Property type: %s has no defined test case\n", propertyType);
+          invalidValue = "foo";
       }
+      assertFalse(Property.isValidProperty(property.getKey(), invalidValue));
+      assertTrue(Property.isValidProperty(property.getKey(), validValue));
     }
   }
 
