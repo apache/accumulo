@@ -83,11 +83,11 @@ public class TabletLocatorImpl extends TabletLocator {
   protected TabletLocator parent;
   protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
   protected TabletLocationObtainer locationObtainer;
-  private TabletServerLockChecker lockChecker;
+  private final TabletServerLockChecker lockChecker;
   protected Text lastTabletRow;
 
-  private TreeSet<KeyExtent> badExtents = new TreeSet<>();
-  private ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+  private final TreeSet<KeyExtent> badExtents = new TreeSet<>();
+  private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
   private final Lock rLock = rwLock.readLock();
   private final Lock wLock = rwLock.writeLock();
 
@@ -111,8 +111,8 @@ public class TabletLocatorImpl extends TabletLocator {
 
   private class LockCheckerSession {
 
-    private HashSet<Pair<String,String>> okLocks = new HashSet<>();
-    private HashSet<Pair<String,String>> invalidLocks = new HashSet<>();
+    private final HashSet<Pair<String,String>> okLocks = new HashSet<>();
+    private final HashSet<Pair<String,String>> invalidLocks = new HashSet<>();
 
     private TabletLocation checkLock(TabletLocation tl) {
       // the goal of this class is to minimize calls out to lockChecker under that assumption that
@@ -353,8 +353,9 @@ public class TabletLocatorImpl extends TabletLocator {
         }
       } else {
         failures.add(range);
-        if (!useCache)
+        if (!useCache) {
           lookupFailed = true;
+        }
       }
 
     }
@@ -617,7 +618,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   static void removeOverlapping(TreeMap<Text,TabletLocation> metaCache, KeyExtent nke) {
-    Iterator<Entry<Text,TabletLocation>> iter = null;
+    Iterator<Entry<Text,TabletLocation>> iter;
 
     if (nke.prevEndRow() == null) {
       iter = metaCache.entrySet().iterator();
