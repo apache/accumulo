@@ -20,6 +20,7 @@ package org.apache.accumulo.server.manager.state;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.server.init.ZooKeeperInitializer.getInitialRootTabletJson;
+import static org.easymock.EasyMock.expect;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -41,7 +42,10 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.server.MockServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.TabletMutatorBase;
+import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Preconditions;
@@ -85,7 +89,10 @@ public class RootTabletStateStoreTest {
 
   @Test
   public void testRootTabletStateStore() throws DistributedStoreException {
-    ZooTabletStateStore tstore = new ZooTabletStateStore(new TestAmple());
+    ServerContext context = MockServerContext.get();
+    expect(context.getAmple()).andReturn(new TestAmple()).anyTimes();
+    EasyMock.replay(context);
+    ZooTabletStateStore tstore = new ZooTabletStateStore(context);
     KeyExtent root = RootTable.EXTENT;
     String sessionId = "this is my unique session data";
     TServerInstance server =
