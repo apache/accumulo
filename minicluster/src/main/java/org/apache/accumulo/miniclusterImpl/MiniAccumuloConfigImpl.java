@@ -47,6 +47,12 @@ import org.slf4j.LoggerFactory;
  * @since 1.6.0
  */
 public class MiniAccumuloConfigImpl {
+
+  @FunctionalInterface
+  public static interface FinalSiteConfigUpdater {
+    void update(MiniAccumuloConfigImpl cfg);
+  }
+
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloConfigImpl.class);
   private static final String DEFAULT_INSTANCE_SECRET = "DONTTELL";
 
@@ -96,6 +102,8 @@ public class MiniAccumuloConfigImpl {
   // These are only used on top of existing instances
   private Configuration hadoopConf;
   private SiteConfiguration accumuloConf;
+
+  private FinalSiteConfigUpdater updater;
 
   /**
    * @param dir An empty or nonexistent directory that Accumulo and Zookeeper can store data in.
@@ -811,5 +819,30 @@ public class MiniAccumuloConfigImpl {
    */
   public void setNumCompactors(int numCompactors) {
     this.numCompactors = numCompactors;
+  }
+
+  /**
+   * Set the FinalSiteConfigUpdater instance that will be used to modify the site configuration
+   * right before it's written out a file. This would be useful in the case where the configuration
+   * needs to be updated based on a property that is set in MiniAccumuloClusterImpl like
+   * instance.volumes
+   *
+   * @param updater FinalSiteConfigUpdater instance
+   * @since 2.1.1
+   */
+  public void setFinalSiteConfigUpdater(FinalSiteConfigUpdater updater) {
+    this.updater = updater;
+  }
+
+  /**
+   * Called by MiniAccumuloClusterImpl after all modifications are done to the configuration and
+   * right before it's written out to a file.
+   *
+   * @since 2.1.1
+   */
+  public void finalSiteConfigUpdates() {
+    if (this.updater != null) {
+      this.updater.update(this);
+    }
   }
 }

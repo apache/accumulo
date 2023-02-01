@@ -76,6 +76,7 @@ public class VolumeManagerImpl implements VolumeManager {
   private final Map<String,Volume> volumesByName;
   private final Multimap<URI,Volume> volumesByFileSystemUri;
   private final VolumeChooser chooser;
+  private final AccumuloConfiguration conf;
   private final Configuration hadoopConf;
 
   protected VolumeManagerImpl(Map<String,Volume> volumes, AccumuloConfiguration conf,
@@ -98,6 +99,7 @@ public class VolumeManagerImpl implements VolumeManager {
           "Failed to load volume chooser specified by " + Property.GENERAL_VOLUME_CHOOSER);
     }
     chooser = chooser1;
+    this.conf = conf;
     this.hadoopConf = hadoopConf;
   }
 
@@ -249,7 +251,14 @@ public class VolumeManagerImpl implements VolumeManager {
   public FileSystem getFileSystemByPath(Path path) {
     FileSystem desiredFs;
     try {
-      desiredFs = requireNonNull(path).getFileSystem(hadoopConf);
+      Configuration volumeConfig = hadoopConf;
+      for (String vol : volumesByName.keySet()) {
+        if (path.toString().startsWith(vol)) {
+          volumeConfig = getVolumeManagerConfiguration(conf, hadoopConf, vol);
+          break;
+        }
+      }
+      desiredFs = requireNonNull(path).getFileSystem(volumeConfig);
     } catch (IOException ex) {
       throw new UncheckedIOException(ex);
     }
@@ -353,6 +362,38 @@ public class VolumeManagerImpl implements VolumeManager {
     return getFileSystemByPath(path).getDefaultReplication(path);
   }
 
+  /**
+   * The Hadoop Configuration object does not currently allow for duplicate properties to be set in
+   * a single Configuration for different FileSystem URIs. Here we will look for properties in the
+   * Accumulo configuration of the form:
+   *
+   * <pre>
+   * general.custom.&lt;volume-uri&gt;.&lt;hdfs-property&gt;
+   * </pre>
+   *
+   * We will use these properties to return a new Configuration object that can be used with the
+   * FileSystem URI.
+   *
+   * @param conf AccumuloConfiguration object
+   * @param hadoopConf Hadoop Configuration object
+   * @param filesystemURI Volume Filesystem URI
+   * @return Hadoop Configuration with custom overrides for this FileSystem
+   */
+  private static Configuration getVolumeManagerConfiguration(AccumuloConfiguration conf,
+      final Configuration hadoopConf, final String filesystemURI) {
+    final Configuration volumeConfig = new Configuration(hadoopConf);
+    final Map<String,String> customProps =
+        conf.getAllPropertiesWithPrefixStripped(Property.GENERAL_ARBITRARY_PROP_PREFIX);
+    customProps.forEach((key, value) -> {
+      if (key.startsWith(filesystemURI)) {
+        String property = key.substring(filesystemURI.length() + 1);
+        log.debug("Overriding property {} to {} for volume {}", property, value, filesystemURI);
+        volumeConfig.set(property, value);
+      }
+    });
+    return volumeConfig;
+  }
+
   public static VolumeManager get(AccumuloConfiguration conf, final Configuration hadoopConf)
       throws IOException {
     final Map<String,Volume> volumes = new HashMap<>();
@@ -371,7 +412,9 @@ public class VolumeManagerImpl implements VolumeManager {
 
       // We require a URI here, fail if it doesn't look like one
       if (volumeUriOrDir.contains(":")) {
-        volumes.put(volumeUriOrDir, new VolumeImpl(new Path(volumeUriOrDir), hadoopConf));
+        Configuration volumeConfig =
+            getVolumeManagerConfiguration(conf, hadoopConf, volumeUriOrDir);
+        volumes.put(volumeUriOrDir, new VolumeImpl(new Path(volumeUriOrDir), volumeConfig));
       } else {
         throw new IllegalArgumentException("Expected fully qualified URI for "
             + Property.INSTANCE_VOLUMES.getKey() + " got " + volumeUriOrDir);

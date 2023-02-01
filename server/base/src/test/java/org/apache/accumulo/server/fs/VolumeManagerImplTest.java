@@ -18,9 +18,12 @@
  */
 package org.apache.accumulo.server.fs;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -31,7 +34,11 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.fs.VolumeChooser;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.client.HdfsClientConfigKeys;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -103,5 +110,89 @@ public class VolumeManagerImplTest {
           };
       assertThrows(RuntimeException.class, () -> vm.choose(chooserEnv, volumes));
     }
+  }
+
+  @Test
+  public void testConfigurationOverrides() throws Exception {
+
+    final String vol1 = "file://127.0.0.1/vol1/";
+    final String vol2 = "file://localhost/vol2/";
+    final String vol3 = "hdfs://127.0.0.1/accumulo";
+    final String vol4 = "hdfs://localhost/accumulo";
+
+    ConfigurationCopy conf = new ConfigurationCopy();
+    conf.set(Property.INSTANCE_VOLUMES, String.join(",", vol1, vol2, vol3, vol4));
+    conf.set(Property.GENERAL_VOLUME_CHOOSER, Property.GENERAL_VOLUME_CHOOSER.getDefaultValue());
+    conf.set(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + vol1 + "."
+        + HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY, "10");
+    conf.set(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + vol1 + "."
+        + HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_READS, "true");
+    conf.set(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + vol2 + "."
+        + HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY, "20");
+    conf.set(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + vol2 + "."
+        + HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_READS, "false");
+    conf.set(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + vol3 + "."
+        + HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY, "30");
+    conf.set(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + vol3 + "."
+        + HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_READS, "TRUE");
+    conf.set(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + vol4 + "."
+        + HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY, "40");
+    conf.set(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + vol4 + "."
+        + HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_READS, "FALSE");
+
+    VolumeManager vm = VolumeManagerImpl.get(conf, hadoopConf);
+
+    FileSystem fs1 = vm.getFileSystemByPath(new Path(vol1));
+    Configuration conf1 = fs1.getConf();
+
+    FileSystem fs2 = vm.getFileSystemByPath(new Path(vol2));
+    Configuration conf2 = fs2.getConf();
+
+    FileSystem fs3 = vm.getFileSystemByPath(new Path(vol3));
+    Configuration conf3 = fs3.getConf();
+
+    FileSystem fs4 = vm.getFileSystemByPath(new Path(vol4));
+    Configuration conf4 = fs4.getConf();
+
+    assertEquals("10", conf1.get(HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY));
+    assertEquals("true", conf1.get(HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_READS));
+
+    assertEquals("20", conf2.get(HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY));
+    assertEquals("false", conf2.get(HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_READS));
+
+    assertEquals("30", conf3.get(HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY));
+    assertEquals("TRUE", conf3.get(HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_READS));
+
+    assertEquals("40", conf4.get(HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY));
+    assertEquals("FALSE", conf4.get(HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_READS));
+
+    Collection<Volume> vols = vm.getVolumes();
+    assertEquals(4, vols.size());
+    vols.forEach(v -> {
+      if (v.containsPath(new Path(vol1))) {
+        assertEquals("10",
+            v.getFileSystem().getConf().get(HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY));
+        assertEquals("true", v.getFileSystem().getConf()
+            .get(HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_READS));
+      } else if (v.containsPath(new Path(vol2))) {
+        assertEquals("20",
+            v.getFileSystem().getConf().get(HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY));
+        assertEquals("false", v.getFileSystem().getConf()
+            .get(HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_READS));
+      } else if (v.containsPath(new Path(vol3))) {
+        assertEquals("30",
+            v.getFileSystem().getConf().get(HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY));
+        assertEquals("TRUE", v.getFileSystem().getConf()
+            .get(HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_READS));
+      } else if (v.containsPath(new Path(vol4))) {
+        assertEquals("40",
+            v.getFileSystem().getConf().get(HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY));
+        assertEquals("FALSE", v.getFileSystem().getConf()
+            .get(HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_READS));
+      } else {
+        fail("Unhandled volume: " + v);
+      }
+    });
+
   }
 }
