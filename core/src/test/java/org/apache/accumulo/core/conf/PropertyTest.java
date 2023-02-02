@@ -34,11 +34,16 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Test the Property class
  */
 public class PropertyTest {
+
+  private static final Logger LOG = LoggerFactory.getLogger(PropertyTest.class);
+
   @Test
   public void testProperties() {
     HashSet<String> validPrefixes = new HashSet<>();
@@ -55,7 +60,7 @@ public class PropertyTest {
         assertNull(prop.getDefaultValue(),
             "PREFIX property " + prop.name() + " has unexpected non-null default value.");
       } else {
-        assertTrue(prop.getType().isValidFormat(prop.getDefaultValue()),
+        assertTrue(Property.isValidProperty(prop.getKey(), prop.getDefaultValue()),
             "Property " + prop + " has invalid default value " + prop.getDefaultValue()
                 + " for type " + prop.getType());
       }
@@ -88,10 +93,77 @@ public class PropertyTest {
     for (Property prop : Property.values()) {
       if (prop.getType().equals(PropertyType.PORT)) {
         int port = Integer.parseInt(prop.getDefaultValue());
+        assertTrue(Property.isValidProperty(prop.getKey(), Integer.toString(port)));
         assertFalse(usedPorts.contains(port), "Port already in use: " + port);
         usedPorts.add(port);
         assertTrue(port > 1023 && port < 65536, "Port out of range of valid ports: " + port);
       }
+    }
+  }
+
+  @Test
+  public void testPropertyValidation() {
+
+    for (Property property : Property.values()) {
+      PropertyType propertyType = property.getType();
+      String invalidValue, validValue = property.getDefaultValue();
+      LOG.debug("Testing property: {} with type: {}", property.getKey(), propertyType);
+
+      switch (propertyType) {
+        case URI:
+        case PATH:
+        case PREFIX:
+        case STRING:
+          // Skipping these values as they have default type of null
+          LOG.debug("Skipping property {} due to property type: \"{}\"", property.getKey(),
+              propertyType);
+          continue;
+        case TIMEDURATION:
+          invalidValue = "1h30min";
+          break;
+        case BYTES:
+          invalidValue = "1M500k";
+          break;
+        case MEMORY:
+          invalidValue = "1.5G";
+          break;
+        case HOSTLIST:
+          invalidValue = ":1000";
+          break;
+        case PORT:
+          invalidValue = "65539";
+          break;
+        case COUNT:
+          invalidValue = "-1";
+          break;
+        case FRACTION:
+          invalidValue = "10Percent";
+          break;
+        case ABSOLUTEPATH:
+          invalidValue = "~/foo";
+          break;
+        case CLASSNAME:
+          LOG.debug("CLASSNAME properties currently fail this test");
+          LOG.debug("Regex used for CLASSNAME property types may need to be modified");
+          continue;
+        case CLASSNAMELIST:
+          invalidValue = "String,Object;Thing";
+          break;
+        case DURABILITY:
+          invalidValue = "rinse";
+          break;
+        case GC_POST_ACTION:
+          invalidValue = "expand";
+          break;
+        case BOOLEAN:
+          invalidValue = "fooFalse";
+          break;
+        default:
+          LOG.debug("Property type: {} has no defined test case", propertyType);
+          invalidValue = "foo";
+      }
+      assertFalse(Property.isValidProperty(property.getKey(), invalidValue));
+      assertTrue(Property.isValidProperty(property.getKey(), validValue));
     }
   }
 

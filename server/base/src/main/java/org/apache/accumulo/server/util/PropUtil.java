@@ -37,7 +37,7 @@ public final class PropUtil {
    * @throws IllegalArgumentException if a provided property is not valid
    */
   public static void setProperties(final ServerContext context, final PropStoreKey<?> propStoreKey,
-      final Map<String,String> properties) {
+      final Map<String,String> properties) throws IllegalArgumentException {
     PropUtil.validateProperties(context, propStoreKey, properties);
     context.getPropStore().putAll(propStoreKey, properties);
   }
@@ -48,16 +48,22 @@ public final class PropUtil {
   }
 
   public static void replaceProperties(final ServerContext context,
-      final PropStoreKey<?> propStoreKey, final long version, final Map<String,String> properties) {
+      final PropStoreKey<?> propStoreKey, final long version, final Map<String,String> properties)
+      throws IllegalArgumentException {
     PropUtil.validateProperties(context, propStoreKey, properties);
     context.getPropStore().replaceAll(propStoreKey, version, properties);
   }
 
   protected static void validateProperties(final ServerContext context,
-      final PropStoreKey<?> propStoreKey, final Map<String,String> properties) {
+      final PropStoreKey<?> propStoreKey, final Map<String,String> properties)
+      throws IllegalArgumentException {
     for (Map.Entry<String,String> prop : properties.entrySet()) {
-      if (!Property.isTablePropertyValid(prop.getKey(), prop.getValue())) {
-        throw new IllegalArgumentException("Invalid property for : " + propStoreKey + " name: "
+      if (!Property.isValidProperty(prop.getKey(), prop.getValue())) {
+        String exceptionMessage = "Invalid property for : ";
+        if (!Property.isValidTablePropertyKey(prop.getKey())) {
+          exceptionMessage = "Invalid Table property for : ";
+        }
+        throw new IllegalArgumentException(exceptionMessage + propStoreKey + " name: "
             + prop.getKey() + ", value: " + prop.getValue());
       }
     }

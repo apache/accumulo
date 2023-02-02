@@ -206,6 +206,17 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   @Test
+  public void createTableWithBadProperties()
+      throws AccumuloException, AccumuloSecurityException, TableExistsException {
+    TableOperations tableOps = accumuloClient.tableOperations();
+    String t0 = getUniqueNames(1)[0];
+    tableOps.create(t0);
+    assertTrue(tableOps.exists(t0));
+    assertThrows(AccumuloException.class,
+        () -> tableOps.setProperty(t0, Property.TABLE_BLOOM_ENABLED.getKey(), "foo"));
+  }
+
+  @Test
   public void createMergeClonedTable() throws Exception {
     String[] names = getUniqueNames(2);
     String originalTable = names[0];
