@@ -34,11 +34,16 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Test the Property class
  */
 public class PropertyTest {
+
+  private static final Logger LOG = LoggerFactory.getLogger(PropertyTest.class);
+
   @Test
   public void testProperties() {
     HashSet<String> validPrefixes = new HashSet<>();
@@ -102,7 +107,7 @@ public class PropertyTest {
     for (Property property : Property.values()) {
       PropertyType propertyType = property.getType();
       String invalidValue, validValue = property.getDefaultValue();
-      System.out.printf("Testing property: %s with type: %s\n", property.getKey(), propertyType);
+      LOG.debug("Testing property: {} with type: {}", property.getKey(), propertyType);
 
       switch (propertyType) {
         case URI:
@@ -110,8 +115,8 @@ public class PropertyTest {
         case PREFIX:
         case STRING:
           // Skipping these values as they have default type of null
-          System.out.printf("Skipping property %s due to property type: \"%s\"\n",
-              property.getKey(), propertyType);
+          LOG.debug("Skipping property {} due to property type: \"{}\"", property.getKey(),
+              propertyType);
           continue;
         case TIMEDURATION:
           invalidValue = "1h30min";
@@ -138,8 +143,8 @@ public class PropertyTest {
           invalidValue = "~/foo";
           break;
         case CLASSNAME:
-          System.out.println("CLASSNAME properties currently fail this test");
-          System.out.println("Regex used for CLASSNAME property types may need to be modified");
+          LOG.debug("CLASSNAME properties currently fail this test");
+          LOG.debug("Regex used for CLASSNAME property types may need to be modified");
           continue;
         case CLASSNAMELIST:
           invalidValue = "String,Object;Thing";
@@ -154,7 +159,7 @@ public class PropertyTest {
           invalidValue = "fooFalse";
           break;
         default:
-          System.out.printf("Property type: %s has no defined test case\n", propertyType);
+          LOG.debug("Property type: {} has no defined test case", propertyType);
           invalidValue = "foo";
       }
       assertFalse(Property.isValidProperty(property.getKey(), invalidValue));

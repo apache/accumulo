@@ -265,7 +265,6 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
   @Test
   public void setProperties() throws Exception {
-    String namespace = "nsTest";
     c.namespaceOperations().create(namespace);
 
     Property prop = Property.TABLE_BLOOM_ENABLED;
@@ -274,7 +273,6 @@ public class NamespacesIT extends SharedMiniClusterBase {
     assertThrows(AccumuloException.class,
         () -> c.namespaceOperations().setProperty(namespace, prop.getKey(), "foo"));
     assertFalse(checkNamespaceHasProp(namespace, prop.getKey(), "foo"));
-
   }
 
   @Test
