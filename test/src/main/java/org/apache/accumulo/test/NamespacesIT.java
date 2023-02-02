@@ -264,6 +264,18 @@ public class NamespacesIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void setProperties() throws Exception {
+    c.namespaceOperations().create(namespace);
+
+    Property prop = Property.TABLE_BLOOM_ENABLED;
+    c.namespaceOperations().setProperty(namespace, prop.getKey(), "true");
+    assertTrue(checkNamespaceHasProp(namespace, prop.getKey(), "true"));
+    assertThrows(AccumuloException.class,
+        () -> c.namespaceOperations().setProperty(namespace, prop.getKey(), "foo"));
+    assertFalse(checkNamespaceHasProp(namespace, prop.getKey(), "foo"));
+  }
+
+  @Test
   public void verifyPropertyInheritance() throws Exception {
 
     try (AccumuloClient client =

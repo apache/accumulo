@@ -35,6 +35,12 @@ struct TabletSplit {
   2:list<data.TKeyExtent> newTablets
 }
 
+exception ThriftPropertyException {
+  1:string property
+  2:string value
+  3:string description
+}
+
 exception RecoveryException {
   1:string why
 }
@@ -192,6 +198,7 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException tope
     3:client.ThriftNotActiveServiceException tnase
+    4:ThriftPropertyException tpe
   )
 
   void modifyTableProperties(
@@ -204,6 +211,7 @@ service ManagerClientService {
     2:client.ThriftTableOperationException tope
     3:client.ThriftNotActiveServiceException tnase
     4:client.ThriftConcurrentModificationException tcme
+    5:ThriftPropertyException tpe
   )
 
   void removeTableProperty(
@@ -227,6 +235,7 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException tope
     3:client.ThriftNotActiveServiceException tnase
+    4:ThriftPropertyException tpe
   )
 
   void modifyNamespaceProperties(
@@ -289,6 +298,7 @@ service ManagerClientService {
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
+    3:ThriftPropertyException tpe
   )
  
   void modifySystemProperties(
@@ -299,6 +309,7 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
     3:client.ThriftConcurrentModificationException tcme
+    4:ThriftPropertyException tpe
   )
 
   void removeSystemProperty(
