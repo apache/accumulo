@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.upgrade;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -49,7 +50,7 @@ public class UpgradeCoordinator {
 
   public enum UpgradeStatus {
     /**
-     * This signifies the upgrade status is in the process of being determined. Its best to assume
+     * This signifies the upgrade status is in the process of being determined. It is best to assume
      * nothing is upgraded when seeing this.
      */
     INITIAL {
@@ -102,11 +103,14 @@ public class UpgradeCoordinator {
     public abstract boolean isParentLevelUpgraded(KeyExtent extent);
   }
 
-  private static Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);
+  private static final Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);
 
   private int currentVersion;
-  private Map<Integer,Upgrader> upgraders = Map.of(AccumuloDataVersion.SHORTEN_RFILE_KEYS,
-      new Upgrader8to9(), AccumuloDataVersion.CRYPTO_CHANGES, new Upgrader9to10());
+  // map of "current version" -> upgrader to next version.
+  private final Map<Integer,
+      Upgrader> upgraders = Map.of(AccumuloDataVersion.SHORTEN_RFILE_KEYS, new Upgrader8to9(),
+          AccumuloDataVersion.CRYPTO_CHANGES, new Upgrader9to10(),
+          AccumuloDataVersion.ROOT_TABLET_META_CHANGES, new Upgrader10to11());
 
   private volatile UpgradeStatus status;
 
@@ -152,8 +156,12 @@ public class UpgradeCoordinator {
         abortIfFateTransactions(context);
 
         for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
-          log.info("Upgrading Zookeeper from data version {}", v);
-          upgraders.get(v).upgradeZookeeper(context);
+          log.info("Upgrading Zookeeper - current version {} as step towards target version {}", v,
+              AccumuloDataVersion.get());
+          var upgrader = upgraders.get(v);
+          Objects.requireNonNull(upgrader,
+              "upgrade ZooKeeper: failed to find upgrader for version " + currentVersion);
+          upgrader.upgradeZookeeper(context);
         }
       }
 
@@ -179,14 +187,23 @@ public class UpgradeCoordinator {
           .submit(() -> {
             try {
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
-                log.info("Upgrading Root from data version {}", v);
+                log.info("Upgrading Root - current version {} as step towards target version {}", v,
+                    AccumuloDataVersion.get());
+                var upgrader = upgraders.get(v);
+                Objects.requireNonNull(upgrader,
+                    "upgrade root: failed to find root upgrader for version " + currentVersion);
                 upgraders.get(v).upgradeRoot(context);
               }
 
               setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
-                log.info("Upgrading Metadata from data version {}", v);
+                log.info(
+                    "Upgrading Metadata - current version {} as step towards target version {}", v,
+                    AccumuloDataVersion.get());
+                var upgrader = upgraders.get(v);
+                Objects.requireNonNull(upgrader,
+                    "upgrade metadata: failed to find upgrader for version " + currentVersion);
                 upgraders.get(v).upgradeMetadata(context);
               }
 
@@ -237,13 +254,13 @@ public class UpgradeCoordinator {
    * need to make sure there are no queued transactions from a previous version before continuing an
    * upgrade. The status of the operations is irrelevant; those in SUCCESSFUL status cause the same
    * problem as those just queued.
-   *
+   * <p>
    * Note that the Manager should not allow write access to Fate until after all upgrade steps are
    * complete.
-   *
+   * <p>
    * Should be called as a guard before performing any upgrade steps, after determining that an
    * upgrade is needed.
-   *
+   * <p>
    * see ACCUMULO-2519
    */
   @SuppressFBWarnings(value = "DM_EXIT",

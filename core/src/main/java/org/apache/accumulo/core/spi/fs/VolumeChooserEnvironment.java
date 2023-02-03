@@ -29,7 +29,7 @@ import org.apache.hadoop.io.Text;
  */
 public interface VolumeChooserEnvironment {
   /**
-   * A scope the volume chooser environment; a TABLE scope should be accompanied by a tableId.
+   * A scope for the volume chooser environment; a TABLE scope should be accompanied by a tableId.
    *
    * @since 2.1.0
    */
@@ -37,6 +37,12 @@ public interface VolumeChooserEnvironment {
     DEFAULT, TABLE, INIT, LOGGER
   }
 
+  /**
+   * The end row of the tablet for which a volume is being chosen. Only call this when the scope is
+   * TABLE
+   *
+   * @since 2.0.0
+   */
   public Text getEndRow();
 
   public Optional<TableId> getTable();

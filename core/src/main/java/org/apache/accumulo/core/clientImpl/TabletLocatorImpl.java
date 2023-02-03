@@ -38,7 +38,6 @@ import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -87,11 +86,11 @@ public class TabletLocatorImpl extends TabletLocator {
   protected TabletLocator parent;
   protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
   protected TabletLocationObtainer locationObtainer;
-  private TabletServerLockChecker lockChecker;
+  private final TabletServerLockChecker lockChecker;
   protected Text lastTabletRow;
 
-  private TreeSet<KeyExtent> badExtents = new TreeSet<>();
-  private ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+  private final TreeSet<KeyExtent> badExtents = new TreeSet<>();
+  private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
   private final Lock rLock = rwLock.readLock();
   private final Lock wLock = rwLock.writeLock();
 
@@ -117,8 +116,8 @@ public class TabletLocatorImpl extends TabletLocator {
 
   private class LockCheckerSession {
 
-    private HashSet<Pair<String,String>> okLocks = new HashSet<>();
-    private HashSet<Pair<String,String>> invalidLocks = new HashSet<>();
+    private final HashSet<Pair<String,String>> okLocks = new HashSet<>();
+    private final HashSet<Pair<String,String>> invalidLocks = new HashSet<>();
 
     private TabletLocation checkLock(TabletLocation tl) {
       // the goal of this class is to minimize calls out to lockChecker under that assumption that
@@ -279,6 +278,24 @@ public class TabletLocatorImpl extends TabletLocator {
     return false;
   }
 
+  static boolean isContiguous(List<TabletLocation> tabletLocations) {
+
+    Iterator<TabletLocation> iter = tabletLocations.iterator();
+    KeyExtent prevExtent = iter.next().getExtent();
+
+    while (iter.hasNext()) {
+      KeyExtent currExtent = iter.next().getExtent();
+
+      if (!currExtent.isPreviousExtent(prevExtent)) {
+        return false;
+      }
+
+      prevExtent = currExtent;
+    }
+
+    return true;
+  }
+
   private List<Range> locateTablets(ClientContext context, List<Range> ranges,
       BiConsumer<TabletLocation,Range> rangeConsumer, boolean useCache,
       LockCheckerSession lcSession)
@@ -338,30 +355,19 @@ public class TabletLocatorImpl extends TabletLocator {
         tabletLocations.add(tl);
       }
 
-      var tlIter = tabletLocations.iterator();
-      var prevExtent = tlIter.next().getExtent();
-
-      boolean continguous = true;
-
-      while (tlIter.hasNext()) {
-        var currExtent = tlIter.next().getExtent();
-        if (currExtent.prevEndRow() == null || prevExtent.endRow() == null
-            || !currExtent.prevEndRow().equals(prevExtent.endRow())) {
-          continguous = false;
-        }
-        prevExtent = currExtent;
-      }
-
-      if (continguous) {
+      // Ensure the extents found are non overlapping and have no holes. When reading some extents
+      // from the cache and other from the metadata table in the loop above we may end up with
+      // non-contiguous extents. This can happen when a subset of exents are placed in the cache and
+      // then after that merges and splits happen.
+      if (isContiguous(tabletLocations)) {
         for (TabletLocation tl2 : tabletLocations) {
           rangeConsumer.accept(tl2, range);
         }
       } else {
-        // TODO maybe remove debug
-        log.info("For rannge {} {} ignoring non-contiguous extents {} ", range, useCache,
-            tabletLocations.stream().map(tloc -> tloc.getExtent()).collect(Collectors.toList()));
         failures.add(range);
-        // TODO need to clear the extents from the cache... actually may not need to anything
+        if (!useCache) {
+          lookupFailed = true;
+        }
       }
 
     }
@@ -636,7 +642,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   static void removeOverlapping(TreeMap<Text,TabletLocation> metaCache, KeyExtent nke) {
-    Iterator<Entry<Text,TabletLocation>> iter = null;
+    Iterator<Entry<Text,TabletLocation>> iter;
 
     if (nke.prevEndRow() == null) {
       iter = metaCache.entrySet().iterator();

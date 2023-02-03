@@ -467,68 +467,14 @@ public class SummaryIT extends SharedMiniClusterBase {
 
   }
 
-  /**
-   * A compaction strategy that initiates a compaction when {@code foo} occurs more than {@code bar}
-   * in the data. The {@link FooCounter} summary data is used to make the determination.
-   */
-  @SuppressWarnings("removal")
-  public static class FooCS extends org.apache.accumulo.tserver.compaction.CompactionStrategy {
-
-    private boolean compact = false;
-
-    @Override
-    public boolean
-        shouldCompact(org.apache.accumulo.tserver.compaction.MajorCompactionRequest request) {
-      return true;
-    }
-
-    @Override
-    public void
-        gatherInformation(org.apache.accumulo.tserver.compaction.MajorCompactionRequest request) {
-      List<Summary> summaries = request.getSummaries(request.getFiles().keySet(),
-          conf -> conf.getClassName().contains("FooCounter"));
-      if (summaries.size() == 1) {
-        Summary summary = summaries.get(0);
-        Long foos = summary.getStatistics().getOrDefault("foos", 0L);
-        Long bars = summary.getStatistics().getOrDefault("bars", 0L);
-
-        compact = foos > bars;
-      }
-    }
-
-    @Override
-    public org.apache.accumulo.tserver.compaction.CompactionPlan
-        getCompactionPlan(org.apache.accumulo.tserver.compaction.MajorCompactionRequest request) {
-      if (compact) {
-        var cp = new org.apache.accumulo.tserver.compaction.CompactionPlan();
-        cp.inputFiles.addAll(request.getFiles().keySet());
-        return cp;
-      }
-      return null;
-    }
-
-  }
-
   @Test
   public void compactionSelectorTest() throws Exception {
     // Create a compaction config that will filter out foos if there are too many. Uses summary
     // data to know if there are too many foos.
     PluginConfig csc = new PluginConfig(FooSelector.class.getName());
     CompactionConfig compactConfig = new CompactionConfig().setSelector(csc);
-    compactionTest(compactConfig);
-  }
-
-  @SuppressWarnings("removal")
-  @Test
-  public void compactionStrategyTest() throws Exception {
-    var csc =
-        new org.apache.accumulo.core.client.admin.CompactionStrategyConfig(FooCS.class.getName());
-    CompactionConfig compactConfig = new CompactionConfig().setCompactionStrategy(csc);
-    compactionTest(compactConfig);
-  }
-
-  private void compactionTest(CompactionConfig compactConfig) throws Exception {
     final String table = getUniqueNames(1)[0];
+
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
       SummarizerConfiguration sc1 =

@@ -132,8 +132,8 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
 import org.apache.accumulo.core.summary.SummaryCollection;
+import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
@@ -564,8 +564,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         HostAndPort address = HostAndPort.fromString(tl.getTserverLocation());
 
         try {
-          TabletClientService.Client client =
-              ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
+          TabletManagementClientService.Client client =
+              ThriftUtil.getClient(ThriftClientTypes.TABLET_MGMT, address, context);
           try {
 
             OpTimer timer = null;
@@ -859,8 +859,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }
 
-    ensureStrategyCanLoad(tableName, config);
-
     if (!UserCompactionUtils.isDefault(config.getConfigurer())) {
       if (!testClassLoad(tableName, config.getConfigurer().getClassName(),
           CompactionConfigurer.class.getName())) {
@@ -898,19 +896,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new AssertionError(e);
     } catch (NamespaceNotFoundException e) {
       throw new TableNotFoundException(null, tableName, "Namespace not found", e);
-    }
-  }
-
-  @SuppressWarnings("removal")
-  private void ensureStrategyCanLoad(String tableName, CompactionConfig config)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    // Make sure the specified compaction strategy exists on a tabletserver
-    if (!CompactionStrategyConfigUtil.isDefault(config.getCompactionStrategy())) {
-      if (!testClassLoad(tableName, config.getCompactionStrategy().getClassName(),
-          "org.apache.accumulo.tserver.compaction.CompactionStrategy")) {
-        throw new AccumuloException("TabletServer could not load CompactionStrategy class "
-            + config.getCompactionStrategy().getClassName());
-      }
     }
   }
 

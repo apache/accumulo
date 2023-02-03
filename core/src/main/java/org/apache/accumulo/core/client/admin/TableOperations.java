@@ -374,8 +374,6 @@ public interface TableOperations {
    * <li>Selector : {@link CompactionConfig#setSelector(PluginConfig)}</li>
    * <li>Configurer : {@link CompactionConfig#setConfigurer(PluginConfig)}</li>
    * <li>Iterators : {@link CompactionConfig#setIterators(List)}</li>
-   * <li>Compaction strategy (deprecated) :
-   * {@code CompactionConfig.setCompactionStrategy(CompactionStrategyConfig)}</li>
    * </ul>
    *
    * <p>

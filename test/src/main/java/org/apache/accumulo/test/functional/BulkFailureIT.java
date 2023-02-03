@@ -60,7 +60,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.manager.tableOps.bulkVer1.BulkImport;
@@ -254,7 +254,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
   private static void oldLoad(long txid, ClientContext context, KeyExtent extent, Path path,
       long size, boolean expectFailure) throws Exception {
 
-    TabletClientService.Iface client = getClient(context, extent);
+    TabletIngestClientService.Iface client = getClient(context, extent);
     try {
 
       Map<String,MapFileInfo> val = Map.of(path.toString(), new MapFileInfo(size));
@@ -277,7 +277,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
   private static void newLoad(long txid, ClientContext context, KeyExtent extent, Path path,
       long size, boolean expectFailure) throws Exception {
 
-    TabletClientService.Iface client = getClient(context, extent);
+    TabletIngestClientService.Iface client = getClient(context, extent);
     try {
 
       Map<String,MapFileInfo> val = Map.of(path.getName(), new MapFileInfo(size));
@@ -299,8 +299,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     }
   }
 
-  protected static TabletClientService.Iface getClient(ClientContext context, KeyExtent extent)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+  protected static TabletIngestClientService.Iface getClient(ClientContext context,
+      KeyExtent extent) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TTransportException {
     TabletLocator locator = TabletLocator.getLocator(context, extent.tableId());
 
@@ -310,8 +310,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
         .fromString(locator.locateTablet(context, new Text(""), false, true).getTserverLocation());
 
     long timeInMillis = context.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
-    TabletClientService.Iface client =
-        ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, context, timeInMillis);
+    TabletIngestClientService.Iface client =
+        ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, location, context, timeInMillis);
     return client;
   }
 }

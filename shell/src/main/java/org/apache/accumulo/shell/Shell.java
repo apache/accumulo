@@ -66,7 +66,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
-import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
@@ -523,6 +523,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     if (!accumuloDir.exists() && !accumuloDir.mkdirs()) {
       log.warn("Unable to make directory for history at {}", accumuloDir);
     }
+
+    // Disable shell highlighting
+    reader.unsetOpt(LineReader.Option.DISABLE_HIGHLIGHTER);
+
+    // Disable bracketed paste
+    reader.unsetOpt(LineReader.Option.BRACKETED_PASTE);
 
     // Remove Timestamps for history file. Fixes incompatibility issues
     reader.unsetOpt(LineReader.Option.HISTORY_TIMESTAMPED);
