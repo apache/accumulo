@@ -89,7 +89,7 @@ public class ClientConfiguration extends CompositeConfiguration {
         "UUID of Accumulo instance to connect to"),
 
     // Scanning
-    SCAN_INITIAL_WAIT_ENABLED(Property.SCAN_INITIAL_WAIT_ENABLED),
+    TSERV_SCAN_INITIAL_WAIT_ENABLED(Property.TSERV_SCAN_INITIAL_WAIT_ENABLED),
 
     // Tracing
     TRACE_SPAN_RECEIVERS(Property.TRACE_SPAN_RECEIVERS),

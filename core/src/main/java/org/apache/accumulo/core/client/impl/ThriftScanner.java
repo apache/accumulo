@@ -117,7 +117,7 @@ public class ThriftScanner {
 
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = false;
-        if (context.getConfiguration().getBoolean(Property.SCAN_INITIAL_WAIT_ENABLED)) {
+        if (context.getConfiguration().getBoolean(Property.TSERV_SCAN_INITIAL_WAIT_ENABLED)) {
           waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
         }
         InitialScan isr = client.startScan(tinfo, scanState.context.rpcCreds(), extent.toThrift(),
@@ -463,7 +463,7 @@ public class ThriftScanner {
 
         TabletType ttype = TabletType.type(loc.tablet_extent);
         boolean waitForWrites = false;
-        if (context.getConfiguration().getBoolean(Property.SCAN_INITIAL_WAIT_ENABLED)) {
+        if (context.getConfiguration().getBoolean(Property.TSERV_SCAN_INITIAL_WAIT_ENABLED)) {
           waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
         }
 
