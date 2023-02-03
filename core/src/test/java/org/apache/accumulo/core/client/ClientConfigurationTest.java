@@ -65,6 +65,11 @@ public class ClientConfigurationTest {
     third.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "thirdZkHosts");
     third.addProperty(ClientProperty.INSTANCE_NAME.getKey(), "thirdInstanceName");
     third.addProperty(ClientProperty.INSTANCE_ZK_TIMEOUT.getKey(), "123s");
+    Configuration forth = new PropertiesConfiguration();
+    forth.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "thirdZkHosts");
+    forth.addProperty(ClientProperty.INSTANCE_NAME.getKey(), "thirdInstanceName");
+    forth.addProperty(ClientProperty.INSTANCE_ZK_TIMEOUT.getKey(), "123s");
+    forth.addProperty(ClientProperty.SCAN_INITIAL_WAIT_ENABLED.getKey(), "false");
     @SuppressWarnings("deprecation")
     ClientConfiguration clientConf = new ClientConfiguration(Arrays.asList(first, second, third));
     return clientConf;
