@@ -932,8 +932,9 @@ public enum Property {
   REPLICATION_RPC_TIMEOUT("replication.rpc.timeout", "2m", PropertyType.TIMEDURATION,
       "Amount of time for a single replication RPC call to last before failing"
           + " the attempt. See replication.work.attempts."),
-
-  ;
+  @Experimental
+  SCAN_INITIAL_WAIT_ENABLED("scan.initial.wait.enabled", "true", PropertyType.BOOLEAN,
+      "Determines if the client waits for writes before scanning a table for the first time"),;
 
   private String key;
   private String defaultValue;

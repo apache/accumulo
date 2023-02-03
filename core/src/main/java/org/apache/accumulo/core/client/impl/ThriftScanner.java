@@ -116,7 +116,10 @@ public class ThriftScanner {
             Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, null, batchTimeOut, classLoaderContext);
 
         TabletType ttype = TabletType.type(extent);
-        boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
+        boolean waitForWrites = false;
+        if (context.getConfiguration().getBoolean(Property.SCAN_INITIAL_WAIT_ENABLED)) {
+          waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
+        }
         InitialScan isr = client.startScan(tinfo, scanState.context.rpcCreds(), extent.toThrift(),
             scanState.range.toThrift(), Translator.translate(scanState.columns, Translators.CT),
             scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
@@ -459,7 +462,10 @@ public class ThriftScanner {
         }
 
         TabletType ttype = TabletType.type(loc.tablet_extent);
-        boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
+        boolean waitForWrites = false;
+        if (context.getConfiguration().getBoolean(Property.SCAN_INITIAL_WAIT_ENABLED)) {
+          waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
+        }
 
         InitialScan is =
             client.startScan(tinfo, scanState.context.rpcCreds(), loc.tablet_extent.toThrift(),
