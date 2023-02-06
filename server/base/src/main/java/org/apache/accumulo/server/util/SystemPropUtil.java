@@ -76,13 +76,13 @@ public class SystemPropUtil {
     if (!Property.isValidZooPropertyKey(property)) {
       IllegalArgumentException iae =
           new IllegalArgumentException("Zookeeper property is not mutable: " + property);
-      log.error("Encountered error setting zookeeper property", iae);
+      log.trace("Encountered error setting zookeeper property", iae);
       throw iae;
     }
     if (!Property.isValidProperty(property, value)) {
       IllegalArgumentException iae = new IllegalArgumentException(
           "Property " + property + " with value: " + value + " is not valid");
-      log.error("Encountered error setting zookeeper property", iae);
+      log.trace("Encountered error setting zookeeper property", iae);
       throw iae;
     }
 
@@ -100,7 +100,7 @@ public class SystemPropUtil {
         && !foundProp.getType().isValidFormat(value)))) {
       IllegalArgumentException iae = new IllegalArgumentException(
           "Ignoring property " + property + " it is either null or in an invalid format");
-      log.error("Attempted to set zookeeper property.  Value is either null or invalid", iae);
+      log.trace("Attempted to set zookeeper property.  Value is either null or invalid", iae);
       throw iae;
     }
 
