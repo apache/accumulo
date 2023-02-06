@@ -120,6 +120,16 @@ public enum Property {
           + " a comma or other reserved characters in a URI use standard URI hex"
           + " encoding. For example replace commas with %2C.",
       "1.6.0"),
+  INSTANCE_VOLUMES_CONFIG("instance.volumes.config.", null, PropertyType.PREFIX,
+      "Properties in this category are used to provide volume specific overrides to "
+          + "the general filesystem client configuration. Properties using this prefix "
+          + "should be in the form "
+          + "'instance.volumes.config.<volume-uri>.<property-name>=<property-value>. An "
+          + "example: "
+          + "'instance.volume.config.hdfs://namespace-a:8020/accumulo.dfs.client.hedged.read.threadpool.size=10'. "
+          + "Note that when specifying property names that contain colons in the properties "
+          + "files that the colons need to be escaped with a backslash.",
+      "2.1.1"),
   INSTANCE_VOLUMES_REPLACEMENTS("instance.volumes.replacements", "", PropertyType.STRING,
       "Since accumulo stores absolute URIs changing the location of a namenode "
           + "could prevent Accumulo from starting. The property helps deal with "

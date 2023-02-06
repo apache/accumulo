@@ -368,7 +368,7 @@ public class VolumeManagerImpl implements VolumeManager {
    * Accumulo configuration of the form:
    *
    * <pre>
-   * general.custom.&lt;volume-uri&gt;.&lt;hdfs-property&gt;
+   * instance.volume.config.&lt;volume-uri&gt;.&lt;hdfs-property&gt;
    * </pre>
    *
    * We will use these properties to return a new Configuration object that can be used with the
@@ -383,11 +383,11 @@ public class VolumeManagerImpl implements VolumeManager {
       final Configuration hadoopConf, final String filesystemURI) {
     final Configuration volumeConfig = new Configuration(hadoopConf);
     final Map<String,String> customProps =
-        conf.getAllPropertiesWithPrefixStripped(Property.GENERAL_ARBITRARY_PROP_PREFIX);
+        conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUMES_CONFIG);
     customProps.forEach((key, value) -> {
       if (key.startsWith(filesystemURI)) {
         String property = key.substring(filesystemURI.length() + 1);
-        log.debug("Overriding property {} to {} for volume {}", property, value, filesystemURI);
+        log.info("Overriding property {} to {} for volume {}", property, value, filesystemURI);
         volumeConfig.set(property, value);
       }
     });
