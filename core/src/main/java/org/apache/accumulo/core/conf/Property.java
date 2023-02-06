@@ -421,7 +421,8 @@ public enum Property {
       "Maximum total files that all tablets in a tablet server can open for scans. "),
   @Experimental
   TSERV_SCAN_INITIAL_WAIT_ENABLED("tserver.scan.initial.wait.enabled", "true", PropertyType.BOOLEAN,
-      "Determines if the client waits for writes before scanning a table for the first time"),
+      "Determines if the client waits for writes in progress before scanning a user table for the first time."
+          + "This wait is to ensure that the client scan sees all the data that was previously written."),
   TSERV_MAX_IDLE("tserver.files.open.idle", "1m", PropertyType.TIMEDURATION,
       "Tablet servers leave previously used files open for future queries. This "
           + "setting determines how much time an unused file should be kept open until "
@@ -934,7 +935,7 @@ public enum Property {
       "The sampling percentage to use for replication traces"),
   REPLICATION_RPC_TIMEOUT("replication.rpc.timeout", "2m", PropertyType.TIMEDURATION,
       "Amount of time for a single replication RPC call to last before failing"
-          + " the attempt. See replication.work.attempts."),;
+          + " the attempt. See replication.work.attempts.");
 
   private String key;
   private String defaultValue;
