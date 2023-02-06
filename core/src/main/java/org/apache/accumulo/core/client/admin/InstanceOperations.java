@@ -140,7 +140,17 @@ public interface InstanceOperations {
   void removeProperty(final String property) throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Retrieve the system-wide configuration.
+   * Retrieve the system-wide, merged view of the system configuration. Accumulo has multiple layers
+   * of properties, in order of precedence (highest - lowest):
+   * <ul>
+   * <li>the properties set in Zookeeper</li>
+   * <li>the properties set in the site configuration file</li>
+   * <li>the default properties</li>
+   * </ul>
+   * The properties returned is the merged view of these properties. The properties that are stored
+   * in ZooKeeper can be modified with {@link #modifyProperties modifyProperties},
+   * {@link #setProperty setProperty} and {@link #removeProperty removeProperty}. Properties can be
+   * further refined by namesapce {@link NamespaceOperations} and by table {@link TableOperations}.
    *
    * @return A map of system properties set in zookeeper. If a property is not set in zookeeper,
    *         then it will return the value set in accumulo.properties on some server. If nothing is
