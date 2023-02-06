@@ -824,8 +824,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     while (true) {
       MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
       monitorLock = new ServiceLock(zoo.getZooKeeper(), monitorLockPath, zooLockUUID);
-      monitorLock.lock(monitorLockWatcher,
-          new ServerLockData(zooLockUUID, getHostname(), Service.MONITOR_CLIENT, this.getServerGroup()));
+      monitorLock.lock(monitorLockWatcher, new ServerLockData(zooLockUUID, getHostname(),
+          Service.MONITOR_CLIENT, this.getServerGroup()));
 
       monitorLockWatcher.waitForChange();
 

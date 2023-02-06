@@ -231,7 +231,8 @@ public class ServiceLockIT {
 
     TestALW lw = new TestALW();
 
-    zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
+    zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT,
+        ServerDescriptor.DEFAULT_GROUP_NAME));
 
     lw.waitForChanges(1);
 
@@ -255,7 +256,8 @@ public class ServiceLockIT {
 
     TestALW lw = new TestALW();
 
-    zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
+    zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT,
+        ServerDescriptor.DEFAULT_GROUP_NAME));
 
     lw.waitForChanges(1);
 
@@ -280,7 +282,8 @@ public class ServiceLockIT {
 
     TestALW lw = new TestALW();
 
-    zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
+    zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT,
+        ServerDescriptor.DEFAULT_GROUP_NAME));
 
     lw.waitForChanges(1);
 
@@ -313,7 +316,8 @@ public class ServiceLockIT {
 
     TestALW lw = new TestALW();
 
-    zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
+    zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT,
+        ServerDescriptor.DEFAULT_GROUP_NAME));
 
     lw.waitForChanges(1);
 
@@ -326,7 +330,8 @@ public class ServiceLockIT {
 
     TestALW lw2 = new TestALW();
 
-    zl2.lock(lw2, new ServerLockData(UUID.randomUUID(), "test2", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
+    zl2.lock(lw2, new ServerLockData(UUID.randomUUID(), "test2", Service.TSERV_CLIENT,
+        ServerDescriptor.DEFAULT_GROUP_NAME));
 
     assertFalse(lw2.locked);
     assertFalse(zl2.isLocked());
@@ -335,7 +340,8 @@ public class ServiceLockIT {
 
     TestALW lw3 = new TestALW();
 
-    zl3.lock(lw3, new ServerLockData(UUID.randomUUID(), "test3", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
+    zl3.lock(lw3, new ServerLockData(UUID.randomUUID(), "test3", Service.TSERV_CLIENT,
+        ServerDescriptor.DEFAULT_GROUP_NAME));
 
     List<String> children = ServiceLock.validateAndSort(parent, zk.getChildren(parent.toString()));
 
@@ -390,7 +396,8 @@ public class ServiceLockIT {
 
       TestALW lw = new TestALW();
 
-      zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
+      zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT,
+          ServerDescriptor.DEFAULT_GROUP_NAME));
 
       lw.waitForChanges(1);
 
@@ -440,7 +447,8 @@ public class ServiceLockIT {
       final RetryLockWatcher zlw1 = new RetryLockWatcher();
       ServiceLock zl1 =
           getZooLock(zk1, parent, UUID.fromString("00000000-0000-0000-0000-aaaaaaaaaaaa"));
-      zl1.lock(zlw1, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
+      zl1.lock(zlw1, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT,
+          ServerDescriptor.DEFAULT_GROUP_NAME));
       // The call above creates two nodes in ZK because of the overridden create method in
       // ZooKeeperWrapper.
       // The nodes created are:
@@ -455,7 +463,8 @@ public class ServiceLockIT {
       final RetryLockWatcher zlw2 = new RetryLockWatcher();
       ServiceLock zl2 =
           getZooLock(zk2, parent, UUID.fromString("00000000-0000-0000-0000-bbbbbbbbbbbb"));
-      zl2.lock(zlw2, new ServerLockData(UUID.randomUUID(), "test2", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
+      zl2.lock(zlw2, new ServerLockData(UUID.randomUUID(), "test2", Service.TSERV_CLIENT,
+          ServerDescriptor.DEFAULT_GROUP_NAME));
       // The call above creates two nodes in ZK because of the overridden create method in
       // ZooKeeperWrapper.
       // The nodes created are:
@@ -542,7 +551,8 @@ public class ServiceLockIT {
           ServiceLock zl = getZooLock(zk, parent, uuid);
           getLockLatch.countDown(); // signal we are done
           getLockLatch.await(); // wait for others to finish
-          zl.lock(lockWatcher, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME)); // race to the lock
+          zl.lock(lockWatcher, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT,
+              ServerDescriptor.DEFAULT_GROUP_NAME)); // race to the lock
           lockCompletedLatch.countDown();
           unlockLatch.await();
           zl.unlock();
@@ -671,7 +681,8 @@ public class ServiceLockIT {
 
       TestALW lw = new TestALW();
 
-      boolean ret = zl.tryLock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
+      boolean ret = zl.tryLock(lw, new ServerLockData(UUID.randomUUID(), "test1",
+          Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
 
       assertTrue(ret);
 
@@ -705,13 +716,17 @@ public class ServiceLockIT {
 
       TestALW lw = new TestALW();
 
-      ServerLockData sld1 = new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME); 
+      ServerLockData sld1 = new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT,
+          ServerDescriptor.DEFAULT_GROUP_NAME);
       zl.lock(lw, sld1);
-      assertEquals(sld1, ServerLockData.parse(new String(zk.getData(zl.getLockPath(), null, null), UTF_8)));
+      assertEquals(sld1,
+          ServerLockData.parse(new String(zk.getData(zl.getLockPath(), null, null), UTF_8)));
 
-      ServerLockData sld2 = new ServerLockData(UUID.randomUUID(), "test2", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME); 
+      ServerLockData sld2 = new ServerLockData(UUID.randomUUID(), "test2", Service.TSERV_CLIENT,
+          ServerDescriptor.DEFAULT_GROUP_NAME);
       zl.replaceLockData(sld2);
-      assertEquals(sld2, ServerLockData.parse(new String(zk.getData(zl.getLockPath(), null, null), UTF_8)));
+      assertEquals(sld2,
+          ServerLockData.parse(new String(zk.getData(zl.getLockPath(), null, null), UTF_8)));
     }
   }
 

@@ -1226,8 +1226,9 @@ public class Manager extends AbstractServer
     }
 
     String address = sa.address.toString();
-    sld = new ServerLockData(sld.getServerUUID(Service.MANAGER_CLIENT), address, Service.MANAGER_CLIENT, this.getServerGroup());
-    log.info("Setting manager lock data to {}", sld);
+    sld = new ServerLockData(sld.getServerUUID(Service.MANAGER_CLIENT), address,
+        Service.MANAGER_CLIENT, this.getServerGroup());
+    log.info("Setting manager lock data to {}", sld.toString());
     try {
       managerLock.replaceLockData(sld);
     } catch (KeeperException | InterruptedException e) {

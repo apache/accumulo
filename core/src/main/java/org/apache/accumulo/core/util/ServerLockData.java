@@ -21,6 +21,7 @@ package org.apache.accumulo.core.util;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -204,11 +205,9 @@ public class ServerLockData implements Comparable<ServerLockData> {
     if (stringForm == null) {
       StringBuilder sb = new StringBuilder();
       String prefix = "";
-      for (Service service : new Service[] {Service.TSERV_CLIENT, Service.GC_CLIENT}) {
-        if (services.containsKey(service)) {
-          sb.append(prefix).append(services.get(service).toString());
-          prefix = SERVICE_SEPARATOR;
-        }
+      for (Entry<Service,ServerDescriptor> e : services.entrySet()) {
+        sb.append(prefix).append(services.get(e.getKey()).toString());
+        prefix = SERVICE_SEPARATOR;
       }
       stringForm = sb.toString();
     }

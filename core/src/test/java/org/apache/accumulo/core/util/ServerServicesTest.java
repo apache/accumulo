@@ -64,7 +64,8 @@ public class ServerServicesTest {
     assertEquals(HostAndPort.fromString("127.0.0.1:9998"), ss.getAddress(Service.SSERV_CLIENT));
     assertEquals(ServerDescriptor.DEFAULT_GROUP_NAME, ss.getGroup(Service.TSERV_CLIENT));
     // toString() only includes TSERV_CLIENT and GC_CLIENT
-    assertEquals(serverUUID.toString() + "=TSERV_CLIENT=127.0.0.1:9997=default", ss.toString());
+    assertEquals(serverUUID.toString() + "=TSERV_CLIENT=127.0.0.1:9997=default;"
+        + serverUUID.toString() + "=SSERV_CLIENT=127.0.0.1:9998=default", ss.toString());
   }
 
   @Test
@@ -105,12 +106,13 @@ public class ServerServicesTest {
     assertEquals("127.0.0.1:9997", ss.getAddressString(Service.TSERV_CLIENT));
     assertEquals(HostAndPort.fromString("127.0.0.1:9997"), ss.getAddress(Service.TSERV_CLIENT));
     assertEquals("meta", ss.getGroup(Service.TSERV_CLIENT));
-    assertEquals(serverUUID, ss.getServerUUID(Service.TSERV_CLIENT));
+    assertEquals(serverUUID, ss.getServerUUID(Service.SSERV_CLIENT));
     assertEquals("127.0.0.1:9998", ss.getAddressString(Service.SSERV_CLIENT));
     assertEquals(HostAndPort.fromString("127.0.0.1:9998"), ss.getAddress(Service.SSERV_CLIENT));
     assertEquals("ns1", ss.getGroup(Service.SSERV_CLIENT));
     // toString() only includes TSERV_CLIENT and GC_CLIENT
-    assertEquals(serverUUID.toString() + "=TSERV_CLIENT=127.0.0.1:9997=meta", ss.toString());
+    assertEquals(serverUUID.toString() + "=TSERV_CLIENT=127.0.0.1:9997=meta;"
+        + serverUUID.toString() + "=SSERV_CLIENT=127.0.0.1:9998=ns1", ss.toString());
   }
 
 }

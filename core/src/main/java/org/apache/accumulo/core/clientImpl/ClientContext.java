@@ -405,9 +405,11 @@ public class ClientContext implements AccumuloClient {
         final var zLockPath = ServiceLock.path(root + "/" + addr);
         ZcStat stat = new ZcStat();
         ServerLockData sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
-        UUID uuid = sld.getServerUUID(Service.SSERV_CLIENT);
-        String group = sld.getGroup(Service.SSERV_CLIENT);
-        liveScanServers.put(addr, new Pair<>(uuid, group));
+        if (sld != null) {
+          UUID uuid = sld.getServerUUID(Service.SSERV_CLIENT);
+          String group = sld.getGroup(Service.SSERV_CLIENT);
+          liveScanServers.put(addr, new Pair<>(uuid, group));
+        }
       } catch (IllegalArgumentException e) {
         log.error("Error validating zookeeper scan server node: " + addr, e);
       }
@@ -511,12 +513,16 @@ public class ClientContext implements AccumuloClient {
     OpTimer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up manager location in zookeeper.", Thread.currentThread().getId());
+      log.trace("tid={} Looking up manager location in zookeeper at {}.",
+          Thread.currentThread().getId(), zLockManagerPath);
       timer = new OpTimer().start();
     }
 
     ServerLockData sld = zooCache.getLockData(zLockManagerPath);
-    String location = sld.getAddressString(Service.MANAGER_CLIENT);
+    String location = null;
+    if (sld != null) {
+      location = sld.getAddressString(Service.MANAGER_CLIENT);
+    }
 
     if (timer != null) {
       timer.stop();

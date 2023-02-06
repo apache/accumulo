@@ -114,7 +114,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       public void unableToMonitorLockNode(Exception e) {
         System.exit(-1);
       }
-    }, new ServerLockData(UUID.randomUUID(), "foo", Service.TSERV_CLIENT, ServerLockData.ServerDescriptor.DEFAULT_GROUP_NAME));
+    }, new ServerLockData(UUID.randomUUID(), "foo", Service.TSERV_CLIENT,
+        ServerLockData.ServerDescriptor.DEFAULT_GROUP_NAME));
 
     if (!gotLock) {
       System.err.println("Failed to get lock " + zPath);

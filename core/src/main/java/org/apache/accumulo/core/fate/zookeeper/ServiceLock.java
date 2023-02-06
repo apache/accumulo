@@ -400,7 +400,7 @@ public class ServiceLock implements Watcher {
       // were created.
       final String createPath = zooKeeper.create(lockPathPrefix,
           lockData.toString().getBytes(UTF_8), ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL);
-      LOG.debug("[{}] Ephemeral node {} created", vmLockPrefix, createPath);
+      LOG.debug("[{}] Ephemeral node {} created with data: {}", vmLockPrefix, createPath, lockData);
 
       // It's possible that the call above was retried several times and multiple ephemeral nodes
       // were created but the client missed the response for some reason. Find the ephemeral nodes
@@ -597,6 +597,8 @@ public class ServiceLock implements Watcher {
       throws KeeperException, InterruptedException {
     if (getLockPath() != null) {
       zooKeeper.setData(getLockPath(), lockData.toString().getBytes(UTF_8), -1);
+      LOG.debug("[{}] Lock data replaced at path {} with data: {}", vmLockPrefix, getLockPath(),
+          lockData);
     }
   }
 
