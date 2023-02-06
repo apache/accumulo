@@ -63,6 +63,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
+import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
@@ -114,7 +115,7 @@ class FateServiceHandler implements FateService.Iface {
   @Override
   public void executeFateOperation(TInfo tinfo, TCredentials c, long opid, FateOperation op,
       List<ByteBuffer> arguments, Map<String,String> options, boolean autoCleanup)
-      throws ThriftSecurityException, ThriftTableOperationException {
+      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
     authenticate(c);
     String goalMessage = op.toString() + " ";
 
@@ -214,10 +215,13 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         for (Map.Entry<String,String> entry : options.entrySet()) {
-          if (!Property.isTablePropertyValid(entry.getKey(), entry.getValue())) {
-            throw new ThriftTableOperationException(null, tableName, tableOp,
-                TableOperationExceptionType.OTHER,
-                "Property or value not valid " + entry.getKey() + "=" + entry.getValue());
+          if (!Property.isValidProperty(entry.getKey(), entry.getValue())) {
+            String errorMessage = "Property or value not valid ";
+            if (!Property.isValidTablePropertyKey(entry.getKey())) {
+              errorMessage = "Invalid Table Property ";
+            }
+            throw new ThriftPropertyException(entry.getKey(), entry.getValue(),
+                errorMessage + entry.getKey() + "=" + entry.getValue());
           }
         }
 
@@ -313,10 +317,13 @@ class FateServiceHandler implements FateService.Iface {
             continue;
           }
 
-          if (!Property.isTablePropertyValid(entry.getKey(), entry.getValue())) {
-            throw new ThriftTableOperationException(null, tableName, tableOp,
-                TableOperationExceptionType.OTHER,
-                "Property or value not valid " + entry.getKey() + "=" + entry.getValue());
+          if (!Property.isValidProperty(entry.getKey(), entry.getValue())) {
+            String errorMessage = "Property or value not valid ";
+            if (!Property.isValidTablePropertyKey(entry.getKey())) {
+              errorMessage = "Invalid Table Property ";
+            }
+            throw new ThriftPropertyException(entry.getKey(), entry.getValue(),
+                errorMessage + entry.getKey() + "=" + entry.getValue());
           }
 
           propertiesToSet.put(entry.getKey(), entry.getValue());

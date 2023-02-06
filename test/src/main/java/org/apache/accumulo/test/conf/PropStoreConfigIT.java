@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -40,6 +41,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -179,6 +181,47 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       assertFalse(context.getPropStore().exists(TablePropKey.of(context, tid)));
       // check ServerConfigurationFactory deleted - should return null
       assertNull(context.getTableConfiguration(tid));
+    }
+  }
+
+  @Test
+  public void setInvalidPropertiesTest() throws Exception {
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      // Grab original default config
+      Map<String,String> config = client.instanceOperations().getSystemConfiguration();
+      Map<String,String> properties = getStoredConfiguration();
+
+      final String maxOpenFiles = config.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey());
+
+      client.instanceOperations().modifyProperties(Map::clear);
+      assertTrue(Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500));
+
+      // Properties should be empty to start
+      final int numProps = properties.size();
+
+      // Set properties in ZK
+      client.instanceOperations().modifyProperties(original -> {
+        original.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), maxOpenFiles);
+      });
+
+      // Verify system properties added
+      assertTrue(Wait.waitFor(() -> getStoredConfiguration().size() > numProps, 5000, 500));
+
+      // Verify properties updated
+      properties = getStoredConfiguration();
+      assertEquals(maxOpenFiles, properties.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey()));
+
+      // Verify properties updated in config as well
+      config = client.instanceOperations().getSystemConfiguration();
+      assertEquals(maxOpenFiles, config.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey()));
+
+      // Set invalid properties
+      assertThrows(AccumuloException.class,
+          () -> client.instanceOperations().modifyProperties(original -> {
+            original.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "foo");
+          }));
+      assertEquals(maxOpenFiles, properties.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey()));
     }
   }
 

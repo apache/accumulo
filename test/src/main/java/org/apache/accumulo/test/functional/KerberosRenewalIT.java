@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Map;
@@ -188,6 +189,6 @@ public class KerberosRenewalIT extends AccumuloITBase {
       assertEquals("d", entry.getValue().toString());
     }
     client.tableOperations().delete(tableName);
-    Wait.waitFor(() -> !client.tableOperations().exists(tableName), 20_000L, 200L);
+    assertTrue(Wait.waitFor(() -> !client.tableOperations().exists(tableName), 20_000L, 200L));
   }
 }
