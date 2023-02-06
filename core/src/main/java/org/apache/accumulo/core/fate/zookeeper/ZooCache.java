@@ -537,7 +537,7 @@ public class ZooCache {
     if (log.isTraceEnabled()) {
       log.trace("Data from lockNode {} is {}", lockNode, new String(lockData, UTF_8));
     }
-    if (lockData == null || lockData.length == 0) {
+    if (lockData == null) {
       return null;
     }
     return ServerLockData.parse(new String(lockData, UTF_8));

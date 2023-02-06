@@ -473,10 +473,12 @@ public class TabletMetadata {
     ZooCache.ZcStat stat = new ZooCache.ZcStat();
     ServerLockData sld = ServiceLock.getLockData(context.getZooCache(), lockPath, stat);
 
-    log.trace("Checking server at ZK path = " + lockPath);
-    HostAndPort client = sld.getAddress(ServerLockData.Service.TSERV_CLIENT);
-    if (client != null) {
-      server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
+    if (sld != null) {
+      log.trace("Checking server at ZK path = " + lockPath);
+      HostAndPort client = sld.getAddress(ServerLockData.Service.TSERV_CLIENT);
+      if (client != null) {
+        server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
+      }
     }
     return server;
   }
