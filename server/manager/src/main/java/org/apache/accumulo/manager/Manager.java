@@ -104,6 +104,8 @@ import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.ServerLockData;
+import org.apache.accumulo.core.util.ServerLockData.Service;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
@@ -1072,8 +1074,9 @@ public class Manager extends AbstractServer
     log.info("Started Manager client service at {}", sa.address);
 
     // block until we can obtain the ZK lock for the manager
+    ServerLockData sld = null;
     try {
-      getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK));
+      sld = getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
@@ -1223,9 +1226,10 @@ public class Manager extends AbstractServer
     }
 
     String address = sa.address.toString();
-    log.info("Setting manager lock data to {}", address);
+    sld = new ServerLockData(sld.getServerUUID(Service.MANAGER_CLIENT), address, Service.MANAGER_CLIENT, this.getServerGroup());
+    log.info("Setting manager lock data to {}", sld);
     try {
-      managerLock.replaceLockData(address.getBytes());
+      managerLock.replaceLockData(sld);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception updating manager lock", e);
     }
@@ -1425,7 +1429,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  private void getManagerLock(final ServiceLockPath zManagerLoc)
+  private ServerLockData getManagerLock(final ServiceLockPath zManagerLoc)
       throws KeeperException, InterruptedException {
     var zooKeeper = getContext().getZooReaderWriter().getZooKeeper();
     log.info("trying to get manager lock");
@@ -1434,11 +1438,13 @@ public class Manager extends AbstractServer
         getHostname() + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
 
     UUID zooLockUUID = UUID.randomUUID();
+    ServerLockData sld = new ServerLockData(zooLockUUID, managerClientAddress,
+        Service.MANAGER_CLIENT, this.getServerGroup());
     while (true) {
 
       ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();
       managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
-      managerLock.lock(managerLockWatcher, managerClientAddress.getBytes());
+      managerLock.lock(managerLockWatcher, sld);
 
       managerLockWatcher.waitForChange();
 
@@ -1456,6 +1462,7 @@ public class Manager extends AbstractServer
     }
 
     setManagerState(ManagerState.HAVE_LOCK);
+    return sld;
   }
 
   @Override

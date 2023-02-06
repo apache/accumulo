@@ -44,6 +44,9 @@ import org.apache.accumulo.core.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooSession;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.util.ServerLockData;
+import org.apache.accumulo.core.util.ServerLockData.ServerDescriptor;
+import org.apache.accumulo.core.util.ServerLockData.Service;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -228,7 +231,7 @@ public class ServiceLockIT {
 
     TestALW lw = new TestALW();
 
-    zl.lock(lw, "test1".getBytes(UTF_8));
+    zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
 
     lw.waitForChanges(1);
 
@@ -252,7 +255,7 @@ public class ServiceLockIT {
 
     TestALW lw = new TestALW();
 
-    zl.lock(lw, "test1".getBytes(UTF_8));
+    zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
 
     lw.waitForChanges(1);
 
@@ -277,7 +280,7 @@ public class ServiceLockIT {
 
     TestALW lw = new TestALW();
 
-    zl.lock(lw, "test1".getBytes(UTF_8));
+    zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
 
     lw.waitForChanges(1);
 
@@ -310,7 +313,7 @@ public class ServiceLockIT {
 
     TestALW lw = new TestALW();
 
-    zl.lock(lw, "test1".getBytes(UTF_8));
+    zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
 
     lw.waitForChanges(1);
 
@@ -323,7 +326,7 @@ public class ServiceLockIT {
 
     TestALW lw2 = new TestALW();
 
-    zl2.lock(lw2, "test2".getBytes(UTF_8));
+    zl2.lock(lw2, new ServerLockData(UUID.randomUUID(), "test2", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
 
     assertFalse(lw2.locked);
     assertFalse(zl2.isLocked());
@@ -332,7 +335,7 @@ public class ServiceLockIT {
 
     TestALW lw3 = new TestALW();
 
-    zl3.lock(lw3, "test3".getBytes(UTF_8));
+    zl3.lock(lw3, new ServerLockData(UUID.randomUUID(), "test3", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
 
     List<String> children = ServiceLock.validateAndSort(parent, zk.getChildren(parent.toString()));
 
@@ -387,7 +390,7 @@ public class ServiceLockIT {
 
       TestALW lw = new TestALW();
 
-      zl.lock(lw, "test1".getBytes(UTF_8));
+      zl.lock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
 
       lw.waitForChanges(1);
 
@@ -437,7 +440,7 @@ public class ServiceLockIT {
       final RetryLockWatcher zlw1 = new RetryLockWatcher();
       ServiceLock zl1 =
           getZooLock(zk1, parent, UUID.fromString("00000000-0000-0000-0000-aaaaaaaaaaaa"));
-      zl1.lock(zlw1, "test1".getBytes(UTF_8));
+      zl1.lock(zlw1, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
       // The call above creates two nodes in ZK because of the overridden create method in
       // ZooKeeperWrapper.
       // The nodes created are:
@@ -452,7 +455,7 @@ public class ServiceLockIT {
       final RetryLockWatcher zlw2 = new RetryLockWatcher();
       ServiceLock zl2 =
           getZooLock(zk2, parent, UUID.fromString("00000000-0000-0000-0000-bbbbbbbbbbbb"));
-      zl2.lock(zlw2, "test1".getBytes(UTF_8));
+      zl2.lock(zlw2, new ServerLockData(UUID.randomUUID(), "test2", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
       // The call above creates two nodes in ZK because of the overridden create method in
       // ZooKeeperWrapper.
       // The nodes created are:
@@ -539,7 +542,7 @@ public class ServiceLockIT {
           ServiceLock zl = getZooLock(zk, parent, uuid);
           getLockLatch.countDown(); // signal we are done
           getLockLatch.await(); // wait for others to finish
-          zl.lock(lockWatcher, "test1".getBytes(UTF_8)); // race to the lock
+          zl.lock(lockWatcher, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME)); // race to the lock
           lockCompletedLatch.countDown();
           unlockLatch.await();
           zl.unlock();
@@ -668,7 +671,7 @@ public class ServiceLockIT {
 
       TestALW lw = new TestALW();
 
-      boolean ret = zl.tryLock(lw, "test1".getBytes(UTF_8));
+      boolean ret = zl.tryLock(lw, new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME));
 
       assertTrue(ret);
 
@@ -702,11 +705,13 @@ public class ServiceLockIT {
 
       TestALW lw = new TestALW();
 
-      zl.lock(lw, "test1".getBytes(UTF_8));
-      assertEquals("test1", new String(zk.getData(zl.getLockPath(), null, null)));
+      ServerLockData sld1 = new ServerLockData(UUID.randomUUID(), "test1", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME); 
+      zl.lock(lw, sld1);
+      assertEquals(sld1, ServerLockData.parse(new String(zk.getData(zl.getLockPath(), null, null), UTF_8)));
 
-      zl.replaceLockData("test2".getBytes(UTF_8));
-      assertEquals("test2", new String(zk.getData(zl.getLockPath(), null, null)));
+      ServerLockData sld2 = new ServerLockData(UUID.randomUUID(), "test2", Service.TSERV_CLIENT, ServerDescriptor.DEFAULT_GROUP_NAME); 
+      zl.replaceLockData(sld2);
+      assertEquals(sld2, ServerLockData.parse(new String(zk.getData(zl.getLockPath(), null, null), UTF_8)));
     }
   }
 

@@ -45,6 +45,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.ServerLockData;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -106,7 +107,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       zcache.clear();
       var path = ServiceLock
           .path(ZooUtil.getRoot(client.instanceOperations().getInstanceId()) + Constants.ZGC_LOCK);
-      byte[] gcLockData;
+      ServerLockData gcLockData;
       do {
         gcLockData = ServiceLock.getLockData(zcache, path, null);
         if (gcLockData != null) {

@@ -78,6 +78,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.MonitorUtil;
+import org.apache.accumulo.core.util.ServerLockData;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -169,7 +170,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       var zLockPath =
           ServiceLock.path(ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceId())
               + Constants.ZMANAGER_LOCK);
-      byte[] managerLockData;
+      ServerLockData managerLockData;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
         if (managerLockData != null) {

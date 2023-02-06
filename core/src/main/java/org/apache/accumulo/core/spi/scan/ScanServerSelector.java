@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.util.ServerLockData;
 
 import com.google.common.base.Preconditions;
 
@@ -43,7 +44,7 @@ public interface ScanServerSelector {
   /**
    * The scan server group name that will be used when one is not specified.
    */
-  String DEFAULT_SCAN_SERVER_GROUP_NAME = "default";
+  String DEFAULT_SCAN_SERVER_GROUP_NAME = ServerLockData.ServerDescriptor.DEFAULT_GROUP_NAME;
 
   /**
    * This method is called once after a {@link ScanServerSelector} is instantiated.

@@ -98,6 +98,8 @@ import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.ServerLockData;
+import org.apache.accumulo.core.util.ServerLockData.Service;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -402,13 +404,10 @@ public class ClientContext implements AccumuloClient {
       try {
         final var zLockPath = ServiceLock.path(root + "/" + addr);
         ZcStat stat = new ZcStat();
-        byte[] lockData = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
-        if (lockData != null) {
-          String[] fields = new String(lockData, UTF_8).split(",", 2);
-          UUID uuid = UUID.fromString(fields[0]);
-          String group = fields[1];
-          liveScanServers.put(addr, new Pair<>(uuid, group));
-        }
+        ServerLockData sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
+        UUID uuid = sld.getServerUUID(Service.SSERV_CLIENT);
+        String group = sld.getGroup(Service.SSERV_CLIENT);
+        liveScanServers.put(addr, new Pair<>(uuid, group));
       } catch (IllegalArgumentException e) {
         log.error("Error validating zookeeper scan server node: " + addr, e);
       }
@@ -516,20 +515,20 @@ public class ClientContext implements AccumuloClient {
       timer = new OpTimer().start();
     }
 
-    byte[] loc = zooCache.getLockData(zLockManagerPath);
+    ServerLockData sld = zooCache.getLockData(zLockManagerPath);
+    String location = sld.getAddressString(Service.MANAGER_CLIENT);
 
     if (timer != null) {
       timer.stop();
       log.trace("tid={} Found manager at {} in {}", Thread.currentThread().getId(),
-          (loc == null ? "null" : new String(loc, UTF_8)),
-          String.format("%.3f secs", timer.scale(SECONDS)));
+          (location == null ? "null" : location), String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
-    if (loc == null) {
+    if (location == null) {
       return Collections.emptyList();
     }
 
-    return Collections.singletonList(new String(loc, UTF_8));
+    return Collections.singletonList(location);
   }
 
   /**

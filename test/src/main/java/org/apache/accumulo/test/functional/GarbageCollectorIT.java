@@ -52,8 +52,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.ServerLockData;
+import org.apache.accumulo.core.util.ServerLockData.Service;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
@@ -288,7 +288,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
           assertTrue(gcLoc.startsWith(Service.GC_CLIENT.name()),
               "Found unexpected data in zookeeper for GC location: " + gcLoc);
-          int loc = gcLoc.indexOf(ServerServices.SEPARATOR_CHAR);
+          int loc = gcLoc.indexOf(ServerLockData.SEPARATOR_CHAR);
           assertNotEquals(-1, loc, "Could not find split point of GC location for: " + gcLoc);
           String addr = gcLoc.substring(loc + 1);
 

@@ -28,6 +28,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.util.ServerLockData;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -151,12 +152,12 @@ public class ServiceLock implements Watcher {
 
   }
 
-  public synchronized boolean tryLock(LockWatcher lw, byte[] data)
+  public synchronized boolean tryLock(LockWatcher lw, ServerLockData lockData)
       throws KeeperException, InterruptedException {
 
     LockWatcherWrapper lww = new LockWatcherWrapper(lw);
 
-    lock(lww, data);
+    lock(lww, lockData);
 
     if (lww.acquiredLock) {
       return true;
@@ -383,7 +384,7 @@ public class ServiceLock implements Watcher {
     localLw.lostLock(reason);
   }
 
-  public synchronized void lock(final AccumuloLockWatcher lw, byte[] data) {
+  public synchronized void lock(final AccumuloLockWatcher lw, ServerLockData lockData) {
 
     if (lockWatcher != null || lockNodeName != null || createdNodeName != null) {
       throw new IllegalStateException();
@@ -397,8 +398,8 @@ public class ServiceLock implements Watcher {
       // except that instead of the ephemeral lock node being of the form guid-lock- use lock-guid-.
       // Another deviation from the recipe is that we cleanup any extraneous ephemeral nodes that
       // were created.
-      final String createPath =
-          zooKeeper.create(lockPathPrefix, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL);
+      final String createPath = zooKeeper.create(lockPathPrefix,
+          lockData.toString().getBytes(UTF_8), ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL);
       LOG.debug("[{}] Ephemeral node {} created", vmLockPrefix, createPath);
 
       // It's possible that the call above was retried several times and multiple ephemeral nodes
@@ -592,9 +593,10 @@ public class ServiceLock implements Watcher {
     return lockNodeName != null;
   }
 
-  public synchronized void replaceLockData(byte[] b) throws KeeperException, InterruptedException {
+  public synchronized void replaceLockData(ServerLockData lockData)
+      throws KeeperException, InterruptedException {
     if (getLockPath() != null) {
-      zooKeeper.setData(getLockPath(), b, -1);
+      zooKeeper.setData(getLockPath(), lockData.toString().getBytes(UTF_8), -1);
     }
   }
 
@@ -646,7 +648,7 @@ public class ServiceLock implements Watcher {
     return zc.get(lid.path + "/" + lid.node, stat) != null && stat.getEphemeralOwner() == lid.eid;
   }
 
-  public static byte[] getLockData(ZooKeeper zk, ServiceLockPath path)
+  public static ServerLockData getLockData(ZooKeeper zk, ServiceLockPath path)
       throws KeeperException, InterruptedException {
 
     List<String> children = validateAndSort(path, zk.getChildren(path.toString(), null));
@@ -657,10 +659,14 @@ public class ServiceLock implements Watcher {
 
     String lockNode = children.get(0);
 
-    return zk.getData(path + "/" + lockNode, false, null);
+    byte[] data = zk.getData(path + "/" + lockNode, false, null);
+    if (data == null) {
+      return null;
+    }
+    return ServerLockData.parse(new String(data, UTF_8));
   }
 
-  public static byte[] getLockData(org.apache.accumulo.core.fate.zookeeper.ZooCache zc,
+  public static ServerLockData getLockData(org.apache.accumulo.core.fate.zookeeper.ZooCache zc,
       ServiceLockPath path, ZcStat stat) {
 
     List<String> children = validateAndSort(path, zc.getChildren(path.toString()));
@@ -675,7 +681,11 @@ public class ServiceLock implements Watcher {
       throw new RuntimeException("Node " + lockNode + " at " + path + " is not a lock node");
     }
 
-    return zc.get(path + "/" + lockNode, stat);
+    byte[] data = zc.get(path + "/" + lockNode, stat);
+    if (data == null) {
+      return null;
+    }
+    return ServerLockData.parse(new String(data, UTF_8));
   }
 
   public static long getSessionId(ZooCache zc, ServiceLockPath path) {

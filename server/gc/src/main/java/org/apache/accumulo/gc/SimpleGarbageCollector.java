@@ -46,8 +46,8 @@ import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.ServerLockData;
+import org.apache.accumulo.core.util.ServerLockData.Service;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
 import org.apache.accumulo.gc.metrics.GcMetrics;
@@ -367,8 +367,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     while (true) {
       ServiceLock lock =
           new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
-      if (lock.tryLock(lockWatcher,
-          new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
+      if (lock.tryLock(lockWatcher, new ServerLockData(zooLockUUID, addr.toString(),
+          Service.GC_CLIENT, this.getServerGroup()))) {
         log.debug("Got GC ZooKeeper lock");
         return;
       }

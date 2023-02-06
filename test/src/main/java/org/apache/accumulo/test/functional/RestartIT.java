@@ -39,6 +39,7 @@ import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.util.ServerLockData;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -133,7 +134,7 @@ public class RestartIT extends AccumuloClusterHarness {
       ZooCache zcache = cluster.getServerContext().getZooCache();
       var zLockPath = ServiceLock
           .path(ZooUtil.getRoot(c.instanceOperations().getInstanceId()) + Constants.ZMANAGER_LOCK);
-      byte[] managerLockData;
+      ServerLockData managerLockData;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
         if (managerLockData != null) {
@@ -146,7 +147,7 @@ public class RestartIT extends AccumuloClusterHarness {
       sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
       control.stopAllServers(ServerType.MANAGER);
 
-      managerLockData = new byte[0];
+      managerLockData = null;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
         if (managerLockData != null) {
@@ -184,7 +185,7 @@ public class RestartIT extends AccumuloClusterHarness {
       ZooCache zcache = cluster.getServerContext().getZooCache();
       var zLockPath = ServiceLock
           .path(ZooUtil.getRoot(c.instanceOperations().getInstanceId()) + Constants.ZMANAGER_LOCK);
-      byte[] managerLockData;
+      ServerLockData managerLockData;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
         if (managerLockData != null) {
