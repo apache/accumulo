@@ -113,8 +113,8 @@ public abstract class SynchronousLoadingBlockCache implements BlockCache {
     int lockIndex = (blockName.hashCode() & 0x7fffffff) % loadLocks.length;
     Lock loadLock = loadLocks[lockIndex];
 
+    loadLock.lock();
     try {
-      loadLock.lock();
 
       // check again after getting lock, could have loaded while waiting on lock
       ce = getBlockNoStats(blockName);
