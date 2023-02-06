@@ -83,19 +83,10 @@ import org.apache.accumulo.tserver.tablet.CompactableImpl.CompactionHelper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Collections2;
 
 public class CompactableUtils {
-
-  private static final Logger log = LoggerFactory.getLogger(CompactableUtils.class);
-
-  private final static Cache<TableId,Boolean> strategyWarningsCache =
-      CacheBuilder.newBuilder().maximumSize(1000).build();
 
   public static Map<StoredTabletFile,Pair<Key,Key>> getFirstAndLastKeys(Tablet tablet,
       Set<StoredTabletFile> allFiles) throws IOException {

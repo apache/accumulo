@@ -112,7 +112,7 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
     TabletStateStore tss;
     switch (level) {
       case ROOT:
-        tss = new ZooTabletStateStore(context.getAmple());
+        tss = new ZooTabletStateStore(context);
         break;
       case METADATA:
         tss = new RootTabletStateStore(context, state);

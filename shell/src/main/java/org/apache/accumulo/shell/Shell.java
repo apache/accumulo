@@ -524,6 +524,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       log.warn("Unable to make directory for history at {}", accumuloDir);
     }
 
+    // Disable shell highlighting
+    reader.unsetOpt(LineReader.Option.DISABLE_HIGHLIGHTER);
+
+    // Disable bracketed paste
+    reader.unsetOpt(LineReader.Option.BRACKETED_PASTE);
+
     // Remove Timestamps for history file. Fixes incompatibility issues
     reader.unsetOpt(LineReader.Option.HISTORY_TIMESTAMPED);
 
