@@ -89,9 +89,9 @@ public class AccumuloDataVersion {
   public static String dataVersionToReleaseName(final int version) {
     switch (version) {
       case ROOT_TABLET_META_CHANGES:
-        return "2.1";
+        return "2.1.0";
       case REMOVE_DEPRECATIONS_FOR_VERSION_3:
-        return "3.0";
+        return "3.0.0";
     }
     throw new IllegalArgumentException("Unsupported data version " + version);
   }
