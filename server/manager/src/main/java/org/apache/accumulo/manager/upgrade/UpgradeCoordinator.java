@@ -149,7 +149,7 @@ public class UpgradeCoordinator {
       int oldestVersion = ROOT_TABLET_META_CHANGES;
       if (cv < oldestVersion) {
         String oldRelease = dataVersionToReleaseName(oldestVersion);
-        throw new UnsupportedOperationException("Upgrading from a version before " + oldRelease
+        throw new UnsupportedOperationException("Upgrading from a version less than " + oldRelease
             + " data version (" + oldestVersion + ") is not supported. Upgrade to at least "
             + oldRelease + " before upgrading to " + Constants.VERSION);
       }
