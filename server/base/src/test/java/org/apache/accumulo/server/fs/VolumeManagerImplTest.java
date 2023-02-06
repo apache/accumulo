@@ -20,6 +20,7 @@ package org.apache.accumulo.server.fs;
 
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_BLOCK_SIZE_KEY;
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_READS;
+import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_REPLICATION_KEY;
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -122,7 +123,8 @@ public class VolumeManagerImplTest {
     final String vol2 = "file://localhost/vol2/";
     final String vol3 = "hdfs://127.0.0.1/accumulo";
     final String vol4 = "hdfs://localhost/accumulo";
-    final String vol5 = "hdfs://127.0.0.1:8020/vol3";
+    final String vol5 = "hdfs://localhost:8020/vol3";
+    final String vol6 = "hdfs://localhost:8020/vol4";
 
     ConfigurationCopy conf = new ConfigurationCopy();
     conf.set(Property.INSTANCE_VOLUMES, String.join(",", vol1, vol2, vol3, vol4));
@@ -145,6 +147,10 @@ public class VolumeManagerImplTest {
     conf.set(
         Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol4 + "." + DFS_CLIENT_CACHE_DROP_BEHIND_READS,
         "FALSE");
+    // Setting this property should result in a warning in the log because there is no matching
+    // vol6 in instance.volumes. There is no warning for vol5 because there is no override for
+    // vol5.
+    conf.set(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol6 + "." + DFS_REPLICATION_KEY, "45");
 
     VolumeManager vm = VolumeManagerImpl.get(conf, hadoopConf);
 

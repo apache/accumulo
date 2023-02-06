@@ -85,14 +85,14 @@ public class VolumeManagerIT extends ConfigurableMacBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
 
       Map<String,String> siteConfig = c.instanceOperations().getSiteConfiguration();
-      assertEquals("10485760", siteConfig
-          .get(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1 + ".dfs.blocksize"));
-      assertEquals("51200000", siteConfig
-          .get(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2 + ".dfs.blocksize"));
-      assertEquals("true", siteConfig.get(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1
-          + ".dfs.client.use.datanode.hostname"));
-      assertEquals("false", siteConfig.get(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2
-          + ".dfs.client.use.datanode.hostname"));
+      assertEquals("10485760",
+          siteConfig.get(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1 + ".dfs.blocksize"));
+      assertEquals("51200000",
+          siteConfig.get(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2 + ".dfs.blocksize"));
+      assertEquals("true", siteConfig.get(
+          Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1 + ".dfs.client.use.datanode.hostname"));
+      assertEquals("false", siteConfig.get(
+          Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2 + ".dfs.client.use.datanode.hostname"));
       assertEquals("0", siteConfig.get(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1
           + ".dfs.client.hedged.read.threadpool.size"));
       assertEquals("1", siteConfig.get(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2

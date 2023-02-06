@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -394,11 +395,31 @@ public class VolumeManagerImpl implements VolumeManager {
     return volumeConfig;
   }
 
+  private static void warnVolumeOverridesMissingVolume(AccumuloConfiguration conf,
+      Set<String> definedVolumes) {
+    final Map<String,String> overrideProperties = new ConcurrentHashMap<>(
+        conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUMES_CONFIG));
+
+    definedVolumes.forEach(vol -> {
+      log.debug("Looking for defined volume: {}", vol);
+      overrideProperties.keySet().forEach(override -> {
+        if (override.startsWith(vol)) {
+          log.debug("Found volume {}, removing property {}", vol, override);
+          overrideProperties.remove(override);
+        }
+      });
+    });
+
+    overrideProperties.forEach((k, v) -> log
+        .warn("Found no matching volume for volume config override property {} = {}", k, v));
+  }
+
   public static VolumeManager get(AccumuloConfiguration conf, final Configuration hadoopConf)
       throws IOException {
     final Map<String,Volume> volumes = new HashMap<>();
 
     Set<String> volumeStrings = VolumeConfiguration.getVolumeUris(conf);
+    warnVolumeOverridesMissingVolume(conf, volumeStrings);
 
     // The "default" Volume for Accumulo (in case no volumes are specified)
     for (String volumeUriOrDir : volumeStrings) {
