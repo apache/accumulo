@@ -24,6 +24,7 @@ import static org.apache.accumulo.server.AccumuloDataVersion.dataVersionToReleas
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -110,8 +111,9 @@ public class UpgradeCoordinator {
 
   private int currentVersion;
   // map of "current version" -> upgrader to next version.
+  // Sorted so upgrades execute in order from the oldest supported data version to current
   private final Map<Integer,Upgrader> upgraders =
-      Map.of(ROOT_TABLET_META_CHANGES, new Upgrader10to11());
+      new TreeMap<>(Map.of(ROOT_TABLET_META_CHANGES, new Upgrader10to11()));
 
   private volatile UpgradeStatus status;
 
@@ -146,7 +148,7 @@ public class UpgradeCoordinator {
       int cv = AccumuloDataVersion.getCurrentVersion(context);
       this.currentVersion = cv;
 
-      int oldestVersion = ROOT_TABLET_META_CHANGES;
+      int oldestVersion = upgraders.entrySet().iterator().next().getKey();
       if (cv < oldestVersion) {
         String oldRelease = dataVersionToReleaseName(oldestVersion);
         throw new UnsupportedOperationException("Upgrading from a version less than " + oldRelease
@@ -280,7 +282,7 @@ public class UpgradeCoordinator {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."
             + " You can start the tservers and then use the shell to delete completed "
-            + " transactions. If there are uncomplete transactions, you will need to roll"
+            + " transactions. If there are incomplete transactions, you will need to roll"
             + " back and fix those issues. Please see the following page for more information: "
             + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
       }
