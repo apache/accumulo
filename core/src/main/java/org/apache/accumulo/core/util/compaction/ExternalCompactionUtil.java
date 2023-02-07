@@ -105,7 +105,10 @@ public class ExternalCompactionUtil {
       var zk = ZooSession.getAnonymousSession(context.getZooKeepers(),
           context.getZooKeepersSessionTimeOut());
       ServiceLockData sld = ServiceLock.getLockData(zk, ServiceLock.path(lockPath));
-      return Optional.of(sld.getAddress(ThriftService.COORDINATOR));
+      if (sld == null) {
+        return Optional.empty();
+      }
+      return Optional.ofNullable(sld.getAddress(ThriftService.COORDINATOR));
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
