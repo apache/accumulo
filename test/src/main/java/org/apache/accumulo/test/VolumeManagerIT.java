@@ -46,7 +46,7 @@ public class VolumeManagerIT extends ConfigurableMacBase {
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.useMiniDFS(true);
-    cfg.setFinalSiteConfigUpdater((config) -> {
+    cfg.setPreStartConfigProcessor((config) -> {
       vol1 = config.getSiteConfig().get(Property.INSTANCE_VOLUMES.getKey());
       assertTrue(vol1.contains("localhost"));
       vol2 = vol1.replace("localhost", "127.0.0.1");
@@ -59,8 +59,7 @@ public class VolumeManagerIT extends ConfigurableMacBase {
       config.setProperty("general.custom.volume.preferred.logger", vol2);
 
       // Need to escape the colons in the custom property volume because it's part of the key. It's
-      // being
-      // written out to a file and read in using the Properties object.
+      // being written out to a file and read in using the Properties object.
       String vol1FileOutput = vol1.replaceAll(":", "\\\\:");
       String vol2FileOutput = vol2.replaceAll(":", "\\\\:");
       config.setProperty(

@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -47,11 +48,6 @@ import org.slf4j.LoggerFactory;
  * @since 1.6.0
  */
 public class MiniAccumuloConfigImpl {
-
-  @FunctionalInterface
-  public static interface FinalSiteConfigUpdater {
-    void update(MiniAccumuloConfigImpl cfg);
-  }
 
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloConfigImpl.class);
   private static final String DEFAULT_INSTANCE_SECRET = "DONTTELL";
@@ -103,7 +99,7 @@ public class MiniAccumuloConfigImpl {
   private Configuration hadoopConf;
   private SiteConfiguration accumuloConf;
 
-  private FinalSiteConfigUpdater updater;
+  private Consumer<MiniAccumuloConfigImpl> preStartConfigProcessor;
 
   /**
    * @param dir An empty or nonexistent directory that Accumulo and Zookeeper can store data in.
@@ -822,27 +818,22 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * Set the FinalSiteConfigUpdater instance that will be used to modify the site configuration
-   * right before it's written out a file. This would be useful in the case where the configuration
-   * needs to be updated based on a property that is set in MiniAccumuloClusterImpl like
-   * instance.volumes
+   * Set the object that will be used to modify the site configuration right before it's written out
+   * a file. This would be useful in the case where the configuration needs to be updated based on a
+   * property that is set in MiniAccumuloClusterImpl like instance.volumes
    *
-   * @param updater FinalSiteConfigUpdater instance
-   * @since 2.1.1
    */
-  public void setFinalSiteConfigUpdater(FinalSiteConfigUpdater updater) {
-    this.updater = updater;
+  public void setPreStartConfigProcessor(Consumer<MiniAccumuloConfigImpl> processor) {
+    this.preStartConfigProcessor = processor;
   }
 
   /**
    * Called by MiniAccumuloClusterImpl after all modifications are done to the configuration and
    * right before it's written out to a file.
-   *
-   * @since 2.1.1
    */
-  public void finalSiteConfigUpdates() {
-    if (this.updater != null) {
-      this.updater.update(this);
+  public void preStartConfigUpdate() {
+    if (this.preStartConfigProcessor != null) {
+      this.preStartConfigProcessor.accept(this);
     }
   }
 }

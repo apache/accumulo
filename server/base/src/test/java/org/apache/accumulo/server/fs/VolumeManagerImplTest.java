@@ -23,6 +23,7 @@ import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_CLIENT_CACH
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_REPLICATION_KEY;
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -30,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
@@ -114,6 +116,27 @@ public class VolumeManagerImplTest {
           };
       assertThrows(RuntimeException.class, () -> vm.choose(chooserEnv, volumes));
     }
+  }
+
+  @Test
+  public void testFindOverridesWithoutVolumes() throws Exception {
+    final String vol1 = "file://127.0.0.1/vol1/";
+    final String vol2 = "file://localhost/vol2/";
+    ConfigurationCopy conf = new ConfigurationCopy();
+    conf.set(Property.INSTANCE_VOLUMES, String.join(",", vol1));
+    conf.set(Property.GENERAL_VOLUME_CHOOSER, Property.GENERAL_VOLUME_CHOOSER.getDefaultValue());
+    conf.set(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1 + "." + THREADPOOL_SIZE_KEY, "10");
+    conf.set(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2 + "." + THREADPOOL_SIZE_KEY, "20");
+
+    List<Entry<String,String>> properties =
+        VolumeManagerImpl.findVolumeOverridesMissingVolume(conf, Set.of(vol1));
+
+    assertNotNull(properties);
+    assertEquals(1, properties.size());
+    System.out.println(properties.toString());
+    Entry<String,String> e = properties.get(0);
+    assertEquals(vol2 + "." + THREADPOOL_SIZE_KEY, e.getKey());
+    assertEquals("20", e.getValue());
   }
 
   @Test

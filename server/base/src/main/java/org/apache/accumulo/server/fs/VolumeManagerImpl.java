@@ -34,11 +34,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -382,36 +382,27 @@ public class VolumeManagerImpl implements VolumeManager {
    */
   private static Configuration getVolumeManagerConfiguration(AccumuloConfiguration conf,
       final Configuration hadoopConf, final String filesystemURI) {
+
     final Configuration volumeConfig = new Configuration(hadoopConf);
-    final Map<String,String> customProps =
-        conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUMES_CONFIG);
-    customProps.forEach((key, value) -> {
-      if (key.startsWith(filesystemURI)) {
-        String property = key.substring(filesystemURI.length() + 1);
-        log.info("Overriding property {} to {} for volume {}", property, value, filesystemURI);
-        volumeConfig.set(property, value);
-      }
-    });
+
+    conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUMES_CONFIG).entrySet().stream()
+        .filter(e -> e.getKey().startsWith(filesystemURI + ".")).forEach(e -> {
+          String key = e.getKey().substring(filesystemURI.length() + 1);
+          String value = e.getValue();
+          log.info("Overriding property {} for volume {}", key, value, filesystemURI);
+          volumeConfig.set(key, value);
+        });
+
     return volumeConfig;
   }
 
-  private static void warnVolumeOverridesMissingVolume(AccumuloConfiguration conf,
-      Set<String> definedVolumes) {
-    final Map<String,String> overrideProperties = new ConcurrentHashMap<>(
-        conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUMES_CONFIG));
-
-    definedVolumes.forEach(vol -> {
-      log.debug("Looking for defined volume: {}", vol);
-      overrideProperties.keySet().forEach(override -> {
-        if (override.startsWith(vol)) {
-          log.debug("Found volume {}, removing property {}", vol, override);
-          overrideProperties.remove(override);
-        }
-      });
-    });
-
-    overrideProperties.forEach((k, v) -> log
-        .warn("Found no matching volume for volume config override property {} = {}", k, v));
+  protected static List<Entry<String,String>>
+      findVolumeOverridesMissingVolume(AccumuloConfiguration conf, Set<String> definedVolumes) {
+    return conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUMES_CONFIG).entrySet()
+        .stream()
+        // log only configs where none of the volumes (with a dot) prefix its key
+        .filter(e -> definedVolumes.stream().noneMatch(vol -> e.getKey().startsWith(vol + ".")))
+        .collect(Collectors.toList());
   }
 
   public static VolumeManager get(AccumuloConfiguration conf, final Configuration hadoopConf)
@@ -419,7 +410,9 @@ public class VolumeManagerImpl implements VolumeManager {
     final Map<String,Volume> volumes = new HashMap<>();
 
     Set<String> volumeStrings = VolumeConfiguration.getVolumeUris(conf);
-    warnVolumeOverridesMissingVolume(conf, volumeStrings);
+
+    findVolumeOverridesMissingVolume(conf, volumeStrings).forEach(
+        e -> log.warn("Found no matching volume for volume config override property {}", e));
 
     // The "default" Volume for Accumulo (in case no volumes are specified)
     for (String volumeUriOrDir : volumeStrings) {
