@@ -19,7 +19,6 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static org.apache.accumulo.server.AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
-import static org.apache.accumulo.server.AccumuloDataVersion.dataVersionToReleaseName;
 
 import java.io.IOException;
 import java.util.Map;
@@ -147,14 +146,6 @@ public class UpgradeCoordinator {
     try {
       int cv = AccumuloDataVersion.getCurrentVersion(context);
       this.currentVersion = cv;
-
-      int oldestVersion = upgraders.entrySet().iterator().next().getKey();
-      if (cv < oldestVersion) {
-        String oldRelease = dataVersionToReleaseName(oldestVersion);
-        throw new UnsupportedOperationException("Upgrading from a version less than " + oldRelease
-            + " data version (" + oldestVersion + ") is not supported. Upgrade to at least "
-            + oldRelease + " before upgrading to " + Constants.VERSION);
-      }
 
       if (cv == AccumuloDataVersion.get()) {
         status = UpgradeStatus.COMPLETE;
