@@ -96,32 +96,48 @@ public class ScanWithoutInitialWaitIT extends AccumuloClusterHarness {
     log.info("Fetching some entries: should timeout and return something");
 
     log.info("Testing Scanner Times");
-    Scanner waitConnScanner = waitConn.createScanner(tableName, Authorizations.EMPTY);
-    waitConnScanner.setBatchTimeout(500, TimeUnit.MILLISECONDS);
-    long waitScanTime = testScanner(waitConnScanner, 1200);
-
     Scanner noWaitConnScanner = noWaitConn.createScanner(tableName, Authorizations.EMPTY);
     noWaitConnScanner.setBatchTimeout(500, TimeUnit.MILLISECONDS);
-    long noWaitScanTime = testScanner(noWaitConnScanner, 1200);
+    long noWaitScanTime = testScanner(noWaitConnScanner, 1200, "No Wait Scanner");
 
-    assertTrue(waitScanTime > noWaitScanTime);
+    Scanner waitConnScanner = waitConn.createScanner(tableName, Authorizations.EMPTY);
+    waitConnScanner.setBatchTimeout(500, TimeUnit.MILLISECONDS);
+    long waitScanTime = testScanner(waitConnScanner, 1200, "Wait Scanner");
 
     log.info("Testing Batch Scanner Times");
-    BatchScanner waitBatchScanner = waitConn.createBatchScanner(tableName, Authorizations.EMPTY, 5);
-    waitBatchScanner.setBatchTimeout(500, TimeUnit.MILLISECONDS);
-    waitBatchScanner.setRanges(Collections.singletonList(new Range()));
-    long waitBatchScanTime = testScanner(waitBatchScanner, 1200);
-
     BatchScanner noWaitBatchScanner =
         noWaitConn.createBatchScanner(tableName, Authorizations.EMPTY, 5);
     noWaitBatchScanner.setBatchTimeout(500, TimeUnit.MILLISECONDS);
     noWaitBatchScanner.setRanges(Collections.singletonList(new Range()));
-    long noWaitBatchScanTime = testScanner(noWaitBatchScanner, 1200);
+    long noWaitBatchScanTime = testScanner(noWaitBatchScanner, 1200, "No Wait Batch Scanner");
 
-    assertTrue(waitBatchScanTime > noWaitBatchScanTime);
+    BatchScanner waitBatchScanner = waitConn.createBatchScanner(tableName, Authorizations.EMPTY, 5);
+    waitBatchScanner.setBatchTimeout(500, TimeUnit.MILLISECONDS);
+    waitBatchScanner.setRanges(Collections.singletonList(new Range()));
+    long waitBatchScanTime = testScanner(waitBatchScanner, 1200, "Wait Batch Scammer");
+
+    log.info("Testing non-User scan times");
+    // Set a tolerance of 5 milliseconds to evaluate scan differences.
+    long scanTolerance = 5;
+    Scanner waitMetaScanner = waitConn.createScanner("accumulo.metadata", Authorizations.EMPTY);
+    waitMetaScanner.setBatchTimeout(500, TimeUnit.MILLISECONDS);
+    long waitMetaScanTime = testScanner(waitMetaScanner, 1200, "Wait Meta Scanner");
+
+    Scanner metaScanner = noWaitConn.createScanner("accumulo.metadata", Authorizations.EMPTY);
+    metaScanner.setBatchTimeout(500, TimeUnit.MILLISECONDS);
+    long metaScanTime = testScanner(metaScanner, 1200, "No Wait Meta Scanner");
+
+    assertTrue((waitMetaScanTime - metaScanTime) >= 0);
+    assertTrue((waitMetaScanTime - metaScanTime) < scanTolerance);
+
+    assertTrue((waitScanTime - noWaitScanTime) >= 0);
+    assertTrue((waitScanTime - noWaitScanTime) < scanTolerance);
+
+    assertTrue((waitBatchScanTime - noWaitBatchScanTime) >= 0);
+    assertTrue((waitBatchScanTime - noWaitBatchScanTime) < scanTolerance);
   }
 
-  private long testScanner(ScannerBase s, long expected) {
+  private long testScanner(ScannerBase s, long expected, String scannerName) {
     long now = System.currentTimeMillis();
     try {
       s.iterator().next();
@@ -129,7 +145,7 @@ public class ScanWithoutInitialWaitIT extends AccumuloClusterHarness {
       s.close();
     }
     long scanDuration = System.currentTimeMillis() - now;
-    log.info("Scan Duration = {}", scanDuration);
+    log.info("{} Scan Duration = {}", scannerName, scanDuration);
     assertTrue("Scanner taking too long to return intermediate results: " + scanDuration,
         scanDuration < expected);
     return scanDuration;
