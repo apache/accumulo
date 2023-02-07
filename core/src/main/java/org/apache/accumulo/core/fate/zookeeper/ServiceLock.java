@@ -28,7 +28,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.core.util.ServerLockData;
+import org.apache.accumulo.core.util.ServiceLockData;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -152,7 +152,7 @@ public class ServiceLock implements Watcher {
 
   }
 
-  public synchronized boolean tryLock(LockWatcher lw, ServerLockData lockData)
+  public synchronized boolean tryLock(LockWatcher lw, ServiceLockData lockData)
       throws KeeperException, InterruptedException {
 
     LockWatcherWrapper lww = new LockWatcherWrapper(lw);
@@ -384,7 +384,7 @@ public class ServiceLock implements Watcher {
     localLw.lostLock(reason);
   }
 
-  public synchronized void lock(final AccumuloLockWatcher lw, ServerLockData lockData) {
+  public synchronized void lock(final AccumuloLockWatcher lw, ServiceLockData lockData) {
 
     if (lockWatcher != null || lockNodeName != null || createdNodeName != null) {
       throw new IllegalStateException();
@@ -593,7 +593,7 @@ public class ServiceLock implements Watcher {
     return lockNodeName != null;
   }
 
-  public synchronized void replaceLockData(ServerLockData lockData)
+  public synchronized void replaceLockData(ServiceLockData lockData)
       throws KeeperException, InterruptedException {
     if (getLockPath() != null) {
       zooKeeper.setData(getLockPath(), lockData.toString().getBytes(UTF_8), -1);
@@ -650,7 +650,7 @@ public class ServiceLock implements Watcher {
     return zc.get(lid.path + "/" + lid.node, stat) != null && stat.getEphemeralOwner() == lid.eid;
   }
 
-  public static ServerLockData getLockData(ZooKeeper zk, ServiceLockPath path)
+  public static ServiceLockData getLockData(ZooKeeper zk, ServiceLockPath path)
       throws KeeperException, InterruptedException {
 
     List<String> children = validateAndSort(path, zk.getChildren(path.toString(), null));
@@ -665,10 +665,10 @@ public class ServiceLock implements Watcher {
     if (data == null) {
       return null;
     }
-    return ServerLockData.parse(new String(data, UTF_8));
+    return ServiceLockData.parse(new String(data, UTF_8));
   }
 
-  public static ServerLockData getLockData(org.apache.accumulo.core.fate.zookeeper.ZooCache zc,
+  public static ServiceLockData getLockData(org.apache.accumulo.core.fate.zookeeper.ZooCache zc,
       ServiceLockPath path, ZcStat stat) {
 
     List<String> children = validateAndSort(path, zc.getChildren(path.toString()));
@@ -687,7 +687,7 @@ public class ServiceLock implements Watcher {
     if (data == null) {
       return null;
     }
-    return ServerLockData.parse(new String(data, UTF_8));
+    return ServiceLockData.parse(new String(data, UTF_8));
   }
 
   public static long getSessionId(ZooCache zc, ServiceLockPath path) {

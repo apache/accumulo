@@ -68,7 +68,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.ServerLockData;
+import org.apache.accumulo.core.util.ServiceLockData;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -471,11 +471,11 @@ public class TabletMetadata {
     Optional<TServerInstance> server = Optional.empty();
     final var lockPath = ServiceLock.path(path + "/" + zPath);
     ZooCache.ZcStat stat = new ZooCache.ZcStat();
-    ServerLockData sld = ServiceLock.getLockData(context.getZooCache(), lockPath, stat);
+    ServiceLockData sld = ServiceLock.getLockData(context.getZooCache(), lockPath, stat);
 
     if (sld != null) {
       log.trace("Checking server at ZK path = " + lockPath);
-      HostAndPort client = sld.getAddress(ServerLockData.Service.TSERV_CLIENT);
+      HostAndPort client = sld.getAddress(ServiceLockData.ThriftService.TSERV);
       if (client != null) {
         server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
       }

@@ -38,8 +38,8 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ExecVoid;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.ServerLockData;
-import org.apache.accumulo.core.util.ServerLockData.Service;
+import org.apache.accumulo.core.util.ServiceLockData;
+import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -67,9 +67,9 @@ public interface TServerClient<C extends TServiceClient> {
     for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
       var zLocPath =
           ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
-      ServerLockData sld = zc.getLockData(zLocPath);
+      ServiceLockData sld = zc.getLockData(zLocPath);
       if (sld != null) {
-        HostAndPort address = sld.getAddress(Service.TSERV_CLIENT);
+        HostAndPort address = sld.getAddress(ThriftService.TSERV);
         if (address != null) {
           servers.add(new ThriftTransportKey(address, rpcTimeout, context));
         }

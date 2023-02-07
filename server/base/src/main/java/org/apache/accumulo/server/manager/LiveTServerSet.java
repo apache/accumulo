@@ -48,7 +48,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.ServerLockData;
+import org.apache.accumulo.core.util.ServiceLockData;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
@@ -306,7 +306,7 @@ public class LiveTServerSet implements Watcher {
 
     final var zLockPath = ServiceLock.path(path + "/" + zPath);
     ZcStat stat = new ZcStat();
-    ServerLockData sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
+    ServiceLockData sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
 
     if (sld == null) {
       if (info != null) {
@@ -324,7 +324,7 @@ public class LiveTServerSet implements Watcher {
       }
     } else {
       locklessServers.remove(zPath);
-      HostAndPort client = sld.getAddress(ServerLockData.Service.TSERV_CLIENT);
+      HostAndPort client = sld.getAddress(ServiceLockData.ThriftService.TSERV);
       TServerInstance instance = new TServerInstance(client, stat.getEphemeralOwner());
 
       if (info == null) {

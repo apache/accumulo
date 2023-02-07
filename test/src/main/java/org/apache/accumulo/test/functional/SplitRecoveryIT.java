@@ -68,8 +68,8 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.core.util.ServerLockData;
-import org.apache.accumulo.core.util.ServerLockData.Service;
+import org.apache.accumulo.core.util.ServiceLockData;
+import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
@@ -114,8 +114,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       public void unableToMonitorLockNode(Exception e) {
         System.exit(-1);
       }
-    }, new ServerLockData(UUID.randomUUID(), "foo", Service.TSERV_CLIENT,
-        ServerLockData.ServerDescriptor.DEFAULT_GROUP_NAME));
+    }, new ServiceLockData(UUID.randomUUID(), "foo", ThriftService.TSERV,
+        ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME));
 
     if (!gotLock) {
       System.err.println("Failed to get lock " + zPath);

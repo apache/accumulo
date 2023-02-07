@@ -42,8 +42,8 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.ServerLockData;
-import org.apache.accumulo.core.util.ServerLockData.Service;
+import org.apache.accumulo.core.util.ServiceLockData;
+import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
@@ -104,8 +104,8 @@ public class ExternalCompactionUtil {
     try {
       var zk = ZooSession.getAnonymousSession(context.getZooKeepers(),
           context.getZooKeepersSessionTimeOut());
-      ServerLockData sld = ServiceLock.getLockData(zk, ServiceLock.path(lockPath));
-      return Optional.of(sld.getAddress(Service.COORDINATOR_CLIENT));
+      ServiceLockData sld = ServiceLock.getLockData(zk, ServiceLock.path(lockPath));
+      return Optional.of(sld.getAddress(ThriftService.COORDINATOR));
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }

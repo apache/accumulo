@@ -98,8 +98,8 @@ import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.ServerLockData;
-import org.apache.accumulo.core.util.ServerLockData.Service;
+import org.apache.accumulo.core.util.ServiceLockData;
+import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -404,10 +404,10 @@ public class ClientContext implements AccumuloClient {
       try {
         final var zLockPath = ServiceLock.path(root + "/" + addr);
         ZcStat stat = new ZcStat();
-        ServerLockData sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
+        ServiceLockData sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
         if (sld != null) {
-          UUID uuid = sld.getServerUUID(Service.SSERV_CLIENT);
-          String group = sld.getGroup(Service.SSERV_CLIENT);
+          UUID uuid = sld.getServerUUID(ThriftService.TABLET_SCAN);
+          String group = sld.getGroup(ThriftService.TABLET_SCAN);
           liveScanServers.put(addr, new Pair<>(uuid, group));
         }
       } catch (IllegalArgumentException e) {
@@ -518,10 +518,10 @@ public class ClientContext implements AccumuloClient {
       timer = new OpTimer().start();
     }
 
-    ServerLockData sld = zooCache.getLockData(zLockManagerPath);
+    ServiceLockData sld = zooCache.getLockData(zLockManagerPath);
     String location = null;
     if (sld != null) {
-      location = sld.getAddressString(Service.MANAGER_CLIENT);
+      location = sld.getAddressString(ThriftService.MANAGER);
     }
 
     if (timer != null) {

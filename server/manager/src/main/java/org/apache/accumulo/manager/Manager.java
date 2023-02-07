@@ -104,8 +104,8 @@ import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
-import org.apache.accumulo.core.util.ServerLockData;
-import org.apache.accumulo.core.util.ServerLockData.Service;
+import org.apache.accumulo.core.util.ServiceLockData;
+import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
@@ -1074,7 +1074,7 @@ public class Manager extends AbstractServer
     log.info("Started Manager client service at {}", sa.address);
 
     // block until we can obtain the ZK lock for the manager
-    ServerLockData sld = null;
+    ServiceLockData sld = null;
     try {
       sld = getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK));
     } catch (KeeperException | InterruptedException e) {
@@ -1226,8 +1226,8 @@ public class Manager extends AbstractServer
     }
 
     String address = sa.address.toString();
-    sld = new ServerLockData(sld.getServerUUID(Service.MANAGER_CLIENT), address,
-        Service.MANAGER_CLIENT, this.getServerGroup());
+    sld = new ServiceLockData(sld.getServerUUID(ThriftService.MANAGER), address,
+        ThriftService.MANAGER, this.getServerGroup());
     log.info("Setting manager lock data to {}", sld.toString());
     try {
       managerLock.replaceLockData(sld);
@@ -1430,7 +1430,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  private ServerLockData getManagerLock(final ServiceLockPath zManagerLoc)
+  private ServiceLockData getManagerLock(final ServiceLockPath zManagerLoc)
       throws KeeperException, InterruptedException {
     var zooKeeper = getContext().getZooReaderWriter().getZooKeeper();
     log.info("trying to get manager lock");
@@ -1439,8 +1439,8 @@ public class Manager extends AbstractServer
         getHostname() + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
 
     UUID zooLockUUID = UUID.randomUUID();
-    ServerLockData sld = new ServerLockData(zooLockUUID, managerClientAddress,
-        Service.MANAGER_CLIENT, this.getServerGroup());
+    ServiceLockData sld = new ServiceLockData(zooLockUUID, managerClientAddress,
+        ThriftService.MANAGER, this.getServerGroup());
     while (true) {
 
       ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();

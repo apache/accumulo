@@ -35,8 +35,8 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.util.ServerLockData;
-import org.apache.accumulo.core.util.ServerLockData.Service;
+import org.apache.accumulo.core.util.ServiceLockData;
+import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -166,11 +166,11 @@ public class ListInstances {
     try {
       var zLockManagerPath =
           ServiceLock.path(Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK);
-      ServerLockData sld = ServiceLock.getLockData(cache, zLockManagerPath, null);
+      ServiceLockData sld = ServiceLock.getLockData(cache, zLockManagerPath, null);
       if (sld == null) {
         return null;
       }
-      return sld.getAddressString(Service.MANAGER_CLIENT);
+      return sld.getAddressString(ThriftService.MANAGER);
     } catch (Exception e) {
       handleException(e, printErrors);
       return null;

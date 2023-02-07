@@ -72,9 +72,9 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Cl
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.ServerLockData;
-import org.apache.accumulo.core.util.ServerLockData.ServerDescriptors;
-import org.apache.accumulo.core.util.ServerLockData.Service;
+import org.apache.accumulo.core.util.ServiceLockData;
+import org.apache.accumulo.core.util.ServiceLockData.ServiceDescriptors;
+import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
@@ -429,9 +429,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       var path = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZGC_LOCK);
       List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
-        address = new ServerLockData(
-            ServerDescriptors.parse(new String(zk.getData(path + "/" + locks.get(0)), UTF_8)))
-            .getAddress(Service.GC_CLIENT);
+        address = new ServiceLockData(
+            ServiceDescriptors.parse(new String(zk.getData(path + "/" + locks.get(0)), UTF_8)))
+            .getAddress(ThriftService.GC);
         GCMonitorService.Client client =
             ThriftUtil.getClient(ThriftClientTypes.GC, address, context);
         try {
@@ -824,8 +824,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     while (true) {
       MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
       monitorLock = new ServiceLock(zoo.getZooKeeper(), monitorLockPath, zooLockUUID);
-      monitorLock.lock(monitorLockWatcher, new ServerLockData(zooLockUUID, getHostname(),
-          Service.MONITOR_CLIENT, this.getServerGroup()));
+      monitorLock.lock(monitorLockWatcher, new ServiceLockData(zooLockUUID, getHostname(),
+          ThriftService.NONE, this.getServerGroup()));
 
       monitorLockWatcher.waitForChange();
 
