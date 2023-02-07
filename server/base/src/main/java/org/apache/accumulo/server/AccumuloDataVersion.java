@@ -86,7 +86,11 @@ public class AccumuloDataVersion {
     return cv;
   }
 
-  public static String dataVersionToReleaseName(final int version) {
+  public static String oldestUpgradeableVersionName() {
+    return dataVersionToReleaseName(CAN_RUN.stream().mapToInt(x -> x).min().orElseThrow());
+  }
+
+  private static String dataVersionToReleaseName(final int version) {
     switch (version) {
       case ROOT_TABLET_META_CHANGES:
         return "2.1.0";
