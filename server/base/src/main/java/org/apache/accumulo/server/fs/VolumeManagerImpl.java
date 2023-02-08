@@ -38,7 +38,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -385,8 +385,8 @@ public class VolumeManagerImpl implements VolumeManager {
 
     final Configuration volumeConfig = new Configuration(hadoopConf);
 
-    conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUMES_CONFIG).entrySet().stream()
-        .filter(e -> e.getKey().startsWith(filesystemURI + ".")).forEach(e -> {
+    conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX).entrySet()
+        .stream().filter(e -> e.getKey().startsWith(filesystemURI + ".")).forEach(e -> {
           String key = e.getKey().substring(filesystemURI.length() + 1);
           String value = e.getValue();
           log.info("Overriding property {} for volume {}", key, value, filesystemURI);
@@ -396,13 +396,12 @@ public class VolumeManagerImpl implements VolumeManager {
     return volumeConfig;
   }
 
-  protected static List<Entry<String,String>>
+  protected static Stream<Entry<String,String>>
       findVolumeOverridesMissingVolume(AccumuloConfiguration conf, Set<String> definedVolumes) {
-    return conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUMES_CONFIG).entrySet()
-        .stream()
+    return conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX)
+        .entrySet().stream()
         // log only configs where none of the volumes (with a dot) prefix its key
-        .filter(e -> definedVolumes.stream().noneMatch(vol -> e.getKey().startsWith(vol + ".")))
-        .collect(Collectors.toList());
+        .filter(e -> definedVolumes.stream().noneMatch(vol -> e.getKey().startsWith(vol + ".")));
   }
 
   public static VolumeManager get(AccumuloConfiguration conf, final Configuration hadoopConf)

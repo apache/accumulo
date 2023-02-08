@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -125,11 +126,13 @@ public class VolumeManagerImplTest {
     ConfigurationCopy conf = new ConfigurationCopy();
     conf.set(Property.INSTANCE_VOLUMES, String.join(",", vol1));
     conf.set(Property.GENERAL_VOLUME_CHOOSER, Property.GENERAL_VOLUME_CHOOSER.getDefaultValue());
-    conf.set(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1 + "." + THREADPOOL_SIZE_KEY, "10");
-    conf.set(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2 + "." + THREADPOOL_SIZE_KEY, "20");
+    conf.set(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1 + "." + THREADPOOL_SIZE_KEY,
+        "10");
+    conf.set(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2 + "." + THREADPOOL_SIZE_KEY,
+        "20");
 
-    List<Entry<String,String>> properties =
-        VolumeManagerImpl.findVolumeOverridesMissingVolume(conf, Set.of(vol1));
+    List<Entry<String,String>> properties = VolumeManagerImpl
+        .findVolumeOverridesMissingVolume(conf, Set.of(vol1)).collect(Collectors.toList());
 
     assertNotNull(properties);
     assertEquals(1, properties.size());
@@ -152,28 +155,29 @@ public class VolumeManagerImplTest {
     ConfigurationCopy conf = new ConfigurationCopy();
     conf.set(Property.INSTANCE_VOLUMES, String.join(",", vol1, vol2, vol3, vol4));
     conf.set(Property.GENERAL_VOLUME_CHOOSER, Property.GENERAL_VOLUME_CHOOSER.getDefaultValue());
-    conf.set(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1 + "." + THREADPOOL_SIZE_KEY, "10");
-    conf.set(
-        Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1 + "." + DFS_CLIENT_CACHE_DROP_BEHIND_READS,
-        "true");
-    conf.set(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1 + "." + DFS_BLOCK_SIZE_KEY,
+    conf.set(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1 + "." + THREADPOOL_SIZE_KEY,
+        "10");
+    conf.set(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1 + "."
+        + DFS_CLIENT_CACHE_DROP_BEHIND_READS, "true");
+    conf.set(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1 + "." + DFS_BLOCK_SIZE_KEY,
         "268435456");
-    conf.set(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2 + "." + THREADPOOL_SIZE_KEY, "20");
-    conf.set(
-        Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2 + "." + DFS_CLIENT_CACHE_DROP_BEHIND_READS,
-        "false");
-    conf.set(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol3 + "." + THREADPOOL_SIZE_KEY, "30");
-    conf.set(
-        Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol3 + "." + DFS_CLIENT_CACHE_DROP_BEHIND_READS,
-        "TRUE");
-    conf.set(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol4 + "." + THREADPOOL_SIZE_KEY, "40");
-    conf.set(
-        Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol4 + "." + DFS_CLIENT_CACHE_DROP_BEHIND_READS,
-        "FALSE");
+    conf.set(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2 + "." + THREADPOOL_SIZE_KEY,
+        "20");
+    conf.set(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2 + "."
+        + DFS_CLIENT_CACHE_DROP_BEHIND_READS, "false");
+    conf.set(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol3 + "." + THREADPOOL_SIZE_KEY,
+        "30");
+    conf.set(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol3 + "."
+        + DFS_CLIENT_CACHE_DROP_BEHIND_READS, "TRUE");
+    conf.set(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol4 + "." + THREADPOOL_SIZE_KEY,
+        "40");
+    conf.set(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol4 + "."
+        + DFS_CLIENT_CACHE_DROP_BEHIND_READS, "FALSE");
     // Setting this property should result in a warning in the log because there is no matching
     // vol6 in instance.volumes. There is no warning for vol5 because there is no override for
     // vol5.
-    conf.set(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol6 + "." + DFS_REPLICATION_KEY, "45");
+    conf.set(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol6 + "." + DFS_REPLICATION_KEY,
+        "45");
 
     VolumeManager vm = VolumeManagerImpl.get(conf, hadoopConf);
 

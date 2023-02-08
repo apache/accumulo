@@ -63,18 +63,18 @@ public class VolumeManagerIT extends ConfigurableMacBase {
       String vol1FileOutput = vol1.replaceAll(":", "\\\\:");
       String vol2FileOutput = vol2.replaceAll(":", "\\\\:");
       config.setProperty(
-          Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1FileOutput + ".dfs.blocksize",
+          Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1FileOutput + ".dfs.blocksize",
           "10485760");
       config.setProperty(
-          Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2FileOutput + ".dfs.blocksize",
+          Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2FileOutput + ".dfs.blocksize",
           "51200000");
-      config.setProperty(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1FileOutput
+      config.setProperty(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1FileOutput
           + ".dfs.client.use.datanode.hostname", "true");
-      config.setProperty(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2FileOutput
+      config.setProperty(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2FileOutput
           + ".dfs.client.use.datanode.hostname", "false");
-      config.setProperty(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1FileOutput
+      config.setProperty(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1FileOutput
           + ".dfs.client.hedged.read.threadpool.size", "0");
-      config.setProperty(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2FileOutput
+      config.setProperty(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2FileOutput
           + ".dfs.client.hedged.read.threadpool.size", "1");
     });
   }
@@ -84,17 +84,17 @@ public class VolumeManagerIT extends ConfigurableMacBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
 
       Map<String,String> siteConfig = c.instanceOperations().getSiteConfiguration();
-      assertEquals("10485760",
-          siteConfig.get(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1 + ".dfs.blocksize"));
-      assertEquals("51200000",
-          siteConfig.get(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2 + ".dfs.blocksize"));
-      assertEquals("true", siteConfig.get(
-          Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1 + ".dfs.client.use.datanode.hostname"));
-      assertEquals("false", siteConfig.get(
-          Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2 + ".dfs.client.use.datanode.hostname"));
-      assertEquals("0", siteConfig.get(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol1
+      assertEquals("10485760", siteConfig
+          .get(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1 + ".dfs.blocksize"));
+      assertEquals("51200000", siteConfig
+          .get(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2 + ".dfs.blocksize"));
+      assertEquals("true", siteConfig.get(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1
+          + ".dfs.client.use.datanode.hostname"));
+      assertEquals("false", siteConfig.get(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2
+          + ".dfs.client.use.datanode.hostname"));
+      assertEquals("0", siteConfig.get(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1
           + ".dfs.client.hedged.read.threadpool.size"));
-      assertEquals("1", siteConfig.get(Property.INSTANCE_VOLUMES_CONFIG.getKey() + vol2
+      assertEquals("1", siteConfig.get(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2
           + ".dfs.client.hedged.read.threadpool.size"));
 
       String[] names = getUniqueNames(2);
