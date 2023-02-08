@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
+import static org.apache.accumulo.server.AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
@@ -109,10 +111,9 @@ public class UpgradeCoordinator {
 
   private int currentVersion;
   // map of "current version" -> upgrader to next version.
-  private final Map<Integer,Upgrader> upgraders =
-      Collections.unmodifiableMap(new TreeMap<>(Map.of(AccumuloDataVersion.SHORTEN_RFILE_KEYS,
-          new Upgrader8to9(), AccumuloDataVersion.CRYPTO_CHANGES, new Upgrader9to10(),
-          AccumuloDataVersion.ROOT_TABLET_META_CHANGES, new Upgrader10to11())));
+  // Sorted so upgrades execute in order from the oldest supported data version to current
+  private final Map<Integer,Upgrader> upgraders = Collections
+      .unmodifiableMap(new TreeMap<>(Map.of(ROOT_TABLET_META_CHANGES, new Upgrader10to11())));
 
   private volatile UpgradeStatus status;
 
@@ -144,9 +145,7 @@ public class UpgradeCoordinator {
         "Not currently in a suitable state to do zookeeper upgrade %s", status);
 
     try {
-      int cv = context.getServerDirs()
-          .getAccumuloPersistentVersion(context.getVolumeManager().getFirst());
-      ServerContext.ensureDataVersionCompatible(cv);
+      int cv = AccumuloDataVersion.getCurrentVersion(context);
       this.currentVersion = cv;
 
       if (cv == AccumuloDataVersion.get()) {
@@ -275,7 +274,7 @@ public class UpgradeCoordinator {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."
             + " You can start the tservers and then use the shell to delete completed "
-            + " transactions. If there are uncomplete transactions, you will need to roll"
+            + " transactions. If there are incomplete transactions, you will need to roll"
             + " back and fix those issues. Please see the following page for more information: "
             + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
       }

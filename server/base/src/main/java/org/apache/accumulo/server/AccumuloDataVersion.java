@@ -22,16 +22,16 @@ import java.util.Set;
 
 /**
  * Class representing the version of data stored in Accumulo.
- *
+ * <p>
  * This version is separate but related to the file specific version in
  * {@link org.apache.accumulo.core.file.rfile.RFile}. A version change to RFile will reflect a
  * version change to the AccumuloDataVersion. But a version change to the AccumuloDataVersion may
  * not affect the version number in RFile. For example, changes made to other parts of Accumulo that
  * affects how data is stored, like the metadata table, would change the AccumuloDataVersion number
  * here but not in RFile.
- *
+ * <p>
  * This number is stored in HDFS under {@link org.apache.accumulo.core.Constants#VERSION_DIR}.
- *
+ * <p>
  * This class is used for checking the version during server startup and upgrades.
  */
 public class AccumuloDataVersion {
@@ -48,21 +48,11 @@ public class AccumuloDataVersion {
   public static final int ROOT_TABLET_META_CHANGES = 10;
 
   /**
-   * version (9) reflects changes to crypto that resulted in RFiles and WALs being serialized
-   * differently in version 2.0.0. Also RFiles in 2.0.0 may have summary data.
-   */
-  public static final int CRYPTO_CHANGES = 9;
-
-  /**
-   * version (8) reflects changes to RFile index (ACCUMULO-1124) AND the change to WAL tracking in
-   * ZK in version 1.8.0
-   */
-  public static final int SHORTEN_RFILE_KEYS = 8;
-
-  /**
    * Historic data versions
    *
    * <ul>
+   * <li>version (9) RFiles and wal crypto serialization changes. RFile summary data in 2.0.0</li>
+   * <li>version (8) RFile index (ACCUMULO-1124) and wal tracking in ZK in 1.8.0</li>
    * <li>version (7) also reflects the addition of a replication table in 1.7.0
    * <li>version (6) reflects the addition of a separate root table (ACCUMULO-1481) in 1.6.0 -
    * <li>version (5) moves delete file markers for the metadata table into the root tablet
@@ -81,6 +71,32 @@ public class AccumuloDataVersion {
     return CURRENT_VERSION;
   }
 
-  public static final Set<Integer> CAN_RUN =
-      Set.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, ROOT_TABLET_META_CHANGES, CURRENT_VERSION);
+  public static final Set<Integer> CAN_RUN = Set.of(ROOT_TABLET_META_CHANGES, CURRENT_VERSION);
+
+  /**
+   * Get the stored, current working version.
+   *
+   * @param context the server context
+   * @return the stored data version
+   */
+  public static int getCurrentVersion(ServerContext context) {
+    int cv =
+        context.getServerDirs().getAccumuloPersistentVersion(context.getVolumeManager().getFirst());
+    ServerContext.ensureDataVersionCompatible(cv);
+    return cv;
+  }
+
+  public static String oldestUpgradeableVersionName() {
+    return dataVersionToReleaseName(CAN_RUN.stream().mapToInt(x -> x).min().orElseThrow());
+  }
+
+  private static String dataVersionToReleaseName(final int version) {
+    switch (version) {
+      case ROOT_TABLET_META_CHANGES:
+        return "2.1.0";
+      case REMOVE_DEPRECATIONS_FOR_VERSION_3:
+        return "3.0.0";
+    }
+    throw new IllegalArgumentException("Unsupported data version " + version);
+  }
 }
