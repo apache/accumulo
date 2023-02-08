@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.upgrade;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
@@ -107,11 +108,11 @@ public class UpgradeCoordinator {
 
   private int currentVersion;
 
-  // map of "current version" -> upgrader to next version.
+  // unmodifiable map of "current version" -> upgrader to next version.
   // Sorted so upgrades execute in order from the oldest supported data version to current
   private Map<Integer,Upgrader> upgraders =
-      new TreeMap<>(Map.of(AccumuloDataVersion.SHORTEN_RFILE_KEYS, new Upgrader8to9(),
-          AccumuloDataVersion.CRYPTO_CHANGES, new Upgrader9to10()));
+      Collections.unmodifiableMap(new TreeMap<>(Map.of(AccumuloDataVersion.SHORTEN_RFILE_KEYS,
+          new Upgrader8to9(), AccumuloDataVersion.CRYPTO_CHANGES, new Upgrader9to10())));
 
   private volatile UpgradeStatus status;
 
