@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -47,6 +48,7 @@ import org.slf4j.LoggerFactory;
  * @since 1.6.0
  */
 public class MiniAccumuloConfigImpl {
+
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloConfigImpl.class);
   private static final String DEFAULT_INSTANCE_SECRET = "DONTTELL";
 
@@ -96,6 +98,8 @@ public class MiniAccumuloConfigImpl {
   // These are only used on top of existing instances
   private Configuration hadoopConf;
   private SiteConfiguration accumuloConf;
+
+  private Consumer<MiniAccumuloConfigImpl> preStartConfigProcessor;
 
   /**
    * @param dir An empty or nonexistent directory that Accumulo and Zookeeper can store data in.
@@ -811,5 +815,25 @@ public class MiniAccumuloConfigImpl {
    */
   public void setNumCompactors(int numCompactors) {
     this.numCompactors = numCompactors;
+  }
+
+  /**
+   * Set the object that will be used to modify the site configuration right before it's written out
+   * a file. This would be useful in the case where the configuration needs to be updated based on a
+   * property that is set in MiniAccumuloClusterImpl like instance.volumes
+   *
+   */
+  public void setPreStartConfigProcessor(Consumer<MiniAccumuloConfigImpl> processor) {
+    this.preStartConfigProcessor = processor;
+  }
+
+  /**
+   * Called by MiniAccumuloClusterImpl after all modifications are done to the configuration and
+   * right before it's written out to a file.
+   */
+  public void preStartConfigUpdate() {
+    if (this.preStartConfigProcessor != null) {
+      this.preStartConfigProcessor.accept(this);
+    }
   }
 }
