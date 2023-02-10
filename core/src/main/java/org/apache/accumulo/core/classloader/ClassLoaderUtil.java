@@ -44,7 +44,7 @@ public class ClassLoaderUtil {
         // load the default implementation
         LOG.info("Using default {}, which is subject to change in a future release",
             ContextClassLoaderFactory.class.getName());
-        FACTORY = new DefaultContextClassLoaderFactory();
+        FACTORY = new URLContextClassLoaderFactory();
       } else {
         // load user's selected implementation
         try {

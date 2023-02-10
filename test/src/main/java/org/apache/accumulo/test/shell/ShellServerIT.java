@@ -615,10 +615,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void classpath() throws Exception {
-    // classpath
-    ts.exec("classpath", true,
-        "Level: 2, Name: app, class: jdk.internal.loader.ClassLoaders$AppClassLoader: configuration not inspectable",
-        true);
+    final String javaClassPath = System.getProperty("java.class.path");
+
+    // capture classpath from the shell command
+    final String result = ts.exec("classpath", true);
+
+    // for unit tests the classpath should match what the shell returned
+    Arrays.stream(javaClassPath.split(File.pathSeparator))
+        .forEach(classPathUri -> assertTrue(result.contains(classPathUri)));
   }
 
   @Test
@@ -1531,7 +1535,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert ok foo q v", true);
 
     ts.exec("deletetable -f " + table, true);
-    // ts.exec("config -d " + CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
 
   }
 
@@ -1678,11 +1681,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.contains("class not found"));
     make10();
     setupFakeContextPath();
-    // Add the context to the table so that setter works.
-    // result = ts.exec(
-    // "config -s " + CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH);
-    // assertEquals("root@miniInstance " + tableName + "> config -s " + CONTEXT_CLASSPATH_PROPERTY
-    // + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH + "\n", result);
 
     result = ts.exec("config -t " + tableName + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey()
         + "=" + FAKE_CONTEXT);
@@ -1713,11 +1711,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.contains("value"));
 
     setupRealContextPath();
-    // Define a new classloader context, but don't set it on the table
-    // result = ts.exec(
-    // "config -s " + CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH);
-    // assertEquals("root@miniInstance " + tableName + "> config -s " + CONTEXT_CLASSPATH_PROPERTY
-    // + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH + "\n", result);
+
     // Override the table classloader context with the REAL implementation of
     // ValueReversingIterator, which does reverse the value.
     result = ts.exec("scan -pn baz -np -b row1 -e row1 -cc " + REAL_CONTEXT);
@@ -1840,10 +1834,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
         "java.lang.IllegalStateException: Not in a table context.");
   }
 
-  // private static final String FAKE_CONTEXT = "FAKE";
   private static final String FAKE_CONTEXT = "file://" + System.getProperty("user.dir") + "/target/"
       + ShellServerIT.class.getSimpleName() + "-fake-iterators.jar";
-  // private static final String REAL_CONTEXT = "REAL";
   private static final String REAL_CONTEXT = "file://" + System.getProperty("user.dir") + "/target/"
       + ShellServerIT.class.getSimpleName() + "-real-iterators.jar";
   private static final String VALUE_REVERSING_ITERATOR =

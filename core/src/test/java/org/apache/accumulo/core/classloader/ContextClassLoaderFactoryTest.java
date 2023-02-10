@@ -68,7 +68,7 @@ public class ContextClassLoaderFactoryTest extends WithTestNames {
 
     ConfigurationCopy cc = new ConfigurationCopy();
     cc.set(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.getKey(),
-        URLClassLoaderFactory.class.getName());
+        URLContextClassLoaderFactory.class.getName());
     ClassLoaderUtil.resetContextFactoryForTests();
     ClassLoaderUtil.initContextFactory(cc);
 

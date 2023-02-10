@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -44,8 +45,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,13 +58,6 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   private static final long WAIT = 7000;
 
   private FileSystem fs;
-
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    super.configureMiniCluster(cfg, hadoopCoreSite);
-    cfg.setJDWPEnabled(true);
-    cfg.setNumTservers(1);
-  }
 
   @Override
   protected Duration defaultTimeout() {
@@ -131,55 +123,54 @@ public class ScannerContextIT extends AccumuloClusterHarness {
     }
   }
 
-  // @Test
-  // public void testScanContextOverridesTableContext() throws Exception {
-  // Path dstPath = copyTestIteratorsJarToTmp();
-  // try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-  // // Create two contexts FOO and ScanContextIT. The FOO context will point to a classpath
-  // // that contains nothing. The ScanContextIT context will point to the test iterators jar
-  // String tableContext = "FOO";
-  // String tableContextProperty = CONTEXT_CLASSPATH_PROPERTY + tableContext;
-  // String tableContextDir = "file://" + System.getProperty("user.dir") + "/target";
-  // String tableContextClasspath = tableContextDir + "/TestFoo.jar";
-  // // Define both contexts
-  // c.instanceOperations().setProperty(tableContextProperty, tableContextClasspath);
-  // c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
-  //
-  // String tableName = getUniqueNames(1)[0];
-  // c.tableOperations().create(tableName);
-  // // Set the FOO context on the table
-  // c.tableOperations().setProperty(tableName, Property.TABLE_CLASSLOADER_CONTEXT.getKey(),
-  // tableContext);
-  // try (BatchWriter bw = c.createBatchWriter(tableName)) {
-  // for (int i = 0; i < ITERATIONS; i++) {
-  // Mutation m = new Mutation("row" + i);
-  // m.put("cf", "col1", "Test");
-  // bw.addMutation(m);
-  // }
-  // }
-  // scanCheck(c, tableName, null, null, "Test");
-  // batchCheck(c, tableName, null, null, "Test");
-  // // This iterator is in the test iterators jar file
-  // IteratorSetting cfg = new IteratorSetting(21, "reverse",
-  // "org.apache.accumulo.test.functional.ValueReversingIterator");
-  //
-  // // Check that ValueReversingIterator is not already on the classpath by not setting the
-  // // context. This should fail.
-  // assertThrows(Exception.class, () -> scanCheck(c, tableName, cfg, null, "tseT"),
-  // "This should have failed because context was not set");
-  //
-  // assertThrows(Exception.class, () -> batchCheck(c, tableName, cfg, null, "tseT"),
-  // "This should have failed because context was not set");
-  //
-  // // Ensure that the value is reversed using the iterator config and classloader context
-  // scanCheck(c, tableName, cfg, CONTEXT, "tseT");
-  // batchCheck(c, tableName, cfg, CONTEXT, "tseT");
-  // } finally {
-  // // Delete file in tmp
-  // fs.delete(dstPath, true);
-  // }
-  //
-  // }
+  @Test
+  public void testScanContextOverridesTableContext() throws Exception {
+    Path dstPath = copyTestIteratorsJarToTmp();
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      // Create two contexts FOO and ScanContextIT. The FOO context will point to a classpath
+      // that contains nothing. The ScanContextIT context will point to the test iterators jar
+      String tableContextProperty = Property.TABLE_CLASSLOADER_CONTEXT.getKey();
+      String tableContextDir = "file://" + System.getProperty("user.dir") + "/target";
+      String tableContextClasspath = tableContextDir + "/TestFoo.jar";
+
+      // Set the ScanContextIT context on the instance
+      c.instanceOperations().setProperty(tableContextProperty, CONTEXT);
+
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      // Set the FOO context on the table
+      c.tableOperations().setProperty(tableName, Property.TABLE_CLASSLOADER_CONTEXT.getKey(),
+          tableContextClasspath);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < ITERATIONS; i++) {
+          Mutation m = new Mutation("row" + i);
+          m.put("cf", "col1", "Test");
+          bw.addMutation(m);
+        }
+      }
+      scanCheck(c, tableName, null, null, "Test");
+      batchCheck(c, tableName, null, null, "Test");
+      // This iterator is in the test iterators jar file
+      IteratorSetting cfg = new IteratorSetting(21, "reverse",
+          "org.apache.accumulo.test.functional.ValueReversingIterator");
+
+      // Check that ValueReversingIterator is not already on the classpath by not setting the
+      // context. This should fail.
+      assertThrows(Exception.class, () -> scanCheck(c, tableName, cfg, null, "tseT"),
+          "This should have failed because context was not set");
+
+      assertThrows(Exception.class, () -> batchCheck(c, tableName, cfg, null, "tseT"),
+          "This should have failed because context was not set");
+
+      // Ensure that the value is reversed using the iterator config and classloader context
+      scanCheck(c, tableName, cfg, CONTEXT, "tseT");
+      batchCheck(c, tableName, cfg, CONTEXT, "tseT");
+    } finally {
+      // Delete file in tmp
+      fs.delete(dstPath, true);
+    }
+
+  }
 
   @Test
   public void testOneScannerDoesntInterfereWithAnother() throws Exception {

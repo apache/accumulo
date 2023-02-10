@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.apache.accumulo.core.conf.Property.TABLE_ITERATOR_MINC_PREFIX;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -232,10 +233,10 @@ public class AccumuloConfigurationTest {
     expected2.put(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1.opt", "o99");
     assertEquals(expected2, pm3);
 
-    // Map<String,String> pm5 = tc.getAllPropertiesWithPrefix(CONTEXT_CLASSPATH_PROPERTY);
-    // Map<String,String> pm6 = tc.getAllPropertiesWithPrefix(CONTEXT_CLASSPATH_PROPERTY);
-    // assertSame(pm5, pm6);
-    // assertEquals(0, pm5.size());
+    Map<String,String> pm5 = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
+    Map<String,String> pm6 = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
+    assertSame(pm5, pm6);
+    assertEquals(0, pm5.size());
 
     // ensure getting one prefix does not cause others to unnecessarily regenerate
     Map<String,String> pm7 = tc.getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
@@ -244,8 +245,8 @@ public class AccumuloConfigurationTest {
     Map<String,String> pm8 = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     assertSame(pm3, pm8);
 
-    // Map<String,String> pm9 = tc.getAllPropertiesWithPrefix(CONTEXT_CLASSPATH_PROPERTY);
-    // assertSame(pm5, pm9);
+    Map<String,String> pm9 = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
+    assertSame(pm5, pm9);
 
     tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
     tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2.opt", "o78234");
@@ -265,13 +266,13 @@ public class AccumuloConfigurationTest {
     assertSame(pmC, pmD);
     assertEquals(expected1, pmC);
 
-    // tc.set(CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1");
+    tc.set(TABLE_ITERATOR_MINC_PREFIX.getKey() + "minc1", "abcd");
 
-    // Map<String,String> pmE = tc.getAllPropertiesWithPrefix(CONTEXT_CLASSPATH_PROPERTY);
-    // Map<String,String> pmF = tc.getAllPropertiesWithPrefix(CONTEXT_CLASSPATH_PROPERTY);
-    // assertSame(pmE, pmF);
-    // assertNotSame(pm5, pmE);
-    // assertEquals(Map.of(CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1"), pmE);
+    Map<String,String> pmE = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
+    Map<String,String> pmF = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
+    assertSame(pmE, pmF);
+    assertNotSame(pm5, pmE);
+    assertEquals(Map.of(TABLE_ITERATOR_MINC_PREFIX.getKey() + "minc1", "abcd"), pmE);
 
     Map<String,String> pmG = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     Map<String,String> pmH = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
@@ -285,8 +286,8 @@ public class AccumuloConfigurationTest {
     assertSame(pmI, pmJ);
     assertEquals(expected1, pmI);
 
-    // Map<String,String> pmK = tc.getAllPropertiesWithPrefix(CONTEXT_CLASSPATH_PROPERTY);
-    // assertSame(pmE, pmK);
+    Map<String,String> pmK = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
+    assertSame(pmE, pmK);
 
     Map<String,String> pmL = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     assertSame(pmG, pmL);

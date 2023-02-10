@@ -37,7 +37,6 @@ public class Main {
 
   private static final Logger log = LoggerFactory.getLogger(Main.class);
   private static ClassLoader classLoader;
-  private static Class<?> vfsClassLoader;
   private static Map<String,KeywordExecutable> servicesMap;
 
   public static void main(final String[] args) throws Exception {
