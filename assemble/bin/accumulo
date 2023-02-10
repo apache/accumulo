@@ -89,18 +89,4 @@ function main() {
   exec "${JAVA[@]}" "${JAVA_OPTS[@]}" org.apache.accumulo.start.Main "$@"
 }
 
-args=("$@")
-
-if [[ -n "$ACCUMULO_BIND_ADDR" ]]; then
-  args+=("-o" "general.process.bind.addr=$ACCUMULO_BIND_ADDR")
-fi
-
-if [[ -n "$ACCUMULO_COMPACTOR_QUEUE" ]]; then
-  args+=("-o" "compactor.queue=$ACCUMULO_COMPACTOR_QUEUE")
-fi
-
-if [[ -n "$ACCUMULO_SSERVER_GROUP" ]]; then
-  args+=("-o" "sserver.group=$ACCUMULO_SSERVER_GROUP")
-fi
-
-main "${args[@]}"
+main "$@"
