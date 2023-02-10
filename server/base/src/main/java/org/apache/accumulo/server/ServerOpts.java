@@ -20,17 +20,11 @@ package org.apache.accumulo.server;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 
-import com.beust.jcommander.Parameter;
+public final class ServerOpts extends ConfigOpts {
 
-public class ServerOpts extends ConfigOpts {
+  // This class is empty on purpose. The intent here is that
+  // the Accumulo server processes will only ConfigOpts. Can't
+  // make ConfigOpts final as it's used by utility classes
+  // that subclass it.
 
-  @Parameter(names = {"-a", "--address"}, description = "address to bind to")
-  private String address = null;
-
-  public String getAddress() {
-    if (address != null) {
-      return address;
-    }
-    return "0.0.0.0";
-  }
 }

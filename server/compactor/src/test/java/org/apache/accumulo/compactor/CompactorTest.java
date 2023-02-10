@@ -48,6 +48,7 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -173,7 +174,9 @@ public class CompactorTest {
 
     SuccessfulCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         ServerContext context, ExternalCompactionId eci) {
-      super(new CompactorServerOpts(), new String[] {"-q", "testQ"}, context.getConfiguration());
+      super(new ServerOpts(),
+          new String[] {"-o", Property.COMPACTOR_QUEUE_NAME.getKey() + "=testQ"},
+          context.getConfiguration());
       this.uuid = uuid;
       this.address = address;
       this.job = job;

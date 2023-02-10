@@ -112,7 +112,6 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
@@ -122,15 +121,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 public class Compactor extends AbstractServer implements MetricsProducer, CompactorService.Iface {
 
   private static final SecureRandom random = new SecureRandom();
-
-  public static class CompactorServerOpts extends ServerOpts {
-    @Parameter(required = true, names = {"-q", "--queue"}, description = "compaction queue name")
-    private String queueName = null;
-
-    public String getQueueName() {
-      return queueName;
-    }
-  }
 
   private static final Logger LOG = LoggerFactory.getLogger(Compactor.class);
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
@@ -157,14 +147,14 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
-  protected Compactor(CompactorServerOpts opts, String[] args) {
+  protected Compactor(ServerOpts opts, String[] args) {
     this(opts, args, null);
   }
 
-  protected Compactor(CompactorServerOpts opts, String[] args, AccumuloConfiguration conf) {
+  protected Compactor(ServerOpts opts, String[] args, AccumuloConfiguration conf) {
     super("compactor", opts, args);
-    queueName = opts.getQueueName();
     aconf = conf == null ? super.getConfiguration() : conf;
+    queueName = aconf.get(Property.COMPACTOR_QUEUE_NAME);
     setupSecurity();
     watcher = new CompactionWatcher(aconf);
     var schedExecutor =
@@ -810,7 +800,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   public static void main(String[] args) throws Exception {
-    try (Compactor compactor = new Compactor(new CompactorServerOpts(), args)) {
+    try (Compactor compactor = new Compactor(new ServerOpts(), args)) {
       compactor.runServer();
     }
   }

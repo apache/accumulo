@@ -36,14 +36,15 @@ public class ServerOptsTest {
 
   @Test
   public void testGetAddress() {
-    opts.parseArgs(ServerOptsTest.class.getName(), new String[] {"-a", "1.2.3.4"});
-    assertEquals("1.2.3.4", opts.getAddress());
+    opts.parseArgs(ServerOptsTest.class.getName(),
+        new String[] {"-o", Property.GENERAL_PROCESS_BIND_ADDRESS.getKey() + "=1.2.3.4"});
+    assertEquals("1.2.3.4", opts.getSiteConfiguration().get(Property.GENERAL_PROCESS_BIND_ADDRESS));
   }
 
   @Test
   public void testGetAddress_NOne() {
     opts.parseArgs(ServerOptsTest.class.getName(), new String[] {});
-    assertEquals("0.0.0.0", opts.getAddress());
+    assertEquals("0.0.0.0", opts.getSiteConfiguration().get(Property.GENERAL_PROCESS_BIND_ADDRESS));
   }
 
   @Test
