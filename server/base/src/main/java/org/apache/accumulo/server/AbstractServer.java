@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsUtil;
@@ -37,7 +38,7 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
   private final String hostname;
   private final Logger log;
 
-  protected AbstractServer(String appName, ServerOpts opts, String[] args) {
+  protected AbstractServer(String appName, ConfigOpts opts, String[] args) {
     this.log = LoggerFactory.getLogger(getClass().getName());
     this.applicationName = appName;
     opts.parseArgs(appName, args);

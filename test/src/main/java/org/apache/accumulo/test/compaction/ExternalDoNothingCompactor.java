@@ -26,12 +26,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.compactor.Compactor;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +40,7 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalDoNothingCompactor.class);
 
-  ExternalDoNothingCompactor(ServerOpts opts, String[] args) {
+  ExternalDoNothingCompactor(ConfigOpts opts, String[] args) {
     super(opts, args);
   }
 
@@ -88,7 +88,7 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
   }
 
   public static void main(String[] args) throws Exception {
-    try (var compactor = new ExternalDoNothingCompactor(new ServerOpts(), args)) {
+    try (var compactor = new ExternalDoNothingCompactor(new ConfigOpts(), args)) {
       compactor.runServer();
     }
   }

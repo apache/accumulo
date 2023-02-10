@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -93,7 +94,6 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
-import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.compaction.CompactionInfo;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.compaction.FileCompactor;
@@ -147,11 +147,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
-  protected Compactor(ServerOpts opts, String[] args) {
+  protected Compactor(ConfigOpts opts, String[] args) {
     this(opts, args, null);
   }
 
-  protected Compactor(ServerOpts opts, String[] args, AccumuloConfiguration conf) {
+  protected Compactor(ConfigOpts opts, String[] args, AccumuloConfiguration conf) {
     super("compactor", opts, args);
     aconf = conf == null ? super.getConfiguration() : conf;
     queueName = aconf.get(Property.COMPACTOR_QUEUE_NAME);
@@ -800,7 +800,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   public static void main(String[] args) throws Exception {
-    try (Compactor compactor = new Compactor(new ServerOpts(), args)) {
+    try (Compactor compactor = new Compactor(new ConfigOpts(), args)) {
       compactor.runServer();
     }
   }

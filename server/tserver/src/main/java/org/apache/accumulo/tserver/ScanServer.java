@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -87,7 +88,6 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -191,7 +191,7 @@ public class ScanServer extends AbstractServer
 
   private final String groupName;
 
-  public ScanServer(ServerOpts opts, String[] args) {
+  public ScanServer(ConfigOpts opts, String[] args) {
     super("sserver", opts, args);
 
     context = super.getContext();
@@ -1024,7 +1024,7 @@ public class ScanServer extends AbstractServer
   }
 
   public static void main(String[] args) throws Exception {
-    try (ScanServer tserver = new ScanServer(new ServerOpts(), args)) {
+    try (ScanServer tserver = new ScanServer(new ConfigOpts(), args)) {
       tserver.runServer();
     }
   }
