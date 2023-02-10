@@ -75,8 +75,6 @@ public class CompactionManager {
 
   private CompactionExecutorsMetrics ceMetrics;
 
-  private String lastDeprecationWarning = "";
-
   private Map<CompactionExecutorId,ExternalCompactionExecutor> externalExecutors;
 
   private Map<ExternalCompactionId,ExtCompInfo> runningExternalCompactions;
@@ -88,13 +86,6 @@ public class CompactionManager {
     public ExtCompInfo(KeyExtent extent, CompactionExecutorId executor) {
       this.extent = extent;
       this.executor = executor;
-    }
-  }
-
-  private void warnAboutDeprecation(String warning) {
-    if (!warning.equals(lastDeprecationWarning)) {
-      log.warn(warning);
-      lastDeprecationWarning = warning;
     }
   }
 
@@ -184,8 +175,7 @@ public class CompactionManager {
       CompactionExecutorsMetrics ceMetrics) {
     this.compactables = compactables;
 
-    this.currentCfg =
-        new CompactionServicesConfig(context.getConfiguration(), this::warnAboutDeprecation);
+    this.currentCfg = new CompactionServicesConfig(context.getConfiguration());
 
     this.context = context;
 
@@ -232,8 +222,7 @@ public class CompactionManager {
 
       lastConfigCheckTime = System.nanoTime();
 
-      var tmpCfg =
-          new CompactionServicesConfig(context.getConfiguration(), this::warnAboutDeprecation);
+      var tmpCfg = new CompactionServicesConfig(context.getConfiguration());
 
       if (!currentCfg.equals(tmpCfg)) {
         Map<CompactionServiceId,CompactionService> tmpServices = new HashMap<>();

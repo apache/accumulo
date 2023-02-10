@@ -20,13 +20,13 @@ package org.apache.accumulo.core.clientImpl;
 
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -82,7 +82,7 @@ public class TabletLocatorImplTest {
   }
 
   static List<Range> createNewRangeList(Range... ranges) {
-    return Arrays.asList(ranges);
+    return List.of(ranges);
   }
 
   static class RangeLocation {
@@ -117,7 +117,8 @@ public class TabletLocatorImplTest {
     Map<String,Map<KeyExtent,List<Range>>> expBinnedRanges = new HashMap<>();
 
     for (RangeLocation rl : rangeLocations) {
-      HashMap<KeyExtent,List<Range>> binnedKE = new HashMap<>();
+      Map<KeyExtent,List<Range>> binnedKE =
+          expBinnedRanges.computeIfAbsent(rl.location, k -> new HashMap<>());
       expBinnedRanges.put(rl.location, binnedKE);
       binnedKE.putAll(rl.extents);
     }
@@ -255,7 +256,7 @@ public class TabletLocatorImplTest {
   }
 
   static List<Mutation> createNewMutationList(Mutation... ma) {
-    return Arrays.asList(ma);
+    return List.of(ma);
   }
 
   private void runTest(TabletLocatorImpl metaCache, List<Mutation> ml,
@@ -267,7 +268,7 @@ public class TabletLocatorImplTest {
     verify(emb, binnedMutations);
 
     ArrayList<String> afs = new ArrayList<>();
-    ArrayList<String> efs = new ArrayList<>(Arrays.asList(efailures));
+    ArrayList<String> efs = new ArrayList<>(List.of(efailures));
 
     for (Mutation mutation : afailures) {
       afs.add(new String(mutation.getRow()));
@@ -1076,6 +1077,134 @@ public class TabletLocatorImplTest {
 
     runTest(ranges, metaCache, expected4, createNewRangeList(createNewRange("0", "11"),
         createNewRange("1", "2"), createNewRange("0", "4"), createNewRange("2", "4")));
+  }
+
+  @Test
+  public void testBinRangesNonContiguousExtents() throws Exception {
+
+    // This test exercises a bug that was seen in the tablet locator code.
+
+    KeyExtent e1 = createNewKeyExtent("foo", "05", null);
+    KeyExtent e2 = createNewKeyExtent("foo", "1", "05");
+    KeyExtent e3 = createNewKeyExtent("foo", "2", "05");
+
+    TServers tservers = new TServers();
+    TabletLocatorImpl metaCache =
+        createLocators(tservers, "tserver1", "tserver2", "foo", e1, "l1", e2, "l1");
+
+    List<Range> ranges = createNewRangeList(createNewRange("01", "07"));
+    Map<String,
+        Map<KeyExtent,List<Range>>> expected = createExpectedBinnings(
+            createRangeLocation("l1", e1, createNewRangeList(createNewRange("01", "07"))),
+            createRangeLocation("l1", e2, createNewRangeList(createNewRange("01", "07"))));
+
+    // The following will result in extents e1 and e2 being placed in the cache.
+    runTest(ranges, metaCache, expected, createNewRangeList());
+
+    // Add e3 to the metadata table. Extent e3 could not be added earlier in the test because it
+    // overlaps e2. If e2 and e3 are seen in the same metadata read then one will be removed from
+    // the cache because the cache can never contain overlapping extents.
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, e3, "l1");
+
+    // The following test reproduces a bug. Extents e1 and e2 are in the cache. Extent e3 overlaps
+    // e2 but is not in the cache. The range used by the test overlaps e1,e2,and e3. The bug was
+    // that for this situation the binRanges code in tablet locator used to return e1,e2,and e3. The
+    // desired behavior is that the range fails for this situation. This tablet locator bug caused
+    // the batch scanner to return duplicate data.
+    ranges = createNewRangeList(createNewRange("01", "17"));
+    runTest(ranges, metaCache, new HashMap<>(), createNewRangeList(createNewRange("01", "17")));
+
+    // After the above test fails it should cause e3 to be added to the cache. Because e3 overlaps
+    // e2, when e3 is added then e2 is removed. Therefore, the following binRanges call should
+    // succeed and find the range overlaps e1 and e3.
+    expected = createExpectedBinnings(
+        createRangeLocation("l1", e1, createNewRangeList(createNewRange("01", "17"))),
+        createRangeLocation("l1", e3, createNewRangeList(createNewRange("01", "17"))));
+    runTest(ranges, metaCache, expected, createNewRangeList());
+  }
+
+  @Test
+  public void testBinRangesNonContiguousExtentsAndMultipleRanges() throws Exception {
+    KeyExtent e1 = createNewKeyExtent("foo", "c", null);
+    KeyExtent e2 = createNewKeyExtent("foo", "g", "c");
+    KeyExtent e3 = createNewKeyExtent("foo", "k", "c");
+    KeyExtent e4 = createNewKeyExtent("foo", "n", "k");
+    KeyExtent e5 = createNewKeyExtent("foo", "q", "n");
+    KeyExtent e6 = createNewKeyExtent("foo", "s", "n");
+    KeyExtent e7 = createNewKeyExtent("foo", null, "s");
+
+    TServers tservers = new TServers();
+    TabletLocatorImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo", e1, "l1",
+        e2, "l1", e4, "l1", e5, "l1", e7, "l1");
+
+    Range r1 = createNewRange("art", "cooking"); // overlaps e1 e2
+    Range r2 = createNewRange("loop", "nope"); // overlaps e4 e5
+    Range r3 = createNewRange("silly", "sunny"); // overlaps e7
+
+    Map<String,Map<KeyExtent,List<Range>>> expected = createExpectedBinnings(
+
+        createRangeLocation("l1", e1, createNewRangeList(r1)),
+        createRangeLocation("l1", e2, createNewRangeList(r1)),
+        createRangeLocation("l1", e4, createNewRangeList(r2)),
+        createRangeLocation("l1", e5, createNewRangeList(r2)),
+        createRangeLocation("l1", e7, createNewRangeList(r3)));
+    runTest(createNewRangeList(r1, r2, r3), metaCache, expected, createNewRangeList());
+
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, e3, "l1");
+
+    Range r4 = createNewRange("art", "good"); // overlaps e1 e3
+    Range r5 = createNewRange("gum", "run"); // overlaps e3 e4 e6
+
+    expected = createExpectedBinnings(createRangeLocation("l1", e7, createNewRangeList(r3)));
+    runTest(createNewRangeList(r4, r5, r3), metaCache, expected, createNewRangeList(r4, r5));
+
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, e6, "l1");
+
+    expected = createExpectedBinnings(createRangeLocation("l1", e1, createNewRangeList(r4)),
+        createRangeLocation("l1", e3, createNewRangeList(r4)),
+        createRangeLocation("l1", e7, createNewRangeList(r3)));
+    runTest(createNewRangeList(r4, r5, r3), metaCache, expected, createNewRangeList(r5));
+
+    expected = createExpectedBinnings(createRangeLocation("l1", e1, createNewRangeList(r4)),
+        createRangeLocation("l1", e3, createNewRangeList(r4, r5)),
+        createRangeLocation("l1", e4, createNewRangeList(r5)),
+        createRangeLocation("l1", e6, createNewRangeList(r5)),
+        createRangeLocation("l1", e7, createNewRangeList(r3)));
+    runTest(createNewRangeList(r4, r5, r3), metaCache, expected, createNewRangeList());
+  }
+
+  @Test
+  public void testIsContiguous() {
+    TabletLocation e1 = new TabletLocation(createNewKeyExtent("foo", "1", null), "l1", "1");
+    TabletLocation e2 = new TabletLocation(createNewKeyExtent("foo", "2", "1"), "l1", "1");
+    TabletLocation e3 = new TabletLocation(createNewKeyExtent("foo", "3", "2"), "l1", "1");
+    TabletLocation e4 = new TabletLocation(createNewKeyExtent("foo", null, "3"), "l1", "1");
+
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3, e4)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e2, e3, e4)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e2, e3)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e1)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e2)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e4)));
+
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e4)));
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e3, e4)));
+
+    TabletLocation e5 = new TabletLocation(createNewKeyExtent("foo", null, null), "l1", "1");
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3, e4, e5)));
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e5, e1, e2, e3, e4)));
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3, e5)));
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e5, e2, e3, e4)));
+    assertTrue(TabletLocatorImpl.isContiguous(List.of(e5)));
+
+    TabletLocation e6 = new TabletLocation(createNewKeyExtent("foo", null, "1"), "l1", "1");
+
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3, e6)));
+
+    TabletLocation e7 = new TabletLocation(createNewKeyExtent("foo", "33", "11"), "l1", "1");
+
+    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e7, e4)));
   }
 
   @Test

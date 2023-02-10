@@ -88,6 +88,17 @@ import io.opentelemetry.context.Scope;
 public class ThriftScanner {
   private static final Logger log = LoggerFactory.getLogger(ThriftScanner.class);
 
+  // This set is initially empty when the client starts. The first time this
+  // client contacts a server it will wait for any writes that are in progress.
+  // This is to account for the case where a client may have sent writes
+  // to accumulo and dies while waiting for a confirmation from
+  // accumulo. The client process restarts and tries to read
+  // data from accumulo making the assumption that it will get
+  // any writes previously made, however if the server side thread
+  // processing the write from the dead client is still in progress,
+  // the restarted client may not see the write unless we wait here.
+  // this behavior is very important when the client is reading the
+  // metadata
   public static final Map<TabletType,Set<String>> serversWaitedForWrites =
       new EnumMap<>(TabletType.class);
   private static final SecureRandom random = new SecureRandom();

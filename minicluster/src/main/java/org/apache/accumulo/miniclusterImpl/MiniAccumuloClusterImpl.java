@@ -217,6 +217,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       dfsUri = "file:///";
     }
 
+    // Perform any modifications to the site config that need to happen
+    // after the instance volumes are set, and before the config is
+    // written out and MAC started.
+    config.preStartConfigUpdate();
+
     Map<String,String> clientProps = config.getClientProps();
     clientProps.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), config.getZooKeepers());
     clientProps.put(ClientProperty.INSTANCE_NAME.getKey(), config.getInstanceName());
