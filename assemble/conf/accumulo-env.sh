@@ -144,6 +144,3 @@ esac
 
 ## Specifies command that will be placed before calls to Java in accumulo script
 # export ACCUMULO_JAVA_PREFIX=""
-# export ACCUMULO_BIND_ADDR=""
-# export ACCUMULO_COMPACTOR_QUEUE=""
-# export ACCUMULO_SSERVER_GROUP=""
