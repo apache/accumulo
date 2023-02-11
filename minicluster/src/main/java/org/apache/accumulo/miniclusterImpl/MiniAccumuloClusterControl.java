@@ -38,6 +38,7 @@ import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -173,7 +174,9 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       int count =
           Math.min(limit, cluster.getConfig().getNumCompactors() - compactorProcesses.size());
       for (int i = 0; i < count; i++) {
-        compactorProcesses.add(cluster.exec(compactor, "-q", queueName).getProcess());
+        compactorProcesses.add(
+            cluster.exec(compactor, "-o", Property.COMPACTOR_QUEUE_NAME.getKey() + "=" + queueName)
+                .getProcess());
       }
     }
   }
