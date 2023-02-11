@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -287,10 +288,11 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         if (locks != null && !locks.isEmpty()) {
           String lockPath = path + "/" + locks.get(0);
 
-          ServiceLockData sld = ServiceLockData.parse(new String(zk.getData(lockPath), UTF_8));
+          Optional<ServiceLockData> sld =
+              ServiceLockData.parse(new String(zk.getData(lockPath), UTF_8));
 
-          assertNotNull(sld);
-          HostAndPort hostAndPort = sld.getAddress(ThriftService.GC);
+          assertNotNull(sld.get());
+          HostAndPort hostAndPort = sld.get().getAddress(ThriftService.GC);
 
           // We shouldn't have the "bindall" address in zk
           assertNotEquals("0.0.0.0", hostAndPort.getHost());

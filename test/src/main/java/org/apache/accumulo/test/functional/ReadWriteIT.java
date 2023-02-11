@@ -38,6 +38,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
@@ -170,10 +171,10 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       var zLockPath =
           ServiceLock.path(ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceId())
               + Constants.ZMANAGER_LOCK);
-      ServiceLockData managerLockData;
+      Optional<ServiceLockData> managerLockData;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
-        if (managerLockData != null) {
+        if (managerLockData.isPresent()) {
           log.info("Manager lock is still held");
           Thread.sleep(1000);
         }

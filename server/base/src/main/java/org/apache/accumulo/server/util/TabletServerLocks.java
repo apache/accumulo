@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.util;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
@@ -45,10 +46,10 @@ public class TabletServerLocks {
 
       for (String tabletServer : tabletServers) {
         var zLockPath = ServiceLock.path(tserverPath + "/" + tabletServer);
-        ServiceLockData lockData = ServiceLock.getLockData(cache, zLockPath, null);
+        Optional<ServiceLockData> lockData = ServiceLock.getLockData(cache, zLockPath, null);
         final String holder;
-        if (lockData != null) {
-          holder = lockData.getAddressString(ThriftService.TSERV);
+        if (lockData.isPresent()) {
+          holder = lockData.get().getAddressString(ThriftService.TSERV);
         } else {
           holder = "<none>";
         }

@@ -26,6 +26,7 @@ import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -526,10 +527,10 @@ public class ZooCache {
     }
   }
 
-  public ServiceLockData getLockData(ServiceLockPath path) {
+  public Optional<ServiceLockData> getLockData(ServiceLockPath path) {
     List<String> children = ServiceLock.validateAndSort(path, getChildren(path.toString()));
     if (children == null || children.isEmpty()) {
-      return null;
+      return Optional.empty();
     }
     String lockNode = children.get(0);
 
@@ -538,7 +539,7 @@ public class ZooCache {
       log.trace("Data from lockNode {} is {}", lockNode, new String(lockData, UTF_8));
     }
     if (lockData == null) {
-      return null;
+      lockData = new byte[0];
     }
     return ServiceLockData.parse(new String(lockData, UTF_8));
   }

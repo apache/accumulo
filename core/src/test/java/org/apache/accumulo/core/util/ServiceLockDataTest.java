@@ -19,9 +19,13 @@
 package org.apache.accumulo.core.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.accumulo.core.util.ServiceLockData.ServiceDescriptor;
@@ -31,13 +35,13 @@ import org.junit.jupiter.api.Test;
 
 import com.google.common.net.HostAndPort;
 
-public class ServerLockDataTest {
+public class ServiceLockDataTest {
 
   private final UUID serverUUID = UUID.randomUUID();
 
   @Test
   public void testSingleServiceConstructor() throws Exception {
-    ServiceLockData ss = new ServiceLockData(serverUUID, "127.0.0.1", ThriftService.TSERV, null);
+    ServiceLockData ss = new ServiceLockData(serverUUID, "127.0.0.1", ThriftService.TSERV);
     assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
     assertEquals("127.0.0.1", ss.getAddressString(ThriftService.TSERV));
     assertThrows(IllegalArgumentException.class, () -> ss.getAddress(ThriftService.TSERV));
@@ -51,9 +55,8 @@ public class ServerLockDataTest {
   @Test
   public void testMultipleServiceConstructor() throws Exception {
     ServiceDescriptors sds = new ServiceDescriptors();
-    sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TSERV, "127.0.0.1:9997", null));
-    sds.addService(
-        new ServiceDescriptor(serverUUID, ThriftService.TABLET_SCAN, "127.0.0.1:9998", null));
+    sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TSERV, "127.0.0.1:9997"));
+    sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TABLET_SCAN, "127.0.0.1:9998"));
     ServiceLockData ss = new ServiceLockData(sds);
     assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
     assertEquals("127.0.0.1:9997", ss.getAddressString(ThriftService.TSERV));
@@ -109,6 +112,14 @@ public class ServerLockDataTest {
     assertEquals(HostAndPort.fromString("127.0.0.1:9998"),
         ss.getAddress(ThriftService.TABLET_SCAN));
     assertEquals("ns1", ss.getGroup(ThriftService.TABLET_SCAN));
+  }
+
+  @Test
+  public void testParseEmpty() {
+    Optional<ServiceLockData> sld =
+        ServiceLockData.parse(new String(new byte[0], StandardCharsets.UTF_8));
+    assertTrue(sld.isEmpty());
+    assertFalse(sld.isPresent());
   }
 
 }

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.util;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -65,12 +67,16 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     private final String address;
     private final String group;
 
+    public ServiceDescriptor(UUID uuid, ThriftService service, String address) {
+      this(uuid, service, address, DEFAULT_GROUP_NAME);
+    }
+
     public ServiceDescriptor(UUID uuid, ThriftService service, String address, String group) {
       super();
-      this.uuid = uuid;
-      this.service = service;
-      this.address = address;
-      this.group = Optional.ofNullable(group).orElse(DEFAULT_GROUP_NAME);
+      this.uuid = requireNonNull(uuid);
+      this.service = requireNonNull(service);
+      this.address = requireNonNull(address);
+      this.group = requireNonNull(group);
     }
 
     public UUID getUUID() {
@@ -130,15 +136,6 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     public Set<ServiceDescriptor> getServices() {
       return descriptors;
     }
-
-    @Override
-    public String toString() {
-      return gson.toJson(this);
-    }
-
-    public static ServiceDescriptors parse(String data) {
-      return gson.fromJson(data, ServiceDescriptors.class);
-    }
   }
 
   private EnumMap<ThriftService,ServiceDescriptor> services;
@@ -155,8 +152,9 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
         Collections.singleton(new ServiceDescriptor(uuid, service, address, group)))));
   }
 
-  public static ServiceLockData parse(String lockData) {
-    return new ServiceLockData(ServiceDescriptors.parse(lockData));
+  public ServiceLockData(UUID uuid, String address, ThriftService service) {
+    this(new ServiceDescriptors(
+        new HashSet<>(Collections.singleton(new ServiceDescriptor(uuid, service, address)))));
   }
 
   public String getAddressString(ThriftService service) {
@@ -193,11 +191,6 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     return gson.toJson(sd);
   }
 
-  public static ServiceLockData deserialize(String data) {
-    ServiceDescriptors sd = gson.fromJson(data, ServiceDescriptors.class);
-    return new ServiceLockData(sd);
-  }
-
   @Override
   public String toString() {
     return serialize();
@@ -220,4 +213,12 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
   public int compareTo(ServiceLockData other) {
     return toString().compareTo(other.toString());
   }
+
+  public static Optional<ServiceLockData> parse(String lockData) {
+    if (lockData == null || lockData.isBlank()) {
+      return Optional.empty();
+    }
+    return Optional.of(new ServiceLockData(gson.fromJson(lockData, ServiceDescriptors.class)));
+  }
+
 }

@@ -23,6 +23,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
@@ -399,7 +400,7 @@ public class ServiceLock implements Watcher {
       // Another deviation from the recipe is that we cleanup any extraneous ephemeral nodes that
       // were created.
       final String createPath = zooKeeper.create(lockPathPrefix,
-          lockData.toString().getBytes(UTF_8), ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL);
+          lockData.serialize().getBytes(UTF_8), ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL);
       LOG.debug("[{}] Ephemeral node {} created with data: {}", vmLockPrefix, createPath, lockData);
 
       // It's possible that the call above was retried several times and multiple ephemeral nodes
@@ -596,7 +597,7 @@ public class ServiceLock implements Watcher {
   public synchronized void replaceLockData(ServiceLockData lockData)
       throws KeeperException, InterruptedException {
     if (getLockPath() != null) {
-      zooKeeper.setData(getLockPath(), lockData.toString().getBytes(UTF_8), -1);
+      zooKeeper.setData(getLockPath(), lockData.serialize().getBytes(UTF_8), -1);
       LOG.debug("[{}] Lock data replaced at path {} with data: {}", vmLockPrefix, getLockPath(),
           lockData);
     }
@@ -650,31 +651,31 @@ public class ServiceLock implements Watcher {
     return zc.get(lid.path + "/" + lid.node, stat) != null && stat.getEphemeralOwner() == lid.eid;
   }
 
-  public static ServiceLockData getLockData(ZooKeeper zk, ServiceLockPath path)
+  public static Optional<ServiceLockData> getLockData(ZooKeeper zk, ServiceLockPath path)
       throws KeeperException, InterruptedException {
 
     List<String> children = validateAndSort(path, zk.getChildren(path.toString(), null));
 
     if (children == null || children.isEmpty()) {
-      return null;
+      return Optional.empty();
     }
 
     String lockNode = children.get(0);
 
     byte[] data = zk.getData(path + "/" + lockNode, false, null);
     if (data == null) {
-      return null;
+      data = new byte[0];
     }
     return ServiceLockData.parse(new String(data, UTF_8));
   }
 
-  public static ServiceLockData getLockData(org.apache.accumulo.core.fate.zookeeper.ZooCache zc,
-      ServiceLockPath path, ZcStat stat) {
+  public static Optional<ServiceLockData> getLockData(
+      org.apache.accumulo.core.fate.zookeeper.ZooCache zc, ServiceLockPath path, ZcStat stat) {
 
     List<String> children = validateAndSort(path, zc.getChildren(path.toString()));
 
     if (children == null || children.isEmpty()) {
-      return null;
+      return Optional.empty();
     }
 
     String lockNode = children.get(0);
@@ -685,7 +686,7 @@ public class ServiceLock implements Watcher {
 
     byte[] data = zc.get(path + "/" + lockNode, stat);
     if (data == null) {
-      return null;
+      data = new byte[0];
     }
     return ServiceLockData.parse(new String(data, UTF_8));
   }

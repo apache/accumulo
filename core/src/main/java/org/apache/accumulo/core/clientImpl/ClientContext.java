@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -404,10 +405,10 @@ public class ClientContext implements AccumuloClient {
       try {
         final var zLockPath = ServiceLock.path(root + "/" + addr);
         ZcStat stat = new ZcStat();
-        ServiceLockData sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
-        if (sld != null) {
-          UUID uuid = sld.getServerUUID(ThriftService.TABLET_SCAN);
-          String group = sld.getGroup(ThriftService.TABLET_SCAN);
+        Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
+        if (sld.isPresent()) {
+          UUID uuid = sld.get().getServerUUID(ThriftService.TABLET_SCAN);
+          String group = sld.get().getGroup(ThriftService.TABLET_SCAN);
           liveScanServers.put(addr, new Pair<>(uuid, group));
         }
       } catch (IllegalArgumentException e) {
@@ -518,10 +519,10 @@ public class ClientContext implements AccumuloClient {
       timer = new OpTimer().start();
     }
 
-    ServiceLockData sld = zooCache.getLockData(zLockManagerPath);
+    Optional<ServiceLockData> sld = zooCache.getLockData(zLockManagerPath);
     String location = null;
-    if (sld != null) {
-      location = sld.getAddressString(ThriftService.MANAGER);
+    if (sld.isPresent()) {
+      location = sld.get().getAddressString(ThriftService.MANAGER);
     }
 
     if (timer != null) {

@@ -289,8 +289,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       for (int i = 0; i < 25; i++) {
         zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
 
-        if (compactorLock.tryLock(lw, new ServiceLockData(compactorId, hostPort,
-            ThriftService.COMPACTOR, this.getServerGroup()))) {
+        if (compactorLock.tryLock(lw,
+            new ServiceLockData(compactorId, hostPort, ThriftService.COMPACTOR, this.queueName))) {
           LOG.debug("Obtained Compactor lock {}", compactorLock.getLockPath());
           return;
         }

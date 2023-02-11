@@ -104,11 +104,11 @@ public class ExternalCompactionUtil {
     try {
       var zk = ZooSession.getAnonymousSession(context.getZooKeepers(),
           context.getZooKeepersSessionTimeOut());
-      ServiceLockData sld = ServiceLock.getLockData(zk, ServiceLock.path(lockPath));
-      if (sld == null) {
+      Optional<ServiceLockData> sld = ServiceLock.getLockData(zk, ServiceLock.path(lockPath));
+      if (sld.isEmpty()) {
         return Optional.empty();
       }
-      return Optional.ofNullable(sld.getAddress(ThriftService.COORDINATOR));
+      return Optional.ofNullable(sld.get().getAddress(ThriftService.COORDINATOR));
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }

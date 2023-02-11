@@ -662,8 +662,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
             ThriftService.TABLET_INGEST, ThriftService.TABLET_MANAGEMENT, ThriftService.TABLET_SCAN,
             ThriftService.TSERV}) {
-          descriptors.addService(new ServiceDescriptor(tabletServerUUID, svc,
-              getClientAddressString(), this.getServerGroup()));
+          descriptors
+              .addService(new ServiceDescriptor(tabletServerUUID, svc, getClientAddressString()));
         }
 
         if (tabletServerLock.tryLock(lw, new ServiceLockData(descriptors))) {

@@ -214,8 +214,8 @@ public class CompactionCoordinator extends AbstractServer
       CoordinatorLockWatcher coordinatorLockWatcher = new CoordinatorLockWatcher();
       coordinatorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
           ServiceLock.path(lockPath), zooLockUUID);
-      coordinatorLock.lock(coordinatorLockWatcher, new ServiceLockData(zooLockUUID,
-          coordinatorClientAddress, ThriftService.COORDINATOR, this.getServerGroup()));
+      coordinatorLock.lock(coordinatorLockWatcher,
+          new ServiceLockData(zooLockUUID, coordinatorClientAddress, ThriftService.COORDINATOR));
 
       coordinatorLockWatcher.waitForChange();
       if (coordinatorLockWatcher.isAcquiredLock()) {

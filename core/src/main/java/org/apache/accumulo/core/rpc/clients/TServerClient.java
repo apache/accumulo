@@ -23,6 +23,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
@@ -67,9 +68,9 @@ public interface TServerClient<C extends TServiceClient> {
     for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
       var zLocPath =
           ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
-      ServiceLockData sld = zc.getLockData(zLocPath);
-      if (sld != null) {
-        HostAndPort address = sld.getAddress(ThriftService.TSERV);
+      Optional<ServiceLockData> sld = zc.getLockData(zLocPath);
+      if (sld.isPresent()) {
+        HostAndPort address = sld.get().getAddress(ThriftService.TSERV);
         if (address != null) {
           servers.add(new ThriftTransportKey(address, rpcTimeout, context));
         }

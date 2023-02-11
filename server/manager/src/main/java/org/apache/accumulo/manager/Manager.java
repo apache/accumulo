@@ -1227,7 +1227,7 @@ public class Manager extends AbstractServer
 
     String address = sa.address.toString();
     sld = new ServiceLockData(sld.getServerUUID(ThriftService.MANAGER), address,
-        ThriftService.MANAGER, this.getServerGroup());
+        ThriftService.MANAGER);
     log.info("Setting manager lock data to {}", sld.toString());
     try {
       managerLock.replaceLockData(sld);
@@ -1439,8 +1439,8 @@ public class Manager extends AbstractServer
         getHostname() + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
 
     UUID zooLockUUID = UUID.randomUUID();
-    ServiceLockData sld = new ServiceLockData(zooLockUUID, managerClientAddress,
-        ThriftService.MANAGER, this.getServerGroup());
+    ServiceLockData sld =
+        new ServiceLockData(zooLockUUID, managerClientAddress, ThriftService.MANAGER);
     while (true) {
 
       ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();

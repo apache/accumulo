@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -306,9 +307,9 @@ public class LiveTServerSet implements Watcher {
 
     final var zLockPath = ServiceLock.path(path + "/" + zPath);
     ZcStat stat = new ZcStat();
-    ServiceLockData sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
+    Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
 
-    if (sld == null) {
+    if (sld.isEmpty()) {
       if (info != null) {
         doomed.add(info.instance);
         current.remove(zPath);
@@ -324,7 +325,7 @@ public class LiveTServerSet implements Watcher {
       }
     } else {
       locklessServers.remove(zPath);
-      HostAndPort client = sld.getAddress(ServiceLockData.ThriftService.TSERV);
+      HostAndPort client = sld.get().getAddress(ServiceLockData.ThriftService.TSERV);
       TServerInstance instance = new TServerInstance(client, stat.getEphemeralOwner());
 
       if (info == null) {

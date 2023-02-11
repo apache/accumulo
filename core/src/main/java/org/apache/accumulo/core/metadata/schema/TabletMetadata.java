@@ -471,11 +471,11 @@ public class TabletMetadata {
     Optional<TServerInstance> server = Optional.empty();
     final var lockPath = ServiceLock.path(path + "/" + zPath);
     ZooCache.ZcStat stat = new ZooCache.ZcStat();
-    ServiceLockData sld = ServiceLock.getLockData(context.getZooCache(), lockPath, stat);
+    Optional<ServiceLockData> sld = ServiceLock.getLockData(context.getZooCache(), lockPath, stat);
 
-    if (sld != null) {
+    if (sld.isPresent()) {
       log.trace("Checking server at ZK path = " + lockPath);
-      HostAndPort client = sld.getAddress(ServiceLockData.ThriftService.TSERV);
+      HostAndPort client = sld.get().getAddress(ServiceLockData.ThriftService.TSERV);
       if (client != null) {
         server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
       }

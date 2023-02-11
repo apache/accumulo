@@ -24,6 +24,7 @@ import java.util.Formattable;
 import java.util.Formatter;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -166,11 +167,11 @@ public class ListInstances {
     try {
       var zLockManagerPath =
           ServiceLock.path(Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK);
-      ServiceLockData sld = ServiceLock.getLockData(cache, zLockManagerPath, null);
-      if (sld == null) {
+      Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, zLockManagerPath, null);
+      if (sld.isEmpty()) {
         return null;
       }
-      return sld.getAddressString(ThriftService.MANAGER);
+      return sld.get().getAddressString(ThriftService.MANAGER);
     } catch (Exception e) {
       handleException(e, printErrors);
       return null;

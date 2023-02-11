@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -107,14 +108,14 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       zcache.clear();
       var path = ServiceLock
           .path(ZooUtil.getRoot(client.instanceOperations().getInstanceId()) + Constants.ZGC_LOCK);
-      ServiceLockData gcLockData;
+      Optional<ServiceLockData> gcLockData;
       do {
         gcLockData = ServiceLock.getLockData(zcache, path, null);
-        if (gcLockData != null) {
+        if (gcLockData.isPresent()) {
           log.info("Waiting for GC ZooKeeper lock to expire");
           Thread.sleep(2000);
         }
-      } while (gcLockData != null);
+      } while (gcLockData.isPresent());
 
       log.info("GC lock was lost");
 
@@ -123,11 +124,11 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
 
       do {
         gcLockData = ServiceLock.getLockData(zcache, path, null);
-        if (gcLockData == null) {
+        if (gcLockData.isEmpty()) {
           log.info("Waiting for GC ZooKeeper lock to be acquired");
           Thread.sleep(2000);
         }
-      } while (gcLockData == null);
+      } while (gcLockData.isEmpty());
 
       log.info("GC lock was acquired");
     }
