@@ -47,20 +47,14 @@ public class ClasspathCommand extends Command {
   }
 
   public static void printClassPath(PrintWriter writer) {
-    try {
-      writer.print("Accumulo Shell Classpath: \n");
+    writer.println("Accumulo Shell Classpath:");
 
-      final String javaClassPath = System.getProperty("java.class.path");
-      if (javaClassPath == null) {
-        throw new IllegalStateException("java.class.path is not set");
-      }
-      Arrays.stream(javaClassPath.split(File.pathSeparator)).forEach(classPathUri -> {
-        writer.print(classPathUri + "\n");
-      });
-
-      writer.print("\n");
-    } catch (Exception t) {
-      throw new RuntimeException(t);
+    final String javaClassPath = System.getProperty("java.class.path");
+    if (javaClassPath == null) {
+      throw new IllegalStateException("java.class.path is not set");
     }
+    Arrays.stream(javaClassPath.split(File.pathSeparator)).forEach(writer::println);
+
+    writer.println();
   }
 }

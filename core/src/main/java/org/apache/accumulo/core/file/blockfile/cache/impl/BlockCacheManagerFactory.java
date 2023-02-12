@@ -31,7 +31,7 @@ public class BlockCacheManagerFactory {
 
   /**
    * Get the BlockCacheFactory specified by the property 'tserver.cache.factory.class' using the
-   * configured ContextClassLoaderFactory
+   * System class loader
    *
    * @param conf accumulo configuration
    * @return block cache manager instance
