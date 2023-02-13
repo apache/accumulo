@@ -241,9 +241,9 @@ public abstract class TabletBase {
       try {
         Thread.sleep(500);
       } catch (InterruptedException e) {
-        Thread.interrupted();
+        Thread.currentThread().interrupt();
         throw new IllegalStateException(
-            "Interrupted while waiting for low memory condition to resolve");
+            "Interrupted while waiting for low memory condition to resolve", e);
       }
     })) {}
 
@@ -350,9 +350,9 @@ public abstract class TabletBase {
       try {
         Thread.sleep(500);
       } catch (InterruptedException e) {
-        Thread.interrupted();
+        Thread.currentThread().interrupt();
         throw new IllegalStateException(
-            "Interrupted while waiting for low memory condition to resolve");
+            "Interrupted while waiting for low memory condition to resolve", e);
       }
     })) {}
 
