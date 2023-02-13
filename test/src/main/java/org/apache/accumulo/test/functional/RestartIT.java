@@ -151,7 +151,7 @@ public class RestartIT extends AccumuloClusterHarness {
       managerLockData = null;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
-        if (managerLockData != null) {
+        if (managerLockData.isPresent()) {
           log.info("Manager lock is still held");
           Thread.sleep(1000);
         }
