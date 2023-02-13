@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
@@ -185,15 +186,15 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     return sd.getUUID();
   }
 
-  public String serialize() {
+  public byte[] serialize() {
     ServiceDescriptors sd = new ServiceDescriptors();
     services.values().forEach(s -> sd.addService(s));
-    return gson.toJson(sd);
+    return gson.toJson(sd).getBytes(UTF_8);
   }
 
   @Override
   public String toString() {
-    return serialize();
+    return new String(serialize(), UTF_8);
   }
 
   @Override
@@ -214,11 +215,15 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     return toString().compareTo(other.toString());
   }
 
-  public static Optional<ServiceLockData> parse(String lockData) {
-    if (lockData == null || lockData.isBlank()) {
+  public static Optional<ServiceLockData> parse(byte[] lockData) {
+    if (lockData == null) {
       return Optional.empty();
     }
-    return Optional.of(new ServiceLockData(gson.fromJson(lockData, ServiceDescriptors.class)));
+    String data = new String(lockData, UTF_8);
+    if (data.isBlank()) {
+      return Optional.empty();
+    }
+    return Optional.of(new ServiceLockData(gson.fromJson(data, ServiceDescriptors.class)));
   }
 
 }

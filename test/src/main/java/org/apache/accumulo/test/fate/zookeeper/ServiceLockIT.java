@@ -721,13 +721,13 @@ public class ServiceLockIT {
           ServiceDescriptor.DEFAULT_GROUP_NAME);
       zl.lock(lw, sld1);
       assertEquals(Optional.of(sld1),
-          ServiceLockData.parse(new String(zk.getData(zl.getLockPath(), null, null), UTF_8)));
+          ServiceLockData.parse(zk.getData(zl.getLockPath(), null, null)));
 
       ServiceLockData sld2 = new ServiceLockData(UUID.randomUUID(), "test2", ThriftService.TSERV,
           ServiceDescriptor.DEFAULT_GROUP_NAME);
       zl.replaceLockData(sld2);
       assertEquals(Optional.of(sld2),
-          ServiceLockData.parse(new String(zk.getData(zl.getLockPath(), null, null), UTF_8)));
+          ServiceLockData.parse(zk.getData(zl.getLockPath(), null, null)));
     }
   }
 

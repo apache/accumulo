@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.functional;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -288,8 +287,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         if (locks != null && !locks.isEmpty()) {
           String lockPath = path + "/" + locks.get(0);
 
-          Optional<ServiceLockData> sld =
-              ServiceLockData.parse(new String(zk.getData(lockPath), UTF_8));
+          Optional<ServiceLockData> sld = ServiceLockData.parse(zk.getData(lockPath));
 
           assertNotNull(sld.get());
           HostAndPort hostAndPort = sld.get().getAddress(ThriftService.GC);

@@ -429,7 +429,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
         Optional<ServiceLockData> sld =
-            ServiceLockData.parse(new String(zk.getData(path + "/" + locks.get(0)), UTF_8));
+            ServiceLockData.parse(zk.getData(path + "/" + locks.get(0)));
         if (sld.isPresent()) {
           address = sld.get().getAddress(ThriftService.GC);
         }

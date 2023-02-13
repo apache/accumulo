@@ -541,7 +541,7 @@ public class ZooCache {
     if (lockData == null) {
       lockData = new byte[0];
     }
-    return ServiceLockData.parse(new String(lockData, UTF_8));
+    return ServiceLockData.parse(lockData);
   }
 
 }

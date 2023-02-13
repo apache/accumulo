@@ -399,8 +399,8 @@ public class ServiceLock implements Watcher {
       // except that instead of the ephemeral lock node being of the form guid-lock- use lock-guid-.
       // Another deviation from the recipe is that we cleanup any extraneous ephemeral nodes that
       // were created.
-      final String createPath = zooKeeper.create(lockPathPrefix,
-          lockData.serialize().getBytes(UTF_8), ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL);
+      final String createPath = zooKeeper.create(lockPathPrefix, lockData.serialize(),
+          ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL);
       LOG.debug("[{}] Ephemeral node {} created with data: {}", vmLockPrefix, createPath, lockData);
 
       // It's possible that the call above was retried several times and multiple ephemeral nodes
@@ -597,7 +597,7 @@ public class ServiceLock implements Watcher {
   public synchronized void replaceLockData(ServiceLockData lockData)
       throws KeeperException, InterruptedException {
     if (getLockPath() != null) {
-      zooKeeper.setData(getLockPath(), lockData.serialize().getBytes(UTF_8), -1);
+      zooKeeper.setData(getLockPath(), lockData.serialize(), -1);
       LOG.debug("[{}] Lock data replaced at path {} with data: {}", vmLockPrefix, getLockPath(),
           lockData);
     }
@@ -666,7 +666,7 @@ public class ServiceLock implements Watcher {
     if (data == null) {
       data = new byte[0];
     }
-    return ServiceLockData.parse(new String(data, UTF_8));
+    return ServiceLockData.parse(data);
   }
 
   public static Optional<ServiceLockData> getLockData(
@@ -688,7 +688,7 @@ public class ServiceLock implements Watcher {
     if (data == null) {
       data = new byte[0];
     }
-    return ServiceLockData.parse(new String(data, UTF_8));
+    return ServiceLockData.parse(data);
   }
 
   public static long getSessionId(ZooCache zc, ServiceLockPath path) {

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -116,7 +115,7 @@ public class ServiceLockDataTest {
 
   @Test
   public void testParseEmpty() {
-    Optional<ServiceLockData> sld = ServiceLockData.parse(new String(new byte[0], UTF_8));
+    Optional<ServiceLockData> sld = ServiceLockData.parse(new byte[0]);
     assertTrue(sld.isEmpty());
     assertFalse(sld.isPresent());
   }
