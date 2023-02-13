@@ -155,7 +155,7 @@ public class RestartIT extends AccumuloClusterHarness {
           log.info("Manager lock is still held");
           Thread.sleep(1000);
         }
-      } while (managerLockData != null);
+      } while (managerLockData.isPresent());
       cluster.start();
       VerifyIngest.verifyIngest(c, params);
     }

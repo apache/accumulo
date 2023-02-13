@@ -178,7 +178,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           log.info("Manager lock is still held");
           Thread.sleep(1000);
         }
-      } while (managerLockData != null);
+      } while (managerLockData.isPresent());
       control.stopAllServers(ServerType.MANAGER);
       control.stopAllServers(ServerType.TABLET_SERVER);
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
