@@ -22,6 +22,7 @@ import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
@@ -37,7 +38,7 @@ public class LowMemoryDetector {
 
   @FunctionalInterface
   public static interface Action {
-    void execute();
+    void execute() throws InterruptedException;
   }
 
   public enum DetectionScope {
@@ -70,7 +71,7 @@ public class LowMemoryDetector {
    * @return true if server running low on memory
    */
   public boolean isRunningLowOnMemory(ServerContext context, DetectionScope scope,
-      Supplier<Boolean> isUserTable, Action action) {
+      Supplier<Boolean> isUserTable, Action action) throws InterruptedException {
     if (isUserTable.get()) {
       Property p = null;
       switch (scope) {
@@ -102,7 +103,7 @@ public class LowMemoryDetector {
 
     memCheckTimeLock.lock();
     try {
-      final long now = System.currentTimeMillis();
+      final long now = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
 
       List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
       Runtime rt = Runtime.getRuntime();
@@ -147,9 +148,9 @@ public class LowMemoryDetector {
           // If we were running low on memory, but are not any longer, than log at warn
           // so that it shows up in the logs
           if (runningLowOnMemory) {
-            log.warn("Not running low on memory");
+            log.warn("Recovered from low memory condition");
           } else {
-            log.debug("Not running low on memory");
+            log.trace("Not running low on memory");
           }
           runningLowOnMemory = false;
         }

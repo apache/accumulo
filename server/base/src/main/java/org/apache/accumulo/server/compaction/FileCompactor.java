@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -77,8 +76,6 @@ import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.util.concurrent.Uninterruptibles;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -432,7 +429,7 @@ public class FileCompactor implements Callable<CompactionStats> {
             } else {
               metrics.incrementMajCPause();
             }
-            Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+            Thread.sleep(500);
           })) {}
 
           mfw.append(itr.getTopKey(), itr.getTopValue());
@@ -467,8 +464,12 @@ public class FileCompactor implements Callable<CompactionStats> {
         majCStats.add(lgMajcStats);
         writeSpan.end();
       }
-
-    } catch (Exception e) {
+    } catch (InterruptedException ie) {
+      // Reset the interrupt state on this thread
+      Thread.interrupted();
+      TraceUtil.setException(compactSpan, ie, true);
+      throw new IOException("Pause for low memory interrupted", ie);
+    } catch (IOException | CompactionCanceledException e) {
       TraceUtil.setException(compactSpan, e, true);
       throw e;
     } finally {
