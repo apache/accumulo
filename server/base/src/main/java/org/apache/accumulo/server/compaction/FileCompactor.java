@@ -429,7 +429,13 @@ public class FileCompactor implements Callable<CompactionStats> {
             } else {
               metrics.incrementMajCPause();
             }
-            Thread.sleep(500);
+            try {
+              Thread.sleep(500);
+            } catch (InterruptedException e) {
+              Thread.interrupted();
+              throw new IllegalStateException(
+                  "Interrupted while waiting for low memory condition to resolve");
+            }
           })) {}
 
           mfw.append(itr.getTopKey(), itr.getTopValue());
@@ -464,11 +470,6 @@ public class FileCompactor implements Callable<CompactionStats> {
         majCStats.add(lgMajcStats);
         writeSpan.end();
       }
-    } catch (InterruptedException ie) {
-      // Reset the interrupt state on this thread
-      Thread.interrupted();
-      TraceUtil.setException(compactSpan, ie, true);
-      throw new IOException("Pause for low memory interrupted", ie);
     } catch (IOException | CompactionCanceledException e) {
       TraceUtil.setException(compactSpan, e, true);
       throw e;

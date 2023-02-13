@@ -233,20 +233,19 @@ public abstract class TabletBase {
   Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, ScanParameters scanParams)
       throws IOException {
 
-    try {
-      while (context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN,
-          () -> {
-            return isUserTable;
-          }, () -> {
-            log.info("Not starting next batch because low on memory, extent: {}", extent);
-            server.getScanMetrics().incrementScanPausedForLowMemory();
-            Thread.sleep(500);
-          })) {}
-    } catch (InterruptedException e) {
-      // Reset the interrupt state on this thread
-      Thread.interrupted();
-      throw new IOException("Pause for low memory interrupted", e);
-    }
+    while (context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN, () -> {
+      return isUserTable;
+    }, () -> {
+      log.info("Not starting next batch because low on memory, extent: {}", extent);
+      server.getScanMetrics().incrementScanPausedForLowMemory();
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        Thread.interrupted();
+        throw new IllegalStateException(
+            "Interrupted while waiting for low memory condition to resolve");
+      }
+    })) {}
 
     long batchTimeOut = scanParams.getBatchTimeOut();
 
@@ -296,21 +295,13 @@ public abstract class TabletBase {
 
       boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
 
-      boolean runningLowOnMemory;
-      try {
-        runningLowOnMemory = context.getLowMemoryDetector().isRunningLowOnMemory(context,
-            DetectionScope.SCAN, () -> {
-              return isUserTable;
-            }, () -> {
-              log.info("Not continuing next batch because low on memory, extent: {}", extent);
-              server.getScanMetrics().incrementEarlyReturnForLowMemory();
-            });
-      } catch (InterruptedException e) {
-        // This should not occur, handling exception on interface.
-        // Reset the interrupt state on this thread
-        Thread.interrupted();
-        throw new IOException("Pause for low memory interrupted", e);
-      }
+      boolean runningLowOnMemory =
+          context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN, () -> {
+            return isUserTable;
+          }, () -> {
+            log.info("Not continuing next batch because low on memory, extent: {}", extent);
+            server.getScanMetrics().incrementEarlyReturnForLowMemory();
+          });
       if (runningLowOnMemory || resultSize >= maxResultsSize
           || results.size() >= scanParams.getMaxEntries() || timesUp) {
         continueKey = new Key(key);
@@ -351,20 +342,19 @@ public abstract class TabletBase {
   private Tablet.LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges,
       List<KVEntry> results, ScanParameters scanParams, long maxResultsSize) throws IOException {
 
-    try {
-      while (context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN,
-          () -> {
-            return isUserTable;
-          }, () -> {
-            log.info("Not starting lookup because low on memory, extent: {}", extent);
-            server.getScanMetrics().incrementScanPausedForLowMemory();
-            Thread.sleep(500);
-          })) {}
-    } catch (InterruptedException e) {
-      // Reset the interrupt state on this thread
-      Thread.interrupted();
-      throw new IOException("Pause for low memory interrupted", e);
-    }
+    while (context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN, () -> {
+      return isUserTable;
+    }, () -> {
+      log.info("Not starting lookup because low on memory, extent: {}", extent);
+      server.getScanMetrics().incrementScanPausedForLowMemory();
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        Thread.interrupted();
+        throw new IllegalStateException(
+            "Interrupted while waiting for low memory condition to resolve");
+      }
+    })) {}
 
     Tablet.LookupResult lookupResult = new Tablet.LookupResult();
 
@@ -394,21 +384,13 @@ public abstract class TabletBase {
 
       boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
 
-      boolean runningLowOnMemory;
-      try {
-        runningLowOnMemory = context.getLowMemoryDetector().isRunningLowOnMemory(context,
-            DetectionScope.SCAN, () -> {
-              return isUserTable;
-            }, () -> {
-              log.info("Not continuing lookup because low on memory, extent: {}", extent);
-              server.getScanMetrics().incrementEarlyReturnForLowMemory();
-            });
-      } catch (InterruptedException e) {
-        // This should not occur, handling exception on interface.
-        // Reset the interrupt state on this thread
-        Thread.interrupted();
-        throw new IOException("Pause for low memory interrupted", e);
-      }
+      boolean runningLowOnMemory =
+          context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN, () -> {
+            return isUserTable;
+          }, () -> {
+            log.info("Not continuing lookup because low on memory, extent: {}", extent);
+            server.getScanMetrics().incrementEarlyReturnForLowMemory();
+          });
       if (runningLowOnMemory || exceededMemoryUsage || tabletClosed || timesUp || yielded) {
         lookupResult.unfinishedRanges.add(range);
         continue;
@@ -440,20 +422,13 @@ public abstract class TabletBase {
 
           timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
 
-          try {
-            runningLowOnMemory = context.getLowMemoryDetector().isRunningLowOnMemory(context,
-                DetectionScope.SCAN, () -> {
-                  return isUserTable;
-                }, () -> {
-                  log.info("Not continuing lookup because low on memory, extent: {}", extent);
-                  server.getScanMetrics().incrementEarlyReturnForLowMemory();
-                });
-          } catch (InterruptedException e) {
-            // This should not occur, handling exception on interface.
-            // Reset the interrupt state on this thread
-            Thread.interrupted();
-            throw new IOException("Pause for low memory interrupted", e);
-          }
+          runningLowOnMemory = context.getLowMemoryDetector().isRunningLowOnMemory(context,
+              DetectionScope.SCAN, () -> {
+                return isUserTable;
+              }, () -> {
+                log.info("Not continuing lookup because low on memory, extent: {}", extent);
+                server.getScanMetrics().incrementEarlyReturnForLowMemory();
+              });
           if (runningLowOnMemory || exceededMemoryUsage || timesUp) {
             addUnfinishedRange(lookupResult, range, key);
             break;

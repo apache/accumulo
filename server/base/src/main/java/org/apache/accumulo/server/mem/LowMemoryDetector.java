@@ -38,7 +38,7 @@ public class LowMemoryDetector {
 
   @FunctionalInterface
   public static interface Action {
-    void execute() throws InterruptedException;
+    void execute();
   }
 
   public enum DetectionScope {
@@ -71,7 +71,7 @@ public class LowMemoryDetector {
    * @return true if server running low on memory
    */
   public boolean isRunningLowOnMemory(ServerContext context, DetectionScope scope,
-      Supplier<Boolean> isUserTable, Action action) throws InterruptedException {
+      Supplier<Boolean> isUserTable, Action action) {
     if (isUserTable.get()) {
       Property p = null;
       switch (scope) {
