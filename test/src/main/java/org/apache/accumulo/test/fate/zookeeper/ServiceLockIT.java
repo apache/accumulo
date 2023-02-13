@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -719,13 +720,13 @@ public class ServiceLockIT {
       ServiceLockData sld1 = new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
           ServiceDescriptor.DEFAULT_GROUP_NAME);
       zl.lock(lw, sld1);
-      assertEquals(sld1,
+      assertEquals(Optional.of(sld1),
           ServiceLockData.parse(new String(zk.getData(zl.getLockPath(), null, null), UTF_8)));
 
       ServiceLockData sld2 = new ServiceLockData(UUID.randomUUID(), "test2", ThriftService.TSERV,
           ServiceDescriptor.DEFAULT_GROUP_NAME);
       zl.replaceLockData(sld2);
-      assertEquals(sld2,
+      assertEquals(Optional.of(sld2),
           ServiceLockData.parse(new String(zk.getData(zl.getLockPath(), null, null), UTF_8)));
     }
   }
