@@ -36,6 +36,7 @@ import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
+import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.slf4j.LoggerFactory;
@@ -118,6 +119,16 @@ public enum Property {
           + " a comma or other reserved characters in a URI use standard URI hex"
           + " encoding. For example replace commas with %2C.",
       "1.6.0"),
+  INSTANCE_VOLUME_CONFIG_PREFIX("instance.volume.config.", null, PropertyType.PREFIX,
+      "Properties in this category are used to provide volume specific overrides to "
+          + "the general filesystem client configuration. Properties using this prefix "
+          + "should be in the form "
+          + "'instance.volume.config.<volume-uri>.<property-name>=<property-value>. An "
+          + "example: "
+          + "'instance.volume.config.hdfs://namespace-a:8020/accumulo.dfs.client.hedged.read.threadpool.size=10'. "
+          + "Note that when specifying property names that contain colons in the properties "
+          + "files that the colons need to be escaped with a backslash.",
+      "2.1.1"),
   INSTANCE_VOLUMES_REPLACEMENTS("instance.volumes.replacements", "", PropertyType.STRING,
       "Since accumulo stores absolute URIs changing the location of a namenode "
           + "could prevent Accumulo from starting. The property helps deal with "
@@ -297,6 +308,9 @@ public enum Property {
       PropertyType.BOOLEAN, "Enables JVM metrics functionality using Micrometer", "2.1.0"),
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory", "", PropertyType.CLASSNAME,
       "Name of class that implements MeterRegistryFactory", "2.1.0"),
+  GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
+      "The local IP address to which this server should bind for sending and receiving network traffic",
+      "3.0.0"),
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server. "
@@ -387,6 +401,13 @@ public enum Property {
   @Experimental
   SSERV_DEFAULT_BLOCKSIZE("sserver.default.blocksize", "1M", PropertyType.BYTES,
       "Specifies a default blocksize for the scan server caches", "2.1.0"),
+  @Experimental
+  SSERV_GROUP_NAME("sserver.group", ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME,
+      PropertyType.STRING,
+      "Optional group name that will be made available to the "
+          + "ScanServerSelector client plugin. Groups support at least two use cases:"
+          + " dedicating resources to scans and/or using different hardware for scans.",
+      "3.0.0"),
   @Experimental
   SSERV_CACHED_TABLET_METADATA_EXPIRATION("sserver.cache.metadata.expiration", "5m",
       PropertyType.TIMEDURATION, "The time after which cached tablet metadata will be refreshed.",
@@ -728,6 +749,16 @@ public enum Property {
       "The number of threads on each tablet server available to retrieve"
           + " summary data, that is not currently in cache, from RFiles.",
       "2.0.0"),
+  TSERV_LAST_LOCATION_MODE("tserver.last.location.mode", "compaction",
+      PropertyType.LAST_LOCATION_MODE,
+      "Describes how the system will record the 'last' location for tablets, which can be used for"
+          + " assigning them when a cluster restarts. If 'compaction' is the mode, then the system"
+          + " will record the location where the tablet's most recent compaction occurred. If"
+          + " 'assignment' is the mode, then the most recently assigned location will be recorded."
+          + " The manager.startup.tserver properties might also need to be set to ensure the"
+          + " tserver is available before tablets are initially assigned if the 'last' location is"
+          + " to be used.",
+      "2.1.1"),
 
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
@@ -1143,6 +1174,9 @@ public enum Property {
   @Experimental
   COMPACTOR_MAX_MESSAGE_SIZE("compactor.message.size.max", "10M", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a tablet server.", "2.1.0"),
+  @Experimental
+  COMPACTOR_QUEUE_NAME("compactor.queue", "", PropertyType.STRING,
+      "The queue for which this Compactor will perform compactions", "3.0.0"),
   // CompactionCoordinator properties
   @Experimental
   COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,
@@ -1404,16 +1438,20 @@ public enum Property {
 
   /**
    * Checks if the given property and value are valid. A property is valid if the property key is
-   * valid see {@link #isValidTablePropertyKey} and that the value is a valid format for the type
-   * see {@link PropertyType#isValidFormat}.
+   * valid see {@link #isValidPropertyKey} and that the value is a valid format for the type see
+   * {@link PropertyType#isValidFormat}.
    *
    * @param key property key
    * @param value property value
    * @return true if key is valid (recognized, or has a recognized prefix)
    */
-  public static boolean isTablePropertyValid(final String key, final String value) {
+  public static boolean isValidProperty(final String key, final String value) {
     Property p = getPropertyByKey(key);
-    return (p == null || p.getType().isValidFormat(value)) && isValidTablePropertyKey(key);
+    if (p == null) {
+      // If a key doesn't exist yet, then check if it follows a valid prefix
+      return validPrefixes.stream().anyMatch(key::startsWith);
+    }
+    return (isValidPropertyKey(key) && p.getType().isValidFormat(value));
   }
 
   /**

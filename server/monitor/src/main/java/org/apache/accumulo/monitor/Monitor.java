@@ -46,6 +46,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import jakarta.inject.Singleton;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
@@ -80,7 +81,6 @@ import org.apache.accumulo.monitor.util.logging.RecentLogs;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.util.TableInfoUtil;
@@ -112,12 +112,12 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final long START_TIME;
 
   public static void main(String[] args) throws Exception {
-    try (Monitor monitor = new Monitor(new ServerOpts(), args)) {
+    try (Monitor monitor = new Monitor(new ConfigOpts(), args)) {
       monitor.runServer();
     }
   }
 
-  Monitor(ServerOpts opts, String[] args) {
+  Monitor(ConfigOpts opts, String[] args) {
     super("monitor", opts, args);
     START_TIME = System.currentTimeMillis();
   }

@@ -31,6 +31,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.hadoop.fs.Path;
 
 class MetaDataStateStore implements TabletStateStore {
@@ -60,9 +61,13 @@ class MetaDataStateStore implements TabletStateStore {
   public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (Assignment assignment : assignments) {
-        tabletsMutator.mutateTablet(assignment.tablet)
-            .putLocation(assignment.server, LocationType.CURRENT)
-            .deleteLocation(assignment.server, LocationType.FUTURE).deleteSuspension().mutate();
+        TabletMutator tabletMutator = tabletsMutator.mutateTablet(assignment.tablet);
+        tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
+        ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator,
+            assignment.tablet, assignment.server);
+        tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
+        tabletMutator.deleteSuspension();
+        tabletMutator.mutate();
       }
     } catch (RuntimeException ex) {
       throw new DistributedStoreException(ex);
@@ -102,6 +107,8 @@ class MetaDataStateStore implements TabletStateStore {
       for (TabletLocationState tls : tablets) {
         TabletMutator tabletMutator = tabletsMutator.mutateTablet(tls.extent);
         if (tls.current != null) {
+          ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator, tls.extent,
+              tls.current);
           tabletMutator.deleteLocation(tls.current, LocationType.CURRENT);
           if (logsForDeadServers != null) {
             List<Path> logs = logsForDeadServers.get(tls.current);
@@ -147,4 +154,5 @@ class MetaDataStateStore implements TabletStateStore {
   public String name() {
     return "Normal Tablets";
   }
+
 }

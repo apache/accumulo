@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -173,7 +174,9 @@ public class CompactorTest {
 
     SuccessfulCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         ServerContext context, ExternalCompactionId eci) {
-      super(new CompactorServerOpts(), new String[] {"-q", "testQ"}, context.getConfiguration());
+      super(new ConfigOpts(),
+          new String[] {"-o", Property.COMPACTOR_QUEUE_NAME.getKey() + "=testQ"},
+          context.getConfiguration());
       this.uuid = uuid;
       this.address = address;
       this.job = job;

@@ -21,7 +21,6 @@ package org.apache.accumulo.core.util.compaction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -42,7 +41,6 @@ public class CompactionServicesConfig {
   private final Map<String,Long> rateLimits = new HashMap<>();
   private final Map<String,Map<String,String>> options = new HashMap<>();
   long defaultRateLimit;
-  private final Consumer<String> deprecationWarningConsumer;
 
   public static final CompactionServiceId DEFAULT_SERVICE = CompactionServiceId.of("default");
 
@@ -55,9 +53,7 @@ public class CompactionServicesConfig {
     return aconf.getAllPropertiesWithPrefix(Property.TSERV_COMPACTION_SERVICE_PREFIX);
   }
 
-  public CompactionServicesConfig(AccumuloConfiguration aconf,
-      Consumer<String> deprecationWarningConsumer) {
-    this.deprecationWarningConsumer = deprecationWarningConsumer;
+  public CompactionServicesConfig(AccumuloConfiguration aconf) {
     Map<String,String> configs = getConfiguration(aconf);
 
     configs.forEach((prop, val) -> {

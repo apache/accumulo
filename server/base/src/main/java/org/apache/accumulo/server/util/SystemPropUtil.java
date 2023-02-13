@@ -34,13 +34,14 @@ public class SystemPropUtil {
 
   private static final Logger log = LoggerFactory.getLogger(SystemPropUtil.class);
 
-  public static void setSystemProperty(ServerContext context, String property, String value) {
+  public static void setSystemProperty(ServerContext context, String property, String value)
+      throws IllegalArgumentException {
     context.getPropStore().putAll(SystemPropKey.of(context),
         Map.of(validateSystemProperty(property, value), value));
   }
 
   public static void modifyProperties(ServerContext context, long version,
-      Map<String,String> properties) {
+      Map<String,String> properties) throws IllegalArgumentException {
     final Map<String,
         String> checkedProperties = properties.entrySet().stream().collect(
             Collectors.toMap(entry -> validateSystemProperty(entry.getKey(), entry.getValue()),
@@ -63,7 +64,8 @@ public class SystemPropUtil {
     context.getPropStore().removeProperties(SystemPropKey.of(context), List.of(property));
   }
 
-  private static String validateSystemProperty(String property, final String value) {
+  private static String validateSystemProperty(String property, final String value)
+      throws IllegalArgumentException {
     // Retrieve the replacement name for this property, if there is one.
     // Do this before we check if the name is a valid zookeeper name.
     final var original = property;
@@ -74,7 +76,13 @@ public class SystemPropUtil {
     if (!Property.isValidZooPropertyKey(property)) {
       IllegalArgumentException iae =
           new IllegalArgumentException("Zookeeper property is not mutable: " + property);
-      log.debug("Attempted to set zookeeper property.  It is not mutable", iae);
+      log.trace("Encountered error setting zookeeper property", iae);
+      throw iae;
+    }
+    if (!Property.isValidProperty(property, value)) {
+      IllegalArgumentException iae = new IllegalArgumentException(
+          "Property " + property + " with value: " + value + " is not valid");
+      log.trace("Encountered error setting zookeeper property", iae);
       throw iae;
     }
 
@@ -92,7 +100,7 @@ public class SystemPropUtil {
         && !foundProp.getType().isValidFormat(value)))) {
       IllegalArgumentException iae = new IllegalArgumentException(
           "Ignoring property " + property + " it is either null or in an invalid format");
-      log.debug("Attempted to set zookeeper property.  Value is either null or invalid", iae);
+      log.trace("Attempted to set zookeeper property.  Value is either null or invalid", iae);
       throw iae;
     }
 

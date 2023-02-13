@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -51,7 +52,6 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
 import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -80,7 +80,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
 
-  SimpleGarbageCollector(ServerOpts opts, String[] args) {
+  SimpleGarbageCollector(ConfigOpts opts, String[] args) {
     super("gc", opts, args);
 
     final AccumuloConfiguration conf = getConfiguration();
@@ -97,7 +97,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   public static void main(String[] args) throws Exception {
-    try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new ServerOpts(), args)) {
+    try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new ConfigOpts(), args)) {
       gc.runServer();
     }
   }
