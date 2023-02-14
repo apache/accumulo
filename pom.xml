@@ -159,7 +159,7 @@
     <thrift.version>0.17.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- ZooKeeper version -->
-    <zookeeper.version>3.8.0</zookeeper.version>
+    <zookeeper.version>3.8.1</zookeeper.version>
   </properties>
   <dependencyManagement>
     <dependencies>
