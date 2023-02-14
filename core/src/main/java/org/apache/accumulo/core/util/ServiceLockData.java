@@ -73,7 +73,6 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     }
 
     public ServiceDescriptor(UUID uuid, ThriftService service, String address, String group) {
-      super();
       this.uuid = requireNonNull(uuid);
       this.service = requireNonNull(service);
       this.address = requireNonNull(address);
@@ -102,11 +101,15 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     }
 
     @Override
-    public boolean equals(Object o) {
-      if (o instanceof ServiceDescriptor) {
-        return toString().equals(o.toString());
-      }
-      return false;
+    public boolean equals(Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      ServiceDescriptor other = (ServiceDescriptor) obj;
+      return toString().equals(other.toString());
     }
 
     @Override
@@ -143,9 +146,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
 
   public ServiceLockData(ServiceDescriptors sds) {
     this.services = new EnumMap<>(ThriftService.class);
-    sds.getServices().forEach(sd -> {
-      this.services.put(sd.getService(), sd);
-    });
+    sds.getServices().forEach(sd -> this.services.put(sd.getService(), sd));
   }
 
   public ServiceLockData(UUID uuid, String address, ThriftService service, String group) {
