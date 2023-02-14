@@ -102,12 +102,15 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj)
+      if (this == obj) {
         return true;
-      if (obj == null)
+      }
+      if (obj == null) {
         return false;
-      if (getClass() != obj.getClass())
+      }
+      if (getClass() != obj.getClass()) {
         return false;
+      }
       ServiceDescriptor other = (ServiceDescriptor) obj;
       return toString().equals(other.toString());
     }
