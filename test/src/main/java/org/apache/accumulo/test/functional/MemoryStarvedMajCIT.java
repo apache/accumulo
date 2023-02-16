@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.DoubleAdder;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -160,7 +159,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
         compactionThread.join();
         assertNull(error.get());
         assertTrue(client.instanceOperations().getActiveCompactions().stream()
-            .filter(ac -> ac.getPausedCount() > 0).collect(Collectors.toList()).size() > 0);
+            .filter(ac -> ac.getPausedCount() > 0).findAny().isPresent());
       }
     }
 
