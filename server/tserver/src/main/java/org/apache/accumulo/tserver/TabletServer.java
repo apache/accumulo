@@ -109,11 +109,11 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
+import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -175,10 +175,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
-  private static final long TIME_BETWEEN_GC_CHECKS = TimeUnit.SECONDS.toMillis(5);
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = TimeUnit.HOURS.toMillis(1);
 
-  final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   final ZooCache managerLockCache;
 
   final TabletServerLogger logger;
@@ -188,6 +186,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   TabletServerScanMetrics scanMetrics;
   TabletServerMinCMetrics mincMetrics;
   CompactionExecutorsMetrics ceMetrics;
+  PausedCompactionMetrics pausedMetrics;
 
   @Override
   public TabletServerScanMetrics getScanMetrics() {
@@ -196,6 +195,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   public TabletServerMinCMetrics getMinCMetrics() {
     return mincMetrics;
+  }
+
+  @Override
+  public PausedCompactionMetrics getPausedCompactionMetrics() {
+    return pausedMetrics;
   }
 
   private final LogSorter logSorter;
@@ -612,11 +616,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return managerLockCache;
   }
 
-  @Override
-  public GarbageCollectionLogger getGcLogger() {
-    return gcLogger;
-  }
-
   private void announceExistence() {
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
     try {
@@ -644,7 +643,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             if (!serverStopRequested) {
               log.error("Lost tablet server lock (reason = {}), exiting.", reason);
             }
-            gcLogger.logGCInfo(getConfiguration());
+            context.getLowMemoryDetector().logGCInfo(getConfiguration());
           });
         }
 
@@ -717,7 +716,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     scanMetrics = new TabletServerScanMetrics();
     mincMetrics = new TabletServerMinCMetrics();
     ceMetrics = new CompactionExecutorsMetrics();
-    MetricsUtil.initializeProducers(metrics, updateMetrics, scanMetrics, mincMetrics, ceMetrics);
+    pausedMetrics = new PausedCompactionMetrics();
+    MetricsUtil.initializeProducers(metrics, updateMetrics, scanMetrics, mincMetrics, ceMetrics,
+        pausedMetrics);
 
     this.compactionManager = new CompactionManager(() -> Iterators
         .transform(onlineTablets.snapshot().values().iterator(), Tablet::asCompactable),
@@ -889,7 +890,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       log.warn("Failed to close filesystem : {}", e.getMessage(), e);
     }
 
-    gcLogger.logGCInfo(getConfiguration());
+    context.getLowMemoryDetector().logGCInfo(getConfiguration());
 
     log.info("TServerInfo: stop requested. exiting ... ");
 
@@ -955,12 +956,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     Threads.createThread("Split/MajC initiator", new MajorCompactor(context)).start();
 
     clientAddress = HostAndPort.fromParts(getHostname(), 0);
-
-    Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
-
-    ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(gcDebugTask,
-        0, TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
-    watchNonCriticalScheduledTask(future);
   }
 
   public TabletServerStatus getStats(Map<TableId,MapCounter<ScanRunState>> scanCounts) {

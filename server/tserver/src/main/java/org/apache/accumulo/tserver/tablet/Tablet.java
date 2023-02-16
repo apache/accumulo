@@ -91,6 +91,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionStats;
+import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
@@ -1953,6 +1954,10 @@ public class Tablet extends TabletBase {
   @Override
   public TabletServerScanMetrics getScanMetrics() {
     return getTabletServer().getScanMetrics();
+  }
+
+  public PausedCompactionMetrics getPausedCompactionMetrics() {
+    return getTabletServer().getPausedCompactionMetrics();
   }
 
   DatafileManager getDatafileManager() {

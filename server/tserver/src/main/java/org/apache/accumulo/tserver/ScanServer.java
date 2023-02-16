@@ -87,8 +87,8 @@ import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -182,7 +182,6 @@ public class ScanServer extends AbstractServer
   private final SessionManager sessionManager;
   private final TabletServerResourceManager resourceManager;
   HostAndPort clientAddress;
-  private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
 
   private volatile boolean serverStopRequested = false;
   private ServiceLock scanServerLock;
@@ -313,7 +312,7 @@ public class ScanServer extends AbstractServer
             if (!serverStopRequested) {
               LOG.error("Lost tablet server lock (reason = {}), exiting.", reason);
             }
-            gcLogger.logGCInfo(getConfiguration());
+            context.getLowMemoryDetector().logGCInfo(getConfiguration());
           });
         }
 
@@ -392,7 +391,7 @@ public class ScanServer extends AbstractServer
         LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
       }
 
-      gcLogger.logGCInfo(getConfiguration());
+      context.getLowMemoryDetector().logGCInfo(getConfiguration());
       LOG.info("stop requested. exiting ... ");
       try {
         if (null != lock) {
@@ -993,6 +992,12 @@ public class ScanServer extends AbstractServer
   }
 
   @Override
+  public PausedCompactionMetrics getPausedCompactionMetrics() {
+    // ScanServer does not perform compactions
+    return null;
+  }
+
+  @Override
   public Session getSession(long scanID) {
     return sessionManager.getSession(scanID);
   }
@@ -1010,11 +1015,6 @@ public class ScanServer extends AbstractServer
   @Override
   public ZooCache getManagerLockCache() {
     return managerLockCache;
-  }
-
-  @Override
-  public GarbageCollectionLogger getGcLogger() {
-    return gcLogger;
   }
 
   @Override

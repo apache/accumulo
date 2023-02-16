@@ -275,6 +275,29 @@ public enum Property {
   GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL("general.delegation.token.update.interval", "1d",
       PropertyType.TIMEDURATION, "The length of time between generation of new secret keys",
       "1.7.0"),
+  GENERAL_LOW_MEM_DETECTOR_INTERVAL("general.low.mem.detector.interval", "5s",
+      PropertyType.TIMEDURATION, "The time interval between low memory checks", "3.0.0"),
+  GENERAL_LOW_MEM_DETECTOR_THRESHOLD("general.low.mem.detector.threshold", "0.05",
+      PropertyType.FRACTION,
+      "The LowMemoryDetector will report when free memory drops below this percentage of total memory",
+      "3.0.0"),
+  GENERAL_LOW_MEM_SCAN_PROTECTION("general.low.mem.protection.scan", "false", PropertyType.BOOLEAN,
+      "Scans may be paused or return results early when the server "
+          + "is low on memory and this property is set to true. Enabling this property will incur a slight "
+          + "scan performance penalty when the server is not low on memory",
+      "3.0.0"),
+  GENERAL_LOW_MEM_MINC_PROTECTION("general.low.mem.protection.compaction.minc", "false",
+      PropertyType.BOOLEAN,
+      "Minor compactions may be paused when the server "
+          + "is low on memory and this property is set to true. Enabling this property will incur a slight "
+          + "compaction performance penalty when the server is not low on memory",
+      "3.0.0"),
+  GENERAL_LOW_MEM_MAJC_PROTECTION("general.low.mem.protection.compaction.majc", "false",
+      PropertyType.BOOLEAN,
+      "Major compactions may be paused when the server "
+          + "is low on memory and this property is set to true. Enabling this property will incur a slight "
+          + "compaction performance penalty when the server is not low on memory",
+      "3.0.0"),
   GENERAL_MAX_SCANNER_RETRY_PERIOD("general.max.scanner.retry.period", "5s",
       PropertyType.TIMEDURATION,
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC",
@@ -810,7 +833,6 @@ public enum Property {
           + " The resources that are used by default can be seen in"
           + " accumulo/server/monitor/src/main/resources/templates/default.ftl",
       "2.0.0"),
-
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
       "Properties in this category affect tablet server treatment of tablets,"

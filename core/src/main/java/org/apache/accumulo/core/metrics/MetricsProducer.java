@@ -425,6 +425,20 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Counter</td>
  * <td></td>
  * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_SCAN_PAUSED_FOR_MEM}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_SCAN_RETURN_FOR_MEM}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
  * <!-- major compactions -->
  * <tr>
  * <td>{i|e}_{compactionServiceName}_{executor_name}_queued</td>
@@ -442,6 +456,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>The compaction service information is in a tag:
  * id={i|e}_{compactionServiceName}_{executor_name}</td>
  * </tr>
+ * <tr>
+ * <td></td>
+ * <td></td>
+ * <td>{@link #METRICS_MAJC_PAUSED}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
  * <!-- minor compactions -->
  * <tr>
  * <td>Queue</td>
@@ -455,6 +476,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Stat</td>
  * <td>{@link #METRICS_MINC_RUNNING}</td>
  * <td>Timer</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td></td>
+ * <td></td>
+ * <td>{@link #METRICS_MINC_PAUSED}</td>
+ * <td>Counter</td>
  * <td></td>
  * </tr>
  * <!-- Updates (ingest) -->
@@ -595,10 +623,12 @@ public interface MetricsProducer {
   String METRICS_MAJC_PREFIX = "accumulo.tserver.compactions.majc.";
   String METRICS_MAJC_QUEUED = METRICS_MAJC_PREFIX + "queued";
   String METRICS_MAJC_RUNNING = METRICS_MAJC_PREFIX + "running";
+  String METRICS_MAJC_PAUSED = METRICS_MAJC_PREFIX + "paused";
 
   String METRICS_MINC_PREFIX = "accumulo.tserver.compactions.minc.";
   String METRICS_MINC_QUEUED = METRICS_MINC_PREFIX + "queued";
   String METRICS_MINC_RUNNING = METRICS_MINC_PREFIX + "running";
+  String METRICS_MINC_PAUSED = METRICS_MINC_PREFIX + "paused";
 
   String METRICS_SCAN = "accumulo.tserver.scans";
   String METRICS_SCAN_OPEN_FILES = METRICS_SCAN + ".files.open";
@@ -608,6 +638,8 @@ public interface MetricsProducer {
   String METRICS_SCAN_CONTINUE = METRICS_SCAN + ".continue";
   String METRICS_SCAN_CLOSE = METRICS_SCAN + ".close";
   String METRICS_SCAN_BUSY_TIMEOUT = METRICS_SCAN + ".busy_timeout";
+  String METRICS_SCAN_PAUSED_FOR_MEM = METRICS_SCAN + ".paused.for.memory";
+  String METRICS_SCAN_RETURN_FOR_MEM = METRICS_SCAN + ".return.early.for.memory";
 
   String METRICS_TSERVER_PREFIX = "accumulo.tserver.";
   String METRICS_TSERVER_ENTRIES = METRICS_TSERVER_PREFIX + "entries";

@@ -77,7 +77,6 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -101,7 +100,6 @@ public class CompactionCoordinator extends AbstractServer
     implements CompactionCoordinatorService.Iface, LiveTServerSet.Listener {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
-  private static final long TIME_BETWEEN_GC_CHECKS = 5000;
   private static final long FIFTEEN_MINUTES = TimeUnit.MINUTES.toMillis(15);
 
   protected static final QueueSummaries QUEUE_SUMMARIES = new QueueSummaries();
@@ -122,7 +120,6 @@ public class CompactionCoordinator extends AbstractServer
   /* Map of queue name to last time compactor called to get a compaction job */
   private static final Map<String,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
 
-  private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   protected SecurityOperation security;
   protected final AccumuloConfiguration aconf;
   protected CompactionFinalizer compactionFinalizer;
@@ -146,7 +143,6 @@ public class CompactionCoordinator extends AbstractServer
     compactionFinalizer = createCompactionFinalizer(schedExecutor);
     tserverSet = createLiveTServerSet();
     setupSecurity();
-    startGCLogger(schedExecutor);
     printStartupMsg();
     startCompactionCleaner(schedExecutor);
     startRunningCleaner(schedExecutor);
@@ -168,13 +164,6 @@ public class CompactionCoordinator extends AbstractServer
 
   protected void setupSecurity() {
     security = getContext().getSecurityOperation();
-  }
-
-  protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(() -> gcLogger.logGCInfo(getConfiguration()), 0,
-            TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {

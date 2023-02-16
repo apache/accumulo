@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server;
 
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
@@ -27,6 +29,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +59,11 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       context.enforceKerberosLogin();
     }
+    final LowMemoryDetector lmd = context.getLowMemoryDetector();
+    ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(
+        () -> lmd.logGCInfo(context.getConfiguration()), 0,
+        lmd.getIntervalMillis(context.getConfiguration()), TimeUnit.MILLISECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   /**

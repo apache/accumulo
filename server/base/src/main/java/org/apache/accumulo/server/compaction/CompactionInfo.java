@@ -38,12 +38,14 @@ public class CompactionInfo {
   private final String localityGroup;
   private final long entriesRead;
   private final long entriesWritten;
+  private final long timesPaused;
   private final TCompactionReason reason;
 
   CompactionInfo(FileCompactor compactor) {
     this.localityGroup = compactor.getCurrentLocalityGroup();
     this.entriesRead = compactor.getEntriesRead();
     this.entriesWritten = compactor.getEntriesWritten();
+    this.timesPaused = compactor.getTimesPaused();
     this.reason = compactor.getReason();
     this.compactor = compactor;
   }
@@ -62,6 +64,10 @@ public class CompactionInfo {
 
   public long getEntriesWritten() {
     return entriesWritten;
+  }
+
+  public long getTimesPaused() {
+    return timesPaused;
   }
 
   public Thread getThread() {
@@ -100,6 +106,6 @@ public class CompactionInfo {
         .collect(Collectors.toList());
     return new ActiveCompaction(compactor.extent.toThrift(),
         System.currentTimeMillis() - compactor.getStartTime(), files, compactor.getOutputFile(),
-        type, reason, localityGroup, entriesRead, entriesWritten, iiList, iterOptions);
+        type, reason, localityGroup, entriesRead, entriesWritten, iiList, iterOptions, timesPaused);
   }
 }
