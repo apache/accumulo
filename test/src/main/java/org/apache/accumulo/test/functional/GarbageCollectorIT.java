@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -30,6 +31,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -52,8 +54,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.ServiceLockData;
+import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
@@ -73,6 +75,7 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
+import com.google.common.net.HostAndPort;
 
 public class GarbageCollectorIT extends ConfigurableMacBase {
   private static final String OUR_SECRET = "itsreallysecret";
@@ -284,22 +287,15 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         if (locks != null && !locks.isEmpty()) {
           String lockPath = path + "/" + locks.get(0);
 
-          String gcLoc = new String(zk.getData(lockPath));
+          Optional<ServiceLockData> sld = ServiceLockData.parse(zk.getData(lockPath));
 
-          assertTrue(gcLoc.startsWith(Service.GC_CLIENT.name()),
-              "Found unexpected data in zookeeper for GC location: " + gcLoc);
-          int loc = gcLoc.indexOf(ServerServices.SEPARATOR_CHAR);
-          assertNotEquals(-1, loc, "Could not find split point of GC location for: " + gcLoc);
-          String addr = gcLoc.substring(loc + 1);
+          assertNotNull(sld.get());
+          HostAndPort hostAndPort = sld.get().getAddress(ThriftService.GC);
 
-          int addrSplit = addr.indexOf(':');
-          assertNotEquals(-1, addrSplit, "Could not find split of GC host:port for: " + addr);
-
-          String host = addr.substring(0, addrSplit), port = addr.substring(addrSplit + 1);
           // We shouldn't have the "bindall" address in zk
-          assertNotEquals("0.0.0.0", host);
+          assertNotEquals("0.0.0.0", hostAndPort.getHost());
           // Nor should we have the "random port" in zk
-          assertNotEquals(0, Integer.parseInt(port));
+          assertNotEquals(0, hostAndPort.getPort());
           return;
         }
 

@@ -18,14 +18,15 @@
  */
 package org.apache.accumulo.server.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.util.ServiceLockData;
+import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
 import org.apache.accumulo.server.ServerContext;
 
 public class TabletServerLocks {
@@ -45,10 +46,10 @@ public class TabletServerLocks {
 
       for (String tabletServer : tabletServers) {
         var zLockPath = ServiceLock.path(tserverPath + "/" + tabletServer);
-        byte[] lockData = ServiceLock.getLockData(cache, zLockPath, null);
+        Optional<ServiceLockData> lockData = ServiceLock.getLockData(cache, zLockPath, null);
         final String holder;
-        if (lockData != null) {
-          holder = new String(lockData, UTF_8);
+        if (lockData.isPresent()) {
+          holder = lockData.get().getAddressString(ThriftService.TSERV);
         } else {
           holder = "<none>";
         }
