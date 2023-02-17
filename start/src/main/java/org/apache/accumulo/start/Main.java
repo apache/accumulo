@@ -40,31 +40,7 @@ public class Main {
   private static Map<String,KeywordExecutable> servicesMap;
 
   public static void main(final String[] args) throws Exception {
-    // Preload classes that cause a deadlock between the ServiceLoader and the DFSClient when
-    // using the VFSClassLoader with jars in HDFS.
-    ClassLoader loader = getClassLoader();
-    Class<?> confClass;
-    try {
-      confClass =
-          ClassLoader.getSystemClassLoader().loadClass("org.apache.hadoop.conf.Configuration");
-      Object conf;
-      try {
-        conf = confClass.getDeclaredConstructor().newInstance();
-        try {
-          Method getClassByNameOrNullMethod =
-              conf.getClass().getMethod("getClassByNameOrNull", String.class);
-          getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConf");
-          getClassByNameOrNullMethod.invoke(conf, "org.apache.hadoop.mapred.JobConfigurable");
-        } catch (Exception e) {
-          die(e, "Error pre-loading JobConf and JobConfigurable classes, VFS classloader with "
-              + "system classes in HDFS may not work correctly");
-        }
-      } catch (Exception e) {
-        die(e, "Error creating new instance of Hadoop Configuration");
-      }
-    } catch (ClassNotFoundException e) {
-      die(e, "Unable to find Hadoop Configuration class on classpath, check configuration.");
-    }
+    final ClassLoader loader = getClassLoader();
 
     if (args.length == 0) {
       printUsage();
