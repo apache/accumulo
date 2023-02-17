@@ -37,6 +37,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -56,7 +57,6 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -93,7 +93,7 @@ public class CompactionCoordinatorTest {
     protected TestCoordinator(CompactionFinalizer finalizer, LiveTServerSet tservers,
         ServerAddress client, Client tabletServerClient, ServerContext context,
         AuditedSecurityOperation security) {
-      super(new ServerOpts(), new String[] {}, context.getConfiguration());
+      super(new ConfigOpts(), new String[] {}, context.getConfiguration());
       this.compactionFinalizer = finalizer;
       this.tserverSet = tservers;
       this.client = client;
@@ -126,9 +126,6 @@ public class CompactionCoordinatorTest {
 
     @Override
     protected void setupSecurity() {}
-
-    @Override
-    protected void startGCLogger(ScheduledThreadPoolExecutor stpe) {}
 
     @Override
     protected void printStartupMsg() {}

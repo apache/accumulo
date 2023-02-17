@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -66,7 +67,7 @@ public class ScanServerTest {
     private TabletResolver resolver;
     private ScanReservation reservation;
 
-    protected TestScanServer(ScanServerOpts opts, String[] args) {
+    protected TestScanServer(ConfigOpts opts, String[] args) {
       super(opts, args);
     }
 

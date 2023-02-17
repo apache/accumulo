@@ -57,7 +57,7 @@ public class MinorCompactor extends FileCompactor {
       TabletFile outputFile, MinorCompactionReason mincReason, TableConfiguration tableConfig) {
     super(tabletServer.getContext(), tablet.getExtent(), Collections.emptyMap(), outputFile, true,
         new MinCEnv(mincReason, imm.compactionIterator()), Collections.emptyList(), tableConfig,
-        tableConfig.getCryptoService());
+        tableConfig.getCryptoService(), tabletServer.getPausedCompactionMetrics());
     this.tabletServer = tabletServer;
     this.mincReason = mincReason;
   }
@@ -146,7 +146,7 @@ public class MinorCompactor extends FileCompactor {
         }
 
         if (isTableDeleting()) {
-          return new CompactionStats(0, 0);
+          return new CompactionStats(0, 0, 0);
         }
 
       } while (true);

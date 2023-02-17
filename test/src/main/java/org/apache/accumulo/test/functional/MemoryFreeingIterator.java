@@ -16,23 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.iterators;
+package org.apache.accumulo.test.functional;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.core.iterators.WrappingIterator;
 
-public interface SystemIteratorEnvironment extends IteratorEnvironment {
+import com.google.common.util.concurrent.Uninterruptibles;
 
-  ServerContext getServerContext();
-
-  SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter);
+public class MemoryFreeingIterator extends WrappingIterator {
 
   @Override
-  default boolean isRunningLowOnMemory() {
-    return getServerContext().getLowMemoryDetector().isRunningLowOnMemory();
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
+    super.init(source, options, env);
+    MemoryConsumingIterator.freeBuffers();
+    while (this.isRunningLowOnMemory()) {
+      // wait for LowMemoryDetector to recognize the memory is free.
+      Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+    }
   }
 
 }
