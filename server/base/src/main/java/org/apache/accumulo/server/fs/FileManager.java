@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
@@ -310,7 +311,11 @@ public class FileManager {
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
             .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
             .withTableConfiguration(tableConf).withCacheProvider(cacheProvider)
-            .withFileLenCache(fileLenCache).build();
+            // Note: This is a placeholder with a list of one range that is the entire file -
+            // eventually the ranges would come from the metadata TableFile -
+            // using this for now demonstrates the RangedReader
+            // still works even with a range of 1 covering the whole file
+            .withFileLenCache(fileLenCache).withRanges(List.of(new Range())).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
 

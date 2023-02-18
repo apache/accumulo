@@ -109,7 +109,7 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
     }
   }
 
-  protected final void clear() {
+  public final void clear() {
     heap.clear();
     topIdx = null;
     nextKey = null;

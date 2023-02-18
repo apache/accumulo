@@ -36,9 +36,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.Sampler;
@@ -1157,7 +1159,7 @@ public class RFile {
     }
   }
 
-  public static class Reader extends HeapIterator implements FileSKVIterator {
+  public static class Reader extends HeapIterator implements RFileReader {
 
     private final CachableBlockFile.Reader reader;
 
@@ -1384,7 +1386,7 @@ public class RFile {
     }
 
     @Override
-    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    public Reader deepCopy(IteratorEnvironment env) {
       if (env != null && env.isSamplingEnabled()) {
         SamplerConfiguration sc = env.getSamplerConfiguration();
         if (sc == null) {
@@ -1485,7 +1487,7 @@ public class RFile {
     }
 
     @Override
-    public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
+    public Reader getSample(SamplerConfigurationImpl sampleConfig) {
       requireNonNull(sampleConfig);
 
       if (this.samplerConfig != null && this.samplerConfig.equals(sampleConfig)) {
@@ -1530,12 +1532,22 @@ public class RFile {
 
     @Override
     public void setInterruptFlag(AtomicBoolean flag) {
-      if (deepCopy) {
-        throw new RuntimeException("Calling setInterruptFlag on a deep copy is not supported");
-      }
+      // TODO: How do we handle this?
+      // We need to be able to set the interrupt flag on the deep copies
+      // for the RangedReader to work as each range is a copy and
+      // ScanDataSource sets this flag
+      // For now commenting out the check so the iterator and tests work
 
-      if (!deepCopies.isEmpty()) {
-        throw new RuntimeException("Setting interrupt flag after calling deep copy not supported");
+      // if (deepCopy) {
+      // throw new RuntimeException("Calling setInterruptFlag on a deep copy is not supported");
+      // }
+      //
+      // if (!deepCopies.isEmpty()) {
+      // throw new RuntimeException("Setting interrupt flag after calling deep copy not supported");
+      // }
+
+      for (Reader deepCopy : deepCopies) {
+        deepCopy.setInterruptFlagInternal(flag);
       }
 
       setInterruptFlagInternal(flag);
@@ -1553,4 +1565,256 @@ public class RFile {
       reader.setCacheProvider(cacheProvider);
     }
   }
+
+  public static class RangedReader extends HeapIterator implements RFileReader {
+
+    private final List<Range> ranges;
+    private final List<FencedReader> readers;
+    private final Reader reader;
+
+    public RangedReader(CachableBlockFile.CachableBuilder b) throws IOException {
+      this(new Reader(b), List.of(new Range()), null);
+    }
+
+    public RangedReader(CachableBlockFile.CachableBuilder b, Collection<Range> ranges)
+        throws IOException {
+      this(new Reader(b), ranges, null);
+    }
+
+    protected RangedReader(Reader reader, Collection<Range> ranges,
+        SamplerConfiguration samplerConfig) {
+      super(Objects.requireNonNull(ranges).size());
+      Preconditions.checkArgument(ranges.size() > 0,
+          "Range collection must contain at least 1 range");
+      this.reader = reader;
+      this.ranges = List.copyOf(Range.mergeOverlapping(ranges));
+      this.readers = createFencedReaders(reader, this.ranges, samplerConfig);
+    }
+
+    @Override
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public RangedReader deepCopy(IteratorEnvironment env) {
+      return new RangedReader(this, env);
+    }
+
+    private RangedReader(RangedReader other, IteratorEnvironment env) {
+      super(other.readers.size());
+      this.reader = other.reader.deepCopy(env);
+      this.ranges = List.copyOf(other.ranges);
+      this.readers = createFencedReaders(reader, ranges, env);
+    }
+
+    @Override
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {
+      clear();
+
+      for (SortedKeyValueIterator<Key,Value> skvi : readers) {
+        skvi.seek(range, columnFamilies, inclusive);
+        addSource(skvi);
+      }
+    }
+
+    @VisibleForTesting
+    Reader SourceReader() {
+      return reader;
+    }
+
+    @Override
+    public Key getFirstKey() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Key getLastKey() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    public List<Range> getRange() throws IOException {
+      return List.copyOf(ranges);
+    }
+
+    @Override
+    public DataInputStream getMetaStore(String name) throws IOException {
+      return reader.getMetaStore(name);
+    }
+
+    @Override
+    public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
+      final Reader sampleReader = reader.getSample(sampleConfig);
+
+      if (sampleReader != null) {
+        return new RangedReader(sampleReader, ranges,
+            new SamplerConfiguration(sampleConfig.getClassName())
+                .setOptions(sampleConfig.getOptions()));
+      }
+
+      return null;
+    }
+
+    @Override
+    public void closeDeepCopies() {
+      // TODO: How do we handle this?
+      // Calling closeDeepCopies() will cause scans to fail because
+      // we need to deep copies to stay open in this case and
+      // ScanDataSource#close() will end up calling FileManager#releaseReaders()
+      // which closes deep copies
+      // reader.closeDeepCopies()
+    }
+
+    @Override
+    public void setCacheProvider(CacheProvider cacheProvider) {
+      reader.setCacheProvider(cacheProvider);
+      for (FencedReader reader : readers) {
+        reader.setCacheProvider(cacheProvider);
+      }
+    }
+
+    @Override
+    public void close() throws IOException {
+      reader.close();
+    }
+
+    @Override
+    public void setInterruptFlag(AtomicBoolean flag) {
+      reader.setInterruptFlag(flag);
+    }
+
+    private static List<FencedReader> createFencedReaders(Reader reader, Collection<Range> ranges,
+        SamplerConfiguration samplerConfig) {
+      return createFencedReaders(reader, ranges, new IteratorEnvironment() {
+        @Override
+        public boolean isSamplingEnabled() {
+          return samplerConfig != null;
+        }
+
+        @Override
+        public SamplerConfiguration getSamplerConfiguration() {
+          return samplerConfig;
+        }
+      });
+    }
+
+    private static List<FencedReader> createFencedReaders(Reader reader, Collection<Range> ranges,
+        IteratorEnvironment env) {
+      return ranges.stream().map(range -> new FencedReader(reader.deepCopy(env), range))
+          .collect(Collectors.toUnmodifiableList());
+    }
+  }
+
+  static class FencedReader implements FileSKVIterator {
+
+    private final Reader reader;
+    private final Range fence;
+
+    public FencedReader(Reader reader, Range seekFence) {
+      this.reader = Objects.requireNonNull(reader);
+      this.fence = seekFence;
+    }
+
+    @Override
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {
+      reader.clear();
+
+      if (fence != null) {
+        range = fence.clip(range, true);
+        if (range == null) {
+          return;
+        }
+      }
+
+      reader.seek(range, columnFamilies, inclusive);
+    }
+
+    @Override
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean hasTop() {
+      return reader.hasTop();
+    }
+
+    @Override
+    public void next() throws IOException {
+      reader.next();
+    }
+
+    @Override
+    public Key getTopKey() {
+      return reader.getTopKey();
+    }
+
+    @Override
+    public Value getTopValue() {
+      return reader.getTopValue();
+    }
+
+    @Override
+    public FencedReader deepCopy(IteratorEnvironment env) {
+      return new FencedReader(reader.deepCopy(env), fence);
+    }
+
+    @Override
+    public boolean isRunningLowOnMemory() {
+      return reader.isRunningLowOnMemory();
+    }
+
+    @Override
+    public void setInterruptFlag(AtomicBoolean flag) {
+      reader.setInterruptFlag(flag);
+    }
+
+    @Override
+    public Key getFirstKey() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Key getLastKey() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public DataInputStream getMetaStore(String name) throws IOException, NoSuchMetaStoreException {
+      return reader.getMetaStore(name);
+    }
+
+    public FileSKVIterator getIndex() throws IOException {
+      return reader.getIndex();
+    }
+
+    @Override
+    public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
+      return new FencedReader(reader.getSample(sampleConfig), fence);
+    }
+
+    @Override
+    public void closeDeepCopies() throws IOException {
+      reader.closeDeepCopies();
+    }
+
+    @Override
+    public void setCacheProvider(CacheProvider cacheProvider) {
+      reader.setCacheProvider(cacheProvider);
+    }
+
+    @Override
+    public void close() throws IOException {
+      reader.close();
+    }
+  }
+
+  public interface RFileReader extends FileSKVIterator {
+    // Todo - do we need any new methods here?
+  }
+
 }

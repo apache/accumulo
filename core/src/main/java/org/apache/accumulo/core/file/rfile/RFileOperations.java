@@ -54,12 +54,20 @@ public class RFileOperations extends FileOperations {
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
 
   private static RFile.Reader getReader(FileOptions options) throws IOException {
-    CachableBuilder cb = new CachableBuilder()
+    return new RFile.Reader(getCb(options));
+  }
+
+  private static RFile.RFileReader getRangedReader(FileOptions options) throws IOException {
+    return options.getRanges() != null ? new RFile.RangedReader(getCb(options), options.getRanges())
+        : getReader(options);
+  }
+
+  private static CachableBuilder getCb(FileOptions options) throws IOException {
+    return new CachableBuilder()
         .fsPath(options.getFileSystem(), new Path(options.getFilename()), options.dropCacheBehind)
         .conf(options.getConfiguration()).fileLen(options.getFileLenCache())
         .cacheProvider(options.cacheProvider).readLimiter(options.getRateLimiter())
         .cryptoService(options.getCryptoService());
-    return new RFile.Reader(cb);
   }
 
   @Override
@@ -74,7 +82,7 @@ public class RFileOperations extends FileOperations {
 
   @Override
   protected FileSKVIterator openReader(FileOptions options) throws IOException {
-    RFile.Reader reader = getReader(options);
+    RFile.RFileReader reader = getRangedReader(options);
 
     if (options.isSeekToBeginning()) {
       reader.seek(new Range((Key) null, null), EMPTY_CF_SET, false);

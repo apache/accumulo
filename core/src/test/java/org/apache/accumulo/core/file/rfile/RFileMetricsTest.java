@@ -81,8 +81,9 @@ public class RFileMetricsTest {
 
     public VisMetricsGatherer gatherMetrics() throws IOException {
       VisMetricsGatherer vmg = new VisMetricsGatherer();
-      reader.registerMetrics(vmg);
-      Map<String,ArrayList<ByteSequence>> localityGroupCF = reader.getLocalityGroupCF();
+      ((RFile.Reader) reader).registerMetrics(vmg);
+      Map<String,ArrayList<ByteSequence>> localityGroupCF =
+          ((RFile.Reader) reader).getLocalityGroupCF();
 
       for (String lgName : localityGroupCF.keySet()) {
         LocalityGroupUtil.seek(reader, new Range(), lgName, localityGroupCF);
