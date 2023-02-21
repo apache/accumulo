@@ -68,6 +68,7 @@ import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
+import org.apache.accumulo.server.metadata.TabletMetadataCache;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -87,6 +88,7 @@ import org.slf4j.LoggerFactory;
  * and have access to the system files and configuration.
  */
 public class ServerContext extends ClientContext {
+
   private static final Logger log = LoggerFactory.getLogger(ServerContext.class);
 
   private final ServerInfo info;
@@ -104,6 +106,9 @@ public class ServerContext extends ClientContext {
   private final Supplier<AuditedSecurityOperation> securityOperation;
   private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
   private final Supplier<LowMemoryDetector> lowMemoryDetector;
+  private final Supplier<TabletMetadataCache> tabletMetadataCache;
+
+  private volatile boolean tabletMetadataCacheInitialized = false;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -130,6 +135,7 @@ public class ServerContext extends ClientContext {
         memoize(() -> new AuditedSecurityOperation(this, SecurityOperation.getAuthorizor(this),
             SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
     lowMemoryDetector = memoize(() -> new LowMemoryDetector());
+    tabletMetadataCache = memoize(() -> new TabletMetadataCache(this));
   }
 
   /**
@@ -458,6 +464,22 @@ public class ServerContext extends ClientContext {
 
   public LowMemoryDetector getLowMemoryDetector() {
     return lowMemoryDetector.get();
+  }
+
+  public TabletMetadataCache getTabletMetadataCache() {
+    try {
+      return tabletMetadataCache.get();
+    } finally {
+      tabletMetadataCacheInitialized = true;
+    }
+  }
+
+  @Override
+  public synchronized void close() {
+    super.close();
+    if (tabletMetadataCacheInitialized) {
+      this.tabletMetadataCache.get().close();
+    }
   }
 
 }

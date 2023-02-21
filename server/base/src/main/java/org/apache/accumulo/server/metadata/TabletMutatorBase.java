@@ -56,13 +56,15 @@ import com.google.common.base.Preconditions;
 
 public abstract class TabletMutatorBase implements Ample.TabletMutator {
 
-  private final ServerContext context;
+  protected final ServerContext context;
+  protected final KeyExtent extent;
   private final Mutation mutation;
   protected AutoCloseable closeAfterMutate;
   private boolean updatesEnabled = true;
 
   protected TabletMutatorBase(ServerContext context, KeyExtent extent) {
     this.context = context;
+    this.extent = extent;
     mutation = new Mutation(extent.toMetaRow());
   }
 

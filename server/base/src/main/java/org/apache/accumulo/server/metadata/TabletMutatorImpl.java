@@ -43,6 +43,7 @@ class TabletMutatorImpl extends TabletMutatorBase implements Ample.TabletMutator
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+    this.context.getTabletMetadataCache().tabletMetadataChanged(extent);
   }
 
 }
