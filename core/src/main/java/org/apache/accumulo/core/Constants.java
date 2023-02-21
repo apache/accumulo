@@ -47,6 +47,8 @@ public class Constants {
   public static final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
   public static final String ZTABLE_NAMESPACE = "/namespace";
 
+  public static final String ZTABLET_CACHE = "/tablet_cache";
+
   public static final String ZNAMESPACES = "/namespaces";
   public static final String ZNAMESPACE_NAME = "/name";
 
