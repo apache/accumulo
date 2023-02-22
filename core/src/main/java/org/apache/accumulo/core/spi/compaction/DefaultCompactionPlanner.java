@@ -123,8 +123,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     final Long maxSize;
 
     public Executor(CompactionExecutorId ceid, Long maxSize) {
-      Preconditions.checkArgument(maxSize == null || maxSize > 0);
-      this.ceid = Objects.requireNonNull(ceid);
+      Preconditions.checkArgument(maxSize == null || maxSize > 0, "Invalid value for maxSize");
+      this.ceid = Objects.requireNonNull(ceid, "Compaction ID is null");
       this.maxSize = maxSize;
     }
 
