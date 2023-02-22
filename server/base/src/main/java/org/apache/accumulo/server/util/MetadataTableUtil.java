@@ -157,6 +157,9 @@ public class MetadataTableUtil {
     while (true) {
       try {
         t.update(m);
+        if (!extent.isMeta()) {
+          context.getTabletMetadataCache().tabletMetadataChanged(extent);
+        }
         return;
       } catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
         logUpdateFailure(m, extent, e);

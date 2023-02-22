@@ -146,8 +146,13 @@ public class TabletMetadataCacheIT {
   public void testPathParsing() {
     try (TestTabletMetadataCache cache = new TestTabletMetadataCache(context)) {
       String path = cache.getPath(ke1);
+      assertEquals("/accumulo/" + IID + Constants.ZTABLET_CACHE + "/2;b;", path);
       KeyExtent result = cache.getExtent(path);
-      assertEquals(ke1.toMetaRow(), result.toMetaRow());
+      assertEquals(ke1, result);
+      String path2 = cache.getPath(ke2);
+      assertEquals("/accumulo/" + IID + Constants.ZTABLET_CACHE + "/2;d;b", path2);
+      KeyExtent result2 = cache.getExtent(path2);
+      assertEquals(ke2.toMetaRow(), result2.toMetaRow());
     }
   }
 
