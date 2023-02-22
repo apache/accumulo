@@ -130,6 +130,12 @@ public class ZooKeeperTestingServer implements AutoCloseable {
     }
   }
 
+  public void restart() throws Exception {
+    if (zkServer != null) {
+      zkServer.restart();
+    }
+  }
+
   @Override
   public void close() throws IOException {
     if (zkServer != null) {

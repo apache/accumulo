@@ -21,6 +21,7 @@ package org.apache.accumulo.server.metadata;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.Closeable;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
@@ -38,6 +39,8 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.WatcherType;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,7 +135,7 @@ public class TabletMetadataCache implements Closeable {
       // TabletMetadataCache has been initialized
       if (ctx.isTabletMetadataCacheInitialized()) {
         LOG.info("Invalidating extent due to local tablet change: {}", extent);
-        ctx.getTabletMetadataCache().invalidate(extent);
+        ctx.getTabletMetadataCache().remove(extent);
       }
       // mutate ZK entry for this tablet
       ctx.getZooReaderWriter().mutateOrCreate(path, serializeData(INITIAL_VALUE), (currVal) -> {
@@ -147,9 +150,37 @@ public class TabletMetadataCache implements Closeable {
   }
 
   private Watcher tabletCacheZNodeWatcher = new Watcher() {
+    @SuppressWarnings("deprecation")
     @Override
     public void process(WatchedEvent event) {
-      LOG.info("Event received: {}", event);
+      LOG.trace("Event received: {}", event);
+      switch (event.getState()) {
+        case Expired:
+        case Disconnected:
+        case AuthFailed:
+        case Closed:
+        case ConnectedReadOnly:
+          // Connection issue, invalidate all and stop caching
+          // until we are connected again.
+          if (connected.compareAndSet(true, false)) {
+            LOG.info("Connection issue, clearing cache.");
+            tabletMetadataCache.invalidateAll();
+          }
+          break;
+        case SyncConnected:
+          // Connected, begin caching
+          if (connected.compareAndSet(false, true)) {
+            LOG.info("Connection established.");
+          }
+          break;
+        case NoSyncConnected:
+        case SaslAuthenticated:
+        case Unknown:
+        default:
+          // No ops
+          break;
+
+      }
       switch (event.getType()) {
         case NodeCreated:
           // Do nothing, cache will be populated on clients first call to get()
@@ -162,9 +193,9 @@ public class TabletMetadataCache implements Closeable {
           tabletMetadataCache.invalidate(extent);
           break;
         case None:
+        case NodeChildrenChanged: // These events are not triggered by persistent recursive watches
         case ChildWatchRemoved:
         case DataWatchRemoved:
-        case NodeChildrenChanged:
         case PersistentWatchRemoved:
         default:
           break;
@@ -175,12 +206,15 @@ public class TabletMetadataCache implements Closeable {
 
   private final String watcherPath;
   private final String znodePath;
-  private final ZooReaderWriter zrw;
+  private final Ample ample;
+  private final ZooKeeper zoo;
+  protected final AtomicBoolean connected = new AtomicBoolean(false);
   protected final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
 
   public TabletMetadataCache(final InstanceId iid, final ZooReaderWriter zrw, final Ample ample) {
 
-    this.zrw = zrw;
+    this.zoo = zrw.getZooKeeper();
+    this.ample = ample;
     watcherPath = getWatcherPath(iid);
     znodePath = getZNodePath(iid);
 
@@ -193,8 +227,7 @@ public class TabletMetadataCache implements Closeable {
         });
 
     try {
-      this.zrw.getZooKeeper().addWatch(watcherPath, tabletCacheZNodeWatcher,
-          AddWatchMode.PERSISTENT_RECURSIVE);
+      zoo.addWatch(watcherPath, tabletCacheZNodeWatcher, AddWatchMode.PERSISTENT_RECURSIVE);
     } catch (KeeperException e) {
       throw new RuntimeException("Error setting watch", e);
     } catch (InterruptedException e) {
@@ -215,17 +248,26 @@ public class TabletMetadataCache implements Closeable {
   }
 
   /**
-   * Cached TabletMetadata for the KeyExtent. If it does not exist, then it will be loaded into the
-   * cache via the CacheLoader which uses Ample to read the TabletMetadata and all of its columns.
+   * Returns cached TabletMetadata for the KeyExtent. If it does not exist, then it will be loaded
+   * into the cache via the CacheLoader which uses Ample to read the TabletMetadata and all of its
+   * columns. If the ZooKeeper connection is down, this will read from ample and skip the cache.
    *
    * @param extent KeyExtent
    * @return TabletMetadata for the KeyExtent
    */
   public TabletMetadata get(KeyExtent extent) {
+    if (!States.CONNECTED.equals(zoo.getState()) || !connected.get()) {
+      return ample.readTablet(extent, ColumnType.values());
+    }
     return tabletMetadataCache.get(extent);
   }
 
-  public void invalidate(KeyExtent extent) {
+  /**
+   * Remove the cache entry for this KeyExtent
+   *
+   * @param extent KeyExtent
+   */
+  private void remove(KeyExtent extent) {
     tabletMetadataCache.invalidate(extent);
   }
 
@@ -234,8 +276,7 @@ public class TabletMetadataCache implements Closeable {
     tabletMetadataCache.invalidateAll();
     tabletMetadataCache.cleanUp();
     try {
-      this.zrw.getZooKeeper().removeWatches(watcherPath, tabletCacheZNodeWatcher, WatcherType.Any,
-          false);
+      zoo.removeWatches(watcherPath, tabletCacheZNodeWatcher, WatcherType.Any, false);
     } catch (InterruptedException | KeeperException e) {
       LOG.error("Error removing persistent watcher", e);
     }

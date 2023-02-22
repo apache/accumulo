@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
@@ -49,8 +50,11 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +62,7 @@ import org.slf4j.LoggerFactory;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
 
 @Tag(ZOOKEEPER_TESTING_SERVER)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TabletMetadataCacheIT {
 
   /**
@@ -72,6 +77,10 @@ public class TabletMetadataCacheIT {
     @Override
     public KeyExtent getExtent(String path) {
       return super.getExtent(path);
+    }
+
+    public AtomicBoolean getConnected() {
+      return connected;
     }
 
     /**
@@ -152,6 +161,7 @@ public class TabletMetadataCacheIT {
   }
 
   @Test
+  @Order(1)
   public void testPathParsing() {
     String path = TabletMetadataCache.getPath(IID, ke1);
     assertEquals("/accumulo/" + IID + Constants.ZTABLET_CACHE + "/2;b;", path);
@@ -164,6 +174,7 @@ public class TabletMetadataCacheIT {
   }
 
   @Test
+  @Order(2)
   public void testCachingLocalTabletChange() {
     TabletMetadataCache.tabletMetadataChanged(context, ke1); // This will perform a create in ZK
     assertEquals(0, cache.getTabletMetadataCacheStats().loadCount());
@@ -213,6 +224,7 @@ public class TabletMetadataCacheIT {
   }
 
   @Test
+  @Order(3)
   public void testCachingThreadTabletChange() throws InterruptedException {
     TabletMetadataCache.tabletMetadataChanged(context, ke2); // This will perform a create in ZK
 
@@ -239,6 +251,95 @@ public class TabletMetadataCacheIT {
     assertEquals(2, cache.getTabletMetadataCacheStats().requestCount());
     assertEquals(2, cache.getTabletMetadataCacheStats().loadSuccessCount());
     assertEquals(tm2, result);
+  }
+
+
+  @Test
+  @Order(4)
+  public void testZooKeeperConnectionRestart() throws Exception {
+    TabletMetadataCache.tabletMetadataChanged(context, ke1); // This will perform a create in ZK
+    assertEquals(0, cache.getTabletMetadataCacheStats().loadCount());
+    assertEquals(0, cache.getTabletMetadataCacheSize());
+    TabletMetadata result = cache.get(ke1);
+    assertEquals(1, cache.getTabletMetadataCacheSize());
+    assertEquals(1, cache.getTabletMetadataCacheStats().requestCount());
+    assertEquals(1, cache.getTabletMetadataCacheStats().loadSuccessCount());
+    assertEquals(tm1, result);
+    TabletMetadataCache.tabletMetadataChanged(context, ke1); // This will perform an update and
+                                                             // trigger invalidation
+    assertEquals(0, cache.getTabletMetadataCacheSize());
+    result = cache.get(ke1);
+    assertEquals(1, cache.getTabletMetadataCacheSize());
+    assertEquals(2, cache.getTabletMetadataCacheStats().requestCount());
+    assertEquals(2, cache.getTabletMetadataCacheStats().loadSuccessCount());
+    assertEquals(tm1, result);
+
+    // restart ZooKeeper
+    szk.restart();
+
+    // Wait to be disconnected
+    while (cache.getConnected().get()) {
+      // TODO: The ZooKeeper connection does not realize that it's disconnected
+      // until the timeout. The Watcher does not get the disconnected state until
+      // the server is restarted. The ZooKeeper connection State object is still
+      // CONNECTED, so the below does not work. This means that because the ZooKeeper
+      // client does not know immediately that it's disconnected, that it's possible
+      // that the cache will return a possibly stale cached result until the ZooKeeper
+      // timeout occurs and the ZooKeeper client object realizes it's disconnected.
+      // result = cache.get(ke1);
+      // assertEquals(1, cache.getTabletMetadataCacheSize());
+      // assertEquals(2, cache.getTabletMetadataCacheStats().requestCount());
+      // assertEquals(2, cache.getTabletMetadataCacheStats().loadSuccessCount());
+      // assertEquals(tm1, result);
+      Thread.sleep(10);
+    }
+
+    // Wait to be reconnected
+    while (!cache.getConnected().get()) {
+      Thread.sleep(10);
+    }
+
+    assertEquals(0, cache.getTabletMetadataCacheSize());
+    result = cache.get(ke1);
+    assertEquals(1, cache.getTabletMetadataCacheSize());
+    assertEquals(3, cache.getTabletMetadataCacheStats().requestCount());
+    assertEquals(3, cache.getTabletMetadataCacheStats().loadSuccessCount());
+    assertEquals(tm1, result);
+
+  }
+
+  @Test
+  @Order(5)
+  public void testZooKeeperDies() throws Exception {
+    TabletMetadataCache.tabletMetadataChanged(context, ke1); // This will perform a create in ZK
+    assertEquals(0, cache.getTabletMetadataCacheStats().loadCount());
+    assertEquals(0, cache.getTabletMetadataCacheSize());
+    TabletMetadata result = cache.get(ke1);
+    assertEquals(1, cache.getTabletMetadataCacheSize());
+    assertEquals(1, cache.getTabletMetadataCacheStats().requestCount());
+    assertEquals(1, cache.getTabletMetadataCacheStats().loadSuccessCount());
+    assertEquals(tm1, result);
+    TabletMetadataCache.tabletMetadataChanged(context, ke1); // This will perform an update and
+                                                             // trigger invalidation
+    assertEquals(0, cache.getTabletMetadataCacheSize());
+    result = cache.get(ke1);
+    assertEquals(1, cache.getTabletMetadataCacheSize());
+    assertEquals(2, cache.getTabletMetadataCacheStats().requestCount());
+    assertEquals(2, cache.getTabletMetadataCacheStats().loadSuccessCount());
+    assertEquals(tm1, result);
+
+    // close ZooKeeper
+    szk.close();
+
+    // Wait to be disconnected
+    while (cache.getConnected().get()) {
+      Thread.sleep(10);
+    }
+
+    assertEquals(0, cache.getTabletMetadataCacheSize());
+    result = cache.get(ke1);
+    assertEquals(0, cache.getTabletMetadataCacheSize());
+
   }
 
 }
