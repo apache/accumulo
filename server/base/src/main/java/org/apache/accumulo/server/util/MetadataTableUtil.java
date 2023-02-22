@@ -96,6 +96,7 @@ import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
+import org.apache.accumulo.server.metadata.TabletMetadataCache;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -158,7 +159,7 @@ public class MetadataTableUtil {
       try {
         t.update(m);
         if (!extent.isMeta()) {
-          context.getTabletMetadataCache().tabletMetadataChanged(extent);
+          TabletMetadataCache.tabletMetadataChanged(context, extent);
         }
         return;
       } catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {

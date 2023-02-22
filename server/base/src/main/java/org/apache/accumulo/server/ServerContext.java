@@ -474,6 +474,10 @@ public class ServerContext extends ClientContext {
     }
   }
 
+  public boolean isTabletMetadataCacheInitialized() {
+    return tabletMetadataCacheInitialized;
+  }
+
   @Override
   public synchronized void close() {
     super.close();

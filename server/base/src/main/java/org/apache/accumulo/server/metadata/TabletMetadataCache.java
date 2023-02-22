@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
-import com.github.benmanes.caffeine.cache.stats.CacheStats;
 
 /**
  * Object that uses ZooKeeper for signaling Tablet metadata changes to keep a local cache of Tablet
@@ -50,138 +49,15 @@ import com.github.benmanes.caffeine.cache.stats.CacheStats;
  */
 public class TabletMetadataCache implements Closeable {
 
-  private Watcher tabletCacheZNodeWatcher = new Watcher() {
-    @Override
-    public void process(WatchedEvent event) {
-      switch (event.getType()) {
-        case NodeCreated:
-          // Do nothing, cache will be populated on clients first call to get()
-          break;
-        case NodeDataChanged:
-        case NodeDeleted:
-          // Remove the tablet metadata cache entry on update or delete.
-          KeyExtent extent = getExtent(event.getPath());
-          LOG.info("Invalidating extent: {}", extent);
-          tabletMetadataCache.invalidate(extent);
-          break;
-        case None:
-        case ChildWatchRemoved:
-        case DataWatchRemoved:
-        case NodeChildrenChanged:
-        case PersistentWatchRemoved:
-        default:
-          break;
-
-      }
-    }
-  };
-
   private static final Logger LOG = LoggerFactory.getLogger(TabletMetadataCache.class);
   private static final Long INITIAL_VALUE = Long.valueOf(0);
 
-  private final String watcherPath;
-  private final String znodePath;
-  private final ZooReaderWriter zrw;
-  private final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
-
-  public TabletMetadataCache(final ServerContext ctx) {
-
-    this.zrw = ctx.getZooReaderWriter();
-
-    watcherPath = Constants.ZROOT + "/" + ctx.getInstanceID() + Constants.ZTABLET_CACHE;
-    znodePath = watcherPath + "/";
-
-    // TODO: Likely want to set a max size and eviction parameters
-    tabletMetadataCache =
-        Caffeine.newBuilder().recordStats().scheduler(Scheduler.systemScheduler()).build((k) -> {
-          TabletMetadata tm = ctx.getAmple().readTablet(k, ColumnType.values());
-          LOG.debug("Loading tablet metadata for extent: {}. Returned: {}", k, tm);
-          return tm;
-        });
-
-    try {
-      this.zrw.getZooKeeper().addWatch(watcherPath, tabletCacheZNodeWatcher,
-          AddWatchMode.PERSISTENT_RECURSIVE);
-    } catch (KeeperException e) {
-      throw new RuntimeException("Error setting watch", e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException("Thread interrupted setting watch", e);
-    }
-
+  private static String getWatcherPath(ServerContext ctx) {
+    return Constants.ZROOT + "/" + ctx.getInstanceID() + Constants.ZTABLET_CACHE;
   }
 
-  /**
-   * Return a KeyExtent object from the tablet_cache znode entry
-   *
-   * @param path tablet_cache znode path
-   * @return KeyExtent object
-   */
-  protected KeyExtent getExtent(String path) {
-    return deserializeKeyExtent(path.substring(znodePath.length()));
-  }
-
-  /**
-   * Return the tablet_cache znode path for a KeyExtent
-   *
-   * @param extent KeyExtent
-   * @return tablet_cache znode path
-   */
-  protected String getPath(KeyExtent extent) {
-    return znodePath + serializeKeyExtent(extent);
-  }
-
-  /**
-   * Cached TabletMetadata for the KeyExtent. If it does not exist, then it will be loaded into the
-   * cache via the CacheLoader which uses Ample to read the TabletMetadata and all of its columns.
-   *
-   * @param extent KeyExtent
-   * @return TabletMetadata for the KeyExtent
-   */
-  public TabletMetadata get(KeyExtent extent) {
-    return tabletMetadataCache.get(extent);
-  }
-
-  /**
-   * Return size of the cache
-   *
-   * @return size
-   */
-  protected int getTabletMetadataCacheSize() {
-    return tabletMetadataCache.asMap().size();
-  }
-
-  /**
-   * Return Cache stats object
-   *
-   * @return cache stats
-   */
-  protected CacheStats getTabletMetadataCacheStats() {
-    return tabletMetadataCache.stats();
-  }
-
-  /**
-   * Updates the data of the znode for this extent which will trigger TabletMetadataCache watchers
-   * to reload the TabletMetadata for this extent.
-   *
-   * @param extent KeyExtent
-   */
-  public void tabletMetadataChanged(KeyExtent extent) {
-    final String path = getPath(extent);
-    try {
-      // remove entry from local cache
-      LOG.info("Invalidating extent due to local tablet change: {}", extent);
-      tabletMetadataCache.invalidate(extent);
-      // mutate ZK entry for this tablet
-      this.zrw.mutateOrCreate(path, serializeData(INITIAL_VALUE), (currVal) -> {
-        return serializeData(deserializeData(currVal) + 1);
-      });
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException("Interrupted updating ZooKeeper at: " + path, e);
-    } catch (AcceptableThriftTableOperationException | KeeperException e) {
-      throw new RuntimeException("Error updating ZooKeeper at: " + path, e);
-    }
+  private static String getZNodePath(ServerContext ctx) {
+    return getWatcherPath(ctx) + "/";
   }
 
   /**
@@ -229,6 +105,126 @@ public class TabletMetadataCache implements Closeable {
 
   private static byte[] serializeData(Long value) {
     return value.toString().getBytes(UTF_8);
+  }
+
+  /**
+   * Return the tablet_cache znode path for a KeyExtent
+   *
+   * @param extent KeyExtent
+   * @return tablet_cache znode path
+   */
+  public static String getPath(ServerContext ctx, KeyExtent extent) {
+    return getZNodePath(ctx) + serializeKeyExtent(extent);
+  }
+
+  /**
+   * Updates the data of the znode for this extent which will trigger TabletMetadataCache watchers
+   * to reload the TabletMetadata for this extent.
+   *
+   * @param extent KeyExtent
+   */
+  public static void tabletMetadataChanged(ServerContext ctx, KeyExtent extent) {
+    final String path = getPath(ctx, extent);
+    try {
+      // remove entry from local cache only if the local
+      // TabletMetadataCache has been initialized
+      if (ctx.isTabletMetadataCacheInitialized()) {
+        LOG.info("Invalidating extent due to local tablet change: {}", extent);
+        ctx.getTabletMetadataCache().invalidate(extent);
+      }
+      // mutate ZK entry for this tablet
+      ctx.getZooReaderWriter().mutateOrCreate(path, serializeData(INITIAL_VALUE), (currVal) -> {
+        return serializeData(deserializeData(currVal) + 1);
+      });
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException("Interrupted updating ZooKeeper at: " + path, e);
+    } catch (AcceptableThriftTableOperationException | KeeperException e) {
+      throw new RuntimeException("Error updating ZooKeeper at: " + path, e);
+    }
+  }
+
+  private Watcher tabletCacheZNodeWatcher = new Watcher() {
+    @Override
+    public void process(WatchedEvent event) {
+      switch (event.getType()) {
+        case NodeCreated:
+          // Do nothing, cache will be populated on clients first call to get()
+          break;
+        case NodeDataChanged:
+        case NodeDeleted:
+          // Remove the tablet metadata cache entry on update or delete.
+          KeyExtent extent = getExtent(event.getPath());
+          LOG.info("Invalidating extent: {}", extent);
+          tabletMetadataCache.invalidate(extent);
+          break;
+        case None:
+        case ChildWatchRemoved:
+        case DataWatchRemoved:
+        case NodeChildrenChanged:
+        case PersistentWatchRemoved:
+        default:
+          break;
+
+      }
+    }
+  };
+
+  private final String watcherPath;
+  private final String znodePath;
+  private final ZooReaderWriter zrw;
+  protected final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
+
+  public TabletMetadataCache(final ServerContext ctx) {
+
+    this.zrw = ctx.getZooReaderWriter();
+
+    watcherPath = getWatcherPath(ctx);
+    znodePath = getZNodePath(ctx);
+
+    // TODO: Likely want to set a max size and eviction parameters
+    tabletMetadataCache =
+        Caffeine.newBuilder().recordStats().scheduler(Scheduler.systemScheduler()).build((k) -> {
+          TabletMetadata tm = ctx.getAmple().readTablet(k, ColumnType.values());
+          LOG.debug("Loading tablet metadata for extent: {}. Returned: {}", k, tm);
+          return tm;
+        });
+
+    try {
+      this.zrw.getZooKeeper().addWatch(watcherPath, tabletCacheZNodeWatcher,
+          AddWatchMode.PERSISTENT_RECURSIVE);
+    } catch (KeeperException e) {
+      throw new RuntimeException("Error setting watch", e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException("Thread interrupted setting watch", e);
+    }
+
+  }
+
+  /**
+   * Return a KeyExtent object from the tablet_cache znode entry
+   *
+   * @param path tablet_cache znode path
+   * @return KeyExtent object
+   */
+  protected KeyExtent getExtent(String path) {
+    return deserializeKeyExtent(path.substring(znodePath.length()));
+  }
+
+  /**
+   * Cached TabletMetadata for the KeyExtent. If it does not exist, then it will be loaded into the
+   * cache via the CacheLoader which uses Ample to read the TabletMetadata and all of its columns.
+   *
+   * @param extent KeyExtent
+   * @return TabletMetadata for the KeyExtent
+   */
+  public TabletMetadata get(KeyExtent extent) {
+    return tabletMetadataCache.get(extent);
+  }
+
+  public void invalidate(KeyExtent extent) {
+    tabletMetadataCache.invalidate(extent);
   }
 
   @Override

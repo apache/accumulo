@@ -71,19 +71,22 @@ public class TabletMetadataCacheIT {
       return super.getExtent(path);
     }
 
-    @Override
-    public String getPath(KeyExtent extent) {
-      return super.getPath(extent);
+    /**
+     * Return size of the cache
+     *
+     * @return size
+     */
+    protected int getTabletMetadataCacheSize() {
+      return tabletMetadataCache.asMap().size();
     }
 
-    @Override
-    public int getTabletMetadataCacheSize() {
-      return super.getTabletMetadataCacheSize();
-    }
-
-    @Override
+    /**
+     * Return Cache stats object
+     *
+     * @return cache stats
+     */
     protected CacheStats getTabletMetadataCacheStats() {
-      return super.getTabletMetadataCacheStats();
+      return tabletMetadataCache.stats();
     }
 
   }
@@ -145,11 +148,11 @@ public class TabletMetadataCacheIT {
   @Test
   public void testPathParsing() {
     try (TestTabletMetadataCache cache = new TestTabletMetadataCache(context)) {
-      String path = cache.getPath(ke1);
+      String path = TabletMetadataCache.getPath(context, ke1);
       assertEquals("/accumulo/" + IID + Constants.ZTABLET_CACHE + "/2;b;", path);
       KeyExtent result = cache.getExtent(path);
       assertEquals(ke1, result);
-      String path2 = cache.getPath(ke2);
+      String path2 = TabletMetadataCache.getPath(context, ke2);
       assertEquals("/accumulo/" + IID + Constants.ZTABLET_CACHE + "/2;d;b", path2);
       KeyExtent result2 = cache.getExtent(path2);
       assertEquals(ke2.toMetaRow(), result2.toMetaRow());
@@ -159,7 +162,7 @@ public class TabletMetadataCacheIT {
   @Test
   public void testCachingLocalTabletChange() {
     try (TestTabletMetadataCache cache = new TestTabletMetadataCache(context)) {
-      cache.tabletMetadataChanged(ke1); // This will perform a create in ZK
+      TabletMetadataCache.tabletMetadataChanged(context, ke1); // This will perform a create in ZK
       assertEquals(0, cache.getTabletMetadataCacheStats().loadCount());
       assertEquals(0, cache.getTabletMetadataCacheSize());
       TabletMetadata result = cache.get(ke1);
@@ -167,7 +170,8 @@ public class TabletMetadataCacheIT {
       assertEquals(1, cache.getTabletMetadataCacheStats().requestCount());
       assertEquals(1, cache.getTabletMetadataCacheStats().loadSuccessCount());
       assertEquals(tm1, result);
-      cache.tabletMetadataChanged(ke1); // This will perform an update and trigger invalidation
+      TabletMetadataCache.tabletMetadataChanged(context, ke1); // This will perform an update and
+                                                               // trigger invalidation
       assertEquals(0, cache.getTabletMetadataCacheSize());
       result = cache.get(ke1);
       assertEquals(1, cache.getTabletMetadataCacheSize());
@@ -209,7 +213,7 @@ public class TabletMetadataCacheIT {
   @Test
   public void testCachingThreadTabletChange() throws InterruptedException {
     try (TestTabletMetadataCache cache = new TestTabletMetadataCache(context)) {
-      cache.tabletMetadataChanged(ke2); // This will perform a create in ZK
+      TabletMetadataCache.tabletMetadataChanged(context, ke2); // This will perform a create in ZK
 
       assertEquals(0, cache.getTabletMetadataCacheStats().loadCount());
       assertEquals(0, cache.getTabletMetadataCacheSize());
