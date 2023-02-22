@@ -24,9 +24,11 @@ import java.io.Closeable;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.server.ServerContext;
@@ -52,12 +54,12 @@ public class TabletMetadataCache implements Closeable {
   private static final Logger LOG = LoggerFactory.getLogger(TabletMetadataCache.class);
   private static final Long INITIAL_VALUE = Long.valueOf(0);
 
-  private static String getWatcherPath(ServerContext ctx) {
-    return Constants.ZROOT + "/" + ctx.getInstanceID() + Constants.ZTABLET_CACHE;
+  private static String getWatcherPath(InstanceId iid) {
+    return Constants.ZROOT + "/" + iid + Constants.ZTABLET_CACHE;
   }
 
-  private static String getZNodePath(ServerContext ctx) {
-    return getWatcherPath(ctx) + "/";
+  private static String getZNodePath(InstanceId iid) {
+    return getWatcherPath(iid) + "/";
   }
 
   /**
@@ -113,8 +115,8 @@ public class TabletMetadataCache implements Closeable {
    * @param extent KeyExtent
    * @return tablet_cache znode path
    */
-  public static String getPath(ServerContext ctx, KeyExtent extent) {
-    return getZNodePath(ctx) + serializeKeyExtent(extent);
+  public static String getPath(InstanceId iid, KeyExtent extent) {
+    return getZNodePath(iid) + serializeKeyExtent(extent);
   }
 
   /**
@@ -124,7 +126,7 @@ public class TabletMetadataCache implements Closeable {
    * @param extent KeyExtent
    */
   public static void tabletMetadataChanged(ServerContext ctx, KeyExtent extent) {
-    final String path = getPath(ctx, extent);
+    final String path = getPath(ctx.getInstanceID(), extent);
     try {
       // remove entry from local cache only if the local
       // TabletMetadataCache has been initialized
@@ -147,6 +149,7 @@ public class TabletMetadataCache implements Closeable {
   private Watcher tabletCacheZNodeWatcher = new Watcher() {
     @Override
     public void process(WatchedEvent event) {
+      LOG.info("Event received: {}", event);
       switch (event.getType()) {
         case NodeCreated:
           // Do nothing, cache will be populated on clients first call to get()
@@ -175,17 +178,16 @@ public class TabletMetadataCache implements Closeable {
   private final ZooReaderWriter zrw;
   protected final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
 
-  public TabletMetadataCache(final ServerContext ctx) {
+  public TabletMetadataCache(final InstanceId iid, final ZooReaderWriter zrw, final Ample ample) {
 
-    this.zrw = ctx.getZooReaderWriter();
-
-    watcherPath = getWatcherPath(ctx);
-    znodePath = getZNodePath(ctx);
+    this.zrw = zrw;
+    watcherPath = getWatcherPath(iid);
+    znodePath = getZNodePath(iid);
 
     // TODO: Likely want to set a max size and eviction parameters
     tabletMetadataCache =
         Caffeine.newBuilder().recordStats().scheduler(Scheduler.systemScheduler()).build((k) -> {
-          TabletMetadata tm = ctx.getAmple().readTablet(k, ColumnType.values());
+          TabletMetadata tm = ample.readTablet(k, ColumnType.values());
           LOG.debug("Loading tablet metadata for extent: {}. Returned: {}", k, tm);
           return tm;
         });

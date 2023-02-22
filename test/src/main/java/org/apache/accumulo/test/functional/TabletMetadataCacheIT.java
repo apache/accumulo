@@ -32,7 +32,9 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -44,6 +46,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -62,8 +65,8 @@ public class TabletMetadataCacheIT {
    */
   public static class TestTabletMetadataCache extends TabletMetadataCache {
 
-    public TestTabletMetadataCache(ServerContext ctx) {
-      super(ctx);
+    public TestTabletMetadataCache(InstanceId iid, ZooReaderWriter zrw, Ample ample) {
+      super(iid, zrw, ample);
     }
 
     @Override
@@ -99,9 +102,17 @@ public class TabletMetadataCacheIT {
   private static ZooKeeperTestingServer szk = null;
   private static ZooKeeper zooKeeper;
 
-  private ServerContext context;
-  private KeyExtent ke1, ke2, ke3, ke4;
-  private TabletMetadata tm1, tm2, tm3, tm4;
+  private ServerContext context = null;
+  private TestTabletMetadataCache cache = null;
+  private TableId tid = TableId.of("2");
+  private KeyExtent ke1 = new KeyExtent(tid, new Text("b"), null);
+  private KeyExtent ke2 = new KeyExtent(tid, new Text("d"), new Text("b"));
+  private KeyExtent ke3 = new KeyExtent(tid, new Text("g"), new Text("d"));
+  private KeyExtent ke4 = new KeyExtent(tid, new Text("m"), new Text("g"));
+  private TabletMetadata tm1 = TabletMetadata.create(tid.canonical(), null, "b");
+  private TabletMetadata tm2 = TabletMetadata.create(tid.canonical(), "b", "d");
+  private TabletMetadata tm3 = TabletMetadata.create(tid.canonical(), "d", "g");
+  private TabletMetadata tm4 = TabletMetadata.create(tid.canonical(), "g", "m");
 
   @BeforeAll
   public static void setup() throws Exception {
@@ -120,65 +131,56 @@ public class TabletMetadataCacheIT {
   public void before() {
     context = EasyMock.createNiceMock(ServerContext.class);
     AmpleImpl ample = EasyMock.createStrictMock(AmpleImpl.class);
+    expect(ample.readTablet(ke1, ColumnType.values())).andReturn(tm1).anyTimes();
+    expect(ample.readTablet(ke2, ColumnType.values())).andReturn(tm2).anyTimes();
+    expect(ample.readTablet(ke3, ColumnType.values())).andReturn(tm3).anyTimes();
+    expect(ample.readTablet(ke4, ColumnType.values())).andReturn(tm4).anyTimes();
+    cache = new TestTabletMetadataCache(IID, szk.getZooReaderWriter(), ample);
     expect(context.getInstanceID()).andReturn(IID).anyTimes();
     expect(context.getZooReaderWriter()).andReturn(szk.getZooReaderWriter()).anyTimes();
     expect(context.getAmple()).andReturn(ample).anyTimes();
     expect(context.getZooKeepers()).andReturn(szk.getConn());
     expect(context.getZooKeepersSessionTimeOut()).andReturn((30000));
-
-    TableId tid = TableId.of("2");
-    ke1 = new KeyExtent(tid, new Text("b"), null);
-    ke2 = new KeyExtent(tid, new Text("d"), new Text("b"));
-    ke3 = new KeyExtent(tid, new Text("g"), new Text("d"));
-    ke4 = new KeyExtent(tid, new Text("m"), new Text("g"));
-
-    tm1 = TabletMetadata.create(tid.canonical(), null, "b");
-    tm2 = TabletMetadata.create(tid.canonical(), "b", "d");
-    tm3 = TabletMetadata.create(tid.canonical(), "d", "g");
-    tm4 = TabletMetadata.create(tid.canonical(), "g", "m");
-
-    expect(ample.readTablet(ke1, ColumnType.values())).andReturn(tm1).anyTimes();
-    expect(ample.readTablet(ke2, ColumnType.values())).andReturn(tm2).anyTimes();
-    expect(ample.readTablet(ke3, ColumnType.values())).andReturn(tm3).anyTimes();
-    expect(ample.readTablet(ke4, ColumnType.values())).andReturn(tm4).anyTimes();
-
+    expect(context.isTabletMetadataCacheInitialized()).andReturn(Boolean.TRUE).anyTimes();
+    expect(context.getTabletMetadataCache()).andReturn(cache).anyTimes();
     replay(context, ample);
+  }
+
+  @AfterEach
+  public void after() {
+    cache.close();
   }
 
   @Test
   public void testPathParsing() {
-    try (TestTabletMetadataCache cache = new TestTabletMetadataCache(context)) {
-      String path = TabletMetadataCache.getPath(context, ke1);
-      assertEquals("/accumulo/" + IID + Constants.ZTABLET_CACHE + "/2;b;", path);
-      KeyExtent result = cache.getExtent(path);
-      assertEquals(ke1, result);
-      String path2 = TabletMetadataCache.getPath(context, ke2);
-      assertEquals("/accumulo/" + IID + Constants.ZTABLET_CACHE + "/2;d;b", path2);
-      KeyExtent result2 = cache.getExtent(path2);
-      assertEquals(ke2.toMetaRow(), result2.toMetaRow());
-    }
+    String path = TabletMetadataCache.getPath(IID, ke1);
+    assertEquals("/accumulo/" + IID + Constants.ZTABLET_CACHE + "/2;b;", path);
+    KeyExtent result = cache.getExtent(path);
+    assertEquals(ke1, result);
+    String path2 = TabletMetadataCache.getPath(IID, ke2);
+    assertEquals("/accumulo/" + IID + Constants.ZTABLET_CACHE + "/2;d;b", path2);
+    KeyExtent result2 = cache.getExtent(path2);
+    assertEquals(ke2.toMetaRow(), result2.toMetaRow());
   }
 
   @Test
   public void testCachingLocalTabletChange() {
-    try (TestTabletMetadataCache cache = new TestTabletMetadataCache(context)) {
-      TabletMetadataCache.tabletMetadataChanged(context, ke1); // This will perform a create in ZK
-      assertEquals(0, cache.getTabletMetadataCacheStats().loadCount());
-      assertEquals(0, cache.getTabletMetadataCacheSize());
-      TabletMetadata result = cache.get(ke1);
-      assertEquals(1, cache.getTabletMetadataCacheSize());
-      assertEquals(1, cache.getTabletMetadataCacheStats().requestCount());
-      assertEquals(1, cache.getTabletMetadataCacheStats().loadSuccessCount());
-      assertEquals(tm1, result);
-      TabletMetadataCache.tabletMetadataChanged(context, ke1); // This will perform an update and
-                                                               // trigger invalidation
-      assertEquals(0, cache.getTabletMetadataCacheSize());
-      result = cache.get(ke1);
-      assertEquals(1, cache.getTabletMetadataCacheSize());
-      assertEquals(2, cache.getTabletMetadataCacheStats().requestCount());
-      assertEquals(2, cache.getTabletMetadataCacheStats().loadSuccessCount());
-      assertEquals(tm1, result);
-    }
+    TabletMetadataCache.tabletMetadataChanged(context, ke1); // This will perform a create in ZK
+    assertEquals(0, cache.getTabletMetadataCacheStats().loadCount());
+    assertEquals(0, cache.getTabletMetadataCacheSize());
+    TabletMetadata result = cache.get(ke1);
+    assertEquals(1, cache.getTabletMetadataCacheSize());
+    assertEquals(1, cache.getTabletMetadataCacheStats().requestCount());
+    assertEquals(1, cache.getTabletMetadataCacheStats().loadSuccessCount());
+    assertEquals(tm1, result);
+    TabletMetadataCache.tabletMetadataChanged(context, ke1); // This will perform an update and
+                                                             // trigger invalidation
+    assertEquals(0, cache.getTabletMetadataCacheSize());
+    result = cache.get(ke1);
+    assertEquals(1, cache.getTabletMetadataCacheSize());
+    assertEquals(2, cache.getTabletMetadataCacheStats().requestCount());
+    assertEquals(2, cache.getTabletMetadataCacheStats().loadSuccessCount());
+    assertEquals(tm1, result);
   }
 
   public class TabletChangedThread implements Runnable {
@@ -212,33 +214,31 @@ public class TabletMetadataCacheIT {
 
   @Test
   public void testCachingThreadTabletChange() throws InterruptedException {
-    try (TestTabletMetadataCache cache = new TestTabletMetadataCache(context)) {
-      TabletMetadataCache.tabletMetadataChanged(context, ke2); // This will perform a create in ZK
+    TabletMetadataCache.tabletMetadataChanged(context, ke2); // This will perform a create in ZK
 
-      assertEquals(0, cache.getTabletMetadataCacheStats().loadCount());
-      assertEquals(0, cache.getTabletMetadataCacheSize());
-      TabletMetadata result = cache.get(ke2);
-      assertEquals(1, cache.getTabletMetadataCacheSize());
-      assertEquals(1, cache.getTabletMetadataCacheStats().requestCount());
-      assertEquals(1, cache.getTabletMetadataCacheStats().loadSuccessCount());
-      assertEquals(tm2, result);
+    assertEquals(0, cache.getTabletMetadataCacheStats().loadCount());
+    assertEquals(0, cache.getTabletMetadataCacheSize());
+    TabletMetadata result = cache.get(ke2);
+    assertEquals(1, cache.getTabletMetadataCacheSize());
+    assertEquals(1, cache.getTabletMetadataCacheStats().requestCount());
+    assertEquals(1, cache.getTabletMetadataCacheStats().loadSuccessCount());
+    assertEquals(tm2, result);
 
-      Thread t = new Thread(new TabletChangedThread());
-      t.start();
-      t.join();
+    Thread t = new Thread(new TabletChangedThread());
+    t.start();
+    t.join();
 
-      // wait for zk watcher to remove cache entry
-      while (cache.getTabletMetadataCacheSize() != 0) {
-        Thread.sleep(100);
-      }
-
-      assertEquals(0, cache.getTabletMetadataCacheSize());
-      result = cache.get(ke2);
-      assertEquals(1, cache.getTabletMetadataCacheSize());
-      assertEquals(2, cache.getTabletMetadataCacheStats().requestCount());
-      assertEquals(2, cache.getTabletMetadataCacheStats().loadSuccessCount());
-      assertEquals(tm2, result);
+    // wait for zk watcher to remove cache entry
+    while (cache.getTabletMetadataCacheSize() != 0) {
+      Thread.sleep(100);
     }
+
+    assertEquals(0, cache.getTabletMetadataCacheSize());
+    result = cache.get(ke2);
+    assertEquals(1, cache.getTabletMetadataCacheSize());
+    assertEquals(2, cache.getTabletMetadataCacheStats().requestCount());
+    assertEquals(2, cache.getTabletMetadataCacheStats().loadSuccessCount());
+    assertEquals(tm2, result);
   }
 
 }
