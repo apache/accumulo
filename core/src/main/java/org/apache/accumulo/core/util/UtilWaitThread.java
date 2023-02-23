@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.util;
 
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.concurrent.TimeUnit;
 
@@ -37,7 +37,7 @@ public class UtilWaitThread {
    */
   @Deprecated(since = "3.0.0")
   public static void sleep(long millis) {
-    sleep(millis, MICROSECONDS);
+    sleep(millis, MILLISECONDS);
   }
 
   /**
