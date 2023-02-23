@@ -253,7 +253,6 @@ public class TabletMetadataCacheIT {
     assertEquals(tm2, result);
   }
 
-
   @Test
   @Order(4)
   public void testZooKeeperConnectionRestart() throws Exception {
