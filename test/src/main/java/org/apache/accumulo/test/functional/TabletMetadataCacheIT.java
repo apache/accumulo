@@ -23,6 +23,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVE
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.UUID;
@@ -273,25 +274,32 @@ public class TabletMetadataCacheIT {
     assertEquals(2, cache.getTabletMetadataCacheStats().loadSuccessCount());
     assertEquals(tm1, result);
 
-    // restart ZooKeeper
-    szk.restart();
+    // Close ZK Server
+    szk.close();
+    LoggerFactory.getLogger(TabletMetadataCacheIT.class).info("ZK Server closed");
 
+    long requestCount = 0L;
     // Wait to be disconnected
     while (cache.getConnected().get()) {
       // TODO: The ZooKeeper connection does not realize that it's disconnected
-      // until the timeout. The Watcher does not get the disconnected state until
-      // the server is restarted. The ZooKeeper connection State object is still
-      // CONNECTED, so the below does not work. This means that because the ZooKeeper
-      // client does not know immediately that it's disconnected, that it's possible
-      // that the cache will return a possibly stale cached result until the ZooKeeper
-      // timeout occurs and the ZooKeeper client object realizes it's disconnected.
-      // result = cache.get(ke1);
-      // assertEquals(1, cache.getTabletMetadataCacheSize());
-      // assertEquals(2, cache.getTabletMetadataCacheStats().requestCount());
-      // assertEquals(2, cache.getTabletMetadataCacheStats().loadSuccessCount());
-      // assertEquals(tm1, result);
+      // immediately. Depending on the type of connection failure there is some
+      // amount of time before the Watcher gets notified. For example, it appears
+      // that if the server closes, like in this test, then the Watcher gets notified
+      // rather quickly (less than 100ms). In the case where there is a network partition
+      // or the ZK Server is restarted, the Watcher might not get the event for some time.
+      // This means that because the ZooKeeper client does not know immediately that it's
+      // disconnected, that it's possible that the cache will return a possibly stale result
+      result = cache.get(ke1);
+      requestCount = cache.getTabletMetadataCacheStats().requestCount();
+      assertEquals(1, cache.getTabletMetadataCacheSize());
+      assertTrue(requestCount > 2);
+      assertEquals(3, cache.getTabletMetadataCacheStats().loadSuccessCount());
+      assertEquals(tm1, result);
       Thread.sleep(10);
     }
+
+    // Start ZK Server
+    szk.restart();
 
     // Wait to be reconnected
     while (!cache.getConnected().get()) {
@@ -301,8 +309,8 @@ public class TabletMetadataCacheIT {
     assertEquals(0, cache.getTabletMetadataCacheSize());
     result = cache.get(ke1);
     assertEquals(1, cache.getTabletMetadataCacheSize());
-    assertEquals(3, cache.getTabletMetadataCacheStats().requestCount());
-    assertEquals(3, cache.getTabletMetadataCacheStats().loadSuccessCount());
+    assertEquals(requestCount + 1, cache.getTabletMetadataCacheStats().requestCount());
+    assertEquals(4, cache.getTabletMetadataCacheStats().loadSuccessCount());
     assertEquals(tm1, result);
 
   }
