@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -32,7 +33,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.conf.Property;
@@ -46,6 +46,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -324,7 +325,8 @@ class DatafileManager {
       } catch (IOException ioe) {
         log.warn("Tablet " + tablet.getExtent() + " failed to rename " + newDatafile
             + " after MinC, will retry in 60 secs...", ioe);
-        sleepUninterruptibly(1, TimeUnit.MINUTES);
+        // ignore interrupt status
+        UtilWaitThread.sleep(1, MINUTES);
       }
     } while (true);
 
@@ -357,7 +359,8 @@ class DatafileManager {
           break;
         } catch (IOException e) {
           log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);
-          sleepUninterruptibly(1, TimeUnit.SECONDS);
+          // ignore interrupt status
+          UtilWaitThread.sleep(1, SECONDS);
         }
       } while (true);
 

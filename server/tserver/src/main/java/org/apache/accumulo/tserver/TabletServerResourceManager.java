@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.tserver;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toUnmodifiableMap;
 
 import java.io.IOException;
@@ -65,6 +65,7 @@ import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
@@ -184,7 +185,7 @@ public class TabletServerResourceManager {
     scanExecQueues.put(sec.name, queue);
 
     ThreadPoolExecutor es = ThreadPools.getServerThreadPools().createThreadPool(
-        sec.getCurrentMaxThreads(), sec.getCurrentMaxThreads(), 0L, TimeUnit.MILLISECONDS,
+        sec.getCurrentMaxThreads(), sec.getCurrentMaxThreads(), 0L, MILLISECONDS,
         "scan-" + sec.name, queue, sec.priority, true);
     modifyThreadPoolSizesAtRuntime(sec::getCurrentMaxThreads, "scan-" + sec.name, es);
     return es;
@@ -376,8 +377,8 @@ public class TabletServerResourceManager {
 
     // We can use the same map for both metadata and normal assignments since the keyspace (extent)
     // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.
-    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().schedule(
-        new AssignmentWatcher(acuConf, context, activeAssignments), 5000, TimeUnit.MILLISECONDS));
+    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
+        .schedule(new AssignmentWatcher(acuConf, context, activeAssignments), 5000, MILLISECONDS));
   }
 
   /**
@@ -438,7 +439,7 @@ public class TabletServerResourceManager {
           log.trace("Rescheduling assignment watcher to run in {}ms", delay);
         }
         ThreadPools.watchCriticalScheduledTask(
-            context.getScheduledExecutor().schedule(this, delay, TimeUnit.MILLISECONDS));
+            context.getScheduledExecutor().schedule(this, delay, MILLISECONDS));
       }
     }
   }
@@ -562,7 +563,8 @@ public class TabletServerResourceManager {
           log.error("Minor compactions for memory management failed", t);
         }
 
-        sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(250, MILLISECONDS);
       }
     }
 

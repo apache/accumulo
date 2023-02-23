@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.FAILED;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.IN_PROGRESS;
@@ -166,7 +167,8 @@ public class FateIT {
       fate.startTransactionRunners(config);
 
       // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
+      // ignore interrupt status
+      UtilWaitThread.sleep(3000, MILLISECONDS);
 
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
@@ -227,7 +229,8 @@ public class FateIT {
       fate.startTransactionRunners(config);
 
       // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
+      // ignore interrupt status
+      UtilWaitThread.sleep(3000, MILLISECONDS);
 
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
@@ -266,7 +269,8 @@ public class FateIT {
     // Notice that we did not start the transaction runners
 
     // Wait for the transaction runner to be scheduled.
-    UtilWaitThread.sleep(3000);
+    // ignore interrupt status
+    UtilWaitThread.sleep(3000, MILLISECONDS);
 
     callStarted = new CountDownLatch(1);
     finishCall = new CountDownLatch(1);
@@ -300,7 +304,8 @@ public class FateIT {
       fate.startTransactionRunners(config);
 
       // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
+      // ignore interrupt status
+      UtilWaitThread.sleep(3000, MILLISECONDS);
 
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
@@ -342,7 +347,8 @@ public class FateIT {
       fate.startTransactionRunners(config);
 
       // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
+      // ignore interrupt status
+      UtilWaitThread.sleep(3000, MILLISECONDS);
 
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);

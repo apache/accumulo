@@ -18,17 +18,45 @@
  */
 package org.apache.accumulo.core.util;
 
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
+
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UtilWaitThread {
   private static final Logger log = LoggerFactory.getLogger(UtilWaitThread.class);
 
+  /**
+   * Sleep for specified duration in milliseconds. If the sleep is interrupted, a message is logged
+   * and the interrupt flag is reset, but otherwise the interrupt is ignored.
+   * <p>
+   *
+   * @deprecated Use {@link UtilWaitThread#sleep(long, TimeUnit)} instead.
+   */
+  @Deprecated(since = "3.0.0")
   public static void sleep(long millis) {
+    sleep(millis, MICROSECONDS);
+  }
+
+  /**
+   * Sleep for a specific duration. If an interrupt occurs during the sleep, the interrupt flag is
+   * reset and the functions return false so caller can take appropriate action by testing the
+   * return value or calling isInterrupted() on the current thread.
+   *
+   * @param duration the sleep time
+   * @param unit the sleep units
+   * @return success of the sleep - true if the sleep completed, false if the sleep was interrupted.
+   */
+  public static boolean sleep(final long duration, final TimeUnit unit) {
     try {
-      Thread.sleep(millis);
+      unit.sleep(duration);
+      return true;
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
+      return false;
     }
   }
 }

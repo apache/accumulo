@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -28,7 +29,6 @@ import java.io.InputStream;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -96,16 +97,19 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
       FileSystem fs = getCluster().getFileSystem();
       Path jarPath = new Path(rootPath + "/lib/ext/Test.jar");
       copyStreamToFileSystem(fs, "/org/apache/accumulo/test/TestCombinerX.jar", jarPath);
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(1, SECONDS);
       IteratorSetting is = new IteratorSetting(10, "TestCombiner",
           "org.apache.accumulo.test.functional.TestCombiner");
       Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf")));
       c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.scan));
-      sleepUninterruptibly(ZOOKEEPER_PROPAGATION_TIME, TimeUnit.MILLISECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(ZOOKEEPER_PROPAGATION_TIME, MILLISECONDS);
       scanCheck(c, tableName, "TestX");
       fs.delete(jarPath, true);
       copyStreamToFileSystem(fs, "/org/apache/accumulo/test/TestCombinerY.jar", jarPath);
-      sleepUninterruptibly(5, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(5, SECONDS);
       scanCheck(c, tableName, "TestY");
       fs.delete(jarPath, true);
     }

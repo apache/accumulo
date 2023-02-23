@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.monitor;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.net.InetAddress;
 import java.net.URL;
@@ -74,6 +75,7 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServiceLockData;
 import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
@@ -290,7 +292,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
           }
         }
         if (mmi == null) {
-          sleepUninterruptibly(1, TimeUnit.SECONDS);
+          // ignore interrupt status
+          UtilWaitThread.sleep(1, SECONDS);
         }
       }
       if (mmi != null) {
@@ -509,7 +512,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         } catch (Exception e) {
           log.warn("{}", e.getMessage(), e);
         }
-        sleepUninterruptibly(333, TimeUnit.MILLISECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(333, MILLISECONDS);
       }
     }).start();
 
@@ -840,9 +844,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
       monitorLock.tryToCancelAsyncLockOrUnlock();
 
-      sleepUninterruptibly(
+      // ignore interrupt status
+      UtilWaitThread.sleep(
           context.getConfiguration().getTimeInMillis(Property.MONITOR_LOCK_CHECK_INTERVAL),
-          TimeUnit.MILLISECONDS);
+          MILLISECONDS);
     }
 
     log.info("Got Monitor lock.");

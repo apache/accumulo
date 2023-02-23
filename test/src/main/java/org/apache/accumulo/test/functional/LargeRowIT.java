@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.Collections.singletonMap;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -40,6 +39,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
@@ -134,7 +134,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
               .setProperties(singletonMap(Property.TABLE_MAX_END_ROW_SIZE.getKey(), "256K"))
               .withSplits(splitPoints));
 
-      sleepUninterruptibly(3, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(3, SECONDS);
       test1(c);
       test2(c);
     }
@@ -147,7 +148,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
     c.tableOperations().setProperty(REG_TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
         "" + SPLIT_THRESH);
 
-    sleepUninterruptibly(timeoutFactor * 12, TimeUnit.SECONDS);
+    // ignore interrupt status
+    UtilWaitThread.sleep(timeoutFactor * 12, SECONDS);
     log.info("checking splits");
     FunctionalTestUtils.checkSplits(c, REG_TABLE_NAME, NUM_PRE_SPLITS / 2, NUM_PRE_SPLITS * 4);
 

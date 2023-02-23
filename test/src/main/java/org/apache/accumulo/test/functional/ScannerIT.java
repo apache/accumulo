@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -80,7 +81,8 @@ public class ScannerIT extends AccumuloClusterHarness {
           nanosWithWait += System.nanoTime() - startTime;
 
           // While we "do work" in the client, we should be fetching the next result
-          UtilWaitThread.sleep(100L);
+          // ignore interrupt status
+          UtilWaitThread.sleep(100L, MILLISECONDS);
           iterator.next();
           startTime = System.nanoTime();
         }
@@ -100,7 +102,8 @@ public class ScannerIT extends AccumuloClusterHarness {
           nanosWithNoWait += System.nanoTime() - startTime;
 
           // While we "do work" in the client, we should be fetching the next result
-          UtilWaitThread.sleep(100L);
+          // ignore interrupt status
+          UtilWaitThread.sleep(100L, MILLISECONDS);
           iterator.next();
           startTime = System.nanoTime();
         }

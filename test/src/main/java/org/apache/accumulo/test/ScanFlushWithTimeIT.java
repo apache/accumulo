@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -69,7 +69,8 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
       partitionKeys.add(new Text("5"));
       c.tableOperations().addSplits(tableName, partitionKeys);
       log.info("waiting for zookeeper propagation");
-      UtilWaitThread.sleep(5_000);
+      // ignore interrupt status
+      UtilWaitThread.sleep(5_000, MILLISECONDS);
       log.info("Adding a few entries");
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 10; i++) {
@@ -82,7 +83,7 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
 
       log.info("Scanner");
       try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
-        s.setBatchTimeout(500, TimeUnit.MILLISECONDS);
+        s.setBatchTimeout(500, MILLISECONDS);
         testScanner(s, 1200);
 
         log.info("IsolatedScanner");
@@ -94,7 +95,7 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
 
       log.info("BatchScanner");
       try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 5)) {
-        bs.setBatchTimeout(500, TimeUnit.MILLISECONDS);
+        bs.setBatchTimeout(500, MILLISECONDS);
         bs.setRanges(Collections.singletonList(new Range()));
         testScanner(bs, 1200);
       }

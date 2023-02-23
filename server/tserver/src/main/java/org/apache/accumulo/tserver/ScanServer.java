@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.tserver;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -38,7 +39,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -228,9 +228,8 @@ public class ScanServer extends AbstractServer
         LOG.warn(
             "Tablet metadata caching less than one minute, may cause excessive scans on metadata table.");
       }
-      tabletMetadataCache =
-          Caffeine.newBuilder().expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
-              .scheduler(Scheduler.systemScheduler()).build(tabletMetadataLoader);
+      tabletMetadataCache = Caffeine.newBuilder().expireAfterWrite(cacheExpiration, MILLISECONDS)
+          .scheduler(Scheduler.systemScheduler()).build(tabletMetadataLoader);
     }
 
     delegate = newThriftScanClientHandler(new WriteTracker());
@@ -239,8 +238,7 @@ public class ScanServer extends AbstractServer
 
     ThreadPools.watchCriticalScheduledTask(getContext().getScheduledExecutor()
         .scheduleWithFixedDelay(() -> cleanUpReservedFiles(scanServerReservationExpiration),
-            scanServerReservationExpiration, scanServerReservationExpiration,
-            TimeUnit.MILLISECONDS));
+            scanServerReservationExpiration, scanServerReservationExpiration, MILLISECONDS));
 
   }
 
@@ -331,7 +329,9 @@ public class ScanServer extends AbstractServer
           return scanServerLock;
         }
         LOG.info("Waiting for scan server lock");
-        sleepUninterruptibly(5, TimeUnit.SECONDS);
+        if (!UtilWaitThread.sleep(5, SECONDS)) {
+          throw new RuntimeException("Interrupt received waiting for scan server lock");
+        }
       }
       String msg = "Too many retries, exiting.";
       LOG.info(msg);
@@ -371,7 +371,8 @@ public class ScanServer extends AbstractServer
 
     try {
       while (!serverStopRequested) {
-        UtilWaitThread.sleep(1000);
+        // ignore interrupt status
+        UtilWaitThread.sleep(1000, MILLISECONDS);
       }
     } finally {
       LOG.info("Stopping Thrift Servers");

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -25,7 +26,6 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -91,7 +91,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       if (accumuloClient.instanceOperations().getTabletServers().size() >= 2) {
         break;
       }
-      UtilWaitThread.sleep(TimeUnit.SECONDS.toMillis(2));
+      // ignore interrupt status
+      UtilWaitThread.sleep(2, SECONDS);
     }
     assumeTrue(accumuloClient.instanceOperations().getTabletServers().size() >= 2,
         "Not enough tservers to run test");

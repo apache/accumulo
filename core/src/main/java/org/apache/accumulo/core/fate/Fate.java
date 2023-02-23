@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.fate;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.FAILED;
@@ -161,7 +161,8 @@ public class Fate<T> {
         while (true) {
           // Nothing is going to work well at this point, so why even try. Just wait for the end,
           // preventing this FATE thread from processing further work and likely failing.
-          sleepUninterruptibly(1, MINUTES);
+          // ignore interrupt status
+          UtilWaitThread.sleep(1, MINUTES);
         }
       }
     }
@@ -336,7 +337,8 @@ public class Fate<T> {
         }
       } else {
         // reserved, lets retry.
-        UtilWaitThread.sleep(500);
+        // ignore interrupt status
+        UtilWaitThread.sleep(500, MILLISECONDS);
       }
     }
     log.info("Unable to reserve transaction {} to cancel it", tid);

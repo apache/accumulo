@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
@@ -235,7 +236,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       while (count == 0) {
         count = getFinalStatesForTable(getCluster(), tid)
             .filter(state -> state.getFinalState().equals(FinalState.FAILED)).count();
-        UtilWaitThread.sleep(250);
+        // ignore interrupt status
+        UtilWaitThread.sleep(250, MILLISECONDS);
       }
 
       // We need to cancel the compaction or delete the table here because we initiate a user
@@ -400,7 +402,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       Stream<ExternalCompactionFinalState> fs = getFinalStatesForTable(getCluster(), tid);
       while (fs.findAny().isEmpty()) {
         LOG.info("Waiting for compaction completed marker to appear");
-        UtilWaitThread.sleep(250);
+        // ignore interrupt status
+        UtilWaitThread.sleep(250, MILLISECONDS);
         fs = getFinalStatesForTable(getCluster(), tid);
       }
 
@@ -438,7 +441,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       Stream<ExternalCompactionFinalState> fs2 = getFinalStatesForTable(getCluster(), tid);
       while (fs2.findAny().isPresent()) {
         LOG.info("Waiting for compaction completed marker to disappear");
-        UtilWaitThread.sleep(500);
+        // ignore interrupt status
+        UtilWaitThread.sleep(500, MILLISECONDS);
         fs2 = getFinalStatesForTable(getCluster(), tid);
       }
       verify(client, table3, 2);

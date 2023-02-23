@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
@@ -67,6 +66,7 @@ import org.apache.accumulo.core.tabletscan.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -261,7 +261,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     ScanBatch bresult;
     try {
       bresult = scanSession.nextBatchTask.get(busyTimeout, MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS,
-          TimeUnit.MILLISECONDS);
+          MILLISECONDS);
       scanSession.nextBatchTask = null;
     } catch (ExecutionException e) {
       server.getSessionManager().removeSession(scanID);
@@ -273,7 +273,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       } else if (e.getCause() instanceof SampleNotPresentException) {
         throw new TSampleNotPresentException(scanSession.extent.toThrift());
       } else if (e.getCause() instanceof IOException) {
-        sleepUninterruptibly(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, MILLISECONDS);
         List<KVEntry> empty = Collections.emptyList();
         bresult = new ScanBatch(empty, true);
         scanSession.nextBatchTask = null;
@@ -481,7 +482,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     try {
 
       MultiScanResult scanResult = session.lookupTask.get(busyTimeout,
-          MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
+          MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, MILLISECONDS);
       session.lookupTask = null;
       return scanResult;
     } catch (ExecutionException e) {

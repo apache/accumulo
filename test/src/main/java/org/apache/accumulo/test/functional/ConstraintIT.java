@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -26,7 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -40,6 +39,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.test.constraints.NumericValueConstraint;
@@ -163,7 +163,8 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
       // remove the numeric value constraint
       client.tableOperations().removeConstraint(tableName, 2);
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(1, SECONDS);
 
       // now should be able to add a non numeric value
       bw = client.createBatchWriter(tableName);
@@ -190,7 +191,8 @@ public class ConstraintIT extends AccumuloClusterHarness {
       // add a constraint that references a non-existent class
       client.tableOperations().setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX + "1",
           "com.foobar.nonExistentClass");
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(1, SECONDS);
 
       // add a mutation
       bw = client.createBatchWriter(tableName);
@@ -233,7 +235,8 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
       // remove the bad constraint
       client.tableOperations().removeConstraint(tableName, 1);
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(1, SECONDS);
 
       // try the mutation again
       bw = client.createBatchWriter(tableName);

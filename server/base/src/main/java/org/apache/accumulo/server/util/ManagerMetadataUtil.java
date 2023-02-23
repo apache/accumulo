@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.util;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,7 +30,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
@@ -58,6 +57,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -183,7 +183,8 @@ public class ManagerMetadataUtil {
       } catch (KeeperException | InterruptedException e) {
         log.error("{}", e.getMessage(), e);
       }
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(1, SECONDS);
     }
   }
 

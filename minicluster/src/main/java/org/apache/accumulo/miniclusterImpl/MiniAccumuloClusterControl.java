@@ -19,6 +19,7 @@
 package org.apache.accumulo.miniclusterImpl;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -161,7 +162,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         } catch (TException e) {
           log.debug(
               "Error getting running compactions from coordinator, message: " + e.getMessage());
-          UtilWaitThread.sleep(250);
+          // ignore interrupt status
+          UtilWaitThread.sleep(250, MILLISECONDS);
         }
       }
     }

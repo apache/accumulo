@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.tserver;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
@@ -291,7 +292,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
                 i++;
               }
             }
-          }), logBusyTabletsDelay, logBusyTabletsDelay, TimeUnit.MILLISECONDS);
+          }), logBusyTabletsDelay, logBusyTabletsDelay, MILLISECONDS);
       watchNonCriticalScheduledTask(future);
     }
 
@@ -305,7 +306,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
               log.error("Error updating rates for {}", tablet.getExtent(), ex);
             }
           }
-        }), 5, 5, TimeUnit.SECONDS);
+        }), 5, 5, SECONDS);
     watchNonCriticalScheduledTask(future);
 
     final long walMaxSize = aconf.getAsBytes(Property.TSERV_WAL_MAX_SIZE);
@@ -325,27 +326,26 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         aconf.getTimeInMillis(Property.TSERV_WAL_TOLERATED_WAIT_INCREMENT);
     final long walFailureRetryMax =
         aconf.getTimeInMillis(Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION);
-    final RetryFactory walCreationRetryFactory =
-        Retry.builder().maxRetries(toleratedWalCreationFailures)
-            .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-            .incrementBy(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-            .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).backOffFactor(1.5)
-            .logInterval(3, TimeUnit.MINUTES).createFactory();
+    final RetryFactory walCreationRetryFactory = Retry.builder()
+        .maxRetries(toleratedWalCreationFailures).retryAfter(walFailureRetryIncrement, MILLISECONDS)
+        .incrementBy(walFailureRetryIncrement, MILLISECONDS)
+        .maxWait(walFailureRetryMax, MILLISECONDS).backOffFactor(1.5)
+        .logInterval(3, TimeUnit.MINUTES).createFactory();
     // Tolerate infinite failures for the write, however backing off the same as for creation
     // failures.
-    final RetryFactory walWritingRetryFactory = Retry.builder().infiniteRetries()
-        .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-        .incrementBy(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-        .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).backOffFactor(1.5)
-        .logInterval(3, TimeUnit.MINUTES).createFactory();
+    final RetryFactory walWritingRetryFactory =
+        Retry.builder().infiniteRetries().retryAfter(walFailureRetryIncrement, MILLISECONDS)
+            .incrementBy(walFailureRetryIncrement, MILLISECONDS)
+            .maxWait(walFailureRetryMax, MILLISECONDS).backOffFactor(1.5)
+            .logInterval(3, TimeUnit.MINUTES).createFactory();
 
     logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter,
         walCreationRetryFactory, walWritingRetryFactory, walMaxAge);
     this.resourceManager = new TabletServerResourceManager(context, this);
     this.security = context.getSecurityOperation();
 
-    watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
-        TabletLocator::clearLocators, jitter(), jitter(), TimeUnit.MILLISECONDS));
+    watchCriticalScheduledTask(context.getScheduledExecutor()
+        .scheduleWithFixedDelay(TabletLocator::clearLocators, jitter(), jitter(), MILLISECONDS));
     walMarker = new WalStateManager(context);
 
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
@@ -426,10 +426,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     @Override
     public void run() {
-      while (true) {
+      while (true && !Thread.currentThread().isInterrupted()) {
         try {
-          sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY),
-              TimeUnit.MILLISECONDS);
+          UtilWaitThread.sleep(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY),
+              MILLISECONDS);
 
           final List<DfsLogger> closedCopy;
 
@@ -453,7 +453,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           }
         } catch (Exception t) {
           log.error("Unexpected exception in {}", Thread.currentThread().getName(), t);
-          sleepUninterruptibly(1, TimeUnit.SECONDS);
+          // ignore interrupt status
+          UtilWaitThread.sleep(1, SECONDS);
         }
       }
     }
@@ -672,7 +673,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           return;
         }
         log.info("Waiting for tablet server lock");
-        sleepUninterruptibly(5, TimeUnit.SECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(5, SECONDS);
       }
       String msg = "Too many retries, exiting.";
       log.info(msg);
@@ -797,9 +799,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     });
 
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = TimeUnit.MINUTES.toMillis(15);
-    watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
-        new BulkImportCacheCleaner(this), CLEANUP_BULK_LOADED_CACHE_MILLIS,
-        CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS));
+    watchCriticalScheduledTask(
+        context.getScheduledExecutor().scheduleWithFixedDelay(new BulkImportCacheCleaner(this),
+            CLEANUP_BULK_LOADED_CACHE_MILLIS, CLEANUP_BULK_LOADED_CACHE_MILLIS, MILLISECONDS));
 
     HostAndPort managerHost;
     while (!serverStopRequested) {
@@ -812,7 +814,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           // wait until a message is ready to send, or a sever stop
           // was requested
           while (mm == null && !serverStopRequested) {
-            mm = managerMessages.poll(1, TimeUnit.SECONDS);
+            mm = managerMessages.poll(1, SECONDS);
           }
 
           // have a message to send to the manager, so grab a
@@ -849,7 +851,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           }
           returnManagerConnection(iface);
 
-          sleepUninterruptibly(1, TimeUnit.SECONDS);
+          if (!UtilWaitThread.sleep(1, SECONDS)) {
+            throw new InterruptedException("Interrupted during sleep");
+          }
         }
       } catch (InterruptedException e) {
         log.info("Interrupt Exception received, shutting down");
@@ -942,7 +946,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         // sleep a few seconds in case this is at cluster start...give monitor
         // time to start so the warning will be more visible
         if (!warned) {
-          UtilWaitThread.sleep(5000);
+          // ignore interrupt status
+          UtilWaitThread.sleep(5000, MILLISECONDS);
           warned = true;
         }
         log.warn("WAL directory ({}) implementation does not support sync or flush."

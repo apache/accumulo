@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
@@ -126,7 +127,8 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
             .flatMap(t -> t.getExternalCompactions().keySet().stream()).collect(Collectors.toSet());
         // keep checking until test times out
         while (!Collections.disjoint(ecids, ecids2)) {
-          UtilWaitThread.sleep(25);
+          // ignore interrupt status
+          UtilWaitThread.sleep(25, MILLISECONDS);
           ecids2 = tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream())
               .collect(Collectors.toSet());
         }
@@ -176,7 +178,8 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
             }
           }
         }
-        UtilWaitThread.sleep(250);
+        // ignore interrupt status
+        UtilWaitThread.sleep(250, MILLISECONDS);
       }
       assertTrue(matches > 0);
 

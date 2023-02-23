@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.spi.balancer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -490,7 +491,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     init(DEFAULT_TABLE_PROPERTIES);
     // Wait to trigger the out of bounds check which will call our version of
     // getOnlineTabletsForTable
-    UtilWaitThread.sleep(11000);
+    // ignore interrupt status
+    UtilWaitThread.sleep(11000, MILLISECONDS);
     Set<TabletId> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
     this.balance(new BalanceParamsImpl(createCurrent(15), migrations, migrationsOut));

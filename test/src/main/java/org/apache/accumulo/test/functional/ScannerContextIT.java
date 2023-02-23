@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -84,7 +85,8 @@ public class ScannerContextIT extends AccumuloClusterHarness {
     Path dstPath = new Path(CONTEXT_DIR + "/Test.jar");
     fs.copyFromLocalFile(jarPath, dstPath);
     // Sleep to ensure jar change gets picked up
-    UtilWaitThread.sleep(WAIT);
+    // ignore interrupt status
+    UtilWaitThread.sleep(WAIT, MILLISECONDS);
     return dstPath;
   }
 

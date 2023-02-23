@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.spi.balancer;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -105,7 +106,8 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     List<TabletMigration> migrationsOut = new ArrayList<>();
     // Wait to trigger the out of bounds check which will call our version of
     // getOnlineTabletsForTable
-    UtilWaitThread.sleep(3000);
+    // ignore interrupt status
+    UtilWaitThread.sleep(3000, MILLISECONDS);
     this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
         migrations, migrationsOut));
     assertEquals(0, migrationsOut.size());
@@ -114,7 +116,8 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     config.set(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r01.*");
 
     // Wait to trigger the out of bounds check and the repool check
-    UtilWaitThread.sleep(10000);
+    // ignore interrupt status
+    UtilWaitThread.sleep(10000, MILLISECONDS);
     this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
         migrations, migrationsOut));
     assertEquals(5, migrationsOut.size());

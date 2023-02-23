@@ -18,14 +18,15 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -106,11 +107,13 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
       // initiate splits
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "100K");
 
-      sleepUninterruptibly(2, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(2, SECONDS);
 
       // wait until over split threshold -- should be 78 splits
-      while (c.tableOperations().listSplits(tableName).size() < 75) {
-        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      while (c.tableOperations().listSplits(tableName).size() < 75
+          && !Thread.currentThread().isInterrupted()) {
+        UtilWaitThread.sleep(500, MILLISECONDS);
       }
 
       FunctionalTestUtils.checkSplits(c, tableName, 50, 100);

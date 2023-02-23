@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
@@ -32,7 +32,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.compactor.Compactor;
@@ -42,6 +41,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -113,7 +113,9 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       try {
         while (!compactionFinished.get()) {
           checkRunning();
-          sleepUninterruptibly(1000, TimeUnit.MILLISECONDS);
+          if (!UtilWaitThread.sleep(1000, MILLISECONDS)) {
+            throw new IllegalStateException("Interrupted during wait for compaction to finish");
+          }
         }
       } catch (TException e) {
         log.warn("{}", e.getMessage(), e);

@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer1;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.BufferedWriter;
 import java.io.OutputStreamWriter;
@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
@@ -49,6 +48,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -137,7 +137,8 @@ class LoadFiles extends ManagerRepo {
       }
 
       while (manager.onlineTabletServers().isEmpty()) {
-        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(500, MILLISECONDS);
       }
 
       // Use the threadpool to assign files one-at-a-time to the server
@@ -199,7 +200,8 @@ class LoadFiles extends ManagerRepo {
       if (!filesToLoad.isEmpty()) {
         log.debug(FateTxId.formatTid(tid) + " attempt " + (attempt + 1) + " "
             + sampleList(filesToLoad, 10) + " failed");
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(100, MILLISECONDS);
       }
     }
 

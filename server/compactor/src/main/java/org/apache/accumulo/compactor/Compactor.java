@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.compactor;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -33,7 +34,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
@@ -179,8 +179,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   protected void startCancelChecker(ScheduledThreadPoolExecutor schedExecutor,
       long timeBetweenChecks) {
-    ThreadPools.watchCriticalScheduledTask(schedExecutor.scheduleWithFixedDelay(
-        this::checkIfCanceled, 0, timeBetweenChecks, TimeUnit.MILLISECONDS));
+    ThreadPools.watchCriticalScheduledTask(schedExecutor
+        .scheduleWithFixedDelay(this::checkIfCanceled, 0, timeBetweenChecks, MILLISECONDS));
   }
 
   protected void checkIfCanceled() {
@@ -285,7 +285,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           return;
         }
         LOG.info("Waiting for Compactor lock");
-        sleepUninterruptibly(5, TimeUnit.SECONDS);
+        if (!UtilWaitThread.sleep(5, SECONDS)) {
+          throw new InterruptedException("Interrupted during pause waiting for compactor lock");
+        }
       }
       String msg = "Too many retries, exiting.";
       LOG.info(msg);
@@ -619,7 +621,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           job = getNextJob(getNextId());
           if (!job.isSetExternalCompactionId()) {
             LOG.trace("No external compactions in queue {}", this.queueName);
-            UtilWaitThread.sleep(getWaitTimeBetweenCompactionChecks());
+            // ignore interrupt status
+            UtilWaitThread.sleep(getWaitTimeBetweenCompactionChecks(), MILLISECONDS);
             continue;
           }
           if (!job.getExternalCompactionId().equals(currentCompactionId.get().toString())) {
@@ -651,7 +654,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           LOG.debug("Progress checks will occur every {} seconds", waitTime);
           String percentComplete = "unknown";
 
-          while (!stopped.await(waitTime, TimeUnit.SECONDS)) {
+          while (!stopped.await(waitTime, SECONDS)) {
             List<CompactionInfo> running =
                 org.apache.accumulo.server.compaction.FileCompactor.getRunningCompactions();
             if (!running.isEmpty()) {

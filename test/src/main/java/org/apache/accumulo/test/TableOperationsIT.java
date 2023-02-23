@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -64,6 +63,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
@@ -296,7 +296,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     list.add(new IteratorSetting(15, BadIterator.class));
     accumuloClient.tableOperations().compact(tableName, null, null, list, true, false); // don't
                                                                                         // block
-    sleepUninterruptibly(2, TimeUnit.SECONDS); // start compaction
+    // ignore interrupt status
+    UtilWaitThread.sleep(2, SECONDS); // start compaction
     accumuloClient.tableOperations().cancelCompaction(tableName);
 
     try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {

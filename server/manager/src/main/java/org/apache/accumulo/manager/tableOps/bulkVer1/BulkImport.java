@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer1;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -40,6 +40,7 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -189,7 +190,10 @@ public class BulkImport extends ManagerRepo {
       }
       log.warn("Failed to create {} for unknown reason", newBulkDir);
 
-      sleepUninterruptibly(3, TimeUnit.SECONDS);
+      if (!UtilWaitThread.sleep(3, SECONDS)) {
+        throw new IOException(
+            "Interrupted during retry sleep creating new bulk directory: " + newBulkDir);
+      }
     }
   }
 

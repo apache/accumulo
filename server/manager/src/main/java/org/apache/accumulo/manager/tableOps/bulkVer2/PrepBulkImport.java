@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.io.IOException;
@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
@@ -45,6 +44,7 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -255,7 +255,10 @@ public class PrepBulkImport extends ManagerRepo {
       }
       log.warn("Failed to create {} for unknown reason", newBulkDir);
 
-      sleepUninterruptibly(3, TimeUnit.SECONDS);
+      if (!UtilWaitThread.sleep(3, SECONDS)) {
+        throw new IOException(
+            "Interrupted during pause after creating new bulk dir failed: " + newBulkDir);
+      }
     }
   }
 

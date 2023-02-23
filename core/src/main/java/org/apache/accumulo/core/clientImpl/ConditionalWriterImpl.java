@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -77,6 +76,7 @@ import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.commons.collections4.map.LRUMap;
@@ -679,7 +679,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
     LockID lid = new LockID(context.getZooKeeperRoot() + Constants.ZTSERVERS, sessionId.lockId);
 
-    while (true) {
+    while (true && !Thread.currentThread().isInterrupted()) {
       if (!ServiceLock.isLockHeld(context.getZooCache(), lid)) {
         // ACCUMULO-1152 added a tserver lock check to the tablet location cache, so this
         // invalidation prevents future attempts to contact the
@@ -704,7 +704,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
         throw new TimedOutException(Collections.singleton(location.toString()));
       }
 
-      sleepUninterruptibly(sleepTime, MILLISECONDS);
+      // interrupt checked in while condition
+      UtilWaitThread.sleep(sleepTime, MILLISECONDS);
       sleepTime = Math.min(2 * sleepTime, MAX_SLEEP);
 
     }

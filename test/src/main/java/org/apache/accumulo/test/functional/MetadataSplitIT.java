@@ -18,18 +18,18 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
@@ -56,7 +56,8 @@ public class MetadataSplitIT extends ConfigurableMacBase {
         c.tableOperations().create("table" + i);
         c.tableOperations().flush(MetadataTable.NAME, null, null, true);
       }
-      sleepUninterruptibly(10, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(10, SECONDS);
       assertTrue(c.tableOperations().listSplits(MetadataTable.NAME).size() > 2);
     }
   }

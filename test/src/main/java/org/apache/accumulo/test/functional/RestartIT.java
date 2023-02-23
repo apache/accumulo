@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -41,6 +41,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.ServiceLockData;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -145,7 +146,8 @@ public class RestartIT extends AccumuloClusterHarness {
       } while (managerLockData.isPresent());
 
       cluster.start();
-      sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(5, MILLISECONDS);
       control.stopAllServers(ServerType.MANAGER);
 
       managerLockData = null;

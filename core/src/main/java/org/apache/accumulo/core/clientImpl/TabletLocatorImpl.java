@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -50,6 +49,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.slf4j.Logger;
@@ -505,7 +505,9 @@ public class TabletLocatorImpl extends TabletLocator {
       TabletLocation tl = _locateTablet(context, row, skipRow, retry, true, lcSession);
 
       if (retry && tl == null) {
-        sleepUninterruptibly(100, MILLISECONDS);
+        if (!UtilWaitThread.sleep(100, MILLISECONDS)) {
+          throw new AccumuloException("Interrupted during locate tablet pause");
+        }
         if (log.isTraceEnabled()) {
           log.trace("Failed to locate tablet containing row {} in table {}, will retry...",
               TextUtil.truncate(row), tableId);

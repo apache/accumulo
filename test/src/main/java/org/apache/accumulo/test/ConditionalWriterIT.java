@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -88,6 +88,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -882,7 +883,8 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(nss("2", "4", "6"));
       client.tableOperations().create(tableName, ntc);
 
-      sleepUninterruptibly(2, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(2, SECONDS);
 
       int num = 100;
 
@@ -1385,7 +1387,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       try (
           ConditionalWriter cw = client.createConditionalWriter(table,
-              new ConditionalWriterConfig().setTimeout(3, TimeUnit.SECONDS));
+              new ConditionalWriterConfig().setTimeout(3, SECONDS));
           Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
 
         ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));

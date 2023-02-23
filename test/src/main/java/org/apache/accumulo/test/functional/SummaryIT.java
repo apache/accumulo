@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
@@ -599,7 +600,8 @@ public class SummaryIT extends SharedMiniClusterBase {
             assertEquals(1L, (long) summary.getStatistics().getOrDefault("foos", 0L));
             break;
           } catch (AccumuloSecurityException ase) {
-            UtilWaitThread.sleep(500);
+            // ignore interrupt status
+            UtilWaitThread.sleep(500, MILLISECONDS);
             tries++;
           }
         }

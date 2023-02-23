@@ -32,11 +32,10 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.util.concurrent.Uninterruptibles;
 
 public class ConcurrentKeyExtentCacheTest {
 
@@ -83,7 +82,8 @@ public class ConcurrentKeyExtentCacheTest {
         }
       }
 
-      Uninterruptibles.sleepUninterruptibly(3, MILLISECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(3, MILLISECONDS);
 
       return extents.subList(index, extents.size()).stream().limit(73);
     }

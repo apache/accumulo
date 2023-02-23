@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.client;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.ArrayList;
@@ -32,6 +31,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -114,7 +114,8 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
           }
 
           // wait a moment before retrying
-          sleepUninterruptibly(100, MILLISECONDS);
+          // ignore interrupt status
+          UtilWaitThread.sleep(100, MILLISECONDS);
 
           source = newIterator(seekRange);
         }

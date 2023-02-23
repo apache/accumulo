@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.client;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 import java.io.IOException;
@@ -60,6 +60,7 @@ import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.StopWatch;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -192,7 +193,8 @@ public class BulkImporter {
         // same key range and are contiguous (no holes, no overlap)
 
         timer.start(Timers.SLEEP);
-        sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(sleepTime, MILLISECONDS);
         timer.stop(Timers.SLEEP);
 
         log.debug("Trying to assign {} map files that previously failed on some key extents",

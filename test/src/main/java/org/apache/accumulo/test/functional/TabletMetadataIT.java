@@ -18,19 +18,19 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
@@ -59,7 +59,8 @@ public class TabletMetadataIT extends ConfigurableMacBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       while (c.instanceOperations().getTabletServers().size() != NUM_TSERVERS) {
         log.info("Waiting for tservers to start up...");
-        sleepUninterruptibly(5, TimeUnit.SECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(5, SECONDS);
       }
       Set<TServerInstance> servers = TabletMetadata.getLiveTServers((ClientContext) c);
       assertEquals(NUM_TSERVERS, servers.size());
@@ -70,7 +71,8 @@ public class TabletMetadataIT extends ConfigurableMacBase {
 
       while (c.instanceOperations().getTabletServers().size() == NUM_TSERVERS) {
         log.info("Waiting for a tserver to die...");
-        sleepUninterruptibly(5, TimeUnit.SECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(5, SECONDS);
       }
       servers = TabletMetadata.getLiveTServers((ClientContext) c);
       assertEquals(NUM_TSERVERS - 1, servers.size());

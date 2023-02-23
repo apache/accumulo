@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.compactor;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -97,7 +98,8 @@ public class CompactorTest {
     public void run() {
       try {
         started.countDown();
-        UtilWaitThread.sleep(1000);
+        // ignore interrupt status
+        UtilWaitThread.sleep(1000, MILLISECONDS);
       } catch (Exception e) {
         err.set(e);
       } finally {
@@ -117,7 +119,8 @@ public class CompactorTest {
     public void run() {
       try {
         started.countDown();
-        UtilWaitThread.sleep(1000);
+        // ignore interrupt status
+        UtilWaitThread.sleep(1000, MILLISECONDS);
         throw new RuntimeException();
       } catch (Exception e) {
         err.set(e);

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -55,7 +57,8 @@ public class TestMultiTableIngest {
     for (String table : tableNames) {
       // wait for table to exist
       while (!client.tableOperations().exists(table)) {
-        UtilWaitThread.sleep(100);
+        // ignore interrupt status
+        UtilWaitThread.sleep(100, MILLISECONDS);
       }
       try (Scanner scanner = client.createScanner(table, opts.auths)) {
         int count = i;

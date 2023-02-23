@@ -18,18 +18,18 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
@@ -48,7 +48,8 @@ public class ShutdownIT extends ConfigurableMacBase {
   public void shutdownDuringIngest() throws Exception {
     Process ingest = cluster
         .exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--createTable").getProcess();
-    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+    // ignore interrupt status
+    UtilWaitThread.sleep(100, MILLISECONDS);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     ingest.destroy();
   }
@@ -60,7 +61,8 @@ public class ShutdownIT extends ConfigurableMacBase {
             .getProcess().waitFor());
     Process verify =
         cluster.exec(VerifyIngest.class, "-c", cluster.getClientPropsPath()).getProcess();
-    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+    // ignore interrupt status
+    UtilWaitThread.sleep(100, MILLISECONDS);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     verify.destroy();
   }
@@ -72,7 +74,8 @@ public class ShutdownIT extends ConfigurableMacBase {
             .getProcess().waitFor());
     Process deleter =
         cluster.exec(TestRandomDeletes.class, "-c", cluster.getClientPropsPath()).getProcess();
-    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+    // ignore interrupt status
+    UtilWaitThread.sleep(100, MILLISECONDS);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     deleter.destroy();
   }
@@ -94,7 +97,8 @@ public class ShutdownIT extends ConfigurableMacBase {
         }
       });
       async.start();
-      sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(100, MILLISECONDS);
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       if (ref.get() != null) {
         throw ref.get();

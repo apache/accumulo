@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.util;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import org.apache.accumulo.core.util.threads.Threads;
@@ -52,7 +51,8 @@ public class Halt {
     try {
       // give ourselves a little time to try and do something
       Threads.createThread("Halt Thread", () -> {
-        sleepUninterruptibly(100, MILLISECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(100, MILLISECONDS);
         Runtime.getRuntime().halt(status);
       }).start();
 

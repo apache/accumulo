@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -55,7 +56,8 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
       // wait for the table to be online
       TabletLocationState newTablet;
       do {
-        UtilWaitThread.sleep(250);
+        // ignore interrupt status
+        UtilWaitThread.sleep(250, MILLISECONDS);
         newTablet = getTabletLocationState(c, tableId);
       } while (newTablet.current == null);
       assertNull(newTablet.last);

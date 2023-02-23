@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.apache.accumulo.harness.AccumuloITBase.random;
 
 import java.util.HashMap;
@@ -42,6 +41,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ServiceLockData;
 import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -87,7 +87,8 @@ public class ZombieTServer {
           return result;
         }
       }
-      sleepUninterruptibly(Integer.MAX_VALUE, TimeUnit.DAYS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(Integer.MAX_VALUE, TimeUnit.DAYS);
       return null;
     }
 

@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.server.util;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.CLONED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -39,7 +40,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -94,6 +94,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.hadoop.io.Text;
@@ -165,7 +166,8 @@ public class MetadataTableUtil {
         // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
         throw new RuntimeException(e);
       }
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(1, SECONDS);
     }
   }
 
@@ -354,9 +356,8 @@ public class MetadataTableUtil {
   public static void deleteTable(TableId tableId, boolean insertDeletes, ServerContext context,
       ServiceLock lock) throws AccumuloException {
     try (Scanner ms = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY);
-        BatchWriter bw = new BatchWriterImpl(context, MetadataTable.ID,
-            new BatchWriterConfig().setMaxMemory(1000000)
-                .setMaxLatency(120000L, TimeUnit.MILLISECONDS).setMaxWriteThreads(2))) {
+        BatchWriter bw = new BatchWriterImpl(context, MetadataTable.ID, new BatchWriterConfig()
+            .setMaxMemory(1000000).setMaxLatency(120000L, MILLISECONDS).setMaxWriteThreads(2))) {
 
       // scan metadata for our table and delete everything we find
       Mutation m = null;
@@ -635,7 +636,8 @@ public class MetadataTableUtil {
           log.debug("Tablets merged in table {} while attempting to clone, trying again",
               srcTableId);
 
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+          // ignore interrupt status
+          UtilWaitThread.sleep(100, MILLISECONDS);
         }
       }
 

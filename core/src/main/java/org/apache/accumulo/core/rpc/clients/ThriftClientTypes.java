@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.core.rpc.clients;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
@@ -108,7 +108,8 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
       if (result != null) {
         return result;
       }
-      sleepUninterruptibly(250, MILLISECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(250, MILLISECONDS);
     }
   }
 

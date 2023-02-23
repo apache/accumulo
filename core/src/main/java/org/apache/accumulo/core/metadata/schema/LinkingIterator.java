@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.Iterator;
@@ -29,6 +28,7 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -176,7 +176,8 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
       }
 
       if (currTablet == null) {
-        sleepUninterruptibly(sleepTime, MILLISECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(sleepTime, MILLISECONDS);
         resetSource();
         sleepTime = Math.min(2 * sleepTime, 5000);
       }

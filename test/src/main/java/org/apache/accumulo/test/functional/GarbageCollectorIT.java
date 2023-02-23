@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -32,7 +33,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -56,6 +56,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ServiceLockData;
 import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
@@ -138,7 +139,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       log.info("Counted {} files in path: {}", before, pathString);
 
       while (true) {
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(1, SECONDS);
         int more = countFiles(pathString);
         if (more <= before) {
           break;
@@ -149,7 +151,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       // restart GC
       log.info("Restarting GC...");
       getCluster().start();
-      sleepUninterruptibly(15, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(15, SECONDS);
       log.info("Again Counting files in path: {}", pathString);
 
       int after = countFiles(pathString);
@@ -169,7 +172,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       addEntries(c);
       cluster.getConfig().setDefaultMemory(32, MemoryUnit.MEGABYTE);
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
-      sleepUninterruptibly(20, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(20, SECONDS);
       String output = "";
       while (!output.contains("has exceeded the threshold")) {
         try {
@@ -193,7 +197,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       c.tableOperations().create(table);
       // let gc run for a bit
       cluster.start();
-      sleepUninterruptibly(20, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(20, SECONDS);
       killMacGc();
       // kill tservers
       for (ProcessReference ref : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
@@ -246,7 +251,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       try {
         String output = "";
         while (!output.contains("Ignoring invalid deletion candidate")) {
-          sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+          // ignore interrupt status
+          UtilWaitThread.sleep(250, MILLISECONDS);
           try {
             output = gc.readStdOut();
           } catch (UncheckedIOException ioe) {

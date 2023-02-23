@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -39,6 +38,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,7 +136,8 @@ public class RootTabletLocator extends TabletLocator {
     TabletLocation location = getRootTabletLocation(context);
     // Always retry when finding the root tablet
     while (retry && location == null) {
-      sleepUninterruptibly(500, MILLISECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(500, MILLISECONDS);
       location = getRootTabletLocation(context);
     }
 

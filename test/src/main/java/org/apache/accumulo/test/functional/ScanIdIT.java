@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -37,7 +38,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -58,6 +58,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -136,7 +137,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
         if (resultsByWorker.size() < NUM_SCANNERS) {
           log.trace("Results reported {}", resultsByWorker.size());
-          sleepUninterruptibly(750, TimeUnit.MILLISECONDS);
+          // ignore interrupt status
+          UtilWaitThread.sleep(750, MILLISECONDS);
         } else {
           // each worker has reported at least one result.
           testInProgress.set(false);
@@ -144,7 +146,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
           log.debug("Final result count {}", resultsByWorker.size());
 
           // delay to allow scanners to react to end of test and cleanly close.
-          sleepUninterruptibly(1, TimeUnit.SECONDS);
+          // ignore interrupt status
+          UtilWaitThread.sleep(1, SECONDS);
         }
 
       }
@@ -159,9 +162,9 @@ public class ScanIdIT extends AccumuloClusterHarness {
         }
       });
 
-      while (!(scanIds = getScanIds(client)).isEmpty()) {
+      while (!(scanIds = getScanIds(client)).isEmpty() && !Thread.currentThread().isInterrupted()) {
         log.debug("Waiting for active scans to stop...");
-        Thread.sleep(200);
+        UtilWaitThread.sleep(200, MILLISECONDS);
       }
       assertEquals(0, scanIds.size(), "Expected no scanIds after closing scanners");
 
@@ -316,7 +319,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
       client.tableOperations().offline(tableName, true);
 
-      sleepUninterruptibly(2, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(2, SECONDS);
       client.tableOperations().online(tableName, true);
 
       for (Text split : client.tableOperations().listSplits(tableName)) {

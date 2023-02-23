@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -84,7 +85,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
         assertEquals(0, Runtime.getRuntime()
             .exec(new String[] {"kill", "-SIGSTOP", Integer.toString(pid)}).waitFor());
       }
-      UtilWaitThread.sleep(20_000);
+      // ignore interrupt status
+      UtilWaitThread.sleep(20_000, MILLISECONDS);
       for (int pid : tserverPids) {
         assertEquals(0, Runtime.getRuntime()
             .exec(new String[] {"kill", "-SIGCONT", Integer.toString(pid)}).waitFor());
@@ -96,7 +98,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
       c.tableOperations().addSplits("test", splits);
       // Ensure all of the tablets are actually assigned
       assertEquals(0, Iterables.size(c.createScanner("test", Authorizations.EMPTY)));
-      UtilWaitThread.sleep(30_000);
+      // ignore interrupt status
+      UtilWaitThread.sleep(30_000, MILLISECONDS);
       checkBalance(c);
     }
   }

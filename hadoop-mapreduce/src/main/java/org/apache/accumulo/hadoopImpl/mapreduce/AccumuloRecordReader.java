@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -56,6 +55,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -369,7 +369,10 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
             while (binnedRanges == null) {
               // Some tablets were still online, try again
               // sleep randomly between 100 and 200 ms
-              sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
+              if (!UtilWaitThread.sleep(100 + random.nextInt(100), MILLISECONDS)) {
+                throw new IOException(
+                    "Interrupted during pause waiting for tablets to come online");
+              }
               binnedRanges = binOfflineTable(context, tableId, ranges, callingClass);
 
             }
@@ -386,7 +389,9 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
               binnedRanges.clear();
               log.warn("Unable to locate bins for specified ranges. Retrying.");
               // sleep randomly between 100 and 200 ms
-              sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
+              if (!UtilWaitThread.sleep(100 + random.nextInt(100), MILLISECONDS)) {
+                throw new IOException("Interrupted during pause locating bins in range");
+              }
               tl.invalidateCache();
             }
           }

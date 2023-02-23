@@ -72,7 +72,8 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
 
         while (!JOB_HOLDER.isCancelled()) {
           LOG.info("Sleeping while job is not cancelled");
-          UtilWaitThread.sleep(1000);
+          // ignore interrupt status
+          UtilWaitThread.sleep(1000, MILLISECONDS);
         }
         // Compactor throws this exception when cancelled
         throw new CompactionCanceledException();

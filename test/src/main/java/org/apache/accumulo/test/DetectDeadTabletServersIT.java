@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -66,7 +67,8 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
         if (stats.tServerInfo.size() != 2) {
           break;
         }
-        UtilWaitThread.sleep(500);
+        // ignore interrupt status
+        UtilWaitThread.sleep(500, MILLISECONDS);
       }
       assertEquals(1, stats.tServerInfo.size());
       assertEquals(1, stats.badTServers.size() + stats.deadTabletServers.size());
@@ -75,7 +77,8 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
         if (!stats.deadTabletServers.isEmpty()) {
           break;
         }
-        UtilWaitThread.sleep(500);
+        // ignore interrupt status
+        UtilWaitThread.sleep(500, MILLISECONDS);
       }
       assertEquals(1, stats.tServerInfo.size());
       assertEquals(0, stats.badTServers.size());

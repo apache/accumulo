@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.io.IOException;
@@ -128,7 +129,8 @@ public class ZooSession {
             }
             tryAgain = false;
           } else {
-            UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
+            // ignore interrupt status
+            UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS, MILLISECONDS);
           }
         }
 
@@ -169,7 +171,7 @@ public class ZooSession {
           connectTimeWait -= sleepTime;
           sleepTime = 0;
         }
-        UtilWaitThread.sleep(sleepTime);
+        UtilWaitThread.sleep(sleepTime, MILLISECONDS);
         if (sleepTime < 10000) {
           sleepTime = sleepTime + (long) (sleepTime * random.nextDouble());
         }

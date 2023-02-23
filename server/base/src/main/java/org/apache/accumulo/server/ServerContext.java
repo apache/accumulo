@@ -20,8 +20,8 @@ package org.apache.accumulo.server;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Suppliers.memoize;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -37,7 +37,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
@@ -58,6 +57,7 @@ import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
@@ -317,7 +317,8 @@ public class ServerContext extends ClientContext {
         break;
       } catch (InterruptedException | KeeperException ex) {
         log.info("Waiting for accumulo to be initialized");
-        sleepUninterruptibly(1, SECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(1, SECONDS);
       }
     }
     log.info("ZooKeeper connected and initialized, attempting to talk to HDFS");
@@ -352,7 +353,8 @@ public class ServerContext extends ClientContext {
         }
       }
       log.info("Backing off due to failure; current sleep period is {} seconds", sleep / 1000.);
-      sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(sleep, MILLISECONDS);
       /* Back off to give transient failures more time to clear. */
       sleep = Math.min(MINUTES.toMillis(1), sleep * 2);
     }
@@ -431,7 +433,7 @@ public class ServerContext extends ClientContext {
       } catch (Exception t) {
         log.error("", t);
       }
-    }, SECONDS.toMillis(1), MINUTES.toMillis(10), TimeUnit.MILLISECONDS);
+    }, SECONDS.toMillis(1), MINUTES.toMillis(10), MILLISECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 

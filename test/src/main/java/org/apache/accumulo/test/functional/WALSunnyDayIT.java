@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.conf.Property.GC_CYCLE_DELAY;
 import static org.apache.accumulo.core.conf.Property.GC_CYCLE_START;
 import static org.apache.accumulo.core.conf.Property.INSTANCE_ZK_TIMEOUT;
@@ -39,7 +39,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -54,6 +53,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterControl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -124,14 +124,16 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       for (String table : new String[] {tableName, MetadataTable.NAME, RootTable.NAME}) {
         c.tableOperations().flush(table, null, null, true);
       }
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(1, SECONDS);
       // rolled WAL is no longer in use, but needs to be GC'd
       Map<String,WalState> walsAfterflush = getWALsAndAssertCount(context, 3);
       assertEquals(2, countInUse(walsAfterflush.values()), "inUse should be 2");
 
       // let the GC run for a little bit
       control.start(GARBAGE_COLLECTOR);
-      sleepUninterruptibly(5, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(5, SECONDS);
       // make sure the unused WAL goes away
       getWALsAndAssertCount(context, 2);
       control.stop(GARBAGE_COLLECTOR);
@@ -144,7 +146,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       // wait for the metadata table to go back online
       getRecoveryMarkers(c);
       // allow a little time for the manager to notice ASSIGNED_TO_DEAD_SERVER tablets
-      sleepUninterruptibly(5, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(5, SECONDS);
       Map<KeyExtent,List<String>> markers = getRecoveryMarkers(c);
       // log.debug("markers " + markers);
       assertEquals(1, markers.size(), "one tablet should have markers");
@@ -160,7 +163,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       // log.debug("wals after " + walsAfterRestart);
       assertEquals(4, countInUse(walsAfterRestart.values()), "used WALs after restart should be 4");
       control.start(GARBAGE_COLLECTOR);
-      sleepUninterruptibly(5, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(5, SECONDS);
       Map<String,WalState> walsAfterRestartAndGC = getWALsAndAssertCount(context, 2);
       assertEquals(2, countInUse(walsAfterRestartAndGC.values()), "logs in use should be 2");
     }

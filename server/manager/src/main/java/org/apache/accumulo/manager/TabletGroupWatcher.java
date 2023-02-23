@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.manager;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Math.min;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,7 +35,6 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -76,6 +75,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
 import org.apache.accumulo.manager.state.MergeStats;
@@ -175,9 +175,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     WalStateManager wals = new WalStateManager(manager.getContext());
 
-    while (manager.stillManager()) {
+    while (manager.stillManager() && !Thread.currentThread().isInterrupted()) {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events
-      sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      // interrupt handled in while condition
+      UtilWaitThread.sleep(100, MILLISECONDS);
 
       int totalUnloaded = 0;
       int unloaded = 0;
@@ -357,7 +358,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         if (ex.getCause() != null && ex.getCause() instanceof BadLocationStateException) {
           repairMetadata(((BadLocationStateException) ex.getCause()).getEncodedEndRow());
         } else {
-          sleepUninterruptibly(Manager.WAIT_BETWEEN_ERRORS, TimeUnit.MILLISECONDS);
+          // interrupt handled in wait condition
+          UtilWaitThread.sleep(Manager.WAIT_BETWEEN_ERRORS, MILLISECONDS);
         }
       } finally {
         if (iter != null) {

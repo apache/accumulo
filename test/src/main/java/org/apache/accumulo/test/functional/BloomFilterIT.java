@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -137,7 +139,8 @@ public class BloomFilterIT extends AccumuloClusterHarness {
             RowFunctor.class.getName());
 
         // ensure the updates to zookeeper propagate
-        UtilWaitThread.sleep(500);
+        // ignore interrupt status
+        UtilWaitThread.sleep(500, MILLISECONDS);
 
         c.tableOperations().compact(tables[3], null, null, false, true);
         c.tableOperations().compact(tables[0], null, null, false, true);

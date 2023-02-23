@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.gc;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -48,6 +48,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.ServiceLockData;
 import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
 import org.apache.accumulo.gc.metrics.GcMetrics;
@@ -373,7 +374,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         return;
       }
       log.debug("Failed to get GC ZooKeeper lock, will retry");
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(1, SECONDS);
     }
   }
 

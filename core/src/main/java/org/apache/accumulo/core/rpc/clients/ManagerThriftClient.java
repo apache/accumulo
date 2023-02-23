@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.rpc.clients;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.ConcurrentModificationException;
@@ -34,6 +33,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +61,9 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
         return exec.execute(client);
       } catch (TTransportException tte) {
         LOG.debug("ManagerClient request failed, retrying ... ", tte);
-        sleepUninterruptibly(100, MILLISECONDS);
+        if (!UtilWaitThread.sleep(100, MILLISECONDS)) {
+          throw new IllegalStateException("Interrupted sleep on ManagerClient retry");
+        }
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (ThriftTableOperationException e) {
@@ -76,7 +78,9 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
         LOG.debug("Contacted a Manager which is no longer active, retrying");
-        sleepUninterruptibly(100, MILLISECONDS);
+        if (!UtilWaitThread.sleep(100, MILLISECONDS)) {
+          throw new IllegalStateException("Interrupted pause for active manager");
+        }
       } catch (ThriftConcurrentModificationException e) {
         throw new ConcurrentModificationException(e.getMessage(), e);
       } catch (Exception e) {
@@ -109,7 +113,9 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
         return;
       } catch (TTransportException tte) {
         LOG.debug("ManagerClient request failed, retrying ... ", tte);
-        sleepUninterruptibly(100, MILLISECONDS);
+        if (!UtilWaitThread.sleep(100, MILLISECONDS)) {
+          throw new IllegalStateException("Interrupted on ManagerClient request pause");
+        }
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (ThriftTableOperationException e) {
@@ -124,7 +130,9 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
         LOG.debug("Contacted a Manager which is no longer active, retrying");
-        sleepUninterruptibly(100, MILLISECONDS);
+        if (!UtilWaitThread.sleep(100, MILLISECONDS)) {
+          throw new IllegalStateException("Interrupted during pause looking for active manager");
+        }
       } catch (ThriftConcurrentModificationException e) {
         throw new ConcurrentModificationException(e.getMessage(), e);
       } catch (Exception e) {

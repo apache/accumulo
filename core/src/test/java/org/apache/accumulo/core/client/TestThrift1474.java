@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.client;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -28,6 +27,7 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTest;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -74,7 +74,9 @@ public class TestThrift1474 {
     Thread thread = new Thread(server::serve);
     thread.start();
     while (!server.isServing()) {
-      sleepUninterruptibly(10, MILLISECONDS);
+      if (!UtilWaitThread.sleep(10, MILLISECONDS)) {
+        throw new InterruptedException("Interrupted during pause for finding a server");
+      }
     }
 
     TTransport transport = new TSocket("localhost", port);

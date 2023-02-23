@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
@@ -89,7 +90,8 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       Set<TabletLocationState> oldLocations = new HashSet<>();
       TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
       while (states.size() < 2) {
-        UtilWaitThread.sleep(250);
+        // ignore interrupt status
+        UtilWaitThread.sleep(250, MILLISECONDS);
         oldLocations.clear();
         for (TabletLocationState tls : store) {
           if (tls.current != null) {
@@ -104,7 +106,8 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
           cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
       // Find out which tablet server remains
       while (true) {
-        UtilWaitThread.sleep(1000);
+        // ignore interrupt status
+        UtilWaitThread.sleep(1000, MILLISECONDS);
         states.clear();
         boolean allAssigned = true;
         for (TabletLocationState tls : store) {
@@ -149,7 +152,8 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
         iter.forEachRemaining(t -> {});
       } catch (Exception ex) {
         System.out.println(ex);
-        UtilWaitThread.sleep(250);
+        // ignore interrupt status
+        UtilWaitThread.sleep(250, MILLISECONDS);
         continue;
       }
       break;

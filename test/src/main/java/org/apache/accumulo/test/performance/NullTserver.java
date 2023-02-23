@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.performance;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
@@ -74,6 +73,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -371,8 +371,8 @@ public class NullTserver {
     TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
     store.setLocations(assignments);
 
-    while (true) {
-      sleepUninterruptibly(10, TimeUnit.SECONDS);
+    while (!Thread.currentThread().isInterrupted()) {
+      UtilWaitThread.sleep(10, SECONDS);
     }
   }
 }

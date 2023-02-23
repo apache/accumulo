@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 
 import java.io.ByteArrayInputStream;
@@ -40,7 +40,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -88,6 +87,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionStats;
@@ -990,7 +990,8 @@ public class Tablet extends TabletBase {
         } catch (RuntimeException t) {
           err = t;
           log.error("Consistency check fails, retrying", t);
-          sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+          // ignore interrupt status
+          UtilWaitThread.sleep(500, MILLISECONDS);
         }
       }
       if (err != null) {

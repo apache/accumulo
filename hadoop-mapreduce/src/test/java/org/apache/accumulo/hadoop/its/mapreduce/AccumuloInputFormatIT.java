@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.hadoop.its.mapreduce;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.System.currentTimeMillis;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,7 +33,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -50,6 +49,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder.InputFormatOptions;
 import org.apache.accumulo.hadoopImpl.mapreduce.BatchInputSplit;
@@ -125,7 +125,10 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       splitsToAdd.add(new Text(String.format("%09d", i)));
     }
     client.tableOperations().addSplits(table, splitsToAdd);
-    sleepUninterruptibly(500, TimeUnit.MILLISECONDS); // wait for splits to be propagated
+
+    if (!UtilWaitThread.sleep(500, MILLISECONDS)) { // wait for splits to be propagate)
+      throw new IllegalStateException("Interrupted during sleep");
+    }
 
     // get splits without setting any range
     // No ranges set on the job so it'll start with -inf

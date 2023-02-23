@@ -18,10 +18,11 @@
  */
 package org.apache.accumulo.miniclusterImpl;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 
 import java.io.File;
@@ -81,6 +82,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
@@ -551,7 +553,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
                     + config.getLogDir() + " for errors.  Last exception: " + e);
               }
               // Don't spin absurdly fast
-              sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+              if (!UtilWaitThread.sleep(250, MILLISECONDS)) {
+                throw new IllegalStateException("Interrupted during pause waiting for ZooKeeper");
+              }
             }
           }
         }
@@ -596,7 +600,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       if (ret == 0) {
         break;
       }
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+
+      if (!UtilWaitThread.sleep(1, SECONDS)) {
+        throw new InterruptedException("Interrupt received during pause for process start");
+      }
     }
     if (ret != 0) {
       throw new IllegalStateException("Could not set manager goal state, process returned " + ret

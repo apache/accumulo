@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
@@ -72,7 +73,8 @@ public class GarbageCollectWALIT extends ConfigurableMacBase {
       try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         scanner.forEach((k, v) -> {});
       }
-      UtilWaitThread.sleep(3 * 5_000);
+      // ignore interrupt status
+      UtilWaitThread.sleep(3 * 5_000, MILLISECONDS);
       assertEquals(2, countWALsInFS(cluster));
     }
   }

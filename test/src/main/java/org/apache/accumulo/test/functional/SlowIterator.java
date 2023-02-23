@@ -18,12 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -33,6 +32,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.core.util.UtilWaitThread;
 
 public class SlowIterator extends WrappingIterator {
 
@@ -57,15 +57,20 @@ public class SlowIterator extends WrappingIterator {
 
   @Override
   public void next() throws IOException {
-    sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
+    if (!UtilWaitThread.sleep(sleepTime, MILLISECONDS)) {
+      throw new IllegalStateException("Interrupted sleeping in next()");
+    }
     super.next();
   }
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
-    sleepUninterruptibly(seekSleepTime, TimeUnit.MILLISECONDS);
+    if (!UtilWaitThread.sleep(seekSleepTime, MILLISECONDS)) {
+      throw new IllegalStateException("Interrupted sleeping in seek()");
+    }
     super.seek(range, columnFamilies, inclusive);
+
   }
 
   @Override

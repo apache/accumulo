@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.gc;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SCANS;
@@ -61,6 +61,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
@@ -207,7 +208,9 @@ public class GCRun implements GarbageCollectionEnvironment {
         }
         ioe.addSuppressed(e);
         log.error("Error getting tables from ZooKeeper, retrying in {} seconds", retries, e);
-        sleepUninterruptibly(retries, TimeUnit.SECONDS);
+        if (!UtilWaitThread.sleep(retries, SECONDS)) {
+          throw new InterruptedException("Interrupted getting tables from ZooKeeper");
+        }
       }
     }
     throw ioe;
@@ -416,7 +419,7 @@ public class GCRun implements GarbageCollectionEnvironment {
   /**
    * Checks if safemode is set - files will not be deleted.
    *
-   * @return number of delete threads
+   * @return true if in safe mode, false otherwise
    */
   boolean inSafeMode() {
     return context.getConfiguration().getBoolean(Property.GC_SAFEMODE);

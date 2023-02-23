@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
@@ -163,7 +164,8 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
       // Wait for all external compactions to complete
       long count;
       do {
-        UtilWaitThread.sleep(100);
+        // ignore interrupt status
+        UtilWaitThread.sleep(100, MILLISECONDS);
         try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
             .forLevel(DataLevel.USER).fetch(ColumnType.ECOMP).build()) {
           count = tm.stream().mapToLong(t -> t.getExternalCompactions().keySet().size()).sum();

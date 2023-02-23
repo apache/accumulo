@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.coordinator;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
@@ -215,7 +215,10 @@ public class CompactionCoordinator extends AbstractServer
       }
       coordinatorLock.tryToCancelAsyncLockOrUnlock();
 
-      sleepUninterruptibly(1000, TimeUnit.MILLISECONDS);
+      // ignore interrupt status
+      if (!UtilWaitThread.sleep(1000, MILLISECONDS)) {
+        throw new InterruptedException("Interrupted during pause trying to get coordinator lock");
+      }
     }
   }
 
@@ -307,7 +310,8 @@ public class CompactionCoordinator extends AbstractServer
       long duration = (System.currentTimeMillis() - start);
       if (checkInterval - duration > 0) {
         LOG.debug("Waiting {}ms for next tserver check", (checkInterval - duration));
-        UtilWaitThread.sleep(checkInterval - duration);
+        // ignore interrupt status
+        UtilWaitThread.sleep(checkInterval - duration, MILLISECONDS);
       }
     }
 

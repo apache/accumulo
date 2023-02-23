@@ -18,11 +18,10 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -34,6 +33,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -68,12 +68,13 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "9999");
       c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "999");
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(1, SECONDS);
       // get an idea of how fast the syncs occur
       byte[] row = new byte[250];
       BatchWriterConfig cfg = new BatchWriterConfig();
       cfg.setMaxWriteThreads(10);
-      cfg.setMaxLatency(1, TimeUnit.SECONDS);
+      cfg.setMaxLatency(1, SECONDS);
       cfg.setMaxMemory(1024 * 1024);
       long realSyncs = getSyncs(c);
       long now = System.currentTimeMillis();
@@ -101,7 +102,8 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
           "" + LARGE_QUEUE_SIZE);
       c.tableOperations().flush(tableName, null, null, true);
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(1, SECONDS);
       try (BatchWriter bw = c.createBatchWriter(tableName, cfg)) {
         now = System.currentTimeMillis();
         bytesSent = 0;

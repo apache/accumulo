@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
@@ -177,7 +178,8 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
           while (metrics2.getCompactions() == null) {
             metrics2 = getRunningCompactions(getCluster().getServerContext());
             if (metrics2.getCompactions() == null) {
-              UtilWaitThread.sleep(50);
+              // ignore interrupt status
+              UtilWaitThread.sleep(50, MILLISECONDS);
             }
           }
           LOG.info("Taking table offline");
@@ -220,7 +222,8 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       while (finalStateCount > 0) {
         finalStateCount = getFinalStatesForTable(getCluster(), tid).count();
         if (finalStateCount > 0) {
-          UtilWaitThread.sleep(50);
+          // ignore interrupt status
+          UtilWaitThread.sleep(50, MILLISECONDS);
         }
       }
 

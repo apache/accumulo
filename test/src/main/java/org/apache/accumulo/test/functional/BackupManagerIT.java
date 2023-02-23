@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.time.Duration;
 import java.util.List;
 
@@ -41,7 +43,8 @@ public class BackupManagerIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     // wait for manager
-    UtilWaitThread.sleep(1000);
+    // ignore interrupt status
+    UtilWaitThread.sleep(1000, MILLISECONDS);
     // create a backup
     Process backup = exec(Manager.class);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
@@ -50,18 +53,21 @@ public class BackupManagerIT extends ConfigurableMacBase {
       List<String> children;
       // wait for 2 lock entries
       do {
-        UtilWaitThread.sleep(100);
+        // ignore interrupt status
+        UtilWaitThread.sleep(100, MILLISECONDS);
         var path = ServiceLock.path(root + Constants.ZMANAGER_LOCK);
         children = ServiceLock.validateAndSort(path, writer.getChildren(path.toString()));
       } while (children.size() != 2);
       // wait for the backup manager to learn to be the backup
-      UtilWaitThread.sleep(1000);
+      // ignore interrupt status
+      UtilWaitThread.sleep(1000, MILLISECONDS);
       // generate a false zookeeper event
       String lockPath = root + Constants.ZMANAGER_LOCK + "/" + children.get(0);
       byte[] data = writer.getData(lockPath);
       writer.getZooKeeper().setData(lockPath, data, -1);
       // let it propagate
-      UtilWaitThread.sleep(500);
+      // ignore interrupt status
+      UtilWaitThread.sleep(500, MILLISECONDS);
       // kill the manager by removing its lock
       writer.recursiveDelete(lockPath, NodeMissingPolicy.FAIL);
       // ensure the backup becomes the manager

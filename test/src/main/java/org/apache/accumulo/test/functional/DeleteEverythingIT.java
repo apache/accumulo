@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -34,6 +34,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -65,8 +66,11 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
           c.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
       c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
       if (getClusterType() == ClusterType.STANDALONE) {
-        // Gotta wait for the cluster to get out of the default sleep value
-        Thread.sleep(ConfigurationTypeHelper.getTimeInMillis(majcDelay));
+        // Need to wait for the cluster to get out of the default sleep value
+        if (!UtilWaitThread.sleep(ConfigurationTypeHelper.getTimeInMillis(majcDelay),
+            MILLISECONDS)) {
+          throw new IllegalStateException("Interrupted waiting for cluster to wake up.");
+        }
       }
     }
   }
@@ -105,7 +109,8 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
         c.tableOperations().flush(tableName, null, null, true);
 
         c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
-        sleepUninterruptibly(4, TimeUnit.SECONDS);
+        // ignore interrupt status
+        assertTrue(UtilWaitThread.sleep(4, SECONDS));
 
         FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
 

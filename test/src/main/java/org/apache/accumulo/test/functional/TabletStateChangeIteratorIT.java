@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
@@ -111,7 +112,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       int tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, state);
       while (tabletsInFlux > 0) {
         log.debug("Waiting for {} tablets for {}", tabletsInFlux, metaCopy1);
-        UtilWaitThread.sleep(500);
+        // ignore interrupt status
+        UtilWaitThread.sleep(500, MILLISECONDS);
         copyTable(client, MetadataTable.NAME, metaCopy1);
         tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, state);
       }

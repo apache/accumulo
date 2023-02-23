@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.fate;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -42,6 +41,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
@@ -326,8 +326,10 @@ public class ZooStore<T> implements TStore<T> {
         return deserialized;
       } catch (KeeperException.NoNodeException ex) {
         log.debug("zookeeper error reading " + txpath + ": " + ex, ex);
-        sleepUninterruptibly(100, MILLISECONDS);
-        continue;
+        // propagate interrupt with existing exception handling
+        if (!UtilWaitThread.sleep(100, MILLISECONDS)) {
+          throw new IllegalStateException("Interrupted waiting for node to exist in ZooKeeper");
+        }
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

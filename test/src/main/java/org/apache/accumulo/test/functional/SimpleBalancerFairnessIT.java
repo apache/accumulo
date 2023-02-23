@@ -18,14 +18,13 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -38,6 +37,7 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -72,7 +72,9 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       params.rows = 5000;
       TestIngest.ingest(c, params);
       c.tableOperations().flush("test_ingest", null, null, false);
-      sleepUninterruptibly(45, TimeUnit.SECONDS);
+      if (!UtilWaitThread.sleep(45, SECONDS)) {
+        throw new IllegalStateException("Interrupted during sleep");
+      }
       Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
 
       int unassignedTablets = 1;

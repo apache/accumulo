@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.time.Duration;
 import java.util.EnumSet;
 
@@ -61,7 +63,8 @@ public class DeletedTablesDontFlushIT extends SharedMiniClusterBase {
       SlowIterator.setSleepTime(setting, 1000);
       c.tableOperations().attachIterator(tableName, setting, EnumSet.of(IteratorScope.minc));
       // let the configuration change propagate through zookeeper
-      UtilWaitThread.sleep(1000);
+      // ignore interrupt status
+      UtilWaitThread.sleep(1000, MILLISECONDS);
 
       Mutation m = new Mutation("xyzzy");
       for (int i = 0; i < 100; i++) {

@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.test.util;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -84,7 +85,8 @@ public class SlowOps {
       client.instanceOperations().setProperty(
           Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS.getKey(),
           "[{'name':'any','numThreads':" + target + "}]".replaceAll("'", "\""));
-      UtilWaitThread.sleep(3_000); // give it time to propagate
+      // ignore interrupt status
+      UtilWaitThread.sleep(3_000, MILLISECONDS); // give it time to propagate
     } catch (AccumuloException | AccumuloSecurityException | NumberFormatException ex) {
       throw new IllegalStateException("Could not set parallel compaction limit to " + target, ex);
     }
@@ -97,7 +99,7 @@ public class SlowOps {
   private void createData() {
     try {
       client.tableOperations().create(tableName);
-      log.info("Created table id: {}, name \'{}\'",
+      log.info("Created table id: {}, name '{}'",
           client.tableOperations().tableIdMap().get(tableName), tableName);
       try (BatchWriter bw = client.createBatchWriter(tableName)) {
         // populate
@@ -135,7 +137,7 @@ public class SlowOps {
       }
       return count;
     } catch (TableNotFoundException ex) {
-      log.debug("cannot verify row count, table \'{}\' does not exist", tableName);
+      log.debug("cannot verify row count, table '{}' does not exist", tableName);
       throw new IllegalStateException(ex);
     }
   }
@@ -187,10 +189,9 @@ public class SlowOps {
             return;
           }
           log.info("Exception thrown while waiting for compaction - will retry", ex);
-          try {
-            Thread.sleep(10_000 * retry);
-          } catch (InterruptedException iex) {
-            Thread.currentThread().interrupt();
+          if (!UtilWaitThread.sleep(10, SECONDS)) {
+            // interrupted wile sleeping return (interrupt flag is set)
+            log.debug("Interrupted during sleep, exiting slow compaction run loop");
             return;
           }
         }
@@ -226,7 +227,7 @@ public class SlowOps {
    */
   private boolean blockUntilCompactionRunning() {
     long startWaitNanos = System.nanoTime();
-    long maxWaitNanos = TimeUnit.MILLISECONDS.toNanos(maxWaitMillis);
+    long maxWaitNanos = MILLISECONDS.toNanos(maxWaitMillis);
 
     /*
      * wait for compaction to start on table - The compaction will acquire a fate transaction lock
@@ -259,11 +260,12 @@ public class SlowOps {
         return true;
       }
 
-      sleepUninterruptibly(3, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(3, SECONDS);
     } while ((System.nanoTime() - startWaitNanos) < maxWaitNanos);
 
     log.debug("Could not find compaction for {} after {} seconds", tableName,
-        TimeUnit.MILLISECONDS.toSeconds(maxWaitMillis));
+        MILLISECONDS.toSeconds(maxWaitMillis));
     return false;
   }
 

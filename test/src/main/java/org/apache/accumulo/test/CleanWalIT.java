@@ -18,12 +18,11 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -40,6 +39,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -105,7 +105,8 @@ public class CleanWalIT extends AccumuloClusterHarness {
       client.tableOperations().flush(RootTable.NAME, null, null, true);
       try {
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-        sleepUninterruptibly(3, TimeUnit.SECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(3, SECONDS);
       } finally {
         getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
       }

@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -38,6 +38,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -69,7 +70,8 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
           "10000");
       // propagation time
-      sleepUninterruptibly(5, TimeUnit.SECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(5, SECONDS);
       for (int i = 0; i < 2; i++) {
         String tableName = "table" + i;
         log.info("Creating {} with splits", tableName);
@@ -80,11 +82,12 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
         c.tableOperations().flush(RootTable.NAME, null, null, true);
       }
 
-      while (true) {
+      int tablets = 0;
+      while (true && !Thread.currentThread().isInterrupted()) {
         ClientContext context = (ClientContext) c;
         ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
             client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
-        int tablets = 0;
+        tablets = 0;
         for (TabletServerStatus tserver : stats.tServerInfo) {
           for (Entry<String,TableInfo> entry : tserver.tableMap.entrySet()) {
             if (entry.getKey().startsWith("!") || entry.getKey().startsWith("+")) {
@@ -97,8 +100,10 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
         if (tablets == 2002) {
           break;
         }
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        // interrupt handled in wait condition
+        UtilWaitThread.sleep(1, SECONDS);
       }
+      assertEquals(2002, tablets);
     }
   }
 }

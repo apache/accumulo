@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.manager;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.Collections.emptySortedMap;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -106,6 +107,7 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.ServiceLockData;
 import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
@@ -242,7 +244,7 @@ public class Manager extends AbstractServer
   Fate<Manager> fate() {
     try {
       // block up to 30 seconds until it's ready; if it's still not ready, introduce some logging
-      if (!fateReadyLatch.await(30, TimeUnit.SECONDS)) {
+      if (!fateReadyLatch.await(30, SECONDS)) {
         String msgPrefix = "Unexpected use of fate in thread " + Thread.currentThread().getName()
             + " at time " + System.currentTimeMillis();
         // include stack trace so we know where it's coming from, in case we need to troubleshoot it
@@ -293,7 +295,7 @@ public class Manager extends AbstractServer
         // This frees the main thread and will cause the manager to exit
         clientService.stop();
         Manager.this.nextEvent.event("stopped event loop");
-      }, 100L, 1000L, TimeUnit.MILLISECONDS);
+      }, 100L, 1000L, MILLISECONDS);
       ThreadPools.watchNonCriticalScheduledTask(future);
     }
 
@@ -534,7 +536,8 @@ public class Manager extends AbstractServer
         return ManagerGoalState.valueOf(new String(data));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(1, SECONDS);
       }
     }
   }
@@ -687,7 +690,8 @@ public class Manager extends AbstractServer
             log.error("Error cleaning up migrations", ex);
           }
         }
-        sleepUninterruptibly(TIME_BETWEEN_MIGRATION_CLEANUPS, TimeUnit.MILLISECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(TIME_BETWEEN_MIGRATION_CLEANUPS, MILLISECONDS);
       }
     }
 
@@ -837,7 +841,8 @@ public class Manager extends AbstractServer
           TraceUtil.setException(span, t, false);
           log.error("Error balancing tablets, will wait for {} (seconds) and then retry ",
               WAIT_BETWEEN_ERRORS / ONE_SECOND, t);
-          sleepUninterruptibly(WAIT_BETWEEN_ERRORS, TimeUnit.MILLISECONDS);
+          // ignore interrupt status
+          UtilWaitThread.sleep(WAIT_BETWEEN_ERRORS, MILLISECONDS);
         } finally {
           span.end();
         }
@@ -965,7 +970,8 @@ public class Manager extends AbstractServer
         // Since an unbounded thread pool is being used, rate limit how fast task are added to the
         // executor. This prevents the threads from growing large unless there are lots of
         // unresponsive tservers.
-        sleepUninterruptibly(Math.max(1, rpcTimeout / 120_000), TimeUnit.MILLISECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(Math.max(1, rpcTimeout / 120_000), MILLISECONDS);
       }
       tp.execute(() -> {
         try {
@@ -1020,7 +1026,7 @@ public class Manager extends AbstractServer
     }
     tp.shutdown();
     try {
-      tp.awaitTermination(Math.max(10000, rpcTimeout / 3), TimeUnit.MILLISECONDS);
+      tp.awaitTermination(Math.max(10000, rpcTimeout / 3), MILLISECONDS);
     } catch (InterruptedException e) {
       log.debug("Interrupted while fetching status");
     }
@@ -1191,7 +1197,7 @@ public class Manager extends AbstractServer
       fateReadyLatch.countDown();
 
       ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
-          .scheduleWithFixedDelay(store::ageOff, 63000, 63000, TimeUnit.MILLISECONDS));
+          .scheduleWithFixedDelay(store::ageOff, 63000, 63000, MILLISECONDS));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
@@ -1219,7 +1225,8 @@ public class Manager extends AbstractServer
           log.info("Waiting for AuthenticationTokenKeyManager to be initialized");
           logged = true;
         }
-        sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(200, MILLISECONDS);
       }
       // And log when we are initialized
       log.info("AuthenticationTokenSecretManager is initialized");
@@ -1236,7 +1243,8 @@ public class Manager extends AbstractServer
     }
 
     while (!clientService.isServing()) {
-      sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(100, MILLISECONDS);
     }
 
     // checking stored user hashes if any of them uses an outdated algorithm
@@ -1246,7 +1254,8 @@ public class Manager extends AbstractServer
     managerInitialized.set(true);
 
     while (clientService.isServing()) {
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(500, MILLISECONDS);
     }
     log.info("Shutting down fate.");
     fate().shutdown();
@@ -1323,10 +1332,9 @@ public class Manager extends AbstractServer
     // yield to happen
     long initialWait = Math.min(50, maxWait / 2);
 
-    Retry tserverRetry =
-        Retry.builder().infiniteRetries().retryAfter(initialWait, TimeUnit.MILLISECONDS)
-            .incrementBy(15_000, TimeUnit.MILLISECONDS).maxWait(maxWait, TimeUnit.MILLISECONDS)
-            .backOffFactor(1).logInterval(30_000, TimeUnit.MILLISECONDS).createRetry();
+    Retry tserverRetry = Retry.builder().infiniteRetries().retryAfter(initialWait, MILLISECONDS)
+        .incrementBy(15_000, MILLISECONDS).maxWait(maxWait, MILLISECONDS).backOffFactor(1)
+        .logInterval(30_000, MILLISECONDS).createRetry();
 
     log.info("Checking for tserver availability - need to reach {} servers. Have {}",
         minTserverCount, tserverSet.size());
@@ -1345,7 +1353,7 @@ public class Manager extends AbstractServer
             "Blocking for tserver availability - need to reach {} servers. Have {}"
                 + " Time spent blocking {} sec.",
             minTserverCount, tserverSet.size(),
-            TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
+            MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
       }
     }
 
@@ -1354,14 +1362,14 @@ public class Manager extends AbstractServer
           "tserver availability check time expired - continuing. Requested {}, have {} tservers on line. "
               + " Time waiting {} ms",
           tserverSet.size(), minTserverCount,
-          TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
+          MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
 
     } else {
       log.info(
           "tserver availability check completed. Requested {}, have {} tservers on line. "
               + " Time waiting {} ms",
           tserverSet.size(), minTserverCount,
-          TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
+          MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
     }
   }
 
@@ -1459,7 +1467,8 @@ public class Manager extends AbstractServer
 
       managerLock.tryToCancelAsyncLockOrUnlock();
 
-      sleepUninterruptibly(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, TimeUnit.MILLISECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, MILLISECONDS);
     }
 
     setManagerState(ManagerState.HAVE_LOCK);

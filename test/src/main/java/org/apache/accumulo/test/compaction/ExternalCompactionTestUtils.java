@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -292,7 +293,8 @@ public class ExternalCompactionTestUtils {
         tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream()).forEach(ecids::add);
       }
       if (ecids.isEmpty()) {
-        UtilWaitThread.sleep(50);
+        // ignore interrupt status
+        UtilWaitThread.sleep(50, MILLISECONDS);
       }
     } while (ecids.isEmpty());
     return ecids;
@@ -313,7 +315,8 @@ public class ExternalCompactionTestUtils {
         }
       }
       if (matches == 0) {
-        UtilWaitThread.sleep(50);
+        // ignore interrupt status
+        UtilWaitThread.sleep(50, MILLISECONDS);
       }
     }
     return matches;
@@ -326,7 +329,8 @@ public class ExternalCompactionTestUtils {
     while (running.getCompactions() != null) {
       running = ExternalCompactionTestUtils.getRunningCompactions(ctx);
       if (running.getCompactions() == null) {
-        UtilWaitThread.sleep(250);
+        // ignore interrupt status
+        UtilWaitThread.sleep(250, MILLISECONDS);
       }
     }
     // The compaction should be in the completed list with the expected state
@@ -334,7 +338,8 @@ public class ExternalCompactionTestUtils {
     while (completed.getCompactions() == null) {
       completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx);
       if (completed.getCompactions() == null) {
-        UtilWaitThread.sleep(50);
+        // ignore interrupt status
+        UtilWaitThread.sleep(50, MILLISECONDS);
       }
     }
     for (ExternalCompactionId e : ecids) {

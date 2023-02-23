@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.rpc.clients;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.ArrayList;
@@ -41,6 +40,7 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ExecVoid;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServiceLockData;
 import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -114,7 +114,8 @@ public interface TServerClient<C extends TServiceClient> {
         throw new AccumuloServerException(server, tae);
       } catch (TTransportException tte) {
         LOG.debug("ClientService request failed " + server + ", retrying ... ", tte);
-        sleepUninterruptibly(100, MILLISECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(100, MILLISECONDS);
       } catch (TException e) {
         throw new AccumuloException(e);
       } finally {
@@ -142,7 +143,8 @@ public interface TServerClient<C extends TServiceClient> {
         throw new AccumuloServerException(server, tae);
       } catch (TTransportException tte) {
         LOG.debug("ClientService request failed " + server + ", retrying ... ", tte);
-        sleepUninterruptibly(100, MILLISECONDS);
+        // ignore interrupt status
+        UtilWaitThread.sleep(100, MILLISECONDS);
       } catch (TException e) {
         throw new AccumuloException(e);
       } finally {

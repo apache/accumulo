@@ -18,19 +18,19 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -77,7 +77,7 @@ public class RestartStressIT extends AccumuloClusterHarness {
       svc.shutdown();
     }
 
-    while (!svc.awaitTermination(10, TimeUnit.SECONDS)) {
+    while (!svc.awaitTermination(10, SECONDS)) {
       log.info("Waiting for threadpool to terminate");
     }
   }
@@ -103,7 +103,9 @@ public class RestartStressIT extends AccumuloClusterHarness {
       });
 
       for (int i = 0; i < 2; i++) {
-        sleepUninterruptibly(10, TimeUnit.SECONDS);
+        if (!UtilWaitThread.sleep(10, SECONDS)) {
+          throw new IllegalStateException("Interrupted during sleep for stopping servers");
+        }
         control.stopAllServers(ServerType.TABLET_SERVER);
         control.startAllServers(ServerType.TABLET_SERVER);
       }

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -47,6 +47,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
@@ -81,14 +82,15 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
     // should automatically flush after 2 seconds
     try (
         BatchWriter bw = client.createBatchWriter(tableName,
-            new BatchWriterConfig().setMaxLatency(1000, TimeUnit.MILLISECONDS));
+            new BatchWriterConfig().setMaxLatency(1000, MILLISECONDS));
         Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
 
       Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
       m.put("cf", "cq", "1");
       bw.addMutation(m);
 
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(500, MILLISECONDS);
 
       int count = Iterators.size(scanner.iterator());
 
@@ -96,7 +98,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         throw new Exception("Flushed too soon");
       }
 
-      sleepUninterruptibly(1500, TimeUnit.MILLISECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(1500, MILLISECONDS);
 
       count = Iterators.size(scanner.iterator());
 

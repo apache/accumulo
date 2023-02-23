@@ -18,20 +18,20 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -133,7 +133,9 @@ public class MinorCompactor extends FileCompactor {
 
         int sleep = sleepTime + random.nextInt(sleepTime);
         log.debug("MinC failed sleeping {} ms before retrying", sleep);
-        sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
+        if (!UtilWaitThread.sleep(sleep, MILLISECONDS)) {
+          throw new IllegalStateException("Interrupted sleeping on MinC retry");
+        }
         sleepTime = (int) Math.round(Math.min(maxSleepTime, sleepTime * growthFactor));
 
         // clean up

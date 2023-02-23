@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,7 +31,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -69,6 +68,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PreAllocatedArray;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -761,7 +761,8 @@ public class InMemoryMap {
     long t1 = System.currentTimeMillis();
 
     while (!activeIters.isEmpty() && System.currentTimeMillis() - t1 < waitTime) {
-      sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
+      // ignore interrupt status
+      UtilWaitThread.sleep(50, MILLISECONDS);
     }
 
     if (!activeIters.isEmpty()) {
@@ -822,7 +823,8 @@ public class InMemoryMap {
         log.error("Failed to create mem dump file", ioe);
 
         while (!activeIters.isEmpty()) {
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+          // ignore interrupt status
+          UtilWaitThread.sleep(100, MILLISECONDS);
         }
       }
 

@@ -18,12 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -35,6 +34,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -123,7 +123,8 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
     ScanTask st1 = new ScanTask(c, tableName, 100);
     st1.start();
 
-    sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
+    // ignore interrupt status
+    UtilWaitThread.sleep(50, MILLISECONDS);
     c.tableOperations().flush(tableName, null, null, true);
 
     for (int i = 0; i < 50; i++) {
@@ -150,7 +151,8 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
     ScanTask st3 = new ScanTask(c, tableName, 150);
     st3.start();
 
-    sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
+    // ignore interrupt status
+    UtilWaitThread.sleep(50, MILLISECONDS);
     c.tableOperations().flush(tableName, null, null, false);
 
     st3.join();

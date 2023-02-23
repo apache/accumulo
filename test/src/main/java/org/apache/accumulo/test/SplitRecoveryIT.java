@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -43,6 +42,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -86,7 +86,8 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
         // take the table offline
         client.tableOperations().offline(tableName);
         while (!isOffline(tableName, client)) {
-          sleepUninterruptibly(200, MILLISECONDS);
+          // ignore interrupt status
+          UtilWaitThread.sleep(200, MILLISECONDS);
         }
 
         // poke a partial split into the metadata table
