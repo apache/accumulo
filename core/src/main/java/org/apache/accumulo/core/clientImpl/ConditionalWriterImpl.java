@@ -709,7 +709,10 @@ class ConditionalWriterImpl implements ConditionalWriter {
       sleepTime = Math.min(2 * sleepTime, MAX_SLEEP);
 
     }
-
+    if (Thread.currentThread().isInterrupted()) {
+      throw new TimedOutException(
+          "Interrupted during sleep: " + Collections.singleton(location.toString()));
+    }
   }
 
   private void invalidateSession(long sessionId, HostAndPort location) throws TException {
