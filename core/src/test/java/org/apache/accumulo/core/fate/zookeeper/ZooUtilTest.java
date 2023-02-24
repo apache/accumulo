@@ -40,19 +40,16 @@ class ZooUtilTest {
     assertTrue(validateACL(ZooUtil.PUBLIC));
   }
 
-  /**
-   * This test replicates the acl check in ZooKeeper.java to show ZooKeeper will not accept an
-   * ImmutableCollection for the ACL list. Callers need to use Collections.unmodifiableList()
-   * instead of List.of() or List.copyOf(), because ImmutableCollections.contains() doesn't handle
-   * nulls properly (JDK-8265905) and ZooKeeper (as of 3.8.1) calls acl.contains((Object) null)
-   * which throws a NPE when passed an immutable collection
-   */
   @Test
   public void checkImmutableAcl() throws Exception {
 
     final List<ACL> mutable = new ArrayList<>(ZooDefs.Ids.CREATOR_ALL_ACL);
     assertTrue(validateACL(mutable));
 
+    // Replicates the acl check in ZooKeeper.java to show ZooKeeper will not accept an
+    // ImmutableCollection for the ACL list. ZooKeeper (as of 3.8.1) calls
+    // acl.contains((Object) null) which throws a NPE when passed an immutable collectionCallers
+    // because the way ImmutableCollections.contains() handles nulls (JDK-8265905)
     try {
       final List<ACL> immutable = List.copyOf(ZooDefs.Ids.CREATOR_ALL_ACL);
       assertThrows(NullPointerException.class, () -> validateACL(immutable));
