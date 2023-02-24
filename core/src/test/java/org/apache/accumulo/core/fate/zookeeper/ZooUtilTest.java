@@ -62,8 +62,8 @@ class ZooUtilTest {
     }
   }
 
-   // Copied from ZooKeeper 3.8.1 for stand-alone testing here
-   // https://github.com/apache/zookeeper/blob/2e9c3f3ceda90aeb9380acc87b253bf7661b7794/zookeeper-server/src/main/java/org/apache/zookeeper/ZooKeeper.java#L3075/
+  // Copied from ZooKeeper 3.8.1 for stand-alone testing here
+  // https://github.com/apache/zookeeper/blob/2e9c3f3ceda90aeb9380acc87b253bf7661b7794/zookeeper-server/src/main/java/org/apache/zookeeper/ZooKeeper.java#L3075/
   private boolean validateACL(List<ACL> acl) throws KeeperException.InvalidACLException {
     if (acl == null || acl.isEmpty() || acl.contains((Object) null)) {
       throw new KeeperException.InvalidACLException();
