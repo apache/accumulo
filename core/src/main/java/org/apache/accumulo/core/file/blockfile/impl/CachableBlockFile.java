@@ -26,7 +26,6 @@ import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -48,7 +47,7 @@ import org.apache.hadoop.fs.Seekable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
 
 /**
  * This is a wrapper class for BCFile that includes a cache for independent caches for datablocks
@@ -170,8 +169,14 @@ public class CachableBlockFile {
 
     private long getCachedFileLen() throws IOException {
       try {
-        return fileLenCache.get(cacheId, lengthSupplier::get);
-      } catch (ExecutionException e) {
+        return fileLenCache.get(cacheId, k -> {
+          try {
+            return lengthSupplier.get();
+          } catch (IOException e) {
+            throw new UncheckedIOException(e);
+          }
+        });
+      } catch (Exception e) {
         throw new IOException("Failed to get " + cacheId + " len from cache ", e);
       }
     }

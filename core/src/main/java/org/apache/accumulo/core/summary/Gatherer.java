@@ -83,8 +83,8 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.base.Preconditions;
-import com.google.common.cache.Cache;
 import com.google.common.hash.Hashing;
 import com.google.common.net.HostAndPort;
 

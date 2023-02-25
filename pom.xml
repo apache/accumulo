@@ -1129,6 +1129,10 @@
                   <property name="format" value="&amp;quot; [+] &amp;quot;" />
                   <property name="message" value="Unnecessary concatenation of string literals" />
                 </module>
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="com.google.common.cache[.]" />
+                  <property name="message" value="Please use Caffeine Cache, not Guava" />
+                </module>
                 <module name="OuterTypeFilename" />
                 <module name="AvoidStarImport" />
                 <module name="NoLineWrap" />
