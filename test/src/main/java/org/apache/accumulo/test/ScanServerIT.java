@@ -38,9 +38,12 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -124,6 +127,67 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void testScanOfflineSingleTablet() throws Exception {
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+
+      final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
+      client.tableOperations().offline(tableName, true);
+      assertFalse(client.tableOperations().isOnline(tableName));
+
+      TabletLocator.getLocator((ClientContext) client,
+          TableId.of(client.tableOperations().tableIdMap().get(tableName))).invalidateCache();
+
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new Range());
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        assertEquals(ingestedEntryCount, Iterables.size(scanner),
+            "The scan server scanner should have seen all ingested and flushed entries");
+      } // when the scanner is closed, all open sessions should be closed
+    }
+  }
+
+  @Test
+  public void testScanOfflineTableManyTablets() throws Exception {
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+
+      final int ingestedEntryCount =
+          createTableAndIngest(client, tableName, null, 10, 10, "colf", 5);
+      client.tableOperations().offline(tableName, true);
+      assertFalse(client.tableOperations().isOnline(tableName));
+
+      TabletLocator.getLocator((ClientContext) client,
+          TableId.of(client.tableOperations().tableIdMap().get(tableName))).invalidateCache();
+
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new Range());
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        assertEquals(ingestedEntryCount, Iterables.size(scanner),
+            "The scan server scanner should have seen all ingested and flushed entries");
+      } // when the scanner is closed, all open sessions should be closed
+    }
+  }
+
+  @Test
+  public void testScanTableCreatedOffline() throws Exception {
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName, new NewTableConfiguration().createOffline());
+      assertFalse(client.tableOperations().isOnline(tableName));
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new Range());
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        assertEquals(0, Iterables.size(scanner),
+            "Unexpected entries seen when scanning empty table");
+      } // when the scanner is closed, all open sessions should be closed
+    }
+  }
+
+  @Test
   public void testBatchScan() throws Exception {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -148,26 +212,63 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testScanOfflineTable() throws Exception {
+  public void testBatchScanTableCreatedOffline() throws Exception {
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName, new NewTableConfiguration().createOffline());
+
+      try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRanges(Collections.singletonList(new Range()));
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        assertEquals(0, Iterables.size(scanner),
+            "Unexpected entries seen when scanning empty table");
+      } // when the scanner is closed, all open sessions should be closed
+      assertFalse(client.tableOperations().isOnline(tableName));
+    }
+  }
+
+  @Test
+  public void testBatchScanOfflineSingleTablet() throws Exception {
+
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      createTableAndIngest(client, tableName, null, 10, 10, "colf");
-
-      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new Range());
-        scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
-        assertEquals(100, Iterables.size(scanner));
-      }
-
+      final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
       client.tableOperations().offline(tableName, true);
+      assertFalse(client.tableOperations().isOnline(tableName));
 
-      // TODO need to ensure that immediate scan still fails
+      TabletLocator.getLocator((ClientContext) client,
+          TableId.of(client.tableOperations().tableIdMap().get(tableName))).invalidateCache();
 
-      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new Range());
+      try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRanges(Collections.singletonList(new Range()));
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(100, Iterables.size(scanner));
+        assertEquals(ingestedEntryCount, Iterables.size(scanner),
+            "The scan server scanner should have seen all ingested and flushed entries");
+      } // when the scanner is closed, all open sessions should be closed
+    }
+  }
+
+  @Test
+  public void testBatchScanOfflineTableManyTablets() throws Exception {
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+
+      final int ingestedEntryCount =
+          createTableAndIngest(client, tableName, null, 10, 10, "colf", 5);
+      client.tableOperations().offline(tableName, true);
+      assertFalse(client.tableOperations().isOnline(tableName));
+
+      TabletLocator.getLocator((ClientContext) client,
+          TableId.of(client.tableOperations().tableIdMap().get(tableName))).invalidateCache();
+
+      try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRanges(Collections.singletonList(new Range()));
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        assertEquals(ingestedEntryCount, Iterables.size(scanner),
+            "The scan server scanner should have seen all ingested and flushed entries");
       } // when the scanner is closed, all open sessions should be closed
     }
   }
@@ -232,7 +333,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
   /**
    * Create a table with the given name and the given client. Then, ingest into the table using
-   * {@link #ingest(AccumuloClient, String, int, int, int, String, boolean)}
+   * {@link #ingest(AccumuloClient, String, int, int, int, String, boolean, int)}
    *
    * @param client used to create the table
    * @param tableName used to create the table
@@ -242,16 +343,22 @@ public class ScanServerIT extends SharedMiniClusterBase {
    * @param colf column family to use for ingest
    * @return the number of ingested entries
    */
+
   protected static int createTableAndIngest(AccumuloClient client, String tableName,
       NewTableConfiguration ntc, int rowCount, int colCount, String colf) throws Exception {
+    return createTableAndIngest(client, tableName, ntc, rowCount, colCount, colf, 1);
+  }
 
+  protected static int createTableAndIngest(AccumuloClient client, String tableName,
+      NewTableConfiguration ntc, int rowCount, int colCount, String colf, int numSplits)
+      throws Exception {
     if (Objects.isNull(ntc)) {
       ntc = new NewTableConfiguration();
     }
 
     client.tableOperations().create(tableName, ntc);
 
-    return ingest(client, tableName, rowCount, colCount, 0, colf, true);
+    return ingest(client, tableName, rowCount, colCount, 0, colf, true, numSplits);
   }
 
   /**
@@ -266,9 +373,15 @@ public class ScanServerIT extends SharedMiniClusterBase {
    * @param shouldFlush if true, the entries will be flushed after ingest
    * @return the number of ingested entries
    */
+
   protected static int ingest(AccumuloClient client, String tableName, int rowCount, int colCount,
       int offset, String colf, boolean shouldFlush) throws Exception {
-    ReadWriteIT.ingest(client, colCount, rowCount, 50, offset, colf, tableName);
+    return ingest(client, tableName, rowCount, colCount, offset, colf, shouldFlush, 1);
+  }
+
+  protected static int ingest(AccumuloClient client, String tableName, int rowCount, int colCount,
+      int offset, String colf, boolean shouldFlush, int numSplits) throws Exception {
+    ReadWriteIT.ingest(client, colCount, rowCount, 50, offset, colf, tableName, numSplits);
 
     final int ingestedEntriesCount = colCount * rowCount;
 
