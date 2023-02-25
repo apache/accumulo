@@ -22,8 +22,6 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.test.ScanServerIT.createTableAndIngest;
 import static org.apache.accumulo.test.ScanServerIT.ingest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
 
@@ -32,13 +30,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
-import org.apache.accumulo.core.client.TableOfflineException;
-import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
