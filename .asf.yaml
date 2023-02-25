@@ -27,7 +27,7 @@ github:
     - big-data
     - hacktoberfest
   features:
-    wiki: true
+    wiki: false
     issues: true
     projects: true
 
