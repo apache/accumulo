@@ -53,6 +53,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.sample.RowColumnSampler;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -100,10 +101,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Tag(MINI_CLUSTER_ONLY)
 @Tag(SUNNY_DAY)
 public class ShellServerIT extends SharedMiniClusterBase {
-
-  @SuppressWarnings("removal")
-  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
-      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
 
   private static final Logger log = LoggerFactory.getLogger(ShellServerIT.class);
 
@@ -619,10 +616,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void classpath() throws Exception {
-    // classpath
-    ts.exec("classpath", true,
-        "Level: 2, Name: app, class: jdk.internal.loader.ClassLoaders$AppClassLoader: configuration not inspectable",
-        true);
+    final String javaClassPath = System.getProperty("java.class.path");
+
+    // capture classpath from the shell command
+    final String result = ts.exec("classpath", true);
+
+    // for unit tests the classpath should match what the shell returned
+    Arrays.stream(javaClassPath.split(File.pathSeparator))
+        .forEach(classPathUri -> assertTrue(result.contains(classPathUri)));
   }
 
   @Test
@@ -880,7 +881,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testScanScample() throws Exception {
+  public void testScanSample() throws Exception {
     final String table = getUniqueNames(1)[0];
 
     // compact
@@ -908,7 +909,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan --sample", true, "accumulo", false);
     ts.exec("grep --sample acc", true, "accumulo", false);
 
-    // create table where table sample config differs from whats in file
+    // Create table where table sample config differs from what's in file
     String clone2 = table + "_clone_2";
     ts.exec("clonetable -s"
         + " table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=2,table.sampler="
@@ -927,6 +928,80 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     ts.exec("scan --sample", true, "8934", false);
     ts.exec("grep --sample 89", true, "8934", false);
+  }
+
+  // Feb 2023 - the sample example utilizing RowColumnSampler was failing. Analysis found that
+  // the AbstractHashSampler was throwing an exception when additional options were utilized,
+  // i.e., options beyond the required base 'hasher' and 'modulus' options. Additionally, the
+  // RowColumnSampler threw an exception when the base options were parsed.
+  // This test exercises a sampler that utilizes additional options and verifies options are parsed
+  // successfully.
+  @Test
+  public void testScanSampleOptions() throws Exception {
+    final String table = getUniqueNames(1)[0];
+
+    ts.exec("createtable " + table);
+
+    ts.exec("insert 9255 doc content 'abcde'");
+    ts.exec("insert 9255 doc url file://foo.txt");
+    ts.exec("insert 8934 doc content 'accumulo scales'");
+    ts.exec("insert 8934 doc url file://accumulo_notes.txt");
+    ts.exec("insert 5454 image size 2024,800");
+    ts.exec("insert 7000 image metadata '2023/01/02 12:34:43'");
+    ts.exec("insert 7000 image uri file://image1.jpg");
+    ts.exec("insert 2317 doc content 'milk, eggs, bread, parmigiano-reggiano'");
+    ts.exec("insert 2317 doc url file://groceries/9.txt");
+    ts.exec("insert 3900 doc content 'EC2 ate my homework'");
+    ts.exec("insert 3900 doc url file://final_project.txt");
+
+    // Verify sampler with more than just base options parses correctly
+    String clone1 = table + "_clone_1";
+    ts.exec("clonetable -s"
+        + " table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=3,table.sampler.opt.qualifier="
+        + "true,table.sampler=" + RowColumnSampler.class.getName() + " " + table + " " + clone1);
+    ts.exec("compact -t " + clone1 + " -w --sf-no-sample");
+    ts.exec("table " + clone1);
+    ts.exec("scan --sample", true);
+    for (String expected : Arrays.asList("groceries", "final_project", "accumulo_notes",
+        "foo.txt")) {
+      ts.exec("scan --sample", true, expected, true);
+      ts.exec("grep --sample " + expected.substring(0, 2), true, expected, true);
+    }
+    for (String notExpected : Arrays.asList("bread", "homework", "scales", "abcde", "1024", "2023",
+        "image1")) {
+      ts.exec("scan --sample", true, notExpected, false);
+      ts.exec("grep --sample " + notExpected.substring(0, 2), true, notExpected, false);
+    }
+
+    // Verify failure to provide a base option results in empty sample result
+    String clone2 = table + "_clone_2";
+    ts.exec("clonetable -s table.sampler.opt.hasher=murmur3_32,table.sampler.opt.qualifier="
+        + "true,table.sampler=" + RowColumnSampler.class.getName() + " " + table + " " + clone2);
+    ts.exec("compact -t " + clone2 + " -w --sf-no-sample");
+    ts.exec("table " + clone2, true);
+    ts.exec("config -t " + clone2 + " -f sampler", true);
+    ts.exec("scan --sample", true);
+    // None of the expected rows/values should be returned from scan
+    for (String notExpected : Arrays.asList("2317", "3900", "5454", "7000", "8934", "9255")) {
+      ts.exec("scan --sample", true, notExpected, false);
+      ts.exec("grep --sample " + notExpected.substring(0, 3), true, notExpected, false);
+    }
+
+    // Verify providing an invalid option results in empty sample result
+    String clone3 = table + "_clone_3";
+    ts.exec("clonetable -s "
+        + "table.sampler.opt.hasher=murmur3_32,table.sampler.opt.modulus=5,table.sampler.opt.qualifier="
+        + "true,table.sampler.opt.badprop=42,table.sampler=" + RowColumnSampler.class.getName()
+        + " " + table + " " + clone3);
+    ts.exec("compact -t " + clone3 + " -w --sf-no-sample");
+    ts.exec("table " + clone3, true);
+    ts.exec("scan --sample", true);
+    // None of the expected rows/values should be returned from scan
+    for (String expected : Arrays.asList("2317", "3900", "5454", "7000", "8934", "9255")) {
+      ts.exec("scan --sample", true, expected, false);
+      ts.exec("grep --sample " + expected.substring(0, 3), true, expected, false);
+    }
+
   }
 
   @Test
@@ -1502,11 +1577,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     File fooFilterJar = initJar("/org/apache/accumulo/test/FooFilter.jar", "FooFilter", rootPath);
 
-    ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI()
-        + "," + fooConstraintJar.toURI(), true);
+    String context = fooFilterJar.toURI() + "," + fooConstraintJar.toURI();
 
     ts.exec("createtable " + table, true);
-    ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=cx1",
+    ts.exec(
+        "config -t " + table + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=" + context,
         true);
 
     sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
@@ -1535,7 +1610,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert ok foo q v", true);
 
     ts.exec("deletetable -f " + table, true);
-    ts.exec("config -d " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
 
   }
 
@@ -1682,11 +1756,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.contains("class not found"));
     make10();
     setupFakeContextPath();
-    // Add the context to the table so that setiter works.
-    result = ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "="
-        + FAKE_CONTEXT_CLASSPATH);
-    assertEquals("root@miniInstance " + tableName + "> config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY
-        + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH + "\n", result);
 
     result = ts.exec("config -t " + tableName + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey()
         + "=" + FAKE_CONTEXT);
@@ -1717,11 +1786,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.contains("value"));
 
     setupRealContextPath();
-    // Define a new classloader context, but don't set it on the table
-    result = ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "="
-        + REAL_CONTEXT_CLASSPATH);
-    assertEquals("root@miniInstance " + tableName + "> config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY
-        + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH + "\n", result);
+
     // Override the table classloader context with the REAL implementation of
     // ValueReversingIterator, which does reverse the value.
     result = ts.exec("scan -pn baz -np -b row1 -e row1 -cc " + REAL_CONTEXT);
@@ -1844,12 +1909,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
         "java.lang.IllegalStateException: Not in a table context.");
   }
 
-  private static final String FAKE_CONTEXT = "FAKE";
-  private static final String FAKE_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir")
-      + "/target/" + ShellServerIT.class.getSimpleName() + "-fake-iterators.jar";
-  private static final String REAL_CONTEXT = "REAL";
-  private static final String REAL_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir")
-      + "/target/" + ShellServerIT.class.getSimpleName() + "-real-iterators.jar";
+  private static final String FAKE_CONTEXT = "file://" + System.getProperty("user.dir") + "/target/"
+      + ShellServerIT.class.getSimpleName() + "-fake-iterators.jar";
+  private static final String REAL_CONTEXT = "file://" + System.getProperty("user.dir") + "/target/"
+      + ShellServerIT.class.getSimpleName() + "-real-iterators.jar";
   private static final String VALUE_REVERSING_ITERATOR =
       "org.apache.accumulo.test.functional.ValueReversingIterator";
   private static final String SUMMING_COMBINER_ITERATOR =
@@ -1862,7 +1925,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Path baseDir = new Path(System.getProperty("user.dir"));
     Path targetDir = new Path(baseDir, "target");
     Path jarPath = new Path(targetDir, "TestJar-Iterators.jar");
-    Path dstPath = new Path(REAL_CONTEXT_CLASSPATH);
+    Path dstPath = new Path(REAL_CONTEXT);
     FileSystem fs = SharedMiniClusterBase.getCluster().getFileSystem();
     fs.copyFromLocalFile(jarPath, dstPath);
   }
@@ -1872,7 +1935,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Path baseDir = new Path(System.getProperty("user.dir"));
     Path jarPath = new Path(baseDir + "/target/classes/org/apache/accumulo/test",
         "ShellServerIT-iterators.jar");
-    Path dstPath = new Path(FAKE_CONTEXT_CLASSPATH);
+    Path dstPath = new Path(FAKE_CONTEXT);
     FileSystem fs = SharedMiniClusterBase.getCluster().getFileSystem();
     fs.copyFromLocalFile(jarPath, dstPath);
   }

@@ -38,6 +38,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -76,6 +77,7 @@ public class VolumeManagerImpl implements VolumeManager {
   private final Map<String,Volume> volumesByName;
   private final Multimap<URI,Volume> volumesByFileSystemUri;
   private final VolumeChooser chooser;
+  private final AccumuloConfiguration conf;
   private final Configuration hadoopConf;
 
   protected VolumeManagerImpl(Map<String,Volume> volumes, AccumuloConfiguration conf,
@@ -98,6 +100,7 @@ public class VolumeManagerImpl implements VolumeManager {
           "Failed to load volume chooser specified by " + Property.GENERAL_VOLUME_CHOOSER);
     }
     chooser = chooser1;
+    this.conf = conf;
     this.hadoopConf = hadoopConf;
   }
 
@@ -249,7 +252,14 @@ public class VolumeManagerImpl implements VolumeManager {
   public FileSystem getFileSystemByPath(Path path) {
     FileSystem desiredFs;
     try {
-      desiredFs = requireNonNull(path).getFileSystem(hadoopConf);
+      Configuration volumeConfig = hadoopConf;
+      for (String vol : volumesByName.keySet()) {
+        if (path.toString().startsWith(vol)) {
+          volumeConfig = getVolumeManagerConfiguration(conf, hadoopConf, vol);
+          break;
+        }
+      }
+      desiredFs = requireNonNull(path).getFileSystem(volumeConfig);
     } catch (IOException ex) {
       throw new UncheckedIOException(ex);
     }
@@ -353,11 +363,55 @@ public class VolumeManagerImpl implements VolumeManager {
     return getFileSystemByPath(path).getDefaultReplication(path);
   }
 
+  /**
+   * The Hadoop Configuration object does not currently allow for duplicate properties to be set in
+   * a single Configuration for different FileSystem URIs. Here we will look for properties in the
+   * Accumulo configuration of the form:
+   *
+   * <pre>
+   * instance.volume.config.&lt;volume-uri&gt;.&lt;hdfs-property&gt;
+   * </pre>
+   *
+   * We will use these properties to return a new Configuration object that can be used with the
+   * FileSystem URI.
+   *
+   * @param conf AccumuloConfiguration object
+   * @param hadoopConf Hadoop Configuration object
+   * @param filesystemURI Volume Filesystem URI
+   * @return Hadoop Configuration with custom overrides for this FileSystem
+   */
+  private static Configuration getVolumeManagerConfiguration(AccumuloConfiguration conf,
+      final Configuration hadoopConf, final String filesystemURI) {
+
+    final Configuration volumeConfig = new Configuration(hadoopConf);
+
+    conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX).entrySet()
+        .stream().filter(e -> e.getKey().startsWith(filesystemURI + ".")).forEach(e -> {
+          String key = e.getKey().substring(filesystemURI.length() + 1);
+          String value = e.getValue();
+          log.info("Overriding property {} for volume {}", key, value, filesystemURI);
+          volumeConfig.set(key, value);
+        });
+
+    return volumeConfig;
+  }
+
+  protected static Stream<Entry<String,String>>
+      findVolumeOverridesMissingVolume(AccumuloConfiguration conf, Set<String> definedVolumes) {
+    return conf.getAllPropertiesWithPrefixStripped(Property.INSTANCE_VOLUME_CONFIG_PREFIX)
+        .entrySet().stream()
+        // log only configs where none of the volumes (with a dot) prefix its key
+        .filter(e -> definedVolumes.stream().noneMatch(vol -> e.getKey().startsWith(vol + ".")));
+  }
+
   public static VolumeManager get(AccumuloConfiguration conf, final Configuration hadoopConf)
       throws IOException {
     final Map<String,Volume> volumes = new HashMap<>();
 
     Set<String> volumeStrings = VolumeConfiguration.getVolumeUris(conf);
+
+    findVolumeOverridesMissingVolume(conf, volumeStrings).forEach(
+        e -> log.warn("Found no matching volume for volume config override property {}", e));
 
     // The "default" Volume for Accumulo (in case no volumes are specified)
     for (String volumeUriOrDir : volumeStrings) {
@@ -371,7 +425,9 @@ public class VolumeManagerImpl implements VolumeManager {
 
       // We require a URI here, fail if it doesn't look like one
       if (volumeUriOrDir.contains(":")) {
-        volumes.put(volumeUriOrDir, new VolumeImpl(new Path(volumeUriOrDir), hadoopConf));
+        Configuration volumeConfig =
+            getVolumeManagerConfiguration(conf, hadoopConf, volumeUriOrDir);
+        volumes.put(volumeUriOrDir, new VolumeImpl(new Path(volumeUriOrDir), volumeConfig));
       } else {
         throw new IllegalArgumentException("Expected fully qualified URI for "
             + Property.INSTANCE_VOLUMES.getKey() + " got " + volumeUriOrDir);

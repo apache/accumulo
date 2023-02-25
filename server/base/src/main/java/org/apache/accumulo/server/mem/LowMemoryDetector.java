@@ -16,35 +16,94 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server;
+package org.apache.accumulo.server.mem;
 
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GarbageCollectionLogger {
-  private static final Logger log = LoggerFactory.getLogger(GarbageCollectionLogger.class);
+public class LowMemoryDetector {
+
+  @FunctionalInterface
+  public static interface Action {
+    void execute();
+  }
+
+  public enum DetectionScope {
+    MINC, MAJC, SCAN
+  };
+
+  private static final Logger log = LoggerFactory.getLogger(LowMemoryDetector.class);
 
   private final HashMap<String,Long> prevGcTime = new HashMap<>();
   private long lastMemorySize = 0;
   private long gcTimeIncreasedCount = 0;
-  private static long lastMemoryCheckTime = 0;
-  private static final Lock memCheckTimeLock = new ReentrantLock();
+  private long lastMemoryCheckTime = 0;
+  private final Lock memCheckTimeLock = new ReentrantLock();
+  private volatile boolean runningLowOnMemory = false;
+
+  public long getIntervalMillis(AccumuloConfiguration conf) {
+    return conf.getTimeInMillis(Property.GENERAL_LOW_MEM_DETECTOR_INTERVAL);
+  }
+
+  public boolean isRunningLowOnMemory() {
+    return runningLowOnMemory;
+  }
+
+  /**
+   * @param context server context
+   * @param scope whether this is being checked in the context of scan or compact code
+   * @param isUserTable boolean as to whether the table being scanned / compacted is a user table.
+   *        No action is taken for system tables.
+   * @param action Action to perform when this method returns true
+   * @return true if server running low on memory
+   */
+  public boolean isRunningLowOnMemory(ServerContext context, DetectionScope scope,
+      Supplier<Boolean> isUserTable, Action action) {
+    if (isUserTable.get()) {
+      Property p = null;
+      switch (scope) {
+        case SCAN:
+          p = Property.GENERAL_LOW_MEM_SCAN_PROTECTION;
+          break;
+        case MINC:
+          p = Property.GENERAL_LOW_MEM_MINC_PROTECTION;
+          break;
+        case MAJC:
+          p = Property.GENERAL_LOW_MEM_MAJC_PROTECTION;
+          break;
+        default:
+          throw new IllegalArgumentException("Unknown scope: " + scope);
+      }
+      boolean isEnabled = context.getConfiguration().getBoolean(p);
+      // Only incur the penalty of accessing the volatile variable when enabled for this scope
+      if (isEnabled) {
+        action.execute();
+        return runningLowOnMemory;
+      }
+    }
+    return false;
+  }
 
   public void logGCInfo(AccumuloConfiguration conf) {
 
+    Double freeMemoryPercentage = conf.getFraction(Property.GENERAL_LOW_MEM_DETECTOR_THRESHOLD);
+
     memCheckTimeLock.lock();
     try {
-      final long now = System.currentTimeMillis();
+      final long now = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
 
       List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
       Runtime rt = Runtime.getRuntime();
@@ -81,9 +140,19 @@ public class GarbageCollectionLogger {
         gcTimeIncreasedCount = 0;
       } else {
         gcTimeIncreasedCount++;
-        if (gcTimeIncreasedCount > 3 && mem < rt.maxMemory() * 0.05) {
+        if (gcTimeIncreasedCount > 3 && mem < rt.maxMemory() * freeMemoryPercentage) {
+          runningLowOnMemory = true;
           log.warn("Running low on memory");
           gcTimeIncreasedCount = 0;
+        } else {
+          // If we were running low on memory, but are not any longer, than log at warn
+          // so that it shows up in the logs
+          if (runningLowOnMemory) {
+            log.warn("Recovered from low memory condition");
+          } else {
+            log.trace("Not running low on memory");
+          }
+          runningLowOnMemory = false;
         }
       }
 

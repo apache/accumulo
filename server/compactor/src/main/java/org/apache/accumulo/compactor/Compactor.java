@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,6 +40,7 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -85,18 +85,17 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.ServiceLockData;
+import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.GarbageCollectionLogger;
-import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.compaction.CompactionInfo;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.compaction.FileCompactor;
+import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.compaction.RetryableThriftCall;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -112,7 +111,6 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
@@ -123,24 +121,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   private static final SecureRandom random = new SecureRandom();
 
-  public static class CompactorServerOpts extends ServerOpts {
-    @Parameter(required = true, names = {"-q", "--queue"}, description = "compaction queue name")
-    private String queueName = null;
-
-    public String getQueueName() {
-      return queueName;
-    }
-  }
-
   private static final Logger LOG = LoggerFactory.getLogger(Compactor.class);
-  private static final long TIME_BETWEEN_GC_CHECKS = 5000;
   private static final long TIME_BETWEEN_CANCEL_CHECKS = MINUTES.toMillis(5);
 
   private static final long TEN_MEGABYTES = 10485760;
 
   protected static final CompactionJobHolder JOB_HOLDER = new CompactionJobHolder();
 
-  private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   private final UUID compactorId = UUID.randomUUID();
   private final AccumuloConfiguration aconf;
   private final String queueName;
@@ -151,25 +138,25 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   private SecurityOperation security;
   private ServiceLock compactorLock;
   private ServerAddress compactorAddress = null;
+  private PausedCompactionMetrics pausedMetrics;
 
   // Exposed for tests
   protected volatile boolean shutdown = false;
 
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
-  protected Compactor(CompactorServerOpts opts, String[] args) {
+  protected Compactor(ConfigOpts opts, String[] args) {
     this(opts, args, null);
   }
 
-  protected Compactor(CompactorServerOpts opts, String[] args, AccumuloConfiguration conf) {
+  protected Compactor(ConfigOpts opts, String[] args, AccumuloConfiguration conf) {
     super("compactor", opts, args);
-    queueName = opts.getQueueName();
     aconf = conf == null ? super.getConfiguration() : conf;
+    queueName = aconf.get(Property.COMPACTOR_QUEUE_NAME);
     setupSecurity();
     watcher = new CompactionWatcher(aconf);
     var schedExecutor =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
-    startGCLogger(schedExecutor);
     startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
     printStartupMsg();
   }
@@ -188,13 +175,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   protected void setupSecurity() {
     security = getContext().getSecurityOperation();
-  }
-
-  protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(() -> gcLogger.logGCInfo(getConfiguration()), 0,
-            TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   protected void startCancelChecker(ScheduledThreadPoolExecutor schedExecutor,
@@ -285,7 +265,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       public void lostLock(final LockLossReason reason) {
         Halt.halt(1, () -> {
           LOG.error("Compactor lost lock (reason = {}), exiting.", reason);
-          gcLogger.logGCInfo(getConfiguration());
+          getContext().getLowMemoryDetector().logGCInfo(getConfiguration());
         });
       }
 
@@ -296,12 +276,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     };
 
     try {
-      byte[] lockContent =
-          new ServerServices(hostPort, Service.COMPACTOR_CLIENT).toString().getBytes(UTF_8);
       for (int i = 0; i < 25; i++) {
         zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
 
-        if (compactorLock.tryLock(lw, lockContent)) {
+        if (compactorLock.tryLock(lw,
+            new ServiceLockData(compactorId, hostPort, ThriftService.COMPACTOR, this.queueName))) {
           LOG.debug("Obtained Compactor lock {}", compactorLock.getLockPath());
           return;
         }
@@ -537,8 +516,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             .forEach(tis -> iters.add(SystemIteratorUtil.toIteratorSetting(tis)));
 
         ExtCEnv cenv = new ExtCEnv(JOB_HOLDER, queueName);
-        FileCompactor compactor = new FileCompactor(getContext(), extent, files, outputFile,
-            job.isPropagateDeletes(), cenv, iters, aConfig, tConfig.getCryptoService());
+        FileCompactor compactor =
+            new FileCompactor(getContext(), extent, files, outputFile, job.isPropagateDeletes(),
+                cenv, iters, aConfig, tConfig.getCryptoService(), pausedMetrics);
 
         LOG.trace("Starting compactor");
         started.countDown();
@@ -621,7 +601,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         | SecurityException e1) {
       LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
-    MetricsUtil.initializeProducers(this);
+    pausedMetrics = new PausedCompactionMetrics();
+    MetricsUtil.initializeProducers(this, pausedMetrics);
 
     LOG.info("Compactor started, waiting for work");
     try {
@@ -682,9 +663,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
                       Float.toString((info.getEntriesRead() / (float) inputEntries) * 100);
                 }
                 String message = String.format(
-                    "Compaction in progress, read %d of %d input entries ( %s %s ), written %d entries",
+                    "Compaction in progress, read %d of %d input entries ( %s %s ), written %d entries, paused %d times",
                     info.getEntriesRead(), inputEntries, percentComplete, "%",
-                    info.getEntriesWritten());
+                    info.getEntriesWritten(), info.getTimesPaused());
                 watcher.run();
                 try {
                   LOG.debug("Updating coordinator with compaction progress: {}.", message);
@@ -796,7 +777,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
       }
 
-      gcLogger.logGCInfo(getConfiguration());
+      getContext().getLowMemoryDetector().logGCInfo(getConfiguration());
       LOG.info("stop requested. exiting ... ");
       try {
         if (null != compactorLock) {
@@ -810,7 +791,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   public static void main(String[] args) throws Exception {
-    try (Compactor compactor = new Compactor(new CompactorServerOpts(), args)) {
+    try (Compactor compactor = new Compactor(new ConfigOpts(), args)) {
       compactor.runServer();
     }
   }

@@ -129,6 +129,57 @@ public class CheckCompactionConfigTest extends WithTestNames {
   }
 
   @Test
+  public void testRepeatedCompactionExecutorID() throws Exception {
+    String inputString = ("tserver.compaction.major.service.cs1.planner="
+        + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
+        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
+        + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n"
+        + "{'name':'small','type':'internal','numThreads':2}]").replaceAll("'", "\"");
+    String expectedErrorMsg = "Duplicate Compaction Executor ID found";
+
+    String filePath = writeToFileAndReturnPath(inputString);
+
+    var e = assertThrows(IllegalStateException.class,
+        () -> CheckCompactionConfig.main(new String[] {filePath}));
+    assertTrue(e.getMessage().startsWith(expectedErrorMsg));
+  }
+
+  @Test
+  public void testInvalidTypeValue() throws Exception {
+    String inputString = ("tserver.compaction.major.service.cs1.planner="
+        + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
+        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
+        + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n"
+        + "{'name':'large','type':'internl','numThreads':2}]").replaceAll("'", "\"");
+    String expectedErrorMsg = "type must be 'internal' or 'external'";
+
+    String filePath = writeToFileAndReturnPath(inputString);
+
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> CheckCompactionConfig.main(new String[] {filePath}));
+    assertTrue(e.getMessage().startsWith(expectedErrorMsg));
+  }
+
+  @Test
+  public void testInvalidMaxSize() throws Exception {
+    String inputString = ("tserver.compaction.major.service.cs1.planner="
+        + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
+        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
+        + "{'name':'medium','type':'internal','maxSize':'0M','numThreads':4},\\\n"
+        + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\"");
+    String expectedErrorMsg = "Invalid value for maxSize";
+
+    String filePath = writeToFileAndReturnPath(inputString);
+
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> CheckCompactionConfig.main(new String[] {filePath}));
+    assertTrue(e.getMessage().startsWith(expectedErrorMsg));
+  }
+
+  @Test
   public void testBadPropsFilePath() {
     String[] args = {"/home/foo/bar/myProperties.properties"};
     String expectedErrorMsg = "File at given path could not be found";

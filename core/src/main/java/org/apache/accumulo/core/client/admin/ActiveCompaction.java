@@ -120,6 +120,12 @@ public abstract class ActiveCompaction {
   public abstract long getEntriesWritten();
 
   /**
+   * @return the number of times the server paused a compaction
+   * @since 3.0.0
+   */
+  public abstract long getPausedCount();
+
+  /**
    * @return the per compaction iterators configured
    */
   public abstract List<IteratorSetting> getIterators();

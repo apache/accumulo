@@ -84,9 +84,12 @@ public class RowColumnSampler extends AbstractHashSampler {
 
   @Override
   public void validateOptions(Map<String,String> config) {
+    // The required base options are validated in the super class.
     super.validateOptions(config);
+    // RowColumnSampler specific options are validated here.
     for (String option : config.keySet()) {
-      checkArgument(VALID_OPTIONS.contains(option), "Unknown option : %s", option);
+      checkArgument(VALID_OPTIONS.contains(option) || REQUIRED_SAMPLER_OPTIONS.contains(option),
+          "Unknown option : %s", option);
     }
   }
 

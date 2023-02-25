@@ -33,7 +33,6 @@ import org.apache.accumulo.core.spi.compaction.ExecutorManager;
 import com.google.common.base.Preconditions;
 
 public class CompactionPlannerInitParams implements CompactionPlanner.InitParameters {
-
   private final Map<String,String> plannerOpts;
   private final Map<CompactionExecutorId,Integer> requestedExecutors;
   private final Set<CompactionExecutorId> requestedExternalExecutors;
@@ -72,7 +71,8 @@ public class CompactionPlannerInitParams implements CompactionPlanner.InitParame
         Preconditions.checkArgument(threads > 0, "Positive number of threads required : %s",
             threads);
         var ceid = CompactionExecutorIdImpl.internalId(serviceId, executorName);
-        Preconditions.checkState(!getRequestedExecutors().containsKey(ceid));
+        Preconditions.checkState(!getRequestedExecutors().containsKey(ceid),
+            "Duplicate Compaction Executor ID found");
         getRequestedExecutors().put(ceid, threads);
         return ceid;
       }

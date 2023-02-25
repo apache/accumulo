@@ -187,4 +187,14 @@ public interface IteratorEnvironment {
   default TableId getTableId() {
     throw new UnsupportedOperationException();
   }
+
+  /**
+   * Return whether or not the server is running low on memory
+   *
+   * @return true if server is running low on memory
+   * @since 3.0.0
+   */
+  default boolean isRunningLowOnMemory() {
+    throw new UnsupportedOperationException();
+  }
 }

@@ -46,6 +46,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import jakarta.inject.Singleton;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
@@ -71,8 +72,8 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Cl
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.ServiceLockData;
+import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
@@ -80,7 +81,6 @@ import org.apache.accumulo.monitor.util.logging.RecentLogs;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.util.TableInfoUtil;
@@ -112,12 +112,12 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final long START_TIME;
 
   public static void main(String[] args) throws Exception {
-    try (Monitor monitor = new Monitor(new ServerOpts(), args)) {
+    try (Monitor monitor = new Monitor(new ConfigOpts(), args)) {
       monitor.runServer();
     }
   }
 
-  Monitor(ServerOpts opts, String[] args) {
+  Monitor(ConfigOpts opts, String[] args) {
     super("monitor", opts, args);
     START_TIME = System.currentTimeMillis();
   }
@@ -428,8 +428,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       var path = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZGC_LOCK);
       List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
-        address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0)), UTF_8))
-            .getAddress(Service.GC_CLIENT);
+        Optional<ServiceLockData> sld =
+            ServiceLockData.parse(zk.getData(path + "/" + locks.get(0)));
+        if (sld.isPresent()) {
+          address = sld.get().getAddress(ThriftService.GC);
+        }
         GCMonitorService.Client client =
             ThriftUtil.getClient(ThriftClientTypes.GC, address, context);
         try {
@@ -822,7 +825,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     while (true) {
       MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
       monitorLock = new ServiceLock(zoo.getZooKeeper(), monitorLockPath, zooLockUUID);
-      monitorLock.lock(monitorLockWatcher, new byte[0]);
+      monitorLock.lock(monitorLockWatcher,
+          new ServiceLockData(zooLockUUID, getHostname(), ThriftService.NONE));
 
       monitorLockWatcher.waitForChange();
 

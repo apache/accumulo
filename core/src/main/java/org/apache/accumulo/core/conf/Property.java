@@ -36,6 +36,7 @@ import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
+import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.slf4j.LoggerFactory;
@@ -118,6 +119,16 @@ public enum Property {
           + " a comma or other reserved characters in a URI use standard URI hex"
           + " encoding. For example replace commas with %2C.",
       "1.6.0"),
+  INSTANCE_VOLUME_CONFIG_PREFIX("instance.volume.config.", null, PropertyType.PREFIX,
+      "Properties in this category are used to provide volume specific overrides to "
+          + "the general filesystem client configuration. Properties using this prefix "
+          + "should be in the form "
+          + "'instance.volume.config.<volume-uri>.<property-name>=<property-value>. An "
+          + "example: "
+          + "'instance.volume.config.hdfs://namespace-a:8020/accumulo.dfs.client.hedged.read.threadpool.size=10'. "
+          + "Note that when specifying property names that contain colons in the properties "
+          + "files that the colons need to be escaped with a backslash.",
+      "2.1.1"),
   INSTANCE_VOLUMES_REPLACEMENTS("instance.volumes.replacements", "", PropertyType.STRING,
       "Since accumulo stores absolute URIs changing the location of a namenode "
           + "could prevent Accumulo from starting. The property helps deal with "
@@ -195,20 +206,6 @@ public enum Property {
       "Properties in this category affect the behavior of accumulo overall, but"
           + " do not have to be consistent throughout a cloud.",
       "1.3.5"),
-  @Deprecated(since = "2.0.0")
-  GENERAL_DYNAMIC_CLASSPATHS(
-      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME,
-      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE,
-      PropertyType.STRING,
-      "A list of all of the places where changes "
-          + "in jars or classes will force a reload of the classloader. Built-in dynamic class "
-          + "loading will be removed in a future version. If this is needed, consider overriding "
-          + "the Java system class loader with one that has this feature "
-          + "(https://docs.oracle.com/javase/8/docs/api/java/lang/ClassLoader.html#getSystemClassLoader--). "
-          + "Additionally, this property no longer does property interpolation of environment "
-          + "variables, such as '$ACCUMULO_HOME'. Use commons-configuration syntax,"
-          + "'${env:ACCUMULO_HOME}' instead.",
-      "1.3.5"),
   GENERAL_CONTEXT_CLASSLOADER_FACTORY("general.context.class.loader.factory", "",
       PropertyType.CLASSNAME,
       "Name of classloader factory to be used to create classloaders for named contexts,"
@@ -264,6 +261,29 @@ public enum Property {
   GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL("general.delegation.token.update.interval", "1d",
       PropertyType.TIMEDURATION, "The length of time between generation of new secret keys",
       "1.7.0"),
+  GENERAL_LOW_MEM_DETECTOR_INTERVAL("general.low.mem.detector.interval", "5s",
+      PropertyType.TIMEDURATION, "The time interval between low memory checks", "3.0.0"),
+  GENERAL_LOW_MEM_DETECTOR_THRESHOLD("general.low.mem.detector.threshold", "0.05",
+      PropertyType.FRACTION,
+      "The LowMemoryDetector will report when free memory drops below this percentage of total memory",
+      "3.0.0"),
+  GENERAL_LOW_MEM_SCAN_PROTECTION("general.low.mem.protection.scan", "false", PropertyType.BOOLEAN,
+      "Scans may be paused or return results early when the server "
+          + "is low on memory and this property is set to true. Enabling this property will incur a slight "
+          + "scan performance penalty when the server is not low on memory",
+      "3.0.0"),
+  GENERAL_LOW_MEM_MINC_PROTECTION("general.low.mem.protection.compaction.minc", "false",
+      PropertyType.BOOLEAN,
+      "Minor compactions may be paused when the server "
+          + "is low on memory and this property is set to true. Enabling this property will incur a slight "
+          + "compaction performance penalty when the server is not low on memory",
+      "3.0.0"),
+  GENERAL_LOW_MEM_MAJC_PROTECTION("general.low.mem.protection.compaction.majc", "false",
+      PropertyType.BOOLEAN,
+      "Major compactions may be paused when the server "
+          + "is low on memory and this property is set to true. Enabling this property will incur a slight "
+          + "compaction performance penalty when the server is not low on memory",
+      "3.0.0"),
   GENERAL_MAX_SCANNER_RETRY_PERIOD("general.max.scanner.retry.period", "5s",
       PropertyType.TIMEDURATION,
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC",
@@ -274,6 +294,9 @@ public enum Property {
       PropertyType.BOOLEAN, "Enables JVM metrics functionality using Micrometer", "2.1.0"),
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory", "", PropertyType.CLASSNAME,
       "Name of class that implements MeterRegistryFactory", "2.1.0"),
+  GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
+      "The local IP address to which this server should bind for sending and receiving network traffic",
+      "3.0.0"),
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server. "
@@ -364,6 +387,13 @@ public enum Property {
   @Experimental
   SSERV_DEFAULT_BLOCKSIZE("sserver.default.blocksize", "1M", PropertyType.BYTES,
       "Specifies a default blocksize for the scan server caches", "2.1.0"),
+  @Experimental
+  SSERV_GROUP_NAME("sserver.group", ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME,
+      PropertyType.STRING,
+      "Optional group name that will be made available to the "
+          + "ScanServerSelector client plugin. Groups support at least two use cases:"
+          + " dedicating resources to scans and/or using different hardware for scans.",
+      "3.0.0"),
   @Experimental
   SSERV_CACHED_TABLET_METADATA_EXPIRATION("sserver.cache.metadata.expiration", "5m",
       PropertyType.TIMEDURATION, "The time after which cached tablet metadata will be refreshed.",
@@ -789,7 +819,6 @@ public enum Property {
           + " The resources that are used by default can be seen in"
           + " accumulo/server/monitor/src/main/resources/templates/default.ftl",
       "2.0.0"),
-
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
       "Properties in this category affect tablet server treatment of tablets,"
@@ -1068,45 +1097,6 @@ public enum Property {
           + "constraint.",
       "2.0.0"),
 
-  // VFS ClassLoader properties
-
-  // this property shouldn't be used directly; it exists solely to document the default value
-  // defined by its use in AccumuloVFSClassLoader when generating the property documentation
-  @Deprecated(since = "2.1.0", forRemoval = true)
-  VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
-      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY,
-      "", PropertyType.STRING,
-      "Configuration for a system level vfs classloader. Accumulo jar can be"
-          + " configured here and loaded out of HDFS.",
-      "1.5.0"),
-  @Deprecated(since = "2.1.0", forRemoval = true)
-  VFS_CONTEXT_CLASSPATH_PROPERTY(
-      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY,
-      null, PropertyType.PREFIX,
-      "Properties in this category are define a classpath. These properties"
-          + " start  with the category prefix, followed by a context name. The value is"
-          + " a comma separated list of URIs. Supports full regex on filename alone."
-          + " For example, general.vfs.context.classpath.cx1=hdfs://nn1:9902/mylibdir/*.jar."
-          + " You can enable post delegation for a context, which will load classes from the"
-          + " context first instead of the parent first. Do this by setting"
-          + " `general.vfs.context.classpath.<name>.delegation=post`, where `<name>` is"
-          + " your context name. If delegation is not specified, it defaults to loading"
-          + " from parent classloader first.",
-      "1.5.0"),
-
-  // this property shouldn't be used directly; it exists solely to document the default value
-  // defined by its use in AccumuloVFSClassLoader when generating the property documentation
-  @Deprecated(since = "2.1.0", forRemoval = true)
-  VFS_CLASSLOADER_CACHE_DIR(
-      org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.VFS_CACHE_DIR,
-      "${java.io.tmpdir}", PropertyType.ABSOLUTEPATH,
-      "The base directory to use for the vfs cache. The actual cached files will be located"
-          + " in a subdirectory, `accumulo-vfs-cache-<jvmProcessName>-${user.name}`, where"
-          + " `<jvmProcessName>` is determined by the JVM's internal management engine."
-          + " The cache will keep a soft reference to all of the classes loaded in the VM."
-          + " This should be on local disk on each node with sufficient space.",
-      "1.5.0"),
-
   // Compactor properties
   @Experimental
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
@@ -1131,6 +1121,9 @@ public enum Property {
   @Experimental
   COMPACTOR_MAX_MESSAGE_SIZE("compactor.message.size.max", "10M", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a tablet server.", "2.1.0"),
+  @Experimental
+  COMPACTOR_QUEUE_NAME("compactor.queue", "", PropertyType.STRING,
+      "The queue for which this Compactor will perform compactions", "3.0.0"),
   // CompactionCoordinator properties
   @Experimental
   COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,
@@ -1179,17 +1172,7 @@ public enum Property {
   @Experimental
   COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
       "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
-      "The interval at which to check the tservers for external compactions.", "2.1.0"),
-  // deprecated properties grouped at the end to reference property that replaces them
-  @Deprecated(since = "2.0.0")
-  GENERAL_CLASSPATHS(org.apache.accumulo.start.classloader.AccumuloClassLoader.GENERAL_CLASSPATHS,
-      "", PropertyType.STRING,
-      "The class path should instead be configured"
-          + " by the launch environment (for example, accumulo-env.sh). A list of all"
-          + " of the places to look for a class. Order does matter, as it will look for"
-          + " the jar starting in the first location to the last. Supports full regex"
-          + " on filename alone.",
-      "1.3.5");
+      "The interval at which to check the tservers for external compactions.", "2.1.0");
 
   private final String key;
   private final String defaultValue;
@@ -1488,8 +1471,7 @@ public enum Property {
         || key.startsWith(Property.TSERV_PREFIX.getKey())
         || key.startsWith(Property.MANAGER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
-        || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
-        || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey());
+        || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey());
   }
 
   /**

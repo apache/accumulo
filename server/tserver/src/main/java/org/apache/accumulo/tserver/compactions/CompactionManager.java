@@ -370,6 +370,7 @@ public class CompactionManager {
     public CompactionExecutorId ceid;
     public int running;
     public int queued;
+    public int paused;
   }
 
   public Collection<ExtCompMetric> getExternalMetrics() {
