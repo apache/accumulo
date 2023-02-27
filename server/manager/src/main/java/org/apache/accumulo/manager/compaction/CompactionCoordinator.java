@@ -16,18 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.coordinator;
+package org.apache.accumulo.manager.compaction;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-
-import java.lang.reflect.InvocationTargetException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
@@ -37,9 +32,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.coordinator.QueueSummaries.PrioTserver;
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
@@ -53,20 +46,15 @@ import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -79,13 +67,10 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.server.AbstractServer;
+import org.apache.accumulo.manager.compaction.QueueSummaries.PrioTserver;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
-import org.apache.accumulo.server.rpc.ServerAddress;
-import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
@@ -100,8 +85,7 @@ import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Uninterruptibles;
 
-public class CompactionCoordinator extends AbstractServer
-    implements CompactionCoordinatorService.Iface, LiveTServerSet.Listener {
+public class CompactionCoordinator implements CompactionCoordinatorService.Iface, Runnable {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
   private static final long FIFTEEN_MINUTES = TimeUnit.MINUTES.toMillis(15);
@@ -124,12 +108,10 @@ public class CompactionCoordinator extends AbstractServer
   /* Map of queue name to last time compactor called to get a compaction job */
   private static final Map<String,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
 
-  protected SecurityOperation security;
-  protected final AccumuloConfiguration aconf;
-  protected CompactionFinalizer compactionFinalizer;
-  protected LiveTServerSet tserverSet;
-
-  private ServiceLock coordinatorLock;
+  private final ServerContext ctx;
+  private final LiveTServerSet tserverSet;
+  private final SecurityOperation security;
+  private CompactionFinalizer compactionFinalizer;
 
   // Exposed for tests
   protected volatile Boolean shutdown = false;
@@ -137,40 +119,25 @@ public class CompactionCoordinator extends AbstractServer
   private final ScheduledThreadPoolExecutor schedExecutor;
   private final ExecutorService summariesExecutor;
 
-  protected CompactionCoordinator(ConfigOpts opts, String[] args) {
-    this(opts, args, null);
-  }
-
-  protected CompactionCoordinator(ConfigOpts opts, String[] args, AccumuloConfiguration conf) {
-    super("compaction-coordinator", opts, args);
-    aconf = conf == null ? super.getConfiguration() : conf;
-    schedExecutor = ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
+  public CompactionCoordinator(ServerContext ctx, LiveTServerSet tservers,
+      SecurityOperation security) {
+    this.ctx = ctx;
+    this.tserverSet = tservers;
+    this.schedExecutor = this.ctx.getScheduledExecutor();
     summariesExecutor = ThreadPools.getServerThreadPools().createFixedThreadPool(10,
         "Compaction Summary Gatherer", false);
-    compactionFinalizer = createCompactionFinalizer(schedExecutor);
-    tserverSet = createLiveTServerSet();
-    setupSecurity();
-    printStartupMsg();
+    this.security = security;
+    createCompactionFinalizer(schedExecutor);
     startCompactionCleaner(schedExecutor);
     startRunningCleaner(schedExecutor);
   }
 
-  @Override
-  public AccumuloConfiguration getConfiguration() {
-    return aconf;
+  public void shutdown() {
+    shutdown = true;
   }
 
-  protected CompactionFinalizer
-      createCompactionFinalizer(ScheduledThreadPoolExecutor schedExecutor) {
-    return new CompactionFinalizer(getContext(), schedExecutor);
-  }
-
-  protected LiveTServerSet createLiveTServerSet() {
-    return new LiveTServerSet(getContext(), this);
-  }
-
-  protected void setupSecurity() {
-    security = getContext().getSecurityOperation();
+  protected void createCompactionFinalizer(ScheduledThreadPoolExecutor schedExecutor) {
+    this.compactionFinalizer = new CompactionFinalizer(this.ctx, schedExecutor);
   }
 
   protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {
@@ -185,101 +152,15 @@ public class CompactionCoordinator extends AbstractServer
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
-  protected void printStartupMsg() {
-    LOG.info("Version " + Constants.VERSION);
-    LOG.info("Instance " + getContext().getInstanceID());
-  }
-
-  /**
-   * Set up nodes and locks in ZooKeeper for this CompactionCoordinator
-   *
-   * @param clientAddress address of this Compactor
-   * @throws KeeperException zookeeper error
-   * @throws InterruptedException thread interrupted
-   */
-  protected void getCoordinatorLock(HostAndPort clientAddress)
-      throws KeeperException, InterruptedException {
-    LOG.info("trying to get coordinator lock");
-
-    final String coordinatorClientAddress = ExternalCompactionUtil.getHostPortString(clientAddress);
-    final String lockPath = getContext().getZooKeeperRoot() + Constants.ZCOORDINATOR_LOCK;
-    final UUID zooLockUUID = UUID.randomUUID();
-
-    while (true) {
-
-      CoordinatorLockWatcher coordinatorLockWatcher = new CoordinatorLockWatcher();
-      coordinatorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
-          ServiceLock.path(lockPath), zooLockUUID);
-      coordinatorLock.lock(coordinatorLockWatcher,
-          new ServiceLockData(zooLockUUID, coordinatorClientAddress, ThriftService.COORDINATOR));
-
-      coordinatorLockWatcher.waitForChange();
-      if (coordinatorLockWatcher.isAcquiredLock()) {
-        break;
-      }
-      if (!coordinatorLockWatcher.isFailedToAcquireLock()) {
-        throw new IllegalStateException("manager lock in unknown state");
-      }
-      coordinatorLock.tryToCancelAsyncLockOrUnlock();
-
-      sleepUninterruptibly(1000, TimeUnit.MILLISECONDS);
-    }
-  }
-
-  /**
-   * Start this CompactionCoordinator thrift service to handle incoming client requests
-   *
-   * @return address of this CompactionCoordinator client service
-   * @throws UnknownHostException host unknown
-   */
-  protected ServerAddress startCoordinatorClientService() throws UnknownHostException {
-    var processor = ThriftProcessorTypes.getCoordinatorTProcessor(this, getContext());
-    Property maxMessageSizeProperty =
-        (getConfiguration().get(Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE) != null
-            ? Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
-        Property.COMPACTION_COORDINATOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
-        "Thrift Client Server", Property.COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH,
-        Property.COMPACTION_COORDINATOR_MINTHREADS,
-        Property.COMPACTION_COORDINATOR_MINTHREADS_TIMEOUT,
-        Property.COMPACTION_COORDINATOR_THREADCHECK, maxMessageSizeProperty);
-    LOG.info("address = {}", sp.address);
-    return sp;
-  }
-
   @Override
   public void run() {
-
-    ServerAddress coordinatorAddress = null;
-    try {
-      coordinatorAddress = startCoordinatorClientService();
-    } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the coordinator service", e1);
-    }
-    final HostAndPort clientAddress = coordinatorAddress.address;
-
-    try {
-      getCoordinatorLock(clientAddress);
-    } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException("Exception getting Coordinator lock", e);
-    }
-
-    try {
-      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          clientAddress);
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-        | SecurityException e1) {
-      LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
-    }
 
     // On a re-start of the coordinator it's possible that external compactions are in-progress.
     // Attempt to get the running compactions on the compactors and then resolve which tserver
     // the external compaction came from to re-populate the RUNNING collection.
     LOG.info("Checking for running external compactions");
     // On re-start contact the running Compactors to try and seed the list of running compactions
-    List<RunningCompaction> running =
-        ExternalCompactionUtil.getCompactionsRunningOnCompactors(getContext());
+    List<RunningCompaction> running = getCompactionsRunningOnCompactors();
     if (running.isEmpty()) {
       LOG.info("No running external compactions found");
     } else {
@@ -293,7 +174,6 @@ public class CompactionCoordinator extends AbstractServer
       });
     }
 
-    tserverSet.startListeningForTabletServerChanges();
     startDeadCompactionDetector();
 
     LOG.info("Starting loop to check tservers for compaction summaries");
@@ -361,13 +241,13 @@ public class CompactionCoordinator extends AbstractServer
             tsi.getHostPort());
         client = getTabletServerConnection(tsi);
         List<TCompactionQueueSummary> summaries =
-            client.getCompactionQueueInfo(TraceUtil.traceInfo(), getContext().rpcCreds());
+            client.getCompactionQueueInfo(TraceUtil.traceInfo(), this.ctx.rpcCreds());
         QUEUE_SUMMARIES.update(tsi, summaries);
         summaries.forEach(summary -> {
           queuesSeen.add(summary.getQueue());
         });
       } finally {
-        ThriftUtil.returnClient(client, getContext());
+        returnTServerClient(client);
       }
     } catch (TException e) {
       LOG.warn("Error getting external compaction summaries from tablet server: {}",
@@ -377,7 +257,7 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   protected void startDeadCompactionDetector() {
-    new DeadCompactionDetector(getContext(), this, schedExecutor).start();
+    new DeadCompactionDetector(this.ctx, this, schedExecutor).start();
   }
 
   protected long getMissingCompactorWarningTime() {
@@ -385,7 +265,7 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   protected long getTServerCheckInterval() {
-    return getConfiguration()
+    return this.ctx.getConfiguration()
         .getTimeInMillis(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL);
   }
 
@@ -397,8 +277,7 @@ public class CompactionCoordinator extends AbstractServer
    * @param deleted set of tservers that were removed from current since last update
    * @param added set of tservers that were added to current since last update
    */
-  @Override
-  public void update(LiveTServerSet current, Set<TServerInstance> deleted,
+  public void updateTServerSet(LiveTServerSet current, Set<TServerInstance> deleted,
       Set<TServerInstance> added) {
 
     // run() will iterate over the current and added tservers and add them to the internal
@@ -441,9 +320,8 @@ public class CompactionCoordinator extends AbstractServer
       TabletServerClientService.Client client = null;
       try {
         client = getTabletServerConnection(tserver);
-        TExternalCompactionJob job =
-            client.reserveCompactionJob(TraceUtil.traceInfo(), getContext().rpcCreds(), queue,
-                prioTserver.prio, compactorAddress, externalCompactionId);
+        TExternalCompactionJob job = client.reserveCompactionJob(TraceUtil.traceInfo(),
+            this.ctx.rpcCreds(), queue, prioTserver.prio, compactorAddress, externalCompactionId);
         if (null == job.getExternalCompactionId()) {
           LOG.trace("No compactions found for queue {} on tserver {}, trying next tserver", queue,
               tserver.getHostAndPort());
@@ -462,11 +340,11 @@ public class CompactionCoordinator extends AbstractServer
         break;
       } catch (TException e) {
         LOG.warn("Error from tserver {} while trying to reserve compaction, trying next tserver",
-            ExternalCompactionUtil.getHostPortString(tserver.getHostAndPort()), e);
+            getTServerAddressString(tserver.getHostAndPort()), e);
         QUEUE_SUMMARIES.removeSummary(tserver, queue, prioTserver.prio);
         prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
       } finally {
-        ThriftUtil.returnClient(client, getContext());
+        returnTServerClient(client);
       }
     }
 
@@ -490,9 +368,8 @@ public class CompactionCoordinator extends AbstractServer
   protected TabletServerClientService.Client getTabletServerConnection(TServerInstance tserver)
       throws TTransportException {
     TServerConnection connection = tserverSet.getConnection(tserver);
-    ServerContext serverContext = getContext();
     TTransport transport =
-        serverContext.getTransportPool().getTransport(connection.getAddress(), 0, serverContext);
+        this.ctx.getTransportPool().getTransport(connection.getAddress(), 0, this.ctx);
     return ThriftUtil.createClient(ThriftClientTypes.TABLET_SERVER, transport);
   }
 
@@ -580,7 +457,7 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   protected Set<ExternalCompactionId> readExternalCompactionIds() {
-    return getContext().getAmple().readTablets().forLevel(Ample.DataLevel.USER)
+    return this.ctx.getAmple().readTablets().forLevel(Ample.DataLevel.USER)
         .fetch(TabletMetadata.ColumnType.ECOMP).build().stream()
         .flatMap(tm -> tm.getExternalCompactions().keySet().stream()).collect(Collectors.toSet());
   }
@@ -672,7 +549,7 @@ public class CompactionCoordinator extends AbstractServer
     var runningCompaction = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
     var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
     try {
-      NamespaceId nsId = getContext().getNamespaceId(extent.tableId());
+      NamespaceId nsId = this.ctx.getNamespaceId(extent.tableId());
       if (!security.canCompact(credentials, extent.tableId(), nsId)) {
         throw new AccumuloSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED).asThriftException();
@@ -682,8 +559,28 @@ public class CompactionCoordinator extends AbstractServer
           TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
     }
 
-    HostAndPort address = HostAndPort.fromString(runningCompaction.getCompactorAddress());
-    ExternalCompactionUtil.cancelCompaction(getContext(), address, externalCompactionId);
+    cancelCompactionOnCompactor(runningCompaction.getCompactorAddress(), externalCompactionId);
+  }
+
+  /* Method exists to be overridden in test to hide static method */
+  protected String getTServerAddressString(HostAndPort tserverAddress) {
+    return ExternalCompactionUtil.getHostPortString(tserverAddress);
+  }
+
+  /* Method exists to be overridden in test to hide static method */
+  protected List<RunningCompaction> getCompactionsRunningOnCompactors() {
+    return ExternalCompactionUtil.getCompactionsRunningOnCompactors(this.ctx);
+  }
+
+  /* Method exists to be overridden in test to hide static method */
+  protected void cancelCompactionOnCompactor(String address, String externalCompactionId) {
+    HostAndPort hostPort = HostAndPort.fromString(address);
+    ExternalCompactionUtil.cancelCompaction(this.ctx, hostPort, externalCompactionId);
+  }
+
+  /* Method exists to be overridden in test to hide static method */
+  protected void returnTServerClient(TabletServerClientService.Client client) {
+    ThriftUtil.returnClient(client, this.ctx);
   }
 
   private void deleteEmpty(ZooReaderWriter zoorw, String path)
@@ -697,9 +594,9 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   private void cleanUpCompactors() {
-    final String compactorQueuesPath = getContext().getZooKeeperRoot() + Constants.ZCOMPACTORS;
+    final String compactorQueuesPath = this.ctx.getZooKeeperRoot() + Constants.ZCOMPACTORS;
 
-    var zoorw = getContext().getZooReaderWriter();
+    var zoorw = this.ctx.getZooReaderWriter();
 
     try {
       var queues = zoorw.getChildren(compactorQueuesPath);
@@ -727,12 +624,6 @@ public class CompactionCoordinator extends AbstractServer
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException(e);
-    }
-  }
-
-  public static void main(String[] args) throws Exception {
-    try (CompactionCoordinator compactor = new CompactionCoordinator(new ConfigOpts(), args)) {
-      compactor.runServer();
     }
   }
 

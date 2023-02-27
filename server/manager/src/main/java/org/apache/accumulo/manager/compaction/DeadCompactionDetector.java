@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.coordinator;
+package org.apache.accumulo.manager.compaction;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -60,7 +60,7 @@ public class DeadCompactionDetector {
 
     // The order of obtaining information is very important to avoid race conditions.
 
-    log.trace("Starting to look for dead compactions");
+    log.debug("Starting to look for dead compactions");
 
     Map<ExternalCompactionId,KeyExtent> tabletCompactions = new HashMap<>();
 
@@ -74,7 +74,7 @@ public class DeadCompactionDetector {
 
     if (tabletCompactions.isEmpty()) {
       // Clear out dead compactions, tservers don't think anything is running
-      log.trace("Clearing the dead compaction map, no tablets have compactions running");
+      log.debug("Clearing the dead compaction map, no tablets have compactions running");
       this.deadCompactions.clear();
       // no need to look for dead compactions when tablets don't have anything recorded as running
       return;
@@ -98,10 +98,10 @@ public class DeadCompactionDetector {
 
     running.forEach((ecid) -> {
       if (tabletCompactions.remove(ecid) != null) {
-        log.trace("Removed compaction {} running on a compactor", ecid);
+        log.debug("Removed compaction {} running on a compactor", ecid);
       }
       if (this.deadCompactions.remove(ecid) != null) {
-        log.trace("Removed {} from the dead compaction map, it's running on a compactor", ecid);
+        log.debug("Removed {} from the dead compaction map, it's running on a compactor", ecid);
       }
     });
 
@@ -109,15 +109,15 @@ public class DeadCompactionDetector {
     context.getAmple().getExternalCompactionFinalStates()
         .map(ecfs -> ecfs.getExternalCompactionId()).forEach(ecid -> {
           if (tabletCompactions.remove(ecid) != null) {
-            log.trace("Removed compaction {} that is committing", ecid);
+            log.debug("Removed compaction {} that is committing", ecid);
           }
           if (this.deadCompactions.remove(ecid) != null) {
-            log.trace("Removed {} from the dead compaction map, it's committing", ecid);
+            log.debug("Removed {} from the dead compaction map, it's committing", ecid);
           }
         });
 
     tabletCompactions.forEach((ecid, extent) -> {
-      log.debug("Possible dead compaction detected {} {}", ecid, extent);
+      log.info("Possible dead compaction detected {} {}", ecid, extent);
       this.deadCompactions.merge(ecid, 1L, Long::sum);
     });
 

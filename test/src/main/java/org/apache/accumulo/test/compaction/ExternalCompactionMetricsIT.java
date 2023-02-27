@@ -33,7 +33,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
@@ -84,7 +83,6 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
   public static void before() throws Exception {
     sink = new TestStatsDSink();
     startMiniClusterWithConfig(new ExternalCompactionMetricsITConfig());
-    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
   }
 
   @AfterAll

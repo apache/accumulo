@@ -54,7 +54,6 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.compactor.ExtCEnv.CompactorIterEnv;
-import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -181,7 +180,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table1);
       writeData(client, table2);
 
-      getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
       getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
       getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
 
@@ -218,7 +216,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table1);
 
       getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE3);
-      getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
 
       compact(client, table1, 2, QUEUE3, false);
       TableId tid = getCluster().getServerContext().getTableId(table1);
@@ -262,7 +259,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table1);
 
       getCluster().getClusterControl().startCompactors(Compactor.class, 2, QUEUE4);
-      getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
 
       compact(client, table1, 3, QUEUE4, true);
 
@@ -275,7 +271,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     String tableName = this.getUniqueNames(1)[0];
 
     getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE5);
-    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
 
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
@@ -351,7 +346,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       createTable(client, table1, "cs6");
       writeData(client, table1);
       getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE6);
-      getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
       compact(client, table1, 2, QUEUE6, true);
       verify(client, table1, 2);
 
@@ -390,7 +384,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       createTable(client, table3, "cs7");
       writeData(client, table3);
       getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE7);
-      getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
       compact(client, table3, 2, QUEUE7, false);
 
       // ExternalCompactionTServer will not commit the compaction. Wait for the
@@ -471,7 +464,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE8);
-      getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
 
       createTable(client, tableName, "cs8");
 

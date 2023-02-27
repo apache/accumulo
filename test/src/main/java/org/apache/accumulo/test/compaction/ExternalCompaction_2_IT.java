@@ -45,7 +45,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
@@ -93,7 +92,6 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
   @Test
   public void testSplitCancelsExternalCompaction() throws Exception {
 
-    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
     getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE1);
 
     String table1 = this.getUniqueNames(1)[0];
@@ -144,7 +142,6 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
   @Test
   public void testExternalCompactionsSucceedsRunWithTableOffline() throws Exception {
 
-    getCluster().getClusterControl().stop(ServerType.COMPACTION_COORDINATOR);
     getCluster().getClusterControl().stop(ServerType.COMPACTOR);
 
     String table1 = this.getUniqueNames(1)[0];
@@ -160,9 +157,6 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       writeData(client, table1);
       writeData(client, table1);
       writeData(client, table1);
-
-      getCluster().getClusterControl()
-          .startCoordinator(TestCompactionCoordinatorForOfflineTable.class);
 
       TableId tid = getCluster().getServerContext().getTableId(table1);
       // Confirm that no final state is in the metadata table
@@ -229,7 +223,6 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       // because we split the table, FaTE will continue to queue up a compaction
       client.tableOperations().delete(table1);
 
-      getCluster().getClusterControl().stop(ServerType.COMPACTION_COORDINATOR);
       getCluster().getClusterControl().stop(ServerType.COMPACTOR);
     }
   }
@@ -237,7 +230,6 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
   @Test
   public void testUserCompactionCancellation() throws Exception {
 
-    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
     getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE3);
 
     String table1 = this.getUniqueNames(1)[0];
@@ -273,7 +265,6 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
   @Test
   public void testDeleteTableCancelsUserExternalCompaction() throws Exception {
 
-    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
     getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE4);
 
     String table1 = this.getUniqueNames(1)[0];
@@ -303,7 +294,6 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
 
   @Test
   public void testDeleteTableCancelsExternalCompaction() throws Exception {
-    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
     getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE5);
 
     String table1 = this.getUniqueNames(1)[0];

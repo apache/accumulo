@@ -78,6 +78,8 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
@@ -112,6 +114,7 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.manager.compaction.CompactionCoordinator;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
@@ -325,6 +328,7 @@ public class Manager extends AbstractServer
 
   private FateServiceHandler fateServiceHandler;
   private ManagerClientServiceHandler managerClientHandler;
+  private CompactionCoordinator compactionCoordinator;
 
   private int assignedOrHosted(TableId tableId) {
     int result = 0;
@@ -1070,14 +1074,15 @@ public class Manager extends AbstractServer
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
+    compactionCoordinator = new CompactionCoordinator(context, tserverSet, security);
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
 
     ServerAddress sa;
-    var processor =
-        ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy, getContext());
+    var processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler,
+        compactionCoordinator, haProxy, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
@@ -1133,6 +1138,11 @@ public class Manager extends AbstractServer
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
     }
+
+    // Don't call run on the CompactionCoordinator until we have tservers.
+    Thread compactionCoordinatorThread =
+        Threads.createThread("CompactionCoordinator Thread", compactionCoordinator);
+    compactionCoordinatorThread.start();
 
     ZooReaderWriter zReaderWriter = context.getZooReaderWriter();
 
@@ -1244,8 +1254,14 @@ public class Manager extends AbstractServer
     }
 
     String address = sa.address.toString();
-    sld = new ServiceLockData(sld.getServerUUID(ThriftService.MANAGER), address,
-        ThriftService.MANAGER);
+    UUID uuid = sld.getServerUUID(ThriftService.MANAGER);
+    ServiceDescriptors descriptors = new ServiceDescriptors();
+    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER,
+        ThriftService.COORDINATOR}) {
+      descriptors.addService(new ServiceDescriptor(uuid, svc, address));
+    }
+
+    sld = new ServiceLockData(descriptors);
     log.info("Setting manager lock data to {}", sld.toString());
     try {
       managerLock.replaceLockData(sld);
@@ -1277,6 +1293,13 @@ public class Manager extends AbstractServer
     }
 
     tableInformationStatusPool.shutdownNow();
+
+    compactionCoordinator.shutdown();
+    try {
+      compactionCoordinatorThread.join();
+    } catch (InterruptedException e) {
+      log.error("Exception compaction coordinator thread", e);
+    }
 
     // Signal that we want it to stop, and wait for it to do so.
     if (authenticationTokenKeyManager != null) {
@@ -1463,8 +1486,14 @@ public class Manager extends AbstractServer
         getHostname() + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
 
     UUID zooLockUUID = UUID.randomUUID();
-    ServiceLockData sld =
-        new ServiceLockData(zooLockUUID, managerClientAddress, ThriftService.MANAGER);
+
+    ServiceDescriptors descriptors = new ServiceDescriptors();
+    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER,
+        ThriftService.COORDINATOR}) {
+      descriptors.addService(new ServiceDescriptor(zooLockUUID, svc, managerClientAddress));
+    }
+
+    ServiceLockData sld = new ServiceLockData(descriptors);
     while (true) {
 
       ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();
@@ -1493,6 +1522,9 @@ public class Manager extends AbstractServer
   @Override
   public void update(LiveTServerSet current, Set<TServerInstance> deleted,
       Set<TServerInstance> added) {
+
+    compactionCoordinator.updateTServerSet(current, deleted, added);
+
     // if we have deleted or added tservers, then adjust our dead server list
     if (!deleted.isEmpty() || !added.isEmpty()) {
       DeadServerList obit = new DeadServerList(getContext());

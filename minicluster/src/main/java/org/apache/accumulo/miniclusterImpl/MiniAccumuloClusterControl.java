@@ -23,27 +23,16 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.coordinator.CompactionCoordinator;
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.minicluster.ServerType;
@@ -52,14 +41,11 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.tserver.ScanServer;
 import org.apache.accumulo.tserver.TabletServer;
-import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
-import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -72,7 +58,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   Process managerProcess = null;
   Process gcProcess = null;
   Process monitor = null;
-  Process coordinatorProcess = null;
   final List<Process> tabletServerProcesses = new ArrayList<>();
   final List<Process> scanServerProcesses = new ArrayList<>();
   final List<Process> compactorProcesses = new ArrayList<>();
@@ -128,42 +113,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     }
     if (p.exitValue() != 0) {
       throw new IOException("Failed to run `accumulo admin stopAll`");
-    }
-  }
-
-  private static TExternalCompactionList getRunningCompactions(ClientContext context)
-      throws TException {
-    Optional<HostAndPort> coordinatorHost =
-        ExternalCompactionUtil.findCompactionCoordinator(context);
-    if (coordinatorHost.isEmpty()) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
-    }
-    CompactionCoordinatorService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.get(), context);
-    try {
-      return client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
-    } finally {
-      ThriftUtil.returnClient(client, context);
-    }
-  }
-
-  @Override
-  public synchronized void startCoordinator(Class<? extends CompactionCoordinator> coordinator)
-      throws IOException {
-    if (coordinatorProcess == null) {
-      coordinatorProcess = cluster
-          ._exec(coordinator, ServerType.COMPACTION_COORDINATOR, new HashMap<>()).getProcess();
-      // Wait for coordinator to start
-      TExternalCompactionList metrics = null;
-      while (metrics == null) {
-        try {
-          metrics = getRunningCompactions(cluster.getServerContext());
-        } catch (TException e) {
-          log.debug(
-              "Error getting running compactions from coordinator, message: " + e.getMessage());
-          UtilWaitThread.sleep(250);
-        }
-      }
     }
   }
 
@@ -239,9 +188,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
                 .add(cluster._exec(ScanServer.class, server, configOverrides).getProcess());
           }
         }
-        break;
-      case COMPACTION_COORDINATOR:
-        startCoordinator(CompactionCoordinator.class);
         break;
       case COMPACTOR:
         startCompactors(Compactor.class, cluster.getConfig().getNumCompactors(),
@@ -350,19 +296,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           }
         }
         break;
-      case COMPACTION_COORDINATOR:
-        if (coordinatorProcess != null) {
-          try {
-            cluster.stopProcessWithTimeout(coordinatorProcess, 30, TimeUnit.SECONDS);
-          } catch (ExecutionException | TimeoutException e) {
-            log.warn("CompactionCoordinator did not fully stop after 30 seconds", e);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-          } finally {
-            coordinatorProcess = null;
-          }
-        }
-        break;
       case COMPACTOR:
         synchronized (compactorProcesses) {
           try {
@@ -468,17 +401,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
               break;
             }
           }
-        }
-        break;
-      case COMPACTION_COORDINATOR:
-        if (procRef.getProcess().equals(coordinatorProcess)) {
-          try {
-            cluster.stopProcessWithTimeout(coordinatorProcess, 30, TimeUnit.SECONDS);
-          } catch (ExecutionException | TimeoutException e) {
-            log.warn("CompactionCoordinator did not fully stop after 30 seconds", e);
-          }
-          coordinatorProcess = null;
-          found = true;
         }
         break;
       case COMPACTOR:

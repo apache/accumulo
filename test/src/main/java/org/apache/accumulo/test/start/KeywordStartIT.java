@@ -36,7 +36,6 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.accumulo.compactor.CompactorExecutable;
-import org.apache.accumulo.coordinator.CoordinatorExecutable;
 import org.apache.accumulo.core.file.rfile.CreateEmpty;
 import org.apache.accumulo.core.file.rfile.GenerateSplits;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
@@ -119,7 +118,6 @@ public class KeywordStartIT {
     expectSet.put("admin", Admin.class);
     expectSet.put("check-compaction-config", CheckCompactionConfig.class);
     expectSet.put("check-server-config", CheckServerConfig.class);
-    expectSet.put("compaction-coordinator", CoordinatorExecutable.class);
     expectSet.put("compactor", CompactorExecutable.class);
     expectSet.put("convert-config", ConvertConfig.class);
     expectSet.put("create-token", CreateToken.class);

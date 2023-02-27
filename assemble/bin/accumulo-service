@@ -28,7 +28,6 @@ Services:
   manager                Accumulo manager
   master                 Accumulo master (Deprecated)
   tserver                Accumulo tserver
-  compaction-coordinator Accumulo compaction coordinator (experimental)
   compactor              Accumulo compactor (experimental)
   sserver                Accumulo scan server (experimental)
 
@@ -151,7 +150,7 @@ function main() {
 
   pid_file="${ACCUMULO_PID_DIR}/accumulo-${service}${ACCUMULO_SERVICE_INSTANCE}.pid"
   case "$service" in
-    gc | manager | monitor | tserver | compaction-coordinator | compactor | sserver)
+    gc | manager | monitor | tserver | compactor | sserver)
       if [[ -z $2 ]]; then
         invalid_args "<command> cannot be empty"
       fi

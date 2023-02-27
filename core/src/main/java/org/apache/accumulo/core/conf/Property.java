@@ -1130,31 +1130,6 @@ public enum Property {
       "Properties in this category affect the behavior of the accumulo compaction coordinator server.",
       "2.1.0"),
   @Experimental
-  COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH("compaction.coordinator.port.search", "false",
-      PropertyType.BOOLEAN,
-      "If the ports above are in use, search higher ports until one is available", "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_CLIENTPORT("compaction.coordinator.port.client", "9132", PropertyType.PORT,
-      "The port used for handling Thrift client connections on the compaction coordinator server",
-      "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_MINTHREADS("compaction.coordinator.threads.minimum", "1",
-      PropertyType.COUNT, "The minimum number of threads to use to handle incoming requests.",
-      "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_MINTHREADS_TIMEOUT("compaction.coordinator.threads.timeout", "0s",
-      PropertyType.TIMEDURATION,
-      "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely.",
-      "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_THREADCHECK("compaction.coordinator.threadcheck.time", "1s",
-      PropertyType.TIMEDURATION, "The time between adjustments of the server thread pool.",
-      "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE("compaction.coordinator.message.size.max", "10M",
-      PropertyType.BYTES, "The maximum size of a message that can be sent to a tablet server.",
-      "2.1.0"),
-  @Experimental
   COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL(
       "compaction.coordinator.compactor.dead.check.interval", "5m", PropertyType.TIMEDURATION,
       "The interval at which to check for dead compactors.", "2.1.0"),

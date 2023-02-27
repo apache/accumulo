@@ -47,9 +47,6 @@ sserver:
     - burstyvm2
 
 compaction:
-  coordinator:
-    - localhost1
-    - localhost2
   compactor:
     - q1:
         - localhost1

@@ -64,7 +64,6 @@ public class ClusterConfigParserTest {
     assertTrue(contents.containsKey("tserver"));
     assertEquals("localhost1 localhost2 localhost3 localhost4", contents.get("tserver"));
     assertFalse(contents.containsKey("compaction"));
-    assertFalse(contents.containsKey("compaction.coordinator"));
     assertFalse(contents.containsKey("compaction.compactor"));
     assertFalse(contents.containsKey("compaction.compactor.queue"));
     assertFalse(contents.containsKey("compaction.compactor.q1"));
@@ -82,7 +81,7 @@ public class ClusterConfigParserTest {
     Map<String,String> contents =
         ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
 
-    assertEquals(12, contents.size());
+    assertEquals(11, contents.size());
     assertTrue(contents.containsKey("manager"));
     assertEquals("localhost1 localhost2", contents.get("manager"));
     assertTrue(contents.containsKey("monitor"));
@@ -92,8 +91,6 @@ public class ClusterConfigParserTest {
     assertTrue(contents.containsKey("tserver"));
     assertEquals("localhost1 localhost2 localhost3 localhost4", contents.get("tserver"));
     assertFalse(contents.containsKey("compaction"));
-    assertTrue(contents.containsKey("compaction.coordinator"));
-    assertEquals("localhost1 localhost2", contents.get("compaction.coordinator"));
     assertFalse(contents.containsKey("compaction.compactor"));
     assertTrue(contents.containsKey("compaction.compactor.q1"));
     assertEquals("localhost1 localhost2", contents.get("compaction.compactor.q1"));
@@ -216,7 +213,6 @@ public class ClusterConfigParserTest {
     expected.put("MONITOR_HOSTS", "localhost1 localhost2");
     expected.put("GC_HOSTS", "localhost");
     expected.put("TSERVER_HOSTS", "localhost1 localhost2 localhost3 localhost4");
-    expected.put("COORDINATOR_HOSTS", "localhost1 localhost2");
     expected.put("COMPACTION_QUEUES", "q1 q2");
     expected.put("COMPACTOR_HOSTS_q1", "localhost1 localhost2");
     expected.put("COMPACTOR_HOSTS_q2", "localhost3 localhost4");

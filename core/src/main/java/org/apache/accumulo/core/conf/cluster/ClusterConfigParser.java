@@ -98,10 +98,6 @@ public class ClusterConfigParser {
       }
     }
 
-    if (config.containsKey("compaction.coordinator")) {
-      out.printf(PROPERTY_FORMAT, "COORDINATOR_HOSTS", config.get("compaction.coordinator"));
-    }
-
     String compactorPrefix = "compaction.compactor.";
     Set<String> compactorQueues =
         config.keySet().stream().filter(k -> k.startsWith(compactorPrefix))
