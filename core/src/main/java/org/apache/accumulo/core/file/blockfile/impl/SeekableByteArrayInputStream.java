@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -42,13 +43,13 @@ public class SeekableByteArrayInputStream extends InputStream {
   @SuppressFBWarnings(value = "VO_VOLATILE_REFERENCE_TO_ARRAY",
       justification = "see explanation above")
   private volatile byte[] buffer;
-  private int cur;
-  private int max;
+  private final AtomicInteger cur;
+  private final AtomicInteger max;
 
   @Override
   public int read() {
-    if (cur < max) {
-      return buffer[cur++] & 0xff;
+    if (cur.get() < max.get()) {
+      return buffer[cur.getAndIncrement()] & 0xff;
     } else {
       return -1;
     }
@@ -68,7 +69,7 @@ public class SeekableByteArrayInputStream extends InputStream {
       return 0;
     }
 
-    int avail = max - cur;
+    int avail = available();
 
     if (avail <= 0) {
       return -1;
@@ -78,14 +79,14 @@ public class SeekableByteArrayInputStream extends InputStream {
       length = avail;
     }
 
-    System.arraycopy(buffer, cur, b, offset, length);
-    cur += length;
+    System.arraycopy(buffer, cur.get(), b, offset, length);
+    cur.getAndAdd(length);
     return length;
   }
 
   @Override
   public long skip(long requestedSkip) {
-    int actualSkip = max - cur;
+    int actualSkip = available();
     if (requestedSkip < actualSkip) {
       if (requestedSkip < 0) {
         actualSkip = 0;
@@ -94,13 +95,13 @@ public class SeekableByteArrayInputStream extends InputStream {
       }
     }
 
-    cur += actualSkip;
+    cur.getAndAdd(actualSkip);
     return actualSkip;
   }
 
   @Override
   public int available() {
-    return max - cur;
+    return max.get() - cur.get();
   }
 
   @Override
@@ -124,26 +125,26 @@ public class SeekableByteArrayInputStream extends InputStream {
   public SeekableByteArrayInputStream(byte[] buf) {
     requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
-    this.cur = 0;
-    this.max = buf.length;
+    this.cur = new AtomicInteger(0);
+    this.max = new AtomicInteger(buf.length);
   }
 
   public SeekableByteArrayInputStream(byte[] buf, int maxOffset) {
     requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
-    this.cur = 0;
-    this.max = maxOffset;
+    this.cur = new AtomicInteger(0);
+    this.max = new AtomicInteger(maxOffset);
   }
 
   public void seek(int position) {
-    if (position < 0 || position >= max) {
+    if (position < 0 || position >= max.get()) {
       throw new IllegalArgumentException("position = " + position + " maxOffset = " + max);
     }
-    this.cur = position;
+    this.cur.set(position);
   }
 
   public int getPosition() {
-    return this.cur;
+    return this.cur.get();
   }
 
   byte[] getBuffer() {
