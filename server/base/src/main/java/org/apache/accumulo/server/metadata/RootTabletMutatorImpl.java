@@ -36,7 +36,8 @@ import org.apache.accumulo.server.constraints.SystemEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.TabletMutator {
+public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
+    implements Ample.TabletMutator {
   private final ServerContext context;
 
   private static final Logger log = LoggerFactory.getLogger(RootTabletMutatorImpl.class);

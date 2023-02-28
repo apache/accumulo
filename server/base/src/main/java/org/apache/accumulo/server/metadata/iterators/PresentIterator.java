@@ -16,33 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.metadata;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.server.ServerContext;
+package org.apache.accumulo.server.metadata.iterators;
 
-class TabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
-    implements Ample.TabletMutator {
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.WrappingIterator;
 
-  private BatchWriter writer;
+public class PresentIterator extends WrappingIterator {
 
-  TabletMutatorImpl(ServerContext context, KeyExtent extent, BatchWriter batchWriter) {
-    super(context, extent);
-    this.writer = batchWriter;
-  }
+  public static final String VALUE = "present";
 
   @Override
-  public void mutate() {
-    try {
-      writer.addMutation(getMutation());
-
-      if (closeAfterMutate != null) {
-        closeAfterMutate.close();
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+  public Value getTopValue() {
+    super.getTopValue();
+    return new Value(VALUE);
   }
 }

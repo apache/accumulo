@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -239,55 +240,65 @@ public interface Ample {
     void close();
   }
 
+  public interface ConditionalTabletsMutator extends AutoCloseable {
+    ConditionalTabletMutator mutateTablet(KeyExtent extent);
+
+    Iterator<ConditionalWriter.Result> process();
+
+    @Override
+    void close();
+  }
+
   /**
    * Interface for changing a tablets persistent data.
    */
-  interface TabletMutator {
-    TabletMutator putPrevEndRow(Text per);
+  interface TabletUpdates<T> {
+    T putPrevEndRow(Text per);
 
-    TabletMutator putFile(TabletFile path, DataFileValue dfv);
+    T putFile(TabletFile path, DataFileValue dfv);
 
-    TabletMutator deleteFile(StoredTabletFile path);
+    T deleteFile(StoredTabletFile path);
 
-    TabletMutator putScan(TabletFile path);
+    T putScan(TabletFile path);
 
-    TabletMutator deleteScan(StoredTabletFile path);
+    T deleteScan(StoredTabletFile path);
 
-    TabletMutator putCompactionId(long compactionId);
+    T putCompactionId(long compactionId);
 
-    TabletMutator putFlushId(long flushId);
+    T putFlushId(long flushId);
 
-    TabletMutator putLocation(TServerInstance tserver, LocationType type);
+    T putLocation(TServerInstance tserver, LocationType type);
 
-    TabletMutator deleteLocation(TServerInstance tserver, LocationType type);
+    T deleteLocation(TServerInstance tserver, LocationType type);
 
-    TabletMutator putZooLock(ServiceLock zooLock);
+    T putZooLock(ServiceLock zooLock);
 
-    TabletMutator putDirName(String dirName);
+    T putDirName(String dirName);
 
-    TabletMutator putWal(LogEntry logEntry);
+    T putWal(LogEntry logEntry);
 
-    TabletMutator deleteWal(String wal);
+    T deleteWal(String wal);
 
-    TabletMutator deleteWal(LogEntry logEntry);
+    T deleteWal(LogEntry logEntry);
 
-    TabletMutator putTime(MetadataTime time);
+    T putTime(MetadataTime time);
 
-    TabletMutator putBulkFile(TabletFile bulkref, long tid);
+    T putBulkFile(TabletFile bulkref, long tid);
 
-    TabletMutator deleteBulkFile(TabletFile bulkref);
+    T deleteBulkFile(TabletFile bulkref);
 
-    TabletMutator putChopped();
+    T putChopped();
 
-    TabletMutator putSuspension(TServerInstance tserver, long suspensionTime);
+    T putSuspension(TServerInstance tserver, long suspensionTime);
 
-    TabletMutator deleteSuspension();
+    T deleteSuspension();
 
-    TabletMutator putExternalCompaction(ExternalCompactionId ecid,
-        ExternalCompactionMetadata ecMeta);
+    T putExternalCompaction(ExternalCompactionId ecid, ExternalCompactionMetadata ecMeta);
 
-    TabletMutator deleteExternalCompaction(ExternalCompactionId ecid);
+    T deleteExternalCompaction(ExternalCompactionId ecid);
+  }
 
+  interface TabletMutator extends TabletUpdates<TabletMutator> {
     /**
      * This method persist (or queues for persisting) previous put and deletes against this object.
      * Unless this method is called, previous calls will never be persisted. The purpose of this
@@ -301,6 +312,20 @@ public interface Ample {
      * After this method is called, calling any method on this object will result in an exception.
      */
     void mutate();
+  }
+
+  interface ConditionalTabletMutator extends TabletUpdates<ConditionalTabletMutator> {
+
+    ConditionalTabletMutator requireAbsentLocation();
+
+    ConditionalTabletMutator requireLocation(TServerInstance tserver, LocationType type);
+
+    ConditionalTabletMutator requireFile(StoredTabletFile path);
+
+    // TODO could always check this!
+    ConditionalTabletMutator requirePrevEndRow(Text per);
+
+    void queue();
   }
 
   /**

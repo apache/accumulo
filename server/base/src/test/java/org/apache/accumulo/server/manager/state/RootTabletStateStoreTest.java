@@ -69,20 +69,25 @@ public class RootTabletStateStoreTest {
       throw new UnsupportedOperationException("This method should be implemented in subclasses");
     }
 
+    private class TestTabletMutator extends TabletMutatorBase<TabletMutator>
+        implements TabletMutator {
+      public TestTabletMutator(ServerContext context, KeyExtent extent) {
+        super(context, extent);
+      }
+
+      public void mutate() {
+        Mutation m = getMutation();
+
+        var rtm = new RootTabletMetadata(json);
+        rtm.update(m);
+        json = rtm.toJson();
+      }
+    }
+
     @Override
     public TabletMutator mutateTablet(KeyExtent extent) {
       Preconditions.checkArgument(extent.equals(RootTable.EXTENT));
-      return new TabletMutatorBase(null, extent) {
-
-        @Override
-        public void mutate() {
-          Mutation m = getMutation();
-
-          var rtm = new RootTabletMetadata(json);
-          rtm.update(m);
-          json = rtm.toJson();
-        }
-      };
+      return new TestTabletMutator(null, RootTable.EXTENT);
     }
 
   }
