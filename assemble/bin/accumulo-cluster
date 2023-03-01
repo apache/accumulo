@@ -66,7 +66,7 @@ function parse_config {
 
   trap 'rm -f "$CONFIG_FILE"' EXIT
   CONFIG_FILE=$(mktemp) || exit 1
-  ${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser "${conf}"/cluster.yaml >"$CONFIG_FILE" || parse_fail
+  ${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser "${conf}"/cluster.yaml "$CONFIG_FILE" || parse_fail
   #shellcheck source=/dev/null
   . "$CONFIG_FILE"
   rm -f "$CONFIG_FILE"
