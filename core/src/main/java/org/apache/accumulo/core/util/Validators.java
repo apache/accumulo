@@ -230,8 +230,8 @@ public class Validators {
       return Optional.of("Table id must not be null");
     }
     if (MetadataTable.ID.equals(id)) {
-      return Optional
-          .of("Table must not be the " + MetadataTable.NAME + "(Id: " + MetadataTable.ID + ") table");
+      return Optional.of(
+          "Table must not be the " + MetadataTable.NAME + "(Id: " + MetadataTable.ID + ") table");
     }
     return Validator.OK;
   });

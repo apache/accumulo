@@ -88,6 +88,28 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
       assertNull(online.future);
       assertNotNull(online.current);
       assertEquals(online.current, online.last);
+
+      // set the table to ondemand
+      c.tableOperations().onDemand(tableName, true);
+      TabletLocationState ondemand = getTabletLocationState(c, tableId);
+      assertNull(ondemand.future);
+      assertNull(ondemand.current);
+      assertEquals(flushed.current, ondemand.last);
+
+      // put it back online
+      c.tableOperations().online(tableName, true);
+      online = getTabletLocationState(c, tableId);
+      assertNull(online.future);
+      assertNotNull(online.current);
+      assertEquals(online.current, online.last);
+
+      // set the table to ondemand
+      c.tableOperations().onDemand(tableName, true);
+      ondemand = getTabletLocationState(c, tableId);
+      assertNull(ondemand.future);
+      assertNull(ondemand.current);
+      assertEquals(flushed.current, ondemand.last);
+
     }
   }
 
