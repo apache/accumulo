@@ -23,7 +23,6 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 import org.slf4j.Logger;
