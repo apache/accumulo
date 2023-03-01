@@ -1512,6 +1512,52 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
+  public boolean isOnDemand(String tableName) throws AccumuloException, TableNotFoundException {
+    EXISTING_TABLE_NAME.validate(tableName);
+
+    TableId tableId = context.getTableId(tableName);
+    TableState expectedState = context.getTableState(tableId, true);
+    return expectedState == TableState.ONDEMAND;
+  }
+
+  @Override
+  public void onDemand(String tableName)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    onDemand(tableName, false);
+  }
+
+  @Override
+  public void onDemand(String tableName, boolean wait)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+
+    EXISTING_TABLE_NAME.validate(tableName);
+
+    TableId tableId = context.getTableId(tableName);
+
+    if (isOnDemand(tableName)) {
+      if (wait) {
+        waitForTableStateTransition(tableId, TableState.ONDEMAND);
+      }
+      return;
+    }
+
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
+    Map<String,String> opts = new HashMap<>();
+
+    try {
+      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_ONDEMAND,
+          args, opts);
+    } catch (TableExistsException e) {
+      // should not happen
+      throw new AssertionError(e);
+    }
+
+    if (wait) {
+      waitForTableStateTransition(tableId, TableState.ONDEMAND);
+    }
+  }
+
+  @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 

@@ -1086,4 +1086,40 @@ public interface TableOperations {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Initiates setting a table to ondemand state, but does not wait for action to complete
+   *
+   * @param tableName the table to take online
+   * @throws AccumuloException when there is a general accumulo error
+   * @throws AccumuloSecurityException when the user does not have the proper permissions
+   * @since 4.0.0
+   */
+  void onDemand(String tableName)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+
+  /**
+   * Initiates setting a table to ondemand state, optionally waits for action to complete
+   *
+   * @param tableName the table to take online
+   * @param wait if true, then will not return until table is online
+   * @throws AccumuloException when there is a general accumulo error
+   * @throws AccumuloSecurityException when the user does not have the proper permissions
+   * @since 4.0.0
+   */
+  void onDemand(String tableName, boolean wait)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+
+  /**
+   * Check if a table is ondemand through its current goal state only. Could run into issues if the
+   * current state of the table is in between states. If you require a specific state, call
+   * <code>ondemand(tableName, true)</code>, this will wait until the table reaches the desired
+   * state before proceeding.
+   *
+   * @param tableName the table to check if online
+   * @throws AccumuloException when there is a general accumulo error
+   * @return true if table's goal state is online
+   * @since 4.0.0
+   */
+  boolean isOnDemand(String tableName) throws AccumuloException, TableNotFoundException;
+
 }

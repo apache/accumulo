@@ -153,13 +153,15 @@ public class TableManager {
         boolean transition = true;
         // +--------+
         // v |
-        // NEW -> (ONLINE|OFFLINE)+--- DELETING
+        // NEW -> (ONLINE|OFFLINE|ONDEMAND)+--- DELETING
         switch (oldState) {
           case NEW:
-            transition = (newState == TableState.OFFLINE || newState == TableState.ONLINE);
+            transition = (newState == TableState.OFFLINE || newState == TableState.ONLINE
+                || newState == TableState.ONDEMAND);
             break;
           case ONLINE: // fall-through intended
           case UNKNOWN:// fall through intended
+          case ONDEMAND:// fall through intended
           case OFFLINE:
             transition = (newState != TableState.NEW);
             break;
