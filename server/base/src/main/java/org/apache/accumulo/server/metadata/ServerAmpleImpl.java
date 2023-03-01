@@ -32,10 +32,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -85,6 +82,11 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public TabletsMutator mutateTablets() {
     return new TabletsMutatorImpl(context);
+  }
+
+  @Override
+  public ConditionalTabletsMutator conditionallyMutateTablets() {
+    return new ConditionalTabletsMutatorImpl(context);
   }
 
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {

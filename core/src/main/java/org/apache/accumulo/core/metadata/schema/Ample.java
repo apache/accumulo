@@ -20,6 +20,7 @@ package org.apache.accumulo.core.metadata.schema;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -183,6 +184,10 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
+  default ConditionalTabletsMutator conditionallyMutateTablets() {
+    throw new UnsupportedOperationException();
+  }
+
   default void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
     throw new UnsupportedOperationException();
   }
@@ -243,7 +248,7 @@ public interface Ample {
   public interface ConditionalTabletsMutator extends AutoCloseable {
     ConditionalTabletMutator mutateTablet(KeyExtent extent);
 
-    Iterator<ConditionalWriter.Result> process();
+    Map<KeyExtent,ConditionalWriter.Result> process();
 
     @Override
     void close();
@@ -325,7 +330,7 @@ public interface Ample {
     // TODO could always check this!
     ConditionalTabletMutator requirePrevEndRow(Text per);
 
-    void queue();
+    void submit();
   }
 
   /**

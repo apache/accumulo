@@ -21,7 +21,10 @@ package org.apache.accumulo.server.metadata;
 
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 
+import java.util.function.Consumer;
+
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -30,10 +33,11 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.iterators.AnyLocationIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.base.Preconditions;
 
 public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.ConditionalTabletMutator>
     implements Ample.ConditionalTabletMutator {
@@ -41,14 +45,18 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   private static final int INITIAL_ITERATOR_PRIO = 1000000;
 
   private final ConditionalMutation mutation;
+  private final Consumer<ConditionalMutation> mutationConsumer;
 
-  protected ConditionalTabletMutatorImpl(ServerContext context, KeyExtent extent) {
+  protected ConditionalTabletMutatorImpl(ClientContext context, KeyExtent extent,
+      Consumer<ConditionalMutation> mutationConsumer) {
     super(context, extent, new ConditionalMutation(extent.toMetaRow()));
     this.mutation = (ConditionalMutation) super.mutation;
+    this.mutationConsumer = mutationConsumer;
   }
 
   @Override
   public Ample.ConditionalTabletMutator requireAbsentLocation() {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     // TODO check if updates are still allowed like super class does
     IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, AnyLocationIterator.class);
     Condition c = new Condition("", "").setIterators(is);
@@ -59,6 +67,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   @Override
   public Ample.ConditionalTabletMutator requireLocation(TServerInstance tsi,
       TabletMetadata.LocationType type) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition c =
         new Condition(getLocationFamily(type), tsi.getSession()).setValue(tsi.getHostPort());
     mutation.addCondition(c);
@@ -67,6 +76,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
 
   @Override
   public Ample.ConditionalTabletMutator requireFile(StoredTabletFile path) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, PresentIterator.class);
     Condition c = new Condition(DataFileColumnFamily.NAME, path.getMetaUpdateDeleteText())
         .setValue(PresentIterator.VALUE).setIterators(is);
@@ -76,6 +86,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
 
   @Override
   public Ample.ConditionalTabletMutator requirePrevEndRow(Text per) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition c =
         new Condition(PREV_ROW_COLUMN.getColumnFamily(), PREV_ROW_COLUMN.getColumnQualifier())
             .setValue(per);
@@ -84,7 +95,8 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
-  public void queue() {
-
+  public void submit() {
+    getMutation();
+    mutationConsumer.accept(mutation);
   }
 }
