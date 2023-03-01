@@ -21,7 +21,6 @@ package org.apache.accumulo.shell.commands;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -40,12 +39,8 @@ public class OndemandCommand extends TableOperation {
   @Override
   protected void doTableOp(final Shell shellState, final String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    if (tableName.equals(MetadataTable.NAME)) {
-      Shell.log.info("  You cannot make the {} ondemand.", MetadataTable.NAME);
-    } else {
-      shellState.getAccumuloClient().tableOperations().onDemand(tableName, wait);
-      Shell.log.info("Ondemand of table {} {}", tableName, wait ? " completed." : " initiated...");
-    }
+    shellState.getAccumuloClient().tableOperations().onDemand(tableName, wait);
+    Shell.log.info("Ondemand of table {} {}", tableName, wait ? " completed." : " initiated...");
   }
 
   @Override
