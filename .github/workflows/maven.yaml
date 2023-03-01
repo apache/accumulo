@@ -57,6 +57,13 @@ jobs:
       run: contrib/ci/find-unapproved-chars.sh
     - name: Check for unapproved JUnit API usage
       run: contrib/ci/find-unapproved-junit.sh
+    #
+    # Use an older version of Maven due to issues with plugins in Maven 3.9.0
+    #
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4.5
+      with:
+        maven-version: 3.8.7
     - name: Build with Maven (Fast Build)
       timeout-minutes: 20
       run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -DskipTests -DskipFormat -DverifyFormat
@@ -70,7 +77,7 @@ jobs:
         profile:
           - {name: 'unit-tests',    javaver: 11, args: 'verify -PskipQA -DskipTests=false'}
           - {name: 'qa-checks',     javaver: 11, args: 'verify javadoc:jar -Psec-bugs -DskipTests -Dspotbugs.timeout=3600000'}
-          - {name: 'compat',        javaver: 11, args: 'package -DskipTests -Dhadoop.version=3.0.3 -Dzookeeper.version=3.6.1'}
+          - {name: 'compat',        javaver: 11, args: 'package -DskipTests -Dhadoop.version=3.0.3 -Dzookeeper.version=3.6.4'}
           - {name: 'errorprone',    javaver: 11, args: 'verify -Perrorprone,skipQA'}
           - {name: 'jdk17',         javaver: 17, args: 'verify -DskipITs'}
       fail-fast: false
