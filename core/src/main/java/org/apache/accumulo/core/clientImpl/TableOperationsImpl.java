@@ -1764,7 +1764,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     if (isOnline(tableName) || isOnDemand(tableName)) {
       throw new IllegalStateException("The table " + tableName
-          + " is not offline; exportTable requires" + " a table to be offline before exporting.");
+          + " is not offline; exportTable requires a table to be offline before exporting.");
     }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
