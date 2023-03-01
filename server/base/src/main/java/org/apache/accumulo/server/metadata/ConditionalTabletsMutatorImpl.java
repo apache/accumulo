@@ -29,6 +29,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Preconditions;
+
 public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMutator {
 
   private final ClientContext context;
@@ -38,12 +40,15 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
   private Map<Text,KeyExtent> extents = new HashMap<>();
 
+  private boolean active = true;
+
   public ConditionalTabletsMutatorImpl(ClientContext context) {
     this.context = context;
   }
 
   @Override
   public Ample.ConditionalTabletMutator mutateTablet(KeyExtent extent) {
+    Preconditions.checkState(active);
     if (currentTableId == null) {
       currentTableId = extent.tableId();
     } else if (!currentTableId.equals(extent.tableId())) {
@@ -51,19 +56,18 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
           "Can not mix tables ids " + currentTableId + " " + extent.tableId());
     }
 
-    // TODO handle case where it exists
-    extents.put(extent.toMetaRow(), extent);
-
+    Preconditions.checkState(extents.putIfAbsent(extent.toMetaRow(), extent) == null,
+        "Duplicate extents not handled");
     return new ConditionalTabletMutatorImpl(context, extent, mutations::add);
   }
 
   @Override
   public Map<KeyExtent,ConditionalWriter.Result> process() {
+    Preconditions.checkState(active);
     if (currentTableId != null) {
       var dataLevel = Ample.DataLevel.of(currentTableId);
       try (ConditionalWriter conditionalWriter =
           context.createConditionalWriter(dataLevel.metaTable())) {
-        // TODO translate back to include key extent
         var results = conditionalWriter.write(mutations.iterator());
 
         var resultsMap = new HashMap<KeyExtent,ConditionalWriter.Result>();
@@ -71,19 +75,28 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
         while (results.hasNext()) {
           var result = results.next();
           var row = new Text(result.getMutation().getRow());
-          // TODO check if null
           resultsMap.put(extents.get(row), result);
+        }
 
+        // TODO maybe this check is expensive
+        if (!resultsMap.keySet().equals(Set.copyOf(extents.values()))) {
+          throw new AssertionError("Not all extents were seen, this is unexpected");
         }
 
         return resultsMap;
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
+      } finally {
+        // render inoperable because reuse is not tested
+        extents.clear();
+        mutations.clear();
+        active = false;
       }
-
-      // TODO clear state or make unusable
-
     } else {
+      // render inoperable because reuse is not tested
+      extents.clear();
+      mutations.clear();
+      active = false;
       return Map.of();
     }
   }

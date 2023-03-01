@@ -143,6 +143,14 @@ public class TabletMetadata {
     public LocationType getType() {
       return lt;
     }
+
+    public boolean equals(Object o) {
+      if (super.equals(o) && o instanceof Location) {
+        return ((Location) o).lt == lt;
+      }
+
+      return false;
+    }
   }
 
   public TableId getTableId() {
