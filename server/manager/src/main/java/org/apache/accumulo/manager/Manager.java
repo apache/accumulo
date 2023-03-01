@@ -614,6 +614,7 @@ public class Manager extends AbstractServer
       case DELETING:
         return TabletGoalState.DELETED;
       case OFFLINE:
+      case ONDEMAND:
       case NEW:
         return TabletGoalState.UNASSIGNED;
       default:
@@ -1570,7 +1571,7 @@ public class Manager extends AbstractServer
   @Override
   public void stateChanged(TableId tableId, TableState state) {
     nextEvent.event("Table state in zookeeper changed for %s to %s", tableId, state);
-    if (state == TableState.OFFLINE) {
+    if (state == TableState.OFFLINE || state == TableState.ONDEMAND) {
       clearMigrations(tableId);
     }
   }

@@ -28,6 +28,7 @@ import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_NAMESPACE;
 import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_TABLE;
 import static org.apache.accumulo.core.util.Validators.NOT_METADATA_TABLE;
 import static org.apache.accumulo.core.util.Validators.NOT_ROOT_TABLE_ID;
+import static org.apache.accumulo.core.util.Validators.NOT_METADATA_TABLE_ID;
 import static org.apache.accumulo.core.util.Validators.VALID_TABLE_ID;
 import static org.apache.accumulo.core.util.Validators.sameNamespaceAs;
 
@@ -377,7 +378,7 @@ class FateServiceHandler implements FateService.Iface {
         final boolean canOnlineOfflineTable;
         try {
           canOnlineOfflineTable =
-              manager.security.canOnlineOfflineTable(c, tableId, op, namespaceId);
+              manager.security.canOnlineOfflineOnDemandTable(c, tableId, op, namespaceId);
         } catch (ThriftSecurityException e) {
           throwIfTableMissingSecurityException(e, tableId, null, TableOperation.ONLINE);
           throw e;
@@ -402,7 +403,7 @@ class FateServiceHandler implements FateService.Iface {
         final boolean canOnlineOfflineTable;
         try {
           canOnlineOfflineTable =
-              manager.security.canOnlineOfflineTable(c, tableId, op, namespaceId);
+              manager.security.canOnlineOfflineOnDemandTable(c, tableId, op, namespaceId);
         } catch (ThriftSecurityException e) {
           throwIfTableMissingSecurityException(e, tableId, null, TableOperation.OFFLINE);
           throw e;
@@ -417,6 +418,32 @@ class FateServiceHandler implements FateService.Iface {
             new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup,
             goalMessage);
         break;
+      }
+      case TABLE_ONDEMAND: {
+        TableOperation tableOp = TableOperation.ONDEMAND;
+        validateArgumentCount(arguments, tableOp, 1);
+        final var tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_TABLE_ID.and(NOT_METADATA_TABLE_ID));
+        NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+        
+        final boolean canOnDemandTable;
+        try {
+          canOnDemandTable =
+              manager.security.canOnlineOfflineOnDemandTable(c, tableId, op, namespaceId);
+        } catch (ThriftSecurityException e) {
+          throwIfTableMissingSecurityException(e, tableId, null, TableOperation.ONDEMAND);
+          throw e;
+        }
+
+        if (!canOnDemandTable) {
+          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
+
+        goalMessage += "Ondemand table " + tableId;
+        manager.fate().seedTransaction(op.toString(), opid,
+            new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup,
+            goalMessage);
+        break;
+        
       }
       case TABLE_MERGE: {
         TableOperation tableOp = TableOperation.MERGE;

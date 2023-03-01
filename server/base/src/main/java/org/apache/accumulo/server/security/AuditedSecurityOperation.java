@@ -685,7 +685,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       "action: %s; targetTable: %s:%s";
 
   @Override
-  public boolean canOnlineOfflineTable(TCredentials credentials, TableId tableId, FateOperation op,
+  public boolean canOnlineOfflineOnDemandTable(TCredentials credentials, TableId tableId, FateOperation op,
       NamespaceId namespaceId) throws ThriftSecurityException {
     String tableName = getTableName(tableId);
     String operation = null;
@@ -695,8 +695,11 @@ public class AuditedSecurityOperation extends SecurityOperation {
     if (op == FateOperation.TABLE_OFFLINE) {
       operation = "offlineTable";
     }
+    if (op == FateOperation.TABLE_ONDEMAND) {
+      operation = "onDemandTable";
+    }
     try {
-      boolean result = super.canOnlineOfflineTable(credentials, tableId, op, namespaceId);
+      boolean result = super.canOnlineOfflineOnDemandTable(credentials, tableId, op, namespaceId);
       audit(credentials, result, CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, operation, tableName,
           tableId);
       return result;
