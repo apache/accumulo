@@ -70,7 +70,7 @@ public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
         } catch (MalformedURLException e) {
           throw new RuntimeException(e);
         }
-      }).collect(Collectors.toList()).toArray(new URL[] {}), ClassLoader.getSystemClassLoader());
+      }).toArray(URL[]::new), ClassLoader.getSystemClassLoader());
     });
   }
 }
