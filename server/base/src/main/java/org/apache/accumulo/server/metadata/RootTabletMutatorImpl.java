@@ -42,7 +42,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
 
   private static final Logger log = LoggerFactory.getLogger(RootTabletMutatorImpl.class);
 
-  private static class RootEnv implements SystemEnvironment, Constraint.Environment {
+  static class RootEnv implements SystemEnvironment, Constraint.Environment {
 
     private final ServerContext context;
 
@@ -95,6 +95,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
       context.getZooCache().clear(zpath);
 
       // TODO examine implementation of getZooReaderWriter().mutate()
+      // TODO for efficiency this should maybe call mutateExisting
       context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
         var rtm = new RootTabletMetadata(currJson);

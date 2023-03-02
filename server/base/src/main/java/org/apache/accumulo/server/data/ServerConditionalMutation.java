@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.data;
+package org.apache.accumulo.server.data;
 
 import java.util.List;
 
 import org.apache.accumulo.core.dataImpl.thrift.TCondition;
 import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
-import org.apache.accumulo.server.data.ServerMutation;
 
 public class ServerConditionalMutation extends ServerMutation {
 
