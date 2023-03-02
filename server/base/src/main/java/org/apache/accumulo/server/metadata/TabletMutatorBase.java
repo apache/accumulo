@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.metadata;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -47,6 +46,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -54,7 +54,7 @@ import com.google.common.base.Preconditions;
 public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     implements Ample.TabletUpdates<T> {
 
-  private final ClientContext context;
+  private final ServerContext context;
   private final KeyExtent extent;
   protected final Mutation mutation;
   protected AutoCloseable closeAfterMutate;
@@ -65,13 +65,13 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     return (T) this;
   };
 
-  protected TabletMutatorBase(ClientContext context, KeyExtent extent) {
+  protected TabletMutatorBase(ServerContext context, KeyExtent extent) {
     this.extent = extent;
     this.context = context;
     mutation = new Mutation(extent.toMetaRow());
   }
 
-  protected TabletMutatorBase(ClientContext context, KeyExtent extent, Mutation mutation) {
+  protected TabletMutatorBase(ServerContext context, KeyExtent extent, Mutation mutation) {
     this.extent = extent;
     this.context = context;
     this.mutation = mutation;

@@ -24,7 +24,6 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -33,6 +32,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.iterators.AnyLocationIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
 import org.apache.hadoop.io.Text;
@@ -47,7 +47,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   private final ConditionalMutation mutation;
   private final Consumer<ConditionalMutation> mutationConsumer;
 
-  protected ConditionalTabletMutatorImpl(ClientContext context, KeyExtent extent,
+  protected ConditionalTabletMutatorImpl(ServerContext context, KeyExtent extent,
       Consumer<ConditionalMutation> mutationConsumer) {
     super(context, extent, new ConditionalMutation(extent.toMetaRow()));
     this.mutation = (ConditionalMutation) super.mutation;

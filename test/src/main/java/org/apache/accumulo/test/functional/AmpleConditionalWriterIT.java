@@ -27,10 +27,10 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.ConditionalWriter.Status;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -52,7 +52,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testLocations() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = "testacw1";
+
+      String tableName = getUniqueNames(1)[0];
 
       SortedSet<Text> splits = new TreeSet<>(List.of(new Text("c"), new Text("f"), new Text("j")));
       c.tableOperations().create(tableName,
@@ -69,7 +70,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       var ts1 = new TServerInstance("localhost:9997", 5000L);
       var ts2 = new TServerInstance("localhost:9997", 6000L);
 
-      var context = (ClientContext) c;
+      var context = cluster.getServerContext();
 
       Assert.assertNull(context.getAmple().readTablet(e1).getLocation());
 
@@ -132,7 +133,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     // TODO assert more results if keeping
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = "testacw2";
+      String tableName = getUniqueNames(1)[0];
 
       SortedSet<Text> splits = new TreeSet<>(List.of(new Text("c"), new Text("f"), new Text("j")));
       c.tableOperations().create(tableName,
@@ -149,7 +150,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       var ts1 = new TServerInstance("localhost:9997", 5000L);
       var ts2 = new TServerInstance("localhost:9997", 6000L);
 
-      var context = (ClientContext) c;
+      var context = cluster.getServerContext();
 
       var stf1 = new StoredTabletFile(
           "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf");
@@ -225,7 +226,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testMultipleExtents() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = "testacw3";
+      String tableName = getUniqueNames(1)[0];
 
       SortedSet<Text> splits = new TreeSet<>(List.of(new Text("c"), new Text("f"), new Text("j")));
       c.tableOperations().create(tableName,
@@ -245,7 +246,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       var ts1 = new TServerInstance("localhost:9997", 5000L);
       var ts2 = new TServerInstance("localhost:9997", 6000L);
 
-      var context = (ClientContext) c;
+      var context = cluster.getServerContext();
 
       var ctmi = new ConditionalTabletsMutatorImpl(context);
       ctmi.mutateTablet(e1).requireAbsentLocation().putLocation(ts1, LocationType.FUTURE).submit();
@@ -288,6 +289,38 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       Assert.assertEquals(Set.of(e1, e2, e3, e4), results.keySet());
 
     }
+  }
+
+  @Test
+  public void testRootTabletUpdate() throws Exception {
+    var context = cluster.getServerContext();
+
+    var rootMeta = context.getAmple().readTablet(RootTable.EXTENT);
+    var loc = rootMeta.getLocation();
+
+    Assert.assertEquals(LocationType.CURRENT, loc.getType());
+    Assert.assertFalse(rootMeta.getCompactId().isPresent());
+
+    var ctmi = new ConditionalTabletsMutatorImpl(context);
+    ctmi.mutateTablet(RootTable.EXTENT).requireAbsentLocation().putCompactionId(7).submit();
+    var results = ctmi.process();
+    Assert.assertEquals(Status.REJECTED, results.get(RootTable.EXTENT).getStatus());
+    Assert.assertFalse(context.getAmple().readTablet(RootTable.EXTENT).getCompactId().isPresent());
+
+    ctmi = new ConditionalTabletsMutatorImpl(context);
+    ctmi.mutateTablet(RootTable.EXTENT).requireLocation(loc, LocationType.FUTURE).putCompactionId(7)
+        .submit();
+    results = ctmi.process();
+    Assert.assertEquals(Status.REJECTED, results.get(RootTable.EXTENT).getStatus());
+    Assert.assertFalse(context.getAmple().readTablet(RootTable.EXTENT).getCompactId().isPresent());
+
+    ctmi = new ConditionalTabletsMutatorImpl(context);
+    ctmi.mutateTablet(RootTable.EXTENT).requireLocation(loc, LocationType.CURRENT)
+        .putCompactionId(7).submit();
+    results = ctmi.process();
+    Assert.assertEquals(Status.ACCEPTED, results.get(RootTable.EXTENT).getStatus());
+    Assert.assertEquals(7L,
+        context.getAmple().readTablet(RootTable.EXTENT).getCompactId().getAsLong());
   }
 
 }

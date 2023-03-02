@@ -22,18 +22,18 @@ import java.util.*;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
 public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMutator {
 
-  private final ClientContext context;
+  private final ServerContext context;
   private TableId currentTableId = null;
 
   private List<ConditionalMutation> mutations = new ArrayList<>();
@@ -42,7 +42,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
   private boolean active = true;
 
-  public ConditionalTabletsMutatorImpl(ClientContext context) {
+  public ConditionalTabletsMutatorImpl(ServerContext context) {
     this.context = context;
   }
 
@@ -61,13 +61,21 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
     return new ConditionalTabletMutatorImpl(context, extent, mutations::add);
   }
 
+  private ConditionalWriter createConditionalWriter(Ample.DataLevel dataLevel)
+      throws TableNotFoundException {
+    if (dataLevel == Ample.DataLevel.ROOT) {
+      return new RootConditionalWriter(context);
+    } else {
+      return context.createConditionalWriter(dataLevel.metaTable());
+    }
+  }
+
   @Override
   public Map<KeyExtent,ConditionalWriter.Result> process() {
     Preconditions.checkState(active);
     if (currentTableId != null) {
       var dataLevel = Ample.DataLevel.of(currentTableId);
-      try (ConditionalWriter conditionalWriter =
-          context.createConditionalWriter(dataLevel.metaTable())) {
+      try (ConditionalWriter conditionalWriter = createConditionalWriter(dataLevel)) {
         var results = conditionalWriter.write(mutations.iterator());
 
         var resultsMap = new HashMap<KeyExtent,ConditionalWriter.Result>();

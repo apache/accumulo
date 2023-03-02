@@ -44,6 +44,10 @@ import org.apache.accumulo.server.tablets.ConditionCheckerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A specialized conditional writer that writes metadata for the Accumulo root tablet which is
+ * stored in zookeeper.
+ */
 public class RootConditionalWriter implements ConditionalWriter {
 
   private static final Logger log = LoggerFactory.getLogger(RootConditionalWriter.class);
