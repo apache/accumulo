@@ -44,11 +44,11 @@ public class SeekableByteArrayInputStream extends InputStream {
       justification = "see explanation above")
   private volatile byte[] buffer;
   private final AtomicInteger cur;
-  private final AtomicInteger max;
+  private final int max;
 
   @Override
   public int read() {
-    if (cur.get() < max.get()) {
+    if (cur.get() < max) {
       return buffer[cur.getAndIncrement()] & 0xff;
     } else {
       return -1;
@@ -101,7 +101,7 @@ public class SeekableByteArrayInputStream extends InputStream {
 
   @Override
   public int available() {
-    return max.get() - cur.get();
+    return max - cur.get();
   }
 
   @Override
@@ -126,18 +126,18 @@ public class SeekableByteArrayInputStream extends InputStream {
     requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
     this.cur = new AtomicInteger(0);
-    this.max = new AtomicInteger(buf.length);
+    this.max = buf.length;
   }
 
   public SeekableByteArrayInputStream(byte[] buf, int maxOffset) {
     requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
     this.cur = new AtomicInteger(0);
-    this.max = new AtomicInteger(maxOffset);
+    this.max = maxOffset;
   }
 
   public void seek(int position) {
-    if (position < 0 || position >= max.get()) {
+    if (position < 0 || position >= max) {
       throw new IllegalArgumentException("position = " + position + " maxOffset = " + max);
     }
     this.cur.set(position);
