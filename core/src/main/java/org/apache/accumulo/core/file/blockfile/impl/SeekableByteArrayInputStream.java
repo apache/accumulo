@@ -48,7 +48,7 @@ public class SeekableByteArrayInputStream extends InputStream {
 
   @Override
   public int read() {
-    int currentValue = cur.getAndAccumulate(1, (x, i) -> x < max ? x + i : x);
+    final int currentValue = cur.getAndAccumulate(1, (x, i) -> x < max ? x + i : x);
     if (currentValue < max) {
       return buffer[currentValue] & 0xff;
     } else {
@@ -126,14 +126,12 @@ public class SeekableByteArrayInputStream extends InputStream {
   public SeekableByteArrayInputStream(byte[] buf) {
     requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
-    this.cur = new AtomicInteger(0);
     this.max = buf.length;
   }
 
   public SeekableByteArrayInputStream(byte[] buf, int maxOffset) {
     requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
-    this.cur = new AtomicInteger(0);
     this.max = maxOffset;
   }
 
