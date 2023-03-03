@@ -99,16 +99,21 @@ public class SeekableByteArrayInputStream extends InputStream {
 
   @Override
   public long skip(long requestedSkip) {
-    int actualSkip = available();
-    if (requestedSkip < actualSkip) {
-      if (requestedSkip < 0) {
-        actualSkip = 0;
-      } else {
-        actualSkip = (int) requestedSkip;
+    IntBinaryOperator add = (cur1, skip) -> {
+      int actual = max - cur1;
+      if (skip < actual) {
+        actual = Math.max(skip, 0);
       }
+      return cur1 + actual;
+    };
+
+    int currentValue = cur.getAndAccumulate((int) requestedSkip, add);
+
+    int actualSkip = max - currentValue;
+    if (requestedSkip < actualSkip) {
+      actualSkip = Math.max((int) requestedSkip, 0);
     }
 
-    cur.getAndAdd(actualSkip);
     return actualSkip;
   }
 
