@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.performance;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
@@ -372,7 +371,7 @@ public class NullTserver {
     store.setLocations(assignments);
 
     while (true) {
-      sleepUninterruptibly(10, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(10));
     }
   }
 }

@@ -18,13 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.time.Duration;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -69,7 +68,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
           "10000");
       // propagation time
-      sleepUninterruptibly(5, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(5));
       for (int i = 0; i < 2; i++) {
         String tableName = "table" + i;
         log.info("Creating {} with splits", tableName);
@@ -97,7 +96,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
         if (tablets == 2002) {
           break;
         }
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(1));
       }
     }
   }

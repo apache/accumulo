@@ -18,12 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.DAYS;
 import static org.apache.accumulo.harness.AccumuloITBase.random;
 
 import java.util.HashMap;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
@@ -87,7 +86,12 @@ public class ZombieTServer {
           return result;
         }
       }
-      sleepUninterruptibly(Integer.MAX_VALUE, TimeUnit.DAYS);
+      try {
+        Thread.sleep(DAYS.toMillis(Integer.MAX_VALUE));
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        log.info("probably received shutdown, interrupted during infinite sleep", ex);
+      }
       return null;
     }
 
