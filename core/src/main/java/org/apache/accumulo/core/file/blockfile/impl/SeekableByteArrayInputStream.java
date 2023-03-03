@@ -42,7 +42,7 @@ public class SeekableByteArrayInputStream extends InputStream {
   // thread 2 sees all of thread 1 changes before setting the volatile.
   @SuppressFBWarnings(value = "VO_VOLATILE_REFERENCE_TO_ARRAY",
       justification = "see explanation above")
-  private volatile byte[] buffer;
+  private final byte[] buffer;
   private final AtomicInteger cur = new AtomicInteger(0);
   private final int max;
 
