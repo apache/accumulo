@@ -1014,8 +1014,6 @@
                 <unused>org.apache.logging.log4j:log4j-1.2-api:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-slf4j2-impl:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-web:jar:*</unused>
-                <!-- needed because https://issues.apache.org/jira/browse/LOG4J2-3601 -->
-                <unused>org.apache.logging.log4j:log4j-core:jar:*</unused>
                 <!-- This should be removed upon completion of migrating junit 4 to 5 -->
                 <unused>org.junit.vintage:junit-vintage-engine:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>

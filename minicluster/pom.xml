@@ -129,10 +129,6 @@
       <artifactId>log4j-1.2-api</artifactId>
       <scope>test</scope>
     </dependency>
-    <!-- Even with the bug from https://issues.apache.org/jira/browse/LOG4J2-3601
-      log4j2-core is not needed to be listed because accumulo-monitor has a
-      transitive dependency already.
-    -->
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-slf4j2-impl</artifactId>
