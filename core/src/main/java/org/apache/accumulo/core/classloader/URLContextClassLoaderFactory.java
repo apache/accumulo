@@ -22,16 +22,14 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * The default implementation of ContextClassLoaderFactory. This classloader returns a
@@ -49,7 +47,7 @@ public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
   // Classes that are loaded contain a reference to the class loader used to load them
   // so the class loader will be garbage collected when no more classes are loaded that reference it
   private final Cache<String,URLClassLoader> classloaders =
-      CacheBuilder.newBuilder().weakValues().build();
+      Caffeine.newBuilder().weakValues().build();
 
   public URLContextClassLoaderFactory() {
     if (!isInstantiated.compareAndSet(false, true)) {
@@ -63,19 +61,15 @@ public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
       throw new IllegalArgumentException("Unknown context");
     }
 
-    try {
-      return classloaders.get(context, () -> {
-        LOG.debug("Creating URLClassLoader for context, uris: {}", context);
-        return new URLClassLoader(Arrays.stream(context.split(",")).map(url -> {
-          try {
-            return new URL(url);
-          } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-          }
-        }).collect(Collectors.toList()).toArray(new URL[] {}), ClassLoader.getSystemClassLoader());
-      });
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e);
-    }
+    return classloaders.get(context, k -> {
+      LOG.debug("Creating URLClassLoader for context, uris: {}", context);
+      return new URLClassLoader(Arrays.stream(context.split(",")).map(url -> {
+        try {
+          return new URL(url);
+        } catch (MalformedURLException e) {
+          throw new RuntimeException(e);
+        }
+      }).toArray(URL[]::new), ClassLoader.getSystemClassLoader());
+    });
   }
 }

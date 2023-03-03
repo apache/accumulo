@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>28</version>
+    <version>29</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
@@ -147,7 +147,7 @@
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2022-10-27T05:45:29Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
-    <slf4j.version>2.0.3</slf4j.version>
+    <slf4j.version>2.0.6</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
@@ -166,7 +166,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
-        <version>2.13.4.20221013</version>
+        <version>2.14.2</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -208,7 +208,7 @@
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-bom</artifactId>
-        <version>11.0.12</version>
+        <version>11.0.13</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -222,7 +222,7 @@
       <dependency>
         <groupId>org.glassfish.jaxb</groupId>
         <artifactId>jaxb-bom</artifactId>
-        <version>4.0.0</version>
+        <version>4.0.2</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -230,14 +230,14 @@
         <groupId>org.glassfish.jersey</groupId>
         <artifactId>jersey-bom</artifactId>
         <!-- 3.1.0 would require jakarta.ws.rs-api 3.1.0, jakartaee 9 uses 3.0.0 -->
-        <version>3.0.8</version>
+        <version>3.0.9</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
-        <version>5.9.1</version>
+        <version>5.9.2</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -254,12 +254,12 @@
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
         <artifactId>caffeine</artifactId>
-        <version>3.1.1</version>
+        <version>3.1.4</version>
       </dependency>
       <dependency>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-annotations</artifactId>
-        <version>4.7.2</version>
+        <version>4.7.3</version>
       </dependency>
       <dependency>
         <groupId>com.google.auto.service</groupId>
@@ -568,7 +568,7 @@
       <dependency>
         <groupId>org.freemarker</groupId>
         <artifactId>freemarker</artifactId>
-        <version>2.3.31</version>
+        <version>2.3.32</version>
       </dependency>
       <dependency>
         <groupId>org.glassfish</groupId>
@@ -610,7 +610,7 @@
       <dependency>
         <groupId>org.jline</groupId>
         <artifactId>jline</artifactId>
-        <version>3.21.0</version>
+        <version>3.22.0</version>
       </dependency>
       <dependency>
         <groupId>org.latencyutils</groupId>
@@ -711,7 +711,7 @@
         <plugin>
           <groupId>org.gaul</groupId>
           <artifactId>modernizer-maven-plugin</artifactId>
-          <version>2.4.0</version>
+          <version>2.5.0</version>
           <configuration>
             <javaVersion>${maven.compiler.target}</javaVersion>
           </configuration>
@@ -936,7 +936,7 @@
         <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>impsort-maven-plugin</artifactId>
-          <version>1.7.0</version>
+          <version>1.8.0</version>
           <configuration>
             <removeUnused>true</removeUnused>
             <groups>java.,javax.,jakarta.,org.,com.</groups>
@@ -1128,6 +1128,10 @@
                   <!-- double escape quotes because checkstyle passes these through another xml parser -->
                   <property name="format" value="&amp;quot; [+] &amp;quot;" />
                   <property name="message" value="Unnecessary concatenation of string literals" />
+                </module>
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="com.google.common.cache[.]" />
+                  <property name="message" value="Please use Caffeine Cache, not Guava" />
                 </module>
                 <module name="OuterTypeFilename" />
                 <module name="AvoidStarImport" />

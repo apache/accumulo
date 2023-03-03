@@ -26,19 +26,25 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
 public class ClusterConfigParserTest {
+
+  @TempDir
+  private static File tempDir;
 
   @Test
   public void testParse() throws Exception {
@@ -109,31 +115,51 @@ public class ClusterConfigParserTest {
   @Test
   public void testShellOutput() throws Exception {
 
-    String userDir = System.getProperty("user.dir");
-    String targetDir = "target";
-    File dir = new File(userDir, targetDir);
-    if (!dir.exists()) {
-      if (!dir.mkdirs()) {
-        fail("Unable to make directory ${user.dir}/target");
+    testShellOutput(configFile -> {
+      try {
+        final Map<String,String> contents =
+            ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+        final File outputFile = new File(tempDir, "ClusterConfigParserTest_testShellOutput");
+        if (!outputFile.createNewFile()) {
+          fail("Unable to create file in " + tempDir);
+        }
+        outputFile.deleteOnExit();
+
+        final PrintStream ps = new PrintStream(outputFile);
+        ClusterConfigParser.outputShellVariables(contents, ps);
+        ps.close();
+
+        return outputFile;
+      } catch (Exception e) {
+        throw new RuntimeException(e.getMessage(), e);
       }
-    }
-    File f = new File(dir, "ClusterConfigParserTest_testShellOutput");
-    if (!f.createNewFile()) {
-      fail("Unable to create file in ${user.dir}/target");
-    }
-    f.deleteOnExit();
+    });
+  }
 
-    PrintStream ps = new PrintStream(f);
+  @Test
+  public void testShellOutputMain() throws Exception {
 
-    URL configFile = ClusterConfigParserTest.class
+    // Test that the main method in ClusterConfigParser properly parses the configuration
+    // and outputs to a given file instead of System.out when provided
+    testShellOutput(configFile -> {
+      try {
+        File outputFile = new File(tempDir, "ClusterConfigParserTest_testShellOutputMain");
+        ClusterConfigParser.main(new String[] {configFile.getFile(), outputFile.getAbsolutePath()});
+
+        return outputFile;
+      } catch (IOException e) {
+        throw new RuntimeException(e.getMessage(), e);
+      }
+    });
+  }
+
+  private void testShellOutput(Function<URL,File> outputConfigFunction) throws Exception {
+    final URL configFile = ClusterConfigParserTest.class
         .getResource("/org/apache/accumulo/core/conf/cluster/cluster.yaml");
     assertNotNull(configFile);
 
-    Map<String,String> contents =
-        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
-
-    ClusterConfigParser.outputShellVariables(contents, ps);
-    ps.close();
+    final File f = outputConfigFunction.apply(configFile);
 
     Map<String,String> expected = new HashMap<>();
     expected.put("MANAGER_HOSTS", "localhost1 localhost2");
@@ -143,9 +169,7 @@ public class ClusterConfigParserTest {
     expected.put("NUM_TSERVERS", "${NUM_TSERVERS:=1}");
     expected.put("NUM_SSERVERS", "${NUM_SSERVERS:=1}");
 
-    expected.replaceAll((k, v) -> {
-      return '"' + v + '"';
-    });
+    expected.replaceAll((k, v) -> '"' + v + '"');
 
     Map<String,String> actual = new HashMap<>();
     try (BufferedReader rdr = Files.newBufferedReader(Paths.get(f.toURI()))) {
