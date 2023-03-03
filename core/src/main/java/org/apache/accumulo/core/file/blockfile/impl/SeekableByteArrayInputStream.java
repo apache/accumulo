@@ -23,6 +23,7 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntBinaryOperator;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -48,7 +49,7 @@ public class SeekableByteArrayInputStream extends InputStream {
 
   @Override
   public int read() {
-    final int currentValue = cur.getAndAccumulate(1, (x, i) -> x < max ? x + i : x);
+    final int currentValue = cur.getAndAccumulate(1, (v, x) -> v < max ? v + x : v);
     if (currentValue < max) {
       return buffer[currentValue] & 0xff;
     } else {
@@ -70,7 +71,19 @@ public class SeekableByteArrayInputStream extends InputStream {
       return 0;
     }
 
-    int avail = available();
+    IntBinaryOperator add = (cur1, length1) -> {
+      final int available = max - cur1;
+      if (available <= 0) {
+        return cur1;
+      } else if (length1 > available) {
+        length1 = available;
+      }
+      return cur1 + length1;
+    };
+
+    final int currentValue = cur.getAndAccumulate(length, add);
+
+    final int avail = max - currentValue;
 
     if (avail <= 0) {
       return -1;
@@ -80,8 +93,7 @@ public class SeekableByteArrayInputStream extends InputStream {
       length = avail;
     }
 
-    System.arraycopy(buffer, cur.get(), b, offset, length);
-    cur.getAndAdd(length);
+    System.arraycopy(buffer, currentValue, b, offset, length);
     return length;
   }
 
