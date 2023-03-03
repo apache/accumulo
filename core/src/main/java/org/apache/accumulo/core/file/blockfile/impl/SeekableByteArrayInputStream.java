@@ -23,6 +23,7 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.IntBinaryOperator;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -99,22 +100,23 @@ public class SeekableByteArrayInputStream extends InputStream {
 
   @Override
   public long skip(long requestedSkip) {
-    IntBinaryOperator add = (cur1, skip) -> {
-      int actual = max - cur1;
+
+    BiFunction<Integer,Integer,Integer> skipValue = (current, skip) -> {
+      int actual = max - current;
       if (skip < actual) {
         actual = Math.max(skip, 0);
       }
+      return actual;
+    };
+
+    IntBinaryOperator add = (cur1, skip) -> {
+      int actual = skipValue.apply(cur1, skip);
       return cur1 + actual;
     };
 
     int currentValue = cur.getAndAccumulate((int) requestedSkip, add);
 
-    int actualSkip = max - currentValue;
-    if (requestedSkip < actualSkip) {
-      actualSkip = Math.max((int) requestedSkip, 0);
-    }
-
-    return actualSkip;
+    return skipValue.apply(currentValue, (int) requestedSkip);
   }
 
   @Override
