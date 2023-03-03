@@ -51,7 +51,7 @@ public abstract class ScaleTest {
 
     conn = new ZooKeeperInstance(
         ClientConfiguration.create().withInstance(instanceName).withZkHosts(zookeepers))
-            .getConnector(user, new PasswordToken(password));
+        .getConnector(user, new PasswordToken(password));
   }
 
   protected void startTimer() {

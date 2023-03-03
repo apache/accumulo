@@ -20,7 +20,7 @@
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>1.10.2</version>
+    <version>1.10.3-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-docs</artifactId>
   <packaging>pom</packaging>
@@ -76,9 +76,7 @@
           <backend>html5</backend>
           <doctype>book</doctype>
           <embedAssets>true</embedAssets>
-          <imagesDir>${project.build.directory}/asciidoc/images</imagesDir>
           <sourceDirectory>${project.build.directory}/asciidoc</sourceDirectory>
-          <sourceHighlighter>highlightjs</sourceHighlighter>
         </configuration>
         <executions>
           <execution>

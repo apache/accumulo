@@ -21,14 +21,23 @@ Continuous Query and Ingest
 This directory contains a suite of scripts for placing continuous query and
 ingest load on accumulo.  The purpose of these script is two-fold. First,
 place continuous load on accumulo to see if breaks.  Second, collect
-statistics in order to understand how accumulo behaves.  To run these scripts
-copy all of the `.example` files and modify them.  You can put these scripts in
-the current directory or define a `CONTINUOUS_CONF_DIR` where the files will be
+statistics in order to understand how accumulo behaves.  To run these scripts:
+
+1) Modify the `*.txt` config files.
+2) Enter cluster values in `continuous-env.sh`
+
+You can put these scripts in the current directory or define a `CONTINUOUS_CONF_DIR` where the files will be
 read from. These scripts rely on `pssh`. Before running any script you may need
 to use `pssh` to create the log directory on each machine (if you want it local).
-Also, create the table "ci" before running. You can run
-`org.apache.accumulo.test.continuous.GenSplits` to generate splits points for a
-continuous ingest table.
+
+First, create the table "ci" before running:
+
+> accumulo shell -e "createtable ci" -u root
+
+Optional: generate split points for CI table:
+
+> $ accumulo org.apache.accumulo.test.continuous.GenSplits 20 > /tmp/splits
+> $ accumulo shell -e "addsplits -t ci -sf /tmp/splits" -u root
 
 The following ingest scripts insert data into accumulo that will form a random
 graph.

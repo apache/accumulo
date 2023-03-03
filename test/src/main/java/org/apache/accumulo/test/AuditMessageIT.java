@@ -355,32 +355,37 @@ public class AuditMessageIT extends ConfigurableMacBase {
     assertEquals(1,
         findAuditMessage(auditMessages, String
             .format(AuditedSecurityOperation.CAN_CREATE_TABLE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME))
-                .size());
+            .size());
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE,
-                "offlineTable", OLD_TEST_TABLE_NAME)).size());
+                "offlineTable", OLD_TEST_TABLE_NAME))
+            .size());
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_EXPORT_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME,
-                exportDir.toString())).size());
+                exportDir.toString()))
+            .size());
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_IMPORT_AUDIT_TEMPLATE, NEW_TEST_TABLE_NAME,
-                filePrefix + exportDir.toString())).size());
+                filePrefix + exportDir.toString()))
+            .size());
     assertEquals(1,
         findAuditMessage(auditMessages, String.format(
             AuditedSecurityOperation.CAN_CREATE_TABLE_AUDIT_TEMPLATE, THIRD_TEST_TABLE_NAME))
-                .size());
+            .size());
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_BULK_IMPORT_AUDIT_TEMPLATE,
                 THIRD_TEST_TABLE_NAME, filePrefix + exportDir.toString(),
-                filePrefix + failDir.toString())).size());
+                filePrefix + failDir.toString()))
+            .size());
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE,
-                "onlineTable", OLD_TEST_TABLE_NAME)).size());
+                "onlineTable", OLD_TEST_TABLE_NAME))
+            .size());
 
   }
 
@@ -440,7 +445,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_DELETE_RANGE_AUDIT_TEMPLATE,
-                OLD_TEST_TABLE_NAME, "myRow", "myRow~")).size());
+                OLD_TEST_TABLE_NAME, "myRow", "myRow~"))
+            .size());
 
   }
 
@@ -495,39 +501,43 @@ public class AuditMessageIT extends ConfigurableMacBase {
         findAuditMessage(auditMessages,
             "operation: denied;.*" + String.format(
                 AuditedSecurityOperation.CAN_CREATE_TABLE_AUDIT_TEMPLATE, NEW_TEST_TABLE_NAME))
-                    .size());
+            .size());
     assertEquals(1,
         findAuditMessage(auditMessages,
             "operation: denied;.*"
                 + String.format(AuditedSecurityOperation.CAN_RENAME_TABLE_AUDIT_TEMPLATE,
-                    OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME)).size());
+                    OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME))
+            .size());
     assertEquals(1,
         findAuditMessage(auditMessages,
             "operation: denied;.*"
                 + String.format(AuditedSecurityOperation.CAN_CLONE_TABLE_AUDIT_TEMPLATE,
-                    OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME)).size());
+                    OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME))
+            .size());
     assertEquals(1,
         findAuditMessage(auditMessages,
             "operation: denied;.*" + String.format(
                 AuditedSecurityOperation.CAN_DELETE_TABLE_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME))
-                    .size());
+            .size());
     assertEquals(1,
         findAuditMessage(auditMessages,
             "operation: denied;.*"
                 + String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE,
-                    "offlineTable", OLD_TEST_TABLE_NAME)).size());
+                    "offlineTable", OLD_TEST_TABLE_NAME))
+            .size());
     assertEquals(1, findAuditMessage(auditMessages,
         "operation: denied;.*" + "action: scan; targetTable: " + OLD_TEST_TABLE_NAME).size());
     assertEquals(1,
         findAuditMessage(auditMessages,
             "operation: denied;.*"
                 + String.format(AuditedSecurityOperation.CAN_DELETE_RANGE_AUDIT_TEMPLATE,
-                    OLD_TEST_TABLE_NAME, "myRow", "myRow~")).size());
+                    OLD_TEST_TABLE_NAME, "myRow", "myRow~"))
+            .size());
     assertEquals(1,
         findAuditMessage(auditMessages,
             "operation: denied;.*" + String
                 .format(AuditedSecurityOperation.CAN_FLUSH_TABLE_AUDIT_TEMPLATE, "1", "\\+default"))
-                    .size());
+            .size());
   }
 
   @Test
@@ -557,7 +567,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.REVOKE_SYSTEM_PERMISSION_AUDIT_TEMPLATE,
-                SystemPermission.ALTER_TABLE, AUDIT_USER_2)).size());
+                SystemPermission.ALTER_TABLE, AUDIT_USER_2))
+            .size());
     assertEquals(1, findAuditMessage(auditMessages,
         String.format(AuditedSecurityOperation.CREATE_USER_AUDIT_TEMPLATE, "root", "")).size());
 

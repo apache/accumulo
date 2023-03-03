@@ -116,7 +116,7 @@ public class NamespaceConfigurationTest {
     Property p = Property.INSTANCE_SECRET;
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/"
         + Namespaces.ACCUMULO_NAMESPACE_ID + Constants.ZNAMESPACE_CONF + "/" + p.getKey()))
-            .andReturn(null);
+        .andReturn(null);
     replay(zc);
     assertNull(c.get(Property.INSTANCE_SECRET));
   }
@@ -133,7 +133,7 @@ public class NamespaceConfigurationTest {
     children.add("ding");
     expect(zc.getChildren(
         ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF))
-            .andReturn(children);
+        .andReturn(children);
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID
         + Constants.ZNAMESPACE_CONF + "/" + "foo")).andReturn("bar".getBytes(UTF_8));
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID

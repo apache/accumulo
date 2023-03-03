@@ -275,6 +275,24 @@ public class TabletLocatorImpl extends TabletLocator {
     return false;
   }
 
+  static boolean isContiguous(List<TabletLocation> tabletLocations) {
+
+    Iterator<TabletLocation> iter = tabletLocations.iterator();
+    KeyExtent prevExtent = iter.next().tablet_extent;
+
+    while (iter.hasNext()) {
+      KeyExtent currExtent = iter.next().tablet_extent;
+
+      if (!currExtent.isPreviousExtent(prevExtent)) {
+        return false;
+      }
+
+      prevExtent = currExtent;
+    }
+
+    return true;
+  }
+
   private List<Range> binRanges(ClientContext context, List<Range> ranges,
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges, boolean useCache,
       LockCheckerSession lcSession)
@@ -330,8 +348,18 @@ public class TabletLocatorImpl extends TabletLocator {
         tabletLocations.add(tl);
       }
 
-      for (TabletLocation tl2 : tabletLocations) {
-        TabletLocatorImpl.addRange(binnedRanges, tl2.tablet_location, tl2.tablet_extent, range);
+      // Ensure the extents found are non overlapping and have no holes. When reading some extents
+      // from the cache and other from the metadata table in the loop above we may end up with
+      // non-contiguous extents. This can happen when a subset of exents are placed in the cache and
+      // then after that merges and splits happen.
+      if (isContiguous(tabletLocations)) {
+        for (TabletLocation tl2 : tabletLocations) {
+          TabletLocatorImpl.addRange(binnedRanges, tl2.tablet_location, tl2.tablet_extent, range);
+        }
+      } else {
+        failures.add(range);
+        if (!useCache)
+          lookupFailed = true;
       }
 
     }

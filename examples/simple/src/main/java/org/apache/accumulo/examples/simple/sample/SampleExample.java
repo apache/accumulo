@@ -50,7 +50,7 @@ public class SampleExample {
   // data created in a different way than the tables
   static final CompactionStrategyConfig NO_SAMPLE_STRATEGY = new CompactionStrategyConfig(
       "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy")
-          .setOptions(Collections.singletonMap("SF_NO_SAMPLE", ""));
+      .setOptions(Collections.singletonMap("SF_NO_SAMPLE", ""));
 
   static class Opts extends ClientOnDefaultTable {
     public Opts() {

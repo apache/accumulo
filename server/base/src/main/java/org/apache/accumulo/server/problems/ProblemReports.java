@@ -310,7 +310,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
   public static void main(String args[]) throws Exception {
     getInstance(
         new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance())))
-            .printProblems();
+        .printProblems();
   }
 
   public Map<String,Map<ProblemType,Integer>> summarize() {
