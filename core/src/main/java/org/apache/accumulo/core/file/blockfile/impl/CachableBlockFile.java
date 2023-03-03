@@ -176,7 +176,7 @@ public class CachableBlockFile {
             throw new UncheckedIOException(e);
           }
         });
-      } catch (Exception e) {
+      } catch (UncheckedIOException e) {
         throw new IOException("Failed to get " + cacheId + " len from cache ", e);
       }
     }
