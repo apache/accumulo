@@ -158,10 +158,15 @@
           <groupId>com.mycila</groupId>
           <artifactId>license-maven-plugin</artifactId>
           <configuration>
-            <excludes>
-              <exclude>src/test/resources/*.walog</exclude>
-              <exclude>src/test/resources/walog-from-14/*</exclude>
-            </excludes>
+            <licenseSets>
+              <licenseSet>
+                <header>${session.executionRootDirectory}/contrib/license-header.txt</header>
+                <excludes>
+                  <exclude>src/test/resources/*.walog</exclude>
+                  <exclude>src/test/resources/walog-from-14/*</exclude>
+                </excludes>
+              </licenseSet>
+            </licenseSets>
           </configuration>
         </plugin>
         <plugin>

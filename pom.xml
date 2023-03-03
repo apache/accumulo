@@ -704,14 +704,18 @@
           <artifactId>license-maven-plugin</artifactId>
           <version>4.1</version>
           <configuration>
-            <header>${session.executionRootDirectory}/contrib/license-header.txt</header>
-            <excludes combine.children="append">
-              <exclude>**/DEPENDENCIES</exclude>
-              <exclude>**/LICENSE</exclude>
-              <exclude>**/NOTICE</exclude>
-              <exclude>**/target/**</exclude>
-              <exclude>contrib/javadoc11.patch</exclude>
-            </excludes>
+            <licenseSets>
+              <licenseSet>
+                <header>${session.executionRootDirectory}/contrib/license-header.txt</header>
+                <excludes combine.children="append">
+                  <exclude>**/DEPENDENCIES</exclude>
+                  <exclude>**/LICENSE</exclude>
+                  <exclude>**/NOTICE</exclude>
+                  <exclude>**/target/**</exclude>
+                  <exclude>contrib/javadoc11.patch</exclude>
+                </excludes>
+              </licenseSet>
+            </licenseSets>
             <mapping combine.children="append">
               <!-- general mappings; module-specific mappings appear in their respective pom -->
               <Makefile>SCRIPT_STYLE</Makefile>
@@ -761,8 +765,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-assembly-plugin</artifactId>
-          <!-- Must use 3.1.1 until https://issues.apache.org/jira/browse/MASSEMBLY-941 is fixed -->
-          <version>3.1.1</version>
+          <version>3.5.0</version>
         </plugin>
         <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
@@ -808,7 +811,6 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <configuration>
-            <optimize>true</optimize>
             <showDeprecation>true</showDeprecation>
             <showWarnings>true</showWarnings>
             <compilerArgs>
