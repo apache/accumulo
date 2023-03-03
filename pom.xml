@@ -164,14 +164,6 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <!-- for dependency convergence between Micrometer and ZooKeeper -->
-        <groupId>io.netty</groupId>
-        <artifactId>netty-bom</artifactId>
-        <version>4.1.86.Final</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
         <version>2.14.2</version>
@@ -182,6 +174,14 @@
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
         <version>1.9.8</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <!-- for dependency convergence between Micrometer and ZooKeeper -->
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>4.1.86.Final</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
