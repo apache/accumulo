@@ -287,20 +287,17 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   /** Test recovery from bad majc iterator via compaction cancel. */
   @Test
   public void testCompactEmptyTablesWithBadIterator_FailsAndCancel() throws TableExistsException,
-      AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      AccumuloException, AccumuloSecurityException, TableNotFoundException, InterruptedException {
     String tableName = getUniqueNames(1)[0];
     accumuloClient.tableOperations().create(tableName);
 
     List<IteratorSetting> list = new ArrayList<>();
     list.add(new IteratorSetting(15, BadIterator.class));
-    accumuloClient.tableOperations().compact(tableName, null, null, list, true, false); // don't
-                                                                                        // block
-    try {
-      Thread.sleep(SECONDS.toMillis(2)); // start compaction
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new AccumuloException("interrupted during sleep", ex);
-    }
+    // don't block
+    accumuloClient.tableOperations().compact(tableName, null, null, list, true, false);
+
+    Thread.sleep(SECONDS.toMillis(2)); // start compaction
+
     accumuloClient.tableOperations().cancelCompaction(tableName);
 
     try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {

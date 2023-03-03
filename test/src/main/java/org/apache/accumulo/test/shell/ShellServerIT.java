@@ -1572,7 +1572,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   public void verifyPerTableClasspath(final String table, final File fooConstraintJar)
-      throws IOException {
+      throws IOException, InterruptedException {
 
     File fooFilterJar = initJar("/org/apache/accumulo/test/FooFilter.jar", "FooFilter", rootPath);
 
@@ -1583,33 +1583,19 @@ public class ShellServerIT extends SharedMiniClusterBase {
         "config -t " + table + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=" + context,
         true);
 
-    try {
-      Thread.sleep(250);
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IOException("interrupted during sleep", ex);
-    }
+    Thread.sleep(250);
+
     // We can't use the setiter command as Filter implements OptionDescriber which
     // forces us to enter more input that I don't know how to input
     // Instead, we can just manually set the property on the table.
     ts.exec("config -t " + table + " -s " + Property.TABLE_ITERATOR_PREFIX.getKey()
         + "scan.foo=10,org.apache.accumulo.test.FooFilter");
 
-    try {
-      Thread.sleep(250);
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IOException("interrupted during sleep", ex);
-    }
+    Thread.sleep(250);
 
     ts.exec("insert foo f q v", true);
 
-    try {
-      Thread.sleep(250);
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IOException("interrupted during sleep", ex);
-    }
+    Thread.sleep(250);
 
     ts.exec("scan -np", true, "foo", false);
 

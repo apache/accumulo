@@ -305,7 +305,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
    *
    * @param client Accumulo client to test cluster or MAC instance.
    */
-  private void addSplits(final AccumuloClient client, final String tableName) {
+  private void addSplits(final AccumuloClient client, final String tableName)
+      throws InterruptedException {
 
     SortedSet<Text> splits = createSplits();
 
@@ -315,12 +316,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
       client.tableOperations().offline(tableName, true);
 
-      try {
-        Thread.sleep(SECONDS.toMillis(2));
-      } catch (InterruptedException ex) {
-        Thread.currentThread().interrupt();
-        throw new IllegalStateException("interrupted during sleep", ex);
-      }
+      Thread.sleep(SECONDS.toMillis(2));
+
       client.tableOperations().online(tableName, true);
 
       for (Text split : client.tableOperations().listSplits(tableName)) {
