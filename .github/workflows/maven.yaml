@@ -57,13 +57,6 @@ jobs:
       run: contrib/ci/find-unapproved-chars.sh
     - name: Check for unapproved JUnit API usage
       run: contrib/ci/find-unapproved-junit.sh
-    #
-    # Use an older version of Maven due to issues with plugins in Maven 3.9.0
-    #
-    - name: Set up Maven
-      uses: stCarolas/setup-maven@v4.5
-      with:
-        maven-version: 3.8.7
     - name: Build with Maven (Fast Build)
       timeout-minutes: 20
       run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -DskipTests -DskipFormat -DverifyFormat
