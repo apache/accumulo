@@ -190,7 +190,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   private void sawDelete() {
     if (isMajorCompaction && !reduceOnFullCompactionOnly) {
-      loggedMsgCache.get(this.getClass().getName(), k -> {
+      var ignored = loggedMsgCache.get(this.getClass().getName(), k -> {
         sawDeleteLog.error(
             "Combiner of type {} saw a delete during a"
                 + " partial compaction. This could cause undesired results. See"
