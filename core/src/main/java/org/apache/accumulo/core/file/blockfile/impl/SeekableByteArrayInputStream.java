@@ -43,13 +43,14 @@ public class SeekableByteArrayInputStream extends InputStream {
   @SuppressFBWarnings(value = "VO_VOLATILE_REFERENCE_TO_ARRAY",
       justification = "see explanation above")
   private volatile byte[] buffer;
-  private final AtomicInteger cur;
+  private final AtomicInteger cur = new AtomicInteger(0);
   private final int max;
 
   @Override
   public int read() {
-    if (cur.get() < max) {
-      return buffer[cur.getAndIncrement()] & 0xff;
+    int currentValue = cur.getAndAccumulate(1, (x, i) -> x < max ? x + i : x);
+    if (currentValue < max) {
+      return buffer[currentValue] & 0xff;
     } else {
       return -1;
     }
