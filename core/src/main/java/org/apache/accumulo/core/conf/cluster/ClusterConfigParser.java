@@ -20,6 +20,7 @@ package org.apache.accumulo.core.conf.cluster;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -135,12 +136,23 @@ public class ClusterConfigParser {
     out.flush();
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "Path provided for output file is intentional")
   public static void main(String[] args) throws IOException {
-    if (args == null || args.length != 1) {
-      System.err.println("Usage: ClusterConfigParser <configFile>");
+    if (args == null || args.length < 1 || args.length > 2) {
+      System.err.println("Usage: ClusterConfigParser <configFile> [<outputFile>]");
       System.exit(1);
     }
-    outputShellVariables(parseConfiguration(args[0]), System.out);
+
+    if (args.length == 2) {
+      // Write to a file instead of System.out if provided as an argument
+      try (OutputStream os = Files.newOutputStream(Paths.get(args[1]), StandardOpenOption.CREATE);
+          PrintStream out = new PrintStream(os)) {
+        outputShellVariables(parseConfiguration(args[0]), new PrintStream(out));
+      }
+    } else {
+      outputShellVariables(parseConfiguration(args[0]), System.out);
+    }
   }
 
 }
