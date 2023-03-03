@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
@@ -43,10 +42,10 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
 /**
@@ -187,23 +186,19 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   @VisibleForTesting
   static final Cache<String,Boolean> loggedMsgCache =
-      CacheBuilder.newBuilder().expireAfterWrite(1, HOURS).maximumSize(10000).build();
+      Caffeine.newBuilder().expireAfterWrite(1, HOURS).maximumSize(10000).build();
 
   private void sawDelete() {
     if (isMajorCompaction && !reduceOnFullCompactionOnly) {
-      try {
-        loggedMsgCache.get(this.getClass().getName(), () -> {
-          sawDeleteLog.error(
-              "Combiner of type {} saw a delete during a"
-                  + " partial compaction. This could cause undesired results. See"
-                  + " ACCUMULO-2232. Will not log subsequent occurrences for at least 1 hour.",
-              Combiner.this.getClass().getSimpleName());
-          // the value is not used and does not matter
-          return Boolean.TRUE;
-        });
-      } catch (ExecutionException e) {
-        throw new RuntimeException(e);
-      }
+      var ignored = loggedMsgCache.get(this.getClass().getName(), k -> {
+        sawDeleteLog.error(
+            "Combiner of type {} saw a delete during a"
+                + " partial compaction. This could cause undesired results. See"
+                + " ACCUMULO-2232. Will not log subsequent occurrences for at least 1 hour.",
+            Combiner.this.getClass().getSimpleName());
+        // the value is not used and does not matter
+        return Boolean.TRUE;
+      });
     }
   }
 
