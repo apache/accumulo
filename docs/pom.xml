@@ -76,9 +76,7 @@
           <backend>html5</backend>
           <doctype>book</doctype>
           <embedAssets>true</embedAssets>
-          <imagesDir>${project.build.directory}/asciidoc/images</imagesDir>
           <sourceDirectory>${project.build.directory}/asciidoc</sourceDirectory>
-          <sourceHighlighter>highlightjs</sourceHighlighter>
         </configuration>
         <executions>
           <execution>
