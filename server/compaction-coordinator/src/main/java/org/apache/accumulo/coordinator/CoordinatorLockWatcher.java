@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.coordinator;
 
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.zookeeper.KeeperException.NoAuthException;
 import org.slf4j.Logger;

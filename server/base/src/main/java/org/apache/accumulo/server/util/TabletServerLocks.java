@@ -22,11 +22,11 @@ import java.util.List;
 import java.util.Optional;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.util.ServiceLockData;
-import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.server.ServerContext;
 
 public class TabletServerLocks {
