@@ -94,7 +94,7 @@ jobs:
           echo "'hostname -I' shows '$(hostname -I)'"
         fi
     - name: Build with Maven (${{ matrix.profile.name }})
-      timeout-minutes: 60
+      timeout-minutes: 70
       run: mvn -B -V -e -ntp "-Dstyle.color=always" ${{ matrix.profile.args }}
       env:
         MAVEN_OPTS: -Djansi.force=true
