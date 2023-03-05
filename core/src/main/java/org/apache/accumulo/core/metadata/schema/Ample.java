@@ -319,6 +319,15 @@ public interface Ample {
     void mutate();
   }
 
+  //TODO where should this go, maybe in MetadataSchema class?
+  enum TabletState {
+    NOMINAL,
+    SPLITTING,
+    SPLIT_COMPLETE,
+    MERGING,
+    DELETING
+  }
+
   interface ConditionalTabletMutator extends TabletUpdates<ConditionalTabletMutator> {
 
     ConditionalTabletMutator requireAbsentLocation();
@@ -329,6 +338,9 @@ public interface Ample {
 
     // TODO could always check this!
     ConditionalTabletMutator requirePrevEndRow(Text per);
+
+    ConditionalTabletMutator requireState(TabletState ... states);
+
 
     void submit();
   }
