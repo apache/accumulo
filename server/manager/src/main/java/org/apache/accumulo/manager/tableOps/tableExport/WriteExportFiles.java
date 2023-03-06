@@ -224,8 +224,9 @@ class WriteExportFiles extends ManagerRepo {
 
   private static void createDistcpFile(VolumeManager fs, String exportDir, Path exportMetaFilePath,
       Set<String> uniqueFiles, String volumeName) throws IOException {
-    if (volumeName.contains(":"))
+    if (volumeName.contains(":")) {
       volumeName = volumeName.substring(0, volumeName.indexOf(":"));
+    }
 
     BufferedWriter distcpOut = new BufferedWriter(new OutputStreamWriter(
         fs.create(new Path(exportDir, "distcp-" + volumeName + ".txt")), UTF_8));
