@@ -151,7 +151,7 @@ public class RecoveryManager {
           throw new UncheckedIOException(e);
         }
       });
-    } catch (Exception e) {
+    } catch (UncheckedIOException e) {
       throw new IOException(e);
     }
   }

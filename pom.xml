@@ -173,7 +173,15 @@
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.9.5</version>
+        <version>1.9.8</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <!-- for dependency convergence between Micrometer and ZooKeeper -->
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>4.1.89.Final</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -201,7 +209,7 @@
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-bom</artifactId>
-        <version>2.19.0</version>
+        <version>2.20.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -688,14 +696,18 @@
           <artifactId>license-maven-plugin</artifactId>
           <version>4.1</version>
           <configuration>
-            <header>${session.executionRootDirectory}/contrib/license-header.txt</header>
-            <excludes combine.children="append">
-              <exclude>**/DEPENDENCIES</exclude>
-              <exclude>**/LICENSE</exclude>
-              <exclude>**/NOTICE</exclude>
-              <exclude>**/target/**</exclude>
-              <exclude>contrib/javadoc11.patch</exclude>
-            </excludes>
+            <licenseSets>
+              <licenseSet>
+                <header>${session.executionRootDirectory}/contrib/license-header.txt</header>
+                <excludes combine.children="append">
+                  <exclude>**/DEPENDENCIES</exclude>
+                  <exclude>**/LICENSE</exclude>
+                  <exclude>**/NOTICE</exclude>
+                  <exclude>**/target/**</exclude>
+                  <exclude>contrib/javadoc11.patch</exclude>
+                </excludes>
+              </licenseSet>
+            </licenseSets>
             <mapping combine.children="append">
               <!-- general mappings; module-specific mappings appear in their respective pom -->
               <Makefile>SCRIPT_STYLE</Makefile>
@@ -744,8 +756,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-assembly-plugin</artifactId>
-          <!-- Must use 3.1.1 until https://issues.apache.org/jira/browse/MASSEMBLY-941 is fixed -->
-          <version>3.1.1</version>
+          <version>3.5.0</version>
         </plugin>
         <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
@@ -791,7 +802,6 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <configuration>
-            <optimize>true</optimize>
             <showDeprecation>true</showDeprecation>
             <showWarnings>true</showWarnings>
             <compilerArgs>
@@ -994,8 +1004,6 @@
                 <unused>org.apache.logging.log4j:log4j-1.2-api:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-slf4j2-impl:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-web:jar:*</unused>
-                <!-- needed because https://issues.apache.org/jira/browse/LOG4J2-3601 -->
-                <unused>org.apache.logging.log4j:log4j-core:jar:*</unused>
                 <!-- This should be removed upon completion of migrating junit 4 to 5 -->
                 <unused>org.junit.vintage:junit-vintage-engine:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
@@ -1130,7 +1138,7 @@
                   <property name="message" value="Unnecessary concatenation of string literals" />
                 </module>
                 <module name="RegexpSinglelineJava">
-                  <property name="format" value="com.google.common.cache[.]" />
+                  <property name="format" value="com[.]google[.]common[.]cache[.]" />
                   <property name="message" value="Please use Caffeine Cache, not Guava" />
                 </module>
                 <module name="OuterTypeFilename" />
