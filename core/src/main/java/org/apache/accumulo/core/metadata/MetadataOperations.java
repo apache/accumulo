@@ -18,7 +18,12 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -73,7 +78,7 @@ public class MetadataOperations {
 
     conditionalMutator.requireOperation(TabletOperation.NONE);
     conditionalMutator.requirePrevEndRow(extent.prevEndRow());
-    // TODO require files to be absent?
+    //TODO check bulk import status of file in tablet metadata... do not want to reimport a file that was previously imported and compacted away
 
     newFiles.forEach(conditionalMutator::putFile);
 
@@ -143,6 +148,7 @@ public class MetadataOperations {
 
     var tabletMutator = tabletsMutator.mutateTablet(extent);
 
+    //TODO need to determine in the bigger picture how the tablet will be taken offline and kept offline until the split operation completes
     tabletMutator.requireAbsentLocation();
     tabletMutator.requireOperation(TabletOperation.NONE);
     tabletMutator.requirePrevEndRow(extent.prevEndRow());
