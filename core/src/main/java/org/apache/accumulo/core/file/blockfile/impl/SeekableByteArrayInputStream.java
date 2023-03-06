@@ -38,6 +38,7 @@ public class SeekableByteArrayInputStream extends InputStream {
 
   @Override
   public int read() {
+    // advance the pointer by 1 if we haven't reached the end
     final int currentValue = cur.getAndAccumulate(1, (v, x) -> v < max ? v + x : v);
     if (currentValue < max) {
       return buffer[currentValue] & 0xff;
@@ -60,6 +61,7 @@ public class SeekableByteArrayInputStream extends InputStream {
       return 0;
     }
 
+    // compute how much to read, based on what's left available
     IntBinaryOperator add = (cur1, length1) -> {
       final int available = max - cur1;
       if (available <= 0) {
@@ -89,19 +91,14 @@ public class SeekableByteArrayInputStream extends InputStream {
   @Override
   public long skip(long requestedSkip) {
 
-    BiFunction<Integer,Integer,Integer> skipValue = (current, skip) -> {
-      int actual = max - current;
-      if (skip < actual) {
-        actual = Math.max(skip, 0);
-      }
-      return actual;
-    };
+    // actual skip is at least 0, but no more than what's available
+    BiFunction<Integer,Integer,Integer> skipValue =
+        (current, skip) -> Math.max(0, Math.min(max - current, skip));
 
-    IntBinaryOperator add = (cur1, skip) -> {
-      int actual = skipValue.apply(cur1, skip);
-      return cur1 + actual;
-    };
+    // compute how much to advance, based on actual amount skipped
+    IntBinaryOperator add = (cur1, skip) -> cur1 + skipValue.apply(cur1, skip);
 
+    // advance the pointer and return the actual amount skipped
     int currentValue = cur.getAndAccumulate((int) requestedSkip, add);
 
     return skipValue.apply(currentValue, (int) requestedSkip);
