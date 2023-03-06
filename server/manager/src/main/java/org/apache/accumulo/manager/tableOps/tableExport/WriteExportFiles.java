@@ -28,6 +28,8 @@ import java.io.OutputStreamWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -154,6 +156,9 @@ class WriteExportFiles extends ManagerRepo {
   public static void exportTable(VolumeManager fs, ServerContext context, String tableName,
       TableId tableID, String exportDir) throws Exception {
 
+    int count = 0;
+    Set<String> volumeSet = new TreeSet<>();
+
     fs.mkdirs(new Path(exportDir));
     Path exportMetaFilePath = fs.getFileSystemByPath(new Path(exportDir))
         .makeQualified(new Path(exportDir, Constants.EXPORT_FILE));
@@ -186,8 +191,30 @@ class WriteExportFiles extends ManagerRepo {
       dataOut.close();
       dataOut = null;
 
-      createDistcpFile(fs, exportDir, exportMetaFilePath, uniqueFiles);
+      // make a set of unique volumes from the map
+      for (String fileString : uniqueFiles.values()) {
+        String[] fileSegmentArray = fileString.split("/");
+        for (String fileSegment : fileSegmentArray) {
+          ++count;
+          if (count == 3) {
+            volumeSet.add(fileSegment);
+            break;
+          }
+        }
+        count = 0;
+      }
 
+      // for each unique volume: get every matching entry in the map and send to createDistcpFile
+      // method
+      for (String volumeString : volumeSet) {
+        Set<String> sortedVolumeSet = new TreeSet<>();
+        for (String rFileString : uniqueFiles.values()) {
+          if (rFileString.contains(volumeString)) {
+            sortedVolumeSet.add(rFileString);
+          }
+        }
+        createDistcpFile(fs, exportDir, exportMetaFilePath, sortedVolumeSet, volumeString);
+      }
     } finally {
       if (dataOut != null) {
         dataOut.close();
@@ -196,12 +223,15 @@ class WriteExportFiles extends ManagerRepo {
   }
 
   private static void createDistcpFile(VolumeManager fs, String exportDir, Path exportMetaFilePath,
-      Map<String,String> uniqueFiles) throws IOException {
-    BufferedWriter distcpOut = new BufferedWriter(
-        new OutputStreamWriter(fs.create(new Path(exportDir, "distcp.txt")), UTF_8));
+      Set<String> uniqueFiles, String volumeName) throws IOException {
+    if (volumeName.contains(":"))
+      volumeName = volumeName.substring(0, volumeName.indexOf(":"));
+
+    BufferedWriter distcpOut = new BufferedWriter(new OutputStreamWriter(
+        fs.create(new Path(exportDir, "distcp-" + volumeName + ".txt")), UTF_8));
 
     try {
-      for (String file : uniqueFiles.values()) {
+      for (String file : uniqueFiles) {
         distcpOut.append(file);
         distcpOut.newLine();
       }
