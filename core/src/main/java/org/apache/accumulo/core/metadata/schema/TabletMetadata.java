@@ -48,12 +48,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.SuspendingTServer;
-import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.TabletLocationState;
-import org.apache.accumulo.core.metadata.TabletState;
+import org.apache.accumulo.core.metadata.*;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
@@ -308,6 +303,14 @@ public class TabletMetadata {
   public Map<ExternalCompactionId,ExternalCompactionMetadata> getExternalCompactions() {
     ensureFetched(ColumnType.ECOMP);
     return extCompactions;
+  }
+
+  public TabletOperation getOperation() {
+    throw new UnsupportedOperationException();
+  }
+
+  public OperationId getOperationId() {
+    throw new UnsupportedOperationException();
   }
 
   @VisibleForTesting

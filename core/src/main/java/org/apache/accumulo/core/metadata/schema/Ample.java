@@ -30,12 +30,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.*;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -301,6 +296,12 @@ public interface Ample {
     T putExternalCompaction(ExternalCompactionId ecid, ExternalCompactionMetadata ecMeta);
 
     T deleteExternalCompaction(ExternalCompactionId ecid);
+
+    T putOperation(TabletOperation splitting);
+
+    T putOperationId(OperationId opId);
+
+    T deleteOperationId();
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {
@@ -319,15 +320,6 @@ public interface Ample {
     void mutate();
   }
 
-  //TODO where should this go, maybe in MetadataSchema class?
-  enum TabletState {
-    NOMINAL,
-    SPLITTING,
-    SPLIT_COMPLETE,
-    MERGING,
-    DELETING
-  }
-
   interface ConditionalTabletMutator extends TabletUpdates<ConditionalTabletMutator> {
 
     ConditionalTabletMutator requireAbsentLocation();
@@ -339,10 +331,14 @@ public interface Ample {
     // TODO could always check this!
     ConditionalTabletMutator requirePrevEndRow(Text per);
 
-    ConditionalTabletMutator requireState(TabletState ... states);
+    ConditionalTabletMutator requireOperation(TabletOperation... states);
 
+    ConditionalTabletMutator requireAbsentTablet();
+
+    ConditionalTabletMutator requireOperationId(OperationId splitId);
 
     void submit();
+
   }
 
   /**
