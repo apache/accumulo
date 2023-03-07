@@ -161,6 +161,8 @@ public class MetadataOperations {
     tabletMutator.submit();
 
     var result = tabletsMutator.process().get(extent);
+    System.out.println(result.getStatus());
+
     if (result.getStatus() == ConditionalWriter.Status.ACCEPTED
         || result.getStatus() == ConditionalWriter.Status.REJECTED
         || result.getStatus() == ConditionalWriter.Status.UNKNOWN) {
@@ -179,7 +181,11 @@ public class MetadataOperations {
       prev = split;
     }
 
+    System.out.println("newExtents "+newExtents);
+
     var lastExtent = new KeyExtent(extent.tableId(), extent.endRow(), prev);
+
+    System.out.println("lastExtent "+lastExtent);
 
     Map<KeyExtent,TabletMetadata> existingMetadata = new TreeMap<>();
 
@@ -206,6 +212,8 @@ public class MetadataOperations {
       throw new RuntimeException(); // TODO exception and message
     }
 
+    System.out.println("addSplits "+addSplits);
+
     boolean isOperationActive = primaryTabletMetadata.getOperation() == TabletOperation.SPLITTING
         && primaryTabletMetadata.getOperationId().equals(splitId);
     if (!isOperationActive) {
@@ -218,9 +226,12 @@ public class MetadataOperations {
     if (addSplits) {
       tabletsMutator = ample.conditionallyMutateTablets();
       for (KeyExtent newExtent : newExtents) {
-        if (existingMetadata.containsKey(extent)) {
+        if (existingMetadata.containsKey(newExtent)) {
           // TODO check things are as expected
+          System.out.println("Saw  "+newExtent);
         } else {
+          System.out.println("Adding "+newExtent);
+
           // add a tablet
           var newTabletMutator = tabletsMutator.mutateTablet(newExtent);
 
@@ -254,6 +265,8 @@ public class MetadataOperations {
       })) {
         throw new RuntimeException(); // TODO message and exception
       }
+
+      System.out.println("Results "+results);
 
       // all new tablets were added, now change the prev row on the primary tablet
       tabletsMutator = ample.conditionallyMutateTablets();
@@ -296,7 +309,7 @@ public class MetadataOperations {
 
     tabletMutator.requireOperation(TabletOperation.SPLITTING);
     tabletMutator.requireOperationId(splitId);
-    tabletMutator.requirePrevEndRow(extent.prevEndRow());
+    tabletMutator.requirePrevEndRow(lastExtent.prevEndRow());
 
     tabletMutator.putOperation(TabletOperation.NONE);
     tabletMutator.deleteOperationId();

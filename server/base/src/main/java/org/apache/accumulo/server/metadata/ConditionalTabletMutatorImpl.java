@@ -118,7 +118,10 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   @Override
   public Ample.ConditionalTabletMutator requireAbsentTablet() {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    // TODO implement
+    // TODO implement scan of entire row
+    Condition c =
+            new Condition(PREV_ROW_COLUMN.getColumnFamily(), PREV_ROW_COLUMN.getColumnQualifier());
+    mutation.addCondition(c);
     return this;
   }
 

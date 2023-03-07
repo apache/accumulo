@@ -29,7 +29,9 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataOperations;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.OperationId;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,10 @@ public class MetadataOperationsIT extends AccumuloClusterHarness {
   @Test
   public void testSplit() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+              TablePermission.WRITE);
+
       String tableName = getUniqueNames(1)[0];
 
       c.tableOperations().create(tableName, new NewTableConfiguration().createOffline());
@@ -53,7 +59,11 @@ public class MetadataOperationsIT extends AccumuloClusterHarness {
       MetadataOperations.doSplit(context.getAmple(), e1, splits,
           new OperationId(UUID.randomUUID().toString()));
 
-      System.out.println(c.tableOperations().listSplits(tableName));
+      //System.out.println(c.tableOperations().listSplits(tableName));
+
+      try(var scanner = c.createScanner(MetadataTable.NAME)){
+        scanner.forEach((k,v)->System.out.println(k+" "+v));
+      }
     }
   }
 }
