@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.harness.AccumuloITBase.random;
 
@@ -30,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -162,7 +160,7 @@ public class CacheTestWriter {
           }
         }
 
-        sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
+        Thread.sleep(5);
       }
     }
 

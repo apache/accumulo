@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -29,7 +29,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -173,7 +172,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       c.tableOperations().delete(tableName);
       log.info("Sleeping to let garbage collector run");
       // let gc run
-      sleepUninterruptibly(timeoutFactor * 15, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(timeoutFactor * 15L));
       log.info("Verifying that delete markers were deleted");
       // look for delete markers
       try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {

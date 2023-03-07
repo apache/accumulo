@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -28,7 +28,6 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.Constants;
@@ -85,7 +84,7 @@ public class RestartIT extends AccumuloClusterHarness {
       svc.shutdown();
     }
 
-    while (!svc.awaitTermination(10, TimeUnit.SECONDS)) {
+    while (!svc.awaitTermination(10, SECONDS)) {
       log.info("Waiting for threadpool to terminate");
     }
   }
@@ -145,7 +144,7 @@ public class RestartIT extends AccumuloClusterHarness {
       } while (managerLockData.isPresent());
 
       cluster.start();
-      sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
+      Thread.sleep(5);
       control.stopAllServers(ServerType.MANAGER);
 
       managerLockData = null;

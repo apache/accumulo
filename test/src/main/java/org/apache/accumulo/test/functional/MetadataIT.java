@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -35,7 +34,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -131,7 +129,7 @@ public class MetadataIT extends AccumuloClusterHarness {
       try (Scanner s = c.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
         s.setRange(DeletesSection.getRange());
         while (s.stream().findAny().isEmpty()) {
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+          Thread.sleep(100);
         }
         assertEquals(0, c.tableOperations().listSplits(MetadataTable.NAME).size());
       }

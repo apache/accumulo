@@ -18,12 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
 import java.util.EnumSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -61,7 +60,7 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
       }
 
       c.tableOperations().flush(tableName, null, null, false);
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(1));
 
       // minc should fail, so there should be no files
       FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
@@ -75,7 +74,7 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
         c.tableOperations().removeIterator(tableName, BadIterator.class.getSimpleName(),
             EnumSet.of(IteratorScope.minc));
 
-        sleepUninterruptibly(5, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(5));
 
         // minc should complete
         FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 1, 1);
@@ -95,12 +94,12 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
         }
 
         // make sure property is given time to propagate
-        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+        Thread.sleep(500);
 
         c.tableOperations().flush(tableName, null, null, false);
 
         // make sure the flush has time to start
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(1));
 
         // this should not hang
         c.tableOperations().delete(tableName);
