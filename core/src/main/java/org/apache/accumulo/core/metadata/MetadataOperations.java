@@ -40,7 +40,7 @@ import com.google.common.base.Preconditions;
 
 public class MetadataOperations {
 
-  public void compact(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
+  public static void compact(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
       Set<StoredTabletFile> inputFiles, TabletFile outputFile, DataFileValue dfv) {
     Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
 
@@ -56,7 +56,7 @@ public class MetadataOperations {
     conditionalMutator.submit();
   }
 
-  public void minorCompact(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
+  public static void minorCompact(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
       TServerInstance tsi, TabletFile newFile, DataFileValue dfv) {
     Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
 
@@ -72,20 +72,21 @@ public class MetadataOperations {
     conditionalMutator.submit();
   }
 
-  public void bulkImport(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
+  public static void bulkImport(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
       Map<TabletFile,DataFileValue> newFiles) {
     Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
 
     conditionalMutator.requireOperation(TabletOperation.NONE);
     conditionalMutator.requirePrevEndRow(extent.prevEndRow());
-    //TODO check bulk import status of file in tablet metadata... do not want to reimport a file that was previously imported and compacted away
+    // TODO check bulk import status of file in tablet metadata... do not want to reimport a file
+    // that was previously imported and compacted away
 
     newFiles.forEach(conditionalMutator::putFile);
 
     conditionalMutator.submit();
   }
 
-  public void setFuture(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
+  public static void setFuture(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
       TServerInstance tsi) {
     Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
 
@@ -98,7 +99,7 @@ public class MetadataOperations {
     conditionalMutator.submit();
   }
 
-  public void setCurrent(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
+  public static void setCurrent(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
       TServerInstance tsi) {
     Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
 
@@ -112,7 +113,7 @@ public class MetadataOperations {
     conditionalMutator.submit();
   }
 
-  public void deleteLocation(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
+  public static void deleteLocation(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
       TServerInstance tsi, TabletMetadata.LocationType locType) {
     Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
 
@@ -125,7 +126,7 @@ public class MetadataOperations {
     conditionalMutator.submit();
   }
 
-  public void addTablet(Ample.ConditionalTabletsMutator ctm, KeyExtent extent, String path,
+  public static void addTablet(Ample.ConditionalTabletsMutator ctm, KeyExtent extent, String path,
       TimeType timeType) {
     Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
 
@@ -141,14 +142,15 @@ public class MetadataOperations {
 
   // Tablets used to only split into two children. Now that its a metadata only operation, a single
   // tablet can split into multiple children.
-  public void doSplit(Ample ample, KeyExtent extent, SortedSet<Text> splits, OperationId splitId)
-      throws AccumuloException, AccumuloSecurityException {
+  public static void doSplit(Ample ample, KeyExtent extent, SortedSet<Text> splits,
+      OperationId splitId) throws AccumuloException, AccumuloSecurityException {
 
     var tabletsMutator = ample.conditionallyMutateTablets();
 
     var tabletMutator = tabletsMutator.mutateTablet(extent);
 
-    //TODO need to determine in the bigger picture how the tablet will be taken offline and kept offline until the split operation completes
+    // TODO need to determine in the bigger picture how the tablet will be taken offline and kept
+    // offline until the split operation completes
     tabletMutator.requireAbsentLocation();
     tabletMutator.requireOperation(TabletOperation.NONE);
     tabletMutator.requirePrevEndRow(extent.prevEndRow());

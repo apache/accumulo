@@ -85,7 +85,9 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.TIME_COLUMN,
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,
-          ServerColumnFamily.COMPACT_COLUMN);
+          ServerColumnFamily.COMPACT_COLUMN,
+              ServerColumnFamily.OP_COLUMN,
+              ServerColumnFamily.OPID_COLUMN);
 
   private static final Set<Text> validColumnFams =
       Set.of(BulkFileColumnFamily.NAME,

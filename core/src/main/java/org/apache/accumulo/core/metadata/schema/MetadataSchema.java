@@ -226,6 +226,12 @@ public class MetadataSchema {
        */
       public static final String LOCK_QUAL = "lock";
       public static final ColumnFQ LOCK_COLUMN = new ColumnFQ(NAME, new Text(LOCK_QUAL));
+
+      public static final String OP_QUAL = "op";
+      public static final ColumnFQ OP_COLUMN = new ColumnFQ(NAME, new Text(OP_QUAL));
+
+      public static final String OPID_QUAL = "opid";
+      public static final ColumnFQ OPID_COLUMN = new ColumnFQ(NAME, new Text(OPID_QUAL));
     }
 
     /**

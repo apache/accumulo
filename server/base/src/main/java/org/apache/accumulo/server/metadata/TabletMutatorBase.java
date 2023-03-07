@@ -23,10 +23,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.SuspendingTServer;
-import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.*;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -247,6 +244,28 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T deleteExternalCompaction(ExternalCompactionId ecid) {
     mutation.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical());
+    return getThis();
+  }
+
+  @Override
+  public T putOperation(TabletOperation top) {
+    if (top == TabletOperation.NONE) {
+      ServerColumnFamily.OP_COLUMN.putDelete(mutation);
+    } else {
+      ServerColumnFamily.OP_COLUMN.put(mutation, new Value(top.name()));
+    }
+    return getThis();
+  }
+
+  @Override
+  public T putOperationId(OperationId opId) {
+    ServerColumnFamily.OPID_COLUMN.put(mutation, new Value(opId.canonical()));
+    return getThis();
+  }
+
+  @Override
+  public T deleteOperationId() {
+    ServerColumnFamily.OPID_COLUMN.putDelete(mutation);
     return getThis();
   }
 

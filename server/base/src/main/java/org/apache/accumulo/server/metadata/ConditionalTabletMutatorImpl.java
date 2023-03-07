@@ -19,7 +19,10 @@
 
 package org.apache.accumulo.server.metadata;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OP_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow;
 
 import java.util.function.Consumer;
 
@@ -27,8 +30,10 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.OperationId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletOperation;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -89,9 +94,41 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition c =
         new Condition(PREV_ROW_COLUMN.getColumnFamily(), PREV_ROW_COLUMN.getColumnQualifier())
-            .setValue(per);
+            .setValue(encodePrevEndRow(per).get());
     mutation.addCondition(c);
     return this;
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireOperation(TabletOperation operation) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition c;
+    if (operation == TabletOperation.NONE) {
+      c = new Condition(OP_COLUMN.getColumnFamily(), OP_COLUMN.getColumnQualifier());
+    } else {
+      c = new Condition(OP_COLUMN.getColumnFamily(), OP_COLUMN.getColumnQualifier())
+          .setValue(operation.name());
+    }
+
+    mutation.addCondition(c);
+
+    return this;
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireAbsentTablet() {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    // TODO implement
+    return this;
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireOperationId(OperationId splitId) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition c = new Condition(OPID_COLUMN.getColumnFamily(), OPID_COLUMN.getColumnQualifier())
+        .setValue(splitId.canonical());
+    mutation.addCondition(c);
+    return null;
   }
 
   @Override

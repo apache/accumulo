@@ -18,10 +18,7 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.*;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.OLD_PREV_ROW_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.SPLIT_RATIO_QUAL;
@@ -109,6 +106,8 @@ public class TabletMetadata {
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
   private boolean chopped = false;
+  private TabletOperation operation;
+  private OperationId operationId;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -131,7 +130,9 @@ public class TabletMetadata {
     SPLIT_RATIO,
     SUSPEND,
     CHOPPED,
-    ECOMP
+    ECOMP,
+    OP,
+    OPID
   }
 
   public static class Location extends TServerInstance {
@@ -313,11 +314,15 @@ public class TabletMetadata {
   }
 
   public TabletOperation getOperation() {
-    throw new UnsupportedOperationException();
+    ensureFetched(ColumnType.OP);
+    if (operation == null)
+      return TabletOperation.NONE;
+    return operation;
   }
 
   public OperationId getOperationId() {
-    throw new UnsupportedOperationException();
+    ensureFetched(ColumnType.OPID);
+    return operationId;
   }
 
   @VisibleForTesting
@@ -389,6 +394,12 @@ public class TabletMetadata {
               break;
             case COMPACT_QUAL:
               te.compact = OptionalLong.of(Long.parseLong(val));
+              break;
+            case OP_QUAL:
+              te.operation = TabletOperation.valueOf(val);
+              break;
+            case OPID_QUAL:
+              te.operationId = new OperationId(val);
               break;
           }
           break;

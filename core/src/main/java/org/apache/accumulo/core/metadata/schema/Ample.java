@@ -338,7 +338,7 @@ public interface Ample {
     // TODO could always check this!
     ConditionalTabletMutator requirePrevEndRow(Text per);
 
-    ConditionalTabletMutator requireOperation(TabletOperation... states);
+    ConditionalTabletMutator requireOperation(TabletOperation operation);
 
     ConditionalTabletMutator requireAbsentTablet();
 
