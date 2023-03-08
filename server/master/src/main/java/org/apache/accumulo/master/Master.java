@@ -1498,51 +1498,47 @@ public class Master extends AccumuloServerContext
           Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT.getKey());
       maxWait = Long.MAX_VALUE;
     }
+    long sleepInterval = maxWait / 10;
 
-    // honor Retry condition that initial wait < max wait, otherwise use small value to allow thread
-    // yield to happen
-    long initialWait = Math.min(50, maxWait / 2);
-
-    Retry tserverRetry =
-        Retry.builder().infiniteRetries().retryAfter(initialWait, TimeUnit.MILLISECONDS)
-            .incrementBy(15_000, TimeUnit.MILLISECONDS).maxWait(maxWait, TimeUnit.MILLISECONDS)
-            .logInterval(30_000, TimeUnit.MILLISECONDS).createRetry();
+    // Set a incremental logging delay
+    long logIncrement = 15_000;
+    long logWait = 0, lastLog = 0;
 
     log.info("Checking for tserver availability - need to reach {} servers. Have {}",
         minTserverCount, tserverSet.size());
 
     boolean needTservers = tserverSet.size() < minTserverCount;
 
-    while (needTservers && tserverRetry.canRetry()) {
-
-      tserverRetry.waitForNextAttempt();
-
+    while (needTservers && ((System.currentTimeMillis() - waitStart) < maxWait)) {
       needTservers = tserverSet.size() < minTserverCount;
 
-      // suppress last message once threshold reached.
-      if (needTservers) {
+      // Determine when to log a message
+      if (needTservers && ((System.currentTimeMillis() - lastLog) > logWait)) {
         log.info(
             "Blocking for tserver availability - need to reach {} servers. Have {}"
                 + " Time spent blocking {} sec.",
             minTserverCount, tserverSet.size(),
             TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
+        lastLog = System.currentTimeMillis();
+        logWait = logWait + logIncrement;
       }
     }
 
     if (tserverSet.size() < minTserverCount) {
       log.warn(
           "tserver availability check time expired - continuing. Requested {}, have {} tservers on line. "
-              + " Time waiting {} ms",
+              + " Time waiting {} sec",
           tserverSet.size(), minTserverCount,
           TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
 
     } else {
       log.info(
           "tserver availability check completed. Requested {}, have {} tservers on line. "
-              + " Time waiting {} ms",
+              + " Time waiting {} sec",
           tserverSet.size(), minTserverCount,
           TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
     }
+    sleepUninterruptibly(sleepInterval, TimeUnit.MILLISECONDS);
   }
 
   private long remaining(long deadline) {
