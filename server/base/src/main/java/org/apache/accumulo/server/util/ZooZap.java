@@ -65,10 +65,6 @@ public class ZooZap implements KeywordExecutable {
   }
 
   static class Opts extends Help {
-    @Deprecated(since = "2.1.0")
-    @Parameter(names = "-master",
-        description = "remove master locks (deprecated -- user -manager instead")
-    boolean zapMaster = false;
     @Parameter(names = "-manager", description = "remove manager locks")
     boolean zapManager = false;
     @Parameter(names = "-tservers", description = "remove tablet server locks")
@@ -93,7 +89,7 @@ public class ZooZap implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
 
-    if (!opts.zapMaster && !opts.zapManager && !opts.zapTservers) {
+    if (!opts.zapManager && !opts.zapTservers) {
       new JCommander(opts).usage();
       return;
     }
@@ -110,10 +106,7 @@ public class ZooZap implements KeywordExecutable {
       InstanceId iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, new Configuration());
       ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
 
-      if (opts.zapMaster) {
-        log.warn("The -master option is deprecated. Please use -manager instead.");
-      }
-      if (opts.zapManager || opts.zapMaster) {
+      if (opts.zapManager) {
         String managerLockPath = Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK;
 
         try {
@@ -130,7 +123,7 @@ public class ZooZap implements KeywordExecutable {
           for (String child : children) {
             message("Deleting " + tserversPath + "/" + child + " from zookeeper", opts);
 
-            if (opts.zapManager || opts.zapMaster) {
+            if (opts.zapManager) {
               zoo.recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
             } else {
               var zLockPath = ServiceLock.path(tserversPath + "/" + child);

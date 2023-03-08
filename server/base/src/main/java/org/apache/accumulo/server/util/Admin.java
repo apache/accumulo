@@ -127,10 +127,6 @@ public class Admin implements KeywordExecutable {
   @Parameters(commandDescription = "stop the manager")
   static class StopManagerCommand {}
 
-  @Deprecated(since = "2.1.0")
-  @Parameters(commandDescription = "stop the master (DEPRECATED -- use stopManager instead)")
-  static class StopMasterCommand {}
-
   @Parameters(commandDescription = "stop all tablet servers and the manager")
   static class StopAllCommand {}
 
@@ -321,9 +317,6 @@ public class Admin implements KeywordExecutable {
 
     StopManagerCommand stopManagerOpts = new StopManagerCommand();
     cl.addCommand("stopManager", stopManagerOpts);
-
-    StopMasterCommand stopMasterOpts = new StopMasterCommand();
-    cl.addCommand("stopMaster", stopMasterOpts);
 
     VerifyTabletAssignmentsCommand verifyTabletAssignmentsOpts =
         new VerifyTabletAssignmentsCommand();

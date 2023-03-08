@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -126,12 +127,6 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.topLevelIterators = new ArrayList<>();
   }
 
-  @Deprecated(since = "2.0.0")
-  @Override
-  public AccumuloConfiguration getConfig() {
-    return tableConfig;
-  }
-
   @Override
   public IteratorScope getIteratorScope() {
     return scope;
@@ -160,12 +155,6 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
       throws IOException {
     TabletFile ref = new TabletFile(new Path(mapFileName));
     return trm.openFiles(Collections.singletonMap(ref, files.get(ref)), false, null).get(0);
-  }
-
-  @Deprecated(since = "2.0.0")
-  @Override
-  public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
-    topLevelIterators.add(iter);
   }
 
   @Override
@@ -226,9 +215,8 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     return context;
   }
 
-  @Deprecated(since = "2.1.0")
   @Override
-  public ServiceEnvironment getServiceEnv() {
+  public PluginEnvironment getPluginEnv() {
     return serviceEnvironment;
   }
 
