@@ -18,15 +18,32 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransport;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
@@ -35,6 +52,8 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -55,7 +74,12 @@ public class PreUpgradeValidation {
       log.debug("already at current data version: {}, skipping validation", cv);
       return;
     }
+    log.debug("Starting pre-upgrade validation checks.");
+
     validateACLs(context);
+    validateTableLocks(context);
+
+    log.debug("Completed pre-upgrade validation checks.");
   }
 
   private void validateACLs(ServerContext context) {
@@ -66,7 +90,7 @@ public class PreUpgradeValidation {
     final String rootPath = context.getZooKeeperRoot();
     final Set<String> users = Set.of("accumulo", "anyone");
 
-    log.info("Starting validation on ZooKeeper ACLs");
+    log.debug("Starting validation on ZooKeeper ACLs");
 
     try {
       ZKUtil.visitSubTreeDFS(zk, rootPath, false, (rc, path, ctx, name) -> {
@@ -84,15 +108,15 @@ public class PreUpgradeValidation {
         }
       });
       if (aclErrorOccurred.get()) {
-        throw new RuntimeException(
+        fail(new RuntimeException(
             "Upgrade precondition failed! ACLs will need to be modified for some ZooKeeper nodes. "
                 + "Check the log for specific failed paths, check ZooKeeper troubleshooting in user documentation "
-                + "for instructions on how to fix.");
+                + "for instructions on how to fix."));
       }
     } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException("Upgrade Failed! Error validating nodes under " + rootPath, e);
+      fail(new RuntimeException("Upgrade Failed! Error validating nodes under " + rootPath, e));
     }
-    log.info("Successfully completed validation on ZooKeeper ACLs");
+    log.debug("Successfully completed validation on ZooKeeper ACLs");
   }
 
   private static boolean hasAllPermissions(final Set<String> users, final List<ACL> acls) {
@@ -117,4 +141,114 @@ public class PreUpgradeValidation {
     System.exit(1);
   }
 
+  private void validateTableLocks(final ServerContext context) {
+
+    final ZooReaderWriter zrw = context.getZooReaderWriter();
+    final ZooKeeper zk = zrw.getZooKeeper();
+    final String rootPath = context.getZooKeeperRoot();
+    final String tserverLockRoot = rootPath + Constants.ZTSERVERS;
+
+    log.debug("Looking for locks that may be from previous version in path: {}", tserverLockRoot);
+
+    AtomicInteger errorCount = new AtomicInteger(0);
+
+    List<Pair<HostAndPort,ServiceLock.ServiceLockPath>> hostsWithLocks =
+        gatherLocks(zk, tserverLockRoot);
+
+    // try a thrift call to the hosts - hosts running previous versions will fail the call
+    ThreadPoolExecutor lockCheckPool = ThreadPools.getServerThreadPools().createThreadPool(8, 32,
+        10, MINUTES, "update-lock-check", false);
+    try {
+      Future<?> f = lockCheckPool.submit(() -> hostsWithLocks.parallelStream().forEach(p -> {
+        HostAndPort host = p.getFirst();
+        ServiceLock.ServiceLockPath lockPath = p.getSecond();
+        try (TTransport transport = ThriftUtil.createTransport(host, context)) {
+          log.trace("found valid lock at: {}", lockPath);
+        } catch (TException ex) {
+          log.debug(
+              "Could not establish a connection for to service holding lock. Deleting node: {}",
+              lockPath, ex);
+          try {
+            zk.delete(lockPath.toString(), -1);
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("interrupted deleting lock from ZooKeeper", e);
+          } catch (KeeperException.NoNodeException e) {
+            // ignore - node already gone.
+          } catch (KeeperException e) {
+            errorCount.incrementAndGet();
+          }
+        }
+      }));
+      // wait to check for exceptions.
+      f.get(10, MINUTES);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("interrupted validating service locks in ZooKeeper", ex);
+    } catch (ExecutionException | TimeoutException ex) {
+      throw new IllegalStateException("failed to validate service locks", ex);
+    } finally {
+      if (lockCheckPool != null) {
+        lockCheckPool.shutdown();
+      }
+    }
+    log.debug("Completed tserver lock check.");
+  }
+
+  private List<Pair<HostAndPort,ServiceLock.ServiceLockPath>> gatherLocks(final ZooKeeper zk,
+      final String zkPathRoot) {
+    List<Pair<HostAndPort,ServiceLock.ServiceLockPath>> hosts = new ArrayList<>();
+    try {
+      ZKUtil.visitSubTreeDFS(zk, zkPathRoot, false, (rc, path, ctx, name) -> {
+        if (name.startsWith(ServiceLock.ZLOCK_PREFIX)) {
+          log.trace("found lock at {}", path);
+          try {
+            Stat stat = new Stat();
+            final var zLockPath = ServiceLock.path(path);
+            byte[] lockData = zk.getData(zLockPath.toString(), false, stat);
+            if (lockData == null || !validLockData(lockData, hosts, zLockPath)) {
+              log.debug("Invalid lock data - trying to delete path: {}", zLockPath);
+              zk.delete(zLockPath.toString(), stat.getVersion());
+            }
+          } catch (KeeperException.NoNodeException ex) {
+            // empty - lock no longer exists.
+          } catch (KeeperException ex) {
+            log.trace("could not read lock from ZooKeeper for {}, skipping", path, ex);
+          } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                "interrupted reading lock from ZooKeeper for path: " + path);
+          }
+        }
+      });
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(
+          "interrupted reading lock from ZooKeeper for path: " + zkPathRoot);
+    } catch (KeeperException ex) {
+      log.trace("could not read lock all locks from ZooKeeper for {}, lost list may be incomplete",
+          zkPathRoot, ex);
+    }
+    return hosts;
+  }
+
+  /**
+   * Decode the lock data and if valid add the host, port pair to the hosts map. If the data cannot
+   * be read return false to indicate invalid data.
+   */
+  private boolean validLockData(final byte[] lockData,
+      List<Pair<HostAndPort,ServiceLock.ServiceLockPath>> hosts,
+      ServiceLock.ServiceLockPath zLockPath) {
+    try {
+      Optional<ServiceLockData> sld = ServiceLockData.parse(lockData);
+      if (sld.isPresent()) {
+        HostAndPort hostAndPort = sld.get().getAddress(ServiceLockData.ThriftService.TSERV);
+        hosts.add(new Pair<>(hostAndPort, zLockPath));
+      }
+      return true;
+    } catch (Exception ex) {
+      log.trace("Invalid lock data for path: {}", zLockPath, ex);
+    }
+    return false;
+  }
 }
