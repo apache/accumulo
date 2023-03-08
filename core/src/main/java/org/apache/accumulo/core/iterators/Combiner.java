@@ -189,16 +189,20 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       Caffeine.newBuilder().expireAfterWrite(1, HOURS).maximumSize(10000).build();
 
   private void sawDelete() {
-    if (isMajorCompaction && !reduceOnFullCompactionOnly) {
-      var ignored = loggedMsgCache.get(this.getClass().getName(), k -> {
-        sawDeleteLog.error(
-            "Combiner of type {} saw a delete during a"
-                + " partial compaction. This could cause undesired results. See"
-                + " ACCUMULO-2232. Will not log subsequent occurrences for at least 1 hour.",
-            Combiner.this.getClass().getSimpleName());
-        // the value is not used and does not matter
-        return Boolean.TRUE;
-      });
+    if (isMajorCompaction && !reduceOnFullCompactionOnly
+        && loggedMsgCache.get(this.getClass().getName(), k -> {
+          sawDeleteLog.error(
+              "Combiner of type {} saw a delete during a"
+                  + " partial compaction. This could cause undesired results. See"
+                  + " ACCUMULO-2232. Will not log subsequent occurrences for at least 1 hour.",
+              Combiner.this.getClass().getSimpleName());
+          // the value is not used and does not matter
+          return Boolean.TRUE;
+        })) {
+      // do nothing;
+      // this is a workaround to ignore the return value of the cache, since we're relying only on
+      // the side-effect of logging when the cache entry expires;
+      // if the cached value is present, it's value is always true
     }
   }
 

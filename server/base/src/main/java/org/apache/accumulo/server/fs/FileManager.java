@@ -158,7 +158,8 @@ public class FileManager {
     this.context = context;
     this.fileLenCache = fileLenCache;
 
-    this.filePermits = new Semaphore(maxOpen, false);
+    // Creates a fair semaphore to ensure thread starvation doesn't occur
+    this.filePermits = new Semaphore(maxOpen, true);
     this.maxOpen = maxOpen;
 
     this.openFiles = new HashMap<>();
@@ -265,17 +266,17 @@ public class FileManager {
       long waitTime = System.currentTimeMillis() - start;
 
       if (waitTime >= slowFilePermitMillis) {
-        log.info("Slow file permits request: {} ms, files requested: {}, tablet: {}", waitTime,
-            files.size(), tablet);
+        log.warn("Slow file permits request: {} ms, files requested: {}, "
+            + "max open files: {}, tablet: {}", waitTime, files.size(), maxOpen, tablet);
       }
     }
 
-    // now that the we are past the semaphore, we have the authority
+    // now that we are past the semaphore, we have the authority
     // to open files.size() files
 
     // determine what work needs to be done in sync block
     // but do the work of opening and closing files outside
-    // a synch block
+    // the block
     synchronized (this) {
 
       filesToOpen = takeOpenFiles(files, readersReserved);
