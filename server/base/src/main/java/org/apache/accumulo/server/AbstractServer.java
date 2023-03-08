@@ -18,14 +18,19 @@
  */
 package org.apache.accumulo.server;
 
-import java.util.Objects;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,12 +42,12 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
   private final String hostname;
   private final Logger log;
 
-  protected AbstractServer(String appName, ServerOpts opts, String[] args) {
+  protected AbstractServer(String appName, ConfigOpts opts, String[] args) {
     this.log = LoggerFactory.getLogger(getClass().getName());
     this.applicationName = appName;
     opts.parseArgs(appName, args);
-    this.hostname = Objects.requireNonNull(opts.getAddress());
     var siteConfig = opts.getSiteConfiguration();
+    this.hostname = siteConfig.get(Property.GENERAL_PROCESS_BIND_ADDRESS);
     SecurityUtil.serverLogin(siteConfig);
     context = new ServerContext(siteConfig);
     log.info("Version " + Constants.VERSION);
@@ -54,6 +59,11 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       context.enforceKerberosLogin();
     }
+    final LowMemoryDetector lmd = context.getLowMemoryDetector();
+    ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(
+        () -> lmd.logGCInfo(context.getConfiguration()), 0,
+        lmd.getIntervalMillis(context.getConfiguration()), TimeUnit.MILLISECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   /**

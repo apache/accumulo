@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -26,9 +26,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -39,9 +39,10 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
@@ -106,14 +107,14 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       zcache.clear();
       var path = ServiceLock
           .path(ZooUtil.getRoot(client.instanceOperations().getInstanceId()) + Constants.ZGC_LOCK);
-      byte[] gcLockData;
+      Optional<ServiceLockData> gcLockData;
       do {
         gcLockData = ServiceLock.getLockData(zcache, path, null);
-        if (gcLockData != null) {
+        if (gcLockData.isPresent()) {
           log.info("Waiting for GC ZooKeeper lock to expire");
           Thread.sleep(2000);
         }
-      } while (gcLockData != null);
+      } while (gcLockData.isPresent());
 
       log.info("GC lock was lost");
 
@@ -122,11 +123,11 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
 
       do {
         gcLockData = ServiceLock.getLockData(zcache, path, null);
-        if (gcLockData == null) {
+        if (gcLockData.isEmpty()) {
           log.info("Waiting for GC ZooKeeper lock to be acquired");
           Thread.sleep(2000);
         }
-      } while (gcLockData == null);
+      } while (gcLockData.isEmpty());
 
       log.info("GC lock was acquired");
     }
@@ -171,7 +172,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       c.tableOperations().delete(tableName);
       log.info("Sleeping to let garbage collector run");
       // let gc run
-      sleepUninterruptibly(timeoutFactor * 15, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(timeoutFactor * 15L));
       log.info("Verifying that delete markers were deleted");
       // look for delete markers
       try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {

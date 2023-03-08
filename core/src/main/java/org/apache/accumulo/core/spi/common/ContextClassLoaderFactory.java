@@ -46,15 +46,15 @@ package org.apache.accumulo.core.spi.common;
 public interface ContextClassLoaderFactory {
 
   /**
-   * Get the class loader for the given contextName. Callers should not cache the ClassLoader result
-   * as it may change if/when the ClassLoader reloads. Implementations should throw a
-   * RuntimeException of some type (such as IllegalArgumentException) if the provided contextName is
-   * not supported or fails to be constructed.
+   * Get the class loader for the given context. Callers should not cache the ClassLoader result as
+   * it may change if/when the ClassLoader reloads. Implementations should throw a RuntimeException
+   * of some type (such as IllegalArgumentException) if the provided context is not supported or
+   * fails to be constructed.
    *
-   * @param contextName the name of the context that represents a class loader that is managed by
-   *        this factory (can be null)
-   * @return the class loader for the given contextName
+   * @param context the name of the context that represents a class loader that is managed by this
+   *        factory (can be null)
+   * @return the class loader for the given context
    */
-  ClassLoader getClassLoader(String contextName);
+  ClassLoader getClassLoader(String context);
 
 }

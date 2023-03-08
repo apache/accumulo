@@ -50,6 +50,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -65,13 +66,15 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.AgeOffStore;
 import org.apache.accumulo.core.fate.Fate;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
@@ -109,11 +112,11 @@ import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
+import org.apache.accumulo.manager.upgrade.PreUpgradeValidation;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -298,6 +301,7 @@ public class Manager extends AbstractServer
     }
 
     if (oldState != newState && (newState == ManagerState.HAVE_LOCK)) {
+      new PreUpgradeValidation().validate(getContext(), nextEvent);
       upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
     }
 
@@ -404,12 +408,12 @@ public class Manager extends AbstractServer
   }
 
   public static void main(String[] args) throws Exception {
-    try (Manager manager = new Manager(new ServerOpts(), args)) {
+    try (Manager manager = new Manager(new ConfigOpts(), args)) {
       manager.runServer();
     }
   }
 
-  Manager(ServerOpts opts, String[] args) throws IOException {
+  Manager(ConfigOpts opts, String[] args) throws IOException {
     super("manager", opts, args);
     ServerContext context = super.getContext();
     balancerEnvironment = new BalancerEnvironmentImpl(context);
@@ -1084,8 +1088,9 @@ public class Manager extends AbstractServer
     log.info("Started Manager client service at {}", sa.address);
 
     // block until we can obtain the ZK lock for the manager
+    ServiceLockData sld = null;
     try {
-      getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK));
+      sld = getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
@@ -1238,9 +1243,11 @@ public class Manager extends AbstractServer
     }
 
     String address = sa.address.toString();
-    log.info("Setting manager lock data to {}", address);
+    sld = new ServiceLockData(sld.getServerUUID(ThriftService.MANAGER), address,
+        ThriftService.MANAGER);
+    log.info("Setting manager lock data to {}", sld.toString());
     try {
-      managerLock.replaceLockData(address.getBytes());
+      managerLock.replaceLockData(sld);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception updating manager lock", e);
     }
@@ -1442,7 +1449,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  private void getManagerLock(final ServiceLockPath zManagerLoc)
+  private ServiceLockData getManagerLock(final ServiceLockPath zManagerLoc)
       throws KeeperException, InterruptedException {
     var zooKeeper = getContext().getZooReaderWriter().getZooKeeper();
     log.info("trying to get manager lock");
@@ -1451,11 +1458,13 @@ public class Manager extends AbstractServer
         getHostname() + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
 
     UUID zooLockUUID = UUID.randomUUID();
+    ServiceLockData sld =
+        new ServiceLockData(zooLockUUID, managerClientAddress, ThriftService.MANAGER);
     while (true) {
 
       ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();
       managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
-      managerLock.lock(managerLockWatcher, managerClientAddress.getBytes());
+      managerLock.lock(managerLockWatcher, sld);
 
       managerLockWatcher.waitForChange();
 
@@ -1473,6 +1482,7 @@ public class Manager extends AbstractServer
     }
 
     setManagerState(ManagerState.HAVE_LOCK);
+    return sld;
   }
 
   @Override

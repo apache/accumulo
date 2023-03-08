@@ -18,31 +18,29 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.DAYS;
 import static org.apache.accumulo.harness.AccumuloITBase.random;
 
 import java.util.HashMap;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -88,7 +86,12 @@ public class ZombieTServer {
           return result;
         }
       }
-      sleepUninterruptibly(Integer.MAX_VALUE, TimeUnit.DAYS);
+      try {
+        Thread.sleep(DAYS.toMillis(Integer.MAX_VALUE));
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        log.info("probably received shutdown, interrupted during infinite sleep", ex);
+      }
       return null;
     }
 
@@ -160,9 +163,8 @@ public class ZombieTServer {
       }
     };
 
-    byte[] lockContent =
-        new ServerServices(addressString, Service.TSERV_CLIENT).toString().getBytes(UTF_8);
-    if (zlock.tryLock(lw, lockContent)) {
+    if (zlock.tryLock(lw, new ServiceLockData(UUID.randomUUID(), addressString, ThriftService.TSERV,
+        ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME))) {
       log.debug("Obtained tablet server lock {}", zlock.getLockPath());
     }
     // modify metadata

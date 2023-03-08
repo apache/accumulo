@@ -106,11 +106,8 @@ public enum PropertyType {
           + "Substitutions of the ACCUMULO_HOME environment variable can be done in the system "
           + "config file using '${env:ACCUMULO_HOME}' or similar."),
 
-  // VFS_CLASSLOADER_CACHE_DIR's default value is a special case, for documentation purposes
-  @SuppressWarnings("removal")
   ABSOLUTEPATH("absolute path",
-      x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute()
-          || x.equals(Property.VFS_CLASSLOADER_CACHE_DIR.getDefaultValue()),
+      x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute(),
       "An absolute filesystem path. The filesystem depends on the property."
           + " This is the same as path, but enforces that its root is explicitly specified."),
 
@@ -127,6 +124,9 @@ public enum PropertyType {
 
   GC_POST_ACTION("gc_post_action", in(true, null, "none", "flush", "compact"),
       "One of 'none', 'flush', or 'compact'."),
+
+  LAST_LOCATION_MODE("last_location_mode", in(true, null, "assignment", "compaction"),
+      "Defines how to update the last location.  One of 'assignment', or 'compaction'."),
 
   STRING("string", x -> true,
       "An arbitrary string of characters whose format is unspecified and"

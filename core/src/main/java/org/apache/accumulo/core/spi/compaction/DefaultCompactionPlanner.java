@@ -32,8 +32,6 @@ import java.util.Set;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
@@ -112,8 +110,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class DefaultCompactionPlanner implements CompactionPlanner {
 
-  private static final Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
-
   public static class ExecutorConfig {
     String type;
     String name;
@@ -127,8 +123,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     final Long maxSize;
 
     public Executor(CompactionExecutorId ceid, Long maxSize) {
-      Preconditions.checkArgument(maxSize == null || maxSize > 0);
-      this.ceid = Objects.requireNonNull(ceid);
+      Preconditions.checkArgument(maxSize == null || maxSize > 0, "Invalid value for maxSize");
+      this.ceid = Objects.requireNonNull(ceid, "Compaction ID is null");
       this.maxSize = maxSize;
     }
 

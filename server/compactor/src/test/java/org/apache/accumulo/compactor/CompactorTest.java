@@ -28,11 +28,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -50,6 +50,7 @@ import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
@@ -173,7 +174,9 @@ public class CompactorTest {
 
     SuccessfulCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         ServerContext context, ExternalCompactionId eci) {
-      super(new CompactorServerOpts(), new String[] {"-q", "testQ"}, context.getConfiguration());
+      super(new ConfigOpts(),
+          new String[] {"-o", Property.COMPACTOR_QUEUE_NAME.getKey() + "=testQ"},
+          context.getConfiguration());
       this.uuid = uuid;
       this.address = address;
       this.job = job;
@@ -188,9 +191,6 @@ public class CompactorTest {
 
     @Override
     protected void setupSecurity() {}
-
-    @Override
-    protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {}
 
     @Override
     protected void printStartupMsg() {}
@@ -332,6 +332,7 @@ public class CompactorTest {
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    expect(context.getLowMemoryDetector()).andReturn(new LowMemoryDetector()).anyTimes();
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
@@ -380,6 +381,7 @@ public class CompactorTest {
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    expect(context.getLowMemoryDetector()).andReturn(new LowMemoryDetector()).anyTimes();
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
@@ -428,6 +430,7 @@ public class CompactorTest {
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    expect(context.getLowMemoryDetector()).andReturn(new LowMemoryDetector()).anyTimes();
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();

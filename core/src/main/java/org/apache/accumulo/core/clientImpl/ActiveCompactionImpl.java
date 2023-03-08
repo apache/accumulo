@@ -103,6 +103,11 @@ public class ActiveCompactionImpl extends ActiveCompaction {
   }
 
   @Override
+  public long getPausedCount() {
+    return tac.getTimesPaused();
+  }
+
+  @Override
   public List<IteratorSetting> getIterators() {
     ArrayList<IteratorSetting> ret = new ArrayList<>();
 

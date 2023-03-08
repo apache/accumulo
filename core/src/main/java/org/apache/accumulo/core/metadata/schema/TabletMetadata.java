@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
@@ -47,8 +46,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -69,7 +69,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.ServerServices;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -472,13 +471,14 @@ public class TabletMetadata {
     Optional<TServerInstance> server = Optional.empty();
     final var lockPath = ServiceLock.path(path + "/" + zPath);
     ZooCache.ZcStat stat = new ZooCache.ZcStat();
-    byte[] lockData = ServiceLock.getLockData(context.getZooCache(), lockPath, stat);
+    Optional<ServiceLockData> sld = ServiceLock.getLockData(context.getZooCache(), lockPath, stat);
 
-    log.trace("Checking server at ZK path = " + lockPath);
-    if (lockData != null) {
-      ServerServices services = new ServerServices(new String(lockData, UTF_8));
-      HostAndPort client = services.getAddress(ServerServices.Service.TSERV_CLIENT);
-      server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
+    if (sld.isPresent()) {
+      log.trace("Checking server at ZK path = " + lockPath);
+      HostAndPort client = sld.get().getAddress(ServiceLockData.ThriftService.TSERV);
+      if (client != null) {
+        server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
+      }
     }
     return server;
   }

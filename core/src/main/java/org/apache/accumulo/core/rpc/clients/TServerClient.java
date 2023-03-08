@@ -20,10 +20,10 @@ package org.apache.accumulo.core.rpc.clients;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
@@ -33,20 +33,22 @@ import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ThriftTransportKey;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ExecVoid;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
+
+import com.google.common.net.HostAndPort;
 
 public interface TServerClient<C extends TServiceClient> {
 
@@ -66,12 +68,11 @@ public interface TServerClient<C extends TServiceClient> {
     for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
       var zLocPath =
           ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
-      byte[] data = zc.getLockData(zLocPath);
-      if (data != null) {
-        String strData = new String(data, UTF_8);
-        if (!strData.equals("manager")) {
-          servers.add(new ThriftTransportKey(
-              new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout, context));
+      Optional<ServiceLockData> sld = zc.getLockData(zLocPath);
+      if (sld.isPresent()) {
+        HostAndPort address = sld.get().getAddress(ThriftService.TSERV);
+        if (address != null) {
+          servers.add(new ThriftTransportKey(address, rpcTimeout, context));
         }
       }
     }

@@ -18,14 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -88,7 +86,7 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
         }
       });
 
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      Thread.sleep(500);
 
       // should be able to scan now
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {

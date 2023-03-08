@@ -91,8 +91,8 @@ import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.start.Main;
-import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.start.util.MiniDFSUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -216,6 +216,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     } else {
       dfsUri = "file:///";
     }
+
+    // Perform any modifications to the site config that need to happen
+    // after the instance volumes are set, and before the config is
+    // written out and MAC started.
+    config.preStartConfigUpdate();
 
     Map<String,String> clientProps = config.getClientProps();
     clientProps.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), config.getZooKeepers());

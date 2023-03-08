@@ -245,7 +245,7 @@ public class LogSorter {
     ConfigurationCopy copy = new ConfigurationCopy(conf);
     props.forEach((prop, val) -> {
       String tableProp = tablePrefix + prop;
-      if (Property.isTablePropertyValid(tableProp, val)) {
+      if (Property.isValidProperty(tableProp, val) && Property.isValidTablePropertyKey(tableProp)) {
         log.debug("Using property for writing sorted files: {}={}", tableProp, val);
         copy.set(tableProp, val);
       } else {

@@ -18,14 +18,13 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -72,7 +71,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       params.rows = 5000;
       TestIngest.ingest(c, params);
       c.tableOperations().flush("test_ingest", null, null, false);
-      sleepUninterruptibly(45, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(45));
       Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
 
       int unassignedTablets = 1;

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.manager;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy.SKIP;
 
@@ -27,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -35,9 +35,10 @@ import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -49,7 +50,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
@@ -307,9 +307,9 @@ public class LiveTServerSet implements Watcher {
 
     final var zLockPath = ServiceLock.path(path + "/" + zPath);
     ZcStat stat = new ZcStat();
-    byte[] lockData = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
+    Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
 
-    if (lockData == null) {
+    if (sld.isEmpty()) {
       if (info != null) {
         doomed.add(info.instance);
         current.remove(zPath);
@@ -325,8 +325,7 @@ public class LiveTServerSet implements Watcher {
       }
     } else {
       locklessServers.remove(zPath);
-      ServerServices services = new ServerServices(new String(lockData, UTF_8));
-      HostAndPort client = services.getAddress(ServerServices.Service.TSERV_CLIENT);
+      HostAndPort client = sld.get().getAddress(ServiceLockData.ThriftService.TSERV);
       TServerInstance instance = new TServerInstance(client, stat.getEphemeralOwner());
 
       if (info == null) {

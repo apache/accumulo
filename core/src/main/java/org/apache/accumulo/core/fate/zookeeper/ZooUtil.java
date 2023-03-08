@@ -27,6 +27,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
@@ -94,15 +95,18 @@ public class ZooUtil {
     }
   }
 
-  public static final List<ACL> PRIVATE;
-  public static final List<ACL> PUBLIC;
+  // Need to use Collections.unmodifiableList() instead of List.of() or List.copyOf(), because
+  // ImmutableCollections.contains() doesn't handle nulls properly (JDK-8265905) and ZooKeeper (as
+  // of 3.8.1) calls acl.contains((Object) null) which throws a NPE when passed an immutable
+  // collection
+  public static final List<ACL> PRIVATE =
+      Collections.unmodifiableList(new ArrayList<>(Ids.CREATOR_ALL_ACL));
 
+  public static final List<ACL> PUBLIC;
   static {
-    PRIVATE = new ArrayList<>();
-    PRIVATE.addAll(Ids.CREATOR_ALL_ACL);
-    PUBLIC = new ArrayList<>();
-    PUBLIC.addAll(PRIVATE);
-    PUBLIC.add(new ACL(Perms.READ, Ids.ANYONE_ID_UNSAFE));
+    var publicTmp = new ArrayList<>(PRIVATE);
+    publicTmp.add(new ACL(Perms.READ, Ids.ANYONE_ID_UNSAFE));
+    PUBLIC = Collections.unmodifiableList(publicTmp);
   }
 
   public static String getRoot(final InstanceId instanceId) {

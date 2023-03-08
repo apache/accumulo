@@ -85,9 +85,9 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Sets;
 
 public class BulkImport implements ImportDestinationArguments, ImportMappingOptions {
@@ -379,7 +379,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     Map<String,Long> absFileLens = new HashMap<>();
     fileLens.forEach((k, v) -> absFileLens.put(pathToCacheId(new Path(dir, k)), v));
 
-    Cache<String,Long> fileLenCache = CacheBuilder.newBuilder().build();
+    Cache<String,Long> fileLenCache = Caffeine.newBuilder().build();
 
     fileLenCache.putAll(absFileLens);
 

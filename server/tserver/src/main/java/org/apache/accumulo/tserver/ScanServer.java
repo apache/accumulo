@@ -19,7 +19,6 @@
 package org.apache.accumulo.tserver;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -47,6 +46,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -61,20 +61,21 @@ import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletscan.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletscan.thrift.TSamplerConfiguration;
@@ -86,9 +87,8 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerOpts;
+import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -113,7 +113,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.beust.jcommander.Parameter;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -125,18 +124,6 @@ import com.google.common.net.HostAndPort;
 
 public class ScanServer extends AbstractServer
     implements TabletScanClientService.Iface, TabletHostingServer {
-
-  public static class ScanServerOpts extends ServerOpts {
-    @Parameter(required = false, names = {"-g", "--group"},
-        description = "Optional group name that will be made available to the ScanServerSelector client plugin.  If not specified will be set to '"
-            + ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME
-            + "'.  Groups support at least two use cases : dedicating resources to scans and/or using different hardware for scans.")
-    private String groupName = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
-
-    public String getGroupName() {
-      return groupName;
-    }
-  }
 
   private static final Logger log = LoggerFactory.getLogger(ScanServer.class);
 
@@ -195,7 +182,6 @@ public class ScanServer extends AbstractServer
   private final SessionManager sessionManager;
   private final TabletServerResourceManager resourceManager;
   HostAndPort clientAddress;
-  private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
 
   private volatile boolean serverStopRequested = false;
   private ServiceLock scanServerLock;
@@ -205,7 +191,7 @@ public class ScanServer extends AbstractServer
 
   private final String groupName;
 
-  public ScanServer(ScanServerOpts opts, String[] args) {
+  public ScanServer(ConfigOpts opts, String[] args) {
     super("sserver", opts, args);
 
     context = super.getContext();
@@ -249,7 +235,7 @@ public class ScanServer extends AbstractServer
 
     delegate = newThriftScanClientHandler(new WriteTracker());
 
-    this.groupName = Objects.requireNonNull(opts.getGroupName());
+    this.groupName = getConfiguration().get(Property.SSERV_GROUP_NAME);
 
     ThreadPools.watchCriticalScheduledTask(getContext().getScheduledExecutor()
         .scheduleWithFixedDelay(() -> cleanUpReservedFiles(scanServerReservationExpiration),
@@ -326,7 +312,7 @@ public class ScanServer extends AbstractServer
             if (!serverStopRequested) {
               LOG.error("Lost tablet server lock (reason = {}), exiting.", reason);
             }
-            gcLogger.logGCInfo(getConfiguration());
+            context.getLowMemoryDetector().logGCInfo(getConfiguration());
           });
         }
 
@@ -336,13 +322,11 @@ public class ScanServer extends AbstractServer
         }
       };
 
-      // Don't use the normal ServerServices lock content, instead put the server UUID here.
-      byte[] lockContent = (serverLockUUID.toString() + "," + groupName).getBytes(UTF_8);
-
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
 
-        if (scanServerLock.tryLock(lw, lockContent)) {
+        if (scanServerLock.tryLock(lw, new ServiceLockData(serverLockUUID, getClientAddressString(),
+            ThriftService.TABLET_SCAN, this.groupName))) {
           LOG.debug("Obtained scan server lock {}", scanServerLock.getLockPath());
           return scanServerLock;
         }
@@ -407,7 +391,7 @@ public class ScanServer extends AbstractServer
         LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
       }
 
-      gcLogger.logGCInfo(getConfiguration());
+      context.getLowMemoryDetector().logGCInfo(getConfiguration());
       LOG.info("stop requested. exiting ... ");
       try {
         if (null != lock) {
@@ -1008,6 +992,12 @@ public class ScanServer extends AbstractServer
   }
 
   @Override
+  public PausedCompactionMetrics getPausedCompactionMetrics() {
+    // ScanServer does not perform compactions
+    return null;
+  }
+
+  @Override
   public Session getSession(long scanID) {
     return sessionManager.getSession(scanID);
   }
@@ -1028,17 +1018,12 @@ public class ScanServer extends AbstractServer
   }
 
   @Override
-  public GarbageCollectionLogger getGcLogger() {
-    return gcLogger;
-  }
-
-  @Override
   public BlockCacheConfiguration getBlockCacheConfiguration(AccumuloConfiguration acuConf) {
     return BlockCacheConfiguration.forScanServer(acuConf);
   }
 
   public static void main(String[] args) throws Exception {
-    try (ScanServer tserver = new ScanServer(new ScanServerOpts(), args)) {
+    try (ScanServer tserver = new ScanServer(new ConfigOpts(), args)) {
       tserver.runServer();
     }
   }
