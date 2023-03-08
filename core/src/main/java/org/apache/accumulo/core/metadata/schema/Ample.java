@@ -252,6 +252,7 @@ public interface Ample {
 
     Map<KeyExtent,ConditionalWriter.Result> process();
 
+    // TODO maybe remove
     @Override
     void close();
   }
@@ -344,8 +345,7 @@ public interface Ample {
 
     ConditionalTabletMutator requireOperationId(OperationId splitId);
 
-    void submit();
-
+    ConditionalTabletsMutator submit();
   }
 
   /**

@@ -77,9 +77,8 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T putPrevEndRow(Text per) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletColumnFamily.PREV_ROW_COLUMN.put(mutation,
-        TabletColumnFamily.encodePrevEndRow(extent.prevEndRow())); // TODO use passed in param and
-                                                                   // fix standalone
+    // TODO there was a bug here, make a standalone fix
+    TabletColumnFamily.PREV_ROW_COLUMN.put(mutation, TabletColumnFamily.encodePrevEndRow(per));
     return getThis();
   }
 

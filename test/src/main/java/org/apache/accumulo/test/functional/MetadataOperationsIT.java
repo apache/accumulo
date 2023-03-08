@@ -43,7 +43,7 @@ public class MetadataOperationsIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
-              TablePermission.WRITE);
+          TablePermission.WRITE);
 
       String tableName = getUniqueNames(1)[0];
 
@@ -59,11 +59,12 @@ public class MetadataOperationsIT extends AccumuloClusterHarness {
       MetadataOperations.doSplit(context.getAmple(), e1, splits,
           new OperationId(UUID.randomUUID().toString()));
 
-      //System.out.println(c.tableOperations().listSplits(tableName));
-
-      try(var scanner = c.createScanner(MetadataTable.NAME)){
-        scanner.forEach((k,v)->System.out.println(k+" "+v));
+      try (var scanner = c.createScanner(MetadataTable.NAME)) {
+        scanner.forEach((k, v) -> System.out.println(k + " " + v));
       }
+
+      System.out.println(c.tableOperations().listSplits(tableName));
+
     }
   }
 }

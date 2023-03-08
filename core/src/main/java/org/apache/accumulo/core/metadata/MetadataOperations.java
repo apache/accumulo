@@ -60,7 +60,7 @@ public class MetadataOperations {
       TServerInstance tsi, TabletFile newFile, DataFileValue dfv) {
     Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
 
-    // when a tablet has a current location its state should always be nominal, so this check is a
+    // when a tablet has a current location its operation should always be none, so this check is a
     // bit redundant
     conditionalMutator.requireOperation(TabletOperation.NONE);
     conditionalMutator.requireLocation(tsi, TabletMetadata.LocationType.CURRENT);
@@ -73,7 +73,7 @@ public class MetadataOperations {
   }
 
   public static void bulkImport(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
-      Map<TabletFile,DataFileValue> newFiles) {
+      Map<TabletFile,DataFileValue> newFiles, long tid) {
     Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
 
     conditionalMutator.requireOperation(TabletOperation.NONE);
@@ -81,6 +81,7 @@ public class MetadataOperations {
     // TODO check bulk import status of file in tablet metadata... do not want to reimport a file
     // that was previously imported and compacted away
 
+    newFiles.keySet().forEach(file -> conditionalMutator.putBulkFile(file, tid));
     newFiles.forEach(conditionalMutator::putFile);
 
     conditionalMutator.submit();
@@ -140,14 +141,101 @@ public class MetadataOperations {
     conditionalMutator.submit();
   }
 
-  // Tablets used to only split into two children. Now that its a metadata only operation, a single
-  // tablet can split into multiple children.
+  /**
+   * An idempotent metadata operation that can split a tablet into one or more tablets. This method
+   * can be called multiple times in the case of process death. Need to pass in the same operation
+   * id and same splits when doing this.
+   *
+   * @param ample A reference to ample
+   * @param extent The extent in the metadata table to split
+   * @param splits The splits to add inside the extent. Tablets used to only split into two
+   *        children. Now that its a metadata only operation, a single tablet can split into
+   *        multiple children.
+   * @param splitId An id that must be unique for all split operations. This id prevents certain
+   *        race conditions like two concurrent operations trying to split the same extent. When
+   *        this happens only one will succeed and the other will fail.
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
   public static void doSplit(Ample ample, KeyExtent extent, SortedSet<Text> splits,
       OperationId splitId) throws AccumuloException, AccumuloSecurityException {
 
-    var tabletsMutator = ample.conditionallyMutateTablets();
+    if (splits.isEmpty())
+      return;
 
-    var tabletMutator = tabletsMutator.mutateTablet(extent);
+    var result = attemptToReserveTablet(ample, extent, TabletOperation.SPLITTING, splitId);
+
+    if (result.getStatus() == ConditionalWriter.Status.ACCEPTED
+        || result.getStatus() == ConditionalWriter.Status.REJECTED
+        || result.getStatus() == ConditionalWriter.Status.UNKNOWN) {
+      // could be rejected because this operation being retried, will sort everything out when
+      // reading the
+      // metadata table
+    } else {
+      throw new IllegalStateException("unexpected status " + result.getStatus());
+    }
+
+    // Create the new extents that need to be added to the metadata table
+    Set<KeyExtent> newExtents = computeNewExtents(extent, splits);
+
+    // The original extent will be mutated into the following extent
+    var lastExtent = new KeyExtent(extent.tableId(), extent.endRow(), splits.last());
+
+    // get the exitsing tablets that fall in the range of the original extent. This method is
+    // idempotent so, it possible some of the work was done in a previous call
+    Map<KeyExtent,TabletMetadata> existingMetadata = getExistingTablets(ample, extent);
+
+    TabletMetadata primaryTabletMetadata;
+    boolean addSplits;
+
+    if (existingMetadata.containsKey(extent)) {
+      // the original tablet still exist in the metadata table, so splits have not been added yet
+      addSplits = true;
+      primaryTabletMetadata = existingMetadata.get(extent);
+    } else if (existingMetadata.containsKey(lastExtent)) {
+      // The original tablet no longer exists in the metadata table and was mutate into lastExtent.
+      // This mutation is done after adding splits, so assuming we do not need to add splits and
+      // this subsequent call of this method.
+      addSplits = false;
+      primaryTabletMetadata = existingMetadata.get(lastExtent);
+    } else {
+      // no expected extents were seen in the metadata table
+      throw new RuntimeException(); // TODO exception and message
+    }
+
+    boolean isOperationActive = primaryTabletMetadata.getOperation() == TabletOperation.SPLITTING
+        && primaryTabletMetadata.getOperationId().equals(splitId);
+
+    if (!isOperationActive) {
+      // The operation and operation id were not observed in the metadata table so can not proceed.
+      throw new RuntimeException(); // TODO exception and message
+    }
+
+    Collection<StoredTabletFile> files = primaryTabletMetadata.getFiles();
+
+    if (addSplits) {
+      // add new tablets to the metadata table
+      addNewSplit(ample, splitId, newExtents, existingMetadata, primaryTabletMetadata, files);
+
+      // all new tablets were added, now change the prev row on the original tablet
+      updatePrevEndRow(ample, extent, splitId, lastExtent);
+    }
+
+    // remove splitting operation from new tablets
+    removeSplitOperations(ample, splitId, newExtents);
+
+    // remove splitting state from primary tablet last, this signifies the entire operation is done
+    var status =
+        removeSplitOperations(ample, splitId, Set.of(lastExtent)).get(lastExtent).getStatus();
+    if (status != ConditionalWriter.Status.ACCEPTED) {
+      throw new RuntimeException(); // TODO error message and exception
+    }
+  }
+
+  private static ConditionalWriter.Result attemptToReserveTablet(Ample ample, KeyExtent extent,
+      TabletOperation operation, OperationId opid) {
+
+    var tabletMutator = ample.conditionallyMutateTablets().mutateTablet(extent);
 
     // TODO need to determine in the bigger picture how the tablet will be taken offline and kept
     // offline until the split operation completes
@@ -155,38 +243,95 @@ public class MetadataOperations {
     tabletMutator.requireOperation(TabletOperation.NONE);
     tabletMutator.requirePrevEndRow(extent.prevEndRow());
 
-    tabletMutator.putOperation(TabletOperation.SPLITTING);
-    tabletMutator.putOperationId(splitId);
+    tabletMutator.putOperation(operation);
+    tabletMutator.putOperationId(opid);
 
+    return tabletMutator.submit().process().get(extent);
+  }
+
+  private static Map<KeyExtent,ConditionalWriter.Result> removeSplitOperations(Ample ample,
+      OperationId splitId, Set<KeyExtent> newExtents) {
+    var tabletsMutator = ample.conditionallyMutateTablets();
+    for (KeyExtent newExtent : newExtents) {
+      var tabletMutator = tabletsMutator.mutateTablet(newExtent);
+
+      tabletMutator.requireOperation(TabletOperation.SPLITTING);
+      tabletMutator.requireOperationId(splitId);
+      tabletMutator.requirePrevEndRow(newExtent.prevEndRow());
+
+      tabletMutator.putOperation(TabletOperation.NONE);
+      tabletMutator.deleteOperationId();
+
+      tabletMutator.submit();
+    }
+
+    return tabletsMutator.process();
+  }
+
+  private static void updatePrevEndRow(Ample ample, KeyExtent extent, OperationId splitId,
+      KeyExtent lastExtent) throws AccumuloException, AccumuloSecurityException {
+    var tabletMutator = ample.conditionallyMutateTablets().mutateTablet(extent);
+
+    tabletMutator.requireOperation(TabletOperation.SPLITTING);
+    tabletMutator.requireOperationId(splitId);
+    tabletMutator.requirePrevEndRow(extent.prevEndRow());
+
+    tabletMutator.putPrevEndRow(lastExtent.prevEndRow());
     tabletMutator.submit();
 
-    var result = tabletsMutator.process().get(extent);
-    System.out.println(result.getStatus());
+    if (tabletMutator.submit().process().get(extent).getStatus()
+        != ConditionalWriter.Status.ACCEPTED) {
+      throw new RuntimeException(); // TODO message and exception
+    }
+  }
 
-    if (result.getStatus() == ConditionalWriter.Status.ACCEPTED
-        || result.getStatus() == ConditionalWriter.Status.REJECTED
-        || result.getStatus() == ConditionalWriter.Status.UNKNOWN) {
-      // could be rejected because this is being recalled, will sort everything out when reading the
-      // metadata table
-    } else {
-      throw new IllegalStateException("unexpected status " + result.getStatus());
+  private static void addNewSplit(Ample ample, OperationId splitId, Set<KeyExtent> newExtents,
+      Map<KeyExtent,TabletMetadata> existingMetadata, TabletMetadata primaryTabletMetadata,
+      Collection<StoredTabletFile> files) {
+    var tabletsMutator = ample.conditionallyMutateTablets();
+    for (KeyExtent newExtent : newExtents) {
+      if (existingMetadata.containsKey(newExtent)) {
+        // TODO check things are as expected
+        System.out.println("Saw  " + newExtent);
+      } else {
+        System.out.println("Adding " + newExtent);
+
+        // add a tablet
+        var newTabletMutator = tabletsMutator.mutateTablet(newExtent);
+
+        newTabletMutator.requireAbsentTablet();
+
+        // TODO put a dir
+        // TODO copy bulk import markers
+        // TODO look at current split code to see everything it copies to its children
+
+        newTabletMutator.putOperation(TabletOperation.SPLITTING);
+        newTabletMutator.putOperationId(splitId);
+        newTabletMutator.putTime(primaryTabletMetadata.getTime());
+        newTabletMutator.putPrevEndRow(newExtent.prevEndRow());
+        files.forEach(file -> newTabletMutator.putFile(file, null)); // TODO need a data file
+                                                                     // value for the file
+        newTabletMutator.submit();
+
+      }
     }
 
-    Set<KeyExtent> newExtents = new HashSet<>();
-
-    Text prev = extent.prevEndRow();
-    for (var split : splits) {
-      Preconditions.checkArgument(extent.contains(split));
-      newExtents.add(new KeyExtent(extent.tableId(), split, prev));
-      prev = split;
+    Map<KeyExtent,ConditionalWriter.Result> results = tabletsMutator.process();
+    // TODO handle UNKNOWN result
+    if (!results.values().stream().allMatch(r -> {
+      try {
+        return r.getStatus() == ConditionalWriter.Status.ACCEPTED;
+      } catch (AccumuloException e) {
+        throw new RuntimeException(e);
+      } catch (AccumuloSecurityException e) {
+        throw new RuntimeException(e);
+      }
+    })) {
+      throw new RuntimeException(); // TODO message and exception
     }
+  }
 
-    System.out.println("newExtents "+newExtents);
-
-    var lastExtent = new KeyExtent(extent.tableId(), extent.endRow(), prev);
-
-    System.out.println("lastExtent "+lastExtent);
-
+  private static Map<KeyExtent,TabletMetadata> getExistingTablets(Ample ample, KeyExtent extent) {
     Map<KeyExtent,TabletMetadata> existingMetadata = new TreeMap<>();
 
     // this method should be idempotent, so need ascertain where we are at in the split process
@@ -195,129 +340,18 @@ public class MetadataOperations {
       tablets.forEach(
           tabletMetadata -> existingMetadata.put(tabletMetadata.getExtent(), tabletMetadata));
     }
+    return existingMetadata;
+  }
 
-    TabletMetadata primaryTabletMetadata;
-    boolean addSplits;
+  private static Set<KeyExtent> computeNewExtents(KeyExtent extent, SortedSet<Text> splits) {
+    Set<KeyExtent> newExtents = new HashSet<>();
 
-    if (existingMetadata.containsKey(extent)) {
-      addSplits = true;
-      primaryTabletMetadata = existingMetadata.get(extent);
-    } else if (existingMetadata.containsKey(lastExtent)) {
-      // the split operation changes the prev end row after all the splits are added, so since the
-      // prev row has been changed this indicates the splits were already added
-      addSplits = false;
-      primaryTabletMetadata = existingMetadata.get(lastExtent);
-    } else {
-      // no expected extents were seen in the metadata table
-      throw new RuntimeException(); // TODO exception and message
+    Text prev = extent.prevEndRow();
+    for (var split : splits) {
+      Preconditions.checkArgument(extent.contains(split));
+      newExtents.add(new KeyExtent(extent.tableId(), split, prev));
+      prev = split;
     }
-
-    System.out.println("addSplits "+addSplits);
-
-    boolean isOperationActive = primaryTabletMetadata.getOperation() == TabletOperation.SPLITTING
-        && primaryTabletMetadata.getOperationId().equals(splitId);
-    if (!isOperationActive) {
-      // tablet is not in an expected state to start making changes
-      throw new RuntimeException(); // TODO exception and message
-    }
-
-    Collection<StoredTabletFile> files = primaryTabletMetadata.getFiles();
-
-    if (addSplits) {
-      tabletsMutator = ample.conditionallyMutateTablets();
-      for (KeyExtent newExtent : newExtents) {
-        if (existingMetadata.containsKey(newExtent)) {
-          // TODO check things are as expected
-          System.out.println("Saw  "+newExtent);
-        } else {
-          System.out.println("Adding "+newExtent);
-
-          // add a tablet
-          var newTabletMutator = tabletsMutator.mutateTablet(newExtent);
-
-          newTabletMutator.requireAbsentTablet();
-
-          // TODO put a dir
-          // TODO copy bulk import markers
-          // TODO look at current split code to see everything it copies toc hildren
-
-          newTabletMutator.putOperation(TabletOperation.SPLITTING);
-          newTabletMutator.putOperationId(splitId);
-          newTabletMutator.putTime(primaryTabletMetadata.getTime());
-          newTabletMutator.putPrevEndRow(newExtent.prevEndRow());
-          files.forEach(file -> newTabletMutator.putFile(file, null)); // TODO need a data file
-                                                                       // value for the file
-          newTabletMutator.submit();
-
-        }
-      }
-
-      Map<KeyExtent,ConditionalWriter.Result> results = tabletsMutator.process();
-      // TODO handle UNKNOWN result
-      if (!results.values().stream().allMatch(r -> {
-        try {
-          return r.getStatus() == ConditionalWriter.Status.ACCEPTED;
-        } catch (AccumuloException e) {
-          throw new RuntimeException(e);
-        } catch (AccumuloSecurityException e) {
-          throw new RuntimeException(e);
-        }
-      })) {
-        throw new RuntimeException(); // TODO message and exception
-      }
-
-      System.out.println("Results "+results);
-
-      // all new tablets were added, now change the prev row on the primary tablet
-      tabletsMutator = ample.conditionallyMutateTablets();
-      tabletMutator = tabletsMutator.mutateTablet(extent);
-
-      tabletMutator.requireOperation(TabletOperation.SPLITTING);
-      tabletMutator.requireOperationId(splitId);
-      tabletMutator.requirePrevEndRow(extent.prevEndRow());
-
-      tabletMutator.putPrevEndRow(lastExtent.prevEndRow());
-      tabletMutator.submit();
-
-      if (tabletsMutator.process().get(extent).getStatus() != ConditionalWriter.Status.ACCEPTED) {
-        throw new RuntimeException(); // TODO message and exception
-      }
-    }
-
-    // remove splitting state from new tablets
-    tabletsMutator = ample.conditionallyMutateTablets();
-    for (KeyExtent newExtent : newExtents) {
-      tabletMutator = tabletsMutator.mutateTablet(newExtent);
-
-      tabletMutator.requireOperation(TabletOperation.SPLITTING);
-      tabletMutator.requireOperationId(splitId);
-      tabletMutator.requirePrevEndRow(extent.prevEndRow());
-
-      tabletMutator.putOperation(TabletOperation.NONE);
-      tabletMutator.deleteOperationId();
-
-      tabletMutator.submit();
-    }
-
-    // TODO check status... may only need to debug in the failure and rerun case some tablets could
-    // change after their operation is unset
-    tabletsMutator.process();
-
-    // remove splitting state from primary tablet last
-    tabletsMutator = ample.conditionallyMutateTablets();
-    tabletMutator = tabletsMutator.mutateTablet(lastExtent);
-
-    tabletMutator.requireOperation(TabletOperation.SPLITTING);
-    tabletMutator.requireOperationId(splitId);
-    tabletMutator.requirePrevEndRow(lastExtent.prevEndRow());
-
-    tabletMutator.putOperation(TabletOperation.NONE);
-    tabletMutator.deleteOperationId();
-    tabletMutator.submit();
-
-    var status = tabletsMutator.process().get(lastExtent).getStatus();
-    if (status != ConditionalWriter.Status.ACCEPTED) {
-      throw new RuntimeException(); // TODO error message and exception
-    }
+    return newExtents;
   }
 }

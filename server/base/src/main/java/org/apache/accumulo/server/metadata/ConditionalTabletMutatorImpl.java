@@ -51,12 +51,14 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
 
   private final ConditionalMutation mutation;
   private final Consumer<ConditionalMutation> mutationConsumer;
+  private final Ample.ConditionalTabletsMutator parent;
 
-  protected ConditionalTabletMutatorImpl(ServerContext context, KeyExtent extent,
-      Consumer<ConditionalMutation> mutationConsumer) {
+  protected ConditionalTabletMutatorImpl(Ample.ConditionalTabletsMutator parent,
+      ServerContext context, KeyExtent extent, Consumer<ConditionalMutation> mutationConsumer) {
     super(context, extent, new ConditionalMutation(extent.toMetaRow()));
     this.mutation = (ConditionalMutation) super.mutation;
     this.mutationConsumer = mutationConsumer;
+    this.parent = parent;
   }
 
   @Override
@@ -120,7 +122,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     // TODO implement scan of entire row
     Condition c =
-            new Condition(PREV_ROW_COLUMN.getColumnFamily(), PREV_ROW_COLUMN.getColumnQualifier());
+        new Condition(PREV_ROW_COLUMN.getColumnFamily(), PREV_ROW_COLUMN.getColumnQualifier());
     mutation.addCondition(c);
     return this;
   }
@@ -131,12 +133,14 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     Condition c = new Condition(OPID_COLUMN.getColumnFamily(), OPID_COLUMN.getColumnQualifier())
         .setValue(splitId.canonical());
     mutation.addCondition(c);
-    return null;
+    return this;
   }
 
   @Override
-  public void submit() {
+  public Ample.ConditionalTabletsMutator submit() {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     getMutation();
     mutationConsumer.accept(mutation);
+    return parent;
   }
 }
