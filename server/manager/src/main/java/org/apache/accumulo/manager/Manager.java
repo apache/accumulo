@@ -1020,9 +1020,9 @@ public class Manager extends AbstractServer
         }
       }));
     }
-    long timeToWaitForCompletion = Math.max(10000, rpcTimeout / 3);
-    long currTime = System.currentTimeMillis();
-    long timeToCancelTasks = currTime + timeToWaitForCompletion;
+    final long timeToWaitForCompletion = Math.max(10000, rpcTimeout / 3);
+    long currTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
+    final long timeToCancelTasks = currTime + timeToWaitForCompletion;
     // Wait for all tasks to complete
     while (!tasks.isEmpty()) {
       boolean cancel = (currTime > timeToCancelTasks);
@@ -1037,8 +1037,8 @@ public class Manager extends AbstractServer
           }
         }
       }
-      Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
-      currTime = System.currentTimeMillis();
+      Uninterruptibles.sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
+      currTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
     }
 
     // Threads may still modify map after shutdownNow is called, so create an immutable snapshot.
@@ -1202,8 +1202,7 @@ public class Manager extends AbstractServer
                   context.getZooReaderWriter()),
               TimeUnit.HOURS.toMillis(8), System::currentTimeMillis);
 
-      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString);
-      f.startTransactionRunners(getConfiguration());
+      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
       fateRef.set(f);
       fateReadyLatch.countDown();
 

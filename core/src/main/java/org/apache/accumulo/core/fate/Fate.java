@@ -60,8 +60,8 @@ public class Fate<T> {
 
   private final TStore<T> store;
   private final T environment;
-  private ScheduledThreadPoolExecutor fatePoolWatcher;
-  private ExecutorService executor;
+  private final ScheduledThreadPoolExecutor fatePoolWatcher;
+  private final ExecutorService executor;
 
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
 
@@ -226,21 +226,13 @@ public class Fate<T> {
    *
    * @param toLogStrFunc A function that converts Repo to Strings that are suitable for logging
    */
-  public Fate(T environment, TStore<T> store, Function<Repo<T>,String> toLogStrFunc) {
+  public Fate(T environment, TStore<T> store, Function<Repo<T>,String> toLogStrFunc,
+      AccumuloConfiguration conf) {
     this.store = FateLogger.wrap(store, toLogStrFunc);
     this.environment = environment;
-  }
-
-  /**
-   * Launches the specified number of worker threads.
-   */
-  public void startTransactionRunners(AccumuloConfiguration conf) {
-    if (executor != null) {
-      throw new IllegalStateException("Fate.startTransactionRunners called twice.");
-    }
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
         Property.MANAGER_FATE_THREADPOOL_SIZE, true);
-    fatePoolWatcher =
+    this.fatePoolWatcher =
         ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
     ThreadPools.watchCriticalScheduledTask(fatePoolWatcher.schedule(() -> {
       // resize the pool if the property changed
@@ -265,7 +257,7 @@ public class Fate<T> {
         }
       }
     }, 3, SECONDS));
-    executor = pool;
+    this.executor = pool;
   }
 
   // get a transaction id back to the requester before doing any work
