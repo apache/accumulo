@@ -17,6 +17,7 @@
 package org.apache.accumulo.master;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -83,7 +84,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
-import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -1478,8 +1478,7 @@ public class Master extends AccumuloServerContext
    *           if interrupted while blocking, propagated for caller to handle.
    */
   private void blockForTservers() throws InterruptedException {
-
-    long waitStart = System.currentTimeMillis();
+    long waitStart = System.nanoTime();
 
     AccumuloConfiguration accConfig = serverConfig.getConfiguration();
     long minTserverCount = accConfig.getCount(Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT);
@@ -1490,8 +1489,8 @@ public class Master extends AccumuloServerContext
           tserverSet.size(), Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
       return;
     }
-
-    long maxWait = accConfig.getTimeInMillis(Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT);
+    long maxWait = TimeUnit.MILLISECONDS
+        .toNanos(accConfig.getTimeInMillis(Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT));
 
     if (maxWait <= 0) {
       log.info("tserver availability check set to block indefinitely, To change, set {} > 0.",
@@ -1500,45 +1499,44 @@ public class Master extends AccumuloServerContext
     }
     long sleepInterval = maxWait / 10;
 
-    // Set a incremental logging delay
-    long logIncrement = 15_000;
-    long logWait = 0, lastLog = 0;
+    // Set an incremental logging delay of 15 seconds.
+    long logIncrement = TimeUnit.SECONDS.toNanos(15);
+    long logWait = 0;
+    long lastLog = 0;
 
     log.info("Checking for tserver availability - need to reach {} servers. Have {}",
         minTserverCount, tserverSet.size());
 
     boolean needTservers = tserverSet.size() < minTserverCount;
 
-    while (needTservers && ((System.currentTimeMillis() - waitStart) < maxWait)) {
+    while (needTservers && ((System.nanoTime() - waitStart) < maxWait)) {
       needTservers = tserverSet.size() < minTserverCount;
+      long currentTime = System.nanoTime();
 
       // Determine when to log a message
-      if (needTservers && ((System.currentTimeMillis() - lastLog) > logWait)) {
+      if (needTservers && ((currentTime - lastLog) > logWait)) {
         log.info(
             "Blocking for tserver availability - need to reach {} servers. Have {}"
                 + " Time spent blocking {} sec.",
-            minTserverCount, tserverSet.size(),
-            TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
-        lastLog = System.currentTimeMillis();
+            minTserverCount, tserverSet.size(), NANOSECONDS.toSeconds(currentTime - waitStart));
+        lastLog = currentTime;
         logWait = logWait + logIncrement;
       }
+      sleepUninterruptibly(sleepInterval, NANOSECONDS);
     }
 
     if (tserverSet.size() < minTserverCount) {
       log.warn(
           "tserver availability check time expired - continuing. Requested {}, have {} tservers on line. "
               + " Time waiting {} sec",
-          tserverSet.size(), minTserverCount,
-          TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
+          tserverSet.size(), minTserverCount, NANOSECONDS.toSeconds(System.nanoTime() - waitStart));
 
     } else {
       log.info(
           "tserver availability check completed. Requested {}, have {} tservers on line. "
               + " Time waiting {} sec",
-          tserverSet.size(), minTserverCount,
-          TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
+          tserverSet.size(), minTserverCount, NANOSECONDS.toSeconds(System.nanoTime() - waitStart));
     }
-    sleepUninterruptibly(sleepInterval, TimeUnit.MILLISECONDS);
   }
 
   private long remaining(long deadline) {
