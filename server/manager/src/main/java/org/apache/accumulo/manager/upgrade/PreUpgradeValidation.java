@@ -25,10 +25,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -156,41 +153,38 @@ public class PreUpgradeValidation {
         gatherLocks(zk, tserverLockRoot);
 
     // try a thrift call to the hosts - hosts running previous versions will fail the call
-    ThreadPoolExecutor lockCheckPool = ThreadPools.getServerThreadPools().createThreadPool(8, 32,
+    ThreadPoolExecutor lockCheckPool = ThreadPools.getServerThreadPools().createThreadPool(8, 64,
         10, MINUTES, "update-lock-check", false);
-    try {
-      Future<?> f = lockCheckPool.submit(() -> hostsWithLocks.parallelStream().forEach(p -> {
-        HostAndPort host = p.getFirst();
-        ServiceLock.ServiceLockPath lockPath = p.getSecond();
-        try (TTransport transport = ThriftUtil.createTransport(host, context)) {
-          log.trace("found valid lock at: {}", lockPath);
-        } catch (TException ex) {
-          log.debug(
-              "Could not establish a connection for to service holding lock. Deleting node: {}",
-              lockPath, ex);
-          try {
-            zk.delete(lockPath.toString(), -1);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("interrupted deleting lock from ZooKeeper", e);
-          } catch (KeeperException.NoNodeException e) {
-            // ignore - node already gone.
-          } catch (KeeperException e) {
-            errorCount.incrementAndGet();
-          }
+
+    hostsWithLocks.forEach(h -> lockCheckPool.execute(() -> {
+      HostAndPort host = h.getFirst();
+      ServiceLock.ServiceLockPath lockPath = h.getSecond();
+      try (TTransport transport = ThriftUtil.createTransport(host, context)) {
+        log.trace("found valid lock at: {}", lockPath);
+      } catch (TException ex) {
+        log.debug("Could not establish a connection for to service holding lock. Deleting node: {}",
+            lockPath, ex);
+        try {
+          zk.delete(lockPath.toString(), -1);
+          errorCount.incrementAndGet();
+        } catch (KeeperException.NoNodeException e) {
+          // ignore - node already gone.
+        } catch (InterruptedException | KeeperException e) {
+          // task will be terminated - ignore interrupt.
+          errorCount.incrementAndGet();
         }
-      }));
-      // wait to check for exceptions.
-      f.get(10, MINUTES);
+      }
+    }));
+    lockCheckPool.shutdown();
+    try {
+      // wait to all to finish
+      if (!lockCheckPool.awaitTermination(10, MINUTES)) {
+        log.warn(
+            "Timed out waiting for lock check to finish - continuing, but tservers running prior versions may be present");
+      }
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("interrupted validating service locks in ZooKeeper", ex);
-    } catch (ExecutionException | TimeoutException ex) {
-      throw new IllegalStateException("failed to validate service locks", ex);
-    } finally {
-      if (lockCheckPool != null) {
-        lockCheckPool.shutdown();
-      }
     }
     log.debug("Completed tserver lock check.");
   }
