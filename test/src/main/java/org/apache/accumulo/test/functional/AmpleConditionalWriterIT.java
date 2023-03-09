@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.ConditionalWriter.Status;
@@ -39,6 +40,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
+import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
@@ -220,6 +222,40 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
 
       Assert.assertEquals(Set.of(stf4), context.getAmple().readTablet(e1).getFiles());
+
+      // without this the metadata constraint will not allow the bulk file to be added to metadata
+      TransactionWatcher.ZooArbitrator.start(context, Constants.BULK_ARBITRATOR_TYPE, 9L);
+
+      // simulate a bulk import
+      var stf5 =
+          new StoredTabletFile("hdfs://localhost:8020/accumulo/tables/2a/b-0000009/I0000074.rf");
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentBulikFile(stf5).putFile(stf5, new DataFileValue(0, 0))
+          .putBulkFile(stf5, 9L).putFile(stf5, new DataFileValue(0, 0)).submit();
+      results = ctmi.process();
+      Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+
+      Assert.assertEquals(Set.of(stf4, stf5), context.getAmple().readTablet(e1).getFiles());
+
+      // simulate a compaction
+      var stf6 = new StoredTabletFile(
+          "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/A0000075.rf");
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireFile(stf4).requireFile(stf5)
+          .putFile(stf6, new DataFileValue(0, 0)).deleteFile(stf4).deleteFile(stf5).submit();
+      results = ctmi.process();
+      Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+
+      Assert.assertEquals(Set.of(stf6), context.getAmple().readTablet(e1).getFiles());
+
+      // simulate trying to re bulk import file after a compaction
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireAbsentBulikFile(stf5).putFile(stf5, new DataFileValue(0, 0))
+          .putBulkFile(stf5, 9L).putFile(stf5, new DataFileValue(0, 0)).submit();
+      results = ctmi.process();
+      Assert.assertEquals(Status.REJECTED, results.get(e1).getStatus());
+
+      Assert.assertEquals(Set.of(stf6), context.getAmple().readTablet(e1).getFiles());
     }
   }
 

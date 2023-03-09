@@ -336,6 +336,8 @@ public interface Ample {
 
     ConditionalTabletMutator requireFile(StoredTabletFile path);
 
+    ConditionalTabletMutator requireAbsentBulikFile(TabletFile bulkref);
+
     // TODO could always check this!
     ConditionalTabletMutator requirePrevEndRow(Text per);
 

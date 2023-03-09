@@ -46,7 +46,6 @@ public class MetadataOperations {
 
     conditionalMutator.requireOperation(TabletOperation.NONE);
     inputFiles.forEach(conditionalMutator::requireFile);
-    // TODO ensure this does not require the encoded version
     conditionalMutator.requirePrevEndRow(extent.prevEndRow());
     // TODO could add a conditional check to ensure file is not already there
 
@@ -78,8 +77,7 @@ public class MetadataOperations {
 
     conditionalMutator.requireOperation(TabletOperation.NONE);
     conditionalMutator.requirePrevEndRow(extent.prevEndRow());
-    // TODO check bulk import status of file in tablet metadata... do not want to reimport a file
-    // that was previously imported and compacted away
+    newFiles.keySet().forEach(conditionalMutator::requireAbsentBulikFile);
 
     newFiles.keySet().forEach(file -> conditionalMutator.putBulkFile(file, tid));
     newFiles.forEach(conditionalMutator::putFile);
@@ -169,8 +167,7 @@ public class MetadataOperations {
         || result.getStatus() == ConditionalWriter.Status.REJECTED
         || result.getStatus() == ConditionalWriter.Status.UNKNOWN) {
       // could be rejected because this operation being retried, will sort everything out when
-      // reading the
-      // metadata table
+      // reading the metadata table
     } else {
       throw new IllegalStateException("unexpected status " + result.getStatus());
     }
@@ -277,7 +274,6 @@ public class MetadataOperations {
     tabletMutator.requirePrevEndRow(extent.prevEndRow());
 
     tabletMutator.putPrevEndRow(lastExtent.prevEndRow());
-    tabletMutator.submit();
 
     if (tabletMutator.submit().process().get(extent).getStatus()
         != ConditionalWriter.Status.ACCEPTED) {
@@ -292,10 +288,7 @@ public class MetadataOperations {
     for (KeyExtent newExtent : newExtents) {
       if (existingMetadata.containsKey(newExtent)) {
         // TODO check things are as expected
-        System.out.println("Saw  " + newExtent);
       } else {
-        System.out.println("Adding " + newExtent);
-
         // add a tablet
         var newTabletMutator = tabletsMutator.mutateTablet(newExtent);
 

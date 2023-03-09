@@ -18,10 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.UUID;
+import java.util.*;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -34,6 +31,7 @@ import org.apache.accumulo.core.metadata.OperationId;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
 public class MetadataOperationsIT extends AccumuloClusterHarness {
@@ -59,12 +57,7 @@ public class MetadataOperationsIT extends AccumuloClusterHarness {
       MetadataOperations.doSplit(context.getAmple(), e1, splits,
           new OperationId(UUID.randomUUID().toString()));
 
-      try (var scanner = c.createScanner(MetadataTable.NAME)) {
-        scanner.forEach((k, v) -> System.out.println(k + " " + v));
-      }
-
-      System.out.println(c.tableOperations().listSplits(tableName));
-
+      Assert.assertEquals(splits, new TreeSet<>(c.tableOperations().listSplits(tableName)));
     }
   }
 }

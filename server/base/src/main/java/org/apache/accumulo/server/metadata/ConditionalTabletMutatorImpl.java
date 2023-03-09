@@ -30,11 +30,9 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.OperationId;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletOperation;
+import org.apache.accumulo.core.metadata.*;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.server.ServerContext;
@@ -87,6 +85,14 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, PresentIterator.class);
     Condition c = new Condition(DataFileColumnFamily.NAME, path.getMetaUpdateDeleteText())
         .setValue(PresentIterator.VALUE).setIterators(is);
+    mutation.addCondition(c);
+    return this;
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireAbsentBulikFile(TabletFile bulkref) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition c = new Condition(BulkFileColumnFamily.NAME, bulkref.getMetaInsertText());
     mutation.addCondition(c);
     return this;
   }
