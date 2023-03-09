@@ -160,7 +160,6 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
-  @SuppressWarnings("removal")
   public void startAllServers(ServerType server) throws IOException {
     switch (server) {
       case TABLET_SERVER:
@@ -168,7 +167,6 @@ public class StandaloneClusterControl implements ClusterControl {
           start(server, tserver);
         }
         break;
-      case MASTER:
       case MANAGER:
         for (String manager : getHosts(MANAGER_HOSTS_FILE)) {
           start(server, manager);
@@ -209,7 +207,6 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
-  @SuppressWarnings("removal")
   public void stopAllServers(ServerType server) throws IOException {
     switch (server) {
       case TABLET_SERVER:
@@ -217,7 +214,6 @@ public class StandaloneClusterControl implements ClusterControl {
           stop(server, tserver);
         }
         break;
-      case MASTER:
       case MANAGER:
         for (String manager : getHosts(MANAGER_HOSTS_FILE)) {
           stop(server, manager);
@@ -311,14 +307,12 @@ public class StandaloneClusterControl implements ClusterControl {
         "'{print \\$2}'", "|", "head", "-1", "|", "tr", "-d", "'\\n'"};
   }
 
-  @SuppressWarnings("removal")
   protected String getProcessString(ServerType server) {
     switch (server) {
       case TABLET_SERVER:
         return "tserver";
       case GARBAGE_COLLECTOR:
         return "gc";
-      case MASTER:
       case MANAGER:
         return "manager";
       case MONITOR:

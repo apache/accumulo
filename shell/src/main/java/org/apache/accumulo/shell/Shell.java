@@ -381,20 +381,16 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         new EGrepCommand(), new FormatterCommand(),
         new org.apache.accumulo.shell.commands.InterpreterCommand(), new GrepCommand(),
         new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
-    @SuppressWarnings("deprecation")
     Command[] debuggingCommands =
-        {new ClasspathCommand(), new org.apache.accumulo.shell.commands.DebugCommand(),
-            new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(),
-            new PingCommand(), new ListBulkCommand(), new ListTabletsCommand()};
+        {new ClasspathCommand(), new ListScansCommand(), new ListCompactionsCommand(),
+            new TraceCommand(), new PingCommand(), new ListBulkCommand(), new ListTabletsCommand()};
     Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
     Command[] helpCommands =
         {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};
-    @SuppressWarnings("deprecation")
-    Command[] iteratorCommands = {new DeleteIterCommand(),
-        new org.apache.accumulo.shell.commands.DeleteScanIterCommand(), new ListIterCommand(),
-        new SetIterCommand(), new org.apache.accumulo.shell.commands.SetScanIterCommand(),
-        new SetShellIterCommand(), new ListShellIterCommand(), new DeleteShellIterCommand()};
+    Command[] iteratorCommands =
+        {new DeleteIterCommand(), new ListIterCommand(), new SetIterCommand(),
+            new SetShellIterCommand(), new ListShellIterCommand(), new DeleteShellIterCommand()};
     Command[] otherCommands = {new HiddenCommand()};
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(),
         new SystemPermissionsCommand(), new TablePermissionsCommand(), new UserPermissionsCommand(),
