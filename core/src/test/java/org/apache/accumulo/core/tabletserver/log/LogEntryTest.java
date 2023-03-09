@@ -19,11 +19,9 @@
 package org.apache.accumulo.core.tabletserver.log;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.data.Key;
@@ -35,7 +33,6 @@ import org.junit.jupiter.api.Test;
 
 public class LogEntryTest {
 
-  @SuppressWarnings("removal")
   private static void compareLogEntries(LogEntry one, LogEntry two) throws IOException {
     assertNotSame(one, two);
     assertEquals(one.toString(), two.toString());
@@ -44,9 +41,6 @@ public class LogEntryTest {
     assertEquals(one.getRow(), two.getRow());
     assertEquals(one.getUniqueID(), two.getUniqueID());
     assertEquals(one.getValue(), two.getValue());
-    // arrays differ in serialized form because of the different prevEndRow, but that shouldn't
-    // matter for anything functionality in the LogEntry
-    assertFalse(Arrays.equals(one.toBytes(), two.toBytes()));
   }
 
   @Test
@@ -83,9 +77,6 @@ public class LogEntryTest {
     assertEquals("1< default/foo", entry.toString());
     assertEquals(new Text("log"), entry.getColumnFamily());
     assertEquals(new Text("-/default/foo"), entry.getColumnQualifier());
-    @SuppressWarnings("removal")
-    LogEntry copy = LogEntry.fromBytes(entry.toBytes());
-    assertEquals(entry.toString(), copy.toString());
     Key key = new Key(new Text("1<"), new Text("log"), new Text("localhost:1234/default/foo"));
     key.setTimestamp(ts);
     var mapEntry = new Entry<Key,Value>() {

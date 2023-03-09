@@ -64,31 +64,6 @@ public interface ScanDispatcher {
   }
 
   /**
-   * The method parameters for {@link ScanDispatcher#dispatch(DispatchParmaters)}. This interface
-   * exists so the API can evolve and additional parameters can be passed to the method in the
-   * future.
-   *
-   * @since 2.0.0
-   * @deprecated since 2.1.0 replaced by {@link DispatchParameters} and
-   *             {@link ScanDispatcher#dispatch(DispatchParameters)}
-   */
-  @Deprecated(since = "2.1.0")
-  public interface DispatchParmaters extends DispatchParameters {}
-
-  /**
-   * @return Should return one of the executors named params.getScanExecutors().keySet()
-   *
-   * @deprecated since 2.1.0 please implement {@link #dispatch(DispatchParameters)} instead of this.
-   *             Accumulo will only call {@link #dispatch(DispatchParameters)} directly, it will
-   *             never call this. However the default implementation of
-   *             {@link #dispatch(DispatchParameters)} calls this method.
-   */
-  @Deprecated(since = "2.1.0")
-  default String dispatch(DispatchParmaters params) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
    * The method parameters for {@link ScanDispatcher#dispatch(DispatchParameters)}. This interface
    * exists so the API can evolve and additional parameters can be passed to the method in the
    * future.
@@ -115,13 +90,7 @@ public interface ScanDispatcher {
    *
    * @since 2.1.0
    */
-
   default ScanDispatch dispatch(DispatchParameters params) {
-    String executor = dispatch((DispatchParmaters) params);
-    if (executor.equals(DefaultScanDispatch.DEFAULT_SCAN_DISPATCH.getExecutorName())) {
-      return DefaultScanDispatch.DEFAULT_SCAN_DISPATCH;
-    }
-
-    return ScanDispatch.builder().setExecutorName(executor).build();
+    return DefaultScanDispatch.DEFAULT_SCAN_DISPATCH;
   }
 }

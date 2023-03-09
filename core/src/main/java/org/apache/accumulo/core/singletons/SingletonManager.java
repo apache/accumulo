@@ -61,12 +61,6 @@ public class SingletonManager {
      */
     SERVER,
     /**
-     * This mode was removed along with Connector in 3.0.0. It no longer does anything, but is kept
-     * here to preserve enum ordinals.
-     */
-    @Deprecated(since = "3.0.0")
-    CONNECTOR,
-    /**
      * In this mode singletons are permanently disabled and entering this mode prevents
      * transitioning to other modes.
      */
@@ -157,9 +151,6 @@ public class SingletonManager {
     }
     if (SingletonManager.mode == Mode.CLOSED) {
       throw new IllegalStateException("Cannot leave closed mode once entered");
-    }
-    if (mode == Mode.CONNECTOR) {
-      throw new IllegalArgumentException("CONNECTOR mode was removed");
     }
 
     /*
