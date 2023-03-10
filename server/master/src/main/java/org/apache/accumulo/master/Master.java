@@ -17,6 +17,7 @@
 package org.apache.accumulo.master;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
@@ -37,7 +38,6 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -789,7 +789,7 @@ public class Master extends AccumuloServerContext
         return MasterGoalState.valueOf(new String(data));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: " + e);
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        sleepUninterruptibly(1_000, MILLISECONDS);
       }
   }
 
@@ -940,7 +940,7 @@ public class Master extends AccumuloServerContext
             log.error("Error cleaning up migrations", ex);
           }
         }
-        sleepUninterruptibly(TIME_BETWEEN_MIGRATION_CLEANUPS, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(TIME_BETWEEN_MIGRATION_CLEANUPS, MILLISECONDS);
       }
     }
 
@@ -1085,7 +1085,7 @@ public class Master extends AccumuloServerContext
         } catch (Throwable t) {
           log.error("Error balancing tablets, will wait for " + WAIT_BETWEEN_ERRORS / ONE_SECOND
               + " (seconds) and then retry", t);
-          sleepUninterruptibly(WAIT_BETWEEN_ERRORS, TimeUnit.MILLISECONDS);
+          sleepUninterruptibly(WAIT_BETWEEN_ERRORS, MILLISECONDS);
         }
       }
     }
@@ -1187,7 +1187,7 @@ public class Master extends AccumuloServerContext
         // Since an unbounded thread pool is being used, rate limit how fast task are added to the
         // executor. This prevents the threads from growing large unless there are lots of
         // unresponsive tservers.
-        sleepUninterruptibly(Math.max(1, rpcTimeout / 120_000), TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(Math.max(1, rpcTimeout / 120_000), MILLISECONDS);
       }
       tp.submit(new Runnable() {
         @Override
@@ -1236,7 +1236,7 @@ public class Master extends AccumuloServerContext
     }
     tp.shutdown();
     try {
-      tp.awaitTermination(Math.max(10000, rpcTimeout / 3), TimeUnit.MILLISECONDS);
+      tp.awaitTermination(Math.max(10000, rpcTimeout / 3), MILLISECONDS);
     } catch (InterruptedException e) {
       log.debug("Interrupted while fetching status");
     }
@@ -1364,7 +1364,7 @@ public class Master extends AccumuloServerContext
           log.info("Waiting for AuthenticationTokenKeyManager to be initialized");
           logged = true;
         }
-        sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(200, MILLISECONDS);
       }
       // And log when we are initialized
       log.info("AuthenticationTokenSecretManager is initialized");
@@ -1389,7 +1389,7 @@ public class Master extends AccumuloServerContext
     masterLock.replaceLockData(address.getBytes());
 
     while (!clientService.isServing()) {
-      sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(100, MILLISECONDS);
     }
 
     // Start the daemon to scan the replication table and make units of work
@@ -1435,7 +1435,7 @@ public class Master extends AccumuloServerContext
     }
 
     while (clientService.isServing()) {
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(500, MILLISECONDS);
     }
     log.info("Shutting down fate.");
     fate.shutdown();
@@ -1501,10 +1501,9 @@ public class Master extends AccumuloServerContext
     long retries = 10;
     long waitPeriod = maxWait / retries;
 
-    Retry tserverRetry =
-        Retry.builder().maxRetries(retries).retryAfter(waitPeriod, TimeUnit.MILLISECONDS)
-            .incrementBy(0, TimeUnit.MILLISECONDS).maxWait(waitPeriod, TimeUnit.MILLISECONDS)
-            .logInterval(30_000, TimeUnit.MILLISECONDS).createRetry();
+    Retry tserverRetry = Retry.builder().maxRetries(retries).retryAfter(waitPeriod, MILLISECONDS)
+        .incrementBy(0, MILLISECONDS).maxWait(waitPeriod, MILLISECONDS)
+        .logInterval(30_000, MILLISECONDS).createRetry();
 
     log.info("Checking for tserver availability - need to reach {} servers. Have {}",
         minTserverCount, tserverSet.size());
@@ -1635,7 +1634,7 @@ public class Master extends AccumuloServerContext
 
       masterLock.tryToCancelAsyncLockOrUnlock();
 
-      sleepUninterruptibly(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, MILLISECONDS);
     }
 
     setMasterState(MasterState.HAVE_LOCK);
