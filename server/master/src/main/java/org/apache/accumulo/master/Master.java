@@ -1491,7 +1491,8 @@ public class Master extends AccumuloServerContext
           tserverSet.size(), Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
       return;
     }
-    long userWait = accConfig.getTimeInMillis(Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT);
+    long userWait = MILLISECONDS
+        .toSeconds(accConfig.getTimeInMillis(Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT));
 
     // Setting retry values for defined wait timeouts
     long retries = 10;
@@ -1507,13 +1508,13 @@ public class Master extends AccumuloServerContext
 
       // If indefinitely blocking, change retry values to support incremental backoff and logging.
       retries = userWait;
-      initialWait = Math.min(50, userWait / 2);
-      maxWaitPeriod = Math.min(30_000, userWait / retries);
+      initialWait = 1;
+      maxWaitPeriod = 30;
       waitIncrement = 5;
     }
 
-    Retry tserverRetry = Retry.builder().maxRetries(retries).retryAfter(initialWait, MILLISECONDS)
-        .incrementBy(waitIncrement, SECONDS).maxWait(maxWaitPeriod, MILLISECONDS)
+    Retry tserverRetry = Retry.builder().maxRetries(retries).retryAfter(initialWait, SECONDS)
+        .incrementBy(waitIncrement, SECONDS).maxWait(maxWaitPeriod, SECONDS)
         .logInterval(30, SECONDS).createRetry();
 
     log.info("Checking for tserver availability - need to reach {} servers. Have {}",
