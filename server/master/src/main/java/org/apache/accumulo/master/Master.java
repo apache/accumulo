@@ -84,6 +84,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
+import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -1489,40 +1490,41 @@ public class Master extends AccumuloServerContext
           tserverSet.size(), Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
       return;
     }
-    long maxWait = TimeUnit.MILLISECONDS
-        .toNanos(accConfig.getTimeInMillis(Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT));
+    long maxWait = accConfig.getTimeInMillis(Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT);
 
     if (maxWait <= 0) {
       log.info("tserver availability check set to block indefinitely, To change, set {} > 0.",
           Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT.getKey());
       maxWait = Long.MAX_VALUE;
     }
-    long sleepInterval = maxWait / 10;
 
-    // Set an incremental logging delay of 15 seconds.
-    long logIncrement = TimeUnit.SECONDS.toNanos(15);
-    long logWait = 0;
-    long lastLog = 0;
+    long retries = 10;
+    long waitPeriod = maxWait / retries;
+
+    Retry tserverRetry =
+        Retry.builder().maxRetries(retries).retryAfter(waitPeriod, TimeUnit.MILLISECONDS)
+            .incrementBy(0, TimeUnit.MILLISECONDS).maxWait(waitPeriod, TimeUnit.MILLISECONDS)
+            .logInterval(30_000, TimeUnit.MILLISECONDS).createRetry();
 
     log.info("Checking for tserver availability - need to reach {} servers. Have {}",
         minTserverCount, tserverSet.size());
 
     boolean needTservers = tserverSet.size() < minTserverCount;
 
-    while (needTservers && ((System.nanoTime() - waitStart) < maxWait)) {
-      needTservers = tserverSet.size() < minTserverCount;
-      long currentTime = System.nanoTime();
+    while (needTservers && tserverRetry.canRetry()) {
 
-      // Determine when to log a message
-      if (needTservers && ((currentTime - lastLog) > logWait)) {
-        log.info(
-            "Blocking for tserver availability - need to reach {} servers. Have {}"
-                + " Time spent blocking {} sec.",
-            minTserverCount, tserverSet.size(), NANOSECONDS.toSeconds(currentTime - waitStart));
-        lastLog = currentTime;
-        logWait = logWait + logIncrement;
+      tserverRetry.waitForNextAttempt();
+
+      needTservers = tserverSet.size() < minTserverCount;
+
+      // suppress last message once threshold reached.
+      if (needTservers) {
+        tserverRetry.logRetry(log, String.format(
+            "Blocking for tserver availability - need to reach %s servers. Have %s Time spent blocking %s seconds.",
+            minTserverCount, tserverSet.size(),
+            NANOSECONDS.toSeconds(System.nanoTime() - waitStart)));
       }
-      sleepUninterruptibly(sleepInterval, NANOSECONDS);
+      tserverRetry.useRetry();
     }
 
     if (tserverSet.size() < minTserverCount) {
