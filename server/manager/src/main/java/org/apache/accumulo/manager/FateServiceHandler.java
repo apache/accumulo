@@ -377,8 +377,7 @@ class FateServiceHandler implements FateService.Iface {
 
         final boolean canOnlineOfflineTable;
         try {
-          canOnlineOfflineTable =
-              manager.security.canOnlineOfflineOnDemandTable(c, tableId, op, namespaceId);
+          canOnlineOfflineTable = manager.security.canChangeTableState(c, tableId, op, namespaceId);
         } catch (ThriftSecurityException e) {
           throwIfTableMissingSecurityException(e, tableId, null, TableOperation.ONLINE);
           throw e;
@@ -402,8 +401,7 @@ class FateServiceHandler implements FateService.Iface {
 
         final boolean canOnlineOfflineTable;
         try {
-          canOnlineOfflineTable =
-              manager.security.canOnlineOfflineOnDemandTable(c, tableId, op, namespaceId);
+          canOnlineOfflineTable = manager.security.canChangeTableState(c, tableId, op, namespaceId);
         } catch (ThriftSecurityException e) {
           throwIfTableMissingSecurityException(e, tableId, null, TableOperation.OFFLINE);
           throw e;
@@ -428,8 +426,7 @@ class FateServiceHandler implements FateService.Iface {
 
         final boolean canOnDemandTable;
         try {
-          canOnDemandTable =
-              manager.security.canOnlineOfflineOnDemandTable(c, tableId, op, namespaceId);
+          canOnDemandTable = manager.security.canChangeTableState(c, tableId, op, namespaceId);
         } catch (ThriftSecurityException e) {
           throwIfTableMissingSecurityException(e, tableId, null, TableOperation.ONDEMAND);
           throw e;
