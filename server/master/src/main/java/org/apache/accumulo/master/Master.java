@@ -19,6 +19,7 @@ package org.apache.accumulo.master;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -1490,39 +1491,29 @@ public class Master extends AccumuloServerContext
           tserverSet.size(), Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
       return;
     }
-    long maxWait = accConfig.getTimeInMillis(Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT);
 
-    if (maxWait <= 0) {
+    long totalWaitTimeNanos = MILLISECONDS
+        .toNanos(accConfig.getTimeInMillis(Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT));
+
+    if (totalWaitTimeNanos <= 0) {
       log.info("tserver availability check set to block indefinitely, To change, set {} > 0.",
           Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT.getKey());
-      maxWait = Long.MAX_VALUE;
+      totalWaitTimeNanos = Long.MAX_VALUE;
     }
 
-    long retries = 10;
-    long waitPeriod = maxWait / retries;
-
-    Retry tserverRetry = Retry.builder().maxRetries(retries).retryAfter(waitPeriod, MILLISECONDS)
-        .incrementBy(0, MILLISECONDS).maxWait(waitPeriod, MILLISECONDS)
-        .logInterval(30_000, MILLISECONDS).createRetry();
+    Retry tserverRetry = Retry.builder().infiniteRetries().retryAfter(1, SECONDS)
+        .incrementBy(5, SECONDS).maxWait(30, SECONDS).logInterval(30, SECONDS).createRetry();
 
     log.info("Checking for tserver availability - need to reach {} servers. Have {}",
         minTserverCount, tserverSet.size());
 
-    boolean needTservers = tserverSet.size() < minTserverCount;
-
-    while (needTservers && tserverRetry.canRetry()) {
-
+    while (waitForServers(minTserverCount, waitStart, totalWaitTimeNanos)
+        && tserverRetry.canRetry()) {
       tserverRetry.waitForNextAttempt();
-
-      needTservers = tserverSet.size() < minTserverCount;
-
-      // suppress last message once threshold reached.
-      if (needTservers) {
-        tserverRetry.logRetry(log, String.format(
-            "Blocking for tserver availability - need to reach %s servers. Have %s Time spent blocking %s seconds.",
-            minTserverCount, tserverSet.size(),
-            NANOSECONDS.toSeconds(System.nanoTime() - waitStart)));
-      }
+      tserverRetry.logRetry(log, String.format(
+          "Blocking for tserver availability - need to reach %s servers. Have %s Time spent blocking %s seconds.",
+          minTserverCount, tserverSet.size(),
+          NANOSECONDS.toSeconds(System.nanoTime() - waitStart)));
       tserverRetry.useRetry();
     }
 
@@ -1538,6 +1529,12 @@ public class Master extends AccumuloServerContext
               + " Time waiting {} sec",
           tserverSet.size(), minTserverCount, NANOSECONDS.toSeconds(System.nanoTime() - waitStart));
     }
+  }
+
+  private boolean waitForServers(final long minTserverCount, final long startNanos,
+      final long totalWaitTime) {
+    long now = System.nanoTime();
+    return (now - startNanos) < totalWaitTime && tserverSet.size() < minTserverCount;
   }
 
   private long remaining(long deadline) {
