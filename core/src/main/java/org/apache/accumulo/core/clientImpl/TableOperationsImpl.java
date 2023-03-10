@@ -1515,6 +1515,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public boolean isOnDemand(String tableName) throws AccumuloException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
+    if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
+      return false;
+    }
+
     TableId tableId = context.getTableId(tableName);
     TableState expectedState = context.getTableState(tableId, true);
     return expectedState == TableState.ONDEMAND;
@@ -1529,6 +1533,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void onDemand(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+
+    if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
+      throw new AccumuloException("Cannot set table to onDemand state");
+    }
 
     EXISTING_TABLE_NAME.validate(tableName);
 
