@@ -30,10 +30,7 @@ import org.apache.accumulo.core.client.ConditionalWriter.Status;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.*;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -324,6 +321,98 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       Assert.assertEquals(Set.of(e1, e2, e3, e4), results.keySet());
 
+    }
+  }
+
+  @Test
+  public void testOperations() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+
+      SortedSet<Text> splits = new TreeSet<>(List.of(new Text("c"), new Text("f"), new Text("j")));
+      c.tableOperations().create(tableName,
+          new NewTableConfiguration().withSplits(splits).createOffline());
+
+      // TODO need to ungrant?
+      c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+          TablePermission.WRITE);
+
+      var tid = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+
+      var e1 = new KeyExtent(tid, new Text("c"), null);
+      var e2 = new KeyExtent(tid, new Text("f"), new Text("c"));
+      var e3 = new KeyExtent(tid, new Text("j"), new Text("f"));
+      var e4 = new KeyExtent(tid, null, new Text("j"));
+
+      var context = cluster.getServerContext();
+
+      var opid1 = new OperationId("1234");
+      var opid2 = new OperationId("5678");
+
+      var ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireOperation(TabletOperation.NONE)
+          .putOperation(TabletOperation.SPLITTING).putOperationId(opid1).submit();
+      ctmi.mutateTablet(e2).requireOperation(TabletOperation.NONE)
+          .putOperation(TabletOperation.MERGING).putOperationId(opid2).submit();
+      ctmi.mutateTablet(e3).requireOperation(TabletOperation.SPLITTING).requireOperationId(opid1)
+          .putOperation(TabletOperation.NONE).submit();
+      var results = ctmi.process();
+
+      Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      Assert.assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
+      Assert.assertEquals(Status.REJECTED, results.get(e3).getStatus());
+      Assert.assertEquals(TabletOperation.SPLITTING,
+          context.getAmple().readTablet(e1).getOperation());
+      Assert.assertEquals(opid1, context.getAmple().readTablet(e1).getOperationId());
+      Assert.assertEquals(TabletOperation.MERGING,
+          context.getAmple().readTablet(e2).getOperation());
+      Assert.assertEquals(opid2, context.getAmple().readTablet(e2).getOperationId());
+      Assert.assertEquals(TabletOperation.NONE, context.getAmple().readTablet(e3).getOperation());
+      Assert.assertEquals(null, context.getAmple().readTablet(e3).getOperationId());
+
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireOperation(TabletOperation.MERGING)
+          .putOperation(TabletOperation.NONE).putOperationId(opid1).submit();
+      ctmi.mutateTablet(e2).requireOperation(TabletOperation.SPLITTING)
+          .putOperation(TabletOperation.NONE).putOperationId(opid2).submit();
+      ctmi.mutateTablet(e3).requireOperation(TabletOperation.SPLITTING).requireOperationId(opid1)
+          .putOperation(TabletOperation.NONE).submit();
+      results = ctmi.process();
+
+      Assert.assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      Assert.assertEquals(Status.REJECTED, results.get(e2).getStatus());
+      Assert.assertEquals(TabletOperation.SPLITTING,
+          context.getAmple().readTablet(e1).getOperation());
+      Assert.assertEquals(TabletOperation.MERGING,
+          context.getAmple().readTablet(e2).getOperation());
+
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireOperationId(opid2).putOperation(TabletOperation.NONE)
+          .putOperationId(opid1).submit();
+      ctmi.mutateTablet(e2).requireOperationId(opid1).putOperation(TabletOperation.NONE)
+          .putOperationId(opid2).submit();
+      results = ctmi.process();
+
+      Assert.assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      Assert.assertEquals(Status.REJECTED, results.get(e2).getStatus());
+      Assert.assertEquals(TabletOperation.SPLITTING,
+          context.getAmple().readTablet(e1).getOperation());
+      Assert.assertEquals(TabletOperation.MERGING,
+          context.getAmple().readTablet(e2).getOperation());
+
+      ctmi = new ConditionalTabletsMutatorImpl(context);
+      ctmi.mutateTablet(e1).requireOperation(TabletOperation.SPLITTING).requireOperationId(opid1)
+          .putOperation(TabletOperation.NONE).deleteOperationId().submit();
+      ctmi.mutateTablet(e2).requireOperation(TabletOperation.MERGING).requireOperationId(opid2)
+          .putOperation(TabletOperation.NONE).deleteOperationId().submit();
+      results = ctmi.process();
+
+      Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      Assert.assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
+      Assert.assertEquals(TabletOperation.NONE, context.getAmple().readTablet(e1).getOperation());
+      Assert.assertEquals(null, context.getAmple().readTablet(e1).getOperationId());
+      Assert.assertEquals(TabletOperation.NONE, context.getAmple().readTablet(e2).getOperation());
+      Assert.assertEquals(null, context.getAmple().readTablet(e2).getOperationId());
     }
   }
 
