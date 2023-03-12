@@ -18,12 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeMap;
+import java.util.*;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -161,6 +156,14 @@ public class MetadataOperations {
     if (splits.isEmpty())
       return;
 
+    Preconditions.checkArgument(splits.stream().allMatch(split -> extent.contains(split)));
+
+    // Create the new extents that need to be added to the metadata table
+    Set<KeyExtent> newExtents = computeNewExtents(extent, splits);
+
+    // The original extent will be mutated into the following extent
+    var lastExtent = new KeyExtent(extent.tableId(), extent.endRow(), splits.last());
+
     var result = attemptToReserveTablet(ample, extent, TabletOperation.SPLITTING, splitId);
 
     if (result.getStatus() == ConditionalWriter.Status.ACCEPTED
@@ -171,12 +174,6 @@ public class MetadataOperations {
     } else {
       throw new IllegalStateException("unexpected status " + result.getStatus());
     }
-
-    // Create the new extents that need to be added to the metadata table
-    Set<KeyExtent> newExtents = computeNewExtents(extent, splits);
-
-    // The original extent will be mutated into the following extent
-    var lastExtent = new KeyExtent(extent.tableId(), extent.endRow(), splits.last());
 
     // get the exitsing tablets that fall in the range of the original extent. This method is
     // idempotent so, it possible some of the work was done in a previous call
@@ -208,14 +205,22 @@ public class MetadataOperations {
       throw new RuntimeException(); // TODO exception and message
     }
 
-    Collection<StoredTabletFile> files = primaryTabletMetadata.getFiles();
-
     if (addSplits) {
+      // TODO need to pass in relative size of each split and use this partition the current files
+      // sizes
+      Map<TabletFile,DataFileValue> splitFiles = new HashMap<>();
+      primaryTabletMetadata.getFilesMap().forEach((file, dfv) -> {
+        var size = (int) (dfv.getSize() / (double) (newExtents.size() + 1));
+        var entries = (int) (dfv.getNumEntries() / (double) (newExtents.size() + 1));
+        var newDfv = new DataFileValue(size, entries, dfv.getTime());
+        splitFiles.put(file, newDfv);
+      });
+
       // add new tablets to the metadata table
-      addNewSplit(ample, splitId, newExtents, existingMetadata, primaryTabletMetadata, files);
+      addNewSplits(ample, splitId, newExtents, existingMetadata, primaryTabletMetadata, splitFiles);
 
       // all new tablets were added, now change the prev row on the original tablet
-      updatePrevEndRow(ample, extent, splitId, lastExtent);
+      updateSplitTablet(ample, extent, splitId, lastExtent, splitFiles);
     }
 
     // remove splitting operation from new tablets
@@ -265,8 +270,9 @@ public class MetadataOperations {
     return tabletsMutator.process();
   }
 
-  private static void updatePrevEndRow(Ample ample, KeyExtent extent, OperationId splitId,
-      KeyExtent lastExtent) throws AccumuloException, AccumuloSecurityException {
+  private static void updateSplitTablet(Ample ample, KeyExtent extent, OperationId splitId,
+      KeyExtent lastExtent, Map<TabletFile,DataFileValue> splitFiles)
+      throws AccumuloException, AccumuloSecurityException {
     var tabletMutator = ample.conditionallyMutateTablets().mutateTablet(extent);
 
     tabletMutator.requireOperation(TabletOperation.SPLITTING);
@@ -275,15 +281,18 @@ public class MetadataOperations {
 
     tabletMutator.putPrevEndRow(lastExtent.prevEndRow());
 
+    // update exisitng tablets file sizes
+    splitFiles.forEach(tabletMutator::putFile);
+
     if (tabletMutator.submit().process().get(extent).getStatus()
         != ConditionalWriter.Status.ACCEPTED) {
       throw new RuntimeException(); // TODO message and exception
     }
   }
 
-  private static void addNewSplit(Ample ample, OperationId splitId, Set<KeyExtent> newExtents,
+  private static void addNewSplits(Ample ample, OperationId splitId, Set<KeyExtent> newExtents,
       Map<KeyExtent,TabletMetadata> existingMetadata, TabletMetadata primaryTabletMetadata,
-      Collection<StoredTabletFile> files) {
+      Map<TabletFile,DataFileValue> splitFiles) {
     var tabletsMutator = ample.conditionallyMutateTablets();
     for (KeyExtent newExtent : newExtents) {
       if (existingMetadata.containsKey(newExtent)) {
@@ -302,8 +311,7 @@ public class MetadataOperations {
         newTabletMutator.putOperationId(splitId);
         newTabletMutator.putTime(primaryTabletMetadata.getTime());
         newTabletMutator.putPrevEndRow(newExtent.prevEndRow());
-        files.forEach(file -> newTabletMutator.putFile(file, null)); // TODO need a data file
-                                                                     // value for the file
+        splitFiles.forEach(newTabletMutator::putFile);
         newTabletMutator.submit();
 
       }
