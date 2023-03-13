@@ -156,7 +156,7 @@ class WriteExportFiles extends ManagerRepo {
   public static void exportTable(VolumeManager fs, ServerContext context, String tableName,
       TableId tableID, String exportDir) throws Exception {
 
-    int count = 0;
+    // int count = 0;
     Set<String> volumeSet = new TreeSet<>();
 
     fs.mkdirs(new Path(exportDir));
@@ -194,14 +194,7 @@ class WriteExportFiles extends ManagerRepo {
       // make a set of unique volumes from the map
       for (String fileString : uniqueFiles.values()) {
         String[] fileSegmentArray = fileString.split("/");
-        for (String fileSegment : fileSegmentArray) {
-          ++count;
-          if (count == 3) {
-            volumeSet.add(fileSegment);
-            break;
-          }
-        }
-        count = 0;
+        volumeSet.add(fileSegmentArray[2]);
       }
 
       // for each unique volume: get every matching entry in the map and send to createDistcpFile
@@ -225,7 +218,7 @@ class WriteExportFiles extends ManagerRepo {
   private static void createDistcpFile(VolumeManager fs, String exportDir, Path exportMetaFilePath,
       Set<String> uniqueFiles, String volumeName) throws IOException {
     if (volumeName.contains(":")) {
-      volumeName = volumeName.substring(0, volumeName.indexOf(":"));
+      volumeName = volumeName.replace(":", "-");
     }
 
     BufferedWriter distcpOut = new BufferedWriter(new OutputStreamWriter(
