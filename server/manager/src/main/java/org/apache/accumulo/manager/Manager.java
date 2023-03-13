@@ -1348,6 +1348,7 @@ public class Manager extends AbstractServer
     }
     long userWait = MILLISECONDS.toSeconds(
         getConfiguration().getTimeInMillis(Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT));
+
     // Setting retry values for defined wait timeouts
     long retries = 10;
     // Set these to the same value so the max possible wait time always matches the provided maxWait
@@ -1357,7 +1358,7 @@ public class Manager extends AbstractServer
 
     if (userWait <= 0) {
       log.info("tserver availability check set to block indefinitely, To change, set {} > 0.",
-          Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
+          Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT.getKey());
       userWait = Long.MAX_VALUE;
 
       // If indefinitely blocking, change retry values to support incremental backoff and logging.
