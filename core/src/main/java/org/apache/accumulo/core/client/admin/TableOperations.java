@@ -1019,7 +1019,7 @@ public interface TableOperations {
    * @param tableName the table to take online
    * @throws AccumuloException when there is a general accumulo error
    * @throws AccumuloSecurityException when the user does not have the proper permissions
-   * @since 4.0.0
+   * @since 3.1.0
    */
   void onDemand(String tableName)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
@@ -1031,7 +1031,7 @@ public interface TableOperations {
    * @param wait if true, then will not return until table is online
    * @throws AccumuloException when there is a general accumulo error
    * @throws AccumuloSecurityException when the user does not have the proper permissions
-   * @since 4.0.0
+   * @since 3.1.0
    */
   void onDemand(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
@@ -1045,7 +1045,7 @@ public interface TableOperations {
    * @param tableName the table to check if online
    * @throws AccumuloException when there is a general accumulo error
    * @return true if table's goal state is online
-   * @since 4.0.0
+   * @since 3.1.0
    */
   boolean isOnDemand(String tableName) throws AccumuloException, TableNotFoundException;
 

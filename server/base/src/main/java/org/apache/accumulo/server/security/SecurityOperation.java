@@ -525,7 +525,7 @@ public class SecurityOperation {
         || hasTablePermission(c, tableId, namespaceId, TablePermission.DROP_TABLE, false);
   }
 
-  public boolean canOnlineOfflineOnDemandTable(TCredentials c, TableId tableId, FateOperation op,
+  public boolean canChangeTableState(TCredentials c, TableId tableId, FateOperation op,
       NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.SYSTEM, namespaceId, false)
