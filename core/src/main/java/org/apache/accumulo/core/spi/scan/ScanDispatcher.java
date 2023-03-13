@@ -90,7 +90,5 @@ public interface ScanDispatcher {
    *
    * @since 2.1.0
    */
-  default ScanDispatch dispatch(DispatchParameters params) {
-    return DefaultScanDispatch.DEFAULT_SCAN_DISPATCH;
-  }
+  ScanDispatch dispatch(DispatchParameters params);
 }
