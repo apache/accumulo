@@ -43,7 +43,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -149,22 +148,10 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
       IteratorEnvironment env) {
     TableId expectedTableId = TableId.of(opts.get("expected.table.id"));
 
-    // verify getServiceEnv() and getPluginEnv() are the same objects,
-    // so further checks only need to use getPluginEnv()
-    @SuppressWarnings("deprecation")
-    ServiceEnvironment serviceEnv = env.getServiceEnv();
     PluginEnvironment pluginEnv = env.getPluginEnv();
-    if (serviceEnv != pluginEnv) {
-      throw new RuntimeException("Test failed - assertSame(getServiceEnv(),getPluginEnv())");
-    }
 
-    // verify property exists on the table config (deprecated and new),
+    // verify property exists on the table config,
     // with and without custom prefix, but not in the system config
-    @SuppressWarnings("deprecation")
-    String accTableConf = env.getConfig().get("table.custom.iterator.env.test");
-    if (!"value1".equals(accTableConf)) {
-      throw new RuntimeException("Test failed - Expected table property not found in getConfig().");
-    }
     var tableConf = pluginEnv.getConfiguration(env.getTableId());
     if (!"value1".equals(tableConf.get("table.custom.iterator.env.test"))) {
       throw new RuntimeException("Test failed - Expected table property not found in table conf.");
