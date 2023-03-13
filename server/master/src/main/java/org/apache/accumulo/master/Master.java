@@ -19,6 +19,7 @@ package org.apache.accumulo.master;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -789,7 +790,7 @@ public class Master extends AccumuloServerContext
         return MasterGoalState.valueOf(new String(data));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: " + e);
-        sleepUninterruptibly(1_000, MILLISECONDS);
+        sleepUninterruptibly(1, SECONDS);
       }
   }
 
@@ -1490,20 +1491,31 @@ public class Master extends AccumuloServerContext
           tserverSet.size(), Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
       return;
     }
-    long maxWait = accConfig.getTimeInMillis(Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT);
+    long userWait = MILLISECONDS
+        .toSeconds(accConfig.getTimeInMillis(Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT));
 
-    if (maxWait <= 0) {
+    // Setting retry values for defined wait timeouts
+    long retries = 10;
+    // Set these to the same value so the max possible wait time always matches the provided maxWait
+    long initialWait = userWait / retries;
+    long maxWaitPeriod = initialWait;
+    long waitIncrement = 0;
+
+    if (userWait <= 0) {
       log.info("tserver availability check set to block indefinitely, To change, set {} > 0.",
           Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT.getKey());
-      maxWait = Long.MAX_VALUE;
+      userWait = Long.MAX_VALUE;
+
+      // If indefinitely blocking, change retry values to support incremental backoff and logging.
+      retries = userWait;
+      initialWait = 1;
+      maxWaitPeriod = 30;
+      waitIncrement = 5;
     }
 
-    long retries = 10;
-    long waitPeriod = maxWait / retries;
-
-    Retry tserverRetry = Retry.builder().maxRetries(retries).retryAfter(waitPeriod, MILLISECONDS)
-        .incrementBy(0, MILLISECONDS).maxWait(waitPeriod, MILLISECONDS)
-        .logInterval(30_000, MILLISECONDS).createRetry();
+    Retry tserverRetry = Retry.builder().maxRetries(retries).retryAfter(initialWait, SECONDS)
+        .incrementBy(waitIncrement, SECONDS).maxWait(maxWaitPeriod, SECONDS)
+        .logInterval(30, SECONDS).createRetry();
 
     log.info("Checking for tserver availability - need to reach {} servers. Have {}",
         minTserverCount, tserverSet.size());
