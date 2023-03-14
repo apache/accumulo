@@ -1621,7 +1621,6 @@ public class Tablet implements TabletCommitter {
     // check to see if we're big enough to split
 
     long splitThreshold = tableConfiguration.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
-    long maxEndRow = tableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE);
 
     if (extent.isRootTablet() || estimateTabletSize() <= splitThreshold) {
       return false;
