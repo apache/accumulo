@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.tserver.scan;
 
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -33,7 +33,7 @@ public abstract class ScanTask<T> implements Runnable {
 
   protected final TabletHostingServer server;
   protected AtomicBoolean interruptFlag;
-  protected ArrayBlockingQueue<Object> resultQueue;
+  protected CompletableFuture<Object> resultFuture;
   protected AtomicInteger state;
   protected AtomicReference<ScanRunState> runState;
 
@@ -46,16 +46,16 @@ public abstract class ScanTask<T> implements Runnable {
     interruptFlag = new AtomicBoolean(false);
     runState = new AtomicReference<>(ScanRunState.QUEUED);
     state = new AtomicInteger(INITIAL);
-    resultQueue = new ArrayBlockingQueue<>(1);
+    resultFuture = new CompletableFuture<>();
   }
 
   protected boolean transitionToRunning() {
     return runState.compareAndSet(ScanRunState.QUEUED, ScanRunState.RUNNING);
   }
 
-  protected void addResult(Object o) {
+  protected void addResult(Object result) {
     if (state.compareAndSet(INITIAL, ADDED)) {
-      resultQueue.add(o);
+      resultFuture.complete(result);
     } else if (state.get() == ADDED) {
       throw new IllegalStateException("Tried to add more than one result");
     }
@@ -73,7 +73,7 @@ public abstract class ScanTask<T> implements Runnable {
 
     if (state.compareAndSet(INITIAL, CANCELED)) {
       interruptFlag.set(true);
-      resultQueue = null;
+      resultFuture = null;
       return true;
     }
 
@@ -81,23 +81,18 @@ public abstract class ScanTask<T> implements Runnable {
   }
 
   private String stateString(int state) {
-    String stateStr;
     switch (state) {
       case ADDED:
-        stateStr = "ADDED";
-        break;
+        return "ADDED";
       case CANCELED:
-        stateStr = "CANCELED";
-        break;
+        return "CANCELED";
       case INITIAL:
-        stateStr = "INITIAL";
-        break;
+        return "INITIAL";
       default:
-        stateStr = "UNKNOWN";
-        break;
+        return "UNKNOWN";
     }
-    return stateStr;
   }
+
 
   /**
    * @param busyTimeout when this less than 0 it has no impact. When its greater than 0 and the task
@@ -107,13 +102,13 @@ public abstract class ScanTask<T> implements Runnable {
    */
   public T get(long busyTimeout, long timeout, TimeUnit unit)
       throws InterruptedException, ExecutionException, TimeoutException {
-    ArrayBlockingQueue<Object> localRQ = resultQueue;
+    CompletableFuture<Object> localRF = resultFuture;
 
     if (isCancelled()) {
       throw new CancellationException();
     }
 
-    if (localRQ == null) {
+    if (localRF == null) {
       int st = state.get();
       throw new IllegalStateException(
           "Tried to get result twice [state=" + stateString(st) + "(" + st + ")]");
@@ -121,12 +116,12 @@ public abstract class ScanTask<T> implements Runnable {
 
     Object r;
     if (busyTimeout > 0 && runState.get() == ScanRunState.QUEUED) {
-      r = localRQ.poll(busyTimeout, unit);
+      r = localRF.get(busyTimeout, unit);
       if (r == null) {
         // we did not get anything during the busy timeout, if the task has not started lets try to
         // keep it from ever starting
         if (runState.compareAndSet(ScanRunState.QUEUED, ScanRunState.FINISHED)) {
-          // the task was queued and we prevented it from running so lets mark it canceled
+          // the task was queued, and we prevented it from running so lets mark it canceled
           state.compareAndSet(INITIAL, CANCELED);
           if (state.get() != CANCELED) {
             throw new IllegalStateException(
@@ -135,11 +130,11 @@ public abstract class ScanTask<T> implements Runnable {
         } else {
           // the task is either running or finished so lets try to get the result
           long waitTime = Math.max(0, timeout - busyTimeout);
-          r = localRQ.poll(waitTime, unit);
+          r = localRF.get(waitTime, unit);
         }
       }
     } else {
-      r = localRQ.poll(timeout, unit);
+      r = localRF.get(timeout, unit);
     }
 
     // could have been canceled while waiting
@@ -157,7 +152,7 @@ public abstract class ScanTask<T> implements Runnable {
 
     // make this method stop working now that something is being
     // returned
-    resultQueue = null;
+    resultFuture = null;
 
     if (r instanceof Throwable) {
       throw new ExecutionException((Throwable) r);
