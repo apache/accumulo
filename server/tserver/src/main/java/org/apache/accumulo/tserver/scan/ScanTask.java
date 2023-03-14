@@ -93,7 +93,6 @@ public abstract class ScanTask<T> implements Runnable {
     }
   }
 
-
   /**
    * @param busyTimeout when this less than 0 it has no impact. When its greater than 0 and the task
    *        is queued, then get() will sleep for the specified busyTimeout and if after sleeping its
