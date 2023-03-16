@@ -19,151 +19,71 @@
 package org.apache.accumulo.test.manager;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.server.AccumuloDataVersion.REMOVE_DEPRECATIONS_FOR_VERSION_3;
 import static org.apache.accumulo.server.AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mockStatic;
 
-import java.io.File;
+import java.time.Duration;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.upgrade.PreUpgradeValidation;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
-import org.apache.accumulo.server.init.ZooKeeperInitializer;
-import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.cli.AclParser;
 import org.apache.zookeeper.data.ACL;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Tag(ZOOKEEPER_TESTING_SERVER)
-public class PreUpgradeValidationIT {
+@Tag(MINI_CLUSTER_ONLY)
+public class PreUpgradeValidationIT extends SharedMiniClusterBase {
+
   private static final Logger log = LoggerFactory.getLogger(PreUpgradeValidationIT.class);
 
-  private static ZooKeeperTestingServer testZk = null;
-  private static ZooReaderWriter zrw;
-  private static ZooKeeper zooKeeper;
-  @TempDir
-  private static File tempDir;
+  private static class ConfigCallback implements MiniClusterConfigurationCallback {
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      // Only one tserver to avoid race conditions on ZK propagation (auths and configuration)
+      cfg.setNumTservers(3);
+      // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
+      Map<String,String> siteConf = cfg.getSiteConfig();
+      cfg.setSiteConfig(siteConf);
+    }
+  }
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
+  }
 
   @BeforeAll
-  public static void setupZk() {
-    // using default zookeeper port - we don't have a full configuration
-    testZk = new ZooKeeperTestingServer(tempDir);
-    zooKeeper = testZk.getZooKeeper();
-    ZooUtil.digestAuth(zooKeeper, ZooKeeperTestingServer.SECRET);
-    zrw = testZk.getZooReaderWriter();
-  }
+  public static void setupMiniCluster() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig(new PreUpgradeValidationIT.ConfigCallback());
 
-  @AfterAll
-  public static void shutdownZK() throws Exception {
-    testZk.close();
-  }
+    String userDir = System.getProperty("user.dir");
 
-  @Test
-  public void noUpdateNeededTest() {
-    ServerContext context = Mockito.mock(ServerContext.class);
+    System.setProperty("hadoop.tmp.dir", userDir + "/target/hadoop-tmp");
 
-    try (var dataVersion = Mockito.mockStatic(AccumuloDataVersion.class)) {
-      dataVersion.when(() -> AccumuloDataVersion.getCurrentVersion(context))
-          .thenReturn(REMOVE_DEPRECATIONS_FOR_VERSION_3);
-      dataVersion.when(AccumuloDataVersion::get).thenReturn(REMOVE_DEPRECATIONS_FOR_VERSION_3);
-
-      PreUpgradeValidation pcheck = new PreUpgradeValidation();
-      pcheck.validate(context, null);
-
-      var unused = Mockito.verify(context);
-      // verifyNoMoreInteractions(context);
-    }
-  }
-
-  @Test
-  public void aclCheckTest() {
-    final InstanceId IID = InstanceId.of(UUID.randomUUID());
-    final String zkInstRootPath = "/accumulo/" + IID;
-
-    ServerContext context = Mockito.mock(ServerContext.class);
-
-    try (var dataVersion = Mockito.mockStatic(AccumuloDataVersion.class)) {
-      dataVersion.when(() -> AccumuloDataVersion.getCurrentVersion(context))
-          .thenReturn(ROOT_TABLET_META_CHANGES);
-      dataVersion.when(AccumuloDataVersion::get).thenReturn(REMOVE_DEPRECATIONS_FOR_VERSION_3);
-
-      Mockito.when(context.getInstanceID()).thenReturn(IID);
-      Mockito.when(context.getZooReaderWriter()).thenReturn(zrw);
-      Mockito.when(context.getZooKeeperRoot()).thenReturn(zkInstRootPath);
-
-      ZooKeeperInitializer zki = new ZooKeeperInitializer();
-      try {
-        // creates config path (required by prop store to exist)
-        zki.initializeConfig(IID, zrw);
-
-        final PropStore propStore = ZooPropStore.initialize(IID, zrw);
-        Mockito.when(context.getPropStore()).thenReturn(propStore);
-
-        zki.initialize(context, true, Constants.ZROOT + Constants.ZINSTANCES, "dir", "url");
-      } catch (Exception ex) {
-        log.warn("Test ZooKeeper initialization failed", ex);
-      }
-
-      PreUpgradeValidation pcheck = new PreUpgradeValidation();
-      pcheck.validate(context, null);
-    }
-  }
-
-  @Test
-  public void aclCheckFailTest() throws Exception {
-    final InstanceId IID = InstanceId.of(UUID.randomUUID());
-    final String zkInstRootPath = "/accumulo/" + IID;
-
-    ServerContext context = Mockito.mock(ServerContext.class);
-
-    try (var dataVersion = Mockito.mockStatic(AccumuloDataVersion.class)) {
-      dataVersion.when(() -> AccumuloDataVersion.getCurrentVersion(context))
-          .thenReturn(ROOT_TABLET_META_CHANGES);
-      dataVersion.when(AccumuloDataVersion::get).thenReturn(REMOVE_DEPRECATIONS_FOR_VERSION_3);
-
-      Mockito.when(context.getInstanceID()).thenReturn(IID);
-      Mockito.when(context.getZooReaderWriter()).thenReturn(zrw);
-      Mockito.when(context.getZooKeeperRoot()).thenReturn(zkInstRootPath);
-
-      ZooKeeperInitializer zki = new ZooKeeperInitializer();
-      try {
-        // creates config path (required by prop store to exist)
-        zki.initializeConfig(IID, zrw);
-
-        final PropStore propStore = ZooPropStore.initialize(IID, zrw);
-        Mockito.when(context.getPropStore()).thenReturn(propStore);
-
-        zki.initialize(context, true, Constants.ZROOT + Constants.ZINSTANCES, "dir", "url");
-      } catch (Exception ex) {
-        log.warn("Test ZooKeeper initialization failed", ex);
-      }
-
-      ZooUtil.auth(zooKeeper, "digest", "stranger:abcde123".getBytes(UTF_8));
-      List<ACL> pub = AclParser.parse("digest:stranger:abcde123:cdrwa");
-      zooKeeper.create(zkInstRootPath + "/strange_node1", new byte[0], pub, CreateMode.PERSISTENT);
-      zooKeeper.create(zkInstRootPath + "/strange_node2", new byte[0], pub, CreateMode.PERSISTENT);
-
-      PreUpgradeValidation pcheck = new PreUpgradeValidationWrapper();
-      assertThrows(RuntimeException.class, () -> pcheck.validate(context, null));
-    }
   }
 
   /**
@@ -175,6 +95,154 @@ public class PreUpgradeValidationIT {
     protected void fail(Exception e) {
       log.error("FATAL: Error performing pre-upgrade checks", e);
       throw new IllegalStateException("validation failed");
+    }
+  }
+
+  /**
+   * Upgrade should be skipped mini will be running the current version. The test inserts an node
+   * with an invalid ACL, but it will not be checked because the upgrade check should not run.
+   */
+  @Test
+  public void noUpdateNeededTest() throws Exception {
+    final InstanceId IID = getCluster().getServerContext().getInstanceID();
+
+    final String zkInstRootPath = "/accumulo/" + IID;
+
+    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
+    ZooKeeper zooKeeper = zrw.getZooKeeper();
+
+    ServerContext context = getCluster().getServerContext();
+
+    ZooUtil.auth(zooKeeper, "digest", "stranger:abcde123".getBytes(UTF_8));
+    List<ACL> pub = AclParser.parse("digest:stranger:abcde123:cdrwa");
+    zooKeeper.create(zkInstRootPath + "/strange_node1", new byte[0], pub, CreateMode.PERSISTENT);
+    zooKeeper.create(zkInstRootPath + "/strange_node2", new byte[0], pub, CreateMode.PERSISTENT);
+
+    PreUpgradeValidation pcheck = new PreUpgradeValidationWrapper();
+    // if invalid acls are detected, this is expected to throw an IllegalStateException.
+
+    pcheck.validate(context, null);
+
+    assertNotNull(zooKeeper.exists(zkInstRootPath + "/strange_node1", false));
+    assertNotNull(zooKeeper.exists(zkInstRootPath + "/strange_node2", false));
+
+    // clean-up
+    zooKeeper.delete(zkInstRootPath + "/strange_node1", -1);
+    zooKeeper.delete(zkInstRootPath + "/strange_node2", -1);
+
+  }
+
+  /**
+   * Force pre upgrade check to run - it will verify ACLs and locks that exist with the running
+   * mini-cluster.
+   */
+  @Test
+  public void aclCheckTest() {
+    ServerContext context = getCluster().getServerContext();
+
+    try (var dataVersion = mockStatic(AccumuloDataVersion.class)) {
+      dataVersion.when(() -> AccumuloDataVersion.getCurrentVersion(context))
+          .thenReturn(ROOT_TABLET_META_CHANGES);
+      dataVersion.when(AccumuloDataVersion::get).thenReturn(REMOVE_DEPRECATIONS_FOR_VERSION_3);
+
+      PreUpgradeValidation pcheck = new PreUpgradeValidation();
+      pcheck.validate(context, null);
+    }
+  }
+
+  /**
+   * Ingest nodes with invalid ACL and force upgrade to run.
+   */
+  @Test
+  public void aclCheckFailTest() throws Exception {
+    final InstanceId IID = getCluster().getServerContext().getInstanceID();
+
+    final String zkInstRootPath = "/accumulo/" + IID;
+
+    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
+    ZooKeeper zooKeeper = zrw.getZooKeeper();
+
+    ServerContext context = getCluster().getServerContext();
+
+    ZooUtil.auth(zooKeeper, "digest", "stranger:abcde123".getBytes(UTF_8));
+    List<ACL> pub = AclParser.parse("digest:stranger:abcde123:cdrwa");
+    zooKeeper.create(zkInstRootPath + "/strange_node1", new byte[0], pub, CreateMode.PERSISTENT);
+    zooKeeper.create(zkInstRootPath + "/strange_node2", new byte[0], pub, CreateMode.PERSISTENT);
+
+    try (var dataVersion = mockStatic(AccumuloDataVersion.class)) {
+      dataVersion.when(() -> AccumuloDataVersion.getCurrentVersion(context))
+          .thenReturn(ROOT_TABLET_META_CHANGES);
+      dataVersion.when(AccumuloDataVersion::get).thenReturn(REMOVE_DEPRECATIONS_FOR_VERSION_3);
+
+      PreUpgradeValidation pcheck = new PreUpgradeValidationWrapper();
+      assertThrows(IllegalStateException.class, () -> pcheck.validate(context, null));
+    }
+    // clean-up
+    zooKeeper.delete(zkInstRootPath + "/strange_node1", -1);
+    zooKeeper.delete(zkInstRootPath + "/strange_node2", -1);
+
+  }
+
+  @Test
+  public void aclTserverLocksTest() throws Exception {
+    final InstanceId IID = getCluster().getServerContext().getInstanceID();
+
+    final String zkInstRootPath = "/accumulo/" + IID;
+
+    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
+    ZooKeeper zooKeeper = zrw.getZooKeeper();
+
+    ServerContext context = getCluster().getServerContext();
+
+    try (var dataVersion = mockStatic(AccumuloDataVersion.class)) {
+      dataVersion.when(() -> AccumuloDataVersion.getCurrentVersion(context))
+          .thenReturn(ROOT_TABLET_META_CHANGES);
+      dataVersion.when(AccumuloDataVersion::get).thenReturn(REMOVE_DEPRECATIONS_FOR_VERSION_3);
+
+      String zkTserver = zkInstRootPath + Constants.ZTSERVERS;
+      String hostA = "localhost:19998";
+      zrw.putPersistentData(zkTserver + "/" + hostA, new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
+      // write legacy lock data
+      zrw.putPersistentData(
+          zkTserver + "/" + hostA + "/zlock#74a2f2ef-8d1d-4ff0-a5de-6e8cfd8bb046#0000000000",
+          hostA.getBytes(UTF_8), ZooUtil.NodeExistsPolicy.SKIP);
+
+      String hostB = "localhost:19999";
+      zrw.putPersistentData(zkTserver + "/" + hostB, new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
+      // write legacy lock data
+      String lockDataB =
+          "{\"descriptors\":[{\"uuid\":\"74a2f2ef-8d1d-4ff0-a5de-6e8cfd8bb046\",\"service\":\"TABLET_MANAGEMENT\",\"address\":\"localhost:9997\",\"group\":\"default\"},{\"uuid\":\"74a2f2ef-8d1d-4ff0-a5de-6e8cfd8bb046\",\"service\":\"TABLET_SCAN\",\"address\":\"localhost:9997\",\"group\":\"default\"},{\"uuid\":\"74a2f2ef-8d1d-4ff0-a5de-6e8cfd8bb046\",\"service\":\"CLIENT\",\"address\":\"localhost:9997\",\"group\":\"default\"},{\"uuid\":\"74a2f2ef-8d1d-4ff0-a5de-6e8cfd8bb046\",\"service\":\"TSERV\",\"address\":\"localhost:9997\",\"group\":\"default\"},{\"uuid\":\"74a2f2ef-8d1d-4ff0-a5de-6e8cfd8bb046\",\"service\":\"TABLET_INGEST\",\"address\":\"localhost:9997\",\"group\":\"default\"}]}\n";
+      zrw.putPersistentData(
+          zkTserver + "/" + hostB + "/zlock#74a2f2ef-8d1d-4ff0-a5de-6e8cfd8bb046#0000000000",
+          lockDataB.getBytes(UTF_8), ZooUtil.NodeExistsPolicy.SKIP);
+
+      log.info("BEFORE: root:{}", zooKeeper.getChildren(zkTserver + "/" + hostA, false));
+
+      assertNotNull(zooKeeper.exists(
+          zkTserver + "/" + hostA + "/zlock#74a2f2ef-8d1d-4ff0-a5de-6e8cfd8bb046#0000000000",
+          false));
+      assertNotNull(zooKeeper.exists(
+          zkTserver + "/" + hostB + "/zlock#74a2f2ef-8d1d-4ff0-a5de-6e8cfd8bb046#0000000000",
+          false));
+      PreUpgradeValidation pcheck = new PreUpgradeValidation();
+      pcheck.validate(context, null);
+
+      log.info("AFTER: root:{}", zooKeeper.getChildren(zkTserver + "/" + hostA, false));
+      // can't be parsed - should be removed
+      assertNull(zooKeeper.exists(
+          zkTserver + "/" + hostA + "/zlock#74a2f2ef-8d1d-4ff0-a5de-6e8cfd8bb046#0000000000",
+          false));
+      // parsable - but no thrift should be deleted
+      assertNull(zooKeeper.exists(
+          zkTserver + "/" + hostB + "/zlock#74a2f2ef-8d1d-4ff0-a5de-6e8cfd8bb046#0000000000",
+          false));
+
+      // validate that valid tserver locks were not removed and tservers remain active.
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+        List<String> activeTservers = client.instanceOperations().getTabletServers();
+        log.warn("ACTIVE: {}", activeTservers);
+        assertEquals(3, activeTservers.size());
+      }
     }
   }
 }
