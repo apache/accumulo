@@ -158,12 +158,11 @@ public class FateIT {
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
     try {
-      ConfigurationCopy config = new ConfigurationCopy();
-      config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-      config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-      fate.startTransactionRunners(config);
 
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
@@ -219,12 +218,11 @@ public class FateIT {
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
     try {
-      ConfigurationCopy config = new ConfigurationCopy();
-      config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-      config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-      fate.startTransactionRunners(config);
 
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
@@ -247,39 +245,6 @@ public class FateIT {
   }
 
   @Test
-  public void testCancelWhileSubmittedNotRunning() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
-
-    Manager manager = createMock(Manager.class);
-    ServerContext sctx = createMock(ServerContext.class);
-    expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
-    replay(manager, sctx);
-
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
-    ConfigurationCopy config = new ConfigurationCopy();
-    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-
-    // Notice that we did not start the transaction runners
-
-    // Wait for the transaction runner to be scheduled.
-    UtilWaitThread.sleep(3000);
-
-    callStarted = new CountDownLatch(1);
-    finishCall = new CountDownLatch(1);
-
-    long txid = fate.startTransaction();
-    LOG.debug("Starting test testCancelWhileSubmitted with {}", FateTxId.formatTid(txid));
-    assertEquals(NEW, getTxStatus(zk, txid));
-    fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
-    assertEquals(SUBMITTED, getTxStatus(zk, txid));
-    assertTrue(fate.cancel(txid));
-  }
-
-  @Test
   public void testCancelWhileSubmittedAndRunning() throws Exception {
     final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
     final AgeOffStore<Manager> store =
@@ -292,12 +257,11 @@ public class FateIT {
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
     try {
-      ConfigurationCopy config = new ConfigurationCopy();
-      config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-      config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-      fate.startTransactionRunners(config);
 
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
@@ -334,12 +298,11 @@ public class FateIT {
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString, config);
     try {
-      ConfigurationCopy config = new ConfigurationCopy();
-      config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-      config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-      fate.startTransactionRunners(config);
 
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
