@@ -184,8 +184,10 @@ public class PreUpgradeValidation {
             "Timed out waiting for lock check to finish - continuing, but tservers running prior versions may be present");
       }
     } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("interrupted validating service locks in ZooKeeper", ex);
+      var remaining = lockCheckPool.shutdownNow();
+      log.warn(
+          "Interrupted waiting for lock check to finish. {} tasks were remaing.  Continuing, by tservers running prior versions may be present",
+          remaining.size());
     }
     if (pathErrors.size() == 0) {
       log.info("Completed tserver lock check with no lock path errors");
