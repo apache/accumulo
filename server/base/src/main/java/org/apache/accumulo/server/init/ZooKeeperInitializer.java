@@ -62,7 +62,7 @@ public class ZooKeeperInitializer {
    * @param instanceId the instance id
    * @param zoo a ZooReaderWriter
    */
-  public void initializeConfig(final InstanceId instanceId, final ZooReaderWriter zoo) {
+  void initializeConfig(final InstanceId instanceId, final ZooReaderWriter zoo) {
     try {
 
       zoo.putPersistentData(Constants.ZROOT, new byte[0], ZooUtil.NodeExistsPolicy.SKIP,
@@ -87,7 +87,7 @@ public class ZooKeeperInitializer {
     }
   }
 
-  public void initialize(final ServerContext context, final boolean clearInstanceName,
+  void initialize(final ServerContext context, final boolean clearInstanceName,
       final String instanceNamePath, final String rootTabletDirName, final String rootTabletFileUri)
       throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
