@@ -22,12 +22,14 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -133,7 +135,7 @@ public class PreUpgradeValidation {
 
   @SuppressFBWarnings(value = "DM_EXIT",
       justification = "Want to immediately stop all threads on upgrade error")
-  private void fail(Exception e) {
+  protected void fail(Exception e) {
     log.error("FATAL: Error performing pre-upgrade checks", e);
     System.exit(1);
   }
@@ -147,15 +149,15 @@ public class PreUpgradeValidation {
 
     log.debug("Looking for locks that may be from previous version in path: {}", tserverLockRoot);
 
-    AtomicInteger errorCount = new AtomicInteger(0);
-
     List<Pair<HostAndPort,ServiceLock.ServiceLockPath>> hostsWithLocks =
         gatherLocks(zk, tserverLockRoot);
 
-    // try a thrift call to the hosts - hosts running previous versions will fail the call
-    ThreadPoolExecutor lockCheckPool = ThreadPools.getServerThreadPools().createThreadPool(8, 64,
-        10, MINUTES, "update-lock-check", false);
+    int numCheckThreads = Math.max(32, Runtime.getRuntime().availableProcessors() - 2);
+    ThreadPoolExecutor lockCheckPool = ThreadPools.getServerThreadPools().createThreadPool(8,
+        numCheckThreads, 10, MINUTES, "update-lock-check", false);
 
+    // try a thrift call to the hosts - hosts running previous versions will fail the call
+    final Map<String,String> pathErrors = new ConcurrentHashMap<>(0);
     hostsWithLocks.forEach(h -> lockCheckPool.execute(() -> {
       HostAndPort host = h.getFirst();
       ServiceLock.ServiceLockPath lockPath = h.getSecond();
@@ -166,12 +168,11 @@ public class PreUpgradeValidation {
             lockPath, ex);
         try {
           zk.delete(lockPath.toString(), -1);
-          errorCount.incrementAndGet();
         } catch (KeeperException.NoNodeException e) {
           // ignore - node already gone.
         } catch (InterruptedException | KeeperException e) {
           // task will be terminated - ignore interrupt.
-          errorCount.incrementAndGet();
+          pathErrors.put(lockPath.toString(), "");
         }
       }
     }));
@@ -186,7 +187,16 @@ public class PreUpgradeValidation {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("interrupted validating service locks in ZooKeeper", ex);
     }
-    log.debug("Completed tserver lock check.");
+    if (pathErrors.size() == 0) {
+      log.info("Completed tserver lock check with no lock path errors");
+    } else {
+      log.info(
+          "Completed tserver lock check with error count of: {}. (Paths printed at debug level)",
+          pathErrors.size());
+      if (log.isDebugEnabled()) {
+        log.debug("tserver lock paths that could not be processed: {}", new TreeMap<>(pathErrors));
+      }
+    }
   }
 
   private List<Pair<HostAndPort,ServiceLock.ServiceLockPath>> gatherLocks(final ZooKeeper zk,
