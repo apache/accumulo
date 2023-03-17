@@ -1024,12 +1024,11 @@ public class Manager extends AbstractServer
         }
       }));
     }
-    final long timeToWaitForCompletion = Math.max(10000, rpcTimeout / 3);
+    final long timeToWaitNanos = MILLISECONDS.toNanos(Math.max(10_000, rpcTimeout / 3));
     final long startTime = System.nanoTime();
-    final long timeToCancelTasks = startTime + MILLISECONDS.toNanos(timeToWaitForCompletion);
     // Wait for all tasks to complete
     while (!tasks.isEmpty()) {
-      boolean cancel = ((System.nanoTime() - startTime) > timeToCancelTasks);
+      boolean cancel = ((System.nanoTime() - startTime) > timeToWaitNanos);
       Iterator<Future<?>> iter = tasks.iterator();
       while (iter.hasNext()) {
         Future<?> f = iter.next();
