@@ -1025,11 +1025,11 @@ public class Manager extends AbstractServer
       }));
     }
     final long timeToWaitForCompletion = Math.max(10000, rpcTimeout / 3);
-    long currTime = NANOSECONDS.toMillis(System.nanoTime());
-    final long timeToCancelTasks = currTime + timeToWaitForCompletion;
+    final long startTime = System.nanoTime();
+    final long timeToCancelTasks = startTime + MILLISECONDS.toNanos(timeToWaitForCompletion);
     // Wait for all tasks to complete
     while (!tasks.isEmpty()) {
-      boolean cancel = (currTime > timeToCancelTasks);
+      boolean cancel = ((System.nanoTime() - startTime) > timeToCancelTasks);
       Iterator<Future<?>> iter = tasks.iterator();
       while (iter.hasNext()) {
         Future<?> f = iter.next();
@@ -1042,7 +1042,6 @@ public class Manager extends AbstractServer
         }
       }
       Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
-      currTime = NANOSECONDS.toMillis(System.nanoTime());
     }
 
     // Threads may still modify map after shutdownNow is called, so create an immutable snapshot.
