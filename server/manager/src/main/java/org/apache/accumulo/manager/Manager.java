@@ -1024,7 +1024,9 @@ public class Manager extends AbstractServer
         }
       }));
     }
-    final long timeToWaitNanos = MILLISECONDS.toNanos(Math.max(10_000, rpcTimeout / 3));
+    // wait at least 10 seconds
+    final long timeToWaitNanos =
+        MILLISECONDS.toNanos(Math.max(SECONDS.toNanos(10), MILLISECONDS.toNanos(rpcTimeout) / 3));
     final long startTime = System.nanoTime();
     // Wait for all tasks to complete
     while (!tasks.isEmpty()) {
