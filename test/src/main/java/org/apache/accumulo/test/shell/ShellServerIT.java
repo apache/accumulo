@@ -220,24 +220,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("deletetable -f " + table2, true);
   }
 
-  @Test
-  public void setscaniterDeletescaniter() throws Exception {
-    final String table = getUniqueNames(1)[0];
-
-    // setscaniter, deletescaniter
-    ts.exec("createtable " + table);
-    ts.exec("insert a cf cq 1");
-    ts.exec("insert a cf cq 1");
-    ts.exec("insert a cf cq 1");
-    ts.input.set("true\n\n\n\nSTRING");
-    ts.exec("setscaniter -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -n name", true);
-    ts.exec("scan", true, "3", true);
-    ts.exec("deletescaniter -n name", true);
-    ts.exec("scan", true, "1", true);
-    ts.exec("deletetable -f " + table);
-
-  }
-
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void execfile() throws Exception {
@@ -284,22 +266,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // for some reason, there's a bit of fluctuation
     assertMatches(o, ".*[1-9][0-9][0-9]\\s\\[" + table + "]\\n");
     ts.exec("deletetable -f " + table);
-  }
-
-  /*
-   * This test should be deleted when the debug command is removed
-   */
-  @Deprecated(since = "2.0.0")
-  @Test
-  public void debug() throws Exception {
-    String expectMsg = "The debug command is deprecated";
-    ts.exec("debug", false, expectMsg);
-    ts.exec("debug on", false, expectMsg);
-    ts.exec("debug", false, expectMsg);
-    ts.exec("debug off", false, expectMsg);
-    ts.exec("debug", false, expectMsg);
-    ts.exec("debug debug", false, expectMsg);
-    ts.exec("debug debug debug", false, expectMsg);
   }
 
   @Test
@@ -1367,23 +1333,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void info() throws Exception {
     ts.exec("info", true, Constants.VERSION, true);
-  }
-
-  @Test
-  public void interpreter() throws Exception {
-    final String table = getUniqueNames(1)[0];
-
-    ts.exec("createtable " + table, true);
-    ts.exec("interpreter -l", true, "HexScan", false);
-    ts.exec("insert \\x02 cf cq value", true);
-    ts.exec("scan -b 02", true, "value", false);
-    ts.exec("interpreter -i org.apache.accumulo.core.util.interpret.HexScanInterpreter", true);
-    // Need to allow time for this to propagate through zoocache/zookeeper
-    Thread.sleep(SECONDS.toMillis(3));
-
-    ts.exec("interpreter -l", true, "HexScan", true);
-    ts.exec("scan -b 02", true, "value", true);
-    ts.exec("deletetable -f " + table, true);
   }
 
   @Test

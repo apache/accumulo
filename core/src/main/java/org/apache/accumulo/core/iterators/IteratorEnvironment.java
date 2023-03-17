@@ -23,13 +23,11 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
 public interface IteratorEnvironment {
 
@@ -39,15 +37,6 @@ public interface IteratorEnvironment {
   @Deprecated(since = "2.0.0")
   default SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
       throws IOException {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * @deprecated since 2.0.0. This method was using an unstable non public type. Use
-   *             {@link #getPluginEnv()}
-   */
-  @Deprecated(since = "2.0.0")
-  default AccumuloConfiguration getConfig() {
     throw new UnsupportedOperationException();
   }
 
@@ -64,14 +53,6 @@ public interface IteratorEnvironment {
    * {@link #getIteratorScope()} != {@link IteratorScope#majc}.
    */
   default boolean isFullMajorCompaction() {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * @deprecated since 2.0.0. This was an experimental feature and was never tested or documented.
-   */
-  @Deprecated(since = "2.0.0")
-  default void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
     throw new UnsupportedOperationException();
   }
 
@@ -153,30 +134,13 @@ public interface IteratorEnvironment {
    * obtain a table configuration, use the following methods:
    *
    * <pre>
-   * iterEnv.getServiceEnv().getConfiguration(env.getTableId())
-   * </pre>
-   *
-   * @since 2.0.0
-   * @deprecated since 2.1.0. This method was using a non public API type. Use
-   *             {@link #getPluginEnv()} instead because it has better stability guarantees.
-   */
-  @Deprecated(since = "2.1.0")
-  default ServiceEnvironment getServiceEnv() {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Returns an object containing information about the server where this iterator was run. To
-   * obtain a table configuration, use the following methods:
-   *
-   * <pre>
    * iterEnv.getPluginEnv().getConfiguration(env.getTableId())
    * </pre>
    *
    * @since 2.1.0
    */
   default PluginEnvironment getPluginEnv() {
-    return getServiceEnv();
+    throw new UnsupportedOperationException();
   }
 
   /**

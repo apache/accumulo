@@ -85,17 +85,6 @@ public abstract class AbstractHashSampler implements Sampler {
   }
 
   /**
-   * Subclasses with options should override this method and return true if the option is valid for
-   * the subclass or if {@code super.isValidOption(opt)} returns true.
-   *
-   * @deprecated since 2.1.0, replaced by {@link #validateOptions(Map)}
-   */
-  @Deprecated(since = "2.1.0")
-  protected boolean isValidOption(String option) {
-    return REQUIRED_SAMPLER_OPTIONS.contains(option);
-  }
-
-  /**
    * Subclasses with options should override this method and call {@code super.init(config)}.
    */
   @SuppressFBWarnings(value = "UNSAFE_HASH_EQUALS",

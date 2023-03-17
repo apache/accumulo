@@ -91,7 +91,6 @@
     <module>server/compaction-coordinator</module>
     <module>server/gc</module>
     <module>server/manager</module>
-    <module>server/master</module>
     <module>server/monitor</module>
     <module>server/native</module>
     <module>server/tserver</module>
