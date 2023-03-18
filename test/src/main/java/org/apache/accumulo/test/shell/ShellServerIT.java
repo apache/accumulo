@@ -177,6 +177,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     make10();
     ts.exec("addsplits row5", true);
     ts.exec("config -t " + table + " -s table.split.threshold=345M", true);
+    Thread.sleep(100);
     ts.exec("offline " + table, true);
     File exportDir = new File(rootPath, "ShellServerIT.export");
     String exportUri = "file://" + exportDir;
