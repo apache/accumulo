@@ -167,64 +167,65 @@ public class ShellServerIT extends SharedMiniClusterBase {
         getCluster().createAccumuloClient(getPrincipal(), new PasswordToken(getRootPassword()))) {
       client.securityOperations().grantNamespacePermission(getPrincipal(), "",
           NamespacePermission.ALTER_NAMESPACE);
-    }
 
-    final String table = getUniqueNames(1)[0];
-    final String table2 = table + "2";
+      final String table = getUniqueNames(1)[0];
+      final String table2 = table + "2";
 
-    // exporttable / importtable
-    ts.exec("createtable " + table + " -evc", true);
-    make10();
-    ts.exec("addsplits row5", true);
-    ts.exec("config -t " + table + " -s table.split.threshold=345M", true);
-    Thread.sleep(100);
-    ts.exec("offline " + table, true);
-    File exportDir = new File(rootPath, "ShellServerIT.export");
-    String exportUri = "file://" + exportDir;
-    String localTmp = "file://" + new File(rootPath, "ShellServerIT.tmp");
-    ts.exec("exporttable -t " + table + " " + exportUri, true);
-    DistCp cp = new DistCp(new Configuration(false), null);
-    String import_ = "file://" + new File(rootPath, "ShellServerIT.import");
-    ClientInfo info = ClientInfo.from(getCluster().getClientProperties());
-    if (info.saslEnabled()) {
-      // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it
-      // ourselves by hand.
-      FileSystem fs = getCluster().getFileSystem();
-      FileSystem localFs = FileSystem.getLocal(new Configuration(false));
+      // exporttable / importtable
+      ts.exec("createtable " + table + " -evc", true);
+      make10();
+      ts.exec("addsplits row5", true);
+      ts.exec("config -t " + table + " -s table.split.threshold=345M", true);
+      checkTableForProperty(client.tableOperations(), table, "table.split.threshold", "345M");
 
-      // Path on local fs to cp into
-      Path localTmpPath = new Path(localTmp);
-      localFs.mkdirs(localTmpPath);
+      ts.exec("offline " + table, true);
+      File exportDir = new File(rootPath, "ShellServerIT.export");
+      String exportUri = "file://" + exportDir;
+      String localTmp = "file://" + new File(rootPath, "ShellServerIT.tmp");
+      ts.exec("exporttable -t " + table + " " + exportUri, true);
+      DistCp cp = new DistCp(new Configuration(false), null);
+      String import_ = "file://" + new File(rootPath, "ShellServerIT.import");
+      ClientInfo info = ClientInfo.from(getCluster().getClientProperties());
+      if (info.saslEnabled()) {
+        // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it
+        // ourselves by hand.
+        FileSystem fs = getCluster().getFileSystem();
+        FileSystem localFs = FileSystem.getLocal(new Configuration(false));
 
-      // Path in remote fs to importtable from
-      Path importDir = new Path(import_);
-      fs.mkdirs(importDir);
+        // Path on local fs to cp into
+        Path localTmpPath = new Path(localTmp);
+        localFs.mkdirs(localTmpPath);
 
-      // Implement a poor-man's DistCp
-      try (BufferedReader reader =
-          new BufferedReader(new FileReader(new File(exportDir, "distcp.txt"), UTF_8))) {
-        for (String line; (line = reader.readLine()) != null;) {
-          Path exportedFile = new Path(line);
-          // There isn't a cp on FileSystem??
-          log.info("Copying {} to {}", line, localTmpPath);
-          fs.copyToLocalFile(exportedFile, localTmpPath);
-          Path tmpFile = new Path(localTmpPath, exportedFile.getName());
-          log.info("Moving {} to the import directory {}", tmpFile, importDir);
-          fs.moveFromLocalFile(tmpFile, importDir);
+        // Path in remote fs to importtable from
+        Path importDir = new Path(import_);
+        fs.mkdirs(importDir);
+
+        // Implement a poor-man's DistCp
+        try (BufferedReader reader =
+            new BufferedReader(new FileReader(new File(exportDir, "distcp.txt"), UTF_8))) {
+          for (String line; (line = reader.readLine()) != null;) {
+            Path exportedFile = new Path(line);
+            // There isn't a cp on FileSystem??
+            log.info("Copying {} to {}", line, localTmpPath);
+            fs.copyToLocalFile(exportedFile, localTmpPath);
+            Path tmpFile = new Path(localTmpPath, exportedFile.getName());
+            log.info("Moving {} to the import directory {}", tmpFile, importDir);
+            fs.moveFromLocalFile(tmpFile, importDir);
+          }
         }
+      } else {
+        String[] distCpArgs = {"-f", exportUri + "/distcp.txt", import_};
+        assertEquals(0, cp.run(distCpArgs), "Failed to run distcp: " + Arrays.toString(distCpArgs));
       }
-    } else {
-      String[] distCpArgs = {"-f", exportUri + "/distcp.txt", import_};
-      assertEquals(0, cp.run(distCpArgs), "Failed to run distcp: " + Arrays.toString(distCpArgs));
+      ts.exec("importtable " + table2 + " " + import_, true);
+      Thread.sleep(100);
+      ts.exec("config -t " + table2 + " -np", true, "345M", true);
+      ts.exec("getsplits -t " + table2, true, "row5", true);
+      ts.exec("constraint --list -t " + table2, true, "VisibilityConstraint=2", true);
+      ts.exec("online " + table, true);
+      ts.exec("deletetable -f " + table, true);
+      ts.exec("deletetable -f " + table2, true);
     }
-    ts.exec("importtable " + table2 + " " + import_, true);
-    Thread.sleep(100);
-    ts.exec("config -t " + table2 + " -np", true, "345M", true);
-    ts.exec("getsplits -t " + table2, true, "row5", true);
-    ts.exec("constraint --list -t " + table2, true, "VisibilityConstraint=2", true);
-    ts.exec("online " + table, true);
-    ts.exec("deletetable -f " + table, true);
-    ts.exec("deletetable -f " + table2, true);
   }
 
   @Test
@@ -499,7 +500,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
           return;
         }
       }
-      Thread.sleep(500);
+      Thread.sleep(100 + (i * 100));
     }
 
     fail("Failed to find expected property on " + tableName + ": " + expectedKey + "="
