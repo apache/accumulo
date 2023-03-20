@@ -1445,23 +1445,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void offline(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    EXISTING_TABLE_NAME.validate(tableName);
-
-    TableId tableId = context.getTableId(tableName);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<>();
-
-    try {
-      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_OFFLINE,
-          args, opts);
-    } catch (TableExistsException e) {
-      // should not happen
-      throw new AssertionError(e);
-    }
-
-    if (wait) {
-      waitForTableStateTransition(tableId, TableState.OFFLINE);
-    }
+    changeTableState(tableName, wait, TableState.OFFLINE);
   }
 
   @Override
@@ -1479,36 +1463,65 @@ public class TableOperationsImpl extends TableOperationsHelper {
     online(tableName, false);
   }
 
-  @Override
-  public void online(String tableName, boolean wait)
+  private void changeTableState(String tableName, boolean wait, TableState newState)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
     TableId tableId = context.getTableId(tableName);
-    /**
-     * ACCUMULO-4574 if table is already online return without executing fate operation.
-     */
-    if (isOnline(tableName)) {
-      if (wait) {
-        waitForTableStateTransition(tableId, TableState.ONLINE);
-      }
-      return;
+
+    FateOperation op = null;
+    switch (newState) {
+      case OFFLINE:
+        op = FateOperation.TABLE_OFFLINE;
+        break;
+      case ONDEMAND:
+        op = FateOperation.TABLE_ONDEMAND;
+        if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
+          throw new AccumuloException("Cannot set table to onDemand state");
+        }
+        if (isOnDemand(tableName)) {
+          if (wait) {
+            waitForTableStateTransition(tableId, TableState.ONDEMAND);
+          }
+          return;
+        }
+        break;
+      case ONLINE:
+        op = FateOperation.TABLE_ONLINE;
+        /**
+         * ACCUMULO-4574 if table is already online return without executing fate operation.
+         */
+        if (isOnline(tableName)) {
+          if (wait) {
+            waitForTableStateTransition(tableId, newState);
+          }
+          return;
+        }
+        break;
+      default:
+        throw new IllegalArgumentException(newState + " is not handled.");
     }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
 
     try {
-      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_ONLINE,
-          args, opts);
+      doTableFateOperation(tableName, TableNotFoundException.class, op, args, opts);
     } catch (TableExistsException e) {
       // should not happen
       throw new AssertionError(e);
     }
 
     if (wait) {
-      waitForTableStateTransition(tableId, TableState.ONLINE);
+      waitForTableStateTransition(tableId, newState);
     }
+
+  }
+
+  @Override
+  public void online(String tableName, boolean wait)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    changeTableState(tableName, wait, TableState.ONLINE);
   }
 
   @Override
@@ -1533,36 +1546,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void onDemand(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-
-    if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
-      throw new AccumuloException("Cannot set table to onDemand state");
-    }
-
-    EXISTING_TABLE_NAME.validate(tableName);
-
-    TableId tableId = context.getTableId(tableName);
-
-    if (isOnDemand(tableName)) {
-      if (wait) {
-        waitForTableStateTransition(tableId, TableState.ONDEMAND);
-      }
-      return;
-    }
-
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<>();
-
-    try {
-      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_ONDEMAND,
-          args, opts);
-    } catch (TableExistsException e) {
-      // should not happen
-      throw new AssertionError(e);
-    }
-
-    if (wait) {
-      waitForTableStateTransition(tableId, TableState.ONDEMAND);
-    }
+    changeTableState(tableName, wait, TableState.ONDEMAND);
   }
 
   @Override
