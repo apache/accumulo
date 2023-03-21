@@ -76,8 +76,7 @@ public class RootConditionalWriter implements ConditionalWriter {
         metaConstraint.check(new RootTabletMutatorImpl.RootEnv(context), mutation);
 
     if (violations != null && !violations.isEmpty()) {
-      throw new IllegalStateException(
-          "Mutation for root tablet metadata violated constraints : " + violations);
+      return new Result(Status.VIOLATED, mutation, "ZK");
     }
 
     CompressedIterators compressedIters = new CompressedIterators();
