@@ -20,7 +20,6 @@ package org.apache.accumulo.core.singletons;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
@@ -91,24 +90,6 @@ public class SingletonManagerTest {
     assertEquals(0, SingletonManager.getReservationCount());
     assertEquals(new TestService(false, 1, 2), service1);
     assertEquals(new TestService(false, 2, 2), service2);
-  }
-
-  @Test
-  public void testConnectorRemoved() {
-    SingletonReservation resv1 = SingletonManager.getClientReservation();
-    resv1.close();
-
-    assertEquals(new TestService(false, 0, 1), service1);
-    assertEquals(new TestService(false, 1, 1), service2);
-
-    // this should do nothing
-    @SuppressWarnings("deprecation")
-    var e = assertThrows(IllegalArgumentException.class,
-        () -> SingletonManager.setMode(Mode.CONNECTOR));
-    assertTrue(e.getMessage().contains("CONNECTOR"));
-
-    assertEquals(new TestService(false, 0, 1), service1);
-    assertEquals(new TestService(false, 1, 1), service2);
   }
 
   @Test

@@ -202,9 +202,14 @@
           <groupId>com.mycila</groupId>
           <artifactId>license-maven-plugin</artifactId>
           <configuration>
-            <excludes>
-              <exclude>src/main/resources/org/apache/accumulo/monitor/resources/external/**/*</exclude>
-            </excludes>
+            <licenseSets>
+              <licenseSet>
+                <header>${session.executionRootDirectory}/contrib/license-header.txt</header>
+                <excludes>
+                  <exclude>src/main/resources/org/apache/accumulo/monitor/resources/external/**/*</exclude>
+                </excludes>
+              </licenseSet>
+            </licenseSets>
           </configuration>
         </plugin>
         <plugin>

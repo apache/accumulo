@@ -18,14 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -79,7 +76,7 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
 
       Collection<Text> splits = c.tableOperations().listSplits(tableName);
       while (splits.size() < 2) {
-        sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
+        Thread.sleep(1);
         splits = c.tableOperations().listSplits(tableName);
       }
 

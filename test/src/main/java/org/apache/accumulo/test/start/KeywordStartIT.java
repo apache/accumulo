@@ -113,7 +113,6 @@ public class KeywordStartIT {
    * AutoService annotation processor
    */
   @Test
-  @SuppressWarnings("deprecation")
   public void testExpectedClasses() {
     assumeTrue(new File(System.getProperty("user.dir") + "/src").exists());
     TreeMap<String,Class<? extends KeywordExecutable>> expectSet = new TreeMap<>();
@@ -133,7 +132,6 @@ public class KeywordStartIT {
     expectSet.put("init", Initialize.class);
     expectSet.put("login-info", LoginProperties.class);
     expectSet.put("manager", ManagerExecutable.class);
-    expectSet.put("master", org.apache.accumulo.manager.MasterExecutable.class);
     expectSet.put("minicluster", MiniClusterExecutable.class);
     expectSet.put("monitor", MonitorExecutable.class);
     expectSet.put("rfile-info", PrintInfo.class);
@@ -178,7 +176,6 @@ public class KeywordStartIT {
   }
 
   @Test
-  @SuppressWarnings("deprecation")
   public void checkHasMain() {
     assertFalse(hasMain(this.getClass()),
         "Sanity check for test failed. Somehow the test class has a main method");
@@ -191,7 +188,6 @@ public class KeywordStartIT {
     expectSet.add(Info.class);
     expectSet.add(Initialize.class);
     expectSet.add(LoginProperties.class);
-    expectSet.add(org.apache.accumulo.master.Master.class);
     expectSet.add(MiniAccumuloRunner.class);
     expectSet.add(Monitor.class);
     expectSet.add(PrintInfo.class);

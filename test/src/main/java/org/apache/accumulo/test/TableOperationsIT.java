@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -288,15 +287,17 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   /** Test recovery from bad majc iterator via compaction cancel. */
   @Test
   public void testCompactEmptyTablesWithBadIterator_FailsAndCancel() throws TableExistsException,
-      AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      AccumuloException, AccumuloSecurityException, TableNotFoundException, InterruptedException {
     String tableName = getUniqueNames(1)[0];
     accumuloClient.tableOperations().create(tableName);
 
     List<IteratorSetting> list = new ArrayList<>();
     list.add(new IteratorSetting(15, BadIterator.class));
-    accumuloClient.tableOperations().compact(tableName, null, null, list, true, false); // don't
-                                                                                        // block
-    sleepUninterruptibly(2, TimeUnit.SECONDS); // start compaction
+    // don't block
+    accumuloClient.tableOperations().compact(tableName, null, null, list, true, false);
+
+    Thread.sleep(SECONDS.toMillis(2)); // start compaction
+
     accumuloClient.tableOperations().cancelCompaction(tableName);
 
     try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {

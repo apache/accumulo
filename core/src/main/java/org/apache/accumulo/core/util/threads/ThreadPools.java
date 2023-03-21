@@ -243,7 +243,6 @@ public class ThreadPools {
    * @return ExecutorService impl
    * @throws RuntimeException if property is not handled
    */
-  @SuppressWarnings("deprecation")
   public ThreadPoolExecutor createExecutorService(final AccumuloConfiguration conf,
       final Property p, boolean emitThreadPoolMetrics) {
 

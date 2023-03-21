@@ -126,12 +126,6 @@
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
-      <exclusions>
-        <exclusion>
-          <groupId>io.netty</groupId>
-          <artifactId>netty</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
@@ -157,12 +151,6 @@
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client-minicluster</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <!-- needed because https://issues.apache.org/jira/browse/LOG4J2-3601 -->
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -198,12 +186,17 @@
           <groupId>com.mycila</groupId>
           <artifactId>license-maven-plugin</artifactId>
           <configuration>
-            <excludes>
-              <exclude>src/main/java/org/apache/accumulo/core/bloomfilter/*.java</exclude>
-              <exclude>src/main/java/org/apache/accumulo/core/util/HostAndPort.java</exclude>
-              <exclude>src/test/resources/*.jceks</exclude>
-              <exclude>src/test/resources/org/apache/accumulo/core/file/rfile/*.rf</exclude>
-            </excludes>
+            <licenseSets>
+              <licenseSet>
+                <header>${session.executionRootDirectory}/contrib/license-header.txt</header>
+                <excludes>
+                  <exclude>src/main/java/org/apache/accumulo/core/bloomfilter/*.java</exclude>
+                  <exclude>src/main/java/org/apache/accumulo/core/util/HostAndPort.java</exclude>
+                  <exclude>src/test/resources/*.jceks</exclude>
+                  <exclude>src/test/resources/org/apache/accumulo/core/file/rfile/*.rf</exclude>
+                </excludes>
+              </licenseSet>
+            </licenseSets>
           </configuration>
         </plugin>
         <plugin>

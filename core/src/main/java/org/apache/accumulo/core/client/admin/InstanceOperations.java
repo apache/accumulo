@@ -247,17 +247,6 @@ public interface InstanceOperations {
   void waitForBalance() throws AccumuloException;
 
   /**
-   * Returns a unique string that identifies this instance of accumulo.
-   *
-   * @return a String
-   * @since 2.0.0
-   *
-   * @deprecated in 2.1.0 Use {@link #getInstanceId()}
-   */
-  @Deprecated(since = "2.1.0")
-  String getInstanceID();
-
-  /**
    * Returns a unique ID object that identifies this instance of accumulo.
    *
    * @return an InstanceId

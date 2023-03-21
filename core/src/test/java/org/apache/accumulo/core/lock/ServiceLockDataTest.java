@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util;
+package org.apache.accumulo.core.lock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -27,9 +27,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.apache.accumulo.core.util.ServiceLockData.ServiceDescriptor;
-import org.apache.accumulo.core.util.ServiceLockData.ServiceDescriptors;
-import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.net.HostAndPort;

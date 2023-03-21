@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -32,7 +32,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -44,18 +43,18 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.ServiceLockData;
-import org.apache.accumulo.core.util.ServiceLockData.ThriftService;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
@@ -138,7 +137,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       log.info("Counted {} files in path: {}", before, pathString);
 
       while (true) {
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(1));
         int more = countFiles(pathString);
         if (more <= before) {
           break;
@@ -149,7 +148,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       // restart GC
       log.info("Restarting GC...");
       getCluster().start();
-      sleepUninterruptibly(15, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(15));
       log.info("Again Counting files in path: {}", pathString);
 
       int after = countFiles(pathString);
@@ -169,7 +168,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       addEntries(c);
       cluster.getConfig().setDefaultMemory(32, MemoryUnit.MEGABYTE);
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
-      sleepUninterruptibly(20, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(20));
       String output = "";
       while (!output.contains("has exceeded the threshold")) {
         try {
@@ -193,7 +192,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       c.tableOperations().create(table);
       // let gc run for a bit
       cluster.start();
-      sleepUninterruptibly(20, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(20));
       killMacGc();
       // kill tservers
       for (ProcessReference ref : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
@@ -246,7 +245,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       try {
         String output = "";
         while (!output.contains("Ignoring invalid deletion candidate")) {
-          sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+          Thread.sleep(250);
           try {
             output = gc.readStdOut();
           } catch (UncheckedIOException ioe) {

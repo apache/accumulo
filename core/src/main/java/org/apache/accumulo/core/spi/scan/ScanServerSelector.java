@@ -24,8 +24,8 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.util.ServiceLockData;
 
 import com.google.common.base.Preconditions;
 

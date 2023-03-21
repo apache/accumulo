@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.net.URL;
@@ -31,7 +32,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -162,10 +162,10 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
         err.get();
       }
       es.shutdown();
-      es.awaitTermination(2, TimeUnit.MINUTES);
+      es.awaitTermination(2, MINUTES);
       log.info(
           String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
-      sleepUninterruptibly(30, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(30));
       Map<?,?> map = getStats();
       map.forEach((k, v) -> {
         try {
