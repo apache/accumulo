@@ -20,5 +20,5 @@ package org.apache.accumulo.core.metadata;
 
 // TODO where should this go, maybe in MetadataSchema class?
 public enum TabletOperation {
-  NONE, SPLITTING, MERGING, DELETING
+  SPLITTING, MERGING, DELETING
 }

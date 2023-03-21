@@ -251,23 +251,13 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putOperation(TabletOperation top) {
-    if (top == TabletOperation.NONE) {
-      ServerColumnFamily.OP_COLUMN.putDelete(mutation);
-    } else {
-      ServerColumnFamily.OP_COLUMN.put(mutation, new Value(top.name()));
-    }
+  public T putOperation(TabletOperation top, OperationId opId) {
+    ServerColumnFamily.OPID_COLUMN.put(mutation, new Value(top.name() + ":" + opId.canonical()));
     return getThis();
   }
 
   @Override
-  public T putOperationId(OperationId opId) {
-    ServerColumnFamily.OPID_COLUMN.put(mutation, new Value(opId.canonical()));
-    return getThis();
-  }
-
-  @Override
-  public T deleteOperationId() {
+  public T deleteOperation() {
     ServerColumnFamily.OPID_COLUMN.putDelete(mutation);
     return getThis();
   }

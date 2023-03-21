@@ -26,7 +26,6 @@ import java.util.concurrent.ExecutorService;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.TabletOperation;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -62,7 +61,7 @@ public class SplitScanner implements Runnable {
       System.out.println("inspecting for split " + tablet.getExtent());
 
       // TODO eventually need a way to unload loaded tablets
-      if (tablet.getOperation() != TabletOperation.NONE || tablet.getLocation() != null
+      if (tablet.getOperationId() != null || tablet.getLocation() != null
           || splitting.contains(tablet.getExtent())) {
         System.out.println("ignoring " + tablet.getExtent() + " " + tablet.getOperation() + " "
             + (tablet.getLocation() != null) + " " + splitting.contains(tablet.getExtent()));

@@ -350,12 +350,12 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       var opid2 = new OperationId("5678");
 
       var ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireOperation(TabletOperation.NONE)
-          .putOperation(TabletOperation.SPLITTING).putOperationId(opid1).submit();
-      ctmi.mutateTablet(e2).requireOperation(TabletOperation.NONE)
-          .putOperation(TabletOperation.MERGING).putOperationId(opid2).submit();
-      ctmi.mutateTablet(e3).requireOperation(TabletOperation.SPLITTING).requireOperationId(opid1)
-          .putOperation(TabletOperation.NONE).submit();
+      ctmi.mutateTablet(e1).requireAbsentOperation().putOperation(TabletOperation.SPLITTING, opid1)
+          .submit();
+      ctmi.mutateTablet(e2).requireAbsentOperation().putOperation(TabletOperation.MERGING, opid2)
+          .submit();
+      ctmi.mutateTablet(e3).requireOperation(TabletOperation.SPLITTING, opid1).deleteOperation()
+          .submit();
       var results = ctmi.process();
 
       Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
@@ -367,16 +367,14 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       Assert.assertEquals(TabletOperation.MERGING,
           context.getAmple().readTablet(e2).getOperation());
       Assert.assertEquals(opid2, context.getAmple().readTablet(e2).getOperationId());
-      Assert.assertEquals(TabletOperation.NONE, context.getAmple().readTablet(e3).getOperation());
+      Assert.assertEquals(null, context.getAmple().readTablet(e3).getOperation());
       Assert.assertEquals(null, context.getAmple().readTablet(e3).getOperationId());
 
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireOperation(TabletOperation.MERGING)
-          .putOperation(TabletOperation.NONE).putOperationId(opid1).submit();
-      ctmi.mutateTablet(e2).requireOperation(TabletOperation.SPLITTING)
-          .putOperation(TabletOperation.NONE).putOperationId(opid2).submit();
-      ctmi.mutateTablet(e3).requireOperation(TabletOperation.SPLITTING).requireOperationId(opid1)
-          .putOperation(TabletOperation.NONE).submit();
+      ctmi.mutateTablet(e1).requireOperation(TabletOperation.MERGING, opid2).deleteOperation()
+          .submit();
+      ctmi.mutateTablet(e2).requireOperation(TabletOperation.SPLITTING, opid1).deleteOperation()
+          .submit();
       results = ctmi.process();
 
       Assert.assertEquals(Status.REJECTED, results.get(e1).getStatus());
@@ -387,31 +385,17 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           context.getAmple().readTablet(e2).getOperation());
 
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireOperationId(opid2).putOperation(TabletOperation.NONE)
-          .putOperationId(opid1).submit();
-      ctmi.mutateTablet(e2).requireOperationId(opid1).putOperation(TabletOperation.NONE)
-          .putOperationId(opid2).submit();
-      results = ctmi.process();
-
-      Assert.assertEquals(Status.REJECTED, results.get(e1).getStatus());
-      Assert.assertEquals(Status.REJECTED, results.get(e2).getStatus());
-      Assert.assertEquals(TabletOperation.SPLITTING,
-          context.getAmple().readTablet(e1).getOperation());
-      Assert.assertEquals(TabletOperation.MERGING,
-          context.getAmple().readTablet(e2).getOperation());
-
-      ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireOperation(TabletOperation.SPLITTING).requireOperationId(opid1)
-          .putOperation(TabletOperation.NONE).deleteOperationId().submit();
-      ctmi.mutateTablet(e2).requireOperation(TabletOperation.MERGING).requireOperationId(opid2)
-          .putOperation(TabletOperation.NONE).deleteOperationId().submit();
+      ctmi.mutateTablet(e1).requireOperation(TabletOperation.SPLITTING, opid1).deleteOperation()
+          .submit();
+      ctmi.mutateTablet(e2).requireOperation(TabletOperation.MERGING, opid2).deleteOperation()
+          .submit();
       results = ctmi.process();
 
       Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
       Assert.assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
-      Assert.assertEquals(TabletOperation.NONE, context.getAmple().readTablet(e1).getOperation());
+      Assert.assertEquals(null, context.getAmple().readTablet(e1).getOperation());
       Assert.assertEquals(null, context.getAmple().readTablet(e1).getOperationId());
-      Assert.assertEquals(TabletOperation.NONE, context.getAmple().readTablet(e2).getOperation());
+      Assert.assertEquals(null, context.getAmple().readTablet(e2).getOperation());
       Assert.assertEquals(null, context.getAmple().readTablet(e2).getOperationId());
     }
   }

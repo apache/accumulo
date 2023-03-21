@@ -20,7 +20,6 @@
 package org.apache.accumulo.server.metadata;
 
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OP_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow;
 
@@ -108,22 +107,6 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
-  public Ample.ConditionalTabletMutator requireOperation(TabletOperation operation) {
-    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    Condition c;
-    if (operation == TabletOperation.NONE) {
-      c = new Condition(OP_COLUMN.getColumnFamily(), OP_COLUMN.getColumnQualifier());
-    } else {
-      c = new Condition(OP_COLUMN.getColumnFamily(), OP_COLUMN.getColumnQualifier())
-          .setValue(operation.name());
-    }
-
-    mutation.addCondition(c);
-
-    return this;
-  }
-
-  @Override
   public Ample.ConditionalTabletMutator requireAbsentTablet() {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     // TODO implement scan of entire row
@@ -134,10 +117,19 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
-  public Ample.ConditionalTabletMutator requireOperationId(OperationId splitId) {
+  public Ample.ConditionalTabletMutator requireAbsentOperation() {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition c = new Condition(OPID_COLUMN.getColumnFamily(), OPID_COLUMN.getColumnQualifier());
+    mutation.addCondition(c);
+    return this;
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireOperation(TabletOperation operation,
+      OperationId opid) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition c = new Condition(OPID_COLUMN.getColumnFamily(), OPID_COLUMN.getColumnQualifier())
-        .setValue(splitId.canonical());
+        .setValue(operation.name() + ":" + opid.canonical());
     mutation.addCondition(c);
     return this;
   }

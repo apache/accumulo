@@ -305,11 +305,9 @@ public interface Ample {
 
     T deleteExternalCompaction(ExternalCompactionId ecid);
 
-    T putOperation(TabletOperation splitting);
+    T putOperation(TabletOperation operation, OperationId opId);
 
-    T putOperationId(OperationId opId);
-
-    T deleteOperationId();
+    T deleteOperation();
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {
@@ -341,11 +339,11 @@ public interface Ample {
     // TODO could always check this!
     ConditionalTabletMutator requirePrevEndRow(Text per);
 
-    ConditionalTabletMutator requireOperation(TabletOperation operation);
-
     ConditionalTabletMutator requireAbsentTablet();
 
-    ConditionalTabletMutator requireOperationId(OperationId splitId);
+    ConditionalTabletMutator requireOperation(TabletOperation operation, OperationId operationId);
+
+    ConditionalTabletMutator requireAbsentOperation();
 
     ConditionalTabletsMutator submit();
   }

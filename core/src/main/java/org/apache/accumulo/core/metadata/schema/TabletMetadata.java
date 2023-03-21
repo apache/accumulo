@@ -131,7 +131,6 @@ public class TabletMetadata {
     SUSPEND,
     CHOPPED,
     ECOMP,
-    OP,
     OPID
   }
 
@@ -314,9 +313,7 @@ public class TabletMetadata {
   }
 
   public TabletOperation getOperation() {
-    ensureFetched(ColumnType.OP);
-    if (operation == null)
-      return TabletOperation.NONE;
+    ensureFetched(ColumnType.OPID);
     return operation;
   }
 
@@ -395,11 +392,10 @@ public class TabletMetadata {
             case COMPACT_QUAL:
               te.compact = OptionalLong.of(Long.parseLong(val));
               break;
-            case OP_QUAL:
-              te.operation = TabletOperation.valueOf(val);
-              break;
             case OPID_QUAL:
-              te.operationId = new OperationId(val);
+              String[] tokens = val.split(":", 2);
+              te.operation = TabletOperation.valueOf(tokens[0]);
+              te.operationId = new OperationId(tokens[1]);
               break;
           }
           break;

@@ -86,7 +86,6 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,
           ServerColumnFamily.COMPACT_COLUMN,
-              ServerColumnFamily.OP_COLUMN,
               ServerColumnFamily.OPID_COLUMN);
 
   private static final Set<Text> validColumnFams =
