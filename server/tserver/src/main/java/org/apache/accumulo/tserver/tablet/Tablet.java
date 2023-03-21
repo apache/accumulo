@@ -1637,8 +1637,7 @@ public class Tablet implements TabletCommitter {
       return null;
     }
 
-    Set<FileRef> files = getDatafileManager().getFiles();
-    if (!splitComputations.isPresent() || !files.equals(splitComputations.get().inputFiles)) {
+    if (!splitComputations.isPresent()) {
       // information needed to compute a split point is out of date or does not exists, try again
       // later
       return null;
