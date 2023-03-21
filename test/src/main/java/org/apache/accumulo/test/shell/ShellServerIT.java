@@ -52,7 +52,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.RowColumnSampler;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -80,6 +79,7 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.compaction.TestCompactionStrategy;
 import org.apache.accumulo.test.functional.SlowIterator;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -168,16 +168,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
       client.securityOperations().grantNamespacePermission(getPrincipal(), "",
           NamespacePermission.ALTER_NAMESPACE);
 
-      final String table = getUniqueNames(1)[0];
-      final String table2 = table + "2";
+      final String table = getUniqueNames(1)[0] + "_export_src";
+      final String table2 = table + "_import_tgt";
 
       // exporttable / importtable
       ts.exec("createtable " + table + " -evc", true);
       make10();
       ts.exec("addsplits row5", true);
       ts.exec("config -t " + table + " -s table.split.threshold=345M", true);
-      checkTableForProperty(client.tableOperations(), table, "table.split.threshold", "345M");
-
       ts.exec("offline " + table, true);
       File exportDir = new File(rootPath, "ShellServerIT.export");
       String exportUri = "file://" + exportDir;
@@ -217,14 +215,45 @@ public class ShellServerIT extends SharedMiniClusterBase {
         String[] distCpArgs = {"-f", exportUri + "/distcp.txt", import_};
         assertEquals(0, cp.run(distCpArgs), "Failed to run distcp: " + Arrays.toString(distCpArgs));
       }
+      Thread.sleep(20);
       ts.exec("importtable " + table2 + " " + import_, true);
-      Thread.sleep(100);
       ts.exec("config -t " + table2 + " -np", true, "345M", true);
       ts.exec("getsplits -t " + table2, true, "row5", true);
       ts.exec("constraint --list -t " + table2, true, "VisibilityConstraint=2", true);
       ts.exec("online " + table, true);
       ts.exec("deletetable -f " + table, true);
       ts.exec("deletetable -f " + table2, true);
+    }
+  }
+
+  @Test
+  public void propStressTest() throws Exception {
+    try (AccumuloClient client =
+        getCluster().createAccumuloClient(getPrincipal(), new PasswordToken(getRootPassword()))) {
+      client.securityOperations().grantNamespacePermission(getPrincipal(), "",
+          NamespacePermission.ALTER_NAMESPACE);
+
+      final String table = getUniqueNames(1)[0];
+
+      ts.exec("createtable " + table + " -evc", true);
+      make10();
+      ts.exec("addsplits row5", true);
+
+      // ts.exec("config -t " + table + " -s table.bloom.enabled=true", true);
+      // ts.exec("config -t " + table + " -s table.scan.max.memory=256K", true);
+      ts.exec("config -t " + table + " -s table.split.threshold=345M", true);
+      for (int i = 0; i < 50; i++) {
+        String expected = (100 + i) + "M";
+        ts.exec("config -t " + table + " -s table.split.threshold=" + expected, true);
+        ts.exec("config -t " + table + " -np -f table.split.threshold", true, expected, true);
+
+        ts.exec("config -t " + table + " -s table.scan.max.memory=" + expected, true);
+        ts.exec("config -t " + table + " -np -f table.scan.max.memory", true, expected, true);
+
+        String bExpected = ((i % 2) == 0) ? "true" : "false";
+        ts.exec("config -t " + table + " -s table.bloom.enabled=" + bExpected, true);
+        ts.exec("config -t " + table + " -np -f table.bloom.enabled", true, bExpected, true);
+      }
     }
   }
 
@@ -426,10 +455,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
       ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter",
           true);
 
-      String expectedKey = "table.iterator.scan.cfcounter";
-      String expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
-      TableOperations tops = client.tableOperations();
-      checkTableForProperty(tops, tableName0, expectedKey, expectedValue);
+      assertTrue(Wait.waitFor(
+          () -> client.tableOperations().getConfiguration(tableName0)
+              .get("table.iterator.scan.cfcounter").equals("30," + COLUMN_FAMILY_COUNTER_ITERATOR),
+          5000, 500));
 
       ts.exec("deletetable " + tableName0, true);
 
@@ -441,9 +470,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
       // Name on the CLI should override OptionDescriber (or user input name, in this case)
       ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", true);
-      expectedKey = "table.iterator.scan.customcfcounter";
-      expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
-      checkTableForProperty(tops, tableName1, expectedKey, expectedValue);
+
+      assertTrue(Wait.waitFor(() -> client.tableOperations().getConfiguration(tableName1)
+          .get("table.iterator.scan.customcfcounter")
+          .equals("30," + COLUMN_FAMILY_COUNTER_ITERATOR), 5000, 500));
 
       ts.exec("deletetable " + tableName1, true);
 
@@ -455,15 +485,21 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
       // Name on the CLI should override OptionDescriber (or user input name, in this case)
       ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", true);
-      expectedKey = "table.iterator.scan.customcfcounter";
-      expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
-      checkTableForProperty(tops, tableName2, expectedKey, expectedValue);
-      expectedKey = "table.iterator.scan.customcfcounter.opt.name1";
-      expectedValue = "value1";
-      checkTableForProperty(tops, tableName2, expectedKey, expectedValue);
-      expectedKey = "table.iterator.scan.customcfcounter.opt.name2";
-      expectedValue = "value2";
-      checkTableForProperty(tops, tableName2, expectedKey, expectedValue);
+      assertTrue(Wait.waitFor(() -> client.tableOperations().getConfiguration(tableName2)
+          .get("table.iterator.scan.customcfcounter")
+          .equals("30," + COLUMN_FAMILY_COUNTER_ITERATOR), 5000, 500));
+
+      assertTrue(
+          Wait.waitFor(
+              () -> client.tableOperations().getConfiguration(tableName2)
+                  .get("table.iterator.scan.customcfcounter.opt.name1").equals("value1"),
+              5000, 500));
+
+      assertTrue(
+          Wait.waitFor(
+              () -> client.tableOperations().getConfiguration(tableName2)
+                  .get("table.iterator.scan.customcfcounter.opt.name2").equals("value2"),
+              5000, 500));
 
       ts.exec("deletetable " + tableName2, true);
 
@@ -476,35 +512,23 @@ public class ShellServerIT extends SharedMiniClusterBase {
       // Name on the CLI should override OptionDescriber (or user input name, in this case)
       ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter",
           true);
-      expectedKey = "table.iterator.scan.cfcounter";
-      expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
-      checkTableForProperty(tops, tableName3, expectedKey, expectedValue);
-      expectedKey = "table.iterator.scan.cfcounter.opt.name1";
-      expectedValue = "value1.1,value1.2,value1.3";
-      checkTableForProperty(tops, tableName3, expectedKey, expectedValue);
-      expectedKey = "table.iterator.scan.cfcounter.opt.name2";
-      expectedValue = "value2";
-      checkTableForProperty(tops, tableName3, expectedKey, expectedValue);
+
+      assertTrue(Wait.waitFor(
+          () -> client.tableOperations().getConfiguration(tableName3)
+              .get("table.iterator.scan.cfcounter").equals("30," + COLUMN_FAMILY_COUNTER_ITERATOR),
+          5000, 500));
+
+      assertTrue(Wait.waitFor(
+          () -> client.tableOperations().getConfiguration(tableName3)
+              .get("table.iterator.scan.cfcounter.opt.name1").equals("value1.1,value1.2,value1.3"),
+          5000, 500));
+
+      assertTrue(Wait.waitFor(() -> client.tableOperations().getConfiguration(tableName3)
+          .get("table.iterator.scan.cfcounter.opt.name2").equals("value2"), 5000, 500));
 
       ts.exec("deletetable " + tableName3, true);
 
     }
-  }
-
-  protected void checkTableForProperty(TableOperations tops, String tableName, String expectedKey,
-      String expectedValue) throws Exception {
-    for (int i = 0; i < 5; i++) {
-      for (Entry<String,String> entry : tops.getProperties(tableName)) {
-        if (expectedKey.equals(entry.getKey())) {
-          assertEquals(expectedValue, entry.getValue());
-          return;
-        }
-      }
-      Thread.sleep(100 + (i * 100));
-    }
-
-    fail("Failed to find expected property on " + tableName + ": " + expectedKey + "="
-        + expectedValue);
   }
 
   @Test

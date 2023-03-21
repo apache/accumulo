@@ -138,16 +138,20 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
     @Override
     public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
-      // no-op. changes handled by prop store impl
+      clearLocalOnEvent(propStoreKey);
     }
 
     @Override
     public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
-      // no-op. changes handled by prop store impl
+      clearLocalOnEvent(propStoreKey);
     }
 
     @Override
     public void deleteEvent(PropStoreKey<?> propStoreKey) {
+      clearLocalOnEvent(propStoreKey);
+    }
+
+    private void clearLocalOnEvent(PropStoreKey<?> propStoreKey) {
       if (propStoreKey instanceof NamespacePropKey) {
         log.trace("configuration snapshot refresh: Handle namespace delete for {}", propStoreKey);
         namespaceConfigs.remove(((NamespacePropKey) propStoreKey).getId());
