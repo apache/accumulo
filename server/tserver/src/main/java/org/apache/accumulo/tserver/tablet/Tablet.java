@@ -1321,7 +1321,8 @@ public class Tablet extends TabletBase {
    *
    */
   public synchronized boolean needsSplit() {
-    if (isClosing() || isClosed()) {
+    // TODO remove this hack that disables splits
+    if (isClosing() || isClosed() || true) {
       return false;
     }
     return findSplitRow(getDatafileManager().getFiles()) != null;

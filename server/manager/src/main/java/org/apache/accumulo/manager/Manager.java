@@ -114,6 +114,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
+import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.upgrade.PreUpgradeValidation;
@@ -168,8 +169,8 @@ import io.opentelemetry.context.Scope;
  * <p>
  * The manager will also coordinate log recoveries and reports general status.
  */
-public class Manager extends AbstractServer
-    implements LiveTServerSet.Listener, TableObserver, CurrentState, HighlyAvailableService {
+public class Manager extends AbstractServer implements LiveTServerSet.Listener, TableObserver,
+    CurrentState, HighlyAvailableService, TabletOperations {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
@@ -562,6 +563,26 @@ public class Manager extends AbstractServer
     }
   }
 
+  // TODO move to top
+  private Set<KeyExtent> unassignmentRequest = Collections.synchronizedSet(new HashSet<>());
+
+  @Override
+  public AutoCloseable unassign(KeyExtent tablet) {
+    if (!unassignmentRequest.add(tablet)) {
+      throw new RuntimeException("TODO does this need to be handled");
+    }
+
+    nextEvent.event("Unassignment requested %s", tablet);
+
+    return () -> {
+      if (!unassignmentRequest.remove(tablet)) {
+        throw new RuntimeException(
+            "TODO should this exception be thrown, seems like remove should always succeed");
+      }
+      nextEvent.event("Unassignment request completed %s", tablet);
+    };
+  }
+
   enum TabletGoalState {
     HOSTED(TUnloadTabletGoal.UNKNOWN),
     UNASSIGNED(TUnloadTabletGoal.UNASSIGNED),
@@ -625,10 +646,21 @@ public class Manager extends AbstractServer
     KeyExtent extent = tls.extent;
     // Shutting down?
     TabletGoalState state = getSystemGoalState(tls);
+
+    // TODO remove
+    log.info("system goal state:{} {}", state, extent);
+
     if (state == TabletGoalState.HOSTED) {
       if (!upgradeCoordinator.getStatus().isParentLevelUpgraded(extent)) {
         // The place where this tablet stores its metadata was not upgraded, so do not assign this
         // tablet yet.
+        return TabletGoalState.UNASSIGNED;
+      }
+
+      // TODO remove
+      log.info("unassignmentRequest.contains({}) : {}", extent,
+          unassignmentRequest.contains(extent));
+      if (unassignmentRequest.contains(extent)) {
         return TabletGoalState.UNASSIGNED;
       }
 
@@ -1252,6 +1284,9 @@ public class Manager extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception updating manager lock", e);
     }
+
+    // TODO shut this down later? Is this the correct place to start this?
+    new Splitter(context, DataLevel.USER, this).start();
 
     while (!clientService.isServing()) {
       sleepUninterruptibly(100, MILLISECONDS);

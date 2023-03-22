@@ -28,6 +28,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.manager.TabletOperations;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.fs.Path;
@@ -61,7 +62,10 @@ public class OfflineSplitIT extends AccumuloClusterHarness {
 
       c.tableOperations().importDirectory(importDir.toString()).to(tableName).load();
 
-      Splitter splitter = new Splitter(context, Ample.DataLevel.USER);
+      TabletOperations tabletOperations = extent -> {
+        return () -> {};
+      };
+      Splitter splitter = new Splitter(context, Ample.DataLevel.USER, tabletOperations);
       splitter.start();
 
       while (true) {

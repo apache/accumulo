@@ -19,6 +19,8 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -54,8 +56,14 @@ public class MetadataOperationsIT extends AccumuloClusterHarness {
 
       SortedSet<Text> splits = new TreeSet<>(List.of(new Text("c"), new Text("f"), new Text("j")));
 
+      AtomicInteger nextDir = new AtomicInteger(1);
+
+      Supplier<String> dirNameGenerator = () -> {
+        return nextDir.getAndIncrement() + "";
+      };
+
       MetadataOperations.doSplit(context.getAmple(), e1, splits,
-          new OperationId(UUID.randomUUID().toString()));
+          new OperationId(UUID.randomUUID().toString()), dirNameGenerator);
 
       Assert.assertEquals(splits, new TreeSet<>(c.tableOperations().listSplits(tableName)));
     }

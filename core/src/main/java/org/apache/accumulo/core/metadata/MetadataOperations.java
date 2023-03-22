@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata;
 
 import java.util.*;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -147,11 +148,13 @@ public class MetadataOperations {
    * @param splitId An id that must be unique for all split operations. This id prevents certain
    *        race conditions like two concurrent operations trying to split the same extent. When
    *        this happens only one will succeed and the other will fail.
+   * @param dirNameGenerator
    * @throws AccumuloException
    * @throws AccumuloSecurityException
    */
   public static void doSplit(Ample ample, KeyExtent extent, SortedSet<Text> splits,
-      OperationId splitId) throws AccumuloException, AccumuloSecurityException {
+      OperationId splitId, Supplier<String> dirNameGenerator)
+      throws AccumuloException, AccumuloSecurityException {
 
     if (splits.isEmpty())
       return;
@@ -217,7 +220,8 @@ public class MetadataOperations {
       });
 
       // add new tablets to the metadata table
-      addNewSplits(ample, splitId, newExtents, existingMetadata, primaryTabletMetadata, splitFiles);
+      addNewSplits(ample, splitId, newExtents, existingMetadata, primaryTabletMetadata, splitFiles,
+          dirNameGenerator);
 
       // all new tablets were added, now change the prev row on the original tablet
       updateSplitTablet(ample, extent, splitId, lastExtent, splitFiles);
@@ -288,7 +292,7 @@ public class MetadataOperations {
 
   private static void addNewSplits(Ample ample, OperationId splitId, Set<KeyExtent> newExtents,
       Map<KeyExtent,TabletMetadata> existingMetadata, TabletMetadata primaryTabletMetadata,
-      Map<TabletFile,DataFileValue> splitFiles) {
+      Map<TabletFile,DataFileValue> splitFiles, Supplier<String> dirNameGenerator) {
     var tabletsMutator = ample.conditionallyMutateTablets();
     for (KeyExtent newExtent : newExtents) {
       if (existingMetadata.containsKey(newExtent)) {
@@ -303,6 +307,7 @@ public class MetadataOperations {
         // TODO copy bulk import markers
         // TODO look at current split code to see everything it copies to its children
 
+        newTabletMutator.putDirName(dirNameGenerator.get());
         newTabletMutator.putOperation(TabletOperation.SPLITTING, splitId);
         newTabletMutator.putTime(primaryTabletMetadata.getTime());
         newTabletMutator.putPrevEndRow(newExtent.prevEndRow());

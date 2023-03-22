@@ -93,7 +93,8 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
         new IteratorSetting(1001, "tabletChange", TabletStateChangeIterator.class);
     if (state != null) {
       TabletStateChangeIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
-      TabletStateChangeIterator.setOnlineTables(tabletChange, state.onlineTables());
+      // TODO massive hack, did this to make manager unassign tablets for split
+      // TabletStateChangeIterator.setOnlineTables(tabletChange, state.onlineTables());
       TabletStateChangeIterator.setMerges(tabletChange, state.merges());
       TabletStateChangeIterator.setMigrations(tabletChange, state.migrationsSnapshot());
       TabletStateChangeIterator.setManagerState(tabletChange, state.getManagerState());
