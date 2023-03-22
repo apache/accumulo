@@ -105,13 +105,18 @@ class UnloadTabletHandler implements Runnable {
     // exceptions
     server.recentlyUnloadedCache.put(extent, System.currentTimeMillis());
     server.onlineTablets.remove(extent);
+    if (t.isOnDemand()) {
+      log.trace("Decrementing onDemand online count for: {}", extent);
+      server.removeOnDemandAccessTime(extent);
+      server.decrementOnDemandOnlineCount(1);
+    }
 
     try {
       TServerInstance instance =
           new TServerInstance(server.clientAddress, server.getLock().getSessionId());
       TabletLocationState tls = null;
       try {
-        tls = new TabletLocationState(extent, null, instance, null, null, null, false);
+        tls = new TabletLocationState(extent, null, instance, null, null, null, false, false);
       } catch (BadLocationStateException e) {
         log.error("Unexpected error", e);
       }

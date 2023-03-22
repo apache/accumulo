@@ -331,6 +331,11 @@ public class MetadataSchema {
       public static final String STR_NAME = "ecomp";
       public static final Text NAME = new Text(STR_NAME);
     }
+
+    public static class OnDemandAssignmentStateColumnFamily {
+      public static final String STR_NAME = "ondemand";
+      public static final Text NAME = new Text(STR_NAME);
+    }
   }
 
   /**

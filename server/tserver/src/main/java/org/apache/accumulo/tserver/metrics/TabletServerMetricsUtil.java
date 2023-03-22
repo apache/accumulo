@@ -101,6 +101,14 @@ public class TabletServerMetricsUtil {
     return result;
   }
 
+  public int getOnDemandOnlineCount() {
+    return tserver.getOnDemandOnlineCount();
+  }
+
+  public int getOnDemandUnloadedLowMem() {
+    return tserver.getOnDemandOnlineUnloadedForLowMemory();
+  }
+
   public int getOnlineCount() {
     return tserver.getOnlineTablets().size();
   }

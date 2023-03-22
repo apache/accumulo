@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -399,5 +400,57 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
     }
 
     assertTrue(mutationsRejected, "Expected mutations to be rejected.");
+  }
+
+  @Test
+  public void testOnDemandTable() throws Exception {
+    boolean mutationsRejected = false;
+
+    try {
+      final String[] names = getUniqueNames(2);
+      final String table1 = names[0], table2 = names[1];
+
+      TableOperations tops = accumuloClient.tableOperations();
+      tops.create(table1);
+      tops.create(table2);
+
+      tops.offline(table1, true);
+      tops.offline(table2, true);
+
+      BatchWriter bw1 = mtbw.getBatchWriter(table1), bw2 = mtbw.getBatchWriter(table2);
+
+      tops.onDemand(table1, true);
+      tops.onDemand(table2, true);
+
+      Mutation m1 = new Mutation("foo");
+      m1.put("col1", "", "val1");
+      m1.put("col2", "", "val2");
+
+      bw1.addMutation(m1);
+      bw2.addMutation(m1);
+
+      Mutation m2 = new Mutation("bar");
+      m2.put("col1", "", "val1");
+      m2.put("col2", "", "val2");
+
+      try {
+        bw1.addMutation(m2);
+        bw2.addMutation(m2);
+      } catch (MutationsRejectedException e) {
+        mutationsRejected = true;
+      }
+    } finally {
+      if (mtbw != null) {
+        try {
+          mtbw.close();
+        } catch (MutationsRejectedException e) {
+          // Pass
+          mutationsRejected = true;
+        }
+      }
+    }
+
+    assertFalse(mutationsRejected, "Expected mutations to be rejected.");
+
   }
 }

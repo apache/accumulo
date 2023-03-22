@@ -36,6 +36,8 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.server.ServerContext;
@@ -153,10 +155,18 @@ public class TableManager {
         boolean transition = true;
         // +--------+
         // v |
-        // NEW -> (ONLINE|OFFLINE)+--- DELETING
+        // NEW -> (ONLINE|OFFLINE|ONDEMAND)+--- DELETING
         switch (oldState) {
           case NEW:
-            transition = (newState == TableState.OFFLINE || newState == TableState.ONLINE);
+            transition = (newState == TableState.OFFLINE || newState == TableState.ONLINE
+                || newState == TableState.ONDEMAND);
+            break;
+          case ONDEMAND:
+            if (tableId == RootTable.ID || tableId == MetadataTable.ID) {
+              transition = false;
+              break;
+            }
+            transition = (newState != TableState.NEW);
             break;
           case ONLINE: // fall-through intended
           case UNKNOWN:// fall through intended
@@ -177,6 +187,13 @@ public class TableManager {
     } catch (Exception e) {
       log.error("FATAL Failed to transition table to state {}", newState);
       throw new RuntimeException(e);
+    }
+    // Remove onDemand columns from all tablets
+    if (tableId != RootTable.ID && tableId != MetadataTable.ID
+        && (newState == TableState.ONLINE || newState == TableState.OFFLINE)) {
+      this.context.getAmple().readTablets().forTable(tableId).build().forEach(tm -> {
+        this.context.getAmple().mutateTablet(tm.getExtent()).deleteOnDemand().mutate();
+      });
     }
   }
 

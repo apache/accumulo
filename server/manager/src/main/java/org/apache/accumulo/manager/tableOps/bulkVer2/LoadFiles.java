@@ -107,6 +107,7 @@ class LoadFiles extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(final long tid, final Manager manager) {
+    // TODO: How are we treating ONDEMAND tables for BulkImport?
     if (bulkInfo.tableState == TableState.ONLINE) {
       return new CompleteBulkImport(bulkInfo);
     } else {

@@ -174,9 +174,6 @@ public class Manager extends AbstractServer
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
   static final int ONE_SECOND = 1000;
-  static final long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
-  // made this less than TIME_TO_WAIT_BETWEEN_SCANS, so that the cache is cleared between cycles
-  static final long TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE = TIME_TO_WAIT_BETWEEN_SCANS / 4;
   private static final long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
   static final long WAIT_BETWEEN_ERRORS = ONE_SECOND;
   private static final long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
@@ -225,6 +222,8 @@ public class Manager extends AbstractServer
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
   private final AtomicBoolean managerUpgrading = new AtomicBoolean(false);
 
+  private final long waitTimeBetweenScans;
+  private final long timeToCacheRecoveryWalExistence;
   private ExecutorService tableInformationStatusPool = null;
 
   @Override
@@ -451,6 +450,13 @@ public class Manager extends AbstractServer
       log.info("SASL is not enabled, delegation tokens will not be available");
       delegationTokensAvailable = false;
     }
+    this.waitTimeBetweenScans =
+        aconf.getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
+    this.timeToCacheRecoveryWalExistence = this.waitTimeBetweenScans / 4;
+  }
+
+  public long getWaitTimeBetweenScans() {
+    return this.waitTimeBetweenScans;
   }
 
   public InstanceId getInstanceID() {
@@ -605,14 +611,20 @@ public class Manager extends AbstractServer
     }
   }
 
-  TabletGoalState getTableGoalState(KeyExtent extent) {
-    TableState tableState = getContext().getTableManager().getTableState(extent.tableId());
+  TabletGoalState getTableGoalState(TabletLocationState tls) {
+    TableState tableState = getContext().getTableManager().getTableState(tls.extent.tableId());
     if (tableState == null) {
       return TabletGoalState.DELETED;
     }
     switch (tableState) {
       case DELETING:
         return TabletGoalState.DELETED;
+      case ONDEMAND:
+        if (tls.ondemand) {
+          return TabletGoalState.HOSTED;
+        } else {
+          return TabletGoalState.UNASSIGNED;
+        }
       case OFFLINE:
       case NEW:
         return TabletGoalState.UNASSIGNED;
@@ -669,7 +681,7 @@ public class Manager extends AbstractServer
       }
 
       // taking table offline?
-      state = getTableGoalState(extent);
+      state = getTableGoalState(tls);
       if (state == TabletGoalState.HOSTED) {
         // Maybe this tablet needs to be migrated
         TServerInstance dest = migrations.get(extent);
@@ -1114,7 +1126,7 @@ public class Manager extends AbstractServer
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
-    recoveryManager = new RecoveryManager(this, TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE);
+    recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
     context.getTableManager().addObserver(this);
 
@@ -1570,7 +1582,7 @@ public class Manager extends AbstractServer
   @Override
   public void stateChanged(TableId tableId, TableState state) {
     nextEvent.event("Table state in zookeeper changed for %s to %s", tableId, state);
-    if (state == TableState.OFFLINE) {
+    if (state == TableState.OFFLINE || state == TableState.ONDEMAND) {
       clearMigrations(tableId);
     }
   }
@@ -1603,6 +1615,14 @@ public class Manager extends AbstractServer
       }
     }
     return result;
+  }
+
+  @Override
+  public Set<TableId> getOnDemandTables() {
+    return getContext().getTableIdToNameMap().keySet().stream().filter(tid -> {
+      TableState state = getContext().getTableManager().getTableState(tid);
+      return ((state != null) && (state == TableState.ONDEMAND));
+    }).collect(Collectors.toSet());
   }
 
   @Override
@@ -1760,4 +1780,5 @@ public class Manager extends AbstractServer
         AssignmentParamsImpl.fromThrift(currentStatus, unassigned, assignedOut);
     tabletBalancer.getAssignments(params);
   }
+
 }

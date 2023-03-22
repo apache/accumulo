@@ -309,6 +309,9 @@ public enum Property {
       "The balancer class that accumulo will use to make tablet assignment and "
           + "migration decisions.",
       "1.3.5"),
+  MANAGER_TABLET_GROUP_WATCHER_INTERVAL("manager.tablet.watcher.interval", "60s",
+      PropertyType.TIMEDURATION,
+      "Time to wait between scanning tablet states to determine migrations, etc.", "3.1.0"),
   MANAGER_BULK_RETRIES("manager.bulk.retries", "3", PropertyType.COUNT,
       "The number of attempts to bulk import a RFile before giving up.", "1.4.0"),
   MANAGER_BULK_THREADPOOL_SIZE("manager.bulk.threadpool.size", "5", PropertyType.COUNT,
@@ -1096,6 +1099,13 @@ public enum Property {
           + "also consider configuring the `" + NoDeleteConstraint.class.getName() + "` "
           + "constraint.",
       "2.0.0"),
+  TABLE_ONDEMAND_UNLOADER("table.ondemand.tablet.unloader",
+      "org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader", PropertyType.CLASSNAME,
+      "The class that will be used to determine which onDemand Tablets to unload.", "3.1.0"),
+  TABLE_ONDEMAND_UNLOADER_INTERVAL("table.ondemand.tablet.unloader.interval", "10m",
+      PropertyType.TIMEDURATION,
+      "The interval at which the TabletServer will check if onDemand tablets can be unloaded",
+      "3.1.0"),
 
   // Compactor properties
   @Experimental

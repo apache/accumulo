@@ -58,9 +58,9 @@ public class GarbageCollectWriteAheadLogsTest {
   {
     try {
       tabletAssignedToServer1 =
-          new TabletLocationState(extent, null, server1, null, null, walogs, false);
+          new TabletLocationState(extent, null, server1, null, null, walogs, false, false);
       tabletAssignedToServer2 =
-          new TabletLocationState(extent, null, server2, null, null, walogs, false);
+          new TabletLocationState(extent, null, server2, null, null, walogs, false, false);
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
