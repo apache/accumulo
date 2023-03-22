@@ -46,13 +46,12 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.metadata.OperationId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.TabletLocationState;
-import org.apache.accumulo.core.metadata.TabletOperation;
+import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -107,7 +106,7 @@ public class TabletMetadata {
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
   private boolean chopped = false;
   private TabletOperation operation;
-  private OperationId operationId;
+  private TabletOperationId operationId;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -317,7 +316,7 @@ public class TabletMetadata {
     return operation;
   }
 
-  public OperationId getOperationId() {
+  public TabletOperationId getOperationId() {
     ensureFetched(ColumnType.OPID);
     return operationId;
   }
@@ -395,7 +394,7 @@ public class TabletMetadata {
             case OPID_QUAL:
               String[] tokens = val.split(":", 2);
               te.operation = TabletOperation.valueOf(tokens[0]);
-              te.operationId = new OperationId(tokens[1]);
+              te.operationId = new TabletOperationId(tokens[1]);
               break;
           }
           break;

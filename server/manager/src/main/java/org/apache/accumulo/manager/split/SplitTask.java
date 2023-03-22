@@ -26,8 +26,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataOperations;
-import org.apache.accumulo.core.metadata.OperationId;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.manager.TabletOperations;
@@ -96,7 +96,7 @@ public class SplitTask implements Runnable {
 
       log.info("splitting {} at {}", tablet.getExtent(), split);
       MetadataOperations.doSplit(context.getAmple(), extent, splits,
-          new OperationId(UUID.randomUUID().toString()), dirNameGenerator);
+          new TabletOperationId(UUID.randomUUID().toString()), dirNameGenerator);
 
     } catch (Exception e) {
       log.error("Failed to split {}", tablet.getExtent(), e);

@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataOperations;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.OperationId;
+import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
@@ -63,7 +63,7 @@ public class MetadataOperationsIT extends AccumuloClusterHarness {
       };
 
       MetadataOperations.doSplit(context.getAmple(), e1, splits,
-          new OperationId(UUID.randomUUID().toString()), dirNameGenerator);
+          new TabletOperationId(UUID.randomUUID().toString()), dirNameGenerator);
 
       Assert.assertEquals(splits, new TreeSet<>(c.tableOperations().listSplits(tableName)));
     }

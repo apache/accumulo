@@ -31,13 +31,12 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.OperationId;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.TabletOperation;
+import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -248,11 +247,21 @@ public interface Ample {
   }
 
   public interface ConditionalTabletsMutator extends AutoCloseable {
-    ConditionalTabletMutator mutateTablet(KeyExtent extent);
 
+    /**
+     * @return A fluent interface to conditional mutating a tablet. Ensure you call
+     *         {@link ConditionalTabletMutator#submit()} when finished.
+     */
+    OperationRequirements mutateTablet(KeyExtent extent);
+
+    /**
+     * After creating one or more conditional mutations using {@link #mutateTablet(KeyExtent)}, call
+     * this method to process them using a {@link ConditionalWriter}
+     *
+     * @return The result from the {@link ConditionalWriter} of processing each tablet.
+     */
     Map<KeyExtent,ConditionalWriter.Result> process();
 
-    // TODO maybe remove
     @Override
     void close();
   }
@@ -305,7 +314,7 @@ public interface Ample {
 
     T deleteExternalCompaction(ExternalCompactionId ecid);
 
-    T putOperation(TabletOperation operation, OperationId opId);
+    T putOperation(TabletOperation operation, TabletOperationId opId);
 
     T deleteOperation();
   }
@@ -326,25 +335,64 @@ public interface Ample {
     void mutate();
   }
 
-  interface ConditionalTabletMutator extends TabletUpdates<ConditionalTabletMutator> {
+  /**
+   * A tablet operation is a mutually exclusive action that is running against a tablet. Its very
+   * important that every conditional mutation specifies requirements about operations in order to
+   * satisfy the mutual exclusion goal. This interface forces those requirements to specified by
+   * making it the only choice avialable before specifying other tablet requirements or mutations.
+   */
+  interface OperationRequirements {
 
-    ConditionalTabletMutator requireAbsentLocation();
+    /**
+     * Require a specific operation with a unique id is present. This would be normally be called by
+     * the code executing that operation.
+     */
+    ConditionalTabletMutator requireOperation(TabletOperation operation,
+        TabletOperationId operationId);
 
-    ConditionalTabletMutator requireLocation(TServerInstance tserver, LocationType type);
-
-    ConditionalTabletMutator requireFile(StoredTabletFile path);
-
-    ConditionalTabletMutator requireAbsentBulkFile(TabletFile bulkref);
-
-    // TODO could always check this!
-    ConditionalTabletMutator requirePrevEndRow(Text per);
-
-    ConditionalTabletMutator requireAbsentTablet();
-
-    ConditionalTabletMutator requireOperation(TabletOperation operation, OperationId operationId);
-
+    /**
+     * Require that no mutually exclusive operations are runnnig against this tablet.
+     */
     ConditionalTabletMutator requireAbsentOperation();
 
+    /**
+     * Require an entire tablet is absent, so the tablet row has no columns. If the entire tablet is
+     * absent, then this implies the tablet operation is also absent so there is no need to specify
+     * that.
+     */
+    ConditionalTabletMutator requireAbsentTablet();
+  }
+
+  interface ConditionalTabletMutator extends TabletUpdates<ConditionalTabletMutator> {
+
+    /**
+     * Require that a tablet has no future or current location set.
+     */
+    ConditionalTabletMutator requireAbsentLocation();
+
+    /**
+     * Require that a tablet currently has the specified future or current location.
+     */
+    ConditionalTabletMutator requireLocation(TServerInstance tserver, LocationType type);
+
+    /**
+     * Require that a tablet currently has the specified file.
+     */
+    ConditionalTabletMutator requireFile(StoredTabletFile path);
+
+    /**
+     * Require that a tablet does not have the specfied bulk load marker.
+     */
+    ConditionalTabletMutator requireAbsentBulkFile(TabletFile bulkref);
+
+    /**
+     * Require that a tablet has the specified previous end row.
+     */
+    ConditionalTabletMutator requirePrevEndRow(Text per);
+
+    /**
+     * Submits or queues a conditional mutation for processing.
+     */
     ConditionalTabletsMutator submit();
   }
 

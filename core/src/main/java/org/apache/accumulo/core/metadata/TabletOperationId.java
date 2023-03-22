@@ -20,11 +20,15 @@ package org.apache.accumulo.core.metadata;
 
 import org.apache.accumulo.core.data.AbstractId;
 
-public class OperationId extends AbstractId<OperationId> {
+/**
+ * Intended to contain a globally unique id that identifies an operation running against a tablet.
+ * The purpose of this is to prevent race conditions.
+ */
+public class TabletOperationId extends AbstractId<TabletOperationId> {
 
   private static final long serialVersionUID = 1L;
 
-  public OperationId(String canonical) {
+  public TabletOperationId(String canonical) {
     super(canonical);
   }
 }

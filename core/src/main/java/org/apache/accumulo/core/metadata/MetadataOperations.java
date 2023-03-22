@@ -30,6 +30,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletOperation;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -38,12 +39,11 @@ public class MetadataOperations {
 
   public static void compact(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
       Set<StoredTabletFile> inputFiles, TabletFile outputFile, DataFileValue dfv) {
-    Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
+    Ample.ConditionalTabletMutator conditionalMutator =
+        ctm.mutateTablet(extent).requireAbsentOperation();
 
-    conditionalMutator.requireAbsentOperation();
     inputFiles.forEach(conditionalMutator::requireFile);
     conditionalMutator.requirePrevEndRow(extent.prevEndRow());
-    // TODO could add a conditional check to ensure file is not already there
 
     inputFiles.forEach(conditionalMutator::deleteFile);
     conditionalMutator.putFile(outputFile, dfv);
@@ -53,11 +53,9 @@ public class MetadataOperations {
 
   public static void minorCompact(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
       TServerInstance tsi, TabletFile newFile, DataFileValue dfv) {
-    Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
+    Ample.ConditionalTabletMutator conditionalMutator =
+        ctm.mutateTablet(extent).requireAbsentOperation();
 
-    // when a tablet has a current location its operation should always be none, so this check is a
-    // bit redundant
-    conditionalMutator.requireAbsentOperation();
     conditionalMutator.requireLocation(tsi, TabletMetadata.LocationType.CURRENT);
     conditionalMutator.requirePrevEndRow(extent.prevEndRow());
     // TODO could add a conditional check to ensure file is not already there
@@ -69,9 +67,9 @@ public class MetadataOperations {
 
   public static void bulkImport(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
       Map<TabletFile,DataFileValue> newFiles, long tid) {
-    Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
+    Ample.ConditionalTabletMutator conditionalMutator =
+        ctm.mutateTablet(extent).requireAbsentOperation();
 
-    conditionalMutator.requireAbsentOperation();
     conditionalMutator.requirePrevEndRow(extent.prevEndRow());
     newFiles.keySet().forEach(conditionalMutator::requireAbsentBulkFile);
 
@@ -83,9 +81,9 @@ public class MetadataOperations {
 
   public static void setFuture(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
       TServerInstance tsi) {
-    Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
+    Ample.ConditionalTabletMutator conditionalMutator =
+        ctm.mutateTablet(extent).requireAbsentOperation();
 
-    conditionalMutator.requireAbsentOperation();
     conditionalMutator.requireAbsentLocation();
     conditionalMutator.requirePrevEndRow(extent.prevEndRow());
 
@@ -96,9 +94,9 @@ public class MetadataOperations {
 
   public static void setCurrent(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
       TServerInstance tsi) {
-    Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
+    Ample.ConditionalTabletMutator conditionalMutator =
+        ctm.mutateTablet(extent).requireAbsentOperation();
 
-    conditionalMutator.requireAbsentOperation();
     conditionalMutator.requireLocation(tsi, TabletMetadata.LocationType.FUTURE);
     conditionalMutator.requirePrevEndRow(extent.prevEndRow());
 
@@ -110,9 +108,9 @@ public class MetadataOperations {
 
   public static void deleteLocation(Ample.ConditionalTabletsMutator ctm, KeyExtent extent,
       TServerInstance tsi, TabletMetadata.LocationType locType) {
-    Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
+    Ample.ConditionalTabletMutator conditionalMutator =
+        ctm.mutateTablet(extent).requireAbsentOperation();
 
-    conditionalMutator.requireAbsentOperation();
     conditionalMutator.requireLocation(tsi, locType);
     conditionalMutator.requirePrevEndRow(extent.prevEndRow());
 
@@ -123,9 +121,8 @@ public class MetadataOperations {
 
   public static void addTablet(Ample.ConditionalTabletsMutator ctm, KeyExtent extent, String path,
       TimeType timeType) {
-    Ample.ConditionalTabletMutator conditionalMutator = ctm.mutateTablet(extent);
-
-    conditionalMutator.requireAbsentTablet();
+    Ample.ConditionalTabletMutator conditionalMutator =
+        ctm.mutateTablet(extent).requireAbsentOperation();
 
     conditionalMutator.putPrevEndRow(extent.prevEndRow());
     conditionalMutator.putDirName(path);
@@ -153,7 +150,7 @@ public class MetadataOperations {
    * @throws AccumuloSecurityException
    */
   public static void doSplit(Ample ample, KeyExtent extent, SortedSet<Text> splits,
-      OperationId splitId, Supplier<String> dirNameGenerator)
+      TabletOperationId splitId, Supplier<String> dirNameGenerator)
       throws AccumuloException, AccumuloSecurityException {
 
     if (splits.isEmpty())
@@ -239,14 +236,12 @@ public class MetadataOperations {
   }
 
   private static ConditionalWriter.Result attemptToReserveTablet(Ample ample, KeyExtent extent,
-      TabletOperation operation, OperationId opid) {
+      TabletOperation operation, TabletOperationId opid) {
 
-    var tabletMutator = ample.conditionallyMutateTablets().mutateTablet(extent);
+    var tabletMutator =
+        ample.conditionallyMutateTablets().mutateTablet(extent).requireAbsentOperation();
 
-    // TODO need to determine in the bigger picture how the tablet will be taken offline and kept
-    // offline until the split operation completes
     tabletMutator.requireAbsentLocation();
-    tabletMutator.requireAbsentOperation();
     tabletMutator.requirePrevEndRow(extent.prevEndRow());
 
     tabletMutator.putOperation(operation, opid);
@@ -255,12 +250,12 @@ public class MetadataOperations {
   }
 
   private static Map<KeyExtent,ConditionalWriter.Result> removeSplitOperations(Ample ample,
-      OperationId splitId, Set<KeyExtent> newExtents) {
+      TabletOperationId splitId, Set<KeyExtent> newExtents) {
     var tabletsMutator = ample.conditionallyMutateTablets();
     for (KeyExtent newExtent : newExtents) {
-      var tabletMutator = tabletsMutator.mutateTablet(newExtent);
+      var tabletMutator = tabletsMutator.mutateTablet(newExtent)
+          .requireOperation(TabletOperation.SPLITTING, splitId);
 
-      tabletMutator.requireOperation(TabletOperation.SPLITTING, splitId);
       tabletMutator.requirePrevEndRow(newExtent.prevEndRow());
 
       tabletMutator.deleteOperation();
@@ -271,12 +266,12 @@ public class MetadataOperations {
     return tabletsMutator.process();
   }
 
-  private static void updateSplitTablet(Ample ample, KeyExtent extent, OperationId splitId,
+  private static void updateSplitTablet(Ample ample, KeyExtent extent, TabletOperationId splitId,
       KeyExtent lastExtent, Map<TabletFile,DataFileValue> splitFiles)
       throws AccumuloException, AccumuloSecurityException {
-    var tabletMutator = ample.conditionallyMutateTablets().mutateTablet(extent);
+    var tabletMutator = ample.conditionallyMutateTablets().mutateTablet(extent)
+        .requireOperation(TabletOperation.SPLITTING, splitId);
 
-    tabletMutator.requireOperation(TabletOperation.SPLITTING, splitId);
     tabletMutator.requirePrevEndRow(extent.prevEndRow());
 
     tabletMutator.putPrevEndRow(lastExtent.prevEndRow());
@@ -290,18 +285,17 @@ public class MetadataOperations {
     }
   }
 
-  private static void addNewSplits(Ample ample, OperationId splitId, Set<KeyExtent> newExtents,
-      Map<KeyExtent,TabletMetadata> existingMetadata, TabletMetadata primaryTabletMetadata,
-      Map<TabletFile,DataFileValue> splitFiles, Supplier<String> dirNameGenerator) {
+  private static void addNewSplits(Ample ample, TabletOperationId splitId,
+      Set<KeyExtent> newExtents, Map<KeyExtent,TabletMetadata> existingMetadata,
+      TabletMetadata primaryTabletMetadata, Map<TabletFile,DataFileValue> splitFiles,
+      Supplier<String> dirNameGenerator) {
     var tabletsMutator = ample.conditionallyMutateTablets();
     for (KeyExtent newExtent : newExtents) {
       if (existingMetadata.containsKey(newExtent)) {
         // TODO check things are as expected
       } else {
         // add a tablet
-        var newTabletMutator = tabletsMutator.mutateTablet(newExtent);
-
-        newTabletMutator.requireAbsentTablet();
+        var newTabletMutator = tabletsMutator.mutateTablet(newExtent).requireAbsentTablet();
 
         // TODO put a dir
         // TODO copy bulk import markers

@@ -34,21 +34,25 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletOperation;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.metadata.iterators.AnyLocationIterator;
+import org.apache.accumulo.server.metadata.iterators.LocationExistsIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
+import org.apache.accumulo.server.metadata.iterators.TabletExistsIterator;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
 public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.ConditionalTabletMutator>
-    implements Ample.ConditionalTabletMutator {
+    implements Ample.ConditionalTabletMutator, Ample.OperationRequirements {
 
   private static final int INITIAL_ITERATOR_PRIO = 1000000;
 
   private final ConditionalMutation mutation;
   private final Consumer<ConditionalMutation> mutationConsumer;
   private final Ample.ConditionalTabletsMutator parent;
+
+  private boolean sawOperationRequirement = false;
 
   protected ConditionalTabletMutatorImpl(Ample.ConditionalTabletsMutator parent,
       ServerContext context, KeyExtent extent, Consumer<ConditionalMutation> mutationConsumer) {
@@ -61,8 +65,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   @Override
   public Ample.ConditionalTabletMutator requireAbsentLocation() {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    // TODO check if updates are still allowed like super class does
-    IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, AnyLocationIterator.class);
+    IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, LocationExistsIterator.class);
     Condition c = new Condition("", "").setIterators(is);
     mutation.addCondition(c);
     return this;
@@ -109,9 +112,8 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   @Override
   public Ample.ConditionalTabletMutator requireAbsentTablet() {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    // TODO implement scan of entire row
-    Condition c =
-        new Condition(PREV_ROW_COLUMN.getColumnFamily(), PREV_ROW_COLUMN.getColumnQualifier());
+    IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, TabletExistsIterator.class);
+    Condition c = new Condition("", "").setIterators(is);
     mutation.addCondition(c);
     return this;
   }
@@ -121,22 +123,25 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition c = new Condition(OPID_COLUMN.getColumnFamily(), OPID_COLUMN.getColumnQualifier());
     mutation.addCondition(c);
+    sawOperationRequirement = true;
     return this;
   }
 
   @Override
   public Ample.ConditionalTabletMutator requireOperation(TabletOperation operation,
-      OperationId opid) {
+      TabletOperationId opid) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition c = new Condition(OPID_COLUMN.getColumnFamily(), OPID_COLUMN.getColumnQualifier())
         .setValue(operation.name() + ":" + opid.canonical());
     mutation.addCondition(c);
+    sawOperationRequirement = true;
     return this;
   }
 
   @Override
   public Ample.ConditionalTabletsMutator submit() {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Preconditions.checkState(sawOperationRequirement, "No operation requirements were seen");
     getMutation();
     mutationConsumer.accept(mutation);
     return parent;

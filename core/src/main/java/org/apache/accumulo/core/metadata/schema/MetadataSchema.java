@@ -74,6 +74,28 @@ public class MetadataSchema {
     }
 
     /**
+     * Check is a metadata row is of the expected format and throws an exception if its not.
+     */
+    public static void validateRow(Text metadataRow) {
+      int semiPos = -1;
+      int ltPos = -1;
+
+      for (int i = 0; i < metadataRow.getLength(); i++) {
+        if (metadataRow.getBytes()[i] == ';' && semiPos < 0) {
+          // want the position of the first semicolon
+          semiPos = i;
+        }
+        if (metadataRow.getBytes()[i] == '<') {
+          ltPos = i;
+        }
+      }
+
+      if (semiPos < 0 && ltPos < 0) {
+        throw new IllegalArgumentException("Metadata row does not contain ; or <  " + metadataRow);
+      }
+    }
+
+    /**
      * Decodes a metadata row into a pair of table ID and end row.
      */
     public static Pair<TableId,Text> decodeRow(Text metadataRow) {

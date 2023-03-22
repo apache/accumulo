@@ -34,6 +34,7 @@ import org.apache.accumulo.core.metadata.*;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletOperation;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
@@ -58,7 +59,6 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName,
           new NewTableConfiguration().withSplits(splits).createOffline());
 
-      // TODO need to ungrant?
       c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
 
@@ -74,7 +74,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       Assert.assertNull(context.getAmple().readTablet(e1).getLocation());
 
       var ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireAbsentLocation().putLocation(ts1, LocationType.FUTURE).submit();
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(ts1, LocationType.FUTURE).submit();
       var results = ctmi.process();
       Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
 
@@ -82,7 +83,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           context.getAmple().readTablet(e1).getLocation());
 
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireAbsentLocation().putLocation(ts2, LocationType.FUTURE).submit();
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(ts2, LocationType.FUTURE).submit();
       results = ctmi.process();
       Assert.assertEquals(Status.REJECTED, results.get(e1).getStatus());
 
@@ -90,7 +92,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           context.getAmple().readTablet(e1).getLocation());
 
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireLocation(ts1, LocationType.FUTURE)
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(ts1, LocationType.FUTURE)
           .putLocation(ts1, LocationType.CURRENT).deleteLocation(ts1, LocationType.FUTURE).submit();
       results = ctmi.process();
       Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
@@ -99,7 +101,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           context.getAmple().readTablet(e1).getLocation());
 
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireLocation(ts1, LocationType.FUTURE)
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(ts1, LocationType.FUTURE)
           .putLocation(ts1, LocationType.CURRENT).deleteLocation(ts1, LocationType.FUTURE).submit();
       results = ctmi.process();
       Assert.assertEquals(Status.REJECTED, results.get(e1).getStatus());
@@ -108,7 +110,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           context.getAmple().readTablet(e1).getLocation());
 
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireLocation(ts2, LocationType.FUTURE)
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(ts2, LocationType.FUTURE)
           .putLocation(ts2, LocationType.CURRENT).deleteLocation(ts2, LocationType.FUTURE).submit();
       results = ctmi.process();
       Assert.assertEquals(Status.REJECTED, results.get(e1).getStatus());
@@ -117,7 +119,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
           context.getAmple().readTablet(e1).getLocation());
 
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireLocation(ts1, LocationType.CURRENT)
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(ts1, LocationType.CURRENT)
           .deleteLocation(ts1, LocationType.CURRENT).submit();
       results = ctmi.process();
       Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
@@ -128,8 +130,6 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
   @Test
   public void testFiles() throws Exception {
-    // TODO make test less verbose if keeping
-    // TODO assert more results if keeping
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -138,7 +138,6 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName,
           new NewTableConfiguration().withSplits(splits).createOffline());
 
-      // TODO need to ungrant?
       c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
 
@@ -164,8 +163,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       // simulate a compaction where the tablet location is not set
       var ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireFile(stf1).requireFile(stf2).requireFile(stf3)
-          .putFile(stf4, new DataFileValue(0, 0)).submit();
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireFile(stf1).requireFile(stf2)
+          .requireFile(stf3).putFile(stf4, new DataFileValue(0, 0)).submit();
       var results = ctmi.process();
       Assert.assertEquals(Status.REJECTED, results.get(e1).getStatus());
 
@@ -174,7 +173,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       // simulate minor compacts where the tablet location is not set
       for (StoredTabletFile file : List.of(stf1, stf2, stf3)) {
         ctmi = new ConditionalTabletsMutatorImpl(context);
-        ctmi.mutateTablet(e1).requireLocation(ts1, LocationType.CURRENT)
+        ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(ts1, LocationType.CURRENT)
             .putFile(file, new DataFileValue(0, 0)).submit();
         results = ctmi.process();
         Assert.assertEquals(Status.REJECTED, results.get(e1).getStatus());
@@ -184,14 +183,15 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       // set the location
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireAbsentLocation().putLocation(ts1, LocationType.CURRENT).submit();
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(ts1, LocationType.CURRENT).submit();
       results = ctmi.process();
       Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
 
       // simulate minor compacts where the tablet location is wrong
       for (StoredTabletFile file : List.of(stf1, stf2, stf3)) {
         ctmi = new ConditionalTabletsMutatorImpl(context);
-        ctmi.mutateTablet(e1).requireLocation(ts2, LocationType.CURRENT)
+        ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(ts2, LocationType.CURRENT)
             .putFile(file, new DataFileValue(0, 0)).submit();
         results = ctmi.process();
         Assert.assertEquals(Status.REJECTED, results.get(e1).getStatus());
@@ -202,7 +202,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       // simulate minor compacts where the tablet location is set
       for (StoredTabletFile file : List.of(stf1, stf2, stf3)) {
         ctmi = new ConditionalTabletsMutatorImpl(context);
-        ctmi.mutateTablet(e1).requireLocation(ts1, LocationType.CURRENT)
+        ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(ts1, LocationType.CURRENT)
             .putFile(file, new DataFileValue(0, 0)).submit();
         results = ctmi.process();
         Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
@@ -212,9 +212,9 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       // simulate a compaction
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireFile(stf1).requireFile(stf2).requireFile(stf3)
-          .putFile(stf4, new DataFileValue(0, 0)).deleteFile(stf1).deleteFile(stf2).deleteFile(stf3)
-          .submit();
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireFile(stf1).requireFile(stf2)
+          .requireFile(stf3).putFile(stf4, new DataFileValue(0, 0)).deleteFile(stf1)
+          .deleteFile(stf2).deleteFile(stf3).submit();
       results = ctmi.process();
       Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
 
@@ -227,8 +227,9 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       var stf5 =
           new StoredTabletFile("hdfs://localhost:8020/accumulo/tables/2a/b-0000009/I0000074.rf");
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireAbsentBulkFile(stf5).putFile(stf5, new DataFileValue(0, 0))
-          .putBulkFile(stf5, 9L).putFile(stf5, new DataFileValue(0, 0)).submit();
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentBulkFile(stf5)
+          .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5, 9L)
+          .putFile(stf5, new DataFileValue(0, 0)).submit();
       results = ctmi.process();
       Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
 
@@ -238,7 +239,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       var stf6 = new StoredTabletFile(
           "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/A0000075.rf");
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireFile(stf4).requireFile(stf5)
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireFile(stf4).requireFile(stf5)
           .putFile(stf6, new DataFileValue(0, 0)).deleteFile(stf4).deleteFile(stf5).submit();
       results = ctmi.process();
       Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
@@ -247,8 +248,9 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       // simulate trying to re bulk import file after a compaction
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireAbsentBulkFile(stf5).putFile(stf5, new DataFileValue(0, 0))
-          .putBulkFile(stf5, 9L).putFile(stf5, new DataFileValue(0, 0)).submit();
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentBulkFile(stf5)
+          .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5, 9L)
+          .putFile(stf5, new DataFileValue(0, 0)).submit();
       results = ctmi.process();
       Assert.assertEquals(Status.REJECTED, results.get(e1).getStatus());
 
@@ -265,7 +267,6 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName,
           new NewTableConfiguration().withSplits(splits).createOffline());
 
-      // TODO need to ungrant?
       c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
 
@@ -282,8 +283,10 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       var context = cluster.getServerContext();
 
       var ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireAbsentLocation().putLocation(ts1, LocationType.FUTURE).submit();
-      ctmi.mutateTablet(e2).requireAbsentLocation().putLocation(ts2, LocationType.FUTURE).submit();
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(ts1, LocationType.FUTURE).submit();
+      ctmi.mutateTablet(e2).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(ts2, LocationType.FUTURE).submit();
       var results = ctmi.process();
 
       Assert.assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
@@ -299,10 +302,14 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       Assert.assertEquals(Set.of(e1, e2), results.keySet());
 
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireAbsentLocation().putLocation(ts2, LocationType.FUTURE).submit();
-      ctmi.mutateTablet(e2).requireAbsentLocation().putLocation(ts1, LocationType.FUTURE).submit();
-      ctmi.mutateTablet(e3).requireAbsentLocation().putLocation(ts1, LocationType.FUTURE).submit();
-      ctmi.mutateTablet(e4).requireAbsentLocation().putLocation(ts2, LocationType.FUTURE).submit();
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(ts2, LocationType.FUTURE).submit();
+      ctmi.mutateTablet(e2).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(ts1, LocationType.FUTURE).submit();
+      ctmi.mutateTablet(e3).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(ts1, LocationType.FUTURE).submit();
+      ctmi.mutateTablet(e4).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(ts2, LocationType.FUTURE).submit();
       results = ctmi.process();
 
       Assert.assertEquals(Status.REJECTED, results.get(e1).getStatus());
@@ -333,7 +340,6 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName,
           new NewTableConfiguration().withSplits(splits).createOffline());
 
-      // TODO need to ungrant?
       c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
 
@@ -346,8 +352,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       var context = cluster.getServerContext();
 
-      var opid1 = new OperationId("1234");
-      var opid2 = new OperationId("5678");
+      var opid1 = new TabletOperationId("1234");
+      var opid2 = new TabletOperationId("5678");
 
       var ctmi = new ConditionalTabletsMutatorImpl(context);
       ctmi.mutateTablet(e1).requireAbsentOperation().putOperation(TabletOperation.SPLITTING, opid1)
@@ -411,21 +417,22 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     Assert.assertFalse(rootMeta.getCompactId().isPresent());
 
     var ctmi = new ConditionalTabletsMutatorImpl(context);
-    ctmi.mutateTablet(RootTable.EXTENT).requireAbsentLocation().putCompactionId(7).submit();
+    ctmi.mutateTablet(RootTable.EXTENT).requireAbsentOperation().requireAbsentLocation()
+        .putCompactionId(7).submit();
     var results = ctmi.process();
     Assert.assertEquals(Status.REJECTED, results.get(RootTable.EXTENT).getStatus());
     Assert.assertFalse(context.getAmple().readTablet(RootTable.EXTENT).getCompactId().isPresent());
 
     ctmi = new ConditionalTabletsMutatorImpl(context);
-    ctmi.mutateTablet(RootTable.EXTENT).requireLocation(loc, LocationType.FUTURE).putCompactionId(7)
-        .submit();
+    ctmi.mutateTablet(RootTable.EXTENT).requireAbsentOperation()
+        .requireLocation(loc, LocationType.FUTURE).putCompactionId(7).submit();
     results = ctmi.process();
     Assert.assertEquals(Status.REJECTED, results.get(RootTable.EXTENT).getStatus());
     Assert.assertFalse(context.getAmple().readTablet(RootTable.EXTENT).getCompactId().isPresent());
 
     ctmi = new ConditionalTabletsMutatorImpl(context);
-    ctmi.mutateTablet(RootTable.EXTENT).requireLocation(loc, LocationType.CURRENT)
-        .putCompactionId(7).submit();
+    ctmi.mutateTablet(RootTable.EXTENT).requireAbsentOperation()
+        .requireLocation(loc, LocationType.CURRENT).putCompactionId(7).submit();
     results = ctmi.process();
     Assert.assertEquals(Status.ACCEPTED, results.get(RootTable.EXTENT).getStatus());
     Assert.assertEquals(7L,
