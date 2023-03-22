@@ -89,7 +89,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
-  public Ample.ConditionalTabletMutator requireAbsentBulikFile(TabletFile bulkref) {
+  public Ample.ConditionalTabletMutator requireAbsentBulkFile(TabletFile bulkref) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition c = new Condition(BulkFileColumnFamily.NAME, bulkref.getMetaInsertText());
     mutation.addCondition(c);

@@ -72,7 +72,7 @@ public class MetadataOperations {
 
     conditionalMutator.requireAbsentOperation();
     conditionalMutator.requirePrevEndRow(extent.prevEndRow());
-    newFiles.keySet().forEach(conditionalMutator::requireAbsentBulikFile);
+    newFiles.keySet().forEach(conditionalMutator::requireAbsentBulkFile);
 
     newFiles.keySet().forEach(file -> conditionalMutator.putBulkFile(file, tid));
     newFiles.forEach(conditionalMutator::putFile);
