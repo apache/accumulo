@@ -37,12 +37,15 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,6 +56,11 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
   private AccumuloClient accumuloClient;
   private MultiTableBatchWriter mtbw;
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "10");
+  }
 
   @Override
   protected Duration defaultTimeout() {
@@ -414,13 +422,13 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       tops.create(table1);
       tops.create(table2);
 
-      tops.offline(table1, true);
-      tops.offline(table2, true);
-
-      BatchWriter bw1 = mtbw.getBatchWriter(table1), bw2 = mtbw.getBatchWriter(table2);
-
       tops.onDemand(table1, true);
       tops.onDemand(table2, true);
+
+      accumuloClient.tableOperations().clearLocatorCache(table1);
+      accumuloClient.tableOperations().clearLocatorCache(table2);
+
+      BatchWriter bw1 = mtbw.getBatchWriter(table1), bw2 = mtbw.getBatchWriter(table2);
 
       Mutation m1 = new Mutation("foo");
       m1.put("col1", "", "val1");

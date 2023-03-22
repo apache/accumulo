@@ -115,11 +115,12 @@ public class OnDemandIT extends SharedMiniClusterBase {
       splits.add(new Text("m"));
       splits.add(new Text("t"));
       c.tableOperations().addSplits(tableName, splits);
-      // Need to offline the table first so that the tablets
-      // are unloaded.
-      c.tableOperations().offline(tableName, true);
       c.tableOperations().onDemand(tableName, true);
       assertTrue(c.tableOperations().isOnDemand(tableName));
+
+      // Wait 2x the TabletGroupWatcher interval for ondemand
+      // tablets to be unassigned.
+      Thread.sleep(2 * managerTabletGroupWatcherInterval * 1000);
 
       List<TabletStats> stats = ManagerAssignmentIT.getTabletStats(c, tableId);
       // There should be no tablets online
