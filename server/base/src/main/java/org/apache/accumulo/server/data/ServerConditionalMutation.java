@@ -16,33 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.metadata;
+package org.apache.accumulo.server.data;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.server.ServerContext;
+import java.util.List;
 
-class TabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
-    implements Ample.TabletMutator {
+import org.apache.accumulo.core.dataImpl.thrift.TCondition;
+import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
 
-  private BatchWriter writer;
+public class ServerConditionalMutation extends ServerMutation {
 
-  TabletMutatorImpl(ServerContext context, KeyExtent extent, BatchWriter batchWriter) {
-    super(context, extent);
-    this.writer = batchWriter;
+  private long cmid;
+  private List<TCondition> conditions;
+
+  public ServerConditionalMutation(TConditionalMutation input) {
+    super(input.mutation);
+
+    this.cmid = input.id;
+    this.conditions = input.conditions;
   }
 
-  @Override
-  public void mutate() {
-    try {
-      writer.addMutation(getMutation());
-
-      if (closeAfterMutate != null) {
-        closeAfterMutate.close();
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+  public long getID() {
+    return cmid;
   }
+
+  public List<TCondition> getConditions() {
+    return conditions;
+  }
+
 }

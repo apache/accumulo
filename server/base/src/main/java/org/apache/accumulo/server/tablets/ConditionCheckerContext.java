@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver;
+package org.apache.accumulo.server.tablets;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -46,8 +46,8 @@ import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
+import org.apache.accumulo.server.data.ServerConditionalMutation;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
-import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 import org.apache.hadoop.io.Text;
 
 public class ConditionCheckerContext {
@@ -70,7 +70,7 @@ public class ConditionCheckerContext {
 
   private Map<ByteSequence,MergedIterConfig> mergedIterCache = new HashMap<>();
 
-  ConditionCheckerContext(ServerContext context, CompressedIterators compressedIters,
+  public ConditionCheckerContext(ServerContext context, CompressedIterators compressedIters,
       TableConfiguration tableConf) {
     this.compressedIters = compressedIters;
 
