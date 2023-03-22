@@ -1473,33 +1473,39 @@ public class TableOperationsImpl extends TableOperationsHelper {
     switch (newState) {
       case OFFLINE:
         op = FateOperation.TABLE_OFFLINE;
+        if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
+          throw new AccumuloException("Cannot set table to offline state");
+        }
         break;
       case ONDEMAND:
         op = FateOperation.TABLE_ONDEMAND;
         if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
           throw new AccumuloException("Cannot set table to onDemand state");
         }
-        if (isOnDemand(tableName)) {
-          if (wait) {
-            waitForTableStateTransition(tableId, TableState.ONDEMAND);
-          }
-          return;
-        }
         break;
       case ONLINE:
         op = FateOperation.TABLE_ONLINE;
-        /**
-         * ACCUMULO-4574 if table is already online return without executing fate operation.
-         */
-        if (isOnline(tableName)) {
-          if (wait) {
-            waitForTableStateTransition(tableId, newState);
-          }
+        if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
+          // Don't submit a Fate operation for this, these tables can only be online.
           return;
         }
         break;
       default:
         throw new IllegalArgumentException(newState + " is not handled.");
+    }
+
+    /**
+     * ACCUMULO-4574 Don't submit a fate operation to change the table state to newState if it's
+     * already in that state.
+     */
+    TableState currentState = context.getTableState(tableId, true);
+    if (op == FateOperation.TABLE_ONLINE && currentState == TableState.ONLINE
+        || op == FateOperation.TABLE_ONDEMAND && currentState == TableState.ONDEMAND
+        || op == FateOperation.TABLE_OFFLINE && currentState == TableState.OFFLINE) {
+      if (wait) {
+        waitForTableStateTransition(tableId, newState);
+      }
+      return;
     }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
