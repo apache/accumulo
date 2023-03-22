@@ -168,8 +168,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
       client.securityOperations().grantNamespacePermission(getPrincipal(), "",
           NamespacePermission.ALTER_NAMESPACE);
 
-      final String table = getUniqueNames(1)[0] + "_export_src";
-      final String table2 = table + "_import_tgt";
+      final String tableBase = getUniqueNames(1)[0];
+      final String table = tableBase + "_export_src";
+      final String table2 = tableBase + "_import_tgt";
 
       // exporttable / importtable
       ts.exec("createtable " + table + " -evc", true);
@@ -239,8 +240,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
       make10();
       ts.exec("addsplits row5", true);
 
-      // ts.exec("config -t " + table + " -s table.bloom.enabled=true", true);
-      // ts.exec("config -t " + table + " -s table.scan.max.memory=256K", true);
       ts.exec("config -t " + table + " -s table.split.threshold=345M", true);
       for (int i = 0; i < 50; i++) {
         String expected = (100 + i) + "M";
