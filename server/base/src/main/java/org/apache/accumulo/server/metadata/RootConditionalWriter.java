@@ -91,15 +91,11 @@ public class RootConditionalWriter implements ConditionalWriter {
 
     context.getZooCache().clear(zpath);
 
-    // TODO ensure constraints are checked
-
     List<ServerConditionalMutation> okMutations = new ArrayList<>();
     List<TCMResult> results = new ArrayList<>();
 
-    // TODO examine implementation of getZooReaderWriter().mutate()
-    // TODO for efficiency this should maybe call mutateExisting
     try {
-      context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
+      context.getZooReaderWriter().mutateExisting(zpath, currVal -> {
         String currJson = new String(currVal, UTF_8);
         var rtm = new RootTabletMetadata(currJson);
 

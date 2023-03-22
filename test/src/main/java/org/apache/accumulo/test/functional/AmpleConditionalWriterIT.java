@@ -59,7 +59,6 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName,
           new NewTableConfiguration().withSplits(splits).createOffline());
 
-      // TODO need to ungrant?
       c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
 
@@ -131,8 +130,6 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
   @Test
   public void testFiles() throws Exception {
-    // TODO make test less verbose if keeping
-    // TODO assert more results if keeping
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -141,7 +138,6 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName,
           new NewTableConfiguration().withSplits(splits).createOffline());
 
-      // TODO need to ungrant?
       c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
 
@@ -271,7 +267,6 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName,
           new NewTableConfiguration().withSplits(splits).createOffline());
 
-      // TODO need to ungrant?
       c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
 
@@ -345,7 +340,6 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName,
           new NewTableConfiguration().withSplits(splits).createOffline());
 
-      // TODO need to ungrant?
       c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
 

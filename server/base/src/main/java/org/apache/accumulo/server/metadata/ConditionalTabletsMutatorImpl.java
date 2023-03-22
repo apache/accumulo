@@ -86,7 +86,6 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
           resultsMap.put(extents.get(row), result);
         }
 
-        // TODO maybe this check is expensive
         if (!resultsMap.keySet().equals(Set.copyOf(extents.values()))) {
           throw new AssertionError("Not all extents were seen, this is unexpected");
         }
@@ -110,7 +109,5 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   }
 
   @Override
-  public void close() {
-    // TODO drop?
-  }
+  public void close() {}
 }
