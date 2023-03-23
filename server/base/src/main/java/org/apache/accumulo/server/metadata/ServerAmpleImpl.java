@@ -39,7 +39,9 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -50,6 +52,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactionSection;
@@ -142,6 +145,42 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       for (var fileOrDir : candidates) {
         writer.addMutation(createDeleteMutation(fileOrDir));
       }
+    } catch (MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public void addBulkLoadInProgressFlag(String path, long fateTxid) {
+
+    // Create a KeyExtent from a placeholder table name to create a writer that defaults to the
+    // metadata table.
+    // Bulk Import operations are not supported on the metadata table, so no entries will ever be
+    // required on the root table.
+    KeyExtent extent = new KeyExtent(TableId.of("placeholder"), null, null);
+    Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
+    m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(FateTxId.formatTid(fateTxid)));
+
+    try (BatchWriter bw = createWriter(extent.tableId())) {
+      bw.addMutation(m);
+    } catch (MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public void removeBulkLoadInProgressFlag(String path) {
+
+    // Create a KeyExtent from a placeholder table name to create a writer that defaults to the
+    // metadata table.
+    // Bulk Import operations are not supported on the metadata table, so no entries will ever be
+    // required on the root table.
+    KeyExtent extent = new KeyExtent(TableId.of("placeholder"), null, null);
+    Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
+    m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
+
+    try (BatchWriter writer = createWriter(extent.tableId())) {
+      writer.addMutation(m);
     } catch (MutationsRejectedException e) {
       throw new RuntimeException(e);
     }

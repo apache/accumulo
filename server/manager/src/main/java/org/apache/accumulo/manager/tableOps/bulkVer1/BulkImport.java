@@ -47,7 +47,6 @@ import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
-import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -199,7 +198,7 @@ public class BulkImport extends ManagerRepo {
       TableId tableId, long tid) throws Exception {
     final Path bulkDir = createNewBulkDir(manager, fs, dir, tableId);
 
-    MetadataTableUtil.addBulkLoadInProgressFlag(manager,
+    manager.getAmple().addBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);
 
     Path dirPath = new Path(dir);

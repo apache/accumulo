@@ -54,7 +54,7 @@ public class CleanUpBulkImport extends ManagerRepo {
     manager.updateBulkImportStatus(info.sourceDir, BulkImportState.CLEANUP);
     log.debug("removing the bulkDir processing flag file in " + info.bulkDir);
     Path bulkDir = new Path(info.bulkDir);
-    MetadataTableUtil.removeBulkLoadInProgressFlag(manager.getContext(),
+    manager.getContext().getAmple().removeBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
     manager.getContext().getAmple().putGcFileAndDirCandidates(info.tableId,
         Collections.singleton(new ReferenceFile(info.tableId, bulkDir.toString())));

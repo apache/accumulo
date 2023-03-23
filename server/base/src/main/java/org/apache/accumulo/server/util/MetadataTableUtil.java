@@ -62,7 +62,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -73,7 +72,6 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -687,27 +685,6 @@ public class MetadataTableUtil {
         }
       }
     }
-  }
-
-  public static void addBulkLoadInProgressFlag(ServerContext context, String path, long fateTxid) {
-
-    Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
-    m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(FateTxId.formatTid(fateTxid)));
-
-    // new KeyExtent is only added to force update to write to the metadata table, not the root
-    // table
-    // because bulk loads aren't supported to the metadata table
-    update(context, m, new KeyExtent(TableId.of("anythingNotMetadata"), null, null));
-  }
-
-  public static void removeBulkLoadInProgressFlag(ServerContext context, String path) {
-
-    Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
-    m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
-
-    // new KeyExtent is only added to force update to write to the metadata table, not the root
-    // table because bulk loads aren't supported to the metadata table
-    update(context, m, new KeyExtent(TableId.of("anythingNotMetadata"), null, null));
   }
 
   public static SortedMap<Text,SortedMap<ColumnFQ,Value>>

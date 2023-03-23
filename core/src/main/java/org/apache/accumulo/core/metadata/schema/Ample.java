@@ -339,4 +339,12 @@ public interface Ample {
   default void deleteScanServerFileReferences(String serverAddress, UUID serverSessionId) {
     throw new UnsupportedOperationException();
   }
+
+  default void addBulkLoadInProgressFlag(String path, long fateTxid) {
+    throw new RuntimeException();
+  }
+
+  default void removeBulkLoadInProgressFlag(String path) {
+    throw new RuntimeException();
+  }
 }
