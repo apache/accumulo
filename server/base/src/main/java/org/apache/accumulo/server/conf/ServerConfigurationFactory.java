@@ -64,7 +64,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   private final ServerContext context;
   private final SiteConfiguration siteConfig;
-  private final DeleteWatcher deleteWatcher = new DeleteWatcher();
+  private final ChangeWatcher changeWatcher = new ChangeWatcher();
 
   private static final int REFRESH_PERIOD_MINUTES = 15;
 
@@ -102,7 +102,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   public TableConfiguration getTableConfiguration(TableId tableId) {
     return tableConfigs.computeIfAbsent(tableId, key -> {
       if (context.tableNodeExists(tableId)) {
-        context.getPropStore().registerAsListener(TablePropKey.of(context, tableId), deleteWatcher);
+        context.getPropStore().registerAsListener(TablePropKey.of(context, tableId), changeWatcher);
         var conf =
             new TableConfiguration(context, tableId, getNamespaceConfigurationForTable(tableId));
         ConfigCheckUtil.validate(conf);
@@ -127,14 +127,14 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   public NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId) {
     return namespaceConfigs.computeIfAbsent(namespaceId, key -> {
       context.getPropStore().registerAsListener(NamespacePropKey.of(context, namespaceId),
-          deleteWatcher);
+          changeWatcher);
       var conf = new NamespaceConfiguration(context, namespaceId, getSystemConfiguration());
       ConfigCheckUtil.validate(conf);
       return conf;
     });
   }
 
-  private class DeleteWatcher implements PropChangeListener {
+  private class ChangeWatcher implements PropChangeListener {
 
     @Override
     public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
@@ -152,13 +152,16 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     }
 
     private void clearLocalOnEvent(PropStoreKey<?> propStoreKey) {
+      // clearing the local secondary cache stored in this class forces a re-read from the prop
+      // store
+      // to guarantee that the updated vales(s) are re-read on a ZooKeeper change.
       if (propStoreKey instanceof NamespacePropKey) {
-        log.trace("configuration snapshot refresh: Handle namespace delete for {}", propStoreKey);
+        log.trace("configuration snapshot refresh: Handle namespace change for {}", propStoreKey);
         namespaceConfigs.remove(((NamespacePropKey) propStoreKey).getId());
         return;
       }
       if (propStoreKey instanceof TablePropKey) {
-        log.trace("configuration snapshot refresh: Handle table delete for {}", propStoreKey);
+        log.trace("configuration snapshot refresh: Handle table change for {}", propStoreKey);
         tableConfigs.remove(((TablePropKey) propStoreKey).getId());
         tableParentConfigs.remove(((TablePropKey) propStoreKey).getId());
       }

@@ -454,10 +454,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
       ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter",
           true);
 
-      assertTrue(Wait.waitFor(
-          () -> client.tableOperations().getConfiguration(tableName0)
-              .get("table.iterator.scan.cfcounter").equals("30," + COLUMN_FAMILY_COUNTER_ITERATOR),
-          5000, 500));
+      String expectedKey = "table.iterator.scan.cfcounter";
+      String expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
+      checkTableForProperty(client, tableName0, expectedKey, expectedValue);
 
       ts.exec("deletetable " + tableName0, true);
 
@@ -469,10 +468,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
       // Name on the CLI should override OptionDescriber (or user input name, in this case)
       ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", true);
-
-      assertTrue(Wait.waitFor(() -> client.tableOperations().getConfiguration(tableName1)
-          .get("table.iterator.scan.customcfcounter")
-          .equals("30," + COLUMN_FAMILY_COUNTER_ITERATOR), 5000, 500));
+      expectedKey = "table.iterator.scan.customcfcounter";
+      expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
+      checkTableForProperty(client, tableName1, expectedKey, expectedValue);
 
       ts.exec("deletetable " + tableName1, true);
 
@@ -484,21 +482,16 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
       // Name on the CLI should override OptionDescriber (or user input name, in this case)
       ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", true);
-      assertTrue(Wait.waitFor(() -> client.tableOperations().getConfiguration(tableName2)
-          .get("table.iterator.scan.customcfcounter")
-          .equals("30," + COLUMN_FAMILY_COUNTER_ITERATOR), 5000, 500));
 
-      assertTrue(
-          Wait.waitFor(
-              () -> client.tableOperations().getConfiguration(tableName2)
-                  .get("table.iterator.scan.customcfcounter.opt.name1").equals("value1"),
-              5000, 500));
-
-      assertTrue(
-          Wait.waitFor(
-              () -> client.tableOperations().getConfiguration(tableName2)
-                  .get("table.iterator.scan.customcfcounter.opt.name2").equals("value2"),
-              5000, 500));
+      expectedKey = "table.iterator.scan.customcfcounter";
+      expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
+      checkTableForProperty(client, tableName2, expectedKey, expectedValue);
+      expectedKey = "table.iterator.scan.customcfcounter.opt.name1";
+      expectedValue = "value1";
+      checkTableForProperty(client, tableName2, expectedKey, expectedValue);
+      expectedKey = "table.iterator.scan.customcfcounter.opt.name2";
+      expectedValue = "value2";
+      checkTableForProperty(client, tableName2, expectedKey, expectedValue);
 
       ts.exec("deletetable " + tableName2, true);
 
@@ -511,23 +504,26 @@ public class ShellServerIT extends SharedMiniClusterBase {
       // Name on the CLI should override OptionDescriber (or user input name, in this case)
       ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter",
           true);
-
-      assertTrue(Wait.waitFor(
-          () -> client.tableOperations().getConfiguration(tableName3)
-              .get("table.iterator.scan.cfcounter").equals("30," + COLUMN_FAMILY_COUNTER_ITERATOR),
-          5000, 500));
-
-      assertTrue(Wait.waitFor(
-          () -> client.tableOperations().getConfiguration(tableName3)
-              .get("table.iterator.scan.cfcounter.opt.name1").equals("value1.1,value1.2,value1.3"),
-          5000, 500));
-
-      assertTrue(Wait.waitFor(() -> client.tableOperations().getConfiguration(tableName3)
-          .get("table.iterator.scan.cfcounter.opt.name2").equals("value2"), 5000, 500));
+      expectedKey = "table.iterator.scan.cfcounter";
+      expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
+      checkTableForProperty(client, tableName3, expectedKey, expectedValue);
+      expectedKey = "table.iterator.scan.cfcounter.opt.name1";
+      expectedValue = "value1.1,value1.2,value1.3";
+      checkTableForProperty(client, tableName3, expectedKey, expectedValue);
+      expectedKey = "table.iterator.scan.cfcounter.opt.name2";
+      expectedValue = "value2";
+      checkTableForProperty(client, tableName3, expectedKey, expectedValue);
 
       ts.exec("deletetable " + tableName3, true);
-
     }
+  }
+
+  protected void checkTableForProperty(final AccumuloClient client, final String tableName,
+      final String expectedKey, final String expectedValue) throws Exception {
+    assertTrue(
+        Wait.waitFor(() -> client.tableOperations().getConfiguration(tableName).get(expectedKey)
+            .equals(expectedValue), 5000, 500),
+        "Failed to find expected value for key: " + expectedKey);
   }
 
   @Test
