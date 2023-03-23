@@ -231,9 +231,7 @@ public class TabletLocatorImpl extends TabletLocator {
           TabletLocation tl = _locateTablet(context, row, false, false, false, lcSession);
 
           if (tl == null || !addMutation(binnedMutations, mutation, tl, lcSession)) {
-            if (context.tableOperations().isOnDemand(context.getTableName(tableId))) {
-              bringOnDemandTabletsOnline(context, new Range(row));
-            }
+            bringOnDemandTabletsOnline(context, new Range(row));
             failures.add(mutation);
             failed = true;
           }
@@ -325,9 +323,7 @@ public class TabletLocatorImpl extends TabletLocator {
       }
 
       if (tl == null) {
-        if (context.tableOperations().isOnDemand(context.getTableName(tableId))) {
-          bringOnDemandTabletsOnline(context, range);
-        }
+        bringOnDemandTabletsOnline(context, range);
         failures.add(range);
         if (!useCache) {
           lookupFailed = true;
@@ -521,12 +517,8 @@ public class TabletLocatorImpl extends TabletLocator {
       TabletLocation tl = _locateTablet(context, row, skipRow, retry, true, lcSession);
 
       if (tl == null && !alreadyMarkedOnDemand) {
-        final boolean isOnDemand =
-            context.tableOperations().isOnDemand(context.getTableName(tableId));
-        if (isOnDemand) {
-          bringOnDemandTabletsOnline(context, new Range(row));
-          alreadyMarkedOnDemand = true;
-        }
+        bringOnDemandTabletsOnline(context, new Range(row));
+        alreadyMarkedOnDemand = true;
       }
 
       if (retry && tl == null) {
@@ -555,7 +547,20 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   private void bringOnDemandTabletsOnline(ClientContext context, Range range)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException {
+
+    // Confirm that table is in an onDemand state. Don't throw an exception
+    // if the table is not found, calling code will already handle it.
+    try {
+      String tableName = context.getTableName(tableId);
+      if (!context.tableOperations().isOnDemand(tableName)) {
+        log.trace("bringOnDemandTabletsOnline: table {} is not in ondemand state", tableId);
+        return;
+      }
+    } catch (TableNotFoundException e) {
+      log.trace("bringOnDemandTabletsOnline: table not found: {}", tableId);
+      return;
+    }
 
     final Text scanRangeStart = range.getStartKey().getRow();
     final Text scanRangeEnd = range.getEndKey().getRow();
