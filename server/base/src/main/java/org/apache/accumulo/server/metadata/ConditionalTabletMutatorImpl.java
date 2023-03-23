@@ -115,6 +115,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, TabletExistsIterator.class);
     Condition c = new Condition("", "").setIterators(is);
     mutation.addCondition(c);
+    sawOperationRequirement = true;
     return this;
   }
 
