@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
@@ -41,8 +45,6 @@ import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
@@ -368,11 +370,9 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
       assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
       assertEquals(Status.REJECTED, results.get(e3).getStatus());
-      assertEquals(TabletOperation.SPLITTING,
-          context.getAmple().readTablet(e1).getOperation());
+      assertEquals(TabletOperation.SPLITTING, context.getAmple().readTablet(e1).getOperation());
       assertEquals(opid1, context.getAmple().readTablet(e1).getOperationId());
-      assertEquals(TabletOperation.MERGING,
-          context.getAmple().readTablet(e2).getOperation());
+      assertEquals(TabletOperation.MERGING, context.getAmple().readTablet(e2).getOperation());
       assertEquals(opid2, context.getAmple().readTablet(e2).getOperationId());
       assertEquals(null, context.getAmple().readTablet(e3).getOperation());
       assertEquals(null, context.getAmple().readTablet(e3).getOperationId());
@@ -386,10 +386,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       assertEquals(Status.REJECTED, results.get(e1).getStatus());
       assertEquals(Status.REJECTED, results.get(e2).getStatus());
-      assertEquals(TabletOperation.SPLITTING,
-          context.getAmple().readTablet(e1).getOperation());
-      assertEquals(TabletOperation.MERGING,
-          context.getAmple().readTablet(e2).getOperation());
+      assertEquals(TabletOperation.SPLITTING, context.getAmple().readTablet(e1).getOperation());
+      assertEquals(TabletOperation.MERGING, context.getAmple().readTablet(e2).getOperation());
 
       ctmi = new ConditionalTabletsMutatorImpl(context);
       ctmi.mutateTablet(e1).requireOperation(TabletOperation.SPLITTING, opid1).deleteOperation()
@@ -436,8 +434,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
         .requireLocation(loc, LocationType.CURRENT).putCompactionId(7).submit();
     results = ctmi.process();
     assertEquals(Status.ACCEPTED, results.get(RootTable.EXTENT).getStatus());
-    assertEquals(7L,
-        context.getAmple().readTablet(RootTable.EXTENT).getCompactId().getAsLong());
+    assertEquals(7L, context.getAmple().readTablet(RootTable.EXTENT).getCompactId().getAsLong());
   }
 
 }
