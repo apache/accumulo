@@ -24,6 +24,7 @@ import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -33,9 +34,11 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -57,6 +60,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactionSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
@@ -153,14 +157,13 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public void addBulkLoadInProgressFlag(String path, long fateTxid) {
 
-    // Create a KeyExtent from a placeholder table name to create a writer that defaults to the
-    // metadata table.
     // Bulk Import operations are not supported on the metadata table, so no entries will ever be
     // required on the root table.
     KeyExtent extent = new KeyExtent(TableId.of("placeholder"), null, null);
     Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
     m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(FateTxId.formatTid(fateTxid)));
 
+    // Uses a "placeholder" table name to create a metadata table writer.
     try (BatchWriter bw = createWriter(extent.tableId())) {
       bw.addMutation(m);
     } catch (MutationsRejectedException e) {
@@ -171,18 +174,40 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public void removeBulkLoadInProgressFlag(String path) {
 
-    // Create a KeyExtent from a placeholder table name to create a writer that defaults to the
-    // metadata table.
     // Bulk Import operations are not supported on the metadata table, so no entries will ever be
     // required on the root table.
     KeyExtent extent = new KeyExtent(TableId.of("placeholder"), null, null);
     Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
 
+    // Uses a "placeholder" table name to create a metadata table writer.
     try (BatchWriter writer = createWriter(extent.tableId())) {
       writer.addMutation(m);
     } catch (MutationsRejectedException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public void removeBulkLoadEntries(TableId tableId, long tid) throws Exception {
+    try (
+        Scanner mscanner =
+            new IsolatedScanner(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+        BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
+      mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
+      mscanner.fetchColumnFamily(BulkFileColumnFamily.NAME);
+
+      for (Map.Entry<Key,Value> entry : mscanner) {
+        log.trace("Looking at entry {} with tid {}", entry, tid);
+        long entryTid = BulkFileColumnFamily.getBulkLoadTid(entry.getValue());
+        if (tid == entryTid) {
+          log.trace("deleting entry {}", entry);
+          Key key = entry.getKey();
+          Mutation m = new Mutation(key.getRow());
+          m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
+          bw.addMutation(m);
+        }
+      }
     }
   }
 

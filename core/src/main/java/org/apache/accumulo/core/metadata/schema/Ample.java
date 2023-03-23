@@ -347,4 +347,7 @@ public interface Ample {
   default void removeBulkLoadInProgressFlag(String path) {
     throw new RuntimeException();
   }
+
+  default void removeBulkLoadEntries(TableId tableId, long tid) throws Exception {}
+
 }

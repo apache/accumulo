@@ -47,7 +47,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -73,7 +72,6 @@ import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -662,29 +660,6 @@ public class MetadataTableUtil {
     tablet.putChopped();
     tablet.putZooLock(zooLock);
     tablet.mutate();
-  }
-
-  public static void removeBulkLoadEntries(AccumuloClient client, TableId tableId, long tid)
-      throws Exception {
-    try (
-        Scanner mscanner =
-            new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-        BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
-      mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
-      mscanner.fetchColumnFamily(BulkFileColumnFamily.NAME);
-
-      for (Entry<Key,Value> entry : mscanner) {
-        log.trace("Looking at entry {} with tid {}", entry, tid);
-        long entryTid = BulkFileColumnFamily.getBulkLoadTid(entry.getValue());
-        if (tid == entryTid) {
-          log.trace("deleting entry {}", entry);
-          Key key = entry.getKey();
-          Mutation m = new Mutation(key.getRow());
-          m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
-          bw.addMutation(m);
-        }
-      }
-    }
   }
 
   public static SortedMap<Text,SortedMap<ColumnFQ,Value>>

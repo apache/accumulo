@@ -21,16 +21,15 @@ package org.apache.accumulo.manager.tableOps.bulkVer1;
 import java.util.Collections;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -59,13 +58,13 @@ public class CleanUpBulkImport extends ManagerRepo {
     manager.updateBulkImportStatus(source, BulkImportState.CLEANUP);
     log.debug("removing the bulkDir processing flag file in " + bulk);
     Path bulkDir = new Path(bulk);
-    manager.getContext().getAmple().removeBulkLoadInProgressFlag(
+    Ample metadataActions = manager.getContext().getAmple();
+    metadataActions.removeBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
-    manager.getContext().getAmple().putGcFileAndDirCandidates(tableId,
+    metadataActions.putGcFileAndDirCandidates(tableId,
         Collections.singleton(new ReferenceFile(tableId, bulkDir.toString())));
     log.debug("removing the metadata table markers for loaded files");
-    AccumuloClient client = manager.getContext();
-    MetadataTableUtil.removeBulkLoadEntries(client, tableId, tid);
+    metadataActions.removeBulkLoadEntries(tableId, tid);
     log.debug("releasing HDFS reservations for " + source + " and " + error);
     Utils.unreserveHdfsDirectory(manager, source, tid);
     Utils.unreserveHdfsDirectory(manager, error, tid);
