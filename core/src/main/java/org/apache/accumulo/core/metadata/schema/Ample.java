@@ -347,7 +347,7 @@ public interface Ample {
    * @param fateTxid The id of the Bulk Import Fate operation.
    */
   default void addBulkLoadInProgressFlag(String path, long fateTxid) {
-    throw new RuntimeException();
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -356,7 +356,7 @@ public interface Ample {
    * @param path The bulk directory filepath
    */
   default void removeBulkLoadInProgressFlag(String path) {
-    throw new RuntimeException();
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -365,6 +365,8 @@ public interface Ample {
    * @param tableId Table ID for transaction removals
    * @param tid Transaction ID to remove
    */
-  default void removeBulkLoadEntries(TableId tableId, long tid) throws Exception {}
+  default void removeBulkLoadEntries(TableId tableId, long tid) {
+    throw new UnsupportedOperationException();
+  }
 
 }

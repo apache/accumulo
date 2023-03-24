@@ -189,7 +189,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void removeBulkLoadEntries(TableId tableId, long tid) throws Exception {
+  public void removeBulkLoadEntries(TableId tableId, long tid) {
     try (
         Scanner mscanner =
             new IsolatedScanner(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
@@ -208,6 +208,11 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
           bw.addMutation(m);
         }
       }
+    } catch (MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    } catch (TableNotFoundException e) {
+      // If the table is not found, could these entries already be deleted?
+      throw new RuntimeException(e);
     }
   }
 
