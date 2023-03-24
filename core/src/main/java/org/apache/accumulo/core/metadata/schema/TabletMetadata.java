@@ -149,6 +149,7 @@ public class TabletMetadata {
       return lt;
     }
 
+    @Override
     public boolean equals(Object o) {
       if (o instanceof Location) {
         return super.equals(o) && ((Location) o).lt == lt;
@@ -156,6 +157,12 @@ public class TabletMetadata {
         // this is a hack, see #3254
         return super.equals(o);
       }
+    }
+
+    @Override
+    public int hashCode() {
+      // this is a hack, see #3254
+      return super.hashCode();
     }
   }
 
