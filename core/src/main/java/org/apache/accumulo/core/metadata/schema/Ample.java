@@ -35,6 +35,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.io.Text;
 
@@ -256,9 +257,9 @@ public interface Ample {
 
     TabletMutator putFlushId(long flushId);
 
-    TabletMutator putLocation(TabletMetadata.Location location);
+    TabletMutator putLocation(Location location);
 
-    TabletMutator deleteLocation(TabletMetadata.Location location);
+    TabletMutator deleteLocation(Location location);
 
     TabletMutator putZooLock(ServiceLock zooLock);
 

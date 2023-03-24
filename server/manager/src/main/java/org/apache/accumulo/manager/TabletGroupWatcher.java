@@ -74,7 +74,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
@@ -241,7 +241,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             return mStats != null ? mStats : new MergeStats(new MergeInfo());
           });
           TabletGoalState goal = manager.getGoalState(tls, mergeStats.getMergeInfo());
-          TabletMetadata.Location location = tls.getLocation();
+          Location location = tls.getLocation();
           TabletState state = tls.getState(currentTServers.keySet());
 
           TabletLogger.missassigned(tls.extent, goal.toString(), state.toString(),
@@ -974,7 +974,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
-  private static TServerInstance getServerInstance(TabletMetadata.Location location) {
+  private static TServerInstance getServerInstance(Location location) {
     return location != null ? location.getServerInstance() : null;
   }
 }

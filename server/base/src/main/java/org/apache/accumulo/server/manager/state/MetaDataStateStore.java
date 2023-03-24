@@ -29,7 +29,7 @@ import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.hadoop.fs.Path;
@@ -62,10 +62,10 @@ class MetaDataStateStore implements TabletStateStore {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (Assignment assignment : assignments) {
         TabletMutator tabletMutator = tabletsMutator.mutateTablet(assignment.tablet);
-        tabletMutator.putLocation(TabletMetadata.Location.current(assignment.server));
+        tabletMutator.putLocation(Location.current(assignment.server));
         ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator,
             assignment.tablet, assignment.server);
-        tabletMutator.deleteLocation(TabletMetadata.Location.future(assignment.server));
+        tabletMutator.deleteLocation(Location.future(assignment.server));
         tabletMutator.deleteSuspension();
         tabletMutator.mutate();
       }
@@ -80,7 +80,7 @@ class MetaDataStateStore implements TabletStateStore {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (Assignment assignment : assignments) {
         tabletsMutator.mutateTablet(assignment.tablet).deleteSuspension()
-            .putLocation(TabletMetadata.Location.future(assignment.server)).mutate();
+            .putLocation(Location.future(assignment.server)).mutate();
       }
     } catch (RuntimeException ex) {
       throw new DistributedStoreException(ex);

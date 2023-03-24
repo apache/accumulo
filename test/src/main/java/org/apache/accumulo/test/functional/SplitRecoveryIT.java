@@ -66,6 +66,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
@@ -210,7 +211,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     Assignment assignment = new Assignment(high, instance);
 
     TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
-    tabletMutator.putLocation(TabletMetadata.Location.future(assignment.server));
+    tabletMutator.putLocation(Location.future(assignment.server));
     tabletMutator.mutate();
 
     if (steps >= 1) {

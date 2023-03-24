@@ -137,11 +137,11 @@ public class TabletMetadata {
     private final TServerInstance tServerInstance;
     private final LocationType lt;
 
-    public Location(final String server, final String session, final LocationType lt) {
+    private Location(final String server, final String session, final LocationType lt) {
       this(new TServerInstance(HostAndPort.fromString(server), session), lt);
     }
 
-    public Location(final TServerInstance tServerInstance, final LocationType lt) {
+    private Location(final TServerInstance tServerInstance, final LocationType lt) {
       this.tServerInstance =
           Objects.requireNonNull(tServerInstance, "tServerInstance must not be null");
       this.lt = Objects.requireNonNull(lt, "locationType must not be null");
@@ -196,12 +196,24 @@ public class TabletMetadata {
       return new Location(instance, LocationType.LAST);
     }
 
+    public static Location last(final String server, final String session) {
+      return current(new TServerInstance(HostAndPort.fromString(server), session));
+    }
+
     public static Location current(TServerInstance instance) {
       return new Location(instance, LocationType.CURRENT);
     }
 
+    public static Location current(final String server, final String session) {
+      return current(new TServerInstance(HostAndPort.fromString(server), session));
+    }
+
     public static Location future(TServerInstance instance) {
       return new Location(instance, LocationType.FUTURE);
+    }
+
+    public static Location future(final String server, final String session) {
+      return future(new TServerInstance(HostAndPort.fromString(server), session));
     }
 
   }
@@ -449,7 +461,7 @@ public class TabletMetadata {
           te.setLocationOnce(val, qual, LocationType.FUTURE);
           break;
         case LastLocationColumnFamily.STR_NAME:
-          te.last = new Location(val, qual, LocationType.LAST);
+          te.last = Location.last(val, qual);
           break;
         case SuspendLocationColumn.STR_NAME:
           te.suspend = SuspendingTServer.fromValue(kv.getValue());

@@ -56,6 +56,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
@@ -87,8 +88,8 @@ public class ManagerMetadataUtil {
     }
 
     if (tServerInstance != null) {
-      tablet.putLocation(TabletMetadata.Location.current(tServerInstance));
-      tablet.deleteLocation(TabletMetadata.Location.future(tServerInstance));
+      tablet.putLocation(Location.current(tServerInstance));
+      tablet.deleteLocation(Location.future(tServerInstance));
     }
 
     datafileSizes.forEach(tablet::putFile);
@@ -189,8 +190,7 @@ public class ManagerMetadataUtil {
   public static void replaceDatafiles(ServerContext context, KeyExtent extent,
       Set<StoredTabletFile> datafilesToDelete, Set<StoredTabletFile> scanFiles,
       Optional<StoredTabletFile> path, Long compactionId, DataFileValue size, String address,
-      TabletMetadata.Location lastLocation, ServiceLock zooLock,
-      Optional<ExternalCompactionId> ecid) {
+      Location lastLocation, ServiceLock zooLock, Optional<ExternalCompactionId> ecid) {
 
     context.getAmple().putGcCandidates(extent.tableId(), datafilesToDelete);
 
@@ -223,8 +223,8 @@ public class ManagerMetadataUtil {
    */
   public static Optional<StoredTabletFile> updateTabletDataFile(ServerContext context,
       KeyExtent extent, TabletFile newDatafile, DataFileValue dfv, MetadataTime time,
-      String address, ServiceLock zooLock, Set<String> unusedWalLogs,
-      TabletMetadata.Location lastLocation, long flushId) {
+      String address, ServiceLock zooLock, Set<String> unusedWalLogs, Location lastLocation,
+      long flushId) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     // if there are no entries, the path doesn't get stored in metadata table, only the flush ID
@@ -264,9 +264,8 @@ public class ManagerMetadataUtil {
     // location value
     if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
       TabletMetadata lastMetadata = ample.readTablet(extent, TabletMetadata.ColumnType.LAST);
-      TabletMetadata.Location lastLocation = (lastMetadata == null ? null : lastMetadata.getLast());
-      ManagerMetadataUtil.updateLocation(tabletMutator, lastLocation,
-          TabletMetadata.Location.last(location));
+      Location lastLocation = (lastMetadata == null ? null : lastMetadata.getLast());
+      ManagerMetadataUtil.updateLocation(tabletMutator, lastLocation, Location.last(location));
     }
   }
 
@@ -281,12 +280,11 @@ public class ManagerMetadataUtil {
    * @param zooLock The zookeeper lock
    */
   public static void updateLastForCompactionMode(ClientContext context, TabletMutator tabletMutator,
-      TabletMetadata.Location lastLocation, String address, ServiceLock zooLock) {
+      Location lastLocation, String address, ServiceLock zooLock) {
     // if the location mode is 'compaction', then preserve the current compaction location in the
     // last location value
     if ("compaction".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-      TabletMetadata.Location newLocation =
-          TabletMetadata.Location.last(getTServerInstance(address, zooLock));
+      Location newLocation = Location.last(getTServerInstance(address, zooLock));
       updateLocation(tabletMutator, lastLocation, newLocation);
     }
   }
@@ -298,8 +296,8 @@ public class ManagerMetadataUtil {
    * @param previousLocation The location (may be null)
    * @param newLocation The new location
    */
-  private static void updateLocation(TabletMutator tabletMutator,
-      TabletMetadata.Location previousLocation, TabletMetadata.Location newLocation) {
+  private static void updateLocation(TabletMutator tabletMutator, Location previousLocation,
+      Location newLocation) {
     if (previousLocation != null) {
       if (!previousLocation.equals(newLocation)) {
         tabletMutator.deleteLocation(previousLocation);

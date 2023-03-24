@@ -40,6 +40,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.MockServerContext;
@@ -118,8 +119,8 @@ public class RootTabletStateStoreTest {
     assertEquals(count, 1);
     TabletLocationState assigned = null;
     try {
-      assigned = new TabletLocationState(root, TabletMetadata.Location.future(server), null, null,
-          null, null, false);
+      assigned =
+          new TabletLocationState(root, Location.future(server), null, null, null, null, false);
     } catch (BadLocationStateException e) {
       fail("Unexpected error " + e);
     }
@@ -140,9 +141,8 @@ public class RootTabletStateStoreTest {
     assertThrows(IllegalArgumentException.class, () -> tstore.setFutureLocations(assignmentList));
 
     try {
-      TabletLocationState broken = new TabletLocationState(notRoot,
-          new TabletMetadata.Location(server, TabletMetadata.LocationType.FUTURE), null, null, null,
-          null, false);
+      TabletLocationState broken =
+          new TabletLocationState(notRoot, Location.future(server), null, null, null, null, false);
       final var assignmentList1 = List.of(broken);
       assertThrows(IllegalArgumentException.class, () -> tstore.unassign(assignmentList1, null));
     } catch (BadLocationStateException e) {

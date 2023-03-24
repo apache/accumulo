@@ -33,6 +33,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 
 /*
@@ -45,7 +46,7 @@ public class TabletData {
   private HashSet<StoredTabletFile> scanFiles = new HashSet<>();
   private long flushID = -1;
   private long compactID = -1;
-  private TabletMetadata.Location lastLocation = null;
+  private Location lastLocation = null;
   private Map<Long,List<TabletFile>> bulkImported = new HashMap<>();
   private long splitTime = 0;
   private String directoryName = null;
@@ -76,7 +77,7 @@ public class TabletData {
 
   // Data pulled from an existing tablet to make a split
   public TabletData(String dirName, SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes,
-      MetadataTime time, long lastFlushID, long lastCompactID, TabletMetadata.Location lastLocation,
+      MetadataTime time, long lastFlushID, long lastCompactID, Location lastLocation,
       Map<Long,List<TabletFile>> bulkIngestedFiles) {
     this.directoryName = dirName;
     this.dataFiles = highDatafileSizes;
@@ -113,7 +114,7 @@ public class TabletData {
     return compactID;
   }
 
-  public TabletMetadata.Location getLastLocation() {
+  public Location getLastLocation() {
     return lastLocation;
   }
 

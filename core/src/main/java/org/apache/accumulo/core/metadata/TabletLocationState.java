@@ -26,6 +26,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
@@ -54,9 +55,9 @@ public class TabletLocationState {
     }
   }
 
-  public TabletLocationState(KeyExtent extent, TabletMetadata.Location future,
-      TabletMetadata.Location current, TabletMetadata.Location last, SuspendingTServer suspend,
-      Collection<Collection<String>> walogs, boolean chopped) throws BadLocationStateException {
+  public TabletLocationState(KeyExtent extent, Location future, Location current, Location last,
+      SuspendingTServer suspend, Collection<Collection<String>> walogs, boolean chopped)
+      throws BadLocationStateException {
     this.extent = extent;
     this.future = validateLocation(future, TabletMetadata.LocationType.FUTURE);
     this.current = validateLocation(current, TabletMetadata.LocationType.CURRENT);
@@ -75,14 +76,14 @@ public class TabletLocationState {
   }
 
   public final KeyExtent extent;
-  public final TabletMetadata.Location future;
-  public final TabletMetadata.Location current;
-  public final TabletMetadata.Location last;
+  public final Location future;
+  public final Location current;
+  public final Location last;
   public final SuspendingTServer suspend;
   public final Collection<Collection<String>> walogs;
   public final boolean chopped;
 
-  public TabletMetadata.Location futureOrCurrent() {
+  public Location futureOrCurrent() {
     if (hasCurrent()) {
       return current;
     }
@@ -94,8 +95,8 @@ public class TabletLocationState {
     return extent + "@(" + future + "," + current + "," + last + ")" + (chopped ? " chopped" : "");
   }
 
-  public TabletMetadata.Location getLocation() {
-    TabletMetadata.Location result = null;
+  public Location getLocation() {
+    Location result = null;
     if (hasCurrent()) {
       result = current;
     } else if (hasFuture()) {
@@ -132,8 +133,7 @@ public class TabletLocationState {
     }
   }
 
-  private static TabletMetadata.Location validateLocation(TabletMetadata.Location location,
-      TabletMetadata.LocationType type) {
+  private static Location validateLocation(Location location, TabletMetadata.LocationType type) {
     if (location != null && !location.getType().equals(type)) {
       throw new IllegalArgumentException("Location type is required to be of type " + type);
     }

@@ -78,6 +78,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
@@ -150,7 +151,7 @@ public class Tablet extends TabletBase {
   private final Object timeLock = new Object();
   private long persistedTime;
 
-  private TabletMetadata.Location lastLocation = null;
+  private Location lastLocation = null;
   private volatile Set<Path> checkedTabletDirs = new ConcurrentSkipListSet<>();
 
   private final AtomicLong dataSourceDeletions = new AtomicLong(0);
@@ -2018,8 +2019,8 @@ public class Tablet extends TabletBase {
     computeNumEntries();
   }
 
-  public TabletMetadata.Location resetLastLocation() {
-    TabletMetadata.Location result = lastLocation;
+  public Location resetLastLocation() {
+    Location result = lastLocation;
     lastLocation = null;
     return result;
   }

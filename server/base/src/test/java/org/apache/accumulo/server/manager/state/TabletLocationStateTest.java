@@ -35,7 +35,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,17 +52,17 @@ public class TabletLocationStateTest {
   }
 
   private KeyExtent keyExtent;
-  private TabletMetadata.Location future;
-  private TabletMetadata.Location current;
-  private TabletMetadata.Location last;
+  private Location future;
+  private Location current;
+  private Location last;
   private TabletLocationState tls;
 
   @BeforeEach
   public void setUp() {
     keyExtent = createMock(KeyExtent.class);
-    future = TabletMetadata.Location.future(createMock(TServerInstance.class));
-    current = TabletMetadata.Location.current(createMock(TServerInstance.class));
-    last = TabletMetadata.Location.last(createMock(TServerInstance.class));
+    future = Location.future(createMock(TServerInstance.class));
+    current = Location.current(createMock(TServerInstance.class));
+    last = Location.last(createMock(TServerInstance.class));
   }
 
   @Test

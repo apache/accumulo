@@ -42,7 +42,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
@@ -457,7 +457,7 @@ class DatafileManager {
       rename(vm, tmpDatafile.getPath(), newDatafile.getPath());
     }
 
-    TabletMetadata.Location lastLocation = null;
+    Location lastLocation = null;
     Optional<StoredTabletFile> newFile;
 
     if (dfv.getNumEntries() > 0) {
