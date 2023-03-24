@@ -1614,16 +1614,25 @@ public class Tablet implements TabletCommitter {
   private long timeOfLastImportWhenBigFreakinRowWasSeen = 0;
   private final long splitCreationTime;
 
-  private SplitRowSpec findSplitRow(Collection<FileRef> files) {
+  private boolean isSplitPossible() {
 
     // never split the root tablet
     // check if we already decided that we can never split
     // check to see if we're big enough to split
 
     long splitThreshold = tableConfiguration.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
-    long maxEndRow = tableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE);
 
     if (extent.isRootTablet() || estimateTabletSize() <= splitThreshold) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private SplitRowSpec findSplitRow(Collection<FileRef> files) {
+    long maxEndRow = tableConfiguration.getMemoryInBytes(Property.TABLE_MAX_END_ROW_SIZE);
+
+    if (!isSplitPossible()) {
       return null;
     }
 
@@ -1814,7 +1823,7 @@ public class Tablet implements TabletCommitter {
   public synchronized boolean needsSplit() {
     if (isClosing() || isClosed())
       return false;
-    return findSplitRow(getDatafileManager().getFiles()) != null;
+    return isSplitPossible();
   }
 
   // BEGIN PRIVATE METHODS RELATED TO MAJOR COMPACTION
