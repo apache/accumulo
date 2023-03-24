@@ -105,7 +105,7 @@ class MinorCompactionTask implements Runnable {
       minorCompaction.data("size", Long.toString(this.stats.getSize()));
       minorCompaction.stop();
 
-      if (tablet.needsSplit()) {
+      if (tablet.needsSplit(tablet.getSplitComputations())) {
         tablet.getTabletServer().executeSplit(tablet);
       } else {
         tablet.initiateMajorCompaction(MajorCompactionReason.NORMAL);
