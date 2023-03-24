@@ -159,14 +159,12 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
     // Bulk Import operations are not supported on the metadata table, so no entries will ever be
     // required on the root table.
-    KeyExtent extent = new KeyExtent(TableId.of("placeholder"), null, null);
     Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
     m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(FateTxId.formatTid(fateTxid)));
 
-    // Uses a "placeholder" table name to create a metadata table writer.
-    try (BatchWriter bw = createWriter(extent.tableId())) {
+    try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
       bw.addMutation(m);
-    } catch (MutationsRejectedException e) {
+    } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new RuntimeException(e);
     }
   }
@@ -176,14 +174,12 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
     // Bulk Import operations are not supported on the metadata table, so no entries will ever be
     // required on the root table.
-    KeyExtent extent = new KeyExtent(TableId.of("placeholder"), null, null);
     Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
 
-    // Uses a "placeholder" table name to create a metadata table writer.
-    try (BatchWriter writer = createWriter(extent.tableId())) {
-      writer.addMutation(m);
-    } catch (MutationsRejectedException e) {
+    try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
+      bw.addMutation(m);
+    } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new RuntimeException(e);
     }
   }
@@ -208,10 +204,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
           bw.addMutation(m);
         }
       }
-    } catch (MutationsRejectedException e) {
-      throw new RuntimeException(e);
-    } catch (TableNotFoundException e) {
-      // If the table is not found, could these entries already be deleted?
+    } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new RuntimeException(e);
     }
   }

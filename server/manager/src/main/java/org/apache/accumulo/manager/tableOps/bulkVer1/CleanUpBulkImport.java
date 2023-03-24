@@ -58,13 +58,13 @@ public class CleanUpBulkImport extends ManagerRepo {
     manager.updateBulkImportStatus(source, BulkImportState.CLEANUP);
     log.debug("removing the bulkDir processing flag file in " + bulk);
     Path bulkDir = new Path(bulk);
-    Ample metadataActions = manager.getContext().getAmple();
-    metadataActions.removeBulkLoadInProgressFlag(
+    Ample ample = manager.getContext().getAmple();
+    ample.removeBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
-    metadataActions.putGcFileAndDirCandidates(tableId,
+    ample.putGcFileAndDirCandidates(tableId,
         Collections.singleton(new ReferenceFile(tableId, bulkDir.toString())));
     log.debug("removing the metadata table markers for loaded files");
-    metadataActions.removeBulkLoadEntries(tableId, tid);
+    ample.removeBulkLoadEntries(tableId, tid);
     log.debug("releasing HDFS reservations for " + source + " and " + error);
     Utils.unreserveHdfsDirectory(manager, source, tid);
     Utils.unreserveHdfsDirectory(manager, error, tid);
