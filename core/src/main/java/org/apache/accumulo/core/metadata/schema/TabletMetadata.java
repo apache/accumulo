@@ -197,7 +197,7 @@ public class TabletMetadata {
     }
 
     public static Location last(final String server, final String session) {
-      return current(new TServerInstance(HostAndPort.fromString(server), session));
+      return last(new TServerInstance(HostAndPort.fromString(server), session));
     }
 
     public static Location current(TServerInstance instance) {
