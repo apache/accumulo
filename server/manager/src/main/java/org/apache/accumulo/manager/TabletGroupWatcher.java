@@ -74,7 +74,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
@@ -241,11 +240,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             return mStats != null ? mStats : new MergeStats(new MergeInfo());
           });
           TabletGoalState goal = manager.getGoalState(tls, mergeStats.getMergeInfo());
-          Location location = tls.getLocation();
+          TServerInstance location = tls.getServer();
           TabletState state = tls.getState(currentTServers.keySet());
 
           TabletLogger.missassigned(tls.extent, goal.toString(), state.toString(),
-              getServerInstance(tls.future), getServerInstance(tls.current), tls.walogs.size());
+              tls.getFutureServer(), tls.getCurrentServer(), tls.walogs.size());
 
           stats.update(tableId, state);
           mergeStats.update(tls.extent, state, tls.chopped, !tls.walogs.isEmpty());
@@ -272,22 +271,22 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             }
             switch (state) {
               case HOSTED:
-                if (getServerInstance(location).equals(manager.migrations.get(tls.extent))) {
+                if (location.equals(manager.migrations.get(tls.extent))) {
                   manager.migrations.remove(tls.extent);
                 }
                 break;
               case ASSIGNED_TO_DEAD_SERVER:
-                hostDeadTablet(tLists, tls, getServerInstance(location), wals);
+                hostDeadTablet(tLists, tls, location, wals);
                 break;
               case SUSPENDED:
-                hostSuspendedTablet(tLists, tls, getServerInstance(location), tableConf);
+                hostSuspendedTablet(tLists, tls, location, tableConf);
                 break;
               case UNASSIGNED:
-                hostUnassignedTablet(tLists, tls.extent, getServerInstance(location));
+                hostUnassignedTablet(tLists, tls.extent, location);
                 break;
               case ASSIGNED:
                 // Send another reminder
-                tLists.assigned.add(new Assignment(tls.extent, getServerInstance(tls.future)));
+                tLists.assigned.add(new Assignment(tls.extent, tls.getFutureServer()));
                 break;
             }
           } else {
@@ -304,8 +303,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 unassignDeadTablet(tLists, tls, wals);
                 break;
               case HOSTED:
-                TServerConnection client =
-                    manager.tserverSet.getConnection(getServerInstance(location));
+                TServerConnection client = manager.tserverSet.getConnection(location);
                 if (client != null) {
                   client.unloadTablet(manager.managerLock, tls.extent, goal.howUnload(),
                       manager.getSteadyTime());
@@ -376,9 +374,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private void unassignDeadTablet(TabletLists tLists, TabletLocationState tls, WalStateManager wals)
       throws WalMarkerException {
     tLists.assignedToDeadServers.add(tls);
-    if (!tLists.logsForDeadServers.containsKey(getServerInstance(tls.futureOrCurrent()))) {
-      tLists.logsForDeadServers.put(getServerInstance(tls.futureOrCurrent()),
-          wals.getWalsInUse(getServerInstance(tls.futureOrCurrent())));
+    if (!tLists.logsForDeadServers.containsKey(tls.futureOrCurrentServer())) {
+      tLists.logsForDeadServers.put(tls.futureOrCurrentServer(),
+          wals.getWalsInUse(tls.futureOrCurrentServer()));
     }
   }
 
@@ -433,7 +431,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     if (location.equals(manager.migrations.get(tls.extent))) {
       manager.migrations.remove(tls.extent);
     }
-    TServerInstance tserver = getServerInstance(tls.futureOrCurrent());
+    TServerInstance tserver = tls.futureOrCurrentServer();
     if (!tLists.logsForDeadServers.containsKey(tserver)) {
       tLists.logsForDeadServers.put(tserver, wals.getWalsInUse(tserver));
     }
@@ -544,7 +542,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
         try {
           TServerConnection conn;
-          conn = manager.tserverSet.getConnection(getServerInstance(tls.current));
+          conn = manager.tserverSet.getConnection(tls.getCurrentServer());
           if (conn != null) {
             Manager.log.info("Asking {} to split {} at {}", tls.current, tls.extent, splitPoint);
             conn.splitTablet(tls.extent, splitPoint);
@@ -577,7 +575,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     if (info.needsToBeChopped(tls.extent)) {
       TServerConnection conn;
       try {
-        conn = manager.tserverSet.getConnection(getServerInstance(tls.current));
+        conn = manager.tserverSet.getConnection(tls.getCurrentServer());
         if (conn != null) {
           Manager.log.info("Asking {} to chop {}", tls.current, tls.extent);
           conn.chop(manager.managerLock, tls.extent);
@@ -972,9 +970,5 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         mgr.closeWal(server.getKey(), path);
       }
     }
-  }
-
-  private static TServerInstance getServerInstance(Location location) {
-    return location != null ? location.getServerInstance() : null;
   }
 }

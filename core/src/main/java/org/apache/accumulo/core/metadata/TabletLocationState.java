@@ -83,6 +83,22 @@ public class TabletLocationState {
   public final Collection<Collection<String>> walogs;
   public final boolean chopped;
 
+  public TServerInstance getCurrentServer() {
+    return serverInstance(current);
+  }
+
+  public TServerInstance getFutureServer() {
+    return serverInstance(future);
+  }
+
+  public TServerInstance getLastServer() {
+    return serverInstance(last);
+  }
+
+  public TServerInstance futureOrCurrentServer() {
+    return serverInstance(futureOrCurrent());
+  }
+
   public Location futureOrCurrent() {
     if (hasCurrent()) {
       return current;
@@ -90,9 +106,8 @@ public class TabletLocationState {
     return future;
   }
 
-  @Override
-  public String toString() {
-    return extent + "@(" + future + "," + current + "," + last + ")" + (chopped ? " chopped" : "");
+  public TServerInstance getServer() {
+    return serverInstance(getLocation());
   }
 
   public Location getLocation() {
@@ -133,10 +148,20 @@ public class TabletLocationState {
     }
   }
 
-  private static Location validateLocation(Location location, TabletMetadata.LocationType type) {
+  @Override
+  public String toString() {
+    return extent + "@(" + future + "," + current + "," + last + ")" + (chopped ? " chopped" : "");
+  }
+
+  private static Location validateLocation(final Location location,
+      final TabletMetadata.LocationType type) {
     if (location != null && !location.getType().equals(type)) {
       throw new IllegalArgumentException("Location type is required to be of type " + type);
     }
     return location;
+  }
+
+  protected static TServerInstance serverInstance(final Location location) {
+    return location != null ? location.getServerInstance() : null;
   }
 }

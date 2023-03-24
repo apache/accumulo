@@ -126,7 +126,7 @@ class MetaDataStateStore implements TabletStateStore {
         if (tls.suspend != null && suspensionTimestamp < 0) {
           tabletMutator.deleteSuspension();
         }
-        if (tls.future != null) {
+        if (tls.hasFuture()) {
           tabletMutator.deleteLocation(tls.future);
         }
         tabletMutator.mutate();
