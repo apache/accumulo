@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
 /**
  * Object used by the TabletServer to determine which onDemand Tablets to unload for a Table
@@ -33,10 +34,16 @@ public interface OnDemandTabletUnloader {
   interface UnloaderParams {
 
     /**
-     * @return table configuration
+     * @return table id
      * @since 3.1.0
      */
-    Map<String,String> getTableConfiguration();
+    String getTableId();
+
+    /**
+     * @return service environment
+     * @since 3.1.0
+     */
+    ServiceEnvironment getServiceEnvironment();
 
     /**
      * Returns the onDemand tablets that are currently online and the time that they were last
@@ -49,7 +56,8 @@ public interface OnDemandTabletUnloader {
 
     /**
      * Called by the implementation to inform the TabletServer as to which onDemand tablets should
-     * be unloaded
+     * be unloaded. When nothing is found to unload, then it's ok to pass in an empty set or not
+     * call this method.
      *
      * @param tablets onDemand Tablets to unload
      * @since 3.1.0

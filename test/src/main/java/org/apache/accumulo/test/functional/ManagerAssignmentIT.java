@@ -160,13 +160,12 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       c.tableOperations().onDemand(tableName, true);
       assertTrue(c.tableOperations().isOnDemand(tableName));
 
-      // Wait 2x the TabletGroupWatcher interval for ondemand
-      // tablets to be unassigned.
-      Thread.sleep(10000);
-
+      // The ondemand tablets should be unassigned
       List<TabletStats> stats = getTabletStats(c, tableId);
-      // There should be no tablets online
-      assertEquals(0, stats.size());
+      while (stats.size() > 0) {
+        Thread.sleep(50);
+        stats = getTabletStats(c, tableId);
+      }
       assertEquals(0, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
           .onDemandTabletsOnlined());
 
@@ -203,13 +202,12 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       c.tableOperations().onDemand(tableName, true);
       assertTrue(c.tableOperations().isOnDemand(tableName));
 
-      // Wait 2x the TabletGroupWatcher interval for ondemand
-      // tablets to be unassigned.
-      Thread.sleep(10000);
-
+      // The ondemand tablets should be unassigned
       List<TabletStats> stats = getTabletStats(c, tableId);
-      // There should be no tablets online
-      assertEquals(0, stats.size());
+      while (stats.size() > 0) {
+        Thread.sleep(50);
+        stats = getTabletStats(c, tableId);
+      }
       assertEquals(0, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
           .onDemandTabletsOnlined());
 
@@ -256,13 +254,12 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       c.tableOperations().onDemand(tableName, true);
       assertTrue(c.tableOperations().isOnDemand(tableName));
 
-      // Wait 2x the TabletGroupWatcher interval for ondemand
-      // tablets to be unassigned.
-      Thread.sleep(10000);
-
+      // The ondemand tablets should be unassigned
       List<TabletStats> stats = getTabletStats(c, tableId);
-      // There should be no tablets online
-      assertEquals(0, stats.size());
+      while (stats.size() > 0) {
+        Thread.sleep(50);
+        stats = getTabletStats(c, tableId);
+      }
       assertEquals(0, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
           .onDemandTabletsOnlined());
 

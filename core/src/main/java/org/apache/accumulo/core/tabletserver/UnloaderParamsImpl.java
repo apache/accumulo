@@ -18,37 +18,43 @@
  */
 package org.apache.accumulo.core.tabletserver;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.ondemand.OnDemandTabletUnloader.UnloaderParams;
 
 public class UnloaderParamsImpl implements UnloaderParams {
 
-  private final Map<String,String> conf;
+  private final TableId tid;
+  private final ServiceEnvironment env;
   private final SortedMap<TabletId,Long> online;
   private final Set<KeyExtent> unloads;
 
-  public UnloaderParamsImpl(AccumuloConfiguration conf, Map<KeyExtent,AtomicLong> online,
+  public UnloaderParamsImpl(TableId tid, ServiceEnvironment env, Map<KeyExtent,AtomicLong> online,
       Set<KeyExtent> unload) {
-    this.conf = new HashMap<>();
-    conf.forEach((e) -> this.conf.put(e.getKey(), e.getValue()));
+    this.tid = tid;
+    this.env = env;
     this.online = new TreeMap<>();
     online.forEach((k, v) -> this.online.put(new TabletIdImpl(k), v.get()));
     this.unloads = unload;
   }
 
   @Override
-  public Map<String,String> getTableConfiguration() {
-    return conf;
+  public String getTableId() {
+    return tid.canonical();
+  }
+
+  @Override
+  public ServiceEnvironment getServiceEnvironment() {
+    return env;
   }
 
   @Override

@@ -115,6 +115,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
@@ -1443,7 +1444,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       Set<KeyExtent> onDemandTabletsToUnload = new HashSet<>();
       log.debug("Evaluating onDemand tablets for unload for table {}, extents {}", tid,
           subset.keySet());
-      UnloaderParams params = new UnloaderParamsImpl(getContext().getTableConfiguration(tid),
+      UnloaderParams params = new UnloaderParamsImpl(tid, new ServiceEnvironmentImpl(context),
           subset, onDemandTabletsToUnload);
       unloaders.get(tid).evaluate(params);
       onDemandTabletsToUnload.forEach(ke -> {

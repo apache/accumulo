@@ -21,9 +21,12 @@ package org.apache.accumulo.test.functional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -182,11 +185,25 @@ public class OnDemandIT extends SharedMiniClusterBase {
       try {
         // scan the table, this will cause the tablets to be brought online.
         Scanner s = client.createScanner(t);
-        Iterables.size(s);
+        @SuppressWarnings("unused")
+        var unused = Iterables.size(s);
+        verifyDataForScan(client, t);
       } catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
         throw new RuntimeException(e);
       }
     });
+  }
+
+  private static void verifyDataForScan(AccumuloClient c, String tableName)
+      throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+
+    Set<Integer> rows = new HashSet<>();
+    IntStream.range(97, 122).forEach(i -> rows.add(i));
+
+    try (Scanner s = c.createScanner(tableName)) {
+      s.iterator().forEachRemaining((e) -> rows.remove(e.getKey().getRow().charAt(0)));
+    }
+    assertEquals(0, rows.size());
   }
 
 }

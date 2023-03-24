@@ -23,6 +23,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.data.TableId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,11 +36,14 @@ public class DefaultOnDemandTabletUnloader implements OnDemandTabletUnloader {
 
   @Override
   public void evaluate(UnloaderParams params) {
-    final String inactivitySeconds =
-        params.getTableConfiguration().getOrDefault(INACTIVITY_THRESHOLD, TEN_MINUTES);
+    String inactivitySeconds = params.getServiceEnvironment()
+        .getConfiguration(TableId.of(params.getTableId())).get(INACTIVITY_THRESHOLD);
+    if (inactivitySeconds == null) {
+      inactivitySeconds = TEN_MINUTES;
+    }
     // access times are stored in nanos
     final long threshold = SECONDS.toNanos(Long.parseLong(inactivitySeconds));
-    final long currentTime = System.nanoTime();
+    final long currentTime = getCurrentTime();
     if (LOG.isTraceEnabled()) {
       LOG.trace("Current time: {}", currentTime);
       LOG.trace("Inactivity Threshold: {}", threshold);
@@ -51,6 +55,10 @@ public class DefaultOnDemandTabletUnloader implements OnDemandTabletUnloader {
     params.setOnDemandTabletsToUnload(params.getLastAccessTimes().entrySet().stream()
         .filter(e -> (currentTime - e.getValue()) > threshold)
         .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())).keySet());
+  }
+
+  protected long getCurrentTime() {
+    return System.nanoTime();
   }
 
 }
