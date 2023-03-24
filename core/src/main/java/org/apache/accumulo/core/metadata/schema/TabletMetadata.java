@@ -150,11 +150,12 @@ public class TabletMetadata {
     }
 
     public boolean equals(Object o) {
-      if (super.equals(o) && o instanceof Location) {
-        return ((Location) o).lt == lt;
+      if (o instanceof Location) {
+        return super.equals(o) && ((Location) o).lt == lt;
+      } else {
+        // this is a hack, see #3254
+        return super.equals(o);
       }
-
-      return false;
     }
   }
 
