@@ -748,6 +748,10 @@ public enum Property {
           + " tserver is available before tablets are initially assigned if the 'last' location is"
           + " to be used.",
       "2.1.1"),
+  TSERV_ONDEMAND_UNLOADER_INTERVAL("tserver.ondemand.tablet.unloader.interval", "10m",
+      PropertyType.TIMEDURATION,
+      "The interval at which the TabletServer will check if onDemand tablets can be unloaded",
+      "3.1.0"),
 
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
@@ -884,6 +888,9 @@ public enum Property {
       "2.1.0"),
   TABLE_COMPACTION_CONFIGURER_OPTS("table.compaction.configurer.opts.", null, PropertyType.PREFIX,
       "Options for the table compaction configuror", "2.1.0"),
+  TABLE_ONDEMAND_UNLOADER("tserver.ondemand.tablet.unloader",
+      "org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader", PropertyType.CLASSNAME,
+      "The class that will be used to determine which onDemand Tablets to unload.", "3.1.0"),
 
   // Crypto-related properties
   @Experimental
@@ -1099,13 +1106,6 @@ public enum Property {
           + "also consider configuring the `" + NoDeleteConstraint.class.getName() + "` "
           + "constraint.",
       "2.0.0"),
-  TABLE_ONDEMAND_UNLOADER("table.ondemand.tablet.unloader",
-      "org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader", PropertyType.CLASSNAME,
-      "The class that will be used to determine which onDemand Tablets to unload.", "3.1.0"),
-  TABLE_ONDEMAND_UNLOADER_INTERVAL("table.ondemand.tablet.unloader.interval", "10m",
-      PropertyType.TIMEDURATION,
-      "The interval at which the TabletServer will check if onDemand tablets can be unloaded",
-      "3.1.0"),
 
   // Compactor properties
   @Experimental

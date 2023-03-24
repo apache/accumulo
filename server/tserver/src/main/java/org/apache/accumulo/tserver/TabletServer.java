@@ -242,7 +242,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   public static final AtomicLong seekCount = new AtomicLong(0);
 
   private final AtomicLong totalMinorCompactions = new AtomicLong(0);
-  private final AtomicInteger onDemandOnlineCount = new AtomicInteger(0);
   private final AtomicInteger onDemandUnloadedLowMemory = new AtomicInteger(0);
 
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
@@ -770,7 +769,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     final AccumuloConfiguration aconf = getConfiguration();
 
     final long onDemandUnloaderInterval =
-        aconf.getTimeInMillis(Property.TABLE_ONDEMAND_UNLOADER_INTERVAL);
+        aconf.getTimeInMillis(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL);
     watchCriticalFixedDelay(aconf, onDemandUnloaderInterval, () -> {
       evaluateOnDemandTabletsForUnload();
     });
@@ -1304,32 +1303,18 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return BlockCacheConfiguration.forTabletServer(acuConf);
   }
 
-  public void incrementOnDemandOnlineCount(int numAdditions) {
-    onDemandOnlineCount.addAndGet(numAdditions);
-  }
-
-  public void decrementOnDemandOnlineCount(int numDeletions) {
-    onDemandOnlineCount.updateAndGet(currVal -> {
-      return Math.max(0, currVal - numDeletions);
-    });
-  }
-
-  public int getOnDemandOnlineCount() {
-    return onDemandOnlineCount.get();
-  }
-
   public int getOnDemandOnlineUnloadedForLowMemory() {
     return onDemandUnloadedLowMemory.get();
   }
 
   // called from AssignmentHandler
   public void insertOnDemandAccessTime(KeyExtent extent) {
-    onDemandTabletAccessTimes.putIfAbsent(extent, new AtomicLong(System.currentTimeMillis()));
+    onDemandTabletAccessTimes.putIfAbsent(extent, new AtomicLong(System.nanoTime()));
   }
 
   // called from getOnlineExtent
   private void updateOnDemandAccessTime(KeyExtent extent) {
-    final long currentTime = System.currentTimeMillis();
+    final long currentTime = System.nanoTime();
     AtomicLong l = onDemandTabletAccessTimes.get(extent);
     if (l != null) {
       l.set(currentTime);

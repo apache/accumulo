@@ -38,6 +38,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.server.ServerContext;
@@ -191,9 +192,11 @@ public class TableManager {
     // Remove onDemand columns from all tablets
     if (tableId != RootTable.ID && tableId != MetadataTable.ID
         && (newState == TableState.ONLINE || newState == TableState.OFFLINE)) {
-      this.context.getAmple().readTablets().forTable(tableId).build().forEach(tm -> {
-        this.context.getAmple().mutateTablet(tm.getExtent()).deleteOnDemand().mutate();
-      });
+      try (TabletsMutator mutator = context.getAmple().mutateTablets()) {
+        this.context.getAmple().readTablets().forTable(tableId).build().forEach(tm -> {
+          mutator.mutateTablet(tm.getExtent()).deleteOnDemand().mutate();
+        });
+      }
     }
   }
 

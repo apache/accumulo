@@ -52,7 +52,7 @@ public class UnloaderParamsImpl implements UnloaderParams {
   }
 
   @Override
-  public SortedMap<TabletId,Long> getOnDemandTablets() {
+  public SortedMap<TabletId,Long> getLastAccessTimes() {
     return online;
   }
 

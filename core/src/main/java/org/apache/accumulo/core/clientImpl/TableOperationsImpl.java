@@ -1499,9 +1499,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
      * already in that state.
      */
     TableState currentState = context.getTableState(tableId, true);
-    if (op == FateOperation.TABLE_ONLINE && currentState == TableState.ONLINE
-        || op == FateOperation.TABLE_ONDEMAND && currentState == TableState.ONDEMAND
-        || op == FateOperation.TABLE_OFFLINE && currentState == TableState.OFFLINE) {
+    if (newState == currentState) {
       if (wait) {
         waitForTableStateTransition(tableId, newState);
       }

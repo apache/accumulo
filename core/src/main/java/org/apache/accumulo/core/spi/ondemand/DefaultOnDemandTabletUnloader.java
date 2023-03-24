@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.spi.ondemand;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.stream.Collectors;
 
@@ -29,23 +30,25 @@ public class DefaultOnDemandTabletUnloader implements OnDemandTabletUnloader {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultOnDemandTabletUnloader.class);
   public static final String INACTIVITY_THRESHOLD =
-      "table.custom.ondemand.unloader.inactivity.threshold";
-  private static final String TEN_MINUTES = Long.toString(MINUTES.toMillis(10));
+      "table.custom.ondemand.unloader.inactivity.threshold.seconds";
+  private static final String TEN_MINUTES = Long.toString(MINUTES.toSeconds(10));
 
   @Override
   public void evaluate(UnloaderParams params) {
-    final long threshold = Long
-        .parseLong(params.getTableConfiguration().getOrDefault(INACTIVITY_THRESHOLD, TEN_MINUTES));
-    final long currentTime = System.currentTimeMillis();
+    final String inactivitySeconds =
+        params.getTableConfiguration().getOrDefault(INACTIVITY_THRESHOLD, TEN_MINUTES);
+    // access times are stored in nanos
+    final long threshold = SECONDS.toNanos(Long.parseLong(inactivitySeconds));
+    final long currentTime = System.nanoTime();
     if (LOG.isTraceEnabled()) {
       LOG.trace("Current time: {}", currentTime);
       LOG.trace("Inactivity Threshold: {}", threshold);
-      params.getOnDemandTablets().forEach((k, v) -> {
+      params.getLastAccessTimes().forEach((k, v) -> {
         LOG.trace("Tablet: {}, LastAccessTime: {}, should unload: {}", k, v,
             (currentTime - v) > threshold);
       });
     }
-    params.setOnDemandTabletsToUnload(params.getOnDemandTablets().entrySet().stream()
+    params.setOnDemandTabletsToUnload(params.getLastAccessTimes().entrySet().stream()
         .filter(e -> (currentTime - e.getValue()) > threshold)
         .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())).keySet());
   }

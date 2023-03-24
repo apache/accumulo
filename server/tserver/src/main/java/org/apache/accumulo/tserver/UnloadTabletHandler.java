@@ -106,9 +106,7 @@ class UnloadTabletHandler implements Runnable {
     server.recentlyUnloadedCache.put(extent, System.currentTimeMillis());
     server.onlineTablets.remove(extent);
     if (t.isOnDemand()) {
-      log.trace("Decrementing onDemand online count for: {}", extent);
       server.removeOnDemandAccessTime(extent);
-      server.decrementOnDemandOnlineCount(1);
     }
 
     try {

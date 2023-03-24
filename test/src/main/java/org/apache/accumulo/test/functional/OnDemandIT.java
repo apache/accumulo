@@ -27,6 +27,11 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.Property;
@@ -43,10 +48,17 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.google.common.collect.Iterables;
+
 public class OnDemandIT extends SharedMiniClusterBase {
 
+  @FunctionalInterface
+  public static interface Action {
+    void execute(AccumuloClient c, String tableName);
+  }
+
   private static final int managerTabletGroupWatcherInterval = 5;
-  private static final int inactiveOnDemandTabletUnloaderInterval = 30;
+  private static final int inactiveOnDemandTabletUnloaderInterval = 10;
   private static TestStatsDSink sink;
   private static Thread metricConsumer;
   private static Long ONDEMAND_ONLINE_COUNT = 0L;
@@ -76,9 +88,9 @@ public class OnDemandIT extends SharedMiniClusterBase {
       cfg.setNumTservers(1);
       cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL,
           Integer.toString(managerTabletGroupWatcherInterval));
-      cfg.setProperty(Property.TABLE_ONDEMAND_UNLOADER_INTERVAL,
+      cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL,
           Integer.toString(inactiveOnDemandTabletUnloaderInterval));
-      cfg.setProperty("table.custom.ondemand.unloader.inactivity.threshold", "30000");
+      cfg.setProperty("table.custom.ondemand.unloader.inactivity.threshold.seconds", "15");
 
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
       // to push all metrics to the sink we started.
@@ -103,8 +115,7 @@ public class OnDemandIT extends SharedMiniClusterBase {
     ONDEMAND_ONLINE_COUNT = 0L;
   }
 
-  @Test
-  public void testLoadUnload() throws Exception {
+  public void testLoadUnload(Action action) throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = super.getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
@@ -131,8 +142,8 @@ public class OnDemandIT extends SharedMiniClusterBase {
 
       c.tableOperations().clearLocatorCache(tableName);
 
-      // load the same data again, this will cause the tablets to be brought online.
-      ManagerAssignmentIT.loadDataForScan(c, tableName);
+      // execute the action that will cause the tablets to be brought online
+      action.execute(c, tableName);
 
       while (ONDEMAND_ONLINE_COUNT != 4) {
         Thread.sleep(500);
@@ -151,6 +162,31 @@ public class OnDemandIT extends SharedMiniClusterBase {
       assertEquals(0, stats.size());
 
     }
+  }
+
+  @Test
+  public void testLoadUnloadUsingWriter() throws Exception {
+    testLoadUnload((client, t) -> {
+      try {
+        // load the same data again, this will cause the tablets to be brought online.
+        ManagerAssignmentIT.loadDataForScan(client, t);
+      } catch (MutationsRejectedException | TableNotFoundException e) {
+        throw new RuntimeException(e);
+      }
+    });
+  }
+
+  @Test
+  public void testLoadUnloadUsingScan() throws Exception {
+    testLoadUnload((client, t) -> {
+      try {
+        // scan the table, this will cause the tablets to be brought online.
+        Scanner s = client.createScanner(t);
+        Iterables.size(s);
+      } catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
+        throw new RuntimeException(e);
+      }
+    });
   }
 
 }

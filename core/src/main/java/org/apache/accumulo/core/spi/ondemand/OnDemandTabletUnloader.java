@@ -40,11 +40,12 @@ public interface OnDemandTabletUnloader {
 
     /**
      * Returns the onDemand tablets that are currently online and the time that they were last
-     * accessed
+     * accessed. Access times are in nanoseconds, from {@link System#nanoTime()}, and should be
+     * handled accordingly.
      *
      * @since 3.1.0
      */
-    Map<TabletId,Long> getOnDemandTablets();
+    Map<TabletId,Long> getLastAccessTimes();
 
     /**
      * Called by the implementation to inform the TabletServer as to which onDemand tablets should
@@ -59,7 +60,7 @@ public interface OnDemandTabletUnloader {
 
   /**
    * Implementations will evaluate each entry returned from
-   * {@link UnloaderParams#getOnDemandTablets()} and call
+   * {@link UnloaderParams#getLastAccessTimes()} and call
    * {@link UnloaderParams#setOnDemandTabletsToUnload(Set)} with the onDemand tablets that should be
    * unloaded by the TabletServer
    *
