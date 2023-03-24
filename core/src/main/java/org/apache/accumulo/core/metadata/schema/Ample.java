@@ -340,14 +340,31 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Create a Bulk Load In Progress flag in the metadata table
+   *
+   * @param path The bulk directory filepath
+   * @param fateTxid The id of the Bulk Import Fate operation.
+   */
   default void addBulkLoadInProgressFlag(String path, long fateTxid) {
     throw new RuntimeException();
   }
 
+  /**
+   * Remove a Bulk Load In Progress flag from the metadata table.
+   *
+   * @param path The bulk directory filepath
+   */
   default void removeBulkLoadInProgressFlag(String path) {
     throw new RuntimeException();
   }
 
+  /**
+   * Remove all the Bulk Load transaction ids from a given table's metadata
+   *
+   * @param tableId Table ID for transaction removals
+   * @param tid Transaction ID to remove
+   */
   default void removeBulkLoadEntries(TableId tableId, long tid) throws Exception {}
 
 }
