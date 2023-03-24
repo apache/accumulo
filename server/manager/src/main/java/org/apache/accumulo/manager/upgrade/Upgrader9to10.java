@@ -70,7 +70,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.Sk
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
@@ -289,15 +289,15 @@ public class Upgrader9to10 implements Upgrader {
       tabletMutator.putDirName(upgradeDirColumn(dir));
 
       if (last != null) {
-        tabletMutator.putLocation(last, LocationType.LAST);
+        tabletMutator.putLocation(TabletMetadata.Location.last(last));
       }
 
       if (future != null) {
-        tabletMutator.putLocation(future, LocationType.FUTURE);
+        tabletMutator.putLocation(TabletMetadata.Location.future(future));
       }
 
       if (current != null) {
-        tabletMutator.putLocation(current, LocationType.CURRENT);
+        tabletMutator.putLocation(TabletMetadata.Location.current(current));
       }
 
       logs.forEach(tabletMutator::putWal);

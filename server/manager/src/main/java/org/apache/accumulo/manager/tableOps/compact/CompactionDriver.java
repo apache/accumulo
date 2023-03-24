@@ -110,7 +110,7 @@ class CompactionDriver extends ManagerRepo {
       if (tablet.getCompactId().orElse(-1) < compactId) {
         tabletsToWaitFor++;
         if (tablet.hasCurrent()) {
-          serversToFlush.increment(tablet.getLocation(), 1);
+          serversToFlush.increment(tablet.getLocation().getServerInstance(), 1);
         }
       }
 

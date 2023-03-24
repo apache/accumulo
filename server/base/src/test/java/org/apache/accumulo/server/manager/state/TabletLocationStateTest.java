@@ -35,6 +35,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,17 +52,17 @@ public class TabletLocationStateTest {
   }
 
   private KeyExtent keyExtent;
-  private TServerInstance future;
-  private TServerInstance current;
-  private TServerInstance last;
+  private TabletMetadata.Location future;
+  private TabletMetadata.Location current;
+  private TabletMetadata.Location last;
   private TabletLocationState tls;
 
   @BeforeEach
   public void setUp() {
     keyExtent = createMock(KeyExtent.class);
-    future = createMock(TServerInstance.class);
-    current = createMock(TServerInstance.class);
-    last = createMock(TServerInstance.class);
+    future = TabletMetadata.Location.future(createMock(TServerInstance.class));
+    current = TabletMetadata.Location.current(createMock(TServerInstance.class));
+    last = TabletMetadata.Location.last(createMock(TServerInstance.class));
   }
 
   @Test
@@ -141,7 +142,7 @@ public class TabletLocationStateTest {
   @Test
   public void testGetState_Assigned() throws Exception {
     Set<TServerInstance> liveServers = new java.util.HashSet<>();
-    liveServers.add(future);
+    liveServers.add(future.getServerInstance());
     tls = new TabletLocationState(keyExtent, future, null, last, null, walogs, true);
     assertEquals(TabletState.ASSIGNED, tls.getState(liveServers));
   }
@@ -149,7 +150,7 @@ public class TabletLocationStateTest {
   @Test
   public void testGetState_Hosted() throws Exception {
     Set<TServerInstance> liveServers = new java.util.HashSet<>();
-    liveServers.add(current);
+    liveServers.add(current.getServerInstance());
     tls = new TabletLocationState(keyExtent, null, current, last, null, walogs, true);
     assertEquals(TabletState.HOSTED, tls.getState(liveServers));
   }
@@ -157,7 +158,7 @@ public class TabletLocationStateTest {
   @Test
   public void testGetState_Dead1() throws Exception {
     Set<TServerInstance> liveServers = new java.util.HashSet<>();
-    liveServers.add(current);
+    liveServers.add(current.getServerInstance());
     tls = new TabletLocationState(keyExtent, future, null, last, null, walogs, true);
     assertEquals(TabletState.ASSIGNED_TO_DEAD_SERVER, tls.getState(liveServers));
   }
@@ -165,7 +166,7 @@ public class TabletLocationStateTest {
   @Test
   public void testGetState_Dead2() throws Exception {
     Set<TServerInstance> liveServers = new java.util.HashSet<>();
-    liveServers.add(future);
+    liveServers.add(future.getServerInstance());
     tls = new TabletLocationState(keyExtent, null, current, last, null, walogs, true);
     assertEquals(TabletState.ASSIGNED_TO_DEAD_SERVER, tls.getState(liveServers));
   }

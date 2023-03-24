@@ -52,6 +52,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.La
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.hadoop.io.Text;
@@ -145,9 +146,9 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       throws IOException, BadLocationStateException {
     final SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(k, v);
     KeyExtent extent = null;
-    TServerInstance future = null;
-    TServerInstance current = null;
-    TServerInstance last = null;
+    TabletMetadata.Location future = null;
+    TabletMetadata.Location current = null;
+    TabletMetadata.Location last = null;
     SuspendingTServer suspend = null;
     long lastTimestamp = 0;
     List<Collection<String>> walogs = new ArrayList<>();
@@ -161,14 +162,16 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       Text cq = key.getColumnQualifier();
 
       if (cf.compareTo(FutureLocationColumnFamily.NAME) == 0) {
-        TServerInstance location = new TServerInstance(entry.getValue(), cq);
+        TabletMetadata.Location location =
+            TabletMetadata.Location.future(new TServerInstance(entry.getValue(), cq));
         if (future != null) {
           throw new BadLocationStateException("found two assignments for the same extent " + row
               + ": " + future + " and " + location, row);
         }
         future = location;
       } else if (cf.compareTo(CurrentLocationColumnFamily.NAME) == 0) {
-        TServerInstance location = new TServerInstance(entry.getValue(), cq);
+        TabletMetadata.Location location =
+            TabletMetadata.Location.current(new TServerInstance(entry.getValue(), cq));
         if (current != null) {
           throw new BadLocationStateException("found two locations for the same extent " + row
               + ": " + current + " and " + location, row);
@@ -179,7 +182,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
         walogs.add(Arrays.asList(split));
       } else if (cf.compareTo(LastLocationColumnFamily.NAME) == 0) {
         if (lastTimestamp < entry.getKey().getTimestamp()) {
-          last = new TServerInstance(entry.getValue(), cq);
+          last = TabletMetadata.Location.last(new TServerInstance(entry.getValue(), cq));
         }
       } else if (cf.compareTo(ChoppedColumnFamily.NAME) == 0) {
         chopped = true;

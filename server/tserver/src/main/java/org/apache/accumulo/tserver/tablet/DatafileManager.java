@@ -39,10 +39,10 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
@@ -457,7 +457,7 @@ class DatafileManager {
       rename(vm, tmpDatafile.getPath(), newDatafile.getPath());
     }
 
-    TServerInstance lastLocation = null;
+    TabletMetadata.Location lastLocation = null;
     Optional<StoredTabletFile> newFile;
 
     if (dfv.getNumEntries() > 0) {

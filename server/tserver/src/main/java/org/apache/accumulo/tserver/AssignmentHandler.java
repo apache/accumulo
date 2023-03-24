@@ -278,7 +278,7 @@ class AssignmentHandler implements Runnable {
     TabletMetadata.Location loc = meta.getLocation();
 
     if (!ignoreLocationCheck && (loc == null || loc.getType() != TabletMetadata.LocationType.FUTURE
-        || !instance.equals(loc))) {
+        || !instance.equals(loc.getServerInstance()))) {
       log.info(METADATA_ISSUE + "Unexpected location {} {}", extent, loc);
       return false;
     }

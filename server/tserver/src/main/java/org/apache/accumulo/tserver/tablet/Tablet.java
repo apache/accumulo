@@ -70,7 +70,6 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -151,7 +150,7 @@ public class Tablet extends TabletBase {
   private final Object timeLock = new Object();
   private long persistedTime;
 
-  private TServerInstance lastLocation = null;
+  private TabletMetadata.Location lastLocation = null;
   private volatile Set<Path> checkedTabletDirs = new ConcurrentSkipListSet<>();
 
   private final AtomicLong dataSourceDeletions = new AtomicLong(0);
@@ -2019,8 +2018,8 @@ public class Tablet extends TabletBase {
     computeNumEntries();
   }
 
-  public TServerInstance resetLastLocation() {
-    TServerInstance result = lastLocation;
+  public TabletMetadata.Location resetLastLocation() {
+    TabletMetadata.Location result = lastLocation;
     lastLocation = null;
     return result;
   }

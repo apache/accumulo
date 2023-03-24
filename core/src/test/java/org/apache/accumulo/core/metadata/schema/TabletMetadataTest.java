@@ -196,7 +196,7 @@ public class TabletMetadataTest {
     TabletState state = tm.getTabletState(tservers);
 
     assertEquals(TabletState.ASSIGNED, state);
-    assertEquals(ser1, tm.getLocation());
+    assertEquals(ser1, tm.getLocation().getServerInstance());
     assertEquals(ser1.getSession(), tm.getLocation().getSession());
     assertEquals(LocationType.FUTURE, tm.getLocation().getType());
     assertFalse(tm.hasCurrent());
@@ -210,7 +210,7 @@ public class TabletMetadataTest {
     tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
 
     assertEquals(TabletState.HOSTED, tm.getTabletState(tservers));
-    assertEquals(ser2, tm.getLocation());
+    assertEquals(ser2, tm.getLocation().getServerInstance());
     assertEquals(ser2.getSession(), tm.getLocation().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());
     assertTrue(tm.hasCurrent());
@@ -224,7 +224,7 @@ public class TabletMetadataTest {
     tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
 
     assertEquals(TabletState.ASSIGNED_TO_DEAD_SERVER, tm.getTabletState(tservers));
-    assertEquals(deadSer, tm.getLocation());
+    assertEquals(deadSer, tm.getLocation().getServerInstance());
     assertEquals(deadSer.getSession(), tm.getLocation().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());
     assertTrue(tm.hasCurrent());
