@@ -127,7 +127,7 @@ class MinorCompactionTask implements Runnable {
         span.end();
       }
 
-      if (tablet.needsSplit()) {
+      if (tablet.needsSplit(tablet.getSplitComputations())) {
         tablet.getTabletServer().executeSplit(tablet);
       }
     } catch (Exception e) {
