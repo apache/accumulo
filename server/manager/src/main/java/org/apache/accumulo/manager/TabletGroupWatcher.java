@@ -240,11 +240,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             return mStats != null ? mStats : new MergeStats(new MergeInfo());
           });
           TabletGoalState goal = manager.getGoalState(tls, mergeStats.getMergeInfo());
-          TServerInstance location = tls.getLocation();
+          TServerInstance location = tls.getServer();
           TabletState state = tls.getState(currentTServers.keySet());
 
-          TabletLogger.missassigned(tls.extent, goal.toString(), state.toString(), tls.future,
-              tls.current, tls.walogs.size());
+          TabletLogger.missassigned(tls.extent, goal.toString(), state.toString(),
+              tls.getFutureServer(), tls.getCurrentServer(), tls.walogs.size());
 
           stats.update(tableId, state);
           mergeStats.update(tls.extent, state, tls.chopped, !tls.walogs.isEmpty());
@@ -286,7 +286,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 break;
               case ASSIGNED:
                 // Send another reminder
-                tLists.assigned.add(new Assignment(tls.extent, tls.future));
+                tLists.assigned.add(new Assignment(tls.extent, tls.getFutureServer()));
                 break;
             }
           } else {
@@ -374,9 +374,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private void unassignDeadTablet(TabletLists tLists, TabletLocationState tls, WalStateManager wals)
       throws WalMarkerException {
     tLists.assignedToDeadServers.add(tls);
-    if (!tLists.logsForDeadServers.containsKey(tls.futureOrCurrent())) {
-      tLists.logsForDeadServers.put(tls.futureOrCurrent(),
-          wals.getWalsInUse(tls.futureOrCurrent()));
+    if (!tLists.logsForDeadServers.containsKey(tls.futureOrCurrentServer())) {
+      tLists.logsForDeadServers.put(tls.futureOrCurrentServer(),
+          wals.getWalsInUse(tls.futureOrCurrentServer()));
     }
   }
 
@@ -431,7 +431,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     if (location.equals(manager.migrations.get(tls.extent))) {
       manager.migrations.remove(tls.extent);
     }
-    TServerInstance tserver = tls.futureOrCurrent();
+    TServerInstance tserver = tls.futureOrCurrentServer();
     if (!tLists.logsForDeadServers.containsKey(tserver)) {
       tLists.logsForDeadServers.put(tserver, wals.getWalsInUse(tserver));
     }
@@ -542,7 +542,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
         try {
           TServerConnection conn;
-          conn = manager.tserverSet.getConnection(tls.current);
+          conn = manager.tserverSet.getConnection(tls.getCurrentServer());
           if (conn != null) {
             Manager.log.info("Asking {} to split {} at {}", tls.current, tls.extent, splitPoint);
             conn.splitTablet(tls.extent, splitPoint);
@@ -575,7 +575,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     if (info.needsToBeChopped(tls.extent)) {
       TServerConnection conn;
       try {
-        conn = manager.tserverSet.getConnection(tls.current);
+        conn = manager.tserverSet.getConnection(tls.getCurrentServer());
         if (conn != null) {
           Manager.log.info("Asking {} to chop {}", tls.current, tls.extent);
           conn.chop(manager.managerLock, tls.extent);

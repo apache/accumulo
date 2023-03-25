@@ -67,7 +67,7 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
         newTablet = getTabletLocationState(c, tableId);
       } while (newTablet.current == null);
       // this would be null if the mode was not "assign"
-      assertEquals(newTablet.current, newTablet.last);
+      assertEquals(newTablet.getCurrentServer(), newTablet.getLastServer());
       assertNull(newTablet.future);
 
       // put something in it
@@ -83,7 +83,7 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
       // last location should not be set yet
       TabletLocationState unflushed = getTabletLocationState(c, tableId);
       assertEquals(newTablet.current, unflushed.current);
-      assertEquals(newTablet.current, unflushed.last);
+      assertEquals(newTablet.getCurrentServer(), unflushed.getLastServer());
       assertNull(newTablet.future);
 
       // take the tablet offline
@@ -91,7 +91,7 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
       TabletLocationState offline = getTabletLocationState(c, tableId);
       assertNull(offline.future);
       assertNull(offline.current);
-      assertEquals(newTablet.current, offline.last);
+      assertEquals(newTablet.getCurrentServer(), offline.getLastServer());
 
       // put it back online, should have the same last location
       c.tableOperations().online(tableName, true);

@@ -35,11 +35,10 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
@@ -85,7 +84,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions);
       c.tableOperations().create(table, ntc);
       // scan the metadata table and get the two table location states
-      Set<TServerInstance> states = new HashSet<>();
+      Set<TabletMetadata.Location> states = new HashSet<>();
       Set<TabletLocationState> oldLocations = new HashSet<>();
       TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
       while (states.size() < 2) {
@@ -130,14 +129,14 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       assertNotEquals(null, moved);
       // throw a mutation in as if we were the dying tablet
       TabletMutator tabletMutator = serverContext.getAmple().mutateTablet(moved.extent);
-      tabletMutator.putLocation(moved.current, LocationType.CURRENT);
+      tabletMutator.putLocation(moved.current);
       tabletMutator.mutate();
       // wait for the manager to fix the problem
       waitForCleanStore(store);
       // now jam up the metadata table
       tabletMutator =
           serverContext.getAmple().mutateTablet(new KeyExtent(MetadataTable.ID, null, null));
-      tabletMutator.putLocation(moved.current, LocationType.CURRENT);
+      tabletMutator.putLocation(moved.current);
       tabletMutator.mutate();
       waitForCleanStore(TabletStateStore.getStoreForLevel(DataLevel.METADATA, context));
     }
