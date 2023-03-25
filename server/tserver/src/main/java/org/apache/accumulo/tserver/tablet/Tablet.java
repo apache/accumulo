@@ -1871,7 +1871,7 @@ public class Tablet implements TabletCommitter {
 
         newComputation = new SplitComputations(files, midpoint, lastRow);
       } catch (IOException e) {
-        lastSplitComputation = null;
+        lastSplitComputation.set(null);
         log.error("Failed to compute split information from files " + e.getMessage());
         return Optional.absent();
       } finally {
