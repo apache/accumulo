@@ -26,6 +26,7 @@ import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.server.manager.state.DistributedStoreException;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
@@ -114,7 +115,8 @@ class UnloadTabletHandler implements Runnable {
           new TServerInstance(server.clientAddress, server.getLock().getSessionId());
       TabletLocationState tls = null;
       try {
-        tls = new TabletLocationState(extent, null, instance, null, null, null, false, false);
+        tls = new TabletLocationState(extent, null, Location.current(instance), null, null, null,
+            false, false);
       } catch (BadLocationStateException e) {
         log.error("Unexpected error", e);
       }
