@@ -35,7 +35,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TabletState;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -91,8 +91,7 @@ public class ListTabletsCommandTest {
       KeyExtent ke1 = new KeyExtent(tableId, new Text("a"), null);
       KeyExtent ke2 = new KeyExtent(tableId, new Text("m"), new Text("a"));
       KeyExtent ke3 = new KeyExtent(tableId, null, new Text("m"));
-      TabletMetadata.Location loc =
-          new TabletMetadata.Location("localhost", "", TabletMetadata.LocationType.CURRENT);
+      Location loc = Location.current("localhost", "");
       ListTabletsCommand.TabletRowInfo.Factory factory =
           new ListTabletsCommand.TabletRowInfo.Factory(tableName, ke1).dir("t-dir1").numFiles(1)
               .numWalLogs(1).numEntries(1).size(100).status(TabletState.HOSTED.toString())
@@ -169,8 +168,7 @@ public class ListTabletsCommandTest {
     Text startRow = new Text("a");
     Text endRow = new Text("z");
     KeyExtent ke = new KeyExtent(id, endRow, startRow);
-    TabletMetadata.Location loc =
-        new TabletMetadata.Location("localhost", "", TabletMetadata.LocationType.CURRENT);
+    Location loc = Location.current("localhost", "");
     ListTabletsCommand.TabletRowInfo.Factory factory =
         new ListTabletsCommand.TabletRowInfo.Factory("aName", ke).numFiles(1).numWalLogs(2)
             .numEntries(3).size(4).status(TabletState.HOSTED.toString()).location(loc)
