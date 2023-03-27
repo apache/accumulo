@@ -589,7 +589,8 @@ public class TabletLocatorImpl extends TabletLocator {
         if (!tm.getOnDemand()) {
           Location loc = tm.getLocation();
           if (loc != null) {
-            log.debug("tablet {} has location of: {}:{}", loc.getType(), loc.getHostPort());
+            log.debug("tablet {} has location of: {}:{}", tabletExtent, loc.getType(),
+                loc.getHostPort());
           }
           extentsToBringOnline.add(tabletExtent.toThrift());
         } else {

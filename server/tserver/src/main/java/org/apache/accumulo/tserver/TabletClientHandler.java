@@ -1567,9 +1567,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           SecurityErrorCode.PERMISSION_DENIED);
     }
     try (TabletsMutator mutator = this.context.getAmple().mutateTablets()) {
-      extents.forEach(e -> {
-        mutator.mutateTablet(KeyExtent.fromThrift(e)).putOnDemand().mutate();
-      });
+      extents.forEach(e -> mutator.mutateTablet(KeyExtent.fromThrift(e)).putOnDemand().mutate());
     }
   }
 

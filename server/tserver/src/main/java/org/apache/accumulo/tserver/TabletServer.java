@@ -1438,9 +1438,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
     });
     tableIds.forEach(tid -> {
-      Map<KeyExtent,AtomicLong> subset = sortedOnDemandExtents.entrySet().stream().filter((e) -> {
-        return e.getKey().tableId().equals(tid);
-      }).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+      Map<KeyExtent,
+          AtomicLong> subset = sortedOnDemandExtents.entrySet().stream()
+              .filter((e) -> e.getKey().tableId().equals(tid))
+              .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
       Set<KeyExtent> onDemandTabletsToUnload = new HashSet<>();
       log.debug("Evaluating onDemand tablets for unload for table {}, extents {}", tid,
           subset.keySet());

@@ -24,8 +24,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -53,13 +51,13 @@ public class ListOnlineOnDemandTablets {
     Span span = TraceUtil.startSpan(ListOnlineOnDemandTablets.class, "main");
     try (Scope scope = span.makeCurrent()) {
       ServerContext context = opts.getServerContext();
-      findOnline(context, null);
+      findOnline(context);
     } finally {
       span.end();
     }
   }
 
-  static int findOnline(ServerContext context, String tableName) throws TableNotFoundException {
+  static int findOnline(ServerContext context) throws TableNotFoundException {
 
     final AtomicBoolean scanning = new AtomicBoolean(false);
 
@@ -81,10 +79,6 @@ public class ListOnlineOnDemandTablets {
     System.out.println("Scanning " + MetadataTable.NAME);
 
     Range range = TabletsSection.getRange();
-    if (tableName != null) {
-      TableId tableId = context.getTableId(tableName);
-      range = new KeyExtent(tableId, null, null).toMetaRange();
-    }
 
     try (MetaDataTableScanner metaScanner =
         new MetaDataTableScanner(context, range, MetadataTable.NAME)) {
@@ -99,7 +93,7 @@ public class ListOnlineOnDemandTablets {
     while (scanner.hasNext() && !System.out.checkError()) {
       TabletLocationState locationState = scanner.next();
       TabletState state = locationState.getState(tservers.getCurrentServers());
-      if (state != null && state == TabletState.HOSTED
+      if (state == TabletState.HOSTED
           && context.getTableManager().getTableState(locationState.extent.tableId())
               == TableState.ONDEMAND) {
         System.out
