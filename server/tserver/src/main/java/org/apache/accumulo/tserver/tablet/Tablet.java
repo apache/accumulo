@@ -24,6 +24,7 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1821,7 +1822,8 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  private AtomicReference<SplitComputations> lastSplitComputation = new AtomicReference<>();
+  private volatile SoftReference<SplitComputations> lastSplitComputation =
+      new SoftReference<>(null);
   private Lock splitComputationLock = new ReentrantLock();
 
   /**
@@ -1870,15 +1872,15 @@ public class Tablet implements TabletCommitter {
         }
 
         newComputation = new SplitComputations(files, midpoint, lastRow);
+
+        lastSplitComputation = new SoftReference<>(newComputation);
       } catch (IOException e) {
-        lastSplitComputation.set(null);
+        lastSplitComputation.clear();
         log.error("Failed to compute split information from files " + e.getMessage());
         return Optional.absent();
       } finally {
         splitComputationLock.unlock();
       }
-
-      lastSplitComputation.set(newComputation);
 
       return Optional.of(newComputation);
     } else {
