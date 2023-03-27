@@ -125,21 +125,21 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       offline = getTabletLocationState(c, tableId);
       assertNull(offline.future);
       assertNull(offline.current);
-      assertEquals(flushed.current, offline.last);
+      assertEquals(flushed.getCurrentServer(), offline.getLastServer());
 
       // set the table to ondemand
       c.tableOperations().onDemand(tableName, true);
       TabletLocationState ondemand = getTabletLocationState(c, tableId);
       assertNull(ondemand.future);
       assertNull(ondemand.current);
-      assertEquals(flushed.current, ondemand.last);
+      assertEquals(flushed.getCurrentServer(), ondemand.getLastServer());
 
       // put it back online
       c.tableOperations().online(tableName, true);
       online = getTabletLocationState(c, tableId);
       assertNull(online.future);
       assertNotNull(online.current);
-      assertEquals(online.current, online.last);
+      assertEquals(online.getCurrentServer(), online.getLastServer());
 
     }
   }
