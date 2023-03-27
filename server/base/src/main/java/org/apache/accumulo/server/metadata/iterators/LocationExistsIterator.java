@@ -44,6 +44,7 @@ public class LocationExistsIterator extends WrappingIterator {
       List.of(new ArrayByteSequence(FutureLocationColumnFamily.STR_NAME),
           new ArrayByteSequence(CurrentLocationColumnFamily.STR_NAME));
 
+  @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
 

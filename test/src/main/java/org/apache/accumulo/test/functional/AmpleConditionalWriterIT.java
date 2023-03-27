@@ -34,7 +34,11 @@ import org.apache.accumulo.core.client.ConditionalWriter.Status;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.*;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -336,7 +340,6 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       var e1 = new KeyExtent(tid, new Text("c"), null);
       var e2 = new KeyExtent(tid, new Text("f"), new Text("c"));
       var e3 = new KeyExtent(tid, new Text("j"), new Text("f"));
-      var e4 = new KeyExtent(tid, null, new Text("j"));
 
       var context = cluster.getServerContext();
 
