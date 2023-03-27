@@ -38,7 +38,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.io.Text;
 
@@ -284,9 +284,9 @@ public interface Ample {
 
     T putFlushId(long flushId);
 
-    T putLocation(TServerInstance tserver, LocationType type);
+    T putLocation(Location location);
 
-    T deleteLocation(TServerInstance tserver, LocationType type);
+    T deleteLocation(Location location);
 
     T putZooLock(ServiceLock zooLock);
 
@@ -373,7 +373,7 @@ public interface Ample {
     /**
      * Require that a tablet currently has the specified future or current location.
      */
-    ConditionalTabletMutator requireLocation(TServerInstance tserver, LocationType type);
+    ConditionalTabletMutator requireLocation(Location location);
 
     /**
      * Require that a tablet currently has the specified file.

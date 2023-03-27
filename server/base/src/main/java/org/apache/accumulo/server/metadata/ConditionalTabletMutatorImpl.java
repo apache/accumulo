@@ -30,13 +30,13 @@ import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletOperation;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.iterators.LocationExistsIterator;
@@ -59,7 +59,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
 
   protected ConditionalTabletMutatorImpl(Ample.ConditionalTabletsMutator parent,
       ServerContext context, KeyExtent extent, Consumer<ConditionalMutation> mutationConsumer) {
-    super(context, extent, new ConditionalMutation(extent.toMetaRow()));
+    super(context, new ConditionalMutation(extent.toMetaRow()));
     this.mutation = (ConditionalMutation) super.mutation;
     this.mutationConsumer = mutationConsumer;
     this.parent = parent;
@@ -75,11 +75,12 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
-  public Ample.ConditionalTabletMutator requireLocation(TServerInstance tsi,
-      TabletMetadata.LocationType type) {
+  public Ample.ConditionalTabletMutator requireLocation(Location location) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    Condition c =
-        new Condition(getLocationFamily(type), tsi.getSession()).setValue(tsi.getHostPort());
+    Preconditions.checkArgument(location.getType() == TabletMetadata.LocationType.FUTURE
+        || location.getType() == TabletMetadata.LocationType.CURRENT);
+    Condition c = new Condition(getLocationFamily(location.getType()), location.getSession())
+        .setValue(location.getHostPort());
     mutation.addCondition(c);
     return this;
   }

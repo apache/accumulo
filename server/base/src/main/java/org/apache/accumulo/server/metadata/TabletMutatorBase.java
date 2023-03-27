@@ -45,6 +45,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletOperation;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -57,7 +58,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     implements Ample.TabletUpdates<T> {
 
   private final ServerContext context;
-  private final KeyExtent extent;
+
   protected final Mutation mutation;
   protected AutoCloseable closeAfterMutate;
   protected boolean updatesEnabled = true;
@@ -68,13 +69,11 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   protected TabletMutatorBase(ServerContext context, KeyExtent extent) {
-    this.extent = extent;
     this.context = context;
     mutation = new Mutation(extent.toMetaRow());
   }
 
-  protected TabletMutatorBase(ServerContext context, KeyExtent extent, Mutation mutation) {
-    this.extent = extent;
+  protected TabletMutatorBase(ServerContext context, Mutation mutation) {
     this.context = context;
     this.mutation = mutation;
   }
@@ -157,16 +156,17 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putLocation(TServerInstance tsi, LocationType type) {
+  public T putLocation(Location location) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(getLocationFamily(type), tsi.getSession(), tsi.getHostPort());
+    mutation.put(getLocationFamily(location.getType()), location.getSession(),
+        location.getHostPort());
     return getThis();
   }
 
   @Override
-  public T deleteLocation(TServerInstance tsi, LocationType type) {
+  public T deleteLocation(Location location) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(getLocationFamily(type), tsi.getSession());
+    mutation.putDelete(getLocationFamily(location.getType()), location.getSession());
     return getThis();
   }
 
