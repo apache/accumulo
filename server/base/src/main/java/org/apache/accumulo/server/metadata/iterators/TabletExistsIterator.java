@@ -33,6 +33,7 @@ import org.apache.hadoop.io.Text;
  */
 public class TabletExistsIterator extends WrappingIterator {
 
+  @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
 

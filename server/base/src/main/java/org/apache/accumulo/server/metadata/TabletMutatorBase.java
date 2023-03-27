@@ -65,7 +65,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @SuppressWarnings("unchecked")
   private T getThis() {
     return (T) this;
-  };
+  }
 
   protected TabletMutatorBase(ServerContext context, KeyExtent extent) {
     this.extent = extent;
