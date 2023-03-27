@@ -46,6 +46,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
@@ -56,13 +57,11 @@ import com.google.common.base.Preconditions;
 public abstract class TabletMutatorBase implements Ample.TabletMutator {
 
   private final ServerContext context;
-  private final KeyExtent extent;
   private final Mutation mutation;
   protected AutoCloseable closeAfterMutate;
   private boolean updatesEnabled = true;
 
   protected TabletMutatorBase(ServerContext context, KeyExtent extent) {
-    this.extent = extent;
     this.context = context;
     mutation = new Mutation(extent.toMetaRow());
   }
@@ -145,16 +144,17 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   }
 
   @Override
-  public Ample.TabletMutator putLocation(TServerInstance tsi, LocationType type) {
+  public Ample.TabletMutator putLocation(Location location) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(getLocationFamily(type), tsi.getSession(), tsi.getHostPort());
+    mutation.put(getLocationFamily(location.getType()), location.getSession(),
+        location.getHostPort());
     return this;
   }
 
   @Override
-  public Ample.TabletMutator deleteLocation(TServerInstance tsi, LocationType type) {
+  public Ample.TabletMutator deleteLocation(Location location) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(getLocationFamily(type), tsi.getSession());
+    mutation.putDelete(getLocationFamily(location.getType()), location.getSession());
     return this;
   }
 

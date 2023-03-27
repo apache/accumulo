@@ -69,9 +69,9 @@ class ZooTabletStateStore implements TabletStateStore {
 
           TabletMetadata rootMeta = ample.readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL);
 
-          TServerInstance currentSession = null;
-          TServerInstance futureSession = null;
-          TServerInstance lastSession = null;
+          Location currentSession = null;
+          Location futureSession = null;
+          Location lastSession = null;
 
           Location loc = rootMeta.getLocation();
 
@@ -122,7 +122,7 @@ class ZooTabletStateStore implements TabletStateStore {
     }
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
-    tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
+    tabletMutator.putLocation(Location.future(assignment.server));
     tabletMutator.mutate();
   }
 
@@ -137,10 +137,10 @@ class ZooTabletStateStore implements TabletStateStore {
     }
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
-    tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
+    tabletMutator.putLocation(Location.current(assignment.server));
     ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator,
         assignment.tablet, assignment.server);
-    tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
+    tabletMutator.deleteLocation(Location.future(assignment.server));
 
     tabletMutator.mutate();
   }
@@ -157,13 +157,14 @@ class ZooTabletStateStore implements TabletStateStore {
     }
 
     TabletMutator tabletMutator = ample.mutateTablet(tls.extent);
+    final TServerInstance futureOrCurrent = tls.futureOrCurrent().getServerInstance();
 
-    tabletMutator.deleteLocation(tls.futureOrCurrent(), LocationType.FUTURE);
-    tabletMutator.deleteLocation(tls.futureOrCurrent(), LocationType.CURRENT);
+    tabletMutator.deleteLocation(Location.future(futureOrCurrent));
+    tabletMutator.deleteLocation(Location.current(futureOrCurrent));
     ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator, tls.extent,
-        tls.futureOrCurrent());
+        futureOrCurrent);
     if (logsForDeadServers != null) {
-      List<Path> logs = logsForDeadServers.get(tls.futureOrCurrent());
+      List<Path> logs = logsForDeadServers.get(futureOrCurrent);
       if (logs != null) {
         for (Path entry : logs) {
           LogEntry logEntry =

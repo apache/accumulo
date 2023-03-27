@@ -53,6 +53,7 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -210,7 +211,7 @@ class LoadFiles extends ManagerRepo {
         // send files to tablet sever
         // ideally there should only be one tablet location to send all the files
 
-        TabletMetadata.Location location = tablet.getLocation();
+        Location location = tablet.getLocation();
         HostAndPort server = null;
         if (location == null) {
           locationLess++;

@@ -33,6 +33,7 @@ import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.manager.state.Assignment;
@@ -278,10 +279,10 @@ class AssignmentHandler implements Runnable {
           METADATA_ISSUE + "metadata entry does not have time (" + meta.getExtent() + ")");
     }
 
-    TabletMetadata.Location loc = meta.getLocation();
+    Location loc = meta.getLocation();
 
     if (!ignoreLocationCheck && (loc == null || loc.getType() != TabletMetadata.LocationType.FUTURE
-        || !instance.equals(loc))) {
+        || !instance.equals(loc.getServerInstance()))) {
       log.info(METADATA_ISSUE + "Unexpected location {} {}", extent, loc);
       return false;
     }
