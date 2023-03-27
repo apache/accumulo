@@ -102,7 +102,7 @@ class PopulateMetadata extends ManagerRepo {
   @Override
   public void undo(long tid, Manager environment) throws Exception {
     MetadataTableUtil.deleteTable(tableInfo.getTableId(), false, environment.getContext(),
-        environment.getManagerLock());
+        environment.getPrimaryManagerLock());
   }
 
   /**

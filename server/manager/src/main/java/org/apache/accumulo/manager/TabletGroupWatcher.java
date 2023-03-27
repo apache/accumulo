@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,15 +33,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -65,6 +70,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -102,7 +108,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
 
-abstract class TabletGroupWatcher extends AccumuloDaemonThread {
+abstract class TabletGroupWatcher extends AccumuloDaemonThread implements LiveManagerSet.Listener {
+  // Constants used to make sure assignment logging isn't excessive in quantity or size
 
   public static class BadLocationStateException extends Exception {
     private static final long serialVersionUID = 2L;
@@ -131,8 +138,15 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private WalStateManager walStateManager;
   private volatile Set<TServerInstance> filteredServersToShutdown = Set.of();
 
+  private final Supplier<Boolean> enabled;
+  private LiveManagerSet liveManagers;
+  /* current set of managers */
+  private final SortedSet<String> managers = new TreeSet<>();
+  /* updates set by LiveManagerSet callback */
+  private final AtomicReference<SortedSet<String>> managerUpdates = new AtomicReference<>();
+
   TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher,
-      ManagerMetrics metrics) {
+      ManagerMetrics metrics, Supplier<Boolean> enabled) {
     super("Watching " + store.name());
     this.manager = manager;
     this.store = store;
@@ -141,6 +155,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     this.walStateManager = new WalStateManager(manager.getContext());
     this.eventHandler = new EventHandler();
     manager.getEventCoordinator().addListener(store.getLevel(), eventHandler);
+    this.enabled = enabled;
   }
 
   /** Should this {@code TabletGroupWatcher} suspend tablets? */
@@ -221,12 +236,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     private boolean needsFullScan = true;
 
     private final BlockingQueue<Range> rangesToProcess;
+    AtomicReference<Map<TableId,String>> tablesFromLastRun = new AtomicReference<>(null);
 
     class RangeProccessor implements Runnable {
       @Override
       public void run() {
         try {
           while (manager.stillManager()) {
+
+            // spin if not enabled
+            while (!enabled.get()) {
+              Thread.onSpinWait();
+            }
+
             var range = rangesToProcess.poll(100, TimeUnit.MILLISECONDS);
             if (range == null) {
               // check to see if still the manager
@@ -488,6 +510,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           if (manager.getSplitter().addSplitStarting(tm.getExtent())) {
             LOG.debug("submitting tablet {} for split", tm.getExtent());
             manager.getSplitter().executeSplit(new SplitTask(manager.getContext(), tm, manager));
+            
+// DLMARI2: Figure out where this goes now            
+        // Override the set of table ranges that this manager will manage
+//        if (store.getLevel() == DataLevel.USER) {
+//          Optional<List<Range>> ranges = calculateRangesForMultipleManagers(
+//              tablesFromLastRun.getAndSet(manager.getContext().getTableIdToNameMap()));
+//          // If ranges is empty, then the tables and managers did not change from the
+//          // previous call, we will use the same ranges.
+//          if (ranges.isPresent()) {
+//            store.overrideRanges(ranges.get());
+//          }
+//        }
+
           }
         } else {
           LOG.debug("{} is not splittable.", tm.getExtent());
@@ -564,7 +599,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               if (client != null) {
                 LOG.debug("Requesting tserver {} unload tablet {}", location.getServerInstance(),
                     tm.getExtent());
-                client.unloadTablet(manager.managerLock, tm.getExtent(), goal.howUnload(),
+                client.unloadTablet(manager.getManagerLock(), tm.getExtent(), goal.howUnload(),
                     manager.getSteadyTime());
                 tableMgmtStats.totalUnloaded++;
                 unloaded++;
@@ -696,6 +731,70 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       tLists.logsForDeadServers.put(tm.getLocation().getServerInstance(),
           walStateManager.getWalsInUse(tm.getLocation().getServerInstance()));
     }
+  }
+
+  /**
+   * Calculates the set of table ranges that this manager will be reponsible for. This method will
+   * return an empty Optional when the set of ranges does not change. When the set of ranges
+   * changes, then that set will be returned.
+   */
+  private Optional<List<Range>>
+      calculateRangesForMultipleManagers(Map<TableId,String> tablesFromLastRun) {
+    if (liveManagers == null) {
+      this.liveManagers = new LiveManagerSet(this.manager.getContext(), this);
+      this.liveManagers.startListeningForManagerServerChanges();
+    }
+    // If currentManagers is empty, wait for managers
+    while (managerUpdates.get().isEmpty()) {
+      Thread.onSpinWait();
+    }
+
+    boolean sameTables = (tablesFromLastRun == null) ? false
+        : tablesFromLastRun.equals(manager.getContext().getTableIdToNameMap());
+    boolean sameManagers = managers.equals(managerUpdates.get());
+
+    if (sameTables && sameManagers) {
+      return Optional.empty();
+    }
+
+    if (!sameManagers) {
+      managers.clear();
+      managers.addAll(managerUpdates.get());
+    }
+
+    if (managers.size() == 1) {
+      return Optional.of(Collections.singletonList(TabletsSection.getRange()));
+    }
+
+    // Calculate range of metadata table that this manager
+    // will be responsible for. We have the current set of managers
+    // in the managers set and we have this managers address
+    // to know what number it is in the set.
+    String thisManagerAddress = manager.getManagerClientAddress().toString();
+    int pos = 0;
+    for (String managerLocation : managers) {
+      if (thisManagerAddress.equals(managerLocation)) {
+        break;
+      }
+      pos++;
+    }
+    if (pos > managers.size()) {
+      // we didn't find our manager in the set of manager addresses
+      throw new RuntimeException("This manager location: " + thisManagerAddress
+          + " not found in set of managers: " + managers.toString());
+    }
+
+    List<Set<TableId>> managerTables = MultipleManagerUtil.getTablesForManagers(
+        manager.getContext(), manager.getContext().getTableIdToNameMap().keySet(), managers.size());
+    Set<TableId> myTables = managerTables.get(pos);
+    final List<Range> rangesForTables = new ArrayList<>();
+    myTables.stream().forEach(tid -> rangesForTables.add(TabletsSection.getRange(tid)));
+    return Optional.of(rangesForTables);
+  }
+
+  @Override
+  public void managersChanged(Collection<String> addresses) {
+    managerUpdates.set(new TreeSet<>(addresses));
   }
 
   private void hostUnassignedTablet(TabletLists tLists, KeyExtent tablet,
@@ -922,7 +1021,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     for (Assignment a : tLists.assignments) {
       TServerConnection client = manager.tserverSet.getConnection(a.server);
       if (client != null) {
-        client.assignTablet(manager.managerLock, a.tablet);
+        client.assignTablet(manager.primaryManagerLock, a.tablet);
       } else {
         Manager.log.warn("Could not connect to server {}", a.server);
       }

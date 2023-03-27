@@ -45,4 +45,10 @@ class RootTabletStateStore extends MetaDataStateStore {
   public String name() {
     return "Metadata Tablets";
   }
+
+  @Override
+  public DataLevel getLevel() {
+    return DataLevel.METADATA;
+  }
+
 }

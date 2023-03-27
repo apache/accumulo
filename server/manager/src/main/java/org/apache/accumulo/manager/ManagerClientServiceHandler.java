@@ -169,7 +169,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         try {
           final TServerConnection server = manager.tserverSet.getConnection(instance);
           if (server != null) {
-            server.flush(manager.managerLock, tableId, ByteBufferUtil.toBytes(startRowBB),
+            server.flush(manager.primaryManagerLock, tableId, ByteBufferUtil.toBytes(startRowBB),
                 ByteBufferUtil.toBytes(endRowBB));
           }
         } catch (TException ex) {

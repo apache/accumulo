@@ -29,6 +29,7 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -506,12 +507,7 @@ public class ClientContext implements AccumuloClient {
     return loc.getHostPort();
   }
 
-  /**
-   * Returns the location(s) of the accumulo manager and any redundant servers.
-   *
-   * @return a list of locations in "hostname:port" form
-   */
-  public List<String> getManagerLocations() {
+  public String getPrimaryManagerLocation() {
     ensureOpen();
     var zLockManagerPath =
         ServiceLock.path(Constants.ZROOT + "/" + getInstanceID() + Constants.ZMANAGER_LOCK);
@@ -519,7 +515,7 @@ public class ClientContext implements AccumuloClient {
     OpTimer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up manager location in zookeeper at {}.",
+      log.trace("tid={} Looking up primary manager location in zookeeper at {}.",
           Thread.currentThread().getId(), zLockManagerPath);
       timer = new OpTimer().start();
     }
@@ -527,20 +523,59 @@ public class ClientContext implements AccumuloClient {
     Optional<ServiceLockData> sld = zooCache.getLockData(zLockManagerPath);
     String location = null;
     if (sld.isPresent()) {
-      location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
+      location = sld.orElseThrow().getAddressString(ThriftService.FATE);
     }
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Found manager at {} in {}", Thread.currentThread().getId(),
+      log.trace("tid={} Found primary manager at {} in {}", Thread.currentThread().getId(),
           (location == null ? "null" : location), String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
-    if (location == null) {
-      return Collections.emptyList();
+    return location;
+  }
+
+  /**
+   * Returns the location(s) of the accumulo manager and any redundant servers.
+   *
+   * @return a list of locations in "hostname:port" form
+   */
+  public List<String> getManagerLocations() {
+    ensureOpen();
+
+    List<String> locations = new ArrayList<>();
+
+    var zLockManagerPath =
+        ServiceLock.path(Constants.ZROOT + "/" + getInstanceID() + Constants.ZMANAGERS);
+
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Looking up manager locations in zookeeper at {}.",
+          Thread.currentThread().getId(), zLockManagerPath);
+      timer = new OpTimer().start();
     }
 
-    return Collections.singletonList(location);
+    for (String manager : zooCache
+        .getChildren(Constants.ZROOT + "/" + getInstanceID() + Constants.ZMANAGERS)) {
+      if (manager.contains(":")) {
+        var zLocPath = ServiceLock
+            .path(Constants.ZROOT + "/" + getInstanceID() + Constants.ZMANAGERS + "/" + manager);
+        Optional<ServiceLockData> sld = zooCache.getLockData(zLocPath);
+        if (sld.isPresent()) {
+          locations.add(sld.get().getAddressString(ThriftService.MANAGER));
+        }
+      }
+    }
+
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Found managers at {} in {}", Thread.currentThread().getId(),
+          (locations == null ? "null" : locations),
+          String.format("%.3f secs", timer.scale(SECONDS)));
+    }
+
+    return locations;
   }
 
   /**

@@ -27,6 +27,7 @@ import org.apache.accumulo.core.Constants;
 
 public class ClusterServerConfiguration {
 
+  private int numManagers = 1;
   private final Map<String,Integer> compactors;
   private final Map<String,Integer> sservers;
   private final Map<String,Integer> tservers;
@@ -36,7 +37,7 @@ public class ClusterServerConfiguration {
    * in the default resource group
    */
   public ClusterServerConfiguration() {
-    this(1, 1, 2);
+    this(1, 1, 1, 2);
   }
 
   /**
@@ -46,7 +47,8 @@ public class ClusterServerConfiguration {
    * @param numSServers number of scan servers in the default resource group
    * @param numTServers number of tablet servers in the default resource group
    */
-  public ClusterServerConfiguration(int numCompactors, int numSServers, int numTServers) {
+  public ClusterServerConfiguration(int numManagers, int numCompactors, int numSServers, int numTServers) {
+    this.numManagers = numManagers;
     compactors = new HashMap<>();
     compactors.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numCompactors);
     sservers = new HashMap<>();
@@ -55,6 +57,14 @@ public class ClusterServerConfiguration {
     tservers.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numTServers);
   }
 
+  public int getNumManagers() {
+    return this.numManagers;
+  }
+  
+  public void setNumManagers(int num) {
+    this.numManagers = num;
+  }
+  
   public void setNumDefaultCompactors(int numCompactors) {
     compactors.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numCompactors);
   }

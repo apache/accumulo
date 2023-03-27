@@ -59,6 +59,13 @@ class LoggingTabletStateStore implements TabletStateStore {
       TabletManagementParameters parameters) {
     return wrapped.iterator(ranges, parameters);
   }
+  
+  @Override
+  @Deprecated
+  public void overrideRanges(List<Range> ranges) {
+    wrapped.overrideRanges(ranges);
+  }
+
 
   @Override
   public void setFutureLocations(Collection<Assignment> assignments)

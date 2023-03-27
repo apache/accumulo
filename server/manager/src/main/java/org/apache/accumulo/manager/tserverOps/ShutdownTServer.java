@@ -68,7 +68,7 @@ public class ShutdownTServer extends ManagerRepo {
           TabletServerStatus status = connection.getTableMap(false);
           if (status.tableMap != null && status.tableMap.isEmpty()) {
             log.info("tablet server hosts no tablets {}", server);
-            connection.halt(manager.getManagerLock());
+            connection.halt(manager.getPrimaryManagerLock());
             log.info("tablet server asked to halt {}", server);
             return 0;
           } else {

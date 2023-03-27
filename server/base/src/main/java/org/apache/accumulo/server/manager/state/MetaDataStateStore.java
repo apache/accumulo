@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.manager.state;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -28,6 +29,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
 import com.google.common.base.Preconditions;
@@ -38,6 +40,7 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
   private final String targetTableName;
   private final Ample ample;
   private final DataLevel level;
+  private List<Range> ranges;
 
   protected MetaDataStateStore(DataLevel level, ClientContext context, String targetTableName) {
     super(context);
@@ -45,6 +48,7 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
     this.context = context;
     this.ample = context.getAmple();
     this.targetTableName = targetTableName;
+    this.ranges = Collections.singletonList(TabletsSection.getRange());
   }
 
   MetaDataStateStore(DataLevel level, ClientContext context) {
@@ -54,6 +58,12 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
   @Override
   public DataLevel getLevel() {
     return level;
+  }
+
+  @Override
+  @Deprecated
+  public void overrideRanges(List<Range> ranges) {
+    this.ranges = ranges;
   }
 
   @Override
