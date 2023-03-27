@@ -68,8 +68,6 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   private static Logger log = LoggerFactory.getLogger(ServerAmpleImpl.class);
@@ -125,11 +123,11 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       return;
     }
 
-    try (BatchWriter writer = createWriter(tableId)) {
+    try (BatchWriter writer = context.createBatchWriter(DataLevel.of(tableId).metaTable())) {
       for (StoredTabletFile file : candidates) {
         writer.addMutation(createDeleteMutation(file));
       }
-    } catch (MutationsRejectedException e) {
+    } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new RuntimeException(e);
     }
   }
@@ -145,11 +143,11 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       return;
     }
 
-    try (BatchWriter writer = createWriter(tableId)) {
+    try (BatchWriter writer = context.createBatchWriter(DataLevel.of(tableId).metaTable())) {
       for (var fileOrDir : candidates) {
         writer.addMutation(createDeleteMutation(fileOrDir));
       }
-    } catch (MutationsRejectedException e) {
+    } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new RuntimeException(e);
     }
   }
@@ -254,21 +252,6 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
           .map(entry -> DeletesSection.decodeRow(entry.getKey().getRow().toString())).iterator();
     } else {
       throw new IllegalArgumentException();
-    }
-  }
-
-  private BatchWriter createWriter(TableId tableId) {
-
-    Preconditions.checkArgument(!RootTable.ID.equals(tableId));
-
-    try {
-      if (MetadataTable.ID.equals(tableId)) {
-        return context.createBatchWriter(RootTable.NAME);
-      } else {
-        return context.createBatchWriter(MetadataTable.NAME);
-      }
-    } catch (TableNotFoundException e) {
-      throw new RuntimeException(e);
     }
   }
 
