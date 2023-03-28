@@ -59,9 +59,8 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -262,7 +261,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   }
 
   private void checkTableConfig(TableId tableId) {
-    Map<String,String> tableRegexes = tablesRegExCache.getUnchecked(tableId).get();
+    Map<String,String> tableRegexes = tablesRegExCache.get(tableId).get();
 
     if (!hrtlbConf.get().regexes.equals(tableRegexes)) {
       LoggerFactory.getLogger(HostRegexTableLoadBalancer.class).warn(
@@ -322,13 +321,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     this.hrtlbConf = balancerEnvironment.getConfiguration().getDerived(HrtlbConf::new);
 
     tablesRegExCache =
-        CacheBuilder.newBuilder().expireAfterAccess(1, HOURS).build(new CacheLoader<>() {
-          @Override
-          public Supplier<Map<String,String>> load(TableId key) {
-            return balancerEnvironment.getConfiguration(key)
-                .getDerived(HostRegexTableLoadBalancer::getRegexes);
-          }
-        });
+        Caffeine.newBuilder().expireAfterAccess(1, HOURS).build(key -> balancerEnvironment
+            .getConfiguration(key).getDerived(HostRegexTableLoadBalancer::getRegexes));
 
     LOG.info("{}", this);
   }

@@ -18,14 +18,13 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -125,7 +124,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
         int i = 0;
         while (!stop.get()) {
-          sleepUninterruptibly(10, TimeUnit.SECONDS);
+          Thread.sleep(SECONDS.toMillis(10));
           System.out.println("Restarting");
           getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
           getCluster().start();

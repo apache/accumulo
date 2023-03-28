@@ -79,10 +79,10 @@ import org.apache.accumulo.tserver.tablet.Tablet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -365,7 +365,7 @@ public class TabletServerResourceManager {
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
     fileLenCache =
-        CacheBuilder.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
+        Caffeine.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
 
     fileManager = new FileManager(context, maxOpenFiles, fileLenCache);
 
@@ -759,12 +759,6 @@ public class TabletServerResourceManager {
     }
   }
 
-  @SuppressWarnings("deprecation")
-  private static abstract class DispatchParamsImpl implements DispatchParameters,
-      org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters {
-
-  }
-
   public void executeReadAhead(KeyExtent tablet, ScanDispatcher dispatcher, ScanSession scanInfo,
       Runnable task) {
 
@@ -779,7 +773,7 @@ public class TabletServerResourceManager {
       scanInfo.scanParams.setScanDispatch(ScanDispatch.builder().build());
       scanExecutors.get("meta").execute(task);
     } else {
-      DispatchParameters params = new DispatchParamsImpl() {
+      DispatchParameters params = new DispatchParameters() {
 
         // in scan critical path so only create ServiceEnv if needed
         private final Supplier<ServiceEnvironment> senvSupplier =

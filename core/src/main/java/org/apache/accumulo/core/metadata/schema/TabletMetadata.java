@@ -46,8 +46,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -68,7 +69,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.ServiceLockData;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -132,17 +132,89 @@ public class TabletMetadata {
     ECOMP
   }
 
-  public static class Location extends TServerInstance {
+  public static class Location {
+    private final TServerInstance tServerInstance;
     private final LocationType lt;
 
-    public Location(String server, String session, LocationType lt) {
-      super(HostAndPort.fromString(server), session);
-      this.lt = lt;
+    private Location(final String server, final String session, final LocationType lt) {
+      this(new TServerInstance(HostAndPort.fromString(server), session), lt);
+    }
+
+    private Location(final TServerInstance tServerInstance, final LocationType lt) {
+      this.tServerInstance =
+          Objects.requireNonNull(tServerInstance, "tServerInstance must not be null");
+      this.lt = Objects.requireNonNull(lt, "locationType must not be null");
     }
 
     public LocationType getType() {
       return lt;
     }
+
+    public TServerInstance getServerInstance() {
+      return tServerInstance;
+    }
+
+    public String getHostPortSession() {
+      return tServerInstance.getHostPortSession();
+    }
+
+    public String getHost() {
+      return tServerInstance.getHost();
+    }
+
+    public String getHostPort() {
+      return tServerInstance.getHostPort();
+    }
+
+    public HostAndPort getHostAndPort() {
+      return tServerInstance.getHostAndPort();
+    }
+
+    public String getSession() {
+      return tServerInstance.getSession();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      Location location = (Location) o;
+      return Objects.equals(tServerInstance, location.tServerInstance) && lt == location.lt;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(tServerInstance, lt);
+    }
+
+    public static Location last(TServerInstance instance) {
+      return new Location(instance, LocationType.LAST);
+    }
+
+    public static Location last(final String server, final String session) {
+      return last(new TServerInstance(HostAndPort.fromString(server), session));
+    }
+
+    public static Location current(TServerInstance instance) {
+      return new Location(instance, LocationType.CURRENT);
+    }
+
+    public static Location current(final String server, final String session) {
+      return current(new TServerInstance(HostAndPort.fromString(server), session));
+    }
+
+    public static Location future(TServerInstance instance) {
+      return new Location(instance, LocationType.FUTURE);
+    }
+
+    public static Location future(final String server, final String session) {
+      return future(new TServerInstance(HostAndPort.fromString(server), session));
+    }
+
   }
 
   public TableId getTableId() {
@@ -282,8 +354,8 @@ public class TabletMetadata {
     ensureFetched(ColumnType.LAST);
     ensureFetched(ColumnType.SUSPEND);
     try {
-      TServerInstance current = null;
-      TServerInstance future = null;
+      Location current = null;
+      Location future = null;
       if (hasCurrent()) {
         current = location;
       } else {
@@ -388,7 +460,7 @@ public class TabletMetadata {
           te.setLocationOnce(val, qual, LocationType.FUTURE);
           break;
         case LastLocationColumnFamily.STR_NAME:
-          te.last = new Location(val, qual, LocationType.LAST);
+          te.last = Location.last(val, qual);
           break;
         case SuspendLocationColumn.STR_NAME:
           te.suspend = SuspendingTServer.fromValue(kv.getValue());

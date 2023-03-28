@@ -20,10 +20,9 @@ package org.apache.accumulo.core.data;
 
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * A strongly typed representation of an Accumulo instance ID. The constructor for this class will
@@ -36,7 +35,7 @@ public class InstanceId extends AbstractId<InstanceId> {
   // cache is for canonicalization/deduplication of created objects,
   // to limit the number of InstanceId objects in the JVM at any given moment
   // WeakReferences are used because we don't need them to stick around any longer than they need to
-  static final Cache<String,InstanceId> cache = CacheBuilder.newBuilder().weakValues().build();
+  static final Cache<String,InstanceId> cache = Caffeine.newBuilder().weakValues().build();
 
   private InstanceId(String canonical) {
     super(canonical);
@@ -49,12 +48,7 @@ public class InstanceId extends AbstractId<InstanceId> {
    * @return InstanceId object
    */
   public static InstanceId of(final String canonical) {
-    try {
-      return cache.get(canonical, () -> new InstanceId(canonical));
-    } catch (ExecutionException e) {
-      throw new AssertionError(
-          "This should never happen: ID constructor should never return null.");
-    }
+    return cache.get(canonical, k -> new InstanceId(canonical));
   }
 
   /**

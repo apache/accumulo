@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
@@ -32,7 +31,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.compactor.Compactor;
@@ -113,7 +111,12 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       try {
         while (!compactionFinished.get()) {
           checkRunning();
-          sleepUninterruptibly(1000, TimeUnit.MILLISECONDS);
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException ex) {
+            log.debug("interrupted during sleep, forcing compaction finished as completed");
+            compactionFinished.set(true);
+          }
         }
       } catch (TException e) {
         log.warn("{}", e.getMessage(), e);

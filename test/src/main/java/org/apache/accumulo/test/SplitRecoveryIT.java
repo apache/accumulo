@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
@@ -86,7 +84,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
         // take the table offline
         client.tableOperations().offline(tableName);
         while (!isOffline(tableName, client)) {
-          sleepUninterruptibly(200, MILLISECONDS);
+          Thread.sleep(200);
         }
 
         // poke a partial split into the metadata table

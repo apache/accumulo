@@ -115,12 +115,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <!-- needed because https://issues.apache.org/jira/browse/LOG4J2-3601 -->
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-slf4j2-impl</artifactId>
       <scope>test</scope>
@@ -154,10 +148,15 @@
           <groupId>com.mycila</groupId>
           <artifactId>license-maven-plugin</artifactId>
           <configuration>
-            <excludes>
-              <exclude>src/test/resources/*.walog</exclude>
-              <exclude>src/test/resources/walog-from-14/*</exclude>
-            </excludes>
+            <licenseSets>
+              <licenseSet>
+                <header>${session.executionRootDirectory}/contrib/license-header.txt</header>
+                <excludes>
+                  <exclude>src/test/resources/*.walog</exclude>
+                  <exclude>src/test/resources/walog-from-14/*</exclude>
+                </excludes>
+              </licenseSet>
+            </licenseSets>
           </configuration>
         </plugin>
         <plugin>

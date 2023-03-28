@@ -26,8 +26,8 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
@@ -35,7 +35,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.io.Text;
 
@@ -257,9 +257,9 @@ public interface Ample {
 
     TabletMutator putFlushId(long flushId);
 
-    TabletMutator putLocation(TServerInstance tserver, LocationType type);
+    TabletMutator putLocation(Location location);
 
-    TabletMutator deleteLocation(TServerInstance tserver, LocationType type);
+    TabletMutator deleteLocation(Location location);
 
     TabletMutator putZooLock(ServiceLock zooLock);
 

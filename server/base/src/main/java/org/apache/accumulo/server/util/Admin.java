@@ -57,9 +57,9 @@ import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.ReadOnlyTStore;
 import org.apache.accumulo.core.fate.ZooStore;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -126,10 +126,6 @@ public class Admin implements KeywordExecutable {
 
   @Parameters(commandDescription = "stop the manager")
   static class StopManagerCommand {}
-
-  @Deprecated(since = "2.1.0")
-  @Parameters(commandDescription = "stop the master (DEPRECATED -- use stopManager instead)")
-  static class StopMasterCommand {}
 
   @Parameters(commandDescription = "stop all tablet servers and the manager")
   static class StopAllCommand {}
@@ -321,9 +317,6 @@ public class Admin implements KeywordExecutable {
 
     StopManagerCommand stopManagerOpts = new StopManagerCommand();
     cl.addCommand("stopManager", stopManagerOpts);
-
-    StopMasterCommand stopMasterOpts = new StopMasterCommand();
-    cl.addCommand("stopMaster", stopMasterOpts);
 
     VerifyTabletAssignmentsCommand verifyTabletAssignmentsOpts =
         new VerifyTabletAssignmentsCommand();

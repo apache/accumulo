@@ -383,12 +383,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  @Deprecated(since = "2.1.0")
-  public String getInstanceID() {
-    return getInstanceId().canonical();
-  }
-
-  @Override
   public InstanceId getInstanceId() {
     return context.getInstanceID();
   }

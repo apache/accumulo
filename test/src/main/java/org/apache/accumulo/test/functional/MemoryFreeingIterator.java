@@ -18,17 +18,16 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-
-import com.google.common.util.concurrent.Uninterruptibles;
 
 public class MemoryFreeingIterator extends WrappingIterator {
 
@@ -39,7 +38,12 @@ public class MemoryFreeingIterator extends WrappingIterator {
     MemoryConsumingIterator.freeBuffers();
     while (this.isRunningLowOnMemory()) {
       // wait for LowMemoryDetector to recognize the memory is free.
-      Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+      try {
+        Thread.sleep(SECONDS.toMillis(1));
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        throw new IOException("wait for low memory detector interrupted", ex);
+      }
     }
   }
 

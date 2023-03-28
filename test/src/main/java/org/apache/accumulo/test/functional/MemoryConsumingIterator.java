@@ -18,19 +18,18 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.util.concurrent.Uninterruptibles;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -82,7 +81,12 @@ public class MemoryConsumingIterator extends WrappingIterator {
       } else {
         LOG.info("Waiting for LowMemoryDetector to recognize low on memory condition.");
       }
-      Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+      try {
+        Thread.sleep(SECONDS.toMillis(1));
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        throw new IOException("interrupted during sleep", ex);
+      }
     }
     LOG.info("Running low on memory == true");
     super.seek(range, columnFamilies, inclusive);
