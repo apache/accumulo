@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -47,6 +48,12 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
@@ -90,6 +97,7 @@ public class TabletLocatorImpl extends TabletLocator {
   private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
   private final Lock rLock = rwLock.readLock();
   private final Lock wLock = rwLock.writeLock();
+  private final AtomicLong onDemandTabletsOnlinedCount = new AtomicLong(0);
 
   public interface TabletLocationObtainer {
     /**
@@ -223,6 +231,7 @@ public class TabletLocatorImpl extends TabletLocator {
           TabletLocation tl = _locateTablet(context, row, false, false, false, lcSession);
 
           if (tl == null || !addMutation(binnedMutations, mutation, tl, lcSession)) {
+            bringOnDemandTabletsOnline(context, new Range(row));
             failures.add(mutation);
             failed = true;
           }
@@ -314,6 +323,7 @@ public class TabletLocatorImpl extends TabletLocator {
       }
 
       if (tl == null) {
+        bringOnDemandTabletsOnline(context, range);
         failures.add(range);
         if (!useCache) {
           lookupFailed = true;
@@ -482,6 +492,7 @@ public class TabletLocatorImpl extends TabletLocator {
     } finally {
       wLock.unlock();
     }
+    this.onDemandTabletsOnlinedCount.set(0);
     if (log.isTraceEnabled()) {
       log.trace("invalidated all {} cache entries for table={}", invalidatedCount, tableId);
     }
@@ -499,10 +510,16 @@ public class TabletLocatorImpl extends TabletLocator {
       timer = new OpTimer().start();
     }
 
+    boolean alreadyMarkedOnDemand = false;
     while (true) {
 
       LockCheckerSession lcSession = new LockCheckerSession();
       TabletLocation tl = _locateTablet(context, row, skipRow, retry, true, lcSession);
+
+      if (tl == null && !alreadyMarkedOnDemand) {
+        bringOnDemandTabletsOnline(context, new Range(row));
+        alreadyMarkedOnDemand = true;
+      }
 
       if (retry && tl == null) {
         sleepUninterruptibly(100, MILLISECONDS);
@@ -522,6 +539,73 @@ public class TabletLocatorImpl extends TabletLocator {
 
       return tl;
     }
+  }
+
+  @Override
+  public long onDemandTabletsOnlined() {
+    return onDemandTabletsOnlinedCount.get();
+  }
+
+  private void bringOnDemandTabletsOnline(ClientContext context, Range range)
+      throws AccumuloException, AccumuloSecurityException {
+
+    // Confirm that table is in an onDemand state. Don't throw an exception
+    // if the table is not found, calling code will already handle it.
+    try {
+      String tableName = context.getTableName(tableId);
+      if (!context.tableOperations().isOnDemand(tableName)) {
+        log.trace("bringOnDemandTabletsOnline: table {} is not in ondemand state", tableId);
+        return;
+      }
+    } catch (TableNotFoundException e) {
+      log.trace("bringOnDemandTabletsOnline: table not found: {}", tableId);
+      return;
+    }
+
+    final Text scanRangeStart = range.getStartKey().getRow();
+    final Text scanRangeEnd = range.getEndKey().getRow();
+    // Turn the scan range into a KeyExtent and bring online all ondemand tablets
+    // that are overlapped by the scan range
+    final KeyExtent scanRangeKE = new KeyExtent(tableId, scanRangeEnd, scanRangeStart);
+
+    List<TKeyExtent> extentsToBringOnline = new ArrayList<>();
+
+    TabletsMetadata m = context.getAmple().readTablets().forTable(tableId)
+        .overlapping(scanRangeStart, true, null).build();
+    for (TabletMetadata tm : m) {
+      final KeyExtent tabletExtent = tm.getExtent();
+      log.trace("Evaluating tablet {} against range {}", tabletExtent, scanRangeKE);
+      if (tm.getEndRow() != null && tm.getEndRow().compareTo(scanRangeStart) < 0) {
+        // the end row of this tablet is before the start row, skip it
+        log.trace("tablet {} is before scan start range: {}", tabletExtent, scanRangeStart);
+        continue;
+      }
+      if (tm.getPrevEndRow() != null && tm.getPrevEndRow().compareTo(scanRangeEnd) > 0) {
+        // the start row of this tablet is after the scan range end row, skip it
+        log.trace("tablet {} is after scan end range: {}", tabletExtent, scanRangeEnd);
+        continue;
+      }
+      if (scanRangeKE.overlaps(tabletExtent)) {
+        if (!tm.getOnDemand()) {
+          Location loc = tm.getLocation();
+          if (loc != null) {
+            log.debug("tablet {} has location of: {}:{}", tabletExtent, loc.getType(),
+                loc.getHostPort());
+          }
+          extentsToBringOnline.add(tabletExtent.toThrift());
+        } else {
+          log.trace("Tablet {} already marked as onDemand, but not hosted yet", tabletExtent);
+        }
+      }
+    }
+    if (extentsToBringOnline.isEmpty()) {
+      return;
+    }
+    log.debug("Marking tablets as onDemand: {}", extentsToBringOnline);
+    ThriftClientTypes.TABLET_MGMT.executeVoid(context,
+        client -> client.bringOnDemandTabletsOnline(TraceUtil.traceInfo(), context.rpcCreds(),
+            tableId.canonical(), extentsToBringOnline));
+    onDemandTabletsOnlinedCount.addAndGet(extentsToBringOnline.size());
   }
 
   private void lookupTabletLocation(ClientContext context, Text row, boolean retry,

@@ -210,6 +210,9 @@ class AssignmentHandler implements Runnable {
 
     if (successful) {
       server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOADED, extent));
+      if (tabletMetadata.getOnDemand()) {
+        server.insertOnDemandAccessTime(extent);
+      }
     } else {
       synchronized (server.unopenedTablets) {
         synchronized (server.openingTablets) {

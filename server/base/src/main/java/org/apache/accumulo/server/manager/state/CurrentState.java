@@ -43,4 +43,6 @@ public interface CurrentState {
   Set<KeyExtent> migrationsSnapshot();
 
   ManagerState getManagerState();
+
+  Set<TableId> getOnDemandTables();
 }

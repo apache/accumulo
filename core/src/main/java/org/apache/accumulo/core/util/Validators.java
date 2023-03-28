@@ -225,4 +225,15 @@ public class Validators {
     return Validator.OK;
   });
 
+  public static final Validator<TableId> NOT_METADATA_TABLE_ID = new Validator<>(id -> {
+    if (id == null) {
+      return Optional.of("Table id must not be null");
+    }
+    if (MetadataTable.ID.equals(id)) {
+      return Optional.of(
+          "Table must not be the " + MetadataTable.NAME + "(Id: " + MetadataTable.ID + ") table");
+    }
+    return Validator.OK;
+  });
+
 }

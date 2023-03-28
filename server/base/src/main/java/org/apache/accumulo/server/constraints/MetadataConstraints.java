@@ -47,6 +47,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ex
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.OnDemandAssignmentStateColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -97,7 +98,8 @@ public class MetadataConstraints implements Constraint {
           FutureLocationColumnFamily.NAME,
           ChoppedColumnFamily.NAME,
           ClonedColumnFamily.NAME,
-          ExternalCompactionColumnFamily.NAME);
+          ExternalCompactionColumnFamily.NAME,
+          OnDemandAssignmentStateColumnFamily.NAME);
   // @formatter:on
 
   private static boolean isValidColumn(ColumnUpdate cu) {
@@ -197,7 +199,8 @@ public class MetadataConstraints implements Constraint {
         continue;
       }
 
-      if (columnUpdate.getValue().length == 0 && !columnFamily.equals(ScanFileColumnFamily.NAME)) {
+      if (columnUpdate.getValue().length == 0 && !columnFamily.equals(ScanFileColumnFamily.NAME)
+          && !columnFamily.equals(OnDemandAssignmentStateColumnFamily.NAME)) {
         violations = addViolation(violations, 6);
       }
 
@@ -211,9 +214,9 @@ public class MetadataConstraints implements Constraint {
         } catch (NumberFormatException | ArrayIndexOutOfBoundsException nfe) {
           violations = addViolation(violations, 1);
         }
-      } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
-
-      } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
+      } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {} else if (columnFamily
+          .equals(OnDemandAssignmentStateColumnFamily.NAME)) {} else if (columnFamily
+              .equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
           // splits, which also write the time reference, are allowed to write this reference even
           // when

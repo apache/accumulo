@@ -59,10 +59,12 @@ public class TabletStateChangeIterator extends SkippingIterator {
   private static final String MIGRATIONS_OPTION = "migrations";
   private static final String MANAGER_STATE_OPTION = "managerState";
   private static final String SHUTTING_DOWN_OPTION = "shuttingDown";
+  private static final String ONDEMAND_TABLES = "onDemandTables";
   private static final Logger log = LoggerFactory.getLogger(TabletStateChangeIterator.class);
 
   private Set<TServerInstance> current;
   private Set<TableId> onlineTables;
+  private Set<TableId> onDemandTables;
   private Map<TableId,MergeInfo> merges;
   private boolean debug = false;
   private Set<KeyExtent> migrations;
@@ -74,6 +76,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     super.init(source, options, env);
     current = parseServers(options.get(SERVERS_OPTION));
     onlineTables = parseTableIDs(options.get(TABLES_OPTION));
+    onDemandTables = parseTableIDs(options.get(ONDEMAND_TABLES));
     merges = parseMerges(options.get(MERGES_OPTION));
     debug = options.containsKey(DEBUG_OPTION);
     migrations = parseMigrations(options.get(MIGRATIONS_OPTION));
@@ -191,18 +194,21 @@ public class TabletStateChangeIterator extends SkippingIterator {
       }
 
       // is the table supposed to be online or offline?
-      boolean shouldBeOnline = onlineTables.contains(tls.extent.tableId());
+      final boolean shouldBeOnline = onlineTables.contains(tls.extent.tableId());
+      final boolean isOnDemandTable = onDemandTables.contains(tls.extent.tableId());
+      final boolean onDemandTabletShouldBeHosted = tls.ondemand;
 
       if (debug) {
-        log.debug("{} is {} and should be {} line", tls.extent, tls.getState(current),
-            (shouldBeOnline ? "on" : "off"));
+        log.debug("{} is {} and should be {} line, onDemandTable {} and onDemandTablet {}",
+            tls.extent, tls.getState(current), (shouldBeOnline ? "on" : "off"), isOnDemandTable,
+            onDemandTabletShouldBeHosted);
       }
       switch (tls.getState(current)) {
         case ASSIGNED:
           // we always want data about assigned tablets
           return;
         case HOSTED:
-          if (!shouldBeOnline) {
+          if (!shouldBeOnline || (isOnDemandTable && !onDemandTabletShouldBeHosted)) {
             return;
           }
           break;
@@ -210,7 +216,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
           return;
         case SUSPENDED:
         case UNASSIGNED:
-          if (shouldBeOnline) {
+          if (shouldBeOnline || (isOnDemandTable && onDemandTabletShouldBeHosted)) {
             return;
           }
           break;
@@ -282,6 +288,12 @@ public class TabletStateChangeIterator extends SkippingIterator {
   public static void setShuttingDown(IteratorSetting cfg, Set<TServerInstance> servers) {
     if (servers != null) {
       cfg.addOption(SHUTTING_DOWN_OPTION, Joiner.on(",").join(servers));
+    }
+  }
+
+  public static void setOnDemandTables(IteratorSetting cfg, Set<TableId> onDemandTables) {
+    if (onDemandTables != null) {
+      cfg.addOption(ONDEMAND_TABLES, Joiner.on(",").join(onDemandTables));
     }
   }
 

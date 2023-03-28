@@ -37,6 +37,9 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocations;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
@@ -191,12 +194,27 @@ public class TabletLocatorImplTest {
   private InstanceId iid;
 
   @BeforeEach
-  public void setUp() {
+  public void setUp() throws AccumuloException, TableNotFoundException {
     context = EasyMock.createMock(ClientContext.class);
+    TableOperations tops = EasyMock.createMock(TableOperations.class);
+    EasyMock.expect(context.tableOperations()).andReturn(tops).anyTimes();
+    EasyMock.expect(context.getTableName(RootTable.ID)).andReturn(RootTable.NAME).anyTimes();
+    EasyMock.expect(context.getTableName(MetadataTable.ID)).andReturn(MetadataTable.NAME)
+        .anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("0"))).andReturn("0").anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
+    EasyMock.expect(tops.isOnDemand("accumulo.root")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("accumulo.metadata")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("foo")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("0")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("1")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("tab1")).andReturn(false).anyTimes();
     iid = InstanceId.of("instance1");
     EasyMock.expect(context.getRootTabletLocation()).andReturn("tserver1").anyTimes();
     EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();
-    replay(context);
+    replay(context, tops);
   }
 
   private void runTest(List<Range> ranges, TabletLocatorImpl tab1TabletCache,
@@ -749,9 +767,25 @@ public class TabletLocatorImplTest {
     EasyMock.verify(context);
 
     context = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();
+    TableOperations tops = EasyMock.createMock(TableOperations.class);
+    EasyMock.expect(context.tableOperations()).andReturn(tops).anyTimes();
+    EasyMock.expect(context.getTableName(RootTable.ID)).andReturn(RootTable.NAME).anyTimes();
+    EasyMock.expect(context.getTableName(MetadataTable.ID)).andReturn(MetadataTable.NAME)
+        .anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("0"))).andReturn("0").anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
+    EasyMock.expect(tops.isOnDemand("accumulo.root")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("accumulo.metadata")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("foo")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("0")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("1")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("tab1")).andReturn(false).anyTimes();
+    iid = InstanceId.of("instance1");
     EasyMock.expect(context.getRootTabletLocation()).andReturn("tserver4").anyTimes();
-    replay(context);
+    EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();
+    replay(context, tops);
 
     setLocation(tservers, "tserver4", ROOT_TABLE_EXTENT, METADATA_TABLE_EXTENT, "tserver5");
     setLocation(tservers, "tserver5", METADATA_TABLE_EXTENT, tab1e1, "tserver1");

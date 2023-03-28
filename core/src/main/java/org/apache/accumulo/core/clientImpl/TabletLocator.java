@@ -132,6 +132,10 @@ public abstract class TabletLocator {
     enabled = true;
   }
 
+  public long onDemandTabletsOnlined() {
+    return 0L;
+  }
+
   public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
         + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");

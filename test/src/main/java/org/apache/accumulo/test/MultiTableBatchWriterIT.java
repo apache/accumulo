@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -36,12 +37,15 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +56,11 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
   private AccumuloClient accumuloClient;
   private MultiTableBatchWriter mtbw;
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "10");
+  }
 
   @Override
   protected Duration defaultTimeout() {
@@ -399,5 +408,57 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
     }
 
     assertTrue(mutationsRejected, "Expected mutations to be rejected.");
+  }
+
+  @Test
+  public void testOnDemandTable() throws Exception {
+    boolean mutationsRejected = false;
+
+    try {
+      final String[] names = getUniqueNames(2);
+      final String table1 = names[0], table2 = names[1];
+
+      TableOperations tops = accumuloClient.tableOperations();
+      tops.create(table1);
+      tops.create(table2);
+
+      tops.onDemand(table1, true);
+      tops.onDemand(table2, true);
+
+      accumuloClient.tableOperations().clearLocatorCache(table1);
+      accumuloClient.tableOperations().clearLocatorCache(table2);
+
+      BatchWriter bw1 = mtbw.getBatchWriter(table1), bw2 = mtbw.getBatchWriter(table2);
+
+      Mutation m1 = new Mutation("foo");
+      m1.put("col1", "", "val1");
+      m1.put("col2", "", "val2");
+
+      bw1.addMutation(m1);
+      bw2.addMutation(m1);
+
+      Mutation m2 = new Mutation("bar");
+      m2.put("col1", "", "val1");
+      m2.put("col2", "", "val2");
+
+      try {
+        bw1.addMutation(m2);
+        bw2.addMutation(m2);
+      } catch (MutationsRejectedException e) {
+        mutationsRejected = true;
+      }
+    } finally {
+      if (mtbw != null) {
+        try {
+          mtbw.close();
+        } catch (MutationsRejectedException e) {
+          // Pass
+          mutationsRejected = true;
+        }
+      }
+    }
+
+    assertFalse(mutationsRejected, "Expected mutations to be rejected.");
+
   }
 }

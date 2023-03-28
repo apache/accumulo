@@ -302,6 +302,10 @@ public class NullTserver {
     public void compactionJobFailed(TInfo tinfo, TCredentials credentials,
         String externalCompactionId, TKeyExtent extent) throws TException {}
 
+    @Override
+    public void bringOnDemandTabletsOnline(TInfo tinfo, TCredentials credentials, String tableId,
+        List<TKeyExtent> extent) throws ThriftSecurityException, TException {}
+
   }
 
   static class Opts extends Help {

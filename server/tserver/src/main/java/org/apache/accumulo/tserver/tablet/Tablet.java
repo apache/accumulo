@@ -231,6 +231,7 @@ public class Tablet extends TabletBase {
   private final ConcurrentHashMap<Long,List<TabletFile>> bulkImported = new ConcurrentHashMap<>();
 
   private final int logId;
+  private final boolean onDemand;
 
   public int getLogId() {
     return logId;
@@ -298,6 +299,7 @@ public class Tablet extends TabletBase {
     this.tabletTime = TabletTime.getInstance(data.getTime());
     this.persistedTime = tabletTime.getTime();
     this.logId = tabletServer.createLogId();
+    this.onDemand = data.isOnDemand();
 
     // translate any volume changes
     TabletFiles tabletPaths =
@@ -1575,9 +1577,9 @@ public class Tablet extends TabletBase {
       TabletLogger.split(extent, low, high, getTabletServer().getTabletSession());
 
       newTablets.put(high, new TabletData(dirName, highDatafileSizes, time, lastFlushID.get(),
-          lastCompactID.get(), lastLocation, bulkImported));
+          lastCompactID.get(), lastLocation, bulkImported, onDemand));
       newTablets.put(low, new TabletData(lowDirectoryName, lowDatafileSizes, time,
-          lastFlushID.get(), lastCompactID.get(), lastLocation, bulkImported));
+          lastFlushID.get(), lastCompactID.get(), lastLocation, bulkImported, onDemand));
 
       long t2 = System.currentTimeMillis();
 
@@ -1642,8 +1644,7 @@ public class Tablet extends TabletBase {
     return this.lookupCount.get();
   }
 
-  // synchronized?
-  public void updateRates(long now) {
+  public synchronized void updateRates(long now) {
     queryRate.update(now, this.queryResultCount.get());
     queryByteRate.update(now, this.queryResultBytes.get());
     ingestRate.update(now, ingestCount);
@@ -2147,4 +2148,9 @@ public class Tablet extends TabletBase {
   public Compactable asCompactable() {
     return compactable;
   }
+
+  public boolean isOnDemand() {
+    return this.onDemand;
+  }
+
 }

@@ -64,6 +64,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ex
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.OnDemandAssignmentStateColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -107,6 +108,7 @@ public class TabletMetadata {
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
   private boolean chopped = false;
+  private boolean onDemand = false;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -129,7 +131,8 @@ public class TabletMetadata {
     SPLIT_RATIO,
     SUSPEND,
     CHOPPED,
-    ECOMP
+    ECOMP,
+    ON_DEMAND
   }
 
   public static class Location {
@@ -344,6 +347,11 @@ public class TabletMetadata {
     return chopped;
   }
 
+  public boolean getOnDemand() {
+    ensureFetched(ColumnType.ON_DEMAND);
+    return onDemand;
+  }
+
   public SortedMap<Key,Value> getKeyValues() {
     Preconditions.checkState(keyValues != null, "Requested key values when it was not saved");
     return keyValues;
@@ -353,6 +361,7 @@ public class TabletMetadata {
     ensureFetched(ColumnType.LOCATION);
     ensureFetched(ColumnType.LAST);
     ensureFetched(ColumnType.SUSPEND);
+    ensureFetched(ColumnType.ON_DEMAND);
     try {
       Location current = null;
       Location future = null;
@@ -362,7 +371,8 @@ public class TabletMetadata {
         future = location;
       }
       // only care about the state so don't need walogs and chopped params
-      var tls = new TabletLocationState(extent, future, current, last, suspend, null, false);
+      var tls =
+          new TabletLocationState(extent, future, current, last, suspend, null, false, onDemand);
       return tls.getState(liveTServers);
     } catch (TabletLocationState.BadLocationStateException blse) {
       throw new IllegalArgumentException("Error creating TabletLocationState", blse);
@@ -480,6 +490,9 @@ public class TabletMetadata {
           break;
         case ChoppedColumnFamily.STR_NAME:
           te.chopped = true;
+          break;
+        case OnDemandAssignmentStateColumnFamily.STR_NAME:
+          te.onDemand = true;
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);

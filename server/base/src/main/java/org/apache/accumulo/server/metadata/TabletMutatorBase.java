@@ -40,6 +40,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ex
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.OnDemandAssignmentStateColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -245,5 +246,17 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
 
   public void setCloseAfterMutate(AutoCloseable closeable) {
     this.closeAfterMutate = closeable;
+  }
+
+  @Override
+  public TabletMutator putOnDemand() {
+    mutation.put(OnDemandAssignmentStateColumnFamily.STR_NAME, "", "");
+    return this;
+  }
+
+  @Override
+  public TabletMutator deleteOnDemand() {
+    mutation.putDelete(OnDemandAssignmentStateColumnFamily.STR_NAME, "");
+    return this;
   }
 }
