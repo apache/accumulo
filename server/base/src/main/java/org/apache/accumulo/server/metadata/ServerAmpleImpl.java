@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -135,8 +136,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public void putGcFileAndDirCandidates(TableId tableId, Collection<ReferenceFile> candidates) {
 
-    if (RootTable.ID.equals(tableId)) {
-
+    if (DataLevel.of(tableId) == DataLevel.ROOT) {
       // Directories are unexpected for the root tablet, so convert to stored tablet file
       mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()
           .map(reference -> new StoredTabletFile(reference.getMetadataEntry()))));
@@ -184,6 +184,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   @Override
   public void removeBulkLoadEntries(TableId tableId, long tid) {
+    Preconditions.checkArgument(DataLevel.of(tableId) == DataLevel.USER);
     try (
         Scanner mscanner =
             new IsolatedScanner(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
