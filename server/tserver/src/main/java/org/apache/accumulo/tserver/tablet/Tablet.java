@@ -24,6 +24,7 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1821,8 +1822,12 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  private AtomicReference<SplitComputations> lastSplitComputation = new AtomicReference<>();
-  private Lock splitComputationLock = new ReentrantLock();
+  // The following caches keys from users files needed to compute a tablets split point. This cached
+  // data could potentially be large and is therefore stored using a soft refence so the Java GC can
+  // release it if needed. If the cached information is not there it can always be recomputed.
+  private volatile SoftReference<SplitComputations> lastSplitComputation =
+      new SoftReference<>(null);
+  private final Lock splitComputationLock = new ReentrantLock();
 
   /**
    * Computes split point information from files when a tablets set of files changes. Do not call
@@ -1870,15 +1875,15 @@ public class Tablet implements TabletCommitter {
         }
 
         newComputation = new SplitComputations(files, midpoint, lastRow);
+
+        lastSplitComputation = new SoftReference<>(newComputation);
       } catch (IOException e) {
-        lastSplitComputation.set(null);
+        lastSplitComputation.clear();
         log.error("Failed to compute split information from files " + e.getMessage());
         return Optional.absent();
       } finally {
         splitComputationLock.unlock();
       }
-
-      lastSplitComputation.set(newComputation);
 
       return Optional.of(newComputation);
     } else {
