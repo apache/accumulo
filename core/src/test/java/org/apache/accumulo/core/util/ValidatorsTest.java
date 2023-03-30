@@ -137,6 +137,14 @@ public class ValidatorsTest {
   }
 
   @Test
+  public void test_NOT_METADATA_TABLE_ID() {
+    Validator<TableId> v = Validators.NOT_METADATA_TABLE_ID;
+    checkNull(v::validate);
+    assertAllValidate(v, List.of(TableId.of(""), RootTable.ID, TableId.of(" #0(U!$. ")));
+    assertAllThrow(v, List.of(MetadataTable.ID));
+  }
+
+  @Test
   public void test_VALID_TABLE_ID() {
     Validator<TableId> v = Validators.VALID_TABLE_ID;
     checkNull(v::validate);
