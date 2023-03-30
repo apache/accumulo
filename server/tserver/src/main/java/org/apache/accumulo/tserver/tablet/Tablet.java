@@ -1824,7 +1824,7 @@ public class Tablet implements TabletCommitter {
 
   private volatile SoftReference<SplitComputations> lastSplitComputation =
       new SoftReference<>(null);
-  private Lock splitComputationLock = new ReentrantLock();
+  private final Lock splitComputationLock = new ReentrantLock();
 
   /**
    * Computes split point information from files when a tablets set of files changes. Do not call
