@@ -1014,9 +1014,9 @@ public interface TableOperations {
   }
 
   /**
-   * Initiates setting a table to ondemand state, but does not wait for action to complete
+   * Initiates setting a table to onDemand state, but does not wait for action to complete
    *
-   * @param tableName the table to take online
+   * @param tableName the table to set to onDemand state
    * @throws AccumuloException when there is a general accumulo error
    * @throws AccumuloSecurityException when the user does not have the proper permissions
    * @since 3.1.0
@@ -1025,10 +1025,10 @@ public interface TableOperations {
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 
   /**
-   * Initiates setting a table to ondemand state, optionally waits for action to complete
+   * Initiates setting a table to onDemand state, optionally waits for action to complete
    *
-   * @param tableName the table to take online
-   * @param wait if true, then will not return until table is online
+   * @param tableName the table to set to onDemand state
+   * @param wait if true, then will not return until table state is set to onDemand state
    * @throws AccumuloException when there is a general accumulo error
    * @throws AccumuloSecurityException when the user does not have the proper permissions
    * @since 3.1.0
@@ -1037,12 +1037,12 @@ public interface TableOperations {
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 
   /**
-   * Check if a table is ondemand through its current goal state only. Could run into issues if the
+   * Check if a table is onDemand through its current goal state only. Could run into issues if the
    * current state of the table is in between states. If you require a specific state, call
-   * <code>ondemand(tableName, true)</code>, this will wait until the table reaches the desired
+   * <code>onDemand(tableName, true)</code>, this will wait until the table reaches the desired
    * state before proceeding.
    *
-   * @param tableName the table to check if online
+   * @param tableName the table to check if in onDemand state
    * @throws AccumuloException when there is a general accumulo error
    * @return true if table's goal state is online
    * @since 3.1.0
