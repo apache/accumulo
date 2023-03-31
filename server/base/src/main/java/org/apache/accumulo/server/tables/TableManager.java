@@ -189,7 +189,7 @@ public class TableManager {
       log.error("FATAL Failed to transition table to state {}", newState);
       throw new RuntimeException(e);
     }
-    // Remove onDemand columns from all tablets
+    // Remove on-demand columns from all tablets
     if (tableId != RootTable.ID && tableId != MetadataTable.ID
         && (newState == TableState.ONLINE || newState == TableState.OFFLINE)) {
       try (TabletsMutator mutator = context.getAmple().mutateTablets()) {

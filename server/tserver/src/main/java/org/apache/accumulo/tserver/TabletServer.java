@@ -1359,8 +1359,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     // It's possible, from a tablet split or merge for example,
-    // that there is an onDemand tablet that is hosted for which
-    // we have no access time. Add any missing online onDemand
+    // that there is an on-demand tablet that is hosted for which
+    // we have no access time. Add any missing online on-demand
     // tablets
     online.forEach((k, v) -> {
       if (v.isOnDemand() && !onDemandTabletAccessTimes.containsKey(k)) {
@@ -1368,21 +1368,21 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
     });
 
-    log.debug("Evaluating online onDemand tablets: {}", onDemandTabletAccessTimes);
+    log.debug("Evaluating online on-demand tablets: {}", onDemandTabletAccessTimes);
 
     if (onDemandTabletAccessTimes.isEmpty()) {
       return;
     }
 
     // If the TabletServer is running low on memory, don't call the SPI
-    // plugin to evaluate which onDemand tablets to unload, just get the
-    // onDemand tablet with the oldest access time and unload it.
+    // plugin to evaluate which on-demand tablets to unload, just get the
+    // on-demand tablet with the oldest access time and unload it.
     if (getContext().getLowMemoryDetector().isRunningLowOnMemory()) {
       final SortedMap<Long,KeyExtent> timeSortedOnDemandExtents = new TreeMap<>();
       onDemandTabletAccessTimes.forEach((k, v) -> timeSortedOnDemandExtents.put(v.get(), k));
       Long oldestAccessTime = timeSortedOnDemandExtents.firstKey();
       KeyExtent oldestKeyExtent = timeSortedOnDemandExtents.get(oldestAccessTime);
-      log.warn("Unloading onDemand tablet: {} for table: {} due to low memory", oldestKeyExtent,
+      log.warn("Unloading on-demand tablet: {} for table: {} due to low memory", oldestKeyExtent,
           oldestKeyExtent.tableId());
       getContext().getAmple().mutateTablet(oldestKeyExtent).deleteOnDemand().mutate();
       onDemandUnloadedLowMemory.addAndGet(1);
@@ -1418,7 +1418,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     Set<TableId> tableIds = sortedOnDemandExtents.keySet().stream().map((k) -> {
       return k.tableId();
     }).distinct().collect(Collectors.toSet());
-    log.debug("Tables that have online onDemand tablets: {}", tableIds);
+    log.debug("Tables that have online on-demand tablets: {}", tableIds);
     final Map<TableId,OnDemandTabletUnloader> unloaders = new HashMap<>();
     tableIds.forEach(tid -> {
       TableConfiguration tconf = getContext().getTableConfiguration(tid);
@@ -1432,7 +1432,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
           | SecurityException e) {
         log.error(
-            "Error constructing OnDemandTabletUnloader implementation, not unloading onDemand tablets",
+            "Error constructing OnDemandTabletUnloader implementation, not unloading on-demand tablets",
             e);
         return;
       }
@@ -1443,13 +1443,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
               .filter((e) -> e.getKey().tableId().equals(tid))
               .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
       Set<KeyExtent> onDemandTabletsToUnload = new HashSet<>();
-      log.debug("Evaluating onDemand tablets for unload for table {}, extents {}", tid,
+      log.debug("Evaluating on-demand tablets for unload for table {}, extents {}", tid,
           subset.keySet());
       UnloaderParams params = new UnloaderParamsImpl(tid, new ServiceEnvironmentImpl(context),
           subset, onDemandTabletsToUnload);
       unloaders.get(tid).evaluate(params);
       onDemandTabletsToUnload.forEach(ke -> {
-        log.debug("Unloading onDemand tablet: {} for table: {}", ke, tid);
+        log.debug("Unloading on-demand tablet: {} for table: {}", ke, tid);
         getContext().getAmple().mutateTablet(ke).deleteOnDemand().mutate();
       });
     });

@@ -291,14 +291,15 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td></td>
  * <td>{@link #METRICS_TSERVER_TABLETS_ONLINE_ONDEMAND}</td>
  * <td>Gauge</td>
- * <td>Represents the number of ondemand tablets that are online</td>
+ * <td>Represents the number of on-demand tablets that are online</td>
  * </tr>
  * <tr>
  * <td></td>
  * <td></td>
  * <td>{@link #METRICS_TSERVER_TABLETS_ONDEMAND_UNLOADED_FOR_MEM}</td>
  * <td>Gauge</td>
- * <td>Represents the number of ondemand tablets that were unloaded due to low memory condition</td>
+ * <td>Represents the number of on-demand tablets that were unloaded due to low memory
+ * condition</td>
  * </tr>
  * <tr>
  * <td>N/A</td>

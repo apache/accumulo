@@ -25,7 +25,7 @@ import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
 /**
- * Object used by the TabletServer to determine which onDemand Tablets to unload for a Table
+ * Object used by the TabletServer to determine which on-demand Tablets to unload for a Table
  *
  * @since 3.1.0
  */
