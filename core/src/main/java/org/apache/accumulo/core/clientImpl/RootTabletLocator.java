@@ -56,11 +56,12 @@ public class RootTabletLocator extends TabletLocator {
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures) {
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
-      TabletServerMutations<T> tsm = new TabletServerMutations<>(rootTabletLocation.tablet_session);
+      TabletServerMutations<T> tsm =
+          new TabletServerMutations<>(rootTabletLocation.getTserverSession());
       for (T mutation : mutations) {
         tsm.addMutation(RootTable.EXTENT, mutation);
       }
-      binnedMutations.put(rootTabletLocation.tablet_location, tsm);
+      binnedMutations.put(rootTabletLocation.getTserverLocation(), tsm);
     } else {
       failures.addAll(mutations);
     }
@@ -73,7 +74,7 @@ public class RootTabletLocator extends TabletLocator {
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
       for (Range range : ranges) {
-        TabletLocatorImpl.addRange(binnedRanges, rootTabletLocation.tablet_location,
+        TabletLocatorImpl.addRange(binnedRanges, rootTabletLocation.getTserverLocation(),
             RootTable.EXTENT, range);
       }
       return Collections.emptyList();

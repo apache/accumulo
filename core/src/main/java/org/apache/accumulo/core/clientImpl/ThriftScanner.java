@@ -332,18 +332,18 @@ public class ThriftScanner {
             } else {
               // when a tablet splits we do want to continue scanning the low child
               // of the split if we are already passed it
-              Range dataRange = loc.tablet_extent.toDataRange();
+              Range dataRange = loc.getExtent().toDataRange();
 
               if (scanState.range.getStartKey() != null
                   && dataRange.afterEndKey(scanState.range.getStartKey())) {
                 // go to the next tablet
-                scanState.startRow = loc.tablet_extent.endRow();
+                scanState.startRow = loc.getExtent().endRow();
                 scanState.skipStartRow = true;
                 loc = null;
               } else if (scanState.range.getEndKey() != null
                   && dataRange.beforeStartKey(scanState.range.getEndKey())) {
                 // should not happen
-                throw new RuntimeException("Unexpected tablet, extent : " + loc.tablet_extent
+                throw new RuntimeException("Unexpected tablet, extent : " + loc.getExtent()
                     + "  range : " + scanState.range + " startRow : " + scanState.startRow);
               }
             }
@@ -369,7 +369,7 @@ public class ThriftScanner {
         }
 
         Span child2 = TraceUtil.startSpan(ThriftScanner.class, "scan::location",
-            Map.of("tserver", loc.tablet_location));
+            Map.of("tserver", loc.getTserverLocation()));
         try (Scope scanLocation = child2.makeCurrent()) {
           results = scan(loc, scanState, context);
         } catch (AccumuloSecurityException e) {
@@ -380,7 +380,7 @@ public class ThriftScanner {
           throw e;
         } catch (TApplicationException tae) {
           TraceUtil.setException(child2, tae, true);
-          throw new AccumuloServerException(scanState.getErrorLocation().tablet_location, tae);
+          throw new AccumuloServerException(scanState.getErrorLocation().getTserverLocation(), tae);
         } catch (TSampleNotPresentException tsnpe) {
           String message = "Table " + context.getPrintableTableInfoFromId(scanState.tableId)
               + " does not have sampling configured or built";
@@ -395,7 +395,7 @@ public class ThriftScanner {
           }
           lastError = error;
 
-          TabletLocator.getLocator(context, scanState.tableId).invalidateCache(loc.tablet_extent);
+          TabletLocator.getLocator(context, scanState.tableId).invalidateCache(loc.getExtent());
           loc = null;
 
           // no need to try the current scan id somewhere else
@@ -470,7 +470,7 @@ public class ThriftScanner {
           sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
         } catch (TException e) {
           TabletLocator.getLocator(context, scanState.tableId).invalidateCache(context,
-              loc.tablet_location);
+              loc.getTserverLocation());
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage()
               + " " + scanState.getErrorLocation();
           if (!error.equals(lastError)) {
@@ -522,17 +522,17 @@ public class ThriftScanner {
 
       TabletLocation newLoc;
 
-      var tabletId = new TabletIdImpl(loc.tablet_extent);
+      var tabletId = new TabletIdImpl(loc.getExtent());
 
       if (scanState.scanID != null && scanState.prevLoc != null
-          && scanState.prevLoc.tablet_session.equals("scan_server")
-          && scanState.prevLoc.tablet_extent.equals(loc.tablet_extent)) {
+          && scanState.prevLoc.getTserverSession().equals("scan_server")
+          && scanState.prevLoc.getExtent().equals(loc.getExtent())) {
         // this is the case of continuing a scan on a scan server for the same tablet, so lets not
         // call the scan server selector and just go back to the previous scan server
         newLoc = scanState.prevLoc;
         log.trace(
             "For tablet {} continuing scan on scan server {} without consulting scan server selector, using busyTimeout {}",
-            loc.tablet_extent, newLoc.tablet_location, scanState.busyTimeout);
+            loc.getExtent(), newLoc.getTserverLocation(), scanState.busyTimeout);
       } else {
         // obtain a snapshot once and only expose this snapshot to the plugin for consistency
         var attempts = scanState.scanAttempts.snapshot();
@@ -564,17 +564,17 @@ public class ThriftScanner {
 
         String scanServer = actions.getScanServer(tabletId);
         if (scanServer != null) {
-          newLoc = new TabletLocation(loc.tablet_extent, scanServer, "scan_server");
+          newLoc = new TabletLocation(loc.getExtent(), scanServer, "scan_server");
           delay = actions.getDelay();
           scanState.busyTimeout = actions.getBusyTimeout();
           log.trace(
               "For tablet {} scan server selector chose scan_server:{} delay:{} busyTimeout:{}",
-              loc.tablet_extent, scanServer, delay, scanState.busyTimeout);
+              loc.getExtent(), scanServer, delay, scanState.busyTimeout);
         } else {
           newLoc = loc;
           delay = actions.getDelay();
           scanState.busyTimeout = Duration.ZERO;
-          log.trace("For tablet {} scan server selector chose tablet_server", loc.tablet_extent);
+          log.trace("For tablet {} scan server selector chose tablet_server", loc.getExtent());
         }
 
         if (!delay.isZero()) {
@@ -587,7 +587,7 @@ public class ThriftScanner {
         }
       }
 
-      var reporter = scanState.scanAttempts.createReporter(newLoc.tablet_location, tabletId);
+      var reporter = scanState.scanAttempts.createReporter(newLoc.getTserverLocation(), tabletId);
 
       try {
         return scanRpc(newLoc, scanState, context, scanState.busyTimeout.toMillis());
@@ -612,7 +612,7 @@ public class ThriftScanner {
 
     final TInfo tinfo = TraceUtil.traceInfo();
 
-    final HostAndPort parsedLocation = HostAndPort.fromString(loc.tablet_location);
+    final HostAndPort parsedLocation = HostAndPort.fromString(loc.getTserverLocation());
     TabletScanClientService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedLocation, context);
 
@@ -627,23 +627,24 @@ public class ThriftScanner {
       scanState.prevLoc = loc;
 
       if (scanState.scanID == null) {
-        Thread.currentThread().setName("Starting scan tserver=" + loc.tablet_location + " tableId="
-            + loc.tablet_extent.tableId());
+        Thread.currentThread().setName("Starting scan tserver=" + loc.getTserverLocation()
+            + " tableId=" + loc.getExtent().tableId());
 
         if (log.isTraceEnabled()) {
-          String msg = "Starting scan tserver=" + loc.tablet_location + " tablet="
-              + loc.tablet_extent + " range=" + scanState.range + " ssil="
+          String msg = "Starting scan tserver=" + loc.getTserverLocation() + " tablet="
+              + loc.getExtent() + " range=" + scanState.range + " ssil="
               + scanState.serverSideIteratorList + " ssio=" + scanState.serverSideIteratorOptions
               + " context=" + scanState.classLoaderContext;
           log.trace("tid={} {}", Thread.currentThread().getId(), msg);
           timer = new OpTimer().start();
         }
 
-        TabletType ttype = TabletType.type(loc.tablet_extent);
-        boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
+        TabletType ttype = TabletType.type(loc.getExtent());
+        boolean waitForWrites =
+            !serversWaitedForWrites.get(ttype).contains(loc.getTserverLocation());
 
         InitialScan is = client.startScan(tinfo, scanState.context.rpcCreds(),
-            loc.tablet_extent.toThrift(), scanState.range.toThrift(),
+            loc.getExtent().toThrift(), scanState.range.toThrift(),
             scanState.columns.stream().map(Column::toThrift).collect(Collectors.toList()),
             scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
@@ -651,7 +652,7 @@ public class ThriftScanner {
             SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
             scanState.classLoaderContext, scanState.executionHints, busyTimeout);
         if (waitForWrites) {
-          serversWaitedForWrites.get(ttype).add(loc.tablet_location);
+          serversWaitedForWrites.get(ttype).add(loc.getTserverLocation());
         }
 
         sr = is.result;
@@ -665,7 +666,7 @@ public class ThriftScanner {
       } else {
         // log.debug("Calling continue scan : "+scanState.range+" loc = "+loc);
         String msg =
-            "Continuing scan tserver=" + loc.tablet_location + " scanid=" + scanState.scanID;
+            "Continuing scan tserver=" + loc.getTserverLocation() + " scanid=" + scanState.scanID;
         Thread.currentThread().setName(msg);
 
         if (log.isTraceEnabled()) {
@@ -690,7 +691,7 @@ public class ThriftScanner {
       } else {
         // log.debug("No more : tab end row = "+loc.tablet_extent.getEndRow()+" range =
         // "+scanState.range);
-        if (loc.tablet_extent.endRow() == null) {
+        if (loc.getExtent().endRow() == null) {
           scanState.finished = true;
 
           if (timer != null) {
@@ -701,8 +702,8 @@ public class ThriftScanner {
           }
 
         } else if (scanState.range.getEndKey() == null || !scanState.range
-            .afterEndKey(new Key(loc.tablet_extent.endRow()).followingKey(PartialKey.ROW))) {
-          scanState.startRow = loc.tablet_extent.endRow();
+            .afterEndKey(new Key(loc.getExtent().endRow()).followingKey(PartialKey.ROW))) {
+          scanState.startRow = loc.getExtent().endRow();
           scanState.skipStartRow = true;
 
           if (timer != null) {
@@ -749,7 +750,7 @@ public class ThriftScanner {
       TInfo tinfo = TraceUtil.traceInfo();
 
       log.debug("Closing active scan {} {}", scanState.prevLoc, scanState.scanID);
-      HostAndPort parsedLocation = HostAndPort.fromString(scanState.prevLoc.tablet_location);
+      HostAndPort parsedLocation = HostAndPort.fromString(scanState.prevLoc.getTserverLocation());
       TabletScanClientService.Client client = null;
       try {
         client =
