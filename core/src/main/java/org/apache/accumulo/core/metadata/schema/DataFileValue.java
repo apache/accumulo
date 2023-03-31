@@ -21,6 +21,8 @@ package org.apache.accumulo.core.metadata.schema;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
 
 public class DataFileValue {
   private long size;
@@ -113,5 +115,24 @@ public class DataFileValue {
       throw new IllegalArgumentException();
     }
     this.time = time;
+  }
+
+  /**
+   * @return true if {@link #wrapFileIterator} would wrap a given iterator, false otherwise.
+   */
+  public boolean willWrapIterator() {
+    return isTimeSet();
+  }
+
+  /**
+   * Use per file information from the metadata table to wrap the raw iterator over a file with
+   * iterators that may take action based on data set in the metadata table.
+   */
+  public InterruptibleIterator wrapFileIterator(InterruptibleIterator iter) {
+    if (isTimeSet()) {
+      return new TimeSettingIterator(iter, getTime());
+    } else {
+      return iter;
+    }
   }
 }
