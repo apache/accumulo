@@ -106,7 +106,6 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.FileUtil;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
@@ -1589,9 +1588,35 @@ public class Tablet extends TabletBase {
 
       MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio,
           getTabletServer().getContext(), getTabletServer().getLock(), ecids);
-      ManagerMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectoryName,
-          getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time,
-          lastFlushID.get(), lastCompactID.get(), getTabletServer().getLock());
+
+      Ample.TabletMutator tablet = getTabletServer().getContext().getAmple().mutateTablet(low);
+      tablet.putPrevEndRow(low.prevEndRow());
+      tablet.putZooLock(getTabletServer().getLock());
+      tablet.putDirName(lowDirectoryName);
+      tablet.putTime(time);
+
+      if (lastFlushID.get() > 0) {
+        tablet.putFlushId(lastFlushID.get());
+      }
+
+      if (lastCompactID.get() > 0) {
+        tablet.putCompactionId(lastCompactID.get());
+      }
+
+      if (getTabletServer().getTabletSession() != null) {
+        tablet.putLocation(Location.current(getTabletServer().getTabletSession()));
+        tablet.deleteLocation(Location.future(getTabletServer().getTabletSession()));
+      }
+
+      lowDatafileSizes.forEach(tablet::putFile);
+
+      for (Entry<Long,? extends Collection<TabletFile>> entry : bulkImported.entrySet()) {
+        for (TabletFile ref : entry.getValue()) {
+          tablet.putBulkFile(ref, entry.getKey());
+        }
+      }
+      tablet.mutate();
+
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove,
           getTabletServer().getContext(), getTabletServer().getLock());
 

@@ -40,7 +40,12 @@ public class MockServerContext {
     ServerContext context = EasyMock.createMock(ServerContext.class);
     ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     conf.set(Property.INSTANCE_VOLUMES, "file:///");
+    // Added the new expected property value
+    conf.set(Property.TSERV_LAST_LOCATION_MODE, "assignment");
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    // Null pointer pops when attempting to access the property in the context.
+    expect(context.getConfiguration().get(Property.INSTANCE_VOLUMES)).andReturn("file:///")
+        .anyTimes();
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     return context;
   }

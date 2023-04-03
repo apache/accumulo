@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -73,7 +74,7 @@ public class RootTabletStateStoreTest {
     @Override
     public TabletMutator mutateTablet(KeyExtent extent) {
       Preconditions.checkArgument(extent.equals(RootTable.EXTENT));
-      return new TabletMutatorBase(null, extent) {
+      return new TabletMutatorBase(MockServerContext.get(), extent) {
 
         @Override
         public void mutate() {
@@ -92,6 +93,10 @@ public class RootTabletStateStoreTest {
   public void testRootTabletStateStore() throws DistributedStoreException {
     ServerContext context = MockServerContext.get();
     expect(context.getAmple()).andReturn(new TestAmple()).anyTimes();
+    expect(context.getConfiguration().isPropertySet(Property.TSERV_LAST_LOCATION_MODE))
+        .andReturn(true).once();
+    expect(context.getConfiguration().get((Property.TSERV_LAST_LOCATION_MODE)))
+        .andReturn(Property.TSERV_LAST_LOCATION_MODE.getDefaultValue()).once();
     EasyMock.replay(context);
     ZooTabletStateStore tstore = new ZooTabletStateStore(context);
     KeyExtent root = RootTable.EXTENT;
