@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.metadata;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -45,6 +46,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -235,6 +237,59 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public TabletMutator deleteExternalCompaction(ExternalCompactionId ecid) {
     mutation.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical());
+    return this;
+  }
+
+  @Override
+  /**
+   * Update the last location if the location mode is "assignment". This will delete the previous
+   * last location if needed and set the new last location
+   *
+   * @param extent The tablet extent
+   * @param location The new location
+   */
+  public TabletMutator updateLastForAssignmentMode(KeyExtent extent, TServerInstance location) {
+    // if the location mode is assignment, then preserve the current location in the last
+    // location value
+    if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
+      TabletMetadata lastMetadata =
+          context.getAmple().readTablet(extent, TabletMetadata.ColumnType.LAST);
+      if (lastMetadata == null) {
+        // no previous information available to reference, so just update location
+        putLocation(Location.last(location));
+      } else {
+        if (!lastMetadata.getLast().equals(Location.last(location))) {
+          deleteLocation(lastMetadata.getLast());
+          putLocation(Location.last(location));
+        }
+      }
+    }
+    return this;
+  }
+
+  @Override
+  /**
+   * Update the last location if the location mode is "compaction". This will delete the previous
+   * last location if needed and set the new last location
+   *
+   * @param lastLocation The last location
+   * @param serverInstance The server instance address
+   */
+  public TabletMutator updateLastForCompactionMode(Location lastLocation,
+      TServerInstance serverInstance) {
+    // if the location mode is 'compaction', then preserve the current compaction location in the
+    // last location value
+    if ("compaction".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
+      Location newLocation = Location.last(serverInstance);
+      if (lastLocation != null) {
+        if (!lastLocation.equals(newLocation)) {
+          deleteLocation(lastLocation);
+          putLocation(newLocation);
+        }
+      } else {
+        putLocation(newLocation);
+      }
+    }
     return this;
   }
 

@@ -35,7 +35,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,8 +137,7 @@ class ZooTabletStateStore implements TabletStateStore {
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
     tabletMutator.putLocation(Location.current(assignment.server));
-    ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator,
-        assignment.tablet, assignment.server);
+    tabletMutator.updateLastForAssignmentMode(assignment.tablet, assignment.server);
     tabletMutator.deleteLocation(Location.future(assignment.server));
 
     tabletMutator.mutate();
@@ -161,8 +159,7 @@ class ZooTabletStateStore implements TabletStateStore {
 
     tabletMutator.deleteLocation(Location.future(futureOrCurrent));
     tabletMutator.deleteLocation(Location.current(futureOrCurrent));
-    ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator, tls.extent,
-        futureOrCurrent);
+    tabletMutator.updateLastForAssignmentMode(tls.extent, futureOrCurrent);
     if (logsForDeadServers != null) {
       List<Path> logs = logsForDeadServers.get(futureOrCurrent);
       if (logs != null) {

@@ -256,6 +256,10 @@ public interface Ample {
    * Interface for changing a tablets persistent data.
    */
   interface TabletMutator {
+    TabletMutator updateLastForAssignmentMode(KeyExtent extent, TServerInstance location);
+
+    TabletMutator updateLastForCompactionMode(Location location, TServerInstance serverInstance);
+
     TabletMutator putPrevEndRow(Text per);
 
     TabletMutator putFile(TabletFile path, DataFileValue dfv);

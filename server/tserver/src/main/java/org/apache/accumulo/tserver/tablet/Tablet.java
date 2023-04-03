@@ -64,6 +64,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
@@ -72,7 +73,9 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
@@ -2028,6 +2031,17 @@ public class Tablet extends TabletBase {
     return tabletServer;
   }
 
+  private TServerInstance getTServerInstance(String address, ServiceLock zooLock) {
+    while (true) {
+      try {
+        return new TServerInstance(address, zooLock.getSessionId());
+      } catch (KeeperException | InterruptedException e) {
+        log.error("{}", e.getMessage(), e);
+      }
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
+    }
+  }
+
   public Map<StoredTabletFile,DataFileValue> updatePersistedTime(long bulkTime,
       Map<TabletFile,DataFileValue> paths, long tid) {
     synchronized (timeLock) {
@@ -2051,13 +2065,32 @@ public class Tablet extends TabletBase {
       if (maxCommittedTime > persistedTime) {
         persistedTime = maxCommittedTime;
       }
+      Ample.TabletMutator tablet = context.getAmple().mutateTablet(extent);
+      // if there are no entries, the path doesn't get stored in metadata table, only the flush ID
+      Optional<StoredTabletFile> newFile = Optional.empty();
 
-      return ManagerMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent,
-          newDatafile, dfv, tabletTime.getMetadataTime(persistedTime),
-          tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs,
-          lastLocation, flushId);
+      // if entries are present, write to path to metadata table
+      ServiceLock zooLock = tabletServer.getLock();
+      if (dfv.getNumEntries() > 0) {
+        tablet.putFile(newDatafile, dfv);
+        tablet.putTime(tabletTime.getMetadataTime(persistedTime));
+        newFile = Optional.of(newDatafile.insert());
+
+        // Updating for compaction doesn't require the wait at the ample call.
+        // Instead, do that beforehand
+        TServerInstance newLocation =
+            getTServerInstance(tabletServer.getClientAddressString(), zooLock);
+        tablet.updateLastForCompactionMode(lastLocation, newLocation);
+      }
+      tablet.putFlushId(flushId);
+
+      unusedWalLogs.forEach(tablet::deleteWal);
+
+      tablet.putZooLock(zooLock);
+      tablet.mutate();
+
+      return newFile;
     }
-
   }
 
   @Override
