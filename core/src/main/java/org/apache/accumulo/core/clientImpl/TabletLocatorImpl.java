@@ -549,7 +549,7 @@ public class TabletLocatorImpl extends TabletLocator {
   private void bringOnDemandTabletsOnline(ClientContext context, Range range)
       throws AccumuloException, AccumuloSecurityException {
 
-    // Confirm that table is in an onDemand state. Don't throw an exception
+    // Confirm that table is in an on-demand state. Don't throw an exception
     // if the table is not found, calling code will already handle it.
     try {
       String tableName = context.getTableName(tableId);

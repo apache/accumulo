@@ -107,7 +107,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       createTable(client, t2, false);
       createTable(client, t3, true);
       createTable(client, t4, false);
-      client.tableOperations().onDemand(t4, true); // t4 is an ondemand table
+      client.tableOperations().onDemand(t4, true); // t4 is an on-demand table
 
       // examine a clone of the metadata table, so we can manipulate it
       copyTable(client, MetadataTable.NAME, metaCopy1);
@@ -157,17 +157,17 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy3, state),
           "Should have 1 tablet that needs a metadata repair");
 
-      // test the ondemand online tablet case
+      // test the on-demand online tablet case
       state = new State(client);
       onDemandFirstTablet(client, metaCopy4, t4);
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy4, state),
-          "Should have 1 tablet that is ondemand and needs to be hosted");
+          "Should have 1 tablet that is on-demand and needs to be hosted");
 
-      // test the ondemand offline tablet case
+      // test the on-demand offline tablet case
       state = new State(client);
       removeOnDemandMarkers(client, state, metaCopy4, t4);
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy4, state),
-          "Should have 1 tablet that is ondemand and needs to be unloaded");
+          "Should have 1 tablet that is on-demand and needs to be unloaded");
 
       // clean up
       dropTables(client, t1, t2, t3, t4, metaCopy1, metaCopy2, metaCopy3, metaCopy4);

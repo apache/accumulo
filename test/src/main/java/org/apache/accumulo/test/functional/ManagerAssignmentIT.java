@@ -127,7 +127,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       assertNull(offline.current);
       assertEquals(flushed.getCurrentServer(), offline.getLastServer());
 
-      // set the table to ondemand
+      // set the table to on-demand
       c.tableOperations().onDemand(tableName, true);
       TabletLocationState ondemand = getTabletLocationState(c, tableId);
       assertNull(ondemand.future);
@@ -160,7 +160,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       c.tableOperations().onDemand(tableName, true);
       assertTrue(c.tableOperations().isOnDemand(tableName));
 
-      // The ondemand tablets should be unassigned
+      // The on-demand tablets should be unassigned
       List<TabletStats> stats = getTabletStats(c, tableId);
       while (stats.size() > 0) {
         Thread.sleep(50);
@@ -202,7 +202,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       c.tableOperations().onDemand(tableName, true);
       assertTrue(c.tableOperations().isOnDemand(tableName));
 
-      // The ondemand tablets should be unassigned
+      // The on-demand tablets should be unassigned
       List<TabletStats> stats = getTabletStats(c, tableId);
       while (stats.size() > 0) {
         Thread.sleep(50);
@@ -254,7 +254,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       c.tableOperations().onDemand(tableName, true);
       assertTrue(c.tableOperations().isOnDemand(tableName));
 
-      // The ondemand tablets should be unassigned
+      // The on-demand tablets should be unassigned
       List<TabletStats> stats = getTabletStats(c, tableId);
       while (stats.size() > 0) {
         Thread.sleep(50);
@@ -296,7 +296,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       c.tableOperations().onDemand(tableName, true);
       assertTrue(c.tableOperations().isOnDemand(tableName));
 
-      // Wait 2x the TabletGroupWatcher interval for ondemand
+      // Wait 2x the TabletGroupWatcher interval for on-demand
       // tablets to be unassigned.
       Thread.sleep(10000);
 
@@ -349,7 +349,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       c.tableOperations().onDemand(tableName, true);
       assertTrue(c.tableOperations().isOnDemand(tableName));
 
-      // Wait 2x the TabletGroupWatcher interval for ondemand
+      // Wait 2x the TabletGroupWatcher interval for on-demand
       // tablets to be unassigned.
       Thread.sleep(10000);
 

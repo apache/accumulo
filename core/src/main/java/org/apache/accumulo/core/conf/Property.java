@@ -750,7 +750,7 @@ public enum Property {
       "2.1.1"),
   TSERV_ONDEMAND_UNLOADER_INTERVAL("tserver.ondemand.tablet.unloader.interval", "10m",
       PropertyType.TIMEDURATION,
-      "The interval at which the TabletServer will check if onDemand tablets can be unloaded",
+      "The interval at which the TabletServer will check if on-demand tablets can be unloaded",
       "3.1.0"),
 
   // accumulo garbage collector properties
@@ -890,7 +890,7 @@ public enum Property {
       "Options for the table compaction configuror", "2.1.0"),
   TABLE_ONDEMAND_UNLOADER("tserver.ondemand.tablet.unloader",
       "org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader", PropertyType.CLASSNAME,
-      "The class that will be used to determine which onDemand Tablets to unload.", "3.1.0"),
+      "The class that will be used to determine which on-demand Tablets to unload.", "3.1.0"),
 
   // Crypto-related properties
   @Experimental

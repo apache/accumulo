@@ -63,11 +63,11 @@ public class TabletServerMetrics implements MetricsProducer {
     Gauge
         .builder(METRICS_TSERVER_TABLETS_ONLINE_ONDEMAND, util,
             TabletServerMetricsUtil::getOnDemandOnlineCount)
-        .description("Number of online ondemand tablets").register(registry);
+        .description("Number of online on-demand tablets").register(registry);
     Gauge
         .builder(METRICS_TSERVER_TABLETS_ONDEMAND_UNLOADED_FOR_MEM, util,
             TabletServerMetricsUtil::getOnDemandUnloadedLowMem)
-        .description("Number of online ondemand tablets unloaded due to low memory")
+        .description("Number of online on-demand tablets unloaded due to low memory")
         .register(registry);
     Gauge.builder(METRICS_TSERVER_TABLETS_ONLINE, util, TabletServerMetricsUtil::getOnlineCount)
         .description("Number of online tablets").register(registry);
