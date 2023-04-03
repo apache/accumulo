@@ -57,8 +57,7 @@ public class RootTabletLocator extends TabletLocator {
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures) {
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
-      TabletServerMutations<T> tsm =
-          new TabletServerMutations<>(rootTabletLocation.getTserverSession());
+      var tsm = new TabletServerMutations<T>(rootTabletLocation.getTserverSession());
       for (T mutation : mutations) {
         tsm.addMutation(RootTable.EXTENT, mutation);
       }

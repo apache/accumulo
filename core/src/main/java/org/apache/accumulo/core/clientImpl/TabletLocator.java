@@ -399,7 +399,7 @@ public abstract class TabletLocator {
 
     @Override
     public String toString() {
-      return "(" + getExtent() + "," + tserverLocation + "," + tserverSession + ")";
+      return "(" + getExtent() + "," + getTserverLocation() + "," + getTserverSession() + ")";
     }
   }
 
