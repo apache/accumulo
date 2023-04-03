@@ -22,17 +22,23 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET_GC_CANDIDATES;
 import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -40,11 +46,13 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -53,16 +61,20 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactionSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -388,4 +400,80 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
   }
 
+  @Override
+  public KeyExtent fixSplit(TabletMetadata meta, ServiceLock lock) throws AccumuloException {
+    log.info("Incomplete split {} attempting to fix", meta.getExtent());
+
+    if (meta.getSplitRatio() == null) {
+      throw new IllegalArgumentException(
+          "Metadata entry does not have split ratio (" + meta.getExtent() + ")");
+    }
+
+    if (meta.getTime() == null) {
+      throw new IllegalArgumentException(
+          "Metadata entry does not have time (" + meta.getExtent() + ")");
+    }
+    return fixSplit(meta.getTableId(), meta.getExtent().toMetaRow(), meta.getPrevEndRow(),
+        meta.getOldPrevEndRow(), meta.getSplitRatio(), lock);
+  }
+
+  private KeyExtent fixSplit(TableId tableId, Text metadataEntry, Text metadataPrevEndRow,
+      Text oper, double splitRatio, ServiceLock lock) throws AccumuloException {
+    if (metadataPrevEndRow == null) {
+      // something is wrong, this should not happen... if a tablet is split, it will always have a
+      // prev end row....
+      throw new AccumuloException(
+          "Split tablet does not have prev end row, something is amiss, extent = " + metadataEntry);
+    }
+
+    // check to see if prev tablet exist in metadata tablet
+    Key prevRowKey =
+        new Key(new Text(MetadataSchema.TabletsSection.encodeRow(tableId, metadataPrevEndRow)));
+
+    try (
+        Scanner scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY)) {
+      scanner.setRange(new Range(prevRowKey, prevRowKey.followingKey(PartialKey.ROW)));
+
+      if (scanner.iterator().hasNext()) {
+        log.info("Finishing incomplete split {} {}", metadataEntry, metadataPrevEndRow);
+
+        List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
+
+        SortedMap<StoredTabletFile,DataFileValue> origDatafileSizes = new TreeMap<>();
+        SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
+        SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
+
+        Key rowKey = new Key(metadataEntry);
+        try (Scanner scanner2 =
+            context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY)) {
+
+          scanner2.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+          scanner2.setRange(new Range(rowKey, rowKey.followingKey(PartialKey.ROW)));
+
+          for (Map.Entry<Key,Value> entry : scanner2) {
+            if (entry.getKey().compareColumnFamily(
+                MetadataSchema.TabletsSection.DataFileColumnFamily.NAME) == 0) {
+              StoredTabletFile stf =
+                  new StoredTabletFile(entry.getKey().getColumnQualifierData().toString());
+              origDatafileSizes.put(stf, new DataFileValue(entry.getValue().get()));
+            }
+          }
+        }
+
+        MetadataTableUtil.splitDatafiles(metadataPrevEndRow, splitRatio, new HashMap<>(),
+            origDatafileSizes, lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
+
+        MetadataTableUtil.finishSplit(metadataEntry, highDatafileSizes, highDatafilesToRemove,
+            context, lock);
+
+        return KeyExtent.fromMetaRow(rowKey.getRow(), metadataPrevEndRow);
+      } else {
+        log.info("Rolling back incomplete split {} {}", metadataEntry, metadataPrevEndRow);
+        MetadataTableUtil.rollBackSplit(metadataEntry, oper, context, lock);
+        return KeyExtent.fromMetaRow(metadataEntry, oper);
+      }
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+  }
 }

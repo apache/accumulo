@@ -20,31 +20,17 @@ package org.apache.accumulo.server.util;
 
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.PartialKey;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
@@ -52,14 +38,10 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,79 +83,6 @@ public class ManagerMetadataUtil {
     }
 
     tablet.mutate();
-  }
-
-  public static KeyExtent fixSplit(ServerContext context, TabletMetadata meta, ServiceLock lock)
-      throws AccumuloException {
-    log.info("Incomplete split {} attempting to fix", meta.getExtent());
-
-    if (meta.getSplitRatio() == null) {
-      throw new IllegalArgumentException(
-          "Metadata entry does not have split ratio (" + meta.getExtent() + ")");
-    }
-
-    if (meta.getTime() == null) {
-      throw new IllegalArgumentException(
-          "Metadata entry does not have time (" + meta.getExtent() + ")");
-    }
-
-    return fixSplit(context, meta.getTableId(), meta.getExtent().toMetaRow(), meta.getPrevEndRow(),
-        meta.getOldPrevEndRow(), meta.getSplitRatio(), lock);
-  }
-
-  private static KeyExtent fixSplit(ServerContext context, TableId tableId, Text metadataEntry,
-      Text metadataPrevEndRow, Text oper, double splitRatio, ServiceLock lock)
-      throws AccumuloException {
-    if (metadataPrevEndRow == null) {
-      // something is wrong, this should not happen... if a tablet is split, it will always have a
-      // prev end row....
-      throw new AccumuloException(
-          "Split tablet does not have prev end row, something is amiss, extent = " + metadataEntry);
-    }
-
-    // check to see if prev tablet exist in metadata tablet
-    Key prevRowKey = new Key(new Text(TabletsSection.encodeRow(tableId, metadataPrevEndRow)));
-
-    try (ScannerImpl scanner2 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
-      scanner2.setRange(new Range(prevRowKey, prevRowKey.followingKey(PartialKey.ROW)));
-
-      if (scanner2.iterator().hasNext()) {
-        log.info("Finishing incomplete split {} {}", metadataEntry, metadataPrevEndRow);
-
-        List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
-
-        SortedMap<StoredTabletFile,DataFileValue> origDatafileSizes = new TreeMap<>();
-        SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
-        SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
-
-        Key rowKey = new Key(metadataEntry);
-        try (Scanner scanner3 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
-
-          scanner3.fetchColumnFamily(DataFileColumnFamily.NAME);
-          scanner3.setRange(new Range(rowKey, rowKey.followingKey(PartialKey.ROW)));
-
-          for (Entry<Key,Value> entry : scanner3) {
-            if (entry.getKey().compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
-              StoredTabletFile stf =
-                  new StoredTabletFile(entry.getKey().getColumnQualifierData().toString());
-              origDatafileSizes.put(stf, new DataFileValue(entry.getValue().get()));
-            }
-          }
-        }
-
-        MetadataTableUtil.splitDatafiles(metadataPrevEndRow, splitRatio, new HashMap<>(),
-            origDatafileSizes, lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
-
-        MetadataTableUtil.finishSplit(metadataEntry, highDatafileSizes, highDatafilesToRemove,
-            context, lock);
-
-        return KeyExtent.fromMetaRow(rowKey.getRow(), metadataPrevEndRow);
-      } else {
-        log.info("Rolling back incomplete split {} {}", metadataEntry, metadataPrevEndRow);
-        MetadataTableUtil.rollBackSplit(metadataEntry, oper, context, lock);
-        return KeyExtent.fromMetaRow(metadataEntry, oper);
-      }
-    }
   }
 
   private static TServerInstance getTServerInstance(String address, ServiceLock zooLock) {
