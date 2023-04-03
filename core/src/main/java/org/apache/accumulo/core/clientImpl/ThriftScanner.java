@@ -653,7 +653,7 @@ public class ThriftScanner {
       return null;
     }
 
-    if (scanState.runOnScanServer) {
+    if (addr.serverType == ServerType.SSERVER) {
       try {
         return scanRpc(addr, scanState, context, scanState.busyTimeout.toMillis());
       } catch (ScanServerBusyException ssbe) {
