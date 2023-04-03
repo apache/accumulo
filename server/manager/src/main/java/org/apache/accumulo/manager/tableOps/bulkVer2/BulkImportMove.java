@@ -36,7 +36,6 @@ import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -103,9 +102,8 @@ class BulkImportMove extends ManagerRepo {
    */
   private void moveFiles(long tid, Path sourceDir, Path bulkDir, Manager manager,
       final VolumeManager fs, Map<String,String> renames) throws Exception {
-    MetadataTableUtil.addBulkLoadInProgressFlag(manager.getContext(),
+    manager.getContext().getAmple().addBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);
-
     AccumuloConfiguration aConf = manager.getConfiguration();
     @SuppressWarnings("deprecation")
     int workerCount = aConf.getCount(

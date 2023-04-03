@@ -183,7 +183,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       for (TabletLocationState tls : locs.locationStates.values()) {
         if (tls.current != null) {
           // add to set of all servers
-          tserverSet.add(tls.current);
+          tserverSet.add(tls.current.getServerInstance());
 
           // get server that the current tablets metadata is on
           TabletLocator.TabletLocation tab =

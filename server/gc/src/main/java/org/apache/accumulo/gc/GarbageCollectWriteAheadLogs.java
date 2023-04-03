@@ -306,7 +306,7 @@ public class GarbageCollectWriteAheadLogs {
       // Tablet is still assigned to a dead server. Manager has moved markers and reassigned it
       // Easiest to just ignore all the WALs for the dead server.
       if (state.getState(liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {
-        Set<UUID> idsToIgnore = candidates.remove(state.current);
+        Set<UUID> idsToIgnore = candidates.remove(state.current.getServerInstance());
         if (idsToIgnore != null) {
           result.keySet().removeAll(idsToIgnore);
           recoveryLogs.keySet().removeAll(idsToIgnore);

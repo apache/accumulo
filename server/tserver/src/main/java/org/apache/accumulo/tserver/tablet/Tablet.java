@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,6 +44,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -70,7 +72,6 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -79,6 +80,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
@@ -151,7 +153,7 @@ public class Tablet extends TabletBase {
   private final Object timeLock = new Object();
   private long persistedTime;
 
-  private TServerInstance lastLocation = null;
+  private Location lastLocation = null;
   private volatile Set<Path> checkedTabletDirs = new ConcurrentSkipListSet<>();
 
   private final AtomicLong dataSourceDeletions = new AtomicLong(0);
@@ -1185,30 +1187,41 @@ public class Tablet extends TabletBase {
 
   private final long splitCreationTime;
 
-  private SplitRowSpec findSplitRow(Collection<TabletFile> files) {
+  private boolean isSplitPossible() {
 
     // never split the root tablet
     // check if we already decided that we can never split
     // check to see if we're big enough to split
 
     long splitThreshold = tableConfiguration.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
-    long maxEndRow = tableConfiguration.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
 
     if (extent.isRootTablet() || isFindSplitsSuppressed()
         || estimateTabletSize() <= splitThreshold) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private SplitRowSpec findSplitRow(Optional<SplitComputations> splitComputations) {
+
+    // never split the root tablet
+    // check if we already decided that we can never split
+    // check to see if we're big enough to split
+
+    long maxEndRow = tableConfiguration.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
+
+    if (!isSplitPossible()) {
       return null;
     }
 
-    SortedMap<Double,Key> keys = null;
-
-    try {
-      // we should make .25 below configurable
-      keys = FileUtil.findMidPoint(context, tableConfiguration, chooseTabletDir(),
-          extent.prevEndRow(), extent.endRow(), FileUtil.toPathStrings(files), .25, true);
-    } catch (IOException e) {
-      log.error("Failed to find midpoint {}", e.getMessage());
+    if (!splitComputations.isPresent()) {
+      // information needed to compute a split point is out of date or does not exists, try again
+      // later
       return null;
     }
+
+    SortedMap<Double,Key> keys = splitComputations.get().midPoint;
 
     if (keys.isEmpty()) {
       log.info("Cannot split tablet " + extent + ", files contain no data for tablet.");
@@ -1217,78 +1230,69 @@ public class Tablet extends TabletBase {
     }
 
     // check to see if one row takes up most of the tablet, in which case we can not split
-    try {
+    Text lastRow;
+    if (extent.endRow() == null) {
+      lastRow = splitComputations.get().lastRowForDefaultTablet;
+    } else {
+      lastRow = extent.endRow();
+    }
 
-      Text lastRow;
-      if (extent.endRow() == null) {
-        Key lastKey = (Key) FileUtil.findLastKey(context, tableConfiguration, files);
-        lastRow = lastKey.getRow();
-      } else {
-        lastRow = extent.endRow();
-      }
+    // We expect to get a midPoint for this set of files. If we don't get one, we have a problem.
+    final Key mid = keys.get(.5);
+    if (mid == null) {
+      throw new IllegalStateException("Could not determine midpoint for files on " + extent);
+    }
 
-      // We expect to get a midPoint for this set of files. If we don't get one, we have a problem.
-      final Key mid = keys.get(.5);
-      if (mid == null) {
-        throw new IllegalStateException("Could not determine midpoint for files on " + extent);
-      }
+    // check to see that the midPoint is not equal to the end key
+    if (mid.compareRow(lastRow) == 0) {
+      if (keys.firstKey() < .5) {
+        Key candidate = keys.get(keys.firstKey());
+        if (candidate.getLength() > maxEndRow) {
+          log.warn("Cannot split tablet {}, selected split point too long.  Length :  {}", extent,
+              candidate.getLength());
 
-      // check to see that the midPoint is not equal to the end key
-      if (mid.compareRow(lastRow) == 0) {
-        if (keys.firstKey() < .5) {
-          Key candidate = keys.get(keys.firstKey());
-          if (candidate.getLength() > maxEndRow) {
-            log.warn("Cannot split tablet {}, selected split point too long.  Length :  {}", extent,
-                candidate.getLength());
+          suppressFindSplits();
 
-            suppressFindSplits();
-
-            return null;
+          return null;
+        }
+        if (candidate.compareRow(lastRow) != 0) {
+          // we should use this ratio in split size estimations
+          if (log.isTraceEnabled()) {
+            log.trace(
+                String.format("Splitting at %6.2f instead of .5, row at .5 is same as end row%n",
+                    keys.firstKey()));
           }
-          if (candidate.compareRow(lastRow) != 0) {
-            // we should use this ratio in split size estimations
-            if (log.isTraceEnabled()) {
-              log.trace(
-                  String.format("Splitting at %6.2f instead of .5, row at .5 is same as end row%n",
-                      keys.firstKey()));
-            }
-            return new SplitRowSpec(keys.firstKey(), candidate.getRow());
-          }
-
+          return new SplitRowSpec(keys.firstKey(), candidate.getRow());
         }
 
-        log.warn("Cannot split tablet {} it contains a big row : {}", extent, lastRow);
-        suppressFindSplits();
-
-        return null;
       }
 
-      Text text = mid.getRow();
-      SortedMap<Double,Key> firstHalf = keys.headMap(.5);
-      if (!firstHalf.isEmpty()) {
-        Text beforeMid = firstHalf.get(firstHalf.lastKey()).getRow();
-        Text shorter = new Text();
-        int trunc = longestCommonLength(text, beforeMid);
-        shorter.set(text.getBytes(), 0, Math.min(text.getLength(), trunc + 1));
-        text = shorter;
-      }
+      log.warn("Cannot split tablet {} it contains a big row : {}", extent, lastRow);
+      suppressFindSplits();
 
-      if (text.getLength() > maxEndRow) {
-        log.warn("Cannot split tablet {}, selected split point too long.  Length :  {}", extent,
-            text.getLength());
-
-        suppressFindSplits();
-
-        return null;
-      }
-
-      return new SplitRowSpec(.5, text);
-    } catch (IOException e) {
-      // don't split now, but check again later
-      log.error("Failed to find lastkey {}", e.getMessage());
       return null;
     }
 
+    Text text = mid.getRow();
+    SortedMap<Double,Key> firstHalf = keys.headMap(.5);
+    if (!firstHalf.isEmpty()) {
+      Text beforeMid = firstHalf.get(firstHalf.lastKey()).getRow();
+      Text shorter = new Text();
+      int trunc = longestCommonLength(text, beforeMid);
+      shorter.set(text.getBytes(), 0, Math.min(text.getLength(), trunc + 1));
+      text = shorter;
+    }
+
+    if (text.getLength() > maxEndRow) {
+      log.warn("Cannot split tablet {}, selected split point too long.  Length :  {}", extent,
+          text.getLength());
+
+      suppressFindSplits();
+
+      return null;
+    }
+
+    return new SplitRowSpec(.5, text);
   }
 
   private boolean supressFindSplits = false;
@@ -1332,15 +1336,100 @@ public class Tablet extends TabletBase {
     return common;
   }
 
+  // encapsulates results of computations needed to make determinations about splits
+  private static class SplitComputations {
+    final Set<TabletFile> inputFiles;
+
+    // cached result of calling FileUtil.findMidpoint
+    final SortedMap<Double,Key> midPoint;
+
+    // the last row seen in the files, only set for the default tablet
+    final Text lastRowForDefaultTablet;
+
+    private SplitComputations(Set<TabletFile> inputFiles, SortedMap<Double,Key> midPoint,
+        Text lastRowForDefaultTablet) {
+      this.inputFiles = inputFiles;
+      this.midPoint = midPoint;
+      this.lastRowForDefaultTablet = lastRowForDefaultTablet;
+    }
+  }
+
+  // The following caches keys from users files needed to compute a tablets split point. This cached
+  // data could potentially be large and is therefore stored using a soft refence so the Java GC can
+  // release it if needed. If the cached information is not there it can always be recomputed.
+  private volatile SoftReference<SplitComputations> lastSplitComputation =
+      new SoftReference<>(null);
+  private final Lock splitComputationLock = new ReentrantLock();
+
+  /**
+   * Computes split point information from files when a tablets set of files changes. Do not call
+   * this method when holding the tablet lock.
+   */
+  public Optional<SplitComputations> getSplitComputations() {
+
+    if (!isSplitPossible() || isClosing() || isClosed()) {
+      // do not want to bother doing any computations when a split is not possible
+      return Optional.empty();
+    }
+
+    Set<TabletFile> files = getDatafileManager().getFiles();
+    SplitComputations lastComputation = lastSplitComputation.get();
+    if (lastComputation != null && lastComputation.inputFiles.equals(files)) {
+      // the last computation is still relevant
+      return Optional.of(lastComputation);
+    }
+
+    if (Thread.holdsLock(this)) {
+      log.warn(
+          "Thread holding tablet lock is doing split computation, this is unexpected and needs "
+              + "investigation. Please open an Accumulo issue with the stack trace because this can "
+              + "cause performance problems for scans.",
+          new RuntimeException());
+    }
+
+    SplitComputations newComputation;
+
+    // Only want one thread doing this computation at time for a tablet.
+    if (splitComputationLock.tryLock()) {
+      try {
+        SortedMap<Double,Key> midpoint =
+            FileUtil.findMidPoint(context, tableConfiguration, chooseTabletDir(),
+                extent.prevEndRow(), extent.endRow(), FileUtil.toPathStrings(files), .25, true);
+
+        Text lastRow = null;
+
+        if (extent.endRow() == null) {
+          Key lastKey = (Key) FileUtil.findLastKey(context, tableConfiguration, files);
+          lastRow = lastKey.getRow();
+        }
+
+        newComputation = new SplitComputations(files, midpoint, lastRow);
+
+        lastSplitComputation = new SoftReference<>(newComputation);
+      } catch (IOException e) {
+        lastSplitComputation.clear();
+        log.error("Failed to compute split information from files " + e.getMessage());
+        return Optional.empty();
+      } finally {
+        splitComputationLock.unlock();
+      }
+
+      return Optional.of(newComputation);
+    } else {
+      // some other thread seems to be working on split, let the other thread work on it
+      return Optional.empty();
+    }
+  }
+
   /**
    * Returns true if this tablet needs to be split
    *
    */
-  public synchronized boolean needsSplit() {
+  public synchronized boolean needsSplit(Optional<SplitComputations> splitComputations) {
     if (isClosing() || isClosed()) {
       return false;
     }
-    return findSplitRow(getDatafileManager().getFiles()) != null;
+    return findSplitRow(splitComputations) != null;
   }
 
   synchronized void computeNumEntries() {
@@ -1423,6 +1512,12 @@ public class Tablet extends TabletBase {
       throw new RuntimeException(msg);
     }
 
+    Optional<SplitComputations> splitComputations = null;
+    if (sp == null) {
+      // call this outside of sync block
+      splitComputations = getSplitComputations();
+    }
+
     try {
       initiateClose(true);
     } catch (IllegalStateException ise) {
@@ -1446,7 +1541,7 @@ public class Tablet extends TabletBase {
       // choose a split point
       SplitRowSpec splitPoint;
       if (sp == null) {
-        splitPoint = findSplitRow(getDatafileManager().getFiles());
+        splitPoint = findSplitRow(splitComputations);
       } else {
         Text tsp = new Text(sp);
         var fileStrings = FileUtil.toPathStrings(getDatafileManager().getFiles());
@@ -1638,7 +1733,7 @@ public class Tablet extends TabletBase {
       var storedTabletFile = getDatafileManager().importMapFiles(tid, entries, setTime);
       lastMapFileImportTime = System.currentTimeMillis();
 
-      if (needsSplit()) {
+      if (isSplitPossible()) {
         getTabletServer().executeSplit(this);
       } else {
         compactable.filesAdded(false, storedTabletFile);
@@ -2019,8 +2114,8 @@ public class Tablet extends TabletBase {
     computeNumEntries();
   }
 
-  public TServerInstance resetLastLocation() {
-    TServerInstance result = lastLocation;
+  public Location resetLastLocation() {
+    Location result = lastLocation;
     lastLocation = null;
     return result;
   }

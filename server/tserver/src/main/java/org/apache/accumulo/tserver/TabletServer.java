@@ -456,7 +456,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
             // if we need to split AND compact, we need a good way
             // to decide what to do
-            if (tablet.needsSplit()) {
+            if (tablet.needsSplit(tablet.getSplitComputations())) {
               executeSplit(tablet);
               continue;
             }

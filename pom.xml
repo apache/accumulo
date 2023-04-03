@@ -121,8 +121,6 @@
     <bouncycastle.version>1.70</bouncycastle.version>
     <!-- Curator version -->
     <curator.version>5.3.0</curator.version>
-    <!-- relative path for Eclipse format; should override in child modules if necessary -->
-    <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
     <errorprone.version>2.15.0</errorprone.version>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
     <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
@@ -131,7 +129,7 @@
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
     <failsafe.reuseForks>false</failsafe.reuseForks>
-    <hadoop.version>3.3.4</hadoop.version>
+    <hadoop.version>3.3.5</hadoop.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <!-- prevent introduction of new compiler warnings -->
     <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
@@ -714,7 +712,7 @@
           <configuration>
             <licenseSets>
               <licenseSet>
-                <header>${session.executionRootDirectory}/contrib/license-header.txt</header>
+                <header>${rootlocation}/contrib/license-header.txt</header>
                 <excludes combine.children="append">
                   <exclude>**/DEPENDENCIES</exclude>
                   <exclude>**/LICENSE</exclude>
@@ -928,7 +926,7 @@
           <artifactId>formatter-maven-plugin</artifactId>
           <version>2.21.0</version>
           <configuration>
-            <configFile>${eclipseFormatterStyle}</configFile>
+            <configFile>${rootlocation}/contrib/Eclipse-Accumulo-Codestyle.xml</configFile>
             <excludes>
               <exclude>**/thrift/*.java</exclude>
               <exclude>**/proto/*.java</exclude>
@@ -1034,6 +1032,13 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
         <executions>
+          <execution>
+            <!-- create property named 'rootlocation' to point to top of multi-module project -->
+            <id>create-rootlocation-property</id>
+            <goals>
+              <goal>rootlocation</goal>
+            </goals>
+          </execution>
           <execution>
             <id>create-automatic-module-name</id>
             <goals>
