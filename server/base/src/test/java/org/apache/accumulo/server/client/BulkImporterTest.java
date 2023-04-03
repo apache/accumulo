@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
@@ -83,8 +84,8 @@ public class BulkImporterTest {
     }
 
     @Override
-    public List<Range> binRanges(ClientContext context, List<Range> ranges,
-        Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
+    public List<Range> locateTablets(ClientContext context, List<Range> ranges,
+        BiConsumer<TabletLocation,Range> rangeConsumer) {
       throw new UnsupportedOperationException();
     }
 

@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -64,9 +65,27 @@ public abstract class TabletLocator {
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
-  public abstract List<Range> binRanges(ClientContext context, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+  /**
+   * This method finds what tablets overlap a given set of ranges, passing each range and its
+   * associated tablet to the range consumer. If a range overlaps multiple tablets then it can be
+   * passed to the range consumer multiple times.
+   */
+  public abstract List<Range> locateTablets(ClientContext context, List<Range> ranges,
+      BiConsumer<TabletLocation,Range> rangeConsumer)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+
+  /**
+   * The behavior of this method is similar to
+   * {@link #locateTablets(ClientContext, List, BiConsumer)}, except it bins ranges to the passed in
+   * binnedRanges map instead of passing them to a consumer.
+   *
+   */
+  public List<Range> binRanges(ClientContext context, List<Range> ranges,
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    return locateTablets(context, ranges,
+        ((cachedTablet, range) -> TabletLocatorImpl.addRange(binnedRanges, cachedTablet, range)));
+  }
 
   public abstract void invalidateCache(KeyExtent failedExtent);
 

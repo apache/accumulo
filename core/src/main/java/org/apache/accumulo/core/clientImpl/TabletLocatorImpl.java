@@ -37,6 +37,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -284,8 +285,8 @@ public class TabletLocatorImpl extends TabletLocator {
     return true;
   }
 
-  private List<Range> binRanges(ClientContext context, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges, boolean useCache,
+  private List<Range> locateTablets(ClientContext context, List<Range> ranges,
+      BiConsumer<TabletLocation,Range> rangeConsumer, boolean useCache,
       LockCheckerSession lcSession)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     List<Range> failures = new ArrayList<>();
@@ -349,8 +350,7 @@ public class TabletLocatorImpl extends TabletLocator {
       // then after that merges and splits happen.
       if (isContiguous(tabletLocations)) {
         for (TabletLocation tl2 : tabletLocations) {
-          TabletLocatorImpl.addRange(binnedRanges, tl2.getTserverLocation(), tl2.getExtent(),
-              range);
+          rangeConsumer.accept(tl2, range);
         }
       } else {
         failures.add(range);
@@ -365,8 +365,8 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   @Override
-  public List<Range> binRanges(ClientContext context, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+  public List<Range> locateTablets(ClientContext context, List<Range> ranges,
+      BiConsumer<TabletLocation,Range> rangeConsumer)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     /*
@@ -394,7 +394,7 @@ public class TabletLocatorImpl extends TabletLocator {
       // sort ranges... therefore try binning ranges using only the cache
       // and sort whatever fails and retry
 
-      failures = binRanges(context, ranges, binnedRanges, true, lcSession);
+      failures = locateTablets(context, ranges, rangeConsumer, true, lcSession);
     } finally {
       rLock.unlock();
     }
@@ -406,7 +406,7 @@ public class TabletLocatorImpl extends TabletLocator {
       // try lookups again
       wLock.lock();
       try {
-        failures = binRanges(context, failures, binnedRanges, false, lcSession);
+        failures = locateTablets(context, failures, rangeConsumer, false, lcSession);
       } finally {
         wLock.unlock();
       }
@@ -414,9 +414,8 @@ public class TabletLocatorImpl extends TabletLocator {
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Binned {} ranges for table {} to {} tservers in {}",
-          Thread.currentThread().getId(), ranges.size(), tableId, binnedRanges.size(),
-          String.format("%.3f secs", timer.scale(SECONDS)));
+      log.trace("tid={} Binned {} ranges for table {} in {}", Thread.currentThread().getId(),
+          ranges.size(), tableId, String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
     return failures;
@@ -755,7 +754,8 @@ public class TabletLocatorImpl extends TabletLocator {
 
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
-      parent.binRanges(context, lookups, binnedRanges);
+      parent.locateTablets(context, lookups,
+          (cachedTablet, range) -> addRange(binnedRanges, cachedTablet, range));
 
       // randomize server order
       ArrayList<String> tabletServers = new ArrayList<>(binnedRanges.keySet());
@@ -777,10 +777,10 @@ public class TabletLocatorImpl extends TabletLocator {
     }
   }
 
-  protected static void addRange(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
-      String location, KeyExtent ke, Range range) {
-    binnedRanges.computeIfAbsent(location, k -> new HashMap<>())
-        .computeIfAbsent(ke, k -> new ArrayList<>()).add(range);
+  static void addRange(Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TabletLocation ct,
+      Range range) {
+    binnedRanges.computeIfAbsent(ct.getTserverLocation(), k -> new HashMap<>())
+        .computeIfAbsent(ct.getExtent(), k -> new ArrayList<>()).add(range);
   }
 
 }
