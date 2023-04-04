@@ -34,6 +34,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.Pair;
 
 /**
  * A collection of authorization strings.
@@ -44,6 +45,9 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
 
   private final Set<ByteSequence> auths;
   private final List<byte[]> authsList; // sorted order
+
+  private static final Pair<Set<ByteSequence>,List<byte[]>> EMPTY_INTERNAL_COLLECTIONS =
+      new Pair<>(Collections.emptySet(), Collections.emptyList());
 
   /**
    * An empty set of authorizations.
@@ -99,6 +103,14 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     }
   }
 
+  private static Pair<Set<ByteSequence>,List<byte[]>> createInternalCollections(int size) {
+    if (size < 1) {
+      return EMPTY_INTERNAL_COLLECTIONS;
+    } else {
+      return new Pair<>(new HashSet<>(size), new ArrayList<>(size));
+    }
+  }
+
   /**
    * Constructs an authorization object from a collection of string authorizations that have each
    * already been encoded as UTF-8 bytes. Warning: This method does not verify that each encoded
@@ -112,10 +124,13 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    */
   public Authorizations(Collection<byte[]> authorizations) {
     checkArgument(authorizations != null, "authorizations is null");
-    this.auths = new HashSet<>(authorizations.size());
-    this.authsList = new ArrayList<>(authorizations.size());
-    for (byte[] auth : authorizations)
+    Pair<Set<ByteSequence>,List<byte[]>> collections =
+        createInternalCollections(authorizations.size());
+    this.auths = collections.getFirst();
+    this.authsList = collections.getSecond();
+    for (byte[] auth : authorizations) {
       auths.add(new ArrayByteSequence(auth));
+    }
     checkAuths();
   }
 
@@ -132,8 +147,10 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    */
   public Authorizations(List<ByteBuffer> authorizations) {
     checkArgument(authorizations != null, "authorizations is null");
-    this.auths = new HashSet<>(authorizations.size());
-    this.authsList = new ArrayList<>(authorizations.size());
+    Pair<Set<ByteSequence>,List<byte[]>> collections =
+        createInternalCollections(authorizations.size());
+    this.auths = collections.getFirst();
+    this.authsList = collections.getSecond();
     for (ByteBuffer buffer : authorizations) {
       auths.add(new ArrayByteSequence(ByteBufferUtil.toBytes(buffer)));
     }
@@ -162,8 +179,9 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
       authsString = authsString.substring(HEADER.length());
       String[] parts = authsString.split(",");
 
-      this.auths = new HashSet<>(parts.length);
-      this.authsList = new ArrayList<>(parts.length);
+      Pair<Set<ByteSequence>,List<byte[]>> collections = createInternalCollections(parts.length);
+      this.auths = collections.getFirst();
+      this.authsList = collections.getSecond();
       if (authsString.length() > 0) {
         for (String encAuth : parts) {
           byte[] auth = Base64.getDecoder().decode(encAuth.getBytes(UTF_8));
@@ -175,12 +193,13 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
       // it's the old format
       if (authorizations.length > 0) {
         String[] parts = authsString.split(",");
-        this.auths = new HashSet<>(parts.length);
-        this.authsList = new ArrayList<>(parts.length);
+        Pair<Set<ByteSequence>,List<byte[]>> collections = createInternalCollections(parts.length);
+        this.auths = collections.getFirst();
+        this.authsList = collections.getSecond();
         setAuthorizations(parts);
       } else {
-        this.auths = new HashSet<>(0);
-        this.authsList = new ArrayList<>(0);
+        this.auths = EMPTY_INTERNAL_COLLECTIONS.getFirst();
+        this.authsList = EMPTY_INTERNAL_COLLECTIONS.getSecond();
       }
     }
   }
@@ -191,8 +210,8 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * @see #Authorizations(String...)
    */
   public Authorizations() {
-    this.auths = new HashSet<>(0);
-    this.authsList = new ArrayList<>(0);
+    this.auths = EMPTY_INTERNAL_COLLECTIONS.getFirst();
+    this.authsList = EMPTY_INTERNAL_COLLECTIONS.getSecond();
   }
 
   /**
@@ -204,8 +223,11 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    *           if authorizations is null
    */
   public Authorizations(String... authorizations) {
-    this.auths = new HashSet<>(authorizations.length);
-    this.authsList = new ArrayList<>(authorizations.length);
+    checkArgument(authorizations != null, "authorizations is null");
+    Pair<Set<ByteSequence>,List<byte[]>> collections =
+        createInternalCollections(authorizations.length);
+    this.auths = collections.getFirst();
+    this.authsList = collections.getSecond();
     setAuthorizations(authorizations);
   }
 
