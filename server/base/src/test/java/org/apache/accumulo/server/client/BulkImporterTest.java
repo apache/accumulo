@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -147,25 +148,25 @@ public class BulkImporterTest {
       List<TabletLocation> overlaps =
           BulkImporter.findOverlappingTablets(context, vm, locator, new Path(file), null, null, cs);
       assertEquals(5, overlaps.size());
-      Collections.sort(overlaps);
-      assertEquals(new KeyExtent(tableId, new Text("a"), null), overlaps.get(0).tablet_extent);
+      Collections.sort(overlaps, Comparator.comparing(tl -> tl.getExtent()));
+      assertEquals(new KeyExtent(tableId, new Text("a"), null), overlaps.get(0).getExtent());
       assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
-          overlaps.get(1).tablet_extent);
+          overlaps.get(1).getExtent());
       assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")),
-          overlaps.get(2).tablet_extent);
+          overlaps.get(2).getExtent());
       assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")),
-          overlaps.get(3).tablet_extent);
-      assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).tablet_extent);
+          overlaps.get(3).getExtent());
+      assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).getExtent());
 
       List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(context, vm, locator,
           new Path(file), new KeyExtent(tableId, new Text("h"), new Text("b")), cs);
       assertEquals(3, overlaps2.size());
       assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
-          overlaps2.get(0).tablet_extent);
+          overlaps2.get(0).getExtent());
       assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")),
-          overlaps2.get(1).tablet_extent);
+          overlaps2.get(1).getExtent());
       assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")),
-          overlaps2.get(2).tablet_extent);
+          overlaps2.get(2).getExtent());
       assertEquals(locator.invalidated, 1);
     }
   }

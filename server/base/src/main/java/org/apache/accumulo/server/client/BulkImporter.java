@@ -340,7 +340,7 @@ public class BulkImporter {
   private static List<KeyExtent> extentsOf(List<TabletLocation> locations) {
     List<KeyExtent> result = new ArrayList<>(locations.size());
     for (TabletLocation tl : locations) {
-      result.add(tl.tablet_extent);
+      result.add(tl.getExtent());
     }
     return result;
   }
@@ -374,7 +374,7 @@ public class BulkImporter {
         // need to estimate its
         // size
         ais.put(entry.getKey(), Collections.singletonList(
-            new AssignmentInfo(tabletLocation.tablet_extent, mapFileSizes.get(entry.getKey()))));
+            new AssignmentInfo(tabletLocation.getExtent(), mapFileSizes.get(entry.getKey()))));
         continue;
       }
 
@@ -398,7 +398,7 @@ public class BulkImporter {
           long estSize =
               (long) (mapFileSizes.get(entry.getKey()) / (double) entry.getValue().size());
           for (TabletLocation tl : entry.getValue()) {
-            estimatedSizes.put(tl.tablet_extent, estSize);
+            estimatedSizes.put(tl.getExtent(), estSize);
           }
         }
 
@@ -437,7 +437,7 @@ public class BulkImporter {
     Map<KeyExtent,String> result = new HashMap<>();
     for (List<TabletLocation> entry : assignments.values()) {
       for (TabletLocation tl : entry) {
-        result.put(tl.tablet_extent, tl.tablet_location);
+        result.put(tl.getExtent(), tl.getTserverLocation());
       }
     }
     return result;
@@ -669,7 +669,7 @@ public class BulkImporter {
         TabletLocation tabletLocation = locator.locateTablet(context, row, false, true);
         // log.debug(filename + " found row " + row + " at location " + tabletLocation);
         result.add(tabletLocation);
-        row = tabletLocation.tablet_extent.endRow();
+        row = tabletLocation.getExtent().endRow();
         if (row != null && (endRow == null || row.compareTo(endRow) < 0)) {
           row = new Text(row);
           row.append(byte0, 0, byte0.length);
@@ -697,9 +697,9 @@ public class BulkImporter {
       for (Entry<Path,List<TabletLocation>> entry : assignments.entrySet()) {
         for (TabletLocation tl : entry.getValue()) {
 
-          Integer count = getCount(tl.tablet_extent);
+          Integer count = getCount(tl.getExtent());
 
-          counts.put(tl.tablet_extent, count + 1);
+          counts.put(tl.getExtent(), count + 1);
         }
       }
     }

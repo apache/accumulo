@@ -50,6 +50,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * EVENTUAL means that the scanner may not see the latest data that was written to a TabletServer,
    * but may instead see an older version of data.
    *
+   * @since 2.1.0
    */
   enum ConsistencyLevel {
     IMMEDIATE, EVENTUAL
