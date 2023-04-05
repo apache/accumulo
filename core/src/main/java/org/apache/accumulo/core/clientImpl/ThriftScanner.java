@@ -207,7 +207,7 @@ public class ThriftScanner {
 
     @Override
     public int hashCode() {
-      throw new UnsupportedOperationException();
+      return Objects.hash(serverAddress, serverType, tabletInfo);
     }
   }
 
