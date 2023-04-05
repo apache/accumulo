@@ -135,10 +135,6 @@ public class MetadataTableUtil {
         new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
   }
 
-  private static void update(ServerContext context, Mutation m, KeyExtent extent) {
-    update(context, null, m, extent);
-  }
-
   public static void update(ServerContext context, ServiceLock zooLock, Mutation m,
       KeyExtent extent) {
     Writer t = extent.isMeta() ? getRootTable(context) : getMetadataTable(context);
