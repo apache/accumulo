@@ -41,9 +41,11 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 public class Authorizations implements Iterable<byte[]>, Serializable, AuthorizationContainer {
 
   private static final long serialVersionUID = 1L;
+  private static final Set<ByteSequence> EMPTY_AUTH_SET = Collections.emptySet();
+  private static final List<byte[]> EMPTY_AUTH_LIST = Collections.emptyList();
 
-  private Set<ByteSequence> auths = new HashSet<>();
-  private List<byte[]> authsList = new ArrayList<>(); // sorted order
+  private final Set<ByteSequence> auths;
+  private final List<byte[]> authsList; // sorted order
 
   /**
    * An empty set of authorizations.
@@ -99,6 +101,23 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     }
   }
 
+  private static Set<ByteSequence> createInternalSet(int size) {
+    if (size < 1) {
+      return EMPTY_AUTH_SET;
+    } else {
+      return new HashSet<>(size);
+    }
+  }
+
+  private static List<byte[]> createInternalList(int size) {
+    if (size < 1) {
+      return EMPTY_AUTH_LIST;
+    } else {
+      return new ArrayList<>(size);
+    }
+
+  }
+
   /**
    * Constructs an authorization object from a collection of string authorizations that have each
    * already been encoded as UTF-8 bytes. Warning: This method does not verify that each encoded
@@ -112,8 +131,11 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    */
   public Authorizations(Collection<byte[]> authorizations) {
     checkArgument(authorizations != null, "authorizations is null");
-    for (byte[] auth : authorizations)
+    this.auths = createInternalSet(authorizations.size());
+    this.authsList = createInternalList(authorizations.size());
+    for (byte[] auth : authorizations) {
       auths.add(new ArrayByteSequence(auth));
+    }
     checkAuths();
   }
 
@@ -130,6 +152,8 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    */
   public Authorizations(List<ByteBuffer> authorizations) {
     checkArgument(authorizations != null, "authorizations is null");
+    this.auths = createInternalSet(authorizations.size());
+    this.authsList = createInternalList(authorizations.size());
     for (ByteBuffer buffer : authorizations) {
       auths.add(new ArrayByteSequence(ByteBufferUtil.toBytes(buffer)));
     }
@@ -152,11 +176,16 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     checkArgument(authorizations != null, "authorizations is null");
 
     String authsString = new String(authorizations, UTF_8);
+
     if (authsString.startsWith(HEADER)) {
       // it's the new format
       authsString = authsString.substring(HEADER.length());
+      String[] parts = authsString.split(",");
+
+      this.auths = createInternalSet(parts.length);
+      this.authsList = createInternalList(parts.length);
       if (authsString.length() > 0) {
-        for (String encAuth : authsString.split(",")) {
+        for (String encAuth : parts) {
           byte[] auth = Base64.getDecoder().decode(encAuth.getBytes(UTF_8));
           auths.add(new ArrayByteSequence(auth));
         }
@@ -164,8 +193,15 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
       }
     } else {
       // it's the old format
-      if (authorizations.length > 0)
-        setAuthorizations(authsString.split(","));
+      if (authorizations.length > 0) {
+        String[] parts = authsString.split(",");
+        this.auths = createInternalSet(parts.length);
+        this.authsList = createInternalList(parts.length);
+        setAuthorizations(parts);
+      } else {
+        this.auths = EMPTY_AUTH_SET;
+        this.authsList = EMPTY_AUTH_LIST;
+      }
     }
   }
 
@@ -174,7 +210,10 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    *
    * @see #Authorizations(String...)
    */
-  public Authorizations() {}
+  public Authorizations() {
+    this.auths = EMPTY_AUTH_SET;
+    this.authsList = EMPTY_AUTH_LIST;
+  }
 
   /**
    * Constructs an authorizations object from a set of human-readable authorizations.
@@ -185,6 +224,9 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    *           if authorizations is null
    */
   public Authorizations(String... authorizations) {
+    checkArgument(authorizations != null, "authorizations is null");
+    this.auths = createInternalSet(authorizations.length);
+    this.authsList = createInternalList(authorizations.length);
     setAuthorizations(authorizations);
   }
 
