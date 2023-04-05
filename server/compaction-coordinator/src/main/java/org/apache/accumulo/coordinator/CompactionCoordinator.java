@@ -22,6 +22,8 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -95,6 +98,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.Uninterruptibles;
 
 public class CompactionCoordinator extends AbstractServer
     implements CompactionCoordinatorService.Iface, LiveTServerSet.Listener {
@@ -130,7 +134,8 @@ public class CompactionCoordinator extends AbstractServer
   // Exposed for tests
   protected volatile Boolean shutdown = false;
 
-  private ScheduledThreadPoolExecutor schedExecutor;
+  private final ScheduledThreadPoolExecutor schedExecutor;
+  private final ExecutorService summariesExecutor;
 
   protected CompactionCoordinator(ConfigOpts opts, String[] args) {
     this(opts, args, null);
@@ -140,6 +145,8 @@ public class CompactionCoordinator extends AbstractServer
     super("compaction-coordinator", opts, args);
     aconf = conf == null ? super.getConfiguration() : conf;
     schedExecutor = ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
+    summariesExecutor = ThreadPools.getServerThreadPools().createFixedThreadPool(10,
+        "Compaction Summary Gatherer", false);
     compactionFinalizer = createCompactionFinalizer(schedExecutor);
     tserverSet = createLiveTServerSet();
     setupSecurity();
@@ -311,39 +318,39 @@ public class CompactionCoordinator extends AbstractServer
       }
     }
 
+    summariesExecutor.shutdownNow();
     LOG.info("Shutting down");
   }
 
   private void updateSummaries() {
-    ExecutorService executor = ThreadPools.getServerThreadPools().createFixedThreadPool(10,
-        "Compaction Summary Gatherer", false);
-    try {
-      Set<String> queuesSeen = new ConcurrentSkipListSet<>();
 
-      tserverSet.getCurrentServers().forEach(tsi -> {
-        executor.execute(() -> updateSummaries(tsi, queuesSeen));
-      });
+    final ArrayList<Future<?>> tasks = new ArrayList<>();
+    Set<String> queuesSeen = new ConcurrentSkipListSet<>();
 
-      executor.shutdown();
+    tserverSet.getCurrentServers().forEach(tsi -> {
+      tasks.add(summariesExecutor.submit(() -> updateSummaries(tsi, queuesSeen)));
+    });
 
-      try {
-        while (!executor.awaitTermination(1, TimeUnit.MINUTES)) {}
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
+    // Wait for all tasks to complete
+    while (!tasks.isEmpty()) {
+      Iterator<Future<?>> iter = tasks.iterator();
+      while (iter.hasNext()) {
+        Future<?> f = iter.next();
+        if (f.isDone()) {
+          iter.remove();
+        }
       }
-
-      // remove any queues that were seen in the past, but were not seen in the latest gathering of
-      // summaries
-      TIME_COMPACTOR_LAST_CHECKED.keySet().retainAll(queuesSeen);
-
-      // add any queues that were never seen before
-      queuesSeen.forEach(q -> {
-        TIME_COMPACTOR_LAST_CHECKED.computeIfAbsent(q, k -> System.currentTimeMillis());
-      });
-    } finally {
-      executor.shutdownNow();
+      Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
+
+    // remove any queues that were seen in the past, but were not seen in the latest gathering of
+    // summaries
+    TIME_COMPACTOR_LAST_CHECKED.keySet().retainAll(queuesSeen);
+
+    // add any queues that were never seen before
+    queuesSeen.forEach(q -> {
+      TIME_COMPACTOR_LAST_CHECKED.computeIfAbsent(q, k -> System.currentTimeMillis());
+    });
   }
 
   private void updateSummaries(TServerInstance tsi, Set<String> queuesSeen) {

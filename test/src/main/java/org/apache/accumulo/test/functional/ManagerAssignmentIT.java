@@ -72,7 +72,7 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
 
       TabletLocationState flushed = getTabletLocationState(c, tableId);
       assertEquals(newTablet.current, flushed.current);
-      assertEquals(flushed.current, flushed.last);
+      assertEquals(flushed.getCurrentServer(), flushed.getLastServer());
       assertNull(newTablet.future);
 
       // take the tablet offline
@@ -80,14 +80,14 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
       TabletLocationState offline = getTabletLocationState(c, tableId);
       assertNull(offline.future);
       assertNull(offline.current);
-      assertEquals(flushed.current, offline.last);
+      assertEquals(flushed.getCurrentServer(), offline.getLastServer());
 
       // put it back online
       c.tableOperations().online(tableName, true);
       TabletLocationState online = getTabletLocationState(c, tableId);
       assertNull(online.future);
       assertNotNull(online.current);
-      assertEquals(online.current, online.last);
+      assertEquals(online.getCurrentServer(), online.getLastServer());
     }
   }
 

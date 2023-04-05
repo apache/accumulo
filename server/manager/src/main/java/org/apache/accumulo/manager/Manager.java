@@ -157,6 +157,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.RateLimiter;
+import com.google.common.util.concurrent.Uninterruptibles;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
@@ -223,6 +224,8 @@ public class Manager extends AbstractServer
 
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
   private final AtomicBoolean managerUpgrading = new AtomicBoolean(false);
+
+  private ExecutorService tableInformationStatusPool = null;
 
   @Override
   public synchronized ManagerState getManagerState() {
@@ -629,7 +632,7 @@ public class Manager extends AbstractServer
         return TabletGoalState.UNASSIGNED;
       }
 
-      if (tls.current != null && serversToShutdown.contains(tls.current)) {
+      if (tls.current != null && serversToShutdown.contains(tls.current.getServerInstance())) {
         return TabletGoalState.SUSPENDED;
       }
       // Handle merge transitions
@@ -670,7 +673,7 @@ public class Manager extends AbstractServer
       if (state == TabletGoalState.HOSTED) {
         // Maybe this tablet needs to be migrated
         TServerInstance dest = migrations.get(extent);
-        if (dest != null && tls.current != null && !dest.equals(tls.current)) {
+        if (dest != null && tls.current != null && !dest.equals(tls.current.getServerInstance())) {
           return TabletGoalState.UNASSIGNED;
         }
       }
@@ -958,11 +961,10 @@ public class Manager extends AbstractServer
       Set<TServerInstance> currentServers, SortedMap<TabletServerId,TServerStatus> balancerMap) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     int threads = getConfiguration().getCount(Property.MANAGER_STATUS_THREAD_POOL_SIZE);
-    ExecutorService tp = ThreadPools.getServerThreadPools()
-        .createExecutorService(getConfiguration(), Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
+    final ArrayList<Future<?>> tasks = new ArrayList<>();
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
       if (threads == 0) {
@@ -971,7 +973,7 @@ public class Manager extends AbstractServer
         // unresponsive tservers.
         sleepUninterruptibly(Math.max(1, rpcTimeout / 120_000), MILLISECONDS);
       }
-      tp.execute(() -> {
+      tasks.add(tableInformationStatusPool.submit(() -> {
         try {
           Thread t = Thread.currentThread();
           String oldName = t.getName();
@@ -1020,16 +1022,27 @@ public class Manager extends AbstractServer
             badServers.remove(server);
           }
         }
-      });
+      }));
     }
-    tp.shutdown();
-    try {
-      tp.awaitTermination(Math.max(10000, rpcTimeout / 3), MILLISECONDS);
-    } catch (InterruptedException e) {
-      log.debug("Interrupted while fetching status");
+    // wait at least 10 seconds
+    final long nanosToWait = Math.max(SECONDS.toNanos(10), MILLISECONDS.toNanos(rpcTimeout) / 3);
+    final long startTime = System.nanoTime();
+    // Wait for all tasks to complete
+    while (!tasks.isEmpty()) {
+      boolean cancel = ((System.nanoTime() - startTime) > nanosToWait);
+      Iterator<Future<?>> iter = tasks.iterator();
+      while (iter.hasNext()) {
+        Future<?> f = iter.next();
+        if (cancel) {
+          f.cancel(true);
+        } else {
+          if (f.isDone()) {
+            iter.remove();
+          }
+        }
+      }
+      Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
     }
-
-    tp.shutdownNow();
 
     // Threads may still modify map after shutdownNow is called, so create an immutable snapshot.
     SortedMap<TServerInstance,TabletServerStatus> info = ImmutableSortedMap.copyOf(result);
@@ -1104,6 +1117,9 @@ public class Manager extends AbstractServer
     recoveryManager = new RecoveryManager(this, TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE);
 
     context.getTableManager().addObserver(this);
+
+    tableInformationStatusPool = ThreadPools.getServerThreadPools()
+        .createExecutorService(getConfiguration(), Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
 
     Thread statusThread = Threads.createThread("Status Thread", new StatusThread());
     statusThread.start();
@@ -1188,8 +1204,7 @@ public class Manager extends AbstractServer
               context.getZooReaderWriter()),
           HOURS.toMillis(8), System::currentTimeMillis);
 
-      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString);
-      f.startTransactionRunners(getConfiguration());
+      Fate<Manager> f = new Fate<>(this, store, TraceRepo::toLogString, getConfiguration());
       fateRef.set(f);
       fateReadyLatch.countDown();
 
@@ -1260,6 +1275,8 @@ public class Manager extends AbstractServer
     } catch (InterruptedException e) {
       throw new IllegalStateException("Exception stopping status thread", e);
     }
+
+    tableInformationStatusPool.shutdownNow();
 
     // Signal that we want it to stop, and wait for it to do so.
     if (authenticationTokenKeyManager != null) {

@@ -170,7 +170,7 @@ public class TabletLocatorImplTest {
 
     for (Entry<KeyExtent,TabletLocation> entry : mcke.entrySet()) {
       setLocation(tservers, metaTabLoc, METADATA_TABLE_EXTENT, entry.getKey(),
-          entry.getValue().tablet_location);
+          entry.getValue().getTserverLocation());
     }
 
     return tab1TabletCache;
@@ -236,7 +236,7 @@ public class TabletLocatorImplTest {
 
     HashSet<KeyExtent> eic = new HashSet<>();
     for (TabletLocation tl : metaCache.values()) {
-      eic.add(tl.tablet_extent);
+      eic.add(tl.getExtent());
     }
 
     assertEquals(expected, eic);
@@ -485,22 +485,22 @@ public class TabletLocatorImplTest {
     public TabletLocations lookupTablet(ClientContext context, TabletLocation src, Text row,
         Text stopRow, TabletLocator parent) {
 
-      Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.get(src.tablet_location);
+      Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.get(src.getTserverLocation());
 
       if (tablets == null) {
-        parent.invalidateCache(context, src.tablet_location);
+        parent.invalidateCache(context, src.getTserverLocation());
         return null;
       }
 
-      SortedMap<Key,Value> tabletData = tablets.get(src.tablet_extent);
+      SortedMap<Key,Value> tabletData = tablets.get(src.getExtent());
 
       if (tabletData == null) {
-        parent.invalidateCache(src.tablet_extent);
+        parent.invalidateCache(src.getExtent());
         return null;
       }
 
       // the following clip is done on a tablet, do it here to see if it throws exceptions
-      src.tablet_extent.toDataRange().clip(new Range(row, true, stopRow, true));
+      src.getExtent().toDataRange().clip(new Range(row, true, stopRow, true));
 
       Key startKey = new Key(row);
       Key stopKey = new Key(stopRow).followingKey(PartialKey.ROW);
@@ -661,8 +661,8 @@ public class TabletLocatorImplTest {
       assertNull(tl);
     } else {
       assertNotNull(tl);
-      assertEquals(server, tl.tablet_location);
-      assertEquals(expected, tl.tablet_extent);
+      assertEquals(server, tl.getTserverLocation());
+      assertEquals(expected, tl.getExtent());
     }
   }
 
