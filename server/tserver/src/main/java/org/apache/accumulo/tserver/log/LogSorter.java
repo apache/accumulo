@@ -61,8 +61,8 @@ public class LogSorter {
   VolumeManager fs;
   AccumuloConfiguration conf;
 
-  private final Map<String,LogProcessor> currentWork =
-      Collections.synchronizedMap(new HashMap<String,LogProcessor>());
+  // access must synchronize on currentWork to guard against concurrent updates
+  private final Map<String,LogProcessor> currentWork = new HashMap<>();
 
   class LogProcessor implements Processor {
 
