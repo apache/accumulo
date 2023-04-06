@@ -437,7 +437,7 @@ public class BulkImporter {
     Map<KeyExtent,String> result = new HashMap<>();
     for (List<TabletLocation> entry : assignments.values()) {
       for (TabletLocation tl : entry) {
-        result.put(tl.getExtent(), tl.getTserverLocation());
+        result.put(tl.getExtent(), tl.getTserverLocation().get());
       }
     }
     return result;
@@ -666,7 +666,8 @@ public class BulkImporter {
           break;
         }
         row = reader.getTopKey().getRow();
-        TabletLocation tabletLocation = locator.locateTablet(context, row, false, true);
+        TabletLocation tabletLocation =
+            locator.locateTabletWithRetry(context, row, false, TabletLocator.HostingNeed.HOSTED);
         // log.debug(filename + " found row " + row + " at location " + tabletLocation);
         result.add(tabletLocation);
         row = tabletLocation.getExtent().endRow();

@@ -18,10 +18,9 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,6 +38,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -50,9 +50,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.OpTimer;
@@ -62,6 +59,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -100,6 +100,9 @@ public class TabletLocatorImpl extends TabletLocator {
   private final Lock wLock = rwLock.writeLock();
   private final AtomicLong onDemandTabletsOnlinedCount = new AtomicLong(0);
 
+  private final Cache<KeyExtent,Long> recentOndemandRequest =
+      Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build();
+
   public interface TabletLocationObtainer {
     /**
      * @return null when unable to read information successfully
@@ -134,7 +137,12 @@ public class TabletLocatorImpl extends TabletLocator {
         return null;
       }
 
-      Pair<String,String> lock = new Pair<>(tl.getTserverLocation(), tl.getTserverSession());
+      if (tl.getTserverLocation().isEmpty()) {
+        return tl;
+      }
+
+      Pair<String,String> lock =
+          new Pair<>(tl.getTserverLocation().get(), tl.getTserverSession().get());
 
       if (okLocks.contains(lock)) {
         return tl;
@@ -144,7 +152,7 @@ public class TabletLocatorImpl extends TabletLocator {
         return null;
       }
 
-      if (lockChecker.isLockHeld(tl.getTserverLocation(), tl.getTserverSession())) {
+      if (lockChecker.isLockHeld(tl.getTserverLocation().get(), tl.getTserverSession().get())) {
         okLocks.add(lock);
         return tl;
       }
@@ -204,7 +212,7 @@ public class TabletLocatorImpl extends TabletLocator {
       for (T mutation : mutations) {
         row.set(mutation.getRow());
         TabletLocation tl = locateTabletInCache(row);
-        if (tl == null || !addMutation(binnedMutations, mutation, tl, lcSession)) {
+        if (!addMutation(binnedMutations, mutation, tl, lcSession)) {
           notInCache.add(mutation);
         }
       }
@@ -212,35 +220,34 @@ public class TabletLocatorImpl extends TabletLocator {
       rLock.unlock();
     }
 
+    List<KeyExtent> locationLess = new ArrayList<>();
+
     if (!notInCache.isEmpty()) {
       notInCache.sort((o1, o2) -> WritableComparator.compareBytes(o1.getRow(), 0,
           o1.getRow().length, o2.getRow(), 0, o2.getRow().length));
 
       wLock.lock();
       try {
-        boolean failed = false;
         for (T mutation : notInCache) {
-          if (failed) {
-            // when one table does not return a location, something is probably
-            // screwy, go ahead and fail everything.
-            failures.add(mutation);
-            continue;
-          }
 
           row.set(mutation.getRow());
 
-          TabletLocation tl = _locateTablet(context, row, false, false, false, lcSession);
+          TabletLocation tl =
+              _locateTablet(context, row, false, false, false, lcSession, HostingNeed.HOSTED);
 
-          if (tl == null || !addMutation(binnedMutations, mutation, tl, lcSession)) {
-            bringOnDemandTabletsOnline(context, new Range(row));
+          if (!addMutation(binnedMutations, mutation, tl, lcSession)) {
             failures.add(mutation);
-            failed = true;
+            if (tl != null && tl.getTserverLocation().isEmpty()) {
+              locationLess.add(tl.getExtent());
+            }
           }
         }
       } finally {
         wLock.unlock();
       }
     }
+
+    bringOnDemandTabletsOnline(context, locationLess);
 
     if (timer != null) {
       timer.stop();
@@ -254,21 +261,26 @@ public class TabletLocatorImpl extends TabletLocator {
   private <T extends Mutation> boolean addMutation(
       Map<String,TabletServerMutations<T>> binnedMutations, T mutation, TabletLocation tl,
       LockCheckerSession lcSession) {
-    TabletServerMutations<T> tsm = binnedMutations.get(tl.getTserverLocation());
+
+    if (tl == null || tl.getTserverLocation().isEmpty()) {
+      return false;
+    }
+
+    TabletServerMutations<T> tsm = binnedMutations.get(tl.getTserverLocation().get());
 
     if (tsm == null) {
       // do lock check once per tserver here to make binning faster
       boolean lockHeld = lcSession.checkLock(tl) != null;
       if (lockHeld) {
-        tsm = new TabletServerMutations<>(tl.getTserverSession());
-        binnedMutations.put(tl.getTserverLocation(), tsm);
+        tsm = new TabletServerMutations<>(tl.getTserverSession().get());
+        binnedMutations.put(tl.getTserverLocation().get(), tsm);
       } else {
         return false;
       }
     }
 
     // its possible the same tserver could be listed with different sessions
-    if (tsm.getSession().equals(tl.getTserverSession())) {
+    if (tsm.getSession().equals(tl.getTserverSession().get())) {
       tsm.addMutation(tl.getExtent(), mutation);
       return true;
     }
@@ -296,12 +308,11 @@ public class TabletLocatorImpl extends TabletLocator {
 
   private List<Range> locateTablets(ClientContext context, List<Range> ranges,
       BiConsumer<TabletLocation,Range> rangeConsumer, boolean useCache,
-      LockCheckerSession lcSession)
+      LockCheckerSession lcSession, HostingNeed hostingNeed,
+      Consumer<KeyExtent> locationlessConsumer)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     List<Range> failures = new ArrayList<>();
     List<TabletLocation> tabletLocations = new ArrayList<>();
-
-    boolean lookupFailed = false;
 
     l1: for (Range range : ranges) {
 
@@ -319,16 +330,12 @@ public class TabletLocatorImpl extends TabletLocator {
 
       if (useCache) {
         tl = lcSession.checkLock(locateTabletInCache(startRow));
-      } else if (!lookupFailed) {
-        tl = _locateTablet(context, startRow, false, false, false, lcSession);
+      } else {
+        tl = _locateTablet(context, startRow, false, false, false, lcSession, hostingNeed);
       }
 
       if (tl == null) {
-        bringOnDemandTabletsOnline(context, range);
         failures.add(range);
-        if (!useCache) {
-          lookupFailed = true;
-        }
         continue;
       }
 
@@ -341,17 +348,25 @@ public class TabletLocatorImpl extends TabletLocator {
           row.append(new byte[] {0}, 0, 1);
           tl = lcSession.checkLock(locateTabletInCache(row));
         } else {
-          tl = _locateTablet(context, tl.getExtent().endRow(), true, false, false, lcSession);
+          tl = _locateTablet(context, tl.getExtent().endRow(), true, false, false, lcSession,
+              hostingNeed);
         }
 
         if (tl == null) {
           failures.add(range);
-          if (!useCache) {
-            lookupFailed = true;
-          }
           continue l1;
         }
         tabletLocations.add(tl);
+      }
+
+      // pass all tablets without a location before failing range
+      tabletLocations.stream().filter(tloc -> tloc.getTserverLocation().isEmpty())
+          .map(TabletLocation::getExtent).forEach(locationlessConsumer);
+
+      if (hostingNeed == HostingNeed.HOSTED
+          && !tabletLocations.stream().allMatch(tloc -> tloc.getTserverLocation().isPresent())) {
+        failures.add(range);
+        continue;
       }
 
       // Ensure the extents found are non overlapping and have no holes. When reading some extents
@@ -364,9 +379,6 @@ public class TabletLocatorImpl extends TabletLocator {
         }
       } else {
         failures.add(range);
-        if (!useCache) {
-          lookupFailed = true;
-        }
       }
 
     }
@@ -376,7 +388,7 @@ public class TabletLocatorImpl extends TabletLocator {
 
   @Override
   public List<Range> locateTablets(ClientContext context, List<Range> ranges,
-      BiConsumer<TabletLocation,Range> rangeConsumer)
+      BiConsumer<TabletLocation,Range> rangeConsumer, HostingNeed hostingNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     /*
@@ -404,7 +416,8 @@ public class TabletLocatorImpl extends TabletLocator {
       // sort ranges... therefore try binning ranges using only the cache
       // and sort whatever fails and retry
 
-      failures = locateTablets(context, ranges, rangeConsumer, true, lcSession);
+      failures = locateTablets(context, ranges, rangeConsumer, true, lcSession, hostingNeed,
+          keyExtent -> {});
     } finally {
       rLock.unlock();
     }
@@ -413,13 +426,28 @@ public class TabletLocatorImpl extends TabletLocator {
       // sort failures by range start key
       Collections.sort(failures);
 
+      // use a hashset because some ranges may overlap the same extent, so want to avoid duplicate
+      // extents
+      HashSet<KeyExtent> locationLess = new HashSet<>();
+      Consumer<KeyExtent> locationLessConsumer;
+      if (hostingNeed == HostingNeed.HOSTED) {
+        locationLessConsumer = locationLess::add;
+      } else {
+        locationLessConsumer = keyExtent -> {};
+      }
+
       // try lookups again
       wLock.lock();
       try {
-        failures = locateTablets(context, failures, rangeConsumer, false, lcSession);
+
+        failures = locateTablets(context, failures, rangeConsumer, false, lcSession, hostingNeed,
+            locationLessConsumer);
       } finally {
         wLock.unlock();
       }
+
+      bringOnDemandTabletsOnline(context, locationLess);
+
     }
 
     if (timer != null) {
@@ -464,7 +492,8 @@ public class TabletLocatorImpl extends TabletLocator {
     wLock.lock();
     try {
       for (TabletLocation cacheEntry : metaCache.values()) {
-        if (cacheEntry.getTserverLocation().equals(server)) {
+        var loc = cacheEntry.getTserverLocation();
+        if (loc.isPresent() && loc.get().equals(server)) {
           badExtents.add(cacheEntry.getExtent());
           invalidatedCount++;
         }
@@ -500,45 +529,34 @@ public class TabletLocatorImpl extends TabletLocator {
 
   @Override
   public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-      boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      HostingNeed hostingNeed)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     OpTimer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Locating tablet  table={} row={} skipRow={} retry={}",
-          Thread.currentThread().getId(), tableId, TextUtil.truncate(row), skipRow, retry);
+      log.trace("tid={} Locating tablet  table={} row={} skipRow={}",
+          Thread.currentThread().getId(), tableId, TextUtil.truncate(row), skipRow);
       timer = new OpTimer().start();
     }
 
-    boolean alreadyMarkedOnDemand = false;
-    while (true) {
+    LockCheckerSession lcSession = new LockCheckerSession();
+    TabletLocation tl = _locateTablet(context, row, skipRow, false, true, lcSession, hostingNeed);
 
-      LockCheckerSession lcSession = new LockCheckerSession();
-      TabletLocation tl = _locateTablet(context, row, skipRow, retry, true, lcSession);
-
-      if (tl == null && !alreadyMarkedOnDemand) {
-        bringOnDemandTabletsOnline(context, new Range(row));
-        alreadyMarkedOnDemand = true;
-      }
-
-      if (retry && tl == null) {
-        sleepUninterruptibly(100, MILLISECONDS);
-        if (log.isTraceEnabled()) {
-          log.trace("Failed to locate tablet containing row {} in table {}, will retry...",
-              TextUtil.truncate(row), tableId);
-        }
-        continue;
-      }
-
-      if (timer != null) {
-        timer.stop();
-        log.trace("tid={} Located tablet {} at {} in {}", Thread.currentThread().getId(),
-            (tl == null ? "null" : tl.getExtent()), (tl == null ? "null" : tl.getTserverLocation()),
-            String.format("%.3f secs", timer.scale(SECONDS)));
-      }
-
-      return tl;
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Located tablet {} at {} in {}", Thread.currentThread().getId(),
+          (tl == null ? "null" : tl.getExtent()), (tl == null ? "null" : tl.getTserverLocation()),
+          String.format("%.3f secs", timer.scale(SECONDS)));
     }
+
+    if (tl != null && hostingNeed == HostingNeed.HOSTED && tl.getTserverLocation().isEmpty()) {
+      bringOnDemandTabletsOnline(context, List.of(tl.getExtent()));
+      return null;
+    }
+
+    return tl;
+
   }
 
   @Override
@@ -546,12 +564,19 @@ public class TabletLocatorImpl extends TabletLocator {
     return onDemandTabletsOnlinedCount.get();
   }
 
-  private void bringOnDemandTabletsOnline(ClientContext context, Range range)
+  private void bringOnDemandTabletsOnline(ClientContext context,
+      Collection<KeyExtent> extentsToBringOnline)
       throws AccumuloException, AccumuloSecurityException {
+
+    if (extentsToBringOnline.isEmpty()) {
+      return;
+    }
 
     // Confirm that table is in an on-demand state. Don't throw an exception
     // if the table is not found, calling code will already handle it.
     try {
+      // ELASTICITY_TODO should use tableId only if possible to avoid race conditions, not
+      // tableId->tableName->tableId
       String tableName = context.getTableName(tableId);
       if (!context.tableOperations().isOnDemand(tableName)) {
         log.trace("bringOnDemandTabletsOnline: table {} is not in ondemand state", tableId);
@@ -562,50 +587,19 @@ public class TabletLocatorImpl extends TabletLocator {
       return;
     }
 
-    final Text scanRangeStart = range.getStartKey().getRow();
-    final Text scanRangeEnd = range.getEndKey().getRow();
-    // Turn the scan range into a KeyExtent and bring online all ondemand tablets
-    // that are overlapped by the scan range
-    final KeyExtent scanRangeKE = new KeyExtent(tableId, scanRangeEnd, scanRangeStart);
-
-    List<TKeyExtent> extentsToBringOnline = new ArrayList<>();
-
-    TabletsMetadata m = context.getAmple().readTablets().forTable(tableId)
-        .overlapping(scanRangeStart, true, null).build();
-    for (TabletMetadata tm : m) {
-      final KeyExtent tabletExtent = tm.getExtent();
-      log.trace("Evaluating tablet {} against range {}", tabletExtent, scanRangeKE);
-      if (tm.getEndRow() != null && tm.getEndRow().compareTo(scanRangeStart) < 0) {
-        // the end row of this tablet is before the start row, skip it
-        log.trace("tablet {} is before scan start range: {}", tabletExtent, scanRangeStart);
-        continue;
-      }
-      if (tm.getPrevEndRow() != null && tm.getPrevEndRow().compareTo(scanRangeEnd) > 0) {
-        // the start row of this tablet is after the scan range end row, skip it
-        log.trace("tablet {} is after scan end range: {}", tabletExtent, scanRangeEnd);
-        continue;
-      }
-      if (scanRangeKE.overlaps(tabletExtent)) {
-        if (!tm.getOnDemand()) {
-          Location loc = tm.getLocation();
-          if (loc != null) {
-            log.debug("tablet {} has location of: {}:{}", tabletExtent, loc.getType(),
-                loc.getHostPort());
-          }
-          extentsToBringOnline.add(tabletExtent.toThrift());
-        } else {
-          log.trace("Tablet {} already marked as onDemand, but not hosted yet", tabletExtent);
-        }
+    List<TKeyExtent> thriftExtents = new ArrayList<>();
+    for (var extent : extentsToBringOnline) {
+      if (recentOndemandRequest.asMap().putIfAbsent(extent, System.currentTimeMillis()) == null) {
+        thriftExtents.add(extent.toThrift());
+        log.debug("Marking tablet as onDemand: {}", extent);
       }
     }
-    if (extentsToBringOnline.isEmpty()) {
-      return;
-    }
-    log.debug("Marking tablets as onDemand: {}", extentsToBringOnline);
+
     ThriftClientTypes.TABLET_MGMT.executeVoid(context,
         client -> client.bringOnDemandTabletsOnline(TraceUtil.traceInfo(), context.rpcCreds(),
-            tableId.canonical(), extentsToBringOnline));
-    onDemandTabletsOnlinedCount.addAndGet(extentsToBringOnline.size());
+            tableId.canonical(), thriftExtents));
+
+    onDemandTabletsOnlinedCount.addAndGet(thriftExtents.size());
   }
 
   private void lookupTabletLocation(ClientContext context, Text row, boolean retry,
@@ -614,18 +608,17 @@ public class TabletLocatorImpl extends TabletLocator {
     Text metadataRow = new Text(tableId.canonical());
     metadataRow.append(new byte[] {';'}, 0, 1);
     metadataRow.append(row.getBytes(), 0, row.getLength());
-    TabletLocation ptl = parent.locateTablet(context, metadataRow, false, retry);
+    TabletLocation ptl = parent.locateTablet(context, metadataRow, false, HostingNeed.HOSTED);
 
     if (ptl != null) {
       TabletLocations locations =
           locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
-      while (locations != null && locations.getLocations().isEmpty()
-          && locations.getLocationless().isEmpty()) {
+      while (locations != null && locations.getLocations().isEmpty()) {
         // try the next tablet, the current tablet does not have any tablets that overlap the row
         Text er = ptl.getExtent().endRow();
         if (er != null && er.compareTo(lastTabletRow) < 0) {
           // System.out.println("er "+er+" ltr "+lastTabletRow);
-          ptl = parent.locateTablet(context, er, true, retry);
+          ptl = parent.locateTablet(context, er, true, HostingNeed.HOSTED);
           if (ptl != null) {
             locations =
                 locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
@@ -673,12 +666,6 @@ public class TabletLocatorImpl extends TabletLocator {
       // sanity check
       throw new IllegalStateException(
           "Unexpected extent returned " + tableId + "  " + tabletLocation.getExtent());
-    }
-
-    if (tabletLocation.getTserverLocation() == null) {
-      // sanity check
-      throw new IllegalStateException(
-          "Cannot add null locations to cache " + tableId + "  " + tabletLocation.getExtent());
     }
 
     // clear out any overlapping extents in cache
@@ -756,7 +743,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   protected TabletLocation _locateTablet(ClientContext context, Text row, boolean skipRow,
-      boolean retry, boolean lock, LockCheckerSession lcSession)
+      boolean retry, boolean lock, LockCheckerSession lcSession, HostingNeed hostingNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     if (skipRow) {
@@ -777,7 +764,7 @@ public class TabletLocatorImpl extends TabletLocator {
       tl = processInvalidatedAndCheckLock(context, lcSession, row);
     }
 
-    if (tl == null) {
+    if (tl == null || (hostingNeed == HostingNeed.HOSTED && tl.getTserverLocation().isEmpty())) {
       // not in cache, so obtain info
       if (lock) {
         wLock.lock();
@@ -839,7 +826,7 @@ public class TabletLocatorImpl extends TabletLocator {
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
       parent.locateTablets(context, lookups,
-          (cachedTablet, range) -> addRange(binnedRanges, cachedTablet, range));
+          (cachedTablet, range) -> addRange(binnedRanges, cachedTablet, range), HostingNeed.HOSTED);
 
       // randomize server order
       ArrayList<String> tabletServers = new ArrayList<>(binnedRanges.keySet());
@@ -863,8 +850,7 @@ public class TabletLocatorImpl extends TabletLocator {
 
   static void addRange(Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TabletLocation ct,
       Range range) {
-    binnedRanges.computeIfAbsent(ct.getTserverLocation(), k -> new HashMap<>())
+    binnedRanges.computeIfAbsent(ct.getTserverLocation().get(), k -> new HashMap<>())
         .computeIfAbsent(ct.getExtent(), k -> new ArrayList<>()).add(range);
   }
-
 }

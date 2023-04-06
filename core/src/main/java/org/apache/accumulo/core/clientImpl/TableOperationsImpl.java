@@ -91,6 +91,7 @@ import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
+import org.apache.accumulo.core.clientImpl.TabletLocator.HostingNeed;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
@@ -553,7 +554,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         attempt++;
 
-        TabletLocation tl = tabLocator.locateTablet(context, split, false, false);
+        TabletLocation tl = tabLocator.locateTablet(context, split, false, HostingNeed.HOSTED);
 
         if (tl == null) {
           context.requireTableExists(env.tableId, env.tableName);
@@ -561,7 +562,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           continue;
         }
 
-        HostAndPort address = HostAndPort.fromString(tl.getTserverLocation());
+        HostAndPort address = HostAndPort.fromString(tl.getTserverLocation().get());
 
         try {
           TabletManagementClientService.Client client =
@@ -608,7 +609,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           tabLocator.invalidateCache(tl.getExtent());
           continue;
         } catch (TException e) {
-          tabLocator.invalidateCache(context, tl.getTserverLocation());
+          tabLocator.invalidateCache(context, tl.getTserverLocation().get());
           continue;
         }
 
@@ -1239,6 +1240,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     // its possible that the cache could contain complete, but old information about a tables
     // tablets... so clear it
     tl.invalidateCache();
+    // ELASTICITY_TODO this will cause tablets to be hosted, but that may not be desired
     while (!tl.binRanges(context, Collections.singletonList(range), binnedRanges).isEmpty()) {
       context.requireNotDeleted(tableId);
       context.requireNotOffline(tableId, tableName);
@@ -1975,6 +1977,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
         .logInterval(3, MINUTES).createRetry();
 
+    // ELASTICITY_TODO this will cause tablets to be hosted, but that may not be desired
     while (!locator.binRanges(context, rangeList, binnedRanges).isEmpty()) {
       context.requireTableExists(tableId, tableName);
       context.requireNotOffline(tableId, tableName);
