@@ -132,8 +132,8 @@
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
-    <!-- jetty 9.2 is the last version to support jdk less than 1.8 -->
-    <jetty.version>9.2.30.v20200428</jetty.version>
+    <!-- jetty 9.3 requires JDK 8, but newer versions require bigger changes -->
+    <jetty.version>9.3.30.v20211001</jetty.version>
     <maven.compiler.release>8</maven.compiler.release>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
