@@ -1,55 +1,75 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.scan.HintScanPrioritizer;
+import org.apache.accumulo.core.spi.scan.ScanDispatcher;
+import org.apache.accumulo.core.spi.scan.ScanInfo;
+import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
+import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.hadoop.io.Text;
 
 /**
  * This class hosts configuration methods that are shared between different types of scanners.
- *
  */
 public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
 
   /**
+   * Consistency level for the scanner. The default level is IMMEDIATE, which means that this
+   * scanner will see keys and values that have been successfully written to a TabletServer.
+   * EVENTUAL means that the scanner may not see the latest data that was written to a TabletServer,
+   * but may instead see an older version of data.
+   *
+   * @since 2.1.0
+   */
+  enum ConsistencyLevel {
+    IMMEDIATE, EVENTUAL
+  }
+
+  /**
    * Add a server-side scan iterator.
    *
-   * @param cfg
-   *          fully specified scan-time iterator, including all options for the iterator. Any
-   *          changes to the iterator setting after this call are not propagated to the stored
-   *          iterator.
-   * @throws IllegalArgumentException
-   *           if the setting conflicts with existing iterators
+   * @param cfg fully specified scan-time iterator, including all options for the iterator. Any
+   *        changes to the iterator setting after this call are not propagated to the stored
+   *        iterator.
+   * @throws IllegalArgumentException if the setting conflicts with existing iterators
    */
   void addScanIterator(IteratorSetting cfg);
 
   /**
    * Remove an iterator from the list of iterators.
    *
-   * @param iteratorName
-   *          nickname used for the iterator
+   * @param iteratorName nickname used for the iterator
    */
   void removeScanIterator(String iteratorName);
 
@@ -58,12 +78,9 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * during a scan, it just replaces the given option on a configured iterator before a scan is
    * started.
    *
-   * @param iteratorName
-   *          the name of the iterator to change
-   * @param key
-   *          the name of the option
-   * @param value
-   *          the new value for the named option
+   * @param iteratorName the name of the iterator to change
+   * @param key the name of the option
+   * @param value the new value for the named option
    */
   void updateScanIteratorOption(String iteratorName, String key, String value);
 
@@ -80,10 +97,30 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * the top iterator's seek method. Custom iterators may change this set of column families when
    * calling seek on their source.
    *
-   * @param col
-   *          the column family to be fetched
+   * @param col the column family to be fetched
    */
   void fetchColumnFamily(Text col);
+
+  /**
+   * Adds a column family to the list of columns that will be fetched by this scanner. By default
+   * when no columns have been added the scanner fetches all columns. To fetch multiple column
+   * families call this function multiple times.
+   *
+   * <p>
+   * This can help limit which locality groups are read on the server side.
+   *
+   * <p>
+   * When used in conjunction with custom iterators, the set of column families fetched is passed to
+   * the top iterator's seek method. Custom iterators may change this set of column families when
+   * calling seek on their source.
+   *
+   * @param colFam the column family to be fetched
+   * @since 2.0.0
+   */
+  default void fetchColumnFamily(CharSequence colFam) {
+    Objects.requireNonNull(colFam);
+    fetchColumnFamily(new Text(colFam.toString()));
+  }
 
   /**
    * Adds a column to the list of columns that will be fetched by this scanner. The column is
@@ -109,18 +146,31 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * tl;dr If using a custom iterator with a seek method that adds column families, then may want to
    * avoid using this method.
    *
-   * @param colFam
-   *          the column family of the column to be fetched
-   * @param colQual
-   *          the column qualifier of the column to be fetched
+   * @param colFam the column family of the column to be fetched
+   * @param colQual the column qualifier of the column to be fetched
    */
   void fetchColumn(Text colFam, Text colQual);
 
   /**
+   * Adds a column to the list of columns that will be fetched by this scanner. The column is
+   * identified by family and qualifier. By default when no columns have been added the scanner
+   * fetches all columns. See the warning on {@link #fetchColumn(Text, Text)}
+   *
+   *
+   * @param colFam the column family of the column to be fetched
+   * @param colQual the column qualifier of the column to be fetched
+   * @since 2.0.0
+   */
+  default void fetchColumn(CharSequence colFam, CharSequence colQual) {
+    Objects.requireNonNull(colFam);
+    Objects.requireNonNull(colQual);
+    fetchColumn(new Text(colFam.toString()), new Text(colQual.toString()));
+  }
+
+  /**
    * Adds a column to the list of columns that will be fetch by this scanner.
    *
-   * @param column
-   *          the {@link Column} to fetch
+   * @param column the {@link Column} to fetch
    * @since 1.7.0
    */
   void fetchColumn(Column column);
@@ -156,10 +206,8 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * Setting the timeout to zero (with any time unit) or {@link Long#MAX_VALUE} (with
    * {@link TimeUnit#MILLISECONDS}) means no timeout.
    *
-   * @param timeOut
-   *          the length of the timeout
-   * @param timeUnit
-   *          the units of the timeout
+   * @param timeOut the length of the timeout
+   * @param timeUnit the units of the timeout
    * @since 1.5.0
    */
   void setTimeout(long timeOut, TimeUnit timeUnit);
@@ -202,10 +250,10 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * <code>
    *   // could cache this if creating many scanners to avoid RPCs.
    *   SamplerConfiguration samplerConfig =
-   *     connector.tableOperations().getSamplerConfiguration(table);
+   *     client.tableOperations().getSamplerConfiguration(table);
    *   // verify table's sample data is generated in an expected way before using
    *   userCode.verifySamplerConfig(samplerConfig);
-   *   scanner.setSamplerCongiguration(samplerConfig);
+   *   scanner.setSamplerConfiguration(samplerConfig);
    * </code>
    * </pre>
    *
@@ -245,10 +293,8 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * Setting the timeout to zero (with any time unit) or {@link Long#MAX_VALUE} (with
    * {@link TimeUnit#MILLISECONDS}) means no timeout.
    *
-   * @param timeOut
-   *          the length of the timeout
-   * @param timeUnit
-   *          the units of the timeout
+   * @param timeOut the length of the timeout
+   * @param timeUnit the units of the timeout
    * @since 1.8.0
    */
   void setBatchTimeout(long timeOut, TimeUnit timeUnit);
@@ -265,10 +311,8 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * Sets the name of the classloader context on this scanner. See the administration chapter of the
    * user manual for details on how to configure and use classloader contexts.
    *
-   * @param classLoaderContext
-   *          name of the classloader context
-   * @throws NullPointerException
-   *           if context is null
+   * @param classLoaderContext name of the classloader context
+   * @throws NullPointerException if context is null
    * @since 1.8.0
    */
   void setClassLoaderContext(String classLoaderContext);
@@ -287,4 +331,64 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * @since 1.8.0
    */
   String getClassLoaderContext();
+
+  /**
+   * Set hints for the configured {@link ScanPrioritizer} and {@link ScanDispatcher}. These hints
+   * are available on the server side via {@link ScanInfo#getExecutionHints()} Depending on the
+   * configuration, these hints may be ignored. Hints will never impact what data is returned by a
+   * scan, only how quickly it is returned.
+   *
+   * <p>
+   * Using the hint {@code scan_type=<type>} and documenting all of the types for your application
+   * is one strategy to consider. This allows administrators to adjust executor and prioritizer
+   * config for your application scan types without having to change the application source code.
+   *
+   * <p>
+   * The default configuration for Accumulo will ignore hints. See {@link HintScanPrioritizer} and
+   * {@link SimpleScanDispatcher} for examples of classes that can react to hints.
+   *
+   * @since 2.0.0
+   */
+  default void setExecutionHints(Map<String,String> hints) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Iterates through Scanner results.
+   *
+   * @param keyValueConsumer user-defined BiConsumer
+   * @since 2.1.0
+   */
+  default void forEach(BiConsumer<? super Key,? super Value> keyValueConsumer) {
+    for (Entry<Key,Value> entry : this) {
+      keyValueConsumer.accept(entry.getKey(), entry.getValue());
+    }
+  }
+
+  /**
+   * Get the configured consistency level
+   *
+   * @return consistency level
+   * @since 2.1.0
+   */
+  public ConsistencyLevel getConsistencyLevel();
+
+  /**
+   * Set the desired consistency level for this scanner.
+   *
+   * @param level consistency level
+   * @since 2.1.0
+   */
+  public void setConsistencyLevel(ConsistencyLevel level);
+
+  /**
+   * Stream the Scanner results sequentially from this scanner's iterator
+   *
+   * @return a Stream of the returned key-value pairs
+   * @since 2.1.0
+   */
+  default Stream<Entry<Key,Value>> stream() {
+    return StreamSupport.stream(this.spliterator(), false);
+  }
+
 }

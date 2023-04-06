@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.tserver;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -27,22 +28,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.impl.CompressedIterators;
-import org.apache.accumulo.core.client.impl.CompressedIterators.IterConfig;
+import org.apache.accumulo.core.clientImpl.CompressedIterators;
+import org.apache.accumulo.core.clientImpl.CompressedIterators.IterConfig;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.thrift.IterInfo;
-import org.apache.accumulo.core.data.thrift.TCMResult;
-import org.apache.accumulo.core.data.thrift.TCMStatus;
-import org.apache.accumulo.core.data.thrift.TCondition;
-import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
+import org.apache.accumulo.core.dataImpl.thrift.TCMResult;
+import org.apache.accumulo.core.dataImpl.thrift.TCMStatus;
+import org.apache.accumulo.core.dataImpl.thrift.TCondition;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
+import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 import org.apache.hadoop.io.Text;
 
@@ -53,7 +57,6 @@ public class ConditionCheckerContext {
   private Map<String,Map<String,String>> tableIterOpts;
   private TabletIteratorEnvironment tie;
   private String context;
-  private Map<String,Class<? extends SortedKeyValueIterator<Key,Value>>> classCache;
 
   private static class MergedIterConfig {
     List<IterInfo> mergedIters;
@@ -67,18 +70,18 @@ public class ConditionCheckerContext {
 
   private Map<ByteSequence,MergedIterConfig> mergedIterCache = new HashMap<>();
 
-  ConditionCheckerContext(CompressedIterators compressedIters, TableConfiguration tableConf) {
+  ConditionCheckerContext(ServerContext context, CompressedIterators compressedIters,
+      TableConfiguration tableConf) {
     this.compressedIters = compressedIters;
 
     ParsedIteratorConfig pic = tableConf.getParsedIteratorConfig(IteratorScope.scan);
 
     tableIters = pic.getIterInfo();
     tableIterOpts = pic.getOpts();
-    context = pic.getContext();
+    this.context = pic.getServiceEnv();
 
-    classCache = new HashMap<>();
-
-    tie = new TabletIteratorEnvironment(IteratorScope.scan, tableConf);
+    tie = new TabletIteratorEnvironment(context, IteratorScope.scan, tableConf,
+        tableConf.getTableId());
   }
 
   SortedKeyValueIterator<Key,Value> buildIterator(SortedKeyValueIterator<Key,Value> systemIter,
@@ -93,16 +96,17 @@ public class ConditionCheckerContext {
       Map<String,Map<String,String>> mergedItersOpts =
           new HashMap<>(tableIterOpts.size() + ic.ssio.size());
 
-      IteratorUtil.mergeIteratorConfig(mergedIters, mergedItersOpts, tableIters, tableIterOpts,
-          ic.ssiList, ic.ssio);
+      IteratorConfigUtil.mergeIteratorConfig(mergedIters, mergedItersOpts, tableIters,
+          tableIterOpts, ic.ssiList, ic.ssio);
 
       mic = new MergedIterConfig(mergedIters, mergedItersOpts);
 
       mergedIterCache.put(key, mic);
     }
 
-    return IteratorUtil.loadIterators(systemIter, mic.mergedIters, mic.mergedItersOpts, tie, true,
-        context, classCache);
+    var iteratorBuilder = IteratorBuilder.builder(mic.mergedIters).opts(mic.mergedItersOpts)
+        .env(tie).useClassLoader(context).useClassCache(true).build();
+    return IteratorConfigUtil.loadIterators(systemIter, iteratorBuilder);
   }
 
   boolean checkConditions(SortedKeyValueIterator<Key,Value> systemIter,
@@ -112,12 +116,13 @@ public class ConditionCheckerContext {
     for (TCondition tc : scm.getConditions()) {
 
       Range range;
-      if (tc.hasTimestamp)
+      if (tc.hasTimestamp) {
         range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()),
             new Text(tc.getCv()), tc.getTs());
-      else
+      } else {
         range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()),
             new Text(tc.getCv()));
+      }
 
       SortedKeyValueIterator<Key,Value> iter = buildIterator(systemIter, tc);
 

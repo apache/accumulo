@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.volume;
 
@@ -21,7 +23,6 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.util.Objects;
 
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -33,25 +34,28 @@ import org.slf4j.LoggerFactory;
  * that filesystem.
  */
 public class VolumeImpl implements Volume {
+
   private static final Logger log = LoggerFactory.getLogger(VolumeImpl.class);
 
-  protected final FileSystem fs;
-  protected final String basePath;
+  private final FileSystem fs;
+  private final String basePath;
+  private final Configuration hadoopConf;
 
-  public VolumeImpl(Path path, Configuration conf) throws IOException {
-    requireNonNull(path);
-    requireNonNull(conf);
-
-    this.fs = path.getFileSystem(conf);
-    this.basePath = path.toUri().getPath();
+  public VolumeImpl(Path path, Configuration hadoopConf) throws IOException {
+    this.fs = requireNonNull(path).getFileSystem(requireNonNull(hadoopConf));
+    this.basePath = stripTrailingSlashes(path.toUri().getPath());
+    this.hadoopConf = hadoopConf;
   }
 
   public VolumeImpl(FileSystem fs, String basePath) {
-    requireNonNull(fs);
-    requireNonNull(basePath);
+    this.fs = requireNonNull(fs);
+    this.basePath = stripTrailingSlashes(requireNonNull(basePath));
+    this.hadoopConf = fs.getConf();
+  }
 
-    this.fs = fs;
-    this.basePath = basePath;
+  // remove any trailing whitespace or slashes
+  private static String stripTrailingSlashes(String path) {
+    return path.strip().replaceAll("/*$", "");
   }
 
   @Override
@@ -65,49 +69,33 @@ public class VolumeImpl implements Volume {
   }
 
   @Override
-  public Path prefixChild(Path p) {
-    return fs.makeQualified(new Path(basePath, p));
-  }
-
-  @Override
-  public boolean isValidPath(Path p) {
-    requireNonNull(p);
-
-    FileSystem other;
+  public boolean containsPath(Path path) {
+    FileSystem otherFS;
     try {
-      other = p.getFileSystem(CachedConfiguration.getInstance());
+      otherFS = requireNonNull(path).getFileSystem(hadoopConf);
     } catch (IOException e) {
-      log.warn("Could not determine filesystem from path: " + p);
+      log.warn("Could not determine filesystem from path: {}", path, e);
       return false;
     }
+    return equivalentFileSystems(otherFS) && isAncestorPathOf(path);
+  }
 
-    if (equivalentFileSystems(other)) {
-      return equivalentPaths(p);
+  // same if the only difference is trailing slashes
+  boolean equivalentFileSystems(FileSystem otherFS) {
+    return stripTrailingSlashes(fs.getUri().toString())
+        .equals(stripTrailingSlashes(otherFS.getUri().toString()));
+  }
+
+  // is ancestor if the path portion without the filesystem scheme
+  // is a subdirectory of this volume's basePath
+  boolean isAncestorPathOf(Path other) {
+    String otherPath = other.toUri().getPath().strip();
+    if (otherPath.startsWith(basePath)) {
+      String otherRemainingPath = otherPath.substring(basePath.length());
+      return otherRemainingPath.isEmpty()
+          || (otherRemainingPath.startsWith("/") && !otherRemainingPath.contains(".."));
     }
-
     return false;
-  }
-
-  /**
-   * Test whether the provided {@link FileSystem} object reference the same actual filesystem as the
-   * member <code>fs</code>.
-   *
-   * @param other
-   *          The filesystem to compare
-   */
-  boolean equivalentFileSystems(FileSystem other) {
-    return fs.getUri().equals(other.getUri());
-  }
-
-  /**
-   * Tests if the provided {@link Path} is rooted inside this volume, contained within
-   * <code>basePath</code>.
-   *
-   * @param other
-   *          The path to compare
-   */
-  boolean equivalentPaths(Path other) {
-    return other.toUri().getPath().startsWith(basePath);
   }
 
   @Override
@@ -128,12 +116,35 @@ public class VolumeImpl implements Volume {
 
   @Override
   public String toString() {
-    return getFileSystem() + " " + basePath;
+    return fs.makeQualified(new Path(basePath)).toString();
   }
 
   @Override
-  public Path prefixChild(String p) {
-    return prefixChild(new Path(basePath, p));
+  public Path prefixChild(String pathString) {
+    String p = requireNonNull(pathString).strip();
+    p = p.startsWith("/") ? p.substring(1) : p;
+    String reason;
+    if (basePath.isBlank()) {
+      log.error("Basepath is empty. Make sure instance.volumes is set to a correct path");
+      throw new IllegalArgumentException(
+          "Accumulo cannot be initialized because basepath is empty. "
+              + "This probably means instance.volumes is an incorrect value");
+    }
+
+    if (p.isBlank()) {
+      return fs.makeQualified(new Path(basePath));
+    } else if (p.startsWith("/")) {
+      // check for starting with '//'
+      reason = "absolute path";
+    } else if (pathString.contains(":")) {
+      reason = "qualified path";
+    } else if (pathString.contains("..")) {
+      reason = "path contains '..'";
+    } else {
+      return fs.makeQualified(new Path(basePath, p));
+    }
+    throw new IllegalArgumentException(
+        String.format("Cannot prefix %s (%s) with volume %s", pathString, reason, this));
   }
 
 }

@@ -1,30 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.impl.IsolationException;
-import org.apache.accumulo.core.client.impl.ScannerOptions;
+import org.apache.accumulo.core.clientImpl.IsolationException;
+import org.apache.accumulo.core.clientImpl.ScannerOptions;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -37,9 +39,7 @@ import org.apache.hadoop.io.Text;
  * the client side. If you think your rows may not fit into memory, then you can provide an
  * alternative row buffer factory to the constructor. This would allow rows to be buffered to disk
  * for example.
- *
  */
-
 public class IsolatedScanner extends ScannerOptions implements Scanner {
 
   private static class RowBufferingIterator implements Iterator<Entry<Key,Value>> {
@@ -95,9 +95,9 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
 
           nextRowStart = null;
 
-          if (lastRow == null)
+          if (lastRow == null) {
             seekRange = range;
-          else {
+          } else {
             Text lastRowText = new Text();
             lastRowText.set(lastRow.getBackingArray(), lastRow.offset(), lastRow.length());
             Key startKey = new Key(lastRowText).followingKey(PartialKey.ROW);
@@ -114,7 +114,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
           }
 
           // wait a moment before retrying
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+          sleepUninterruptibly(100, MILLISECONDS);
 
           source = newIterator(seekRange);
         }
@@ -125,13 +125,12 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
       synchronized (scanner) {
         scanner.enableIsolation();
         scanner.setBatchSize(batchSize);
-        scanner.setTimeout(timeout, TimeUnit.MILLISECONDS);
+        scanner.setTimeout(timeout, MILLISECONDS);
         scanner.setRange(r);
         scanner.setReadaheadThreshold(readaheadThreshold);
         setOptions((ScannerOptions) scanner, opts);
 
         return scanner.iterator();
-        // return new FaultyIterator(scanner.iterator());
       }
     }
 
@@ -173,11 +172,11 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
 
   }
 
-  public static interface RowBufferFactory {
+  public interface RowBufferFactory {
     RowBuffer newBuffer();
   }
 
-  public static interface RowBuffer extends Iterable<Entry<Key,Value>> {
+  public interface RowBuffer extends Iterable<Entry<Key,Value>> {
     void add(Entry<Key,Value> entry);
 
     @Override
@@ -228,8 +227,8 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   public IsolatedScanner(Scanner scanner, RowBufferFactory bufferFactory) {
     this.scanner = scanner;
     this.range = scanner.getRange();
-    this.retryTimeout = scanner.getTimeout(TimeUnit.MILLISECONDS);
-    this.batchTimeout = scanner.getBatchTimeout(TimeUnit.MILLISECONDS);
+    this.retryTimeout = scanner.getTimeout(MILLISECONDS);
+    this.batchTimeout = scanner.getBatchTimeout(MILLISECONDS);
     this.batchSize = scanner.getBatchSize();
     this.readaheadThreshold = scanner.getReadaheadThreshold();
     this.bufferFactory = bufferFactory;
@@ -239,24 +238,6 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   public Iterator<Entry<Key,Value>> iterator() {
     return new RowBufferingIterator(scanner, this, range, retryTimeout, batchSize,
         readaheadThreshold, bufferFactory);
-  }
-
-  @Deprecated
-  @Override
-  public void setTimeOut(int timeOut) {
-    if (timeOut == Integer.MAX_VALUE)
-      setTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-    else
-      setTimeout(timeOut, TimeUnit.SECONDS);
-  }
-
-  @Deprecated
-  @Override
-  public int getTimeOut() {
-    long timeout = getTimeout(TimeUnit.SECONDS);
-    if (timeout >= Integer.MAX_VALUE)
-      return Integer.MAX_VALUE;
-    return (int) timeout;
   }
 
   @Override
@@ -296,11 +277,16 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
 
   @Override
   public void setReadaheadThreshold(long batches) {
-    if (0 > batches) {
+    if (batches < 0) {
       throw new IllegalArgumentException(
           "Number of batches before read-ahead must be non-negative");
     }
 
     this.readaheadThreshold = batches;
+  }
+
+  @Override
+  public void close() {
+    scanner.close();
   }
 }

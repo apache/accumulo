@@ -1,18 +1,15 @@
 **********
 
-APACHE ACCUMULO SUBCOMPONENTS:
+# APACHE ACCUMULO SUBCOMPONENTS
 
-The Apache Accumulo project contains subcomponents with separate copyright
-notices and license terms. Your use of the source code for the these
-subcomponents is subject to the terms and conditions of the following licenses.
+The Apache Accumulo project contains subcomponents with separate
+copyright notices and license terms. Your use of these is subject
+to the terms and conditions of the following licenses.
 
-**********
+## Software from the European Commission project OneLab
 
-This product includes software from the European Commission project OneLab:
-
-* BloomFilter.java
-* DynamicBloomFilter.java
-* Filter.java
+Files:
+* core/src/main/java/org/apache/accumulo/core/bloomfilter/*
 
     Copyright (c) 2005, European Commission project OneLab under contract 034819
     (http://www.one-lab.org)

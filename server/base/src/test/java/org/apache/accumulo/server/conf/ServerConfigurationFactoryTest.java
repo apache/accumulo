@@ -1,135 +1,129 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.conf;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.endsWith;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
+import static org.easymock.EasyMock.verify;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import java.util.Map;
+import java.util.UUID;
+
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.codec.VersionedProperties;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ServerConfigurationFactoryTest {
   private static final String ZK_HOST = "localhost";
-  private static final int ZK_TIMEOUT = 120000;
-  private static final String IID = "iid";
+  private static final int ZK_TIMEOUT = 120_000;
+  private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
+  private static final TableId TID = TableId.of("TABLE");
+  private static final NamespaceId NSID = NamespaceId.of("NAMESPACE");
+  private static final SiteConfiguration siteConfig = SiteConfiguration.empty().build();
 
-  // use the same mock ZooCacheFactory and ZooCache for all tests
-  private static ZooCacheFactory zcf;
-  private static ZooCache zc;
-
-  @BeforeClass
-  public static void setUpClass() throws Exception {
-    zcf = createMock(ZooCacheFactory.class);
-    zc = createMock(ZooCache.class);
-    expect(zcf.getZooCache(eq(ZK_HOST), eq(ZK_TIMEOUT), anyObject(NamespaceConfWatcher.class)))
-        .andReturn(zc);
-    expectLastCall().anyTimes();
-    expect(zcf.getZooCache(ZK_HOST, ZK_TIMEOUT)).andReturn(zc);
-    expectLastCall().anyTimes();
-    replay(zcf);
-
-    expect(zc.getChildren(anyObject(String.class))).andReturn(null);
-    expectLastCall().anyTimes();
-    // ConfigSanityCheck looks at timeout
-    expect(zc.get(endsWith("timeout"))).andReturn(("" + ZK_TIMEOUT + "ms").getBytes(UTF_8));
-    replay(zc);
-  }
-
-  private Instance instance;
+  private PropStore propStore;
+  private ServerContext context;
+  private SystemConfiguration sysConfig;
   private ServerConfigurationFactory scf;
 
-  @Before
-  public void setUp() throws Exception {
-    instance = createMock(Instance.class);
-    expect(instance.getInstanceID()).andReturn(IID);
+  @BeforeEach
+  public void setUp() {
+    propStore = createMock(ZooPropStore.class);
+    expect(propStore.get(eq(SystemPropKey.of(IID)))).andReturn(new VersionedProperties(Map.of()))
+        .anyTimes();
+    expect(propStore.get(eq(TablePropKey.of(IID, TID))))
+        .andReturn(new VersionedProperties(Map.of())).anyTimes();
+    expect(propStore.get(eq(NamespacePropKey.of(IID, NSID))))
+        .andReturn(new VersionedProperties(Map.of())).anyTimes();
+
+    propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
+
+    sysConfig = createMock(SystemConfiguration.class);
+    sysConfig.getProperties(anyObject(), anyObject());
+    expectLastCall().anyTimes();
+
+    context = createMock(ServerContext.class);
+    expect(context.getZooKeeperRoot()).andReturn("/accumulo/" + IID).anyTimes();
+    expect(context.getInstanceID()).andReturn(IID).anyTimes();
+    expect(context.getZooKeepers()).andReturn(ZK_HOST).anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(ZK_TIMEOUT).anyTimes();
+    expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+    expect(context.tableNodeExists(TID)).andReturn(true).anyTimes();
+    expect(context.getPropStore()).andReturn(propStore).anyTimes();
+    expect(context.getConfiguration()).andReturn(sysConfig).anyTimes();
+    scf = new ServerConfigurationFactory(context, siteConfig) {
+      @Override
+      public NamespaceConfiguration getNamespaceConfigurationForTable(TableId tableId) {
+        if (tableId.equals(TID)) {
+          return getNamespaceConfiguration(NSID);
+        }
+        throw new UnsupportedOperationException();
+      }
+    };
+
+    replay(propStore, context, sysConfig);
   }
 
-  @After
-  public void tearDown() throws Exception {
-    ServerConfigurationFactory.clearCachedConfigurations();
-  }
-
-  private void mockInstanceForConfig() {
-    expect(instance.getZooKeepers()).andReturn(ZK_HOST);
-    expect(instance.getZooKeepersSessionTimeOut()).andReturn(ZK_TIMEOUT);
-  }
-
-  private void ready() {
-    replay(instance);
-    scf = new ServerConfigurationFactory(instance);
-    scf.setZooCacheFactory(zcf);
-  }
-
-  @Test
-  public void testGetInstance() {
-    ready();
-    assertSame(instance, scf.getInstance());
-  }
-
-  @Test
-  public void testGetDefaultConfiguration() {
-    ready();
-    DefaultConfiguration c = scf.getDefaultConfiguration();
-    assertNotNull(c);
-  }
-
-  @Test
-  public void testGetSiteConfiguration() {
-    ready();
-    SiteConfiguration c = scf.getSiteConfiguration();
-    assertNotNull(c);
+  @AfterEach
+  public void verifyMocks() {
+    verify(propStore, context, sysConfig);
   }
 
   @Test
-  public void testGetConfiguration() {
-    mockInstanceForConfig();
-    ready();
-    AccumuloConfiguration c = scf.getConfiguration();
-    assertNotNull(c);
+  public void testGetters() {
+    assertSame(DefaultConfiguration.getInstance(), scf.getDefaultConfiguration());
+    assertSame(siteConfig, scf.getSiteConfiguration());
+    assertNotNull(scf.getSystemConfiguration());
   }
-
-  private static final String NSID = "NAMESPACE";
 
   @Test
   public void testGetNamespaceConfiguration() {
-    mockInstanceForConfig();
-    ready();
-    NamespaceConfiguration c = scf.getNamespaceConfiguration(NSID);
-    assertEquals(NSID, c.getNamespaceId());
+    NamespaceConfiguration namespaceConfigSingleton = scf.getNamespaceConfiguration(NSID);
+    assertEquals(NSID, namespaceConfigSingleton.getNamespaceId());
+    assertSame(namespaceConfigSingleton, scf.getNamespaceConfiguration(NSID));
+  }
 
-    assertSame(c, scf.getNamespaceConfiguration(NSID));
+  @Test
+  public void testGetTableConfiguration() {
+    TableConfiguration tableConfigSingleton = scf.getTableConfiguration(TID);
+    assertEquals(TID, tableConfigSingleton.getTableId());
+    assertSame(tableConfigSingleton, scf.getTableConfiguration(TID));
   }
 
 }

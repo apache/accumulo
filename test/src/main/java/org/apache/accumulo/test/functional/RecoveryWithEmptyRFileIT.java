@@ -1,27 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Map.Entry;
+import java.util.Properties;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -30,11 +35,11 @@ import org.apache.accumulo.core.file.rfile.CreateEmpty;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,13 +56,12 @@ import org.slf4j.LoggerFactory;
 public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(RecoveryWithEmptyRFileIT.class);
 
-  static final int ROWS = 200000;
-  static final int COLS = 1;
-  static final String COLF = "colf";
+  private static final int ROWS = 200000;
+  private static final int COLS = 1;
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 2 * 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
   }
 
   @Override
@@ -69,45 +73,47 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
   public void replaceMissingRFile() throws Exception {
     log.info("Ingest some data, verify it was stored properly, replace an"
         + " underlying rfile with an empty one and verify we can scan.");
-    Connector connector = getConnector();
-    String tableName = getUniqueNames(1)[0];
-    ReadWriteIT.ingest(connector, cluster.getClientConfig(), "root", ROWS, COLS, 50, 0, tableName);
-    ReadWriteIT.verify(connector, cluster.getClientConfig(), "root", ROWS, COLS, 50, 0, tableName);
+    Properties props = getClientProperties();
+    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
+      String tableName = getUniqueNames(1)[0];
+      ReadWriteIT.ingest(client, ROWS, COLS, 50, 0, tableName);
+      ReadWriteIT.verify(client, ROWS, COLS, 50, 0, tableName);
 
-    connector.tableOperations().flush(tableName, null, null, true);
-    connector.tableOperations().offline(tableName, true);
+      client.tableOperations().flush(tableName, null, null, true);
+      client.tableOperations().offline(tableName, true);
 
-    log.debug("Replacing rfile(s) with empty");
-    Scanner meta = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    String tableId = connector.tableOperations().tableIdMap().get(tableName);
-    meta.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
-    meta.fetchColumnFamily(DataFileColumnFamily.NAME);
-    boolean foundFile = false;
-    for (Entry<Key,Value> entry : meta) {
-      foundFile = true;
-      Path rfile = new Path(entry.getKey().getColumnQualifier().toString());
-      log.debug("Removing rfile '" + rfile + "'");
-      cluster.getFileSystem().delete(rfile, false);
-      Process info = cluster.exec(CreateEmpty.class, rfile.toString());
-      assertEquals(0, info.waitFor());
+      log.debug("Replacing rfile(s) with empty");
+      try (Scanner meta = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        String tableId = client.tableOperations().tableIdMap().get(tableName);
+        meta.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
+        meta.fetchColumnFamily(DataFileColumnFamily.NAME);
+        boolean foundFile = false;
+        for (Entry<Key,Value> entry : meta) {
+          foundFile = true;
+          Path rfile = new Path(entry.getKey().getColumnQualifier().toString());
+          log.debug("Removing rfile '{}'", rfile);
+          cluster.getFileSystem().delete(rfile, false);
+          Process processInfo = cluster.exec(CreateEmpty.class, rfile.toString()).getProcess();
+          assertEquals(0, processInfo.waitFor());
+        }
+        assertTrue(foundFile);
+      }
+
+      log.trace("invalidate cached file handles by issuing a compaction");
+      client.tableOperations().online(tableName, true);
+      client.tableOperations().compact(tableName, null, null, false, true);
+
+      log.debug("make sure we can still scan");
+      try (Scanner scan = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scan.setRange(new Range());
+        long cells = 0L;
+        for (Entry<Key,Value> entry : scan) {
+          if (entry != null) {
+            cells++;
+          }
+        }
+        assertEquals(0L, cells);
+      }
     }
-    meta.close();
-    assertTrue(foundFile);
-
-    log.trace("invalidate cached file handles by issuing a compaction");
-    connector.tableOperations().online(tableName, true);
-    connector.tableOperations().compact(tableName, null, null, false, true);
-
-    log.debug("make sure we can still scan");
-    Scanner scan = connector.createScanner(tableName, Authorizations.EMPTY);
-    scan.setRange(new Range());
-    long cells = 0l;
-    for (Entry<Key,Value> entry : scan) {
-      if (entry != null)
-        cells++;
-    }
-    scan.close();
-    assertEquals(0l, cells);
   }
-
 }

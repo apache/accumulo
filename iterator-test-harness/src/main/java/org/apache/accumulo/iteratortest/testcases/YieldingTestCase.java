@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to you under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.iteratortest.testcases;
 
@@ -24,10 +26,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
-import org.apache.accumulo.core.iterators.YieldingKeyValueIterator;
+import org.apache.accumulo.iteratortest.IteratorTestCase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
-import org.apache.accumulo.iteratortest.IteratorTestUtil;
 
 /**
  * Test case that verifies that an iterator works correctly with the yielding api. Note that most
@@ -36,7 +37,7 @@ import org.apache.accumulo.iteratortest.IteratorTestUtil;
  * ensures that it works correctly iff the iterator actually decides to yield. Nothing can force an
  * iterator to yield without knowing something about the internals of the iterator being tested.
  */
-public class YieldingTestCase extends OutputVerifyingTestCase {
+public class YieldingTestCase implements IteratorTestCase {
 
   @Override
   public IteratorTestOutput test(IteratorTestInput testInput) {
@@ -47,9 +48,7 @@ public class YieldingTestCase extends OutputVerifyingTestCase {
       skvi.init(source, testInput.getIteratorOptions(), testInput.getIteratorEnvironment());
 
       YieldCallback<Key> yield = new YieldCallback<>();
-      if (skvi instanceof YieldingKeyValueIterator) {
-        ((YieldingKeyValueIterator<Key,Value>) skvi).enableYielding(yield);
-      }
+      skvi.enableYielding(yield);
 
       skvi.seek(testInput.getRange(), testInput.getFamilies(), testInput.isInclusive());
       return new IteratorTestOutput(consume(testInput, skvi, yield));

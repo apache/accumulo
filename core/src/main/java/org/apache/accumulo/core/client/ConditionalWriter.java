@@ -1,25 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.client;
 
 import java.util.Iterator;
 
-import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.data.ConditionalMutation;
 
 /**
@@ -58,15 +59,17 @@ public interface ConditionalWriter extends AutoCloseable {
 
     public Status getStatus() throws AccumuloException, AccumuloSecurityException {
       if (status == null) {
-        if (exception instanceof AccumuloException)
+        if (exception instanceof AccumuloException) {
           throw new AccumuloException(exception);
+        }
         if (exception instanceof AccumuloSecurityException) {
           AccumuloSecurityException ase = (AccumuloSecurityException) exception;
           throw new AccumuloSecurityException(ase.getUser(),
               SecurityErrorCode.valueOf(ase.getSecurityErrorCode().name()), ase.getTableInfo(),
               ase);
-        } else
+        } else {
           throw new AccumuloException(exception);
+        }
       }
 
       return status;
@@ -90,7 +93,7 @@ public interface ConditionalWriter extends AutoCloseable {
     }
   }
 
-  public static enum Status {
+  enum Status {
     /**
      * conditions were met and mutation was written
      */
@@ -127,7 +130,7 @@ public interface ConditionalWriter extends AutoCloseable {
   Iterator<Result> write(Iterator<ConditionalMutation> mutations);
 
   /**
-   * This method has the same thread safety guarantees as @link {@link #write(Iterator)}
+   * This method has the same thread safety guarantees as {@link #write(Iterator)}
    *
    * @return Result for the submitted mutation
    */

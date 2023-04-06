@@ -1,30 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators;
 
+import static java.util.concurrent.TimeUnit.HOURS;
+
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
@@ -35,15 +37,15 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.conf.ColumnSet;
+import org.apache.accumulo.core.iteratorsImpl.conf.ColumnSet;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
 /**
@@ -100,8 +102,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
      * Constructs an iterator over Values whose Keys are versions of the current topKey of the
      * source SortedKeyValueIterator.
      *
-     * @param source
-     *          The {@code SortedKeyValueIterator<Key,Value>} from which to read data.
+     * @param source The {@code SortedKeyValueIterator<Key,Value>} from which to read data.
      */
     public ValueIterator(SortedKeyValueIterator<Key,Value> source) {
       this.source = source;
@@ -121,14 +122,15 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
     @Override
     public Value next() {
-      if (!hasNext)
+      if (!hasNext) {
         throw new NoSuchElementException();
+      }
       Value topValue = new Value(source.getTopValue());
       try {
         source.next();
         hasNext = _hasNext();
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        throw new UncheckedIOException(e);
       }
       return topValue;
     }
@@ -136,8 +138,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     /**
      * This method is unsupported in this iterator.
      *
-     * @throws UnsupportedOperationException
-     *           when called
+     * @throws UnsupportedOperationException when called
      */
     @Override
     public void remove() {
@@ -150,15 +151,17 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   @Override
   public Key getTopKey() {
-    if (topKey == null)
+    if (topKey == null) {
       return super.getTopKey();
+    }
     return topKey;
   }
 
   @Override
   public Value getTopValue() {
-    if (topKey == null)
+    if (topKey == null) {
       return super.getTopValue();
+    }
     return topValue;
   }
 
@@ -183,25 +186,23 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   @VisibleForTesting
   static final Cache<String,Boolean> loggedMsgCache =
-      CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).maximumSize(10000).build();
+      Caffeine.newBuilder().expireAfterWrite(1, HOURS).maximumSize(10000).build();
 
   private void sawDelete() {
-    if (isMajorCompaction && !reduceOnFullCompactionOnly) {
-      try {
-        loggedMsgCache.get(this.getClass().getName(), new Callable<Boolean>() {
-          @Override
-          public Boolean call() throws Exception {
-            sawDeleteLog.error("Combiner of type {} saw a delete during a"
-                + " partial compaction. This could cause undesired results. See"
-                + " ACCUMULO-2232. Will not log subsequent occurences for at least" + " 1 hour.",
-                Combiner.this.getClass().getSimpleName());
-            // the value is not used and does not matter
-            return Boolean.TRUE;
-          }
-        });
-      } catch (ExecutionException e) {
-        throw new RuntimeException(e);
-      }
+    if (isMajorCompaction && !reduceOnFullCompactionOnly
+        && loggedMsgCache.get(this.getClass().getName(), k -> {
+          sawDeleteLog.error(
+              "Combiner of type {} saw a delete during a"
+                  + " partial compaction. This could cause undesired results. See"
+                  + " ACCUMULO-2232. Will not log subsequent occurrences for at least 1 hour.",
+              Combiner.this.getClass().getSimpleName());
+          // the value is not used and does not matter
+          return Boolean.TRUE;
+        })) {
+      // do nothing;
+      // this is a workaround to ignore the return value of the cache, since we're relying only on
+      // the side-effect of logging when the cache entry expires;
+      // if the cached value is present, it's value is always true
     }
   }
 
@@ -223,8 +224,9 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
         topKey = workKey;
         Iterator<Value> viter = new ValueIterator(getSource());
         topValue = reduce(topKey, viter);
-        while (viter.hasNext())
+        while (viter.hasNext()) {
           viter.next();
+        }
       }
     }
   }
@@ -257,11 +259,9 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   /**
    * Reduces a list of Values into a single Value.
    *
-   * @param key
-   *          The most recent version of the Key being reduced.
+   * @param key The most recent version of the Key being reduced.
    *
-   * @param iter
-   *          An iterator over the Values for different versions of the key.
+   * @param iter An iterator over the Values for different versions of the key.
    *
    * @return The combined Value.
    */
@@ -281,12 +281,14 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     }
 
     if (!combineAllColumns) {
-      if (!options.containsKey(COLUMNS_OPTION))
+      if (!options.containsKey(COLUMNS_OPTION)) {
         throw new IllegalArgumentException("Must specify " + COLUMNS_OPTION + " option");
+      }
 
       String encodedColumns = options.get(COLUMNS_OPTION);
-      if (encodedColumns.length() == 0)
+      if (encodedColumns.isEmpty()) {
         throw new IllegalArgumentException("The " + COLUMNS_OPTION + " must not be empty");
+      }
 
       combiners = new ColumnSet(Lists.newArrayList(Splitter.on(",").split(encodedColumns)));
     }
@@ -301,7 +303,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     }
 
     if (reduceOnFullCompactionOnly && isMajorCompaction && !env.isFullMajorCompaction()) {
-      // adjust configuration so that no columns are combined for a partial maror compaction
+      // adjust configuration so that no columns are combined for a partial major compaction
       combineAllColumns = false;
       combiners = new ColumnSet();
     }
@@ -310,10 +312,9 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    // TODO test
     Combiner newInstance;
     try {
-      newInstance = this.getClass().newInstance();
+      newInstance = this.getClass().getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -349,20 +350,24 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
         throw new IllegalArgumentException(
             "bad boolean " + ALL_OPTION + ":" + options.get(ALL_OPTION));
       }
-      if (combineAllColumns)
+      if (combineAllColumns) {
         return true;
+      }
     }
-    if (!options.containsKey(COLUMNS_OPTION))
+    if (!options.containsKey(COLUMNS_OPTION)) {
       throw new IllegalArgumentException(
           "options must include " + ALL_OPTION + " or " + COLUMNS_OPTION);
+    }
 
     String encodedColumns = options.get(COLUMNS_OPTION);
-    if (encodedColumns.length() == 0)
+    if (encodedColumns.isEmpty()) {
       throw new IllegalArgumentException("empty columns specified in option " + COLUMNS_OPTION);
+    }
 
     for (String columns : Splitter.on(",").split(encodedColumns)) {
-      if (!ColumnSet.isValidEncoding(columns))
+      if (!ColumnSet.isValidEncoding(columns)) {
         throw new IllegalArgumentException("invalid column encoding " + encodedColumns);
+      }
     }
 
     return true;
@@ -374,10 +379,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
    * combined individually in each row. This method is likely to be used in conjunction with
    * {@link ScannerBase#fetchColumnFamily(Text)} or {@link ScannerBase#fetchColumn(Text,Text)}.
    *
-   * @param is
-   *          iterator settings object to configure
-   * @param columns
-   *          a list of columns to encode as the value for the combiner column configuration
+   * @param is iterator settings object to configure
+   * @param columns a list of columns to encode as the value for the combiner column configuration
    */
   public static void setColumns(IteratorSetting is, List<IteratorSetting.Column> columns) {
     String sep = "";
@@ -396,10 +399,9 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
    * A convenience method to set the "all columns" option on a Combiner. This will combine all
    * columns individually within each row.
    *
-   * @param is
-   *          iterator settings object to configure
-   * @param combineAllColumns
-   *          if true, the columns option is ignored and the Combiner will be applied to all columns
+   * @param is iterator settings object to configure
+   * @param combineAllColumns if true, the columns option is ignored and the Combiner will be
+   *        applied to all columns
    */
   public static void setCombineAllColumns(IteratorSetting is, boolean combineAllColumns) {
     is.addOption(ALL_OPTION, Boolean.toString(combineAllColumns));

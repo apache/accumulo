@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.harness;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.net.InetAddress;
@@ -30,6 +32,8 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.hadoop.minikdc.MiniKdc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Creates a {@link MiniKdc} for tests to use to exercise secure Accumulo
@@ -56,10 +60,10 @@ public class TestingKdc {
 
   public static File computeKdcDir() {
     File targetDir = new File(System.getProperty("user.dir"), "target");
-    if (!targetDir.exists())
+    if (!targetDir.exists()) {
       assertTrue(targetDir.mkdirs());
-    assertTrue("Could not find Maven target directory: " + targetDir,
-        targetDir.exists() && targetDir.isDirectory());
+    }
+    assertTrue(targetDir.isDirectory(), "Could not find Maven target directory: " + targetDir);
 
     // Create the directories: target/kerberos/minikdc
     File kdcDir = new File(new File(targetDir, "kerberos"), "minikdc");
@@ -71,8 +75,8 @@ public class TestingKdc {
 
   public static File computeKeytabDir() {
     File targetDir = new File(System.getProperty("user.dir"), "target");
-    assertTrue("Could not find Maven target directory: " + targetDir,
-        targetDir.exists() && targetDir.isDirectory());
+    assertTrue(targetDir.exists() && targetDir.isDirectory(),
+        "Could not find Maven target directory: " + targetDir);
 
     // Create the directories: target/kerberos/keytabs
     File keytabDir = new File(new File(targetDir, "kerberos"), "keytabs");
@@ -107,6 +111,8 @@ public class TestingKdc {
   /**
    * Starts the KDC and creates the principals and their keytabs
    */
+  @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "SWL_SLEEP_WITH_LOCK_HELD"},
+      justification = "path provided by test; sleep is okay for a brief pause")
   public synchronized void start() throws Exception {
     checkArgument(!started, "KDC was already started");
     kdc.start();
@@ -145,7 +151,7 @@ public class TestingKdc {
     started = true;
   }
 
-  public synchronized void stop() throws Exception {
+  public synchronized void stop() {
     checkArgument(started, "KDC is not started");
     kdc.stop();
     started = false;
@@ -177,8 +183,7 @@ public class TestingKdc {
   /**
    * The {@link ClusterUser} corresponding to the given offset. Represents an unprivileged user.
    *
-   * @param offset
-   *          The offset to fetch credentials for, valid through {@link #NUM_USERS}
+   * @param offset The offset to fetch credentials for, valid through {@link #NUM_USERS}
    */
   public ClusterUser getClientPrincipal(int offset) {
     checkArgument(started, "Client principal is not initialized, is the KDC started?");
@@ -212,8 +217,7 @@ public class TestingKdc {
   /**
    * Qualify a username (only the primary from the kerberos principal) with the proper realm
    *
-   * @param primary
-   *          The primary or primary and instance
+   * @param primary The primary or primary and instance
    */
   public String qualifyUser(String primary) {
     return String.format("%s@%s.%s", primary, getOrgName(), getOrgDomain());

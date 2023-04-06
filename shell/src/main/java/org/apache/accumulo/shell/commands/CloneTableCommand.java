@@ -1,22 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +30,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
+import org.apache.accumulo.shell.ShellUtil;
 import org.apache.accumulo.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -45,24 +48,14 @@ public class CloneTableCommand extends Command {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TableExistsException {
 
-    final HashMap<String,String> props = new HashMap<>();
+    Map<String,String> props = ShellUtil.parseMapOpt(cl, setPropsOption);
     final HashSet<String> exclude = new HashSet<>();
     boolean flush = true;
     boolean keepOffline = false;
 
-    if (cl.hasOption(setPropsOption.getOpt())) {
-      String[] keyVals = cl.getOptionValue(setPropsOption.getOpt()).split(",");
-      for (String keyVal : keyVals) {
-        String[] sa = keyVal.split("=");
-        props.put(sa[0], sa[1]);
-      }
-    }
-
     if (cl.hasOption(excludePropsOption.getOpt())) {
       String[] keys = cl.getOptionValue(excludePropsOption.getOpt()).split(",");
-      for (String key : keys) {
-        exclude.add(key);
-      }
+      Collections.addAll(exclude, keys);
     }
 
     if (cl.hasOption(noFlushOption.getOpt())) {
@@ -73,7 +66,7 @@ public class CloneTableCommand extends Command {
       keepOffline = true;
     }
 
-    shellState.getConnector().tableOperations().clone(cl.getArgs()[0], cl.getArgs()[1],
+    shellState.getAccumuloClient().tableOperations().clone(cl.getArgs()[0], cl.getArgs()[1],
         CloneConfiguration.builder().setFlush(flush).setPropertiesToSet(props)
             .setPropertiesToExclude(exclude).setKeepOffline(keepOffline).build());
     return 0;

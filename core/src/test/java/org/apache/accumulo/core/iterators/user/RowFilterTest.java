@@ -1,26 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -37,12 +38,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
-
-import com.google.common.collect.ImmutableSet;
+import org.junit.jupiter.api.Test;
 
 public class RowFilterTest {
 
@@ -66,14 +65,14 @@ public class RowFilterTest {
 
       // ensure that seeks are confined to the row
       rowIterator.seek(new Range(null, false, firstKey == null ? null : firstKey.getRow(), false),
-          new HashSet<ByteSequence>(), false);
+          Set.of(), false);
       while (rowIterator.hasTop()) {
         sum2 += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();
       }
 
       rowIterator.seek(new Range(firstKey == null ? null : firstKey.getRow(), false, null, true),
-          new HashSet<ByteSequence>(), false);
+          Set.of(), false);
       while (rowIterator.hasTop()) {
         sum2 += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();
@@ -85,26 +84,26 @@ public class RowFilterTest {
   }
 
   public static class RowZeroOrOneFilter extends RowFilter {
-    private static final Set<String> passRows = new HashSet<>(Arrays.asList("0", "1"));
+    private static final Set<String> passRows = Set.of("0", "1");
 
     @Override
-    public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException {
+    public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) {
       return rowIterator.hasTop() && passRows.contains(rowIterator.getTopKey().getRow().toString());
     }
   }
 
   public static class RowOneOrTwoFilter extends RowFilter {
-    private static final Set<String> passRows = new HashSet<>(Arrays.asList("1", "2"));
+    private static final Set<String> passRows = Set.of("1", "2");
 
     @Override
-    public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException {
+    public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) {
       return rowIterator.hasTop() && passRows.contains(rowIterator.getTopKey().getRow().toString());
     }
   }
 
   public static class TrueFilter extends RowFilter {
     @Override
-    public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException {
+    public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) {
       return true;
     }
   }
@@ -184,28 +183,28 @@ public class RowFilterTest {
         new ColumnFamilySkippingIterator(new SortedMapIterator(createKeyValues()));
 
     RowFilter filter = new SummingRowFilter();
-    filter.init(source, Collections.<String,String>emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
 
-    filter.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+    filter.seek(new Range(), Collections.emptySet(), false);
 
-    assertEquals(new HashSet<>(Arrays.asList("2", "3")), getRows(filter));
+    assertEquals(Set.of("2", "3"), getRows(filter));
 
     ByteSequence cf = new ArrayByteSequence("cf2");
 
-    filter.seek(new Range(), ImmutableSet.of(cf), true);
-    assertEquals(new HashSet<>(Arrays.asList("1", "3", "0", "4")), getRows(filter));
+    filter.seek(new Range(), Set.of(cf), true);
+    assertEquals(Set.of("1", "3", "0", "4"), getRows(filter));
 
-    filter.seek(new Range("0", "4"), Collections.<ByteSequence>emptySet(), false);
-    assertEquals(new HashSet<>(Arrays.asList("2", "3")), getRows(filter));
+    filter.seek(new Range("0", "4"), Collections.emptySet(), false);
+    assertEquals(Set.of("2", "3"), getRows(filter));
 
-    filter.seek(new Range("2"), Collections.<ByteSequence>emptySet(), false);
-    assertEquals(new HashSet<>(Arrays.asList("2")), getRows(filter));
+    filter.seek(new Range("2"), Collections.emptySet(), false);
+    assertEquals(Set.of("2"), getRows(filter));
 
-    filter.seek(new Range("4"), Collections.<ByteSequence>emptySet(), false);
-    assertEquals(new HashSet<String>(), getRows(filter));
+    filter.seek(new Range("4"), Collections.emptySet(), false);
+    assertEquals(Set.of(), getRows(filter));
 
-    filter.seek(new Range("4"), ImmutableSet.of(cf), true);
-    assertEquals(new HashSet<>(Arrays.asList("4")), getRows(filter));
+    filter.seek(new Range("4"), Set.of(cf), true);
+    assertEquals(Set.of("4"), getRows(filter));
 
   }
 
@@ -214,14 +213,14 @@ public class RowFilterTest {
     SortedMapIterator source = new SortedMapIterator(createKeyValues());
 
     RowFilter filter0 = new TrueFilter();
-    filter0.init(source, Collections.<String,String>emptyMap(), new DefaultIteratorEnvironment());
+    filter0.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
 
     RowFilter filter = new TrueFilter();
-    filter.init(filter0, Collections.<String,String>emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(filter0, Collections.emptyMap(), new DefaultIteratorEnvironment());
 
-    filter.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+    filter.seek(new Range(), Collections.emptySet(), false);
 
-    assertEquals(new HashSet<>(Arrays.asList("0", "1", "2", "3", "4")), getRows(filter));
+    assertEquals(Set.of("0", "1", "2", "3", "4"), getRows(filter));
   }
 
   @Test
@@ -230,14 +229,14 @@ public class RowFilterTest {
     SortedMapIterator source = new SortedMapIterator(createKeyValues());
 
     RowFilter filter0 = new RowZeroOrOneFilter();
-    filter0.init(source, Collections.<String,String>emptyMap(), new DefaultIteratorEnvironment());
+    filter0.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
 
     RowFilter filter = new RowOneOrTwoFilter();
-    filter.init(filter0, Collections.<String,String>emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(filter0, Collections.emptyMap(), new DefaultIteratorEnvironment());
 
-    filter.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+    filter.seek(new Range(), Collections.emptySet(), false);
 
-    assertEquals(new HashSet<>(Arrays.asList("1")), getRows(filter));
+    assertEquals(Set.of("1"), getRows(filter));
   }
 
   @Test
@@ -245,9 +244,9 @@ public class RowFilterTest {
     SortedMapIterator source = new SortedMapIterator(createKeyValues());
 
     RowFilter filter = new RowZeroOrOneFilter();
-    filter.init(source, Collections.<String,String>emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
 
-    filter.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+    filter.seek(new Range(), Collections.emptySet(), false);
 
     // Save off the first key and value
     Key firstKey = filter.getTopKey();
@@ -268,9 +267,9 @@ public class RowFilterTest {
     RowFilter copy = (RowFilter) filter.deepCopy(new DefaultIteratorEnvironment());
 
     // Because it's a copy, we should be able to safely seek this one without affecting the original
-    copy.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
+    copy.seek(new Range(), Collections.emptySet(), false);
 
-    assertTrue("deepCopy'ed RowFilter did not have a top key", copy.hasTop());
+    assertTrue(copy.hasTop(), "deepCopy'ed RowFilter did not have a top key");
 
     Key firstKeyFromCopy = copy.getTopKey();
     Value firstValueFromCopy = copy.getTopValue();
@@ -283,8 +282,8 @@ public class RowFilterTest {
     Key finalKeyRead = filter.getTopKey();
 
     // Make sure we got a Key that was greater than the last Key we read from the original RowFilter
-    assertTrue("Expected next key read to be greater than the previous after deepCopy",
-        lastKeyRead.compareTo(finalKeyRead) < 0);
+    assertTrue(lastKeyRead.compareTo(finalKeyRead) < 0,
+        "Expected next key read to be greater than the previous after deepCopy");
   }
 
   private HashSet<String> getRows(RowFilter filter) throws IOException {

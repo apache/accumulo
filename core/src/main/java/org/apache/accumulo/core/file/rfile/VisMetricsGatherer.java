@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile;
 
@@ -44,6 +46,7 @@ import com.google.common.util.concurrent.AtomicLongMap;
  */
 public class VisMetricsGatherer
     implements MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> {
+  private static final String KEY_HASH_ALGORITHM = "SHA-256";
 
   protected Map<String,AtomicLongMap<String>> metric;
   protected Map<String,AtomicLongMap<String>> blocks;
@@ -75,14 +78,15 @@ public class VisMetricsGatherer
     ByteSequence cf = new ArrayByteSequence(oneCF.toString());
     for (Entry<String,ArrayList<ByteSequence>> entry : localityGroupCF.entrySet()) {
       if (entry.getValue().contains(cf)) {
-        if (entry.getKey() != null)
+        if (entry.getKey() != null) {
           name = entry.getKey().toString();
+        }
         break;
       }
     }
     localityGroups.add(name);
-    metric.put(name, AtomicLongMap.create(new HashMap<String,Long>()));
-    blocks.put(name, AtomicLongMap.create(new HashMap<String,Long>()));
+    metric.put(name, AtomicLongMap.create(new HashMap<>()));
+    blocks.put(name, AtomicLongMap.create(new HashMap<>()));
     numLG++;
     numEntries.add((long) 0);
     numBlocks.add(0);
@@ -94,8 +98,9 @@ public class VisMetricsGatherer
     String currLG = localityGroups.get(numLG - 1);
     if (metric.get(currLG).containsKey(myMetric)) {
       metric.get(currLG).getAndIncrement(myMetric);
-    } else
+    } else {
       metric.get(currLG).put(myMetric, 1);
+    }
 
     numEntries.set(numLG - 1, numEntries.get(numLG - 1) + 1);
 
@@ -120,26 +125,28 @@ public class VisMetricsGatherer
     for (int i = 0; i < numLG; i++) {
       String lGName = localityGroups.get(i);
       out.print("Locality Group: ");
-      if (lGName == null)
+      if (lGName == null) {
         out.println("<DEFAULT>");
-      else
+      } else {
         out.println(localityGroups.get(i));
+      }
       out.printf("%-27s", metricWord);
-      out.println("Number of keys" + "\t   " + "Percent of keys" + "\t" + "Number of blocks" + "\t"
-          + "Percent of blocks");
+      out.println("Number of keys\t   Percent of keys\tNumber of blocks\tPercent of blocks");
       for (Entry<String,Long> entry : metric.get(lGName).asMap().entrySet()) {
         if (hash) {
-          String md5String = "";
+          String encodedKey = "";
           try {
-            byte[] md5Bytes =
-                MessageDigest.getInstance("MD5").digest(entry.getKey().getBytes(UTF_8));
-            md5String = new String(md5Bytes, UTF_8);
+            byte[] encodedBytes = MessageDigest.getInstance(KEY_HASH_ALGORITHM)
+                .digest(entry.getKey().getBytes(UTF_8));
+            encodedKey = new String(encodedBytes, UTF_8);
           } catch (NoSuchAlgorithmException e) {
-            out.println("Failed to convert key to MD5 hash: " + e.getMessage());
+            out.println(
+                "Failed to convert key to " + KEY_HASH_ALGORITHM + " hash: " + e.getMessage());
           }
-          out.printf("%-20s", md5String.substring(0, 8));
-        } else
+          out.printf("%-20s", encodedKey.substring(0, 8));
+        } else {
           out.printf("%-20s", entry.getKey());
+        }
         out.print("\t\t" + entry.getValue() + "\t\t\t");
         out.printf("%.2f", ((double) entry.getValue() / numEntries.get(i)) * 100);
         out.print("%\t\t\t");

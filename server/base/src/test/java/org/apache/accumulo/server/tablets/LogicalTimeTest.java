@@ -1,58 +1,62 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.tablets;
 
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.tablets.TabletTime.LogicalTime;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class LogicalTimeTest {
   private static final long TIME = 1234L;
   private LogicalTime ltime;
 
-  @Before
-  public void setUp() throws Exception {
-    ltime = (LogicalTime) TabletTime.getInstance("L1234");
+  @BeforeEach
+  public void setUp() {
+    MetadataTime mTime = MetadataTime.parse("L1234");
+    ltime = (LogicalTime) TabletTime.getInstance(mTime);
   }
 
   @Test
   public void testGetMetadataValue() {
-    assertEquals("L1234", ltime.getMetadataValue());
+    assertEquals("L1234", ltime.getMetadataTime().encode());
   }
 
   @Test
   public void testUseMaxTimeFromWALog_Update() {
     ltime.useMaxTimeFromWALog(5678L);
-    assertEquals("L5678", ltime.getMetadataValue());
+    assertEquals("L5678", ltime.getMetadataTime().encode());
   }
 
   @Test
   public void testUseMaxTimeFromWALog_NoUpdate() {
     ltime.useMaxTimeFromWALog(0L);
-    assertEquals("L1234", ltime.getMetadataValue());
+    assertEquals("L1234", ltime.getMetadataTime().encode());
   }
 
   @Test

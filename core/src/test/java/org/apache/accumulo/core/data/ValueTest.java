@@ -7,13 +7,14 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.data;
 
@@ -21,23 +22,23 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
-import java.util.List;
 
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ValueTest {
   private static final byte[] toBytes(String s) {
@@ -50,8 +51,8 @@ public class ValueTest {
     DATABUFF.put(DATA);
   }
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  public void setUp() {
     DATABUFF.rewind();
   }
 
@@ -61,25 +62,25 @@ public class ValueTest {
     assertEquals(0, v.get().length);
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullBytesConstructor() {
-    new Value((byte[]) null);
+    assertThrows(NullPointerException.class, () -> new Value((byte[]) null));
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullCopyConstructor() {
-    new Value((Value) null);
+    assertThrows(NullPointerException.class, () -> new Value((Value) null));
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullByteBufferConstructor() {
-    new Value((ByteBuffer) null);
+    assertThrows(NullPointerException.class, () -> new Value((ByteBuffer) null));
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullSet() {
     Value v = new Value();
-    v.set(null);
+    assertThrows(NullPointerException.class, () -> v.set(null));
   }
 
   @Test
@@ -99,13 +100,6 @@ public class ValueTest {
   @Test
   public void testByteBuffer() {
     Value v = new Value(DATABUFF);
-    assertArrayEquals(DATA, v.get());
-  }
-
-  @Test
-  public void testByteBufferCopy() {
-    @SuppressWarnings("deprecation")
-    Value v = new Value(DATABUFF, true);
     assertArrayEquals(DATA, v.get());
   }
 
@@ -182,7 +176,7 @@ public class ValueTest {
     assertTrue(v1.compareTo(v2) < 0);
     assertTrue(v2.compareTo(v1) > 0);
     Value v1a = new Value(DATA);
-    assertTrue(v1.compareTo(v1a) == 0);
+    assertEquals(0, v1.compareTo(v1a));
     Value v3 = new Value(toBytes("datc"));
     assertTrue(v2.compareTo(v3) < 0);
     assertTrue(v1.compareTo(v3) < 0);
@@ -191,30 +185,12 @@ public class ValueTest {
   @Test
   public void testEquals() {
     Value v1 = new Value(DATA);
-    assertTrue(v1.equals(v1));
+    assertEquals(v1, v1);
     Value v2 = new Value(DATA);
-    assertTrue(v1.equals(v2));
-    assertTrue(v2.equals(v1));
+    assertEquals(v1, v2);
+    assertEquals(v2, v1);
     Value v3 = new Value(toBytes("datb"));
-    assertFalse(v1.equals(v3));
-  }
-
-  @Test
-  @Deprecated
-  public void testToArray() {
-    List<byte[]> l = new java.util.ArrayList<>();
-    byte[] one = toBytes("one");
-    byte[] two = toBytes("two");
-    byte[] three = toBytes("three");
-    l.add(one);
-    l.add(two);
-    l.add(three);
-
-    byte[][] a = Value.toArray(l);
-    assertEquals(3, a.length);
-    assertArrayEquals(one, a[0]);
-    assertArrayEquals(two, a[1]);
-    assertArrayEquals(three, a[2]);
+    assertNotEquals(v1, v3);
   }
 
   @Test
@@ -224,20 +200,20 @@ public class ValueTest {
     assertEquals(v2, v1);
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullCharSequence() {
-    new Value((CharSequence) null);
+    assertThrows(NullPointerException.class, () -> new Value((CharSequence) null));
   }
 
   @Test
   public void testText() {
     Value v1 = new Value(new Text("abc"));
-    Value v2 = new Value("abc".getBytes(UTF_8));
+    Value v2 = new Value("abc");
     assertEquals(v2, v1);
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullText() {
-    new Value((Text) null);
+    assertThrows(NullPointerException.class, () -> new Value((Text) null));
   }
 }

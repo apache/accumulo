@@ -1,24 +1,25 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-namespace java org.apache.accumulo.core.client.impl.thrift
-namespace cpp org.apache.accumulo.core.client.impl.thrift
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+namespace java org.apache.accumulo.core.clientImpl.thrift
+namespace cpp org.apache.accumulo.core.clientImpl.thrift
 
 include "security.thrift"
-include "trace.thrift"
 
 enum TableOperation {
   CREATE
@@ -51,6 +52,8 @@ enum TableOperationExceptionType {
   NAMESPACE_EXISTS
   NAMESPACE_NOTFOUND
   INVALID_NAME
+  BULK_BAD_LOAD_MAPPING
+  BULK_CONCURRENT_MERGE
 }
 
 enum ConfigurationType {
@@ -94,9 +97,27 @@ exception ThriftTableOperationException {
   5:string description
 }
 
+exception ThriftNotActiveServiceException {
+  1:string serv
+  2:string description
+}
+
+exception ThriftConcurrentModificationException {
+  1:string description
+}
+
 struct TDiskUsage {
   1:list<string> tables
   2:i64 usage
+}
+
+struct TVersionedProperties {
+   1:i64 version
+   2:map<string, string> properties
+}
+
+struct TInfo {
+  1:map<string,string> headers
 }
 
 service ClientService {
@@ -106,8 +127,9 @@ service ClientService {
   string getInstanceId()
   string getZooKeepers()
 
+  // deprecated for new bulkImport
   list<string> bulkImportFiles(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     8:security.TCredentials credentials
     3:i64 tid
     4:string tableId
@@ -121,7 +143,7 @@ service ClientService {
 
   // ensures that nobody is working on the transaction id above
   bool isActive(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:i64 tid
   )
 
@@ -141,14 +163,14 @@ service ClientService {
 
   // user management methods
   set<string> listLocalUsers(
-    2:trace.TInfo tinfo
+    2:TInfo tinfo
     3:security.TCredentials credentials
   ) throws (
     1:ThriftSecurityException sec
   )
 
   void createLocalUser(
-    5:trace.TInfo tinfo
+    5:TInfo tinfo
     6:security.TCredentials credentials
     2:string principal
     3:binary password
@@ -157,7 +179,7 @@ service ClientService {
   )
 
   void dropLocalUser(
-    3:trace.TInfo tinfo
+    3:TInfo tinfo
     4:security.TCredentials credentials
     2:string principal
   ) throws (
@@ -165,7 +187,7 @@ service ClientService {
   )
 
   void changeLocalUserPassword(
-    4:trace.TInfo tinfo
+    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
     3:binary password
@@ -175,14 +197,14 @@ service ClientService {
 
   // authentication-related methods
   bool authenticate(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:ThriftSecurityException sec
   )
 
   bool authenticateUser(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
     3:security.TCredentials toAuth
   ) throws (
@@ -191,7 +213,7 @@ service ClientService {
 
   // authorization-related methods
   void changeAuthorizations(
-    4:trace.TInfo tinfo
+    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
     3:list<binary> authorizations
@@ -200,7 +222,7 @@ service ClientService {
   )
 
   list<binary> getUserAuthorizations(
-    3:trace.TInfo tinfo
+    3:TInfo tinfo
     4:security.TCredentials credentials
     2:string principal
   ) throws (
@@ -209,93 +231,93 @@ service ClientService {
 
   // permissions-related methods
   bool hasSystemPermission(
-    4:trace.TInfo tinfo
+    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
-    3:byte sysPerm
+    3:i8 sysPerm
   ) throws (
     1:ThriftSecurityException sec
   )
 
   bool hasTablePermission(
-    5:trace.TInfo tinfo
+    5:TInfo tinfo
     6:security.TCredentials credentials
     2:string principal
     3:string tableName
-    4:byte tblPerm
+    4:i8 tblPerm
   ) throws (
     1:ThriftSecurityException sec
     2:ThriftTableOperationException tope
   )
 
   bool hasNamespacePermission(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string principal
     4:string ns
-    5:byte tblNspcPerm
+    5:i8 tblNspcPerm
   ) throws (
     1:ThriftSecurityException sec
     2:ThriftTableOperationException tope
   )
 
   void grantSystemPermission(
-    4:trace.TInfo tinfo
+    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
-    3:byte permission
+    3:i8 permission
   ) throws (
     1:ThriftSecurityException sec
   )
 
   void revokeSystemPermission(
-    4:trace.TInfo tinfo
+    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
-    3:byte permission
+    3:i8 permission
   ) throws (
     1:ThriftSecurityException sec
   )
 
   void grantTablePermission(
-    5:trace.TInfo tinfo
+    5:TInfo tinfo
     6:security.TCredentials credentials
     2:string principal
     3:string tableName
-    4:byte permission
+    4:i8 permission
   ) throws (
     1:ThriftSecurityException sec
     2:ThriftTableOperationException tope
   )
 
   void revokeTablePermission(
-    5:trace.TInfo tinfo
+    5:TInfo tinfo
     6:security.TCredentials credentials
     2:string principal
     3:string tableName
-    4:byte permission
+    4:i8 permission
   ) throws (
     1:ThriftSecurityException sec
     2:ThriftTableOperationException tope
   )
 
   void grantNamespacePermission(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string principal
     4:string ns
-    5:byte permission
+    5:i8 permission
   ) throws (
     1:ThriftSecurityException sec
     2:ThriftTableOperationException tope
   )
 
   void revokeNamespacePermission(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string principal
     4:string ns
-    5:byte permission
+    5:i8 permission
   ) throws (
     1:ThriftSecurityException sec
     2:ThriftTableOperationException tope
@@ -303,36 +325,90 @@ service ClientService {
 
   // configuration methods
   map<string, string> getConfiguration(
-    2:trace.TInfo tinfo
+    2:TInfo tinfo
     3:security.TCredentials credentials
     1:ConfigurationType type
+  ) throws (
+    1:ThriftSecurityException sec
+  )
+
+  map<string, string> getSystemProperties(
+    1:TInfo tinfo
+    2:security.TCredentials credentials
+  ) throws (
+    1:ThriftSecurityException sec
+  )
+
+  TVersionedProperties getVersionedSystemProperties(
+    1:TInfo tinfo
+    2:security.TCredentials credentials
+  ) throws (
+    1:ThriftSecurityException sec
   )
 
   map<string, string> getTableConfiguration(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     3:security.TCredentials credentials
     2:string tableName
   ) throws (
     1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
+  )
+
+  map<string, string> getTableProperties(
+    1:TInfo tinfo
+    3:security.TCredentials credentials
+    2:string tableName
+  ) throws (
+    1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
+  )
+
+  TVersionedProperties getVersionedTableProperties(
+    1:TInfo tinfo
+    3:security.TCredentials credentials
+    2:string tableName
+  ) throws (
+    1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   map<string, string> getNamespaceConfiguration(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
   ) throws (
     1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
+  )
+
+  map<string, string> getNamespaceProperties(
+    1:TInfo tinfo
+    2:security.TCredentials credentials
+    3:string ns
+  ) throws (
+    1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
+  )
+
+  TVersionedProperties getVersionedNamespaceProperties(
+    1:TInfo tinfo
+    2:security.TCredentials credentials
+    3:string ns
+  ) throws (
+    1:ThriftTableOperationException tope
+    2:ThriftSecurityException sec
   )
 
   bool checkClass(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     4:security.TCredentials credentials
     2:string className
     3:string interfaceMatch
   )
 
   bool checkTableClass(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     5:security.TCredentials credentials
     2:string tableId
     3:string className
@@ -343,7 +419,7 @@ service ClientService {
   )
 
   bool checkNamespaceClass(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string namespaceId
     4:string className

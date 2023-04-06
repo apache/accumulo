@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
@@ -68,9 +70,8 @@ public class IteratorSetting implements Writable {
   /**
    * Set layer at which this iterator applies.
    *
-   * @param priority
-   *          determines the order in which iterators are applied (system iterators are always
-   *          applied first, then user-configured iterators, lowest priority first)
+   * @param priority determines the order in which iterators are applied (system iterators are
+   *        always applied first, then user-configured iterators, lowest priority first)
    */
   public void setPriority(int priority) {
     checkArgument(priority > 0, "property must be strictly positive");
@@ -118,29 +119,22 @@ public class IteratorSetting implements Writable {
    * Constructs an iterator setting configured for the scan scope with no parameters. (Parameters
    * can be added later.)
    *
-   * @param priority
-   *          the priority for the iterator (see {@link #setPriority(int)})
-   * @param name
-   *          the distinguishing name for the iterator
-   * @param iteratorClass
-   *          the fully qualified class name for the iterator
+   * @param priority the priority for the iterator (see {@link #setPriority(int)})
+   * @param name the distinguishing name for the iterator
+   * @param iteratorClass the fully qualified class name for the iterator
    */
   public IteratorSetting(int priority, String name, String iteratorClass) {
-    this(priority, name, iteratorClass, new HashMap<String,String>());
+    this(priority, name, iteratorClass, new HashMap<>());
   }
 
   /**
    * Constructs an iterator setting configured for the specified scopes with the specified
    * parameters.
    *
-   * @param priority
-   *          the priority for the iterator (see {@link #setPriority(int)})
-   * @param name
-   *          the distinguishing name for the iterator
-   * @param iteratorClass
-   *          the fully qualified class name for the iterator
-   * @param properties
-   *          any properties for the iterator
+   * @param priority the priority for the iterator (see {@link #setPriority(int)})
+   * @param name the distinguishing name for the iterator
+   * @param iteratorClass the fully qualified class name for the iterator
+   * @param properties any properties for the iterator
    */
   public IteratorSetting(int priority, String name, String iteratorClass,
       Map<String,String> properties) {
@@ -155,10 +149,8 @@ public class IteratorSetting implements Writable {
    * Constructs an iterator setting using the given class's SimpleName for the iterator name. The
    * iterator setting will be configured for the scan scope with no parameters.
    *
-   * @param priority
-   *          the priority for the iterator (see {@link #setPriority(int)})
-   * @param iteratorClass
-   *          the class for the iterator
+   * @param priority the priority for the iterator (see {@link #setPriority(int)})
+   * @param iteratorClass the class for the iterator
    */
   public IteratorSetting(int priority,
       Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) {
@@ -170,12 +162,9 @@ public class IteratorSetting implements Writable {
    * Constructs an iterator setting using the given class's SimpleName for the iterator name and
    * configured for the specified scopes with the specified parameters.
    *
-   * @param priority
-   *          the priority for the iterator (see {@link #setPriority(int)})
-   * @param iteratorClass
-   *          the class for the iterator
-   * @param properties
-   *          any properties for the iterator
+   * @param priority the priority for the iterator (see {@link #setPriority(int)})
+   * @param iteratorClass the class for the iterator
+   * @param properties any properties for the iterator
    */
   public IteratorSetting(int priority,
       Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
@@ -186,12 +175,9 @@ public class IteratorSetting implements Writable {
   /**
    * Constructs an iterator setting configured for the scan scope with no parameters.
    *
-   * @param priority
-   *          the priority for the iterator (see {@link #setPriority(int)})
-   * @param name
-   *          the distinguishing name for the iterator
-   * @param iteratorClass
-   *          the class for the iterator
+   * @param priority the priority for the iterator (see {@link #setPriority(int)})
+   * @param name the distinguishing name for the iterator
+   * @param iteratorClass the class for the iterator
    */
   public IteratorSetting(int priority, String name,
       Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) {
@@ -202,14 +188,10 @@ public class IteratorSetting implements Writable {
    * Constructs an iterator setting using the provided name and the provided class's name for the
    * scan scope with the provided parameters.
    *
-   * @param priority
-   *          The priority for the iterator (see {@link #setPriority(int)})
-   * @param name
-   *          The distinguishing name for the iterator
-   * @param iteratorClass
-   *          The class for the iterator
-   * @param properties
-   *          Any properties for the iterator
+   * @param priority The priority for the iterator (see {@link #setPriority(int)})
+   * @param name The distinguishing name for the iterator
+   * @param iteratorClass The class for the iterator
+   * @param properties Any properties for the iterator
    *
    * @since 1.6.0
    */
@@ -230,10 +212,8 @@ public class IteratorSetting implements Writable {
   /**
    * Add another option to the iterator.
    *
-   * @param option
-   *          the name of the option
-   * @param value
-   *          the value of the option
+   * @param option the name of the option
+   * @param value the value of the option
    */
   public void addOption(String option, String value) {
     checkArgument(option != null, "option is null");
@@ -244,8 +224,7 @@ public class IteratorSetting implements Writable {
   /**
    * Remove an option from the iterator.
    *
-   * @param option
-   *          the name of the option
+   * @param option the name of the option
    * @return the value previously associated with the option, or null if no such option existed
    */
   public String removeOption(String option) {
@@ -256,8 +235,7 @@ public class IteratorSetting implements Writable {
   /**
    * Add many options to the iterator.
    *
-   * @param propertyEntries
-   *          a set of entries to add to the options
+   * @param propertyEntries a set of entries to add to the options
    */
   public void addOptions(Set<Entry<String,String>> propertyEntries) {
     checkArgument(propertyEntries != null, "propertyEntries is null");
@@ -269,8 +247,7 @@ public class IteratorSetting implements Writable {
   /**
    * Add many options to the iterator.
    *
-   * @param properties
-   *          a map of entries to add to the options
+   * @param properties a map of entries to add to the options
    */
   public void addOptions(Map<String,String> properties) {
     checkArgument(properties != null, "properties is null");
@@ -306,31 +283,38 @@ public class IteratorSetting implements Writable {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (!(obj instanceof IteratorSetting))
+    }
+    if (!(obj instanceof IteratorSetting)) {
       return false;
+    }
     IteratorSetting other = (IteratorSetting) obj;
     if (iteratorClass == null) {
-      if (other.iteratorClass != null)
+      if (other.iteratorClass != null) {
         return false;
-    } else if (!iteratorClass.equals(other.iteratorClass))
+      }
+    } else if (!iteratorClass.equals(other.iteratorClass)) {
       return false;
+    }
     if (name == null) {
-      if (other.name != null)
+      if (other.name != null) {
         return false;
-    } else if (!name.equals(other.name))
+      }
+    } else if (!name.equals(other.name)) {
       return false;
-    if (priority != other.priority)
+    }
+    if (priority != other.priority) {
       return false;
+    }
     if (properties == null) {
-      if (other.properties != null)
-        return false;
-    } else if (!properties.equals(other.properties))
-      return false;
-    return true;
+      return other.properties == null;
+    } else {
+      return properties.equals(other.properties);
+    }
   }
 
   @Override
@@ -339,7 +323,7 @@ public class IteratorSetting implements Writable {
     sb.append("name:");
     sb.append(name);
     sb.append(", priority:");
-    sb.append(Integer.toString(priority));
+    sb.append(priority);
     sb.append(", class:");
     sb.append(iteratorClass);
     sb.append(", properties:");

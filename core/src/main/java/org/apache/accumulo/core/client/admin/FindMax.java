@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.admin;
 
@@ -33,8 +35,9 @@ import org.apache.hadoop.io.Text;
 
 public class FindMax {
   private static void appendZeros(ByteArrayOutputStream baos, int num) {
-    for (int i = 0; i < num; i++)
+    for (int i = 0; i < num; i++) {
       baos.write(0);
+    }
   }
 
   private static Text findMidPoint(Text minBS, Text maxBS) {
@@ -47,10 +50,11 @@ public class FindMax {
     endOS.write(maxBS.getBytes(), 0, maxBS.getLength());
 
     // make the numbers of the same magnitude
-    if (startOS.size() < endOS.size())
+    if (startOS.size() < endOS.size()) {
       appendZeros(startOS, endOS.size() - startOS.size());
-    else if (endOS.size() < startOS.size())
+    } else if (endOS.size() < startOS.size()) {
       appendZeros(endOS, startOS.size() - endOS.size());
+    }
 
     BigInteger min = new BigInteger(startOS.toByteArray());
     BigInteger max = new BigInteger(endOS.toByteArray());
@@ -62,8 +66,9 @@ public class FindMax {
     Text ret = new Text();
 
     if (ba.length == startOS.size()) {
-      if (ba[0] != 0)
+      if (ba[0] != 0) {
         throw new RuntimeException();
+      }
 
       // big int added a zero so it would not be negative, drop it
       ret.set(ba, 1, ba.length - 1);
@@ -101,8 +106,9 @@ public class FindMax {
       if (inclStart && inclEnd && cmp == 0) {
         scanner.setRange(new Range(start, true, end, true));
         Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        if (iter.hasNext())
+        if (iter.hasNext()) {
           return iter.next().getKey().getRow();
+        }
       }
 
       return null;
@@ -125,14 +131,16 @@ public class FindMax {
         count++;
       }
 
-      if (!iter.hasNext())
+      if (!iter.hasNext()) {
         return next.getRow();
+      }
 
       Text ret = _findMax(scanner, next.followingKey(PartialKey.ROW).getRow(), true, end, inclEnd);
-      if (ret == null)
+      if (ret == null) {
         return next.getRow();
-      else
+      } else {
         return ret;
+      }
     } else {
 
       return _findMax(scanner, start, inclStart, mid, mid.equals(start) ? inclStart : false);
@@ -167,8 +175,9 @@ public class FindMax {
       is = true;
     }
 
-    if (end == null)
+    if (end == null) {
       end = findInitialEnd(scanner);
+    }
 
     return _findMax(scanner, start, is, end, ie);
   }

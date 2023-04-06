@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -45,16 +47,22 @@ public class GrantCommand extends TableOperation {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
     user = cl.hasOption(userOpt.getOpt()) ? cl.getOptionValue(userOpt.getOpt())
-        : shellState.getConnector().whoami();
+        : shellState.getAccumuloClient().whoami();
 
     permission = cl.getArgs()[0].split("\\.", 2);
-    if (cl.hasOption(systemOpt.getOpt()) && permission[0].equalsIgnoreCase("System")) {
-      try {
-        shellState.getConnector().securityOperations().grantSystemPermission(user,
-            SystemPermission.valueOf(permission[1]));
-        Shell.log.debug("Granted " + user + " the " + permission[1] + " permission");
-      } catch (IllegalArgumentException e) {
-        throw new BadArgumentException("No such system permission", fullCommand,
+    if (permission[0].equalsIgnoreCase("System")) {
+      if (cl.hasOption(systemOpt.getOpt())) {
+        try {
+          shellState.getAccumuloClient().securityOperations().grantSystemPermission(user,
+              SystemPermission.valueOf(permission[1]));
+          Shell.log.debug("Granted {} the {} permission", user, permission[1]);
+        } catch (IllegalArgumentException e) {
+          throw new BadArgumentException("No such system permission", fullCommand,
+              fullCommand.indexOf(cl.getArgs()[0]));
+        }
+      } else {
+        throw new BadArgumentException(
+            "Missing required option for granting System Permission: -s ", fullCommand,
             fullCommand.indexOf(cl.getArgs()[0]));
       }
     } else if (permission[0].equalsIgnoreCase("Table")) {
@@ -62,7 +70,7 @@ public class GrantCommand extends TableOperation {
     } else if (permission[0].equalsIgnoreCase("Namespace")) {
       if (cl.hasOption(optNamespace.getOpt())) {
         try {
-          shellState.getConnector().securityOperations().grantNamespacePermission(user,
+          shellState.getAccumuloClient().securityOperations().grantNamespacePermission(user,
               cl.getOptionValue(optNamespace.getOpt()), NamespacePermission.valueOf(permission[1]));
         } catch (IllegalArgumentException e) {
           throw new BadArgumentException("No such namespace permission", fullCommand,
@@ -82,10 +90,9 @@ public class GrantCommand extends TableOperation {
   @Override
   protected void doTableOp(final Shell shellState, final String tableName) throws Exception {
     try {
-      shellState.getConnector().securityOperations().grantTablePermission(user, tableName,
+      shellState.getAccumuloClient().securityOperations().grantTablePermission(user, tableName,
           TablePermission.valueOf(permission[1]));
-      Shell.log
-          .debug("Granted " + user + " the " + permission[1] + " permission on table " + tableName);
+      Shell.log.debug("Granted {} the {} permission on table {}", user, permission[1], tableName);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException("No such table permission", e);
     }

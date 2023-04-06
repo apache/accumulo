@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.constraints.Constraint;
+import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellCommandException;
@@ -55,25 +57,26 @@ public class ConstraintCommand extends Command {
       case ADD:
         for (String constraint : cl.getArgs()) {
           if (namespace != null) {
-            if (!shellState.getConnector().namespaceOperations().testClassLoad(namespace,
+            if (!shellState.getAccumuloClient().namespaceOperations().testClassLoad(namespace,
                 constraint, Constraint.class.getName())) {
               throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
                   "Servers are unable to load " + constraint + " as type "
                       + Constraint.class.getName());
             }
-            i = shellState.getConnector().namespaceOperations().addConstraint(namespace,
+            i = shellState.getAccumuloClient().namespaceOperations().addConstraint(namespace,
                 constraint);
-            shellState.getReader().println("Added constraint " + constraint + " to namespace "
+            shellState.getWriter().println("Added constraint " + constraint + " to namespace "
                 + namespace + " with number " + i);
           } else if (tableName != null && !tableName.isEmpty()) {
-            if (!shellState.getConnector().tableOperations().testClassLoad(tableName, constraint,
-                Constraint.class.getName())) {
+            if (!shellState.getAccumuloClient().tableOperations().testClassLoad(tableName,
+                constraint, Constraint.class.getName())) {
               throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
                   "Servers are unable to load " + constraint + " as type "
                       + Constraint.class.getName());
             }
-            i = shellState.getConnector().tableOperations().addConstraint(tableName, constraint);
-            shellState.getReader().println(
+            i = shellState.getAccumuloClient().tableOperations().addConstraint(tableName,
+                constraint);
+            shellState.getWriter().println(
                 "Added constraint " + constraint + " to table " + tableName + " with number " + i);
           } else {
             throw new IllegalArgumentException("Please specify either a table or a namespace");
@@ -84,12 +87,12 @@ public class ConstraintCommand extends Command {
         for (String constraint : cl.getArgs()) {
           i = Integer.parseInt(constraint);
           if (namespace != null) {
-            shellState.getConnector().namespaceOperations().removeConstraint(namespace, i);
-            shellState.getReader()
+            shellState.getAccumuloClient().namespaceOperations().removeConstraint(namespace, i);
+            shellState.getWriter()
                 .println("Removed constraint " + i + " from namespace " + namespace);
           } else if (tableName != null) {
-            shellState.getConnector().tableOperations().removeConstraint(tableName, i);
-            shellState.getReader().println("Removed constraint " + i + " from table " + tableName);
+            shellState.getAccumuloClient().tableOperations().removeConstraint(tableName, i);
+            shellState.getWriter().println("Removed constraint " + i + " from table " + tableName);
           } else {
             throw new IllegalArgumentException("Please specify either a table or a namespace");
           }
@@ -97,14 +100,14 @@ public class ConstraintCommand extends Command {
         break;
       case LIST:
         if (namespace != null) {
-          for (Entry<String,Integer> property : shellState.getConnector().namespaceOperations()
+          for (Entry<String,Integer> property : shellState.getAccumuloClient().namespaceOperations()
               .listConstraints(namespace).entrySet()) {
-            shellState.getReader().println(property.toString());
+            shellState.getWriter().println(property.toString());
           }
         } else if (tableName != null) {
-          for (Entry<String,Integer> property : shellState.getConnector().tableOperations()
+          for (Entry<String,Integer> property : shellState.getAccumuloClient().tableOperations()
               .listConstraints(tableName).entrySet()) {
-            shellState.getReader().println(property.toString());
+            shellState.getWriter().println(property.toString());
           }
         } else {
           throw new IllegalArgumentException("Please specify either a table or a namespace");

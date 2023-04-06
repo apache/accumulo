@@ -1,180 +1,92 @@
 #! /usr/bin/env bash
-
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# Start: Resolve Script Directory
-SOURCE="${BASH_SOURCE[0]}"
-while [[ -h "${SOURCE}" ]]; do # resolve $SOURCE until the file is no longer a symlink
-   bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-   SOURCE="$(readlink "${SOURCE}")"
-   [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
-done
-bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-# Stop: Resolve Script Directory
-
-. "${bin}"/config.sh
-
-START_JAR="${ACCUMULO_HOME}/lib/accumulo-start.jar"
-
+#   https://www.apache.org/licenses/LICENSE-2.0
 #
-# Resolve a program to its installation directory
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 #
-locationByProgram()
-{
-   RESULT=$(type -P "$1")
-   if [[ -z "${RESULT}" ]]; then
-      echo "Cannot find '$1' and '$2' is not set in $ACCUMULO_CONF_DIR/accumulo-env.sh"
-      exit 1
-   fi
-   while [[ -h "${RESULT}" ]]; do # resolve $RESULT until the file is no longer a symlink
-      DIR="$( cd -P "$( dirname "$RESULT" )" && pwd )"
-      RESULT="$(readlink "${RESULT}")"
-      [[ "${RESULT}" != /* ]] && RESULT="${DIR}/${RESULT}" # if $RESULT was a relative symlink, we need to resolve it relative to the path where the symlink file was located
-   done
-   # find the relative home directory, accounting for an extra bin directory
-   RESULT=$(dirname "$(dirname "${RESULT}")")
-   echo "Auto-set ${2} to '${RESULT}'.  To suppress this message, set ${2} in conf/accumulo-env.sh"
-   eval "${2}=${RESULT}"
+
+function main() {
+
+  SOURCE="${BASH_SOURCE[0]}"
+  while [[ -L ${SOURCE} ]]; do
+    bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+    SOURCE="$(readlink "${SOURCE}")"
+    [[ ${SOURCE} != /* ]] && SOURCE="${bin}/${SOURCE}"
+  done
+  # Set up variables needed by accumulo-env.sh
+  bin="$(cd -P "$(dirname "${SOURCE}")" && pwd)"
+  export bin
+  basedir=$(cd -P "${bin}"/.. && pwd)
+  export basedir
+  export conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
+  export lib="${basedir}/lib"
+  export cmd="$1"
+
+  if [[ -z $conf || ! -d $conf ]]; then
+    echo "$conf is not a valid directory.  Please make sure it exists"
+    exit 1
+  fi
+  if [[ ! -f "$conf/accumulo-env.sh" ]]; then
+    echo "accumulo-env.sh must exist in $conf"
+    exit 1
+  fi
+  #shellcheck source=../conf/accumulo-env.sh
+  source "$conf/accumulo-env.sh"
+
+  # Accumulo is moving away from these variables but they still might be needed
+  export ACCUMULO_HOME="$basedir"
+  export ACCUMULO_CONF_DIR="$conf"
+
+  # Verify setting in accumulo-env.sh
+  : "${JAVA_OPTS:?"variable is not set in accumulo-env.sh"}"
+  : "${CLASSPATH:?"variable is not set in accumulo-env.sh"}"
+  : "${ACCUMULO_LOG_DIR:?"variable is not set in accumulo-env.sh"}"
+  mkdir -p "${ACCUMULO_LOG_DIR}" 2>/dev/null
+  : "${MALLOC_ARENA_MAX:?"variable is not set in accumulo-env.sh"}"
+
+  if [[ $cmd == "classpath" ]]; then
+    echo "$CLASSPATH"
+    exit 0
+  fi
+
+  # Start up JShell with Accumulo
+  local jShellPath="$conf/jshell-init.jsh"
+  if [[ $cmd == "jshell" ]]; then
+    shift
+    if [[ -f $jShellPath ]]; then
+      exec "$cmd" --startup DEFAULT --startup "$jShellPath" "$@"
+    else
+      exec "$cmd" "$@"
+    fi
+  fi
+
+  if [[ -x "$JAVA_HOME/bin/java" ]]; then
+    JAVA="$JAVA_HOME/bin/java"
+  else
+    JAVA=$(type -P java)
+  fi
+  if [[ ! -x $JAVA ]]; then
+    echo "Could not find any executable java binary. Please set java on your PATH or set JAVA_HOME"
+    exit 1
+  fi
+  if [[ -n $ACCUMULO_JAVA_PREFIX ]]; then
+    JAVA=("${ACCUMULO_JAVA_PREFIX[*]}" "$JAVA")
+  fi
+
+  exec "${JAVA[@]}" "${JAVA_OPTS[@]}" org.apache.accumulo.start.Main "$@"
 }
 
-test -z "${JAVA_HOME}"      && locationByProgram java JAVA_HOME
-test -z "${HADOOP_PREFIX}"  && locationByProgram hadoop HADOOP_PREFIX
-test -z "${ZOOKEEPER_HOME}" && locationByProgram zkCli.sh ZOOKEEPER_HOME
-
-#
-# ACCUMULO_XTRAJARS is where all of the commandline -add items go into for reading by accumulo.
-# It also holds the JAR run with the jar command and, if possible, any items in the JAR manifest's Class-Path.
-#
-if [[ "$1" = "-add" ]]; then
-    export ACCUMULO_XTRAJARS="$2"
-    shift 2
-else
-    export ACCUMULO_XTRAJARS=""
-fi
-if [[ "$1" = "jar" && -f "$2" ]]; then
-    if [[ $2 =~ ^/ ]]; then
-      jardir="$(dirname "$2")"
-      jarfile="$2"
-    else
-      jardir="$(pwd)"
-      jarfile="${jardir}/${2}"
-    fi
-    if jar tf "$jarfile" | grep -q META-INF/MANIFEST.MF ; then
-      cp="$(unzip -p "$jarfile" META-INF/MANIFEST.MF | grep ^Class-Path: | sed 's/^Class-Path: *//')"
-      if [[ -n "$cp" ]]; then
-         for j in $cp; do
-            if [[ "$j" != "Class-Path:" ]]; then
-               ACCUMULO_XTRAJARS="${jardir}/${j},$ACCUMULO_XTRAJARS"
-            fi
-         done
-      fi
-    fi
-    ACCUMULO_XTRAJARS="${jarfile},$ACCUMULO_XTRAJARS"
-fi
-
-#
-# Set up -D switches for JAAS and Kerberos if env variables set
-#
-if [[ -n ${ACCUMULO_JAAS_CONF} ]]; then
-  ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.auth.login.config=${ACCUMULO_JAAS_CONF}"
-fi
-
-if [[ -n ${ACCUMULO_KRB5_CONF} ]]; then
-  ACCUMULO_GENERAL_OPTS="${ACCUMULO_GENERAL_OPTS} -Djava.security.krb5.conf=${ACCUMULO_KRB5_CONF}"
-fi
-
-#
-# Add appropriate options for process type
-#
-case "$1" in
-master)  export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MASTER_OPTS}" ;;
-gc)      export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_GC_OPTS}" ;;
-tserver*) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_TSERVER_OPTS}" ;;
-monitor) export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MONITOR_OPTS}" ;;
-shell)   export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_SHELL_OPTS}" ;;
-*)       export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_OTHER_OPTS}" ;;
-esac
-
-XML_FILES="${ACCUMULO_CONF_DIR}"
-SLF4J_JARS="${ACCUMULO_HOME}/lib/slf4j-api.jar:${ACCUMULO_HOME}/lib/slf4j-reload4j.jar:${ACCUMULO_HOME}/lib/reload4j.jar"
-
-if [[ -n "$CLASSPATH" ]]; then
-  CLASSPATH="${XML_FILES}:${START_JAR}:${SLF4J_JARS}:${CLASSPATH}"
-else
-  CLASSPATH="${XML_FILES}:${START_JAR}:${SLF4J_JARS}"
-fi
-
-if [[ -z "${JAVA_HOME}" || ! -d "${JAVA_HOME}" ]]; then
-   echo "JAVA_HOME is not set or is not a directory.  Please make sure it's set globally or in conf/accumulo-env.sh"
-   exit 1
-fi
-if [[ -z "${HADOOP_PREFIX}" || ! -d "${HADOOP_PREFIX}" ]]; then
-   echo "HADOOP_PREFIX is not set or is not a directory.  Please make sure it's set globally or in conf/accumulo-env.sh"
-   exit 1
-fi
-if [[ -z "${ZOOKEEPER_HOME}" || ! -d "${ZOOKEEPER_HOME}" ]]; then
-   echo "ZOOKEEPER_HOME is not set or is not a directory.  Please make sure it's set globally or in conf/accumulo-env.sh"
-   exit 1
-fi
-
-# This is default for hadoop 2.x;
-#   for another distribution, specify (DY)LD_LIBRARY_PATH
-#   explicitly in ${ACCUMULO_HOME}/conf/accumulo-env.sh
-#   usually something like:
-#     ${HADOOP_PREFIX}/lib/native/${PLATFORM}
-if [[ -e "${HADOOP_PREFIX}/lib/native/libhadoop.so" ]]; then
-   LIB_PATH="${HADOOP_PREFIX}/lib/native"
-   LD_LIBRARY_PATH="${LIB_PATH}:${LD_LIBRARY_PATH}"     # For Linux
-   DYLD_LIBRARY_PATH="${LIB_PATH}:${DYLD_LIBRARY_PATH}" # For Mac
-fi
-
-# Export the variables just in case they are not exported
-# This makes them available to java
-export JAVA_HOME HADOOP_PREFIX ZOOKEEPER_HOME LD_LIBRARY_PATH DYLD_LIBRARY_PATH
-
-# Strip the instance from $1
-APP=$1
-# Avoid setting an instance unless it's necessary to ensure consistency in filenames
-INSTANCE=""
-# Avoid setting a pointless system property
-INSTANCE_OPT=""
-if [[ "$1" =~ ^tserver-[1-9][0-9]*$ ]]; then
-  APP="$(echo "$1" | cut -d'-' -f1)"
-  # Appending the trailing underscore to make single-tserver deploys look how they did
-  INSTANCE="$(echo "$1" | cut -d'-' -f2)_"
-
-  #Rewrite the input arguments
-  set -- "$APP" "${@:2}"
-
-  # The extra system property we'll pass to the java cmd
-  INSTANCE_OPT="-Daccumulo.service.instance=${INSTANCE}"
-fi
-
-#
-# app isn't used anywhere, but it makes the process easier to spot when ps/top/snmp truncate the command line
-JAVA="${JAVA_HOME}/bin/java"
-exec "$JAVA" "-Dapp=$1" \
-   $INSTANCE_OPT \
-   $ACCUMULO_OPTS \
-   -classpath "${CLASSPATH}" \
-   -XX:OnOutOfMemoryError="${ACCUMULO_KILL_CMD:-kill -9 %p}" \
-   -XX:-OmitStackTraceInFastThrow \
-   -Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl \
-   -Dorg.apache.accumulo.core.home.dir="${ACCUMULO_HOME}" \
-   -Dhadoop.home.dir="${HADOOP_PREFIX}" \
-   -Dzookeeper.home.dir="${ZOOKEEPER_HOME}" \
-   org.apache.accumulo.start.Main \
-   "$@"
+main "$@"

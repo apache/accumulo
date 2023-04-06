@@ -1,22 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -26,24 +29,23 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.clientImpl.ScannerOptions;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.thrift.IterInfo;
+import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
@@ -57,7 +59,7 @@ import org.apache.hadoop.io.Text;
  *
  * <pre>
  * <code>
- * Scanner scanner = connector.createScanner(tableName, authorizations);
+ * Scanner scanner = client.createScanner(tableName, authorizations);
  * scanner = new ClientSideIteratorScanner(scanner);
  * </code>
  * </pre>
@@ -75,22 +77,6 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
   private SamplerConfiguration iteratorSamplerConfig;
 
-  /**
-   * @deprecated since 1.7.0 was never intended for public use. However this could have been used by
-   *             anything extending this class.
-   */
-  @Deprecated
-  public class ScannerTranslator extends ScannerTranslatorImpl {
-    public ScannerTranslator(Scanner scanner) {
-      super(scanner, scanner.getSamplerConfiguration());
-    }
-
-    @Override
-    public SortedKeyValueIterator<Key,Value> deepCopy(final IteratorEnvironment env) {
-      return new ScannerTranslator(scanner);
-    }
-  }
-
   private class ClientSideIteratorEnvironment implements IteratorEnvironment {
 
     private SamplerConfiguration samplerConfig;
@@ -99,17 +85,6 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     ClientSideIteratorEnvironment(boolean sampleEnabled, SamplerConfiguration samplerConfig) {
       this.sampleEnabled = sampleEnabled;
       this.samplerConfig = samplerConfig;
-    }
-
-    @Override
-    public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
-        throws IOException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public AccumuloConfiguration getConfig() {
-      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -123,8 +98,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     }
 
     @Override
-    public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
-      throw new UnsupportedOperationException();
+    public boolean isUserCompaction() {
+      return false;
     }
 
     @Override
@@ -161,8 +136,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     /**
      * Constructs an accumulo iterator from a scanner.
      *
-     * @param scanner
-     *          the scanner to iterate over
+     * @param scanner the scanner to iterate over
      */
     public ScannerTranslatorImpl(final Scanner scanner, SamplerConfiguration samplerConfig) {
       this.scanner = scanner;
@@ -182,16 +156,17 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     @Override
     public void next() throws IOException {
-      if (iter.hasNext())
+      if (iter.hasNext()) {
         top = iter.next();
-      else
+      } else {
         top = null;
+      }
     }
 
     @Override
     public void seek(final Range range, final Collection<ByteSequence> columnFamilies,
         final boolean inclusive) throws IOException {
-      if (!inclusive && columnFamilies.size() > 0) {
+      if (!inclusive && !columnFamilies.isEmpty()) {
         throw new IllegalArgumentException();
       }
       scanner.setRange(range);
@@ -232,19 +207,19 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   /**
    * Constructs a scanner that can execute client-side iterators.
    *
-   * @param scanner
-   *          the source scanner
+   * @param scanner the source scanner
    */
   public ClientSideIteratorScanner(final Scanner scanner) {
     smi = new ScannerTranslatorImpl(scanner, scanner.getSamplerConfiguration());
     this.range = scanner.getRange();
     this.size = scanner.getBatchSize();
-    this.retryTimeout = scanner.getTimeout(TimeUnit.MILLISECONDS);
-    this.batchTimeout = scanner.getTimeout(TimeUnit.MILLISECONDS);
+    this.retryTimeout = scanner.getTimeout(MILLISECONDS);
+    this.batchTimeout = scanner.getTimeout(MILLISECONDS);
     this.readaheadThreshold = scanner.getReadaheadThreshold();
     SamplerConfiguration samplerConfig = scanner.getSamplerConfiguration();
-    if (samplerConfig != null)
+    if (samplerConfig != null) {
       setSamplerConfiguration(samplerConfig);
+    }
   }
 
   /**
@@ -257,13 +232,14 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     smi.scanner.setBatchSize(size);
-    smi.scanner.setTimeout(retryTimeout, TimeUnit.MILLISECONDS);
-    smi.scanner.setBatchTimeout(batchTimeout, TimeUnit.MILLISECONDS);
+    smi.scanner.setTimeout(retryTimeout, MILLISECONDS);
+    smi.scanner.setBatchTimeout(batchTimeout, MILLISECONDS);
     smi.scanner.setReadaheadThreshold(readaheadThreshold);
-    if (isolated)
+    if (isolated) {
       smi.scanner.enableIsolation();
-    else
+    } else {
       smi.scanner.disableIsolation();
+    }
 
     smi.samplerConfig = getSamplerConfiguration();
 
@@ -275,10 +251,13 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     SortedKeyValueIterator<Key,Value> skvi;
     try {
-      skvi = IteratorUtil.loadIterators(smi, tm.values(), serverSideIteratorOptions,
-          new ClientSideIteratorEnvironment(getSamplerConfiguration() != null,
-              getIteratorSamplerConfigurationInternal()),
-          false, null);
+      IteratorEnvironment iterEnv = new ClientSideIteratorEnvironment(
+          getSamplerConfiguration() != null, getIteratorSamplerConfigurationInternal());
+
+      IteratorBuilder ib =
+          IteratorBuilder.builder(tm.values()).opts(serverSideIteratorOptions).env(iterEnv).build();
+
+      skvi = IteratorConfigUtil.loadIterators(smi, ib);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -300,24 +279,6 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   @Override
   public Authorizations getAuthorizations() {
     return smi.scanner.getAuthorizations();
-  }
-
-  @Deprecated
-  @Override
-  public void setTimeOut(int timeOut) {
-    if (timeOut == Integer.MAX_VALUE)
-      setTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-    else
-      setTimeout(timeOut, TimeUnit.SECONDS);
-  }
-
-  @Deprecated
-  @Override
-  public int getTimeOut() {
-    long timeout = getTimeout(TimeUnit.SECONDS);
-    if (timeout >= Integer.MAX_VALUE)
-      return Integer.MAX_VALUE;
-    return (int) timeout;
   }
 
   @Override
@@ -357,7 +318,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
   @Override
   public void setReadaheadThreshold(long batches) {
-    if (0 > batches) {
+    if (batches < 0) {
       throw new IllegalArgumentException(
           "Number of batches before read-ahead must be non-negative");
     }
@@ -410,5 +371,10 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
   public SamplerConfiguration getIteratorSamplerConfiguration() {
     return iteratorSamplerConfig;
+  }
+
+  @Override
+  public void close() {
+    smi.scanner.close();
   }
 }

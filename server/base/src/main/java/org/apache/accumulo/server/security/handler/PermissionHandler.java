@@ -1,29 +1,31 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security.handler;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.server.ServerContext;
 
 /**
  * This interface is used for the system which will be used for getting a users permissions. If the
@@ -35,7 +37,7 @@ public interface PermissionHandler {
   /**
    * Sets up the permission handler for a new instance of Accumulo
    */
-  void initialize(String instanceId, boolean initialize);
+  void initialize(ServerContext context);
 
   /**
    * Used to validate that the Authorizor, Authenticator, and permission handler can coexist
@@ -46,47 +48,44 @@ public interface PermissionHandler {
    * Used to initialize security for the root user
    */
   void initializeSecurity(TCredentials credentials, String rootuser)
-      throws AccumuloSecurityException, ThriftSecurityException;
+      throws AccumuloSecurityException;
 
   /**
    * Used to get the system permission for the user
    */
-  boolean hasSystemPermission(String user, SystemPermission permission)
-      throws AccumuloSecurityException;
+  boolean hasSystemPermission(String user, SystemPermission permission);
 
   /**
    * Used to get the system permission for the user, with caching due to high frequency operation.
    * NOTE: At this time, this method is unused but is included just in case we need it in the
    * future.
    */
-  boolean hasCachedSystemPermission(String user, SystemPermission permission)
-      throws AccumuloSecurityException;
+  boolean hasCachedSystemPermission(String user, SystemPermission permission);
 
   /**
    * Used to get the table permission of a user for a table
    */
   boolean hasTablePermission(String user, String table, TablePermission permission)
-      throws AccumuloSecurityException, TableNotFoundException;
+      throws TableNotFoundException;
 
   /**
    * Used to get the table permission of a user for a table, with caching. This method is for high
    * frequency operations
    */
-  boolean hasCachedTablePermission(String user, String table, TablePermission permission)
-      throws AccumuloSecurityException, TableNotFoundException;
+  boolean hasCachedTablePermission(String user, String table, TablePermission permission);
 
   /**
    * Used to get the namespace permission of a user for a namespace
    */
   boolean hasNamespacePermission(String user, String namespace, NamespacePermission permission)
-      throws AccumuloSecurityException, NamespaceNotFoundException;
+      throws NamespaceNotFoundException;
 
   /**
    * Used to get the namespace permission of a user for a namespace, with caching. This method is
    * for high frequency operations
    */
   boolean hasCachedNamespacePermission(String user, String namespace,
-      NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException;
+      NamespacePermission permission);
 
   /**
    * Gives the user the given system permission
@@ -139,11 +138,6 @@ public interface PermissionHandler {
    * Initializes a new user
    */
   void initUser(String user) throws AccumuloSecurityException;
-
-  /**
-   * Initializes a new user
-   */
-  void initTable(String table) throws AccumuloSecurityException;
 
   /**
    * Deletes a user

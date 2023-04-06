@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,7 +21,7 @@ package org.apache.accumulo.core.client.admin;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.impl.CloneConfigurationImpl;
+import org.apache.accumulo.core.clientImpl.CloneConfigurationImpl;
 
 /**
  * A configuration object that can be used with the table clone command in the
@@ -35,14 +35,14 @@ public interface CloneConfiguration {
    *
    * @return true if memory is flushed in the source table before cloning.
    */
-  public boolean isFlush();
+  boolean isFlush();
 
   /**
    * The source table properties are copied. This allows overriding of some of those properties.
    *
    * @return The source table properties to override.
    */
-  public Map<String,String> getPropertiesToSet();
+  Map<String,String> getPropertiesToSet();
 
   /**
    * The source table properties are copied, this allows reverting to system defaults for some of
@@ -50,7 +50,7 @@ public interface CloneConfiguration {
    *
    * @return The properties that are to be reverted to system defaults.
    */
-  public Set<String> getPropertiesToExclude();
+  Set<String> getPropertiesToExclude();
 
   /**
    * The new table is normally brought online after the cloning process. This allows leaving the new
@@ -58,61 +58,65 @@ public interface CloneConfiguration {
    *
    * @return true if the new table is to be kept offline after cloning.
    */
-  public boolean isKeepOffline();
+  boolean isKeepOffline();
 
   /**
    * A CloneConfiguration builder
    *
    * @since 1.10 and 2.1
    */
-  public static interface Builder {
+  interface Builder {
     /**
      * Determines if memory is flushed in the source table before cloning.
      *
-     * @param flush
-     *          true if memory is flushed in the source table before cloning.
+     * @param flush true if memory is flushed in the source table before cloning.
      */
-    public Builder setFlush(boolean flush);
+    Builder setFlush(boolean flush);
 
     /**
      * The source table properties are copied. This allows overriding of some of those properties.
      *
-     * @param propertiesToSet
-     *          The source table properties to override.
+     * @param propertiesToSet The source table properties to override.
      */
-    public Builder setPropertiesToSet(Map<String,String> propertiesToSet);
+    Builder setPropertiesToSet(Map<String,String> propertiesToSet);
 
     /**
      * The source table properties are copied, this allows reverting to system defaults for some of
      * those properties.
      *
-     * @param propertiesToExclude
-     *          The properties that are to be reverted to system defaults.
+     * @param propertiesToExclude The properties that are to be reverted to system defaults.
      */
-    public Builder setPropertiesToExclude(Set<String> propertiesToExclude);
+    Builder setPropertiesToExclude(Set<String> propertiesToExclude);
 
     /**
      * The new table is normally brought online after the cloning process. This allows leaving the
      * new table offline
      *
-     * @param keepOffline
-     *          true if the new table is to be kept offline after cloning.
+     * @param keepOffline true if the new table is to be kept offline after cloning.
      */
-    public Builder setKeepOffline(boolean keepOffline);
+    Builder setKeepOffline(boolean keepOffline);
 
     /**
      * Build the clone configuration
      *
      * @return the built immutable clone configuration
      */
-    public CloneConfiguration build();
+    CloneConfiguration build();
   }
 
   /**
    * @return a {@link CloneConfiguration} builder
    */
-  public static CloneConfiguration.Builder builder() {
+  static CloneConfiguration.Builder builder() {
     return new CloneConfigurationImpl();
+  }
+
+  /**
+   * @return an empty configuration object with the default settings.
+   * @since 2.1.0
+   */
+  static CloneConfiguration empty() {
+    return builder().build();
   }
 
 }

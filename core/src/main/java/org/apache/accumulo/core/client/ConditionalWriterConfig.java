@@ -1,44 +1,47 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.conf.ClientProperty.CONDITIONAL_WRITER_THREADS_MAX;
+import static org.apache.accumulo.core.conf.ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
- *
  * @since 1.6.0
  */
 public class ConditionalWriterConfig {
 
-  private static final Long DEFAULT_TIMEOUT = Long.MAX_VALUE;
+  private static final Long DEFAULT_TIMEOUT = getDefaultTimeout();
+  private static final Integer DEFAULT_MAX_WRITE_THREADS =
+      Integer.parseInt(CONDITIONAL_WRITER_THREADS_MAX.getDefaultValue());
+
   private Long timeout = null;
-
-  private static final Integer DEFAULT_MAX_WRITE_THREADS = 3;
   private Integer maxWriteThreads = null;
-
-  private Authorizations auths = Authorizations.EMPTY;
-
-  private Durability durability = Durability.DEFAULT;
-
+  private Authorizations auths = null;
+  private Durability durability = null;
   private String classLoaderContext = null;
 
   /**
@@ -70,24 +73,23 @@ public class ConditionalWriterConfig {
    * <p>
    * <b>Default:</b> {@link Long#MAX_VALUE} (no timeout)
    *
-   * @param timeout
-   *          the timeout, in the unit specified by the value of {@code timeUnit}
-   * @param timeUnit
-   *          determines how {@code timeout} will be interpreted
-   * @throws IllegalArgumentException
-   *           if {@code timeout} is less than 0
+   * @param timeout the timeout, in the unit specified by the value of {@code timeUnit}
+   * @param timeUnit determines how {@code timeout} will be interpreted
+   * @throws IllegalArgumentException if {@code timeout} is less than 0
    * @return {@code this} to allow chaining of set methods
    */
   public ConditionalWriterConfig setTimeout(long timeout, TimeUnit timeUnit) {
-    if (timeout < 0)
+    if (timeout < 0) {
       throw new IllegalArgumentException("Negative timeout not allowed " + timeout);
+    }
 
-    if (timeout == 0)
+    if (timeout == 0) {
       this.timeout = Long.MAX_VALUE;
-    else
+    } else {
       // make small, positive values that truncate to 0 when converted use the minimum millis
       // instead
       this.timeout = Math.max(1, timeUnit.toMillis(timeout));
+    }
     return this;
   }
 
@@ -97,15 +99,14 @@ public class ConditionalWriterConfig {
    * <p>
    * <b>Default:</b> 3
    *
-   * @param maxWriteThreads
-   *          the maximum threads to use
-   * @throws IllegalArgumentException
-   *           if {@code maxWriteThreads} is non-positive
+   * @param maxWriteThreads the maximum threads to use
+   * @throws IllegalArgumentException if {@code maxWriteThreads} is non-positive
    * @return {@code this} to allow chaining of set methods
    */
   public ConditionalWriterConfig setMaxWriteThreads(int maxWriteThreads) {
-    if (maxWriteThreads <= 0)
+    if (maxWriteThreads <= 0) {
       throw new IllegalArgumentException("Max threads must be positive " + maxWriteThreads);
+    }
 
     this.maxWriteThreads = maxWriteThreads;
     return this;
@@ -125,11 +126,11 @@ public class ConditionalWriterConfig {
   }
 
   public Authorizations getAuthorizations() {
-    return auths;
+    return auths != null ? auths : Authorizations.EMPTY;
   }
 
   public long getTimeout(TimeUnit timeUnit) {
-    return timeUnit.convert(timeout != null ? timeout : DEFAULT_TIMEOUT, TimeUnit.MILLISECONDS);
+    return timeUnit.convert(timeout != null ? timeout : DEFAULT_TIMEOUT, MILLISECONDS);
   }
 
   public int getMaxWriteThreads() {
@@ -137,17 +138,21 @@ public class ConditionalWriterConfig {
   }
 
   public Durability getDurability() {
-    return durability;
+    return durability != null ? durability : Durability.DEFAULT;
+  }
+
+  private static long getDefaultTimeout() {
+    long defVal =
+        ConfigurationTypeHelper.getTimeInMillis(CONDITIONAL_WRITER_TIMEOUT_MAX.getDefaultValue());
+    return defVal != 0L ? defVal : Long.MAX_VALUE;
   }
 
   /**
    * Sets the name of the classloader context on this scanner. See the administration chapter of the
    * user manual for details on how to configure and use classloader contexts.
    *
-   * @param classLoaderContext
-   *          name of the classloader context
-   * @throws NullPointerException
-   *           if context is null
+   * @param classLoaderContext name of the classloader context
+   * @throws NullPointerException if context is null
    * @since 1.8.0
    */
   public void setClassLoaderContext(String classLoaderContext) {
@@ -172,6 +177,30 @@ public class ConditionalWriterConfig {
    */
   public String getClassLoaderContext() {
     return this.classLoaderContext;
+  }
+
+  private static <T> T merge(T o1, T o2) {
+    if (o1 != null) {
+      return o1;
+    }
+    return o2;
+  }
+
+  /**
+   * Merge this ConditionalWriterConfig with another. If config is set in both, preference will be
+   * given to this config.
+   *
+   * @param other Another ConditionalWriterConfig
+   * @return Merged ConditionalWriterConfig
+   * @since 2.1.0
+   */
+  public ConditionalWriterConfig merge(ConditionalWriterConfig other) {
+    ConditionalWriterConfig result = new ConditionalWriterConfig();
+    result.timeout = merge(this.timeout, other.timeout);
+    result.maxWriteThreads = merge(this.maxWriteThreads, other.maxWriteThreads);
+    result.durability = merge(this.durability, other.durability);
+    result.auths = merge(this.auths, other.auths);
+    return result;
   }
 
 }

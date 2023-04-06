@@ -1,20 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.util;
+
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.util.concurrent.TimeUnit;
 
@@ -29,11 +33,6 @@ public class OpTimer {
   private long currentElapsedNanos;
 
   /**
-   * Create an OpTimer instance. The timer is not running.
-   */
-  public OpTimer() {}
-
-  /**
    * Returns timer running state
    *
    * @return true if timer is running
@@ -46,8 +45,7 @@ public class OpTimer {
    * Start the timer instance.
    *
    * @return this instance for fluent chaining.
-   * @throws IllegalStateException
-   *           if start is called on running instance.
+   * @throws IllegalStateException if start is called on running instance.
    */
   public OpTimer start() throws IllegalStateException {
     if (isStarted) {
@@ -62,8 +60,7 @@ public class OpTimer {
    * Stop the timer instance.
    *
    * @return this instance for fluent chaining.
-   * @throws IllegalStateException
-   *           if stop is called on instance that is not running.
+   * @throws IllegalStateException if stop is called on instance that is not running.
    */
   public OpTimer stop() throws IllegalStateException {
     if (!isStarted) {
@@ -90,12 +87,11 @@ public class OpTimer {
    * Converts current timer value to specific unit. The conversion to courser granularities truncate
    * with loss of precision.
    *
-   * @param timeUnit
-   *          the time unit that will converted to.
+   * @param timeUnit the time unit that will converted to.
    * @return truncated time in unit of specified time unit.
    */
   public long now(TimeUnit timeUnit) {
-    return timeUnit.convert(now(), TimeUnit.NANOSECONDS);
+    return timeUnit.convert(now(), NANOSECONDS);
   }
 
   /**
@@ -106,12 +102,11 @@ public class OpTimer {
    * Note: this method is not included in the hadoop 2.7 org.apache.hadoop.util.StopWatch class. If
    * that class is adopted, then provisions will be required to replace this method.
    *
-   * @param timeUnit
-   *          the time unit to scale the elapsed time to.
+   * @param timeUnit the time unit to scale the elapsed time to.
    * @return the elapsed time of this instance scaled to the provided time unit.
    */
   public double scale(TimeUnit timeUnit) {
-    return (double) now() / TimeUnit.NANOSECONDS.convert(1L, timeUnit);
+    return (double) now() / NANOSECONDS.convert(1L, timeUnit);
   }
 
   /**

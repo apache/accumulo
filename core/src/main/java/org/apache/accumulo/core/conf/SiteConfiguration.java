@@ -1,221 +1,282 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
+
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
-import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.hadoop.conf.Configuration;
-import org.gaul.modernizer_maven_annotations.SuppressModernizer;
+import org.apache.commons.configuration2.AbstractConfiguration;
+import org.apache.commons.configuration2.CompositeConfiguration;
+import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Predicate;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * An {@link AccumuloConfiguration} which loads properties from an XML file, usually
- * accumulo-site.xml. This implementation supports defaulting undefined property values to a parent
- * configuration's definitions.
+ * An {@link AccumuloConfiguration} which first loads any properties set on the command-line (using
+ * the -o option) and then from accumulo.properties. This implementation supports defaulting
+ * undefined property values to a parent configuration's definitions.
  * <p>
- * The system property "org.apache.accumulo.config.file" can be used to specify the location of the
- * XML configuration file on the classpath. If the system property is not defined, it defaults to
- * "accumulo-site.xml".
- * <p>
- * This class is a singleton.
+ * The system property "accumulo.properties" can be used to specify the location of the properties
+ * file on the classpath or filesystem if the path is prefixed with 'file://'. If the system
+ * property is not defined, it defaults to "accumulo.properties" and will look on classpath for
+ * file.
  * <p>
  * <b>Note</b>: Client code should not use this class, and it may be deprecated in the future.
  */
 public class SiteConfiguration extends AccumuloConfiguration {
+
   private static final Logger log = LoggerFactory.getLogger(SiteConfiguration.class);
 
   private static final AccumuloConfiguration parent = DefaultConfiguration.getInstance();
-  private static SiteConfiguration instance = null;
 
-  private static Configuration xmlConfig;
-  private final Map<String,String> staticConfigs;
+  public interface Buildable {
+    SiteConfiguration build();
+  }
 
-  private SiteConfiguration() {
-    /*
-     * Make a read-only copy of static configs so we can avoid lock contention on the Hadoop
-     * Configuration object
-     */
-    final Configuration conf = getXmlConfig();
-    Map<String,String> temp = new HashMap<>((int) (Math.ceil(conf.size() / 0.75f)), 0.75f);
-    for (Entry<String,String> entry : conf) {
-      temp.put(entry.getKey(), entry.getValue());
+  public interface OverridesOption extends Buildable {
+    Buildable withOverrides(Map<String,String> overrides);
+  }
+
+  static class Builder implements OverridesOption, Buildable {
+    private URL url = null;
+    private Map<String,String> overrides = Collections.emptyMap();
+
+    // visible to package-private for testing only
+    Builder() {}
+
+    private OverridesOption noFile() {
+      return this;
     }
-    /*
-     * If any of the configs used in hot codepaths are unset here, set a null so that we'll default
-     * to the parent config without contending for the Hadoop Configuration object
-     */
-    for (Property hotConfig : Property.HOT_PATH_PROPERTIES) {
-      if (!(temp.containsKey(hotConfig.getKey()))) {
-        temp.put(hotConfig.getKey(), null);
+
+    // exists for testing only
+    OverridesOption fromUrl(URL propertiesFileUrl) {
+      url = requireNonNull(propertiesFileUrl);
+      return this;
+    }
+
+    public OverridesOption fromEnv() {
+      URL siteUrl = SiteConfiguration.class.getClassLoader().getResource("accumulo-site.xml");
+      if (siteUrl != null) {
+        throw new IllegalArgumentException("Found deprecated config file 'accumulo-site.xml' on "
+            + "classpath. Since 2.0.0, this file was replaced by 'accumulo.properties'. Run the "
+            + "following command to convert an old 'accumulo-site.xml' file to the new format: "
+            + "accumulo convert-config -x /old/accumulo-site.xml -p /new/accumulo.properties");
       }
-    }
-    staticConfigs = Collections.unmodifiableMap(temp);
-  }
 
-  /**
-   * Gets an instance of this class. A new instance is only created on the first call.
-   *
-   * @throws RuntimeException
-   *           if the configuration is invalid
-   */
-  synchronized public static SiteConfiguration getInstance() {
-    if (instance == null) {
-      instance = new SiteConfiguration();
-      ConfigSanityCheck.validate(instance);
-    }
-    return instance;
-  }
-
-  synchronized private static Configuration getXmlConfig() {
-    String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
-    if (xmlConfig == null) {
-      xmlConfig = new Configuration(false);
-
-      if (SiteConfiguration.class.getClassLoader().getResource(configFile) == null)
-        log.warn(configFile + " not found on classpath", new Throwable());
-      else
-        xmlConfig.addResource(configFile);
-    }
-    return xmlConfig;
-  }
-
-  @Override
-  public String get(Property property) {
-    String key = property.getKey();
-
-    // If the property is sensitive, see if CredentialProvider was configured.
-    if (property.isSensitive()) {
-      Configuration hadoopConf = getHadoopConfiguration();
-      if (null != hadoopConf) {
-        // Try to find the sensitive value from the CredentialProvider
+      String configFile = System.getProperty("accumulo.properties", "accumulo.properties");
+      if (configFile.startsWith("file://")) {
+        File f;
         try {
-          char[] value =
-              CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
-          if (null != value) {
-            return new String(value);
-          }
-        } catch (IOException e) {
-          log.warn("Failed to extract sensitive property (" + key
-              + ") from Hadoop CredentialProvider, falling back to accumulo-site.xml", e);
+          f = new File(new URI(configFile));
+        } catch (URISyntaxException e) {
+          throw new IllegalArgumentException(
+              "Failed to load Accumulo configuration from " + configFile, e);
+        }
+        if (f.exists() && !f.isDirectory()) {
+          log.info("Found Accumulo configuration at {}", configFile);
+          return fromFile(f);
+        } else {
+          throw new IllegalArgumentException(
+              "Failed to load Accumulo configuration at " + configFile);
+        }
+      } else {
+        URL accumuloConfigUrl = SiteConfiguration.class.getClassLoader().getResource(configFile);
+        if (accumuloConfigUrl == null) {
+          throw new IllegalArgumentException(
+              "Failed to load Accumulo configuration '" + configFile + "' from classpath");
+        } else {
+          log.info("Found Accumulo configuration on classpath at {}", accumuloConfigUrl.getFile());
+          url = accumuloConfigUrl;
+          return this;
         }
       }
     }
 
-    /*
-     * Check the available-on-load configs and fall-back to the possibly-update Configuration
-     * object.
-     */
-    String value =
-        staticConfigs.containsKey(key) ? staticConfigs.get(key) : getXmlConfig().get(key);
+    public OverridesOption fromFile(File propertiesFileLocation) {
+      try {
+        url = requireNonNull(propertiesFileLocation).toURI().toURL();
+      } catch (MalformedURLException e) {
+        throw new IllegalArgumentException(e);
+      }
+      return this;
+    }
 
+    @Override
+    public Buildable withOverrides(Map<String,String> overrides) {
+      this.overrides = requireNonNull(overrides);
+      return this;
+    }
+
+    @Override
+    public SiteConfiguration build() {
+      // load properties from configuration file
+      var propsFileConfig = getPropsFileConfig(url);
+
+      // load properties from command-line overrides
+      var overrideConfig = new MapConfiguration(overrides);
+
+      // load credential provider property
+      var credProviderProps = new HashMap<String,String>();
+      for (var c : new AbstractConfiguration[] {propsFileConfig, overrideConfig}) {
+        var credProvider =
+            c.getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+        if (credProvider != null && !credProvider.isEmpty()) {
+          loadCredProviderProps(credProvider, credProviderProps);
+          break;
+        }
+      }
+      var credProviderConfig = new MapConfiguration(credProviderProps);
+
+      var config = new CompositeConfiguration();
+      // add in specific order; use credential provider first, then overrides, then properties file
+      config.addConfiguration(credProviderConfig);
+      config.addConfiguration(overrideConfig);
+      config.addConfiguration(propsFileConfig);
+
+      var result = new HashMap<String,String>();
+      config.getKeys().forEachRemaining(orig -> {
+        String resolved = DeprecatedPropertyUtil.getReplacementName(orig, (log, replacement) -> {
+          log.warn("{} has been deprecated and will be removed in a future release;"
+              + " loading its replacement {} instead.", orig, replacement);
+        });
+        result.put(resolved, config.getString(orig));
+      });
+      return new SiteConfiguration(Collections.unmodifiableMap(result));
+    }
+  }
+
+  /**
+   * Build a SiteConfiguration from the environmental configuration with the option to override.
+   */
+  public static SiteConfiguration.OverridesOption fromEnv() {
+    return new SiteConfiguration.Builder().fromEnv();
+  }
+
+  /**
+   * Build a SiteConfiguration from the provided properties file with the option to override.
+   */
+  public static SiteConfiguration.OverridesOption fromFile(File propertiesFileLocation) {
+    return new SiteConfiguration.Builder().fromFile(propertiesFileLocation);
+  }
+
+  /**
+   * Build a SiteConfiguration that is initially empty with the option to override.
+   */
+  public static SiteConfiguration.OverridesOption empty() {
+    return new SiteConfiguration.Builder().noFile();
+  }
+
+  /**
+   * Build a SiteConfiguration from the environmental configuration and no overrides.
+   */
+  public static SiteConfiguration auto() {
+    return new SiteConfiguration.Builder().fromEnv().build();
+  }
+
+  private final Map<String,String> config;
+
+  private SiteConfiguration(Map<String,String> config) {
+    ConfigCheckUtil.validate(config.entrySet(), "site config");
+    this.config = config;
+  }
+
+  // load properties from config file
+  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
+      justification = "url is specified by an admin, not unchecked user input")
+  private static AbstractConfiguration getPropsFileConfig(URL accumuloPropsLocation) {
+    var config = new PropertiesConfiguration();
+    if (accumuloPropsLocation != null) {
+      try (var reader = new InputStreamReader(accumuloPropsLocation.openStream(), UTF_8)) {
+        config.read(reader);
+      } catch (ConfigurationException | IOException e) {
+        throw new IllegalArgumentException(e);
+      }
+    }
+    return config;
+  }
+
+  // load sensitive properties from Hadoop credential provider
+  private static void loadCredProviderProps(String provider, Map<String,String> props) {
+    var hadoopConf = new org.apache.hadoop.conf.Configuration();
+    HadoopCredentialProvider.setPath(hadoopConf, provider);
+    Stream.of(Property.values()).filter(Property::isSensitive).forEach(p -> {
+      char[] value = HadoopCredentialProvider.getValue(hadoopConf, p.getKey());
+      if (value != null) {
+        props.put(p.getKey(), new String(value));
+      }
+    });
+  }
+
+  @Override
+  public String get(Property property) {
+    String value = config.get(property.getKey());
     if (value == null || !property.getType().isValidFormat(value)) {
-      if (value != null)
-        log.error("Using default value for " + key + " due to improperly formatted "
-            + property.getType() + ": " + value);
+      if (value != null) {
+        log.error("Using default value for {} due to improperly formatted {}: {}",
+            property.getKey(), property.getType(), value);
+      }
       value = parent.get(property);
     }
     return value;
   }
 
   @Override
-  @SuppressModernizer
+  public boolean isPropertySet(Property prop) {
+    return config.containsKey(prop.getKey()) || parent.isPropertySet(prop);
+  }
+
+  @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
-    parent.getProperties(props, filter);
+    getProperties(props, filter, true);
+  }
 
-    for (Entry<String,String> entry : getXmlConfig())
-      if (filter.apply(entry.getKey()))
-        props.put(entry.getKey(), entry.getValue());
-
-    // CredentialProvider should take precedence over site
-    Configuration hadoopConf = getHadoopConfiguration();
-    if (null != hadoopConf) {
-      try {
-        for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
-          if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) {
-            continue;
-          }
-
-          if (filter.apply(key)) {
-            char[] value =
-                CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
-            if (null != value) {
-              props.put(key, new String(value));
-            }
-          }
-        }
-      } catch (IOException e) {
-        log.warn("Failed to extract sensitive properties from Hadoop"
-            + " CredentialProvider, falling back to accumulo-site.xml", e);
+  public void getProperties(Map<String,String> props, Predicate<String> filter,
+      boolean useDefaults) {
+    if (useDefaults) {
+      parent.getProperties(props, filter);
+    }
+    config.keySet().forEach(k -> {
+      if (filter.test(k)) {
+        props.put(k, config.get(k));
       }
-    }
+    });
   }
 
-  protected Configuration getHadoopConfiguration() {
-    String credProviderPathsKey = Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey();
-    String credProviderPathsValue = getXmlConfig().get(credProviderPathsKey);
-
-    if (null != credProviderPathsValue) {
-      // We have configuration for a CredentialProvider
-      // Try to pull the sensitive password from there
-      Configuration conf = new Configuration(CachedConfiguration.getInstance());
-      conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPathsValue);
-      return conf;
-    }
-
-    return null;
-  }
-
-  /**
-   * Clears the configuration properties in this configuration (but not the parent). This method
-   * supports testing and should not be called.
-   */
-  synchronized public static void clearInstance() {
-    instance = null;
-  }
-
-  /**
-   * Sets a property. This method supports testing and should not be called.
-   *
-   * @param property
-   *          property to set
-   * @param value
-   *          property value
-   */
-  public void set(Property property, String value) {
-    set(property.getKey(), value);
-  }
-
-  /**
-   * Sets a property. This method supports testing and should not be called.
-   *
-   * @param key
-   *          key of property to set
-   * @param value
-   *          property value
-   */
-  public void set(String key, String value) {
-    getXmlConfig().set(key, value);
+  @Override
+  public AccumuloConfiguration getParent() {
+    return parent;
   }
 }

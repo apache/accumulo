@@ -1,25 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.tablet;
 
 import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.slf4j.Logger;
@@ -31,12 +33,12 @@ public class CommitSession {
 
   private final long seq;
   private final InMemoryMap memTable;
-  private final TabletCommitter committer;
+  private final Tablet committer;
 
   private int commitsInProgress;
   private long maxCommittedTime = Long.MIN_VALUE;
 
-  CommitSession(TabletCommitter committer, long seq, InMemoryMap imm) {
+  CommitSession(Tablet committer, long seq, InMemoryMap imm) {
     this.seq = seq;
     this.memTable = imm;
     this.committer = committer;
@@ -48,17 +50,20 @@ public class CommitSession {
   }
 
   public void decrementCommitsInProgress() {
-    if (commitsInProgress < 1)
+    if (commitsInProgress < 1) {
       throw new IllegalStateException("commitsInProgress = " + commitsInProgress);
+    }
 
     commitsInProgress--;
-    if (commitsInProgress == 0)
+    if (commitsInProgress == 0) {
       committer.notifyAll();
+    }
   }
 
   public void incrementCommitsInProgress() {
-    if (commitsInProgress < 0)
+    if (commitsInProgress < 0) {
       throw new IllegalStateException("commitsInProgress = " + commitsInProgress);
+    }
 
     commitsInProgress++;
   }
@@ -73,16 +78,12 @@ public class CommitSession {
     }
   }
 
-  public void abortCommit(List<Mutation> value) {
-    committer.abortCommit(this, value);
+  public void abortCommit() {
+    committer.abortCommit(this);
   }
 
   public void commit(List<Mutation> mutations) {
     committer.commit(this, mutations);
-  }
-
-  public TabletCommitter getTablet() {
-    return committer;
   }
 
   public boolean beginUpdatingLogsUsed(DfsLogger copy, boolean mincFinish) {
@@ -106,12 +107,13 @@ public class CommitSession {
   }
 
   public long getMaxCommittedTime() {
-    if (maxCommittedTime == Long.MIN_VALUE)
+    if (maxCommittedTime == Long.MIN_VALUE) {
       throw new IllegalStateException("Tried to read max committed time when it was never set");
+    }
     return maxCommittedTime;
   }
 
-  public void mutate(List<Mutation> mutations) {
-    memTable.mutate(mutations);
+  public void mutate(List<Mutation> mutations, int count) {
+    memTable.mutate(mutations, count);
   }
 }

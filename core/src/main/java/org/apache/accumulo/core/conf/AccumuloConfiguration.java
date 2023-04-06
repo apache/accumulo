@@ -1,45 +1,54 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
+import static org.apache.accumulo.core.conf.Property.GENERAL_ARBITRARY_PROP_PREFIX;
+import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
+import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
+
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
-import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.gaul.modernizer_maven_annotations.SuppressModernizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Predicate;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -58,79 +67,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   private volatile EnumMap<Property,PrefixProps> cachedPrefixProps = new EnumMap<>(Property.class);
-  private Lock prefixCacheUpdateLock = new ReentrantLock();
-
-  /**
-   * A filter for properties, based on key. WARNING: Do not remove this filter; it is required for
-   * MockConfiguration
-   *
-   * @deprecated since 1.7.0; use {@link Predicate} instead.
-   */
-  @Deprecated
-  @SuppressModernizer
-  public interface PropertyFilter extends Predicate<String> {
-    /**
-     * Determines whether to accept a property based on its key.
-     *
-     * @param key
-     *          property key
-     * @return true to accept property (pass filter)
-     */
-    boolean accept(String key);
-
-    @Override
-    default boolean apply(String s) {
-      return accept(s);
-    }
-  }
-
-  /**
-   * A filter that accepts properties whose keys are an exact match.
-   */
-  @SuppressModernizer
-  public static class MatchFilter implements Predicate<String> {
-
-    private String match;
-
-    /**
-     * Creates a new filter.
-     *
-     * @param match
-     *          prefix of property keys to accept
-     */
-    public MatchFilter(String match) {
-      this.match = match;
-    }
-
-    @Override
-    public boolean apply(String key) {
-      return Objects.equals(match, key);
-    }
-  }
-
-  /**
-   * A filter that accepts properties whose keys begin with a prefix.
-   */
-  @SuppressModernizer
-  public static class PrefixFilter implements Predicate<String> {
-
-    private String prefix;
-
-    /**
-     * Creates a new filter.
-     *
-     * @param prefix
-     *          prefix of property keys to accept
-     */
-    public PrefixFilter(String prefix) {
-      this.prefix = prefix;
-    }
-
-    @Override
-    public boolean apply(String key) {
-      return key.startsWith(prefix);
-    }
-  }
+  private final Lock prefixCacheUpdateLock = new ReentrantLock();
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloConfiguration.class);
 
@@ -138,39 +75,64 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * Gets a property value from this configuration.
    *
    * <p>
-   * Note: this is inefficient, but convenient on occasion. For retrieving multiple properties, use
-   * {@link #getProperties(Map, Predicate)} with a custom filter.
+   * Note: this is inefficient for values that are not a {@link Property}. For retrieving multiple
+   * properties, use {@link #getProperties(Map, Predicate)} with a custom filter.
    *
-   * @param property
-   *          property to get
+   * @param property property to get
    * @return property value
    */
   public String get(String property) {
-    Map<String,String> propMap = new HashMap<>(1);
-    getProperties(propMap, new MatchFilter(property));
-    return propMap.get(property);
+    Property p = Property.getPropertyByKey(property);
+    if (p != null) {
+      return get(p);
+    } else {
+      Map<String,String> propMap = new HashMap<>(1);
+      getProperties(propMap, key -> Objects.equals(property, key));
+      return propMap.get(property);
+    }
   }
 
   /**
    * Gets a property value from this configuration.
    *
-   * @param property
-   *          property to get
+   * @param property property to get
    * @return property value
    */
   public abstract String get(Property property);
+
+  /**
+   * Given a property that is not deprecated and an ordered list of deprecated properties, determine
+   * which one to use based on which is set by the user in the configuration. If the non-deprecated
+   * property is set, use that. Otherwise, use the first deprecated property that is set. If no
+   * deprecated properties are set, use the non-deprecated property by default, even though it is
+   * not set (since it is not set, it will resolve to its default value). Since the deprecated
+   * properties are checked in order, newer properties should be on the left, replacing older
+   * properties on the right, so if a newer property is set, it will be selected over any older
+   * property that may also be set.
+   */
+  public Property resolve(Property property, Property... deprecated) {
+    if (property.isDeprecated()) {
+      throw new IllegalArgumentException("Unexpected deprecated " + property.name());
+    }
+    for (Property p : deprecated) {
+      if (!p.isDeprecated()) {
+        var notDeprecated = Stream.of(deprecated).filter(Predicate.not(Property::isDeprecated))
+            .map(Property::name).collect(Collectors.toList());
+        throw new IllegalArgumentException("Unexpected non-deprecated " + notDeprecated);
+      }
+    }
+    return isPropertySet(property) ? property
+        : Stream.of(deprecated).filter(this::isPropertySet).findFirst().orElse(property);
+  }
 
   /**
    * Returns property key/value pairs in this configuration. The pairs include those defined in this
    * configuration which pass the given filter, and those supplied from the parent configuration
    * which are not included from here.
    *
-   * @param props
-   *          properties object to populate
-   * @param filter
-   *          filter for accepting properties from this configuration
+   * @param props properties object to populate
+   * @param filter filter for accepting properties from this configuration
    */
-  @SuppressModernizer
   public abstract void getProperties(Map<String,String> props, Predicate<String> filter);
 
   /**
@@ -181,12 +143,13 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    */
   @Override
   public Iterator<Entry<String,String>> iterator() {
+    Predicate<String> all = x -> true;
     TreeMap<String,String> entries = new TreeMap<>();
-    getProperties(entries, x -> true);
+    getProperties(entries, all);
     return entries.entrySet().iterator();
   }
 
-  private void checkType(Property property, PropertyType type) {
+  private static void checkType(Property property, PropertyType type) {
     if (!property.getType().equals(type)) {
       String msg = "Configuration method intended for type " + type + " called with a "
           + property.getType() + " argument (" + property.getKey() + ")";
@@ -207,18 +170,18 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   /**
    * Gets all properties under the given prefix in this configuration.
    *
-   * @param property
-   *          prefix property, must be of type PropertyType.PREFIX
+   * @param property prefix property, must be of type PropertyType.PREFIX
    * @return a map of property keys to values
-   * @throws IllegalArgumentException
-   *           if property is not a prefix
+   * @throws IllegalArgumentException if property is not a prefix
    */
   public Map<String,String> getAllPropertiesWithPrefix(Property property) {
     checkType(property, PropertyType.PREFIX);
 
     PrefixProps prefixProps = cachedPrefixProps.get(property);
 
-    if (prefixProps == null || prefixProps.updateCount != getUpdateCount()) {
+    long currentCount = getUpdateCount();
+
+    if (prefixProps == null || prefixProps.updateCount != currentCount) {
       prefixCacheUpdateLock.lock();
       try {
         // Very important that update count is read before getting properties. Also only read it
@@ -229,8 +192,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
         if (prefixProps == null || prefixProps.updateCount != updateCount) {
           Map<String,String> propMap = new HashMap<>();
           // The reason this caching exists is to avoid repeatedly making this expensive call.
-          getProperties(propMap, new PrefixFilter(property.getKey()));
-          propMap = ImmutableMap.copyOf(propMap);
+          getProperties(propMap, key -> key.startsWith(property.getKey()));
+          propMap = Map.copyOf(propMap);
 
           // So that locking is not needed when reading from enum map, always create a new one.
           // Construct and populate map using a local var so its not visible
@@ -255,126 +218,63 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     return prefixProps.props;
   }
 
-  /**
-   * Gets a property of type {@link PropertyType#MEMORY}, interpreting the value properly.
-   *
-   * @param property
-   *          property to get
-   * @return property value
-   * @throws IllegalArgumentException
-   *           if the property is of the wrong type
-   * @see #getMemoryInBytes(String)
-   */
-  public long getMemoryInBytes(Property property) {
-    checkType(property, PropertyType.MEMORY);
+  public Map<String,String> getAllPropertiesWithPrefixStripped(Property prefix) {
+    final var builder = ImmutableMap.<String,String>builder();
+    getAllPropertiesWithPrefix(prefix).forEach((k, v) -> {
+      String optKey = k.substring(prefix.getKey().length());
+      builder.put(optKey, v);
+    });
 
-    String memString = get(property);
-    return getMemoryInBytes(memString);
+    return builder.build();
+  }
+
+  public Map<String,String> getAllCryptoProperties() {
+    Map<String,String> allProps = new HashMap<>();
+    allProps.putAll(getAllPropertiesWithPrefix(INSTANCE_CRYPTO_PREFIX));
+    allProps.putAll(getAllPropertiesWithPrefix(GENERAL_ARBITRARY_PROP_PREFIX));
+    allProps.putAll(getAllPropertiesWithPrefix(TABLE_CRYPTO_PREFIX));
+    return allProps;
   }
 
   /**
-   * Interprets a string specifying a memory size. A memory size is specified as a long integer
-   * followed by an optional B (bytes), K (KB), M (MB), or G (GB).
+   * Gets a property of type {@link PropertyType#BYTES} or {@link PropertyType#MEMORY}, interpreting
+   * the value properly.
    *
-   * @param str
-   *          string value
-   * @return interpreted memory size
+   * @param property Property to get
+   * @return property value
+   * @throws IllegalArgumentException if the property is of the wrong type
    */
-  static public long getMemoryInBytes(String str) {
-    char lastChar = str.charAt(str.length() - 1);
-
-    if (lastChar == 'b') {
-      log.warn("The 'b' in " + str + " is being considered as bytes. "
-          + "Setting memory by bits is not supported");
-    }
-    try {
-      int multiplier;
-      switch (Character.toUpperCase(lastChar)) {
-        case 'G':
-          multiplier = 30;
-          break;
-        case 'M':
-          multiplier = 20;
-          break;
-        case 'K':
-          multiplier = 10;
-          break;
-        case 'B':
-          multiplier = 0;
-          break;
-        default:
-          return Long.parseLong(str);
-      }
-      return Long.parseLong(str.substring(0, str.length() - 1)) << multiplier;
-    } catch (Exception ex) {
-      throw new IllegalArgumentException(
-          "The value '" + str + "' is not a valid memory setting. A valid value would a number "
-              + "possibily followed by an optional 'G', 'M', 'K', or 'B'.");
+  public long getAsBytes(Property property) {
+    String memString = get(property);
+    if (property.getType() == PropertyType.MEMORY) {
+      return ConfigurationTypeHelper.getMemoryAsBytes(memString);
+    } else if (property.getType() == PropertyType.BYTES) {
+      return ConfigurationTypeHelper.getFixedMemoryAsBytes(memString);
+    } else {
+      throw new IllegalArgumentException(property.getKey() + " is not of BYTES or MEMORY type");
     }
   }
 
   /**
    * Gets a property of type {@link PropertyType#TIMEDURATION}, interpreting the value properly.
    *
-   * @param property
-   *          property to get
+   * @param property property to get
    * @return property value
-   * @throws IllegalArgumentException
-   *           if the property is of the wrong type
-   * @see #getTimeInMillis(String)
+   * @throws IllegalArgumentException if the property is of the wrong type
    */
   public long getTimeInMillis(Property property) {
     checkType(property, PropertyType.TIMEDURATION);
 
-    return getTimeInMillis(get(property));
-  }
-
-  /**
-   * Interprets a string specifying a time duration. A time duration is specified as a long integer
-   * followed by an optional d (days), h (hours), m (minutes), s (seconds), or ms (milliseconds). A
-   * value without a unit is interpreted as seconds.
-   *
-   * @param str
-   *          string value
-   * @return interpreted time duration in milliseconds
-   */
-  public static long getTimeInMillis(String str) {
-    TimeUnit timeUnit;
-    int unitsLen = 1;
-    switch (str.charAt(str.length() - 1)) {
-      case 'd':
-        timeUnit = TimeUnit.DAYS;
-        break;
-      case 'h':
-        timeUnit = TimeUnit.HOURS;
-        break;
-      case 'm':
-        timeUnit = TimeUnit.MINUTES;
-        break;
-      case 's':
-        timeUnit = TimeUnit.SECONDS;
-        if (str.endsWith("ms")) {
-          timeUnit = TimeUnit.MILLISECONDS;
-          unitsLen = 2;
-        }
-        break;
-      default:
-        timeUnit = TimeUnit.SECONDS;
-        unitsLen = 0;
-        break;
-    }
-    return timeUnit.toMillis(Long.parseLong(str.substring(0, str.length() - unitsLen)));
+    return ConfigurationTypeHelper.getTimeInMillis(get(property));
   }
 
   /**
    * Gets a property of type {@link PropertyType#BOOLEAN}, interpreting the value properly (using
    * <code>Boolean.parseBoolean()</code>).
    *
-   * @param property
-   *          property to get
+   * @param property property to get
    * @return property value
-   * @throws IllegalArgumentException
-   *           if the property is of the wrong type
+   * @throws IllegalArgumentException if the property is of the wrong type
    */
   public boolean getBoolean(Property property) {
     checkType(property, PropertyType.BOOLEAN);
@@ -384,90 +284,61 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   /**
    * Gets a property of type {@link PropertyType#FRACTION}, interpreting the value properly.
    *
-   * @param property
-   *          property to get
+   * @param property property to get
    * @return property value
-   * @throws IllegalArgumentException
-   *           if the property is of the wrong type
-   * @see #getFraction(String)
+   * @throws IllegalArgumentException if the property is of the wrong type
    */
   public double getFraction(Property property) {
     checkType(property, PropertyType.FRACTION);
 
-    return getFraction(get(property));
-  }
-
-  /**
-   * Interprets a string specifying a fraction. A fraction is specified as a double. An optional %
-   * at the end signifies a percentage.
-   *
-   * @param str
-   *          string value
-   * @return interpreted fraction as a decimal value
-   */
-  public double getFraction(String str) {
-    if (str.length() > 0 && str.charAt(str.length() - 1) == '%')
-      return Double.parseDouble(str.substring(0, str.length() - 1)) / 100.0;
-    return Double.parseDouble(str);
+    return ConfigurationTypeHelper.getFraction(get(property));
   }
 
   /**
    * Gets a property of type {@link PropertyType#PORT}, interpreting the value properly (as an
-   * integer within the range of non-privileged ports).
+   * integer within the range of non-privileged ports). Consider using
+   * {@link #getPortStream(Property)}, if an array is not needed.
    *
-   * @param property
-   *          property to get
+   * @param property property to get
    * @return property value
-   * @throws IllegalArgumentException
-   *           if the property is of the wrong type
-   * @see #getTimeInMillis(String)
+   * @throws IllegalArgumentException if the property is of the wrong type
    */
   public int[] getPort(Property property) {
+    return getPortStream(property).toArray();
+  }
+
+  /**
+   * Same as {@link #getPort(Property)}, but as an {@link IntStream}.
+   */
+  public IntStream getPortStream(Property property) {
     checkType(property, PropertyType.PORT);
 
     String portString = get(property);
-    int[] ports = null;
     try {
-      Pair<Integer,Integer> portRange = PortRange.parse(portString);
-      int low = portRange.getFirst();
-      int high = portRange.getSecond();
-      ports = new int[high - low + 1];
-      for (int i = 0, j = low; j <= high; i++, j++) {
-        ports[i] = j;
-      }
+      return PortRange.parse(portString);
     } catch (IllegalArgumentException e) {
-      ports = new int[1];
       try {
         int port = Integer.parseInt(portString);
-        if (port != 0) {
-          if (port < 1024 || port > 65535) {
-            log.error(
-                "Invalid port number " + port + "; Using default " + property.getDefaultValue());
-            ports[0] = Integer.parseInt(property.getDefaultValue());
-          } else {
-            ports[0] = port;
-          }
+        if (port == 0 || PortRange.VALID_RANGE.contains(port)) {
+          return IntStream.of(port);
         } else {
-          ports[0] = port;
+          log.error("Invalid port number {}; Using default {}", port, property.getDefaultValue());
+          return IntStream.of(Integer.parseInt(property.getDefaultValue()));
         }
       } catch (NumberFormatException e1) {
         throw new IllegalArgumentException("Invalid port syntax. Must be a single positive "
             + "integers or a range (M-N) of positive integers");
       }
     }
-    return ports;
   }
 
   /**
    * Gets a property of type {@link PropertyType#COUNT}, interpreting the value properly (as an
    * integer).
    *
-   * @param property
-   *          property to get
+   * @param property property to get
    * @return property value
-   * @throws IllegalArgumentException
-   *           if the property is of the wrong type
-   * @see #getTimeInMillis(String)
+   * @throws IllegalArgumentException if the property is of the wrong type
    */
   public int getCount(Property property) {
     checkType(property, PropertyType.COUNT);
@@ -477,59 +348,26 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Gets a property of type {@link PropertyType#PATH}, interpreting the value properly, replacing
-   * supported environment variables.
+   * Gets a property of type {@link PropertyType#PATH}.
    *
-   * @param property
-   *          property to get
+   * @param property property to get
    * @return property value
-   * @throws IllegalArgumentException
-   *           if the property is of the wrong type
-   * @see Constants#PATH_PROPERTY_ENV_VARS
+   * @throws IllegalArgumentException if the property is of the wrong type
    */
   public String getPath(Property property) {
     checkType(property, PropertyType.PATH);
 
     String pathString = get(property);
-    if (pathString == null)
+    if (pathString == null) {
       return null;
+    }
 
-    for (String replaceableEnvVar : Constants.PATH_PROPERTY_ENV_VARS) {
-      String envValue = System.getenv(replaceableEnvVar);
-      if (envValue != null)
-        pathString = pathString.replace("$" + replaceableEnvVar, envValue);
+    if (pathString.contains("$ACCUMULO_")) {
+      throw new IllegalArgumentException("Environment variable interpolation not supported here. "
+          + "Consider using '${env:ACCUMULO_HOME}' or similar in your configuration file.");
     }
 
     return pathString;
-  }
-
-  /**
-   * Gets the default configuration.
-   *
-   * @return default configuration
-   * @see DefaultConfiguration#getInstance()
-   */
-  public static synchronized DefaultConfiguration getDefaultConfiguration() {
-    return DefaultConfiguration.getInstance();
-  }
-
-  /**
-   * Gets the configuration specific to a table.
-   *
-   * @param conn
-   *          connector (used to find table name)
-   * @param tableId
-   *          table ID
-   * @return configuration containing table properties
-   * @throws TableNotFoundException
-   *           if the table is not found
-   * @throws AccumuloException
-   *           if there is a problem communicating to Accumulo
-   */
-  public static AccumuloConfiguration getTableConfiguration(Connector conn, String tableId)
-      throws TableNotFoundException, AccumuloException {
-    String tableName = Tables.getTableName(conn.getInstance(), tableId);
-    return new ConfigurationCopy(conn.tableOperations().getProperties(tableName));
   }
 
   /**
@@ -543,10 +381,194 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     int maxFilesPerTablet = getCount(Property.TABLE_FILE_MAX);
     if (maxFilesPerTablet <= 0) {
       maxFilesPerTablet = getCount(Property.TSERV_SCAN_MAX_OPENFILES) - 1;
-      log.debug("Max files per tablet " + maxFilesPerTablet);
+      log.debug("Max files per tablet {}", maxFilesPerTablet);
     }
 
     return maxFilesPerTablet;
+  }
+
+  public class ScanExecutorConfig {
+    public final String name;
+    public final int maxThreads;
+    public final OptionalInt priority;
+    public final Optional<String> prioritizerClass;
+    public final Map<String,String> prioritizerOpts;
+    public final boolean isScanServer;
+
+    public ScanExecutorConfig(String name, int maxThreads, OptionalInt priority,
+        Optional<String> comparatorFactory, Map<String,String> comparatorFactoryOpts,
+        boolean isScanServer) {
+      this.name = name;
+      this.maxThreads = maxThreads;
+      this.priority = priority;
+      this.prioritizerClass = comparatorFactory;
+      this.prioritizerOpts = comparatorFactoryOpts;
+      this.isScanServer = isScanServer;
+    }
+
+    /**
+     * Re-reads the max threads from the configuration that created this class
+     */
+    public int getCurrentMaxThreads() {
+      if (isScanServer) {
+        String prop =
+            Property.SSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
+        String val = getAllPropertiesWithPrefix(Property.SSERV_SCAN_EXECUTORS_PREFIX).get(prop);
+        return Integer.parseInt(val);
+      } else {
+        String prop =
+            Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
+        String val = getAllPropertiesWithPrefix(Property.TSERV_SCAN_EXECUTORS_PREFIX).get(prop);
+        return Integer.parseInt(val);
+      }
+    }
+  }
+
+  public abstract boolean isPropertySet(Property prop);
+
+  private static class RefCount<T> {
+    T obj;
+    long count;
+
+    RefCount(long c, T r) {
+      this.count = c;
+      this.obj = r;
+    }
+  }
+
+  private class DeriverImpl<T> implements Deriver<T> {
+
+    private final AtomicReference<RefCount<T>> refref = new AtomicReference<>();
+    private final Function<AccumuloConfiguration,T> converter;
+
+    DeriverImpl(Function<AccumuloConfiguration,T> converter) {
+      this.converter = converter;
+    }
+
+    /**
+     * This method was written with the goal of avoiding thread contention and minimizing
+     * recomputation. Configuration can be accessed frequently by many threads. Ideally, threads
+     * working on unrelated tasks would not impede each other because of accessing config.
+     *
+     * To avoid thread contention, synchronization and needless calls to compare and set were
+     * avoided. For example if 100 threads are all calling compare and set in a loop this could
+     * cause significant contention.
+     */
+    @Override
+    public T derive() {
+
+      // very important to obtain this before possibly recomputing object
+      long uc = getUpdateCount();
+
+      RefCount<T> rc = refref.get();
+
+      if (rc == null || rc.count != uc) {
+        T newObj = converter.apply(AccumuloConfiguration.this);
+
+        // very important to record the update count that was obtained before recomputing.
+        RefCount<T> nrc = new RefCount<>(uc, newObj);
+
+        /*
+         * The return value of compare and set is intentionally ignored here. This code could loop
+         * calling compare and set inorder to avoid returning a stale object. However after this
+         * function returns, the object could immediately become stale. So in the big picture stale
+         * objects can not be prevented. Looping here could cause thread contention, but it would
+         * not solve the overall stale object problem. That is why the return value was ignored. The
+         * following line is a least effort attempt to make the result of this recomputation
+         * available to the next caller.
+         */
+        refref.compareAndSet(rc, nrc);
+
+        return nrc.obj;
+      }
+
+      return rc.obj;
+    }
+  }
+
+  /**
+   * Automatically regenerates an object whenever configuration changes. When configuration is not
+   * changing, keeps returning the same object. Implementations should be thread safe and eventually
+   * consistent. See {@link AccumuloConfiguration#newDeriver(Function)}
+   */
+  public interface Deriver<T> {
+    T derive();
+  }
+
+  /**
+   * Enables deriving an object from configuration and automatically deriving a new object any time
+   * configuration changes.
+   *
+   * @param converter This functions is used to create an object from configuration. A reference to
+   *        this function will be kept and called by the returned deriver.
+   * @return The returned supplier will automatically re-derive the object any time this
+   *         configuration changes. When configuration is not changing, the same object is returned.
+   *
+   */
+  public <T> Deriver<T> newDeriver(Function<AccumuloConfiguration,T> converter) {
+    return new DeriverImpl<>(converter);
+  }
+
+  private static final String SCAN_EXEC_THREADS = "threads";
+  private static final String SCAN_EXEC_PRIORITY = "priority";
+  private static final String SCAN_EXEC_PRIORITIZER = "prioritizer";
+  private static final String SCAN_EXEC_PRIORITIZER_OPTS = "prioritizer.opts.";
+
+  public Collection<ScanExecutorConfig> getScanExecutors(boolean isScanServer) {
+
+    Property prefix =
+        isScanServer ? Property.SSERV_SCAN_EXECUTORS_PREFIX : Property.TSERV_SCAN_EXECUTORS_PREFIX;
+
+    Map<String,Map<String,String>> propsByName = new HashMap<>();
+
+    List<ScanExecutorConfig> scanResources = new ArrayList<>();
+
+    for (Entry<String,String> entry : getAllPropertiesWithPrefix(prefix).entrySet()) {
+
+      String suffix = entry.getKey().substring(prefix.getKey().length());
+      String[] tokens = suffix.split("\\.", 2);
+      String name = tokens[0];
+
+      propsByName.computeIfAbsent(name, k -> new HashMap<>()).put(tokens[1], entry.getValue());
+    }
+
+    for (Entry<String,Map<String,String>> entry : propsByName.entrySet()) {
+      String name = entry.getKey();
+      Integer threads = null;
+      Integer prio = null;
+      String prioritizerClass = null;
+      Map<String,String> prioritizerOpts = new HashMap<>();
+
+      for (Entry<String,String> subEntry : entry.getValue().entrySet()) {
+        String opt = subEntry.getKey();
+        String val = subEntry.getValue();
+
+        if (opt.equals(SCAN_EXEC_THREADS)) {
+          threads = Integer.parseInt(val);
+        } else if (opt.equals(SCAN_EXEC_PRIORITY)) {
+          prio = Integer.parseInt(val);
+        } else if (opt.equals(SCAN_EXEC_PRIORITIZER)) {
+          prioritizerClass = val;
+        } else if (opt.startsWith(SCAN_EXEC_PRIORITIZER_OPTS)) {
+          String key = opt.substring(SCAN_EXEC_PRIORITIZER_OPTS.length());
+          if (key.isEmpty()) {
+            throw new IllegalStateException("Invalid scan executor option : " + opt);
+          }
+          prioritizerOpts.put(key, val);
+        } else {
+          throw new IllegalStateException("Unknown scan executor option : " + opt);
+        }
+      }
+
+      Preconditions.checkArgument(threads != null && threads > 0,
+          "Scan resource %s incorrectly specified threads", name);
+
+      scanResources.add(new ScanExecutorConfig(name, threads,
+          prio == null ? OptionalInt.empty() : OptionalInt.of(prio),
+          Optional.ofNullable(prioritizerClass), prioritizerOpts, isScanServer));
+    }
+
+    return scanResources;
   }
 
   /**
@@ -556,34 +578,15 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   public void invalidateCache() {}
 
   /**
-   * Creates a new instance of a class specified in a configuration property.
+   * get a parent configuration or null if it does not exist.
    *
-   * @param property
-   *          property specifying class name
-   * @param base
-   *          base class of type
-   * @param defaultInstance
-   *          instance to use if creation fails
-   * @return new class instance, or default instance if creation failed
-   * @see AccumuloVFSClassLoader
+   * @since 2.1.0
    */
-  public <T> T instantiateClassProperty(Property property, Class<T> base, T defaultInstance) {
-    String clazzName = get(property);
-    T instance = null;
-
-    try {
-      Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
-      instance = clazz.newInstance();
-      log.info("Loaded class : " + clazzName);
-    } catch (Exception e) {
-      log.warn("Failed to load class ", e);
-    }
-
-    if (instance == null) {
-      log.info("Using " + defaultInstance.getClass().getName());
-      instance = defaultInstance;
-    }
-    return instance;
+  public AccumuloConfiguration getParent() {
+    return null;
   }
 
+  public Stream<Entry<String,String>> stream() {
+    return StreamSupport.stream(this.spliterator(), false);
+  }
 }

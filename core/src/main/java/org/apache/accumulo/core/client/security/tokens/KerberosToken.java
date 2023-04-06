@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.security.tokens;
 
@@ -54,10 +56,9 @@ public class KerberosToken implements AuthenticationToken {
    * (on top of another user). An {@link IllegalArgumentException} will be thrown for all other
    * cases.
    *
-   * @param principal
-   *          The user that is logged in
-   * @throws IllegalArgumentException
-   *           If the current user is not authentication via Kerberos or Proxy methods.
+   * @param principal The user that is logged in
+   * @throws IllegalArgumentException If the current user is not authentication via Kerberos or
+   *         Proxy methods.
    * @see UserGroupInformation#getCurrentUser()
    * @see UserGroupInformation#getAuthenticationMethod()
    */
@@ -69,7 +70,7 @@ public class KerberosToken implements AuthenticationToken {
   static void validateAuthMethod(AuthenticationMethod authMethod) {
     // There is also KERBEROS_SSL but that appears to be deprecated/OBE
     checkArgument(
-        AuthenticationMethod.KERBEROS == authMethod || AuthenticationMethod.PROXY == authMethod,
+        authMethod == AuthenticationMethod.KERBEROS || authMethod == AuthenticationMethod.PROXY,
         "KerberosToken expects KERBEROS or PROXY authentication for the current "
             + "UserGroupInformation user. Saw " + authMethod);
   }
@@ -80,44 +81,20 @@ public class KerberosToken implements AuthenticationToken {
    * <p>
    * This constructor does not have any side effects.
    *
-   * @param principal
-   *          The Kerberos principal
-   * @param keytab
-   *          A keytab file containing the principal's credentials.
+   * @param principal The Kerberos principal
+   * @param keytab A keytab file containing the principal's credentials.
    */
   public KerberosToken(String principal, File keytab) throws IOException {
-    this(principal, keytab, false);
-  }
-
-  /**
-   * Creates a token and logs in via {@link UserGroupInformation} using the provided principal and
-   * keytab. A key for the principal must exist in the keytab, otherwise login will fail.
-   *
-   * @param principal
-   *          The Kerberos principal
-   * @param keytab
-   *          A keytab file
-   * @param replaceCurrentUser
-   *          Should the current Hadoop user be replaced with this user
-   * @deprecated since 1.8.0, @see #KerberosToken(String, File)
-   */
-  @Deprecated
-  public KerberosToken(String principal, File keytab, boolean replaceCurrentUser)
-      throws IOException {
     this.principal = requireNonNull(principal, "Principal was null");
     this.keytab = requireNonNull(keytab, "Keytab was null");
     checkArgument(keytab.exists() && keytab.isFile(), "Keytab was not a normal file");
-    if (replaceCurrentUser) {
-      UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
-    }
   }
 
   /**
    * Creates a token using the login user as returned by
    * {@link UserGroupInformation#getCurrentUser()}
    *
-   * @throws IOException
-   *           If the current logged in user cannot be computed.
+   * @throws IOException If the current logged in user cannot be computed.
    */
   public KerberosToken() throws IOException {
     this(UserGroupInformation.getCurrentUser().getUserName());
@@ -137,12 +114,15 @@ public class KerberosToken implements AuthenticationToken {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (!(obj instanceof KerberosToken))
+    }
+    if (!(obj instanceof KerberosToken)) {
       return false;
+    }
     KerberosToken other = (KerberosToken) obj;
 
     return principal.equals(other.principal);
@@ -172,7 +152,7 @@ public class KerberosToken implements AuthenticationToken {
   @Override
   public void readFields(DataInput in) throws IOException {
     int actualVersion = in.readInt();
-    if (VERSION != actualVersion) {
+    if (actualVersion != VERSION) {
       throw new IOException("Did not find expected version in serialized KerberosToken");
     }
   }
@@ -184,7 +164,7 @@ public class KerberosToken implements AuthenticationToken {
 
   @Override
   public boolean isDestroyed() {
-    return null == principal;
+    return principal == null;
   }
 
   @Override

@@ -1,29 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.cluster;
 
-import java.io.IOException;
+import java.util.Properties;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -34,7 +34,6 @@ import org.apache.hadoop.fs.Path;
  *
  * @since 1.6.0
  */
-
 public interface AccumuloCluster {
 
   /**
@@ -48,20 +47,37 @@ public interface AccumuloCluster {
   String getZooKeepers();
 
   /**
-   * Utility method to get a connector to the cluster.
+   * @return ServerContext
    */
-  Connector getConnector(String user, AuthenticationToken token)
-      throws AccumuloException, AccumuloSecurityException;
+  ServerContext getServerContext();
 
   /**
-   * Get the client configuration for the cluster
+   * @return {@link AccumuloClient} that must be closed by user
+   * @since 2.0
    */
-  ClientConfiguration getClientConfig();
+  AccumuloClient createAccumuloClient(String user, AuthenticationToken token);
 
   /**
-   * Get server side config derived from accumulo-site.xml
+   * @return client connection info for cluster
+   */
+  Properties getClientProperties();
+
+  /**
+   * Get server side config derived from accumulo.properties
    */
   AccumuloConfiguration getSiteConfiguration();
+
+  /**
+   * @return Path to accumulo.properties
+   * @since 2.0.0
+   */
+  String getAccumuloPropertiesPath();
+
+  /**
+   * @return Path to accumulo-client.properties
+   * @since 2.0.0
+   */
+  String getClientPropsPath();
 
   /**
    * Get an object that can manage a cluster
@@ -83,7 +99,7 @@ public interface AccumuloCluster {
   /**
    * @return the {@link FileSystem} in use by this cluster
    */
-  FileSystem getFileSystem() throws IOException;
+  FileSystem getFileSystem();
 
   /**
    * @return A path on {@link FileSystem} this cluster is running on that can be used for temporary

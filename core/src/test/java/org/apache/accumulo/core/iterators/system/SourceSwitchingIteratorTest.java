@@ -1,26 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.system;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,16 +37,17 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
-import org.apache.accumulo.core.iterators.YieldingKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SourceSwitchingIteratorTest {
 
@@ -57,7 +60,7 @@ public class SourceSwitchingIteratorTest {
   }
 
   void put(TreeMap<Key,Value> tm, String row, String cf, String cq, long time, String val) {
-    put(tm, row, cf, cq, time, new Value(val.getBytes()));
+    put(tm, row, cf, cq, time, new Value(val));
   }
 
   private void testAndCallNext(SortedKeyValueIterator<Key,Value> rdi, String row, String cf,
@@ -65,8 +68,9 @@ public class SourceSwitchingIteratorTest {
     assertTrue(rdi.hasTop());
     assertEquals(newKey(row, cf, cq, time), rdi.getTopKey());
     assertEquals(val, rdi.getTopValue().toString());
-    if (callNext)
+    if (callNext) {
       rdi.next();
+    }
   }
 
   class TestDataSource implements DataSource {
@@ -77,7 +81,7 @@ public class SourceSwitchingIteratorTest {
     AtomicBoolean iflag;
 
     TestDataSource(SortedKeyValueIterator<Key,Value> iter) {
-      this(iter, new ArrayList<TestDataSource>());
+      this(iter, new ArrayList<>());
     }
 
     public TestDataSource(SortedKeyValueIterator<Key,Value> iter, List<TestDataSource> copies) {
@@ -98,8 +102,9 @@ public class SourceSwitchingIteratorTest {
 
     @Override
     public SortedKeyValueIterator<Key,Value> iterator() {
-      if (iflag != null)
+      if (iflag != null) {
         ((InterruptibleIterator) iter).setInterruptFlag(iflag);
+      }
       return iter;
     }
 
@@ -112,8 +117,9 @@ public class SourceSwitchingIteratorTest {
       this.next = next;
 
       for (TestDataSource tds : copies) {
-        if (tds != this)
+        if (tds != this) {
           tds.next = new TestDataSource(next.iter.deepCopy(null), next.copies);
+        }
       }
     }
 
@@ -134,7 +140,7 @@ public class SourceSwitchingIteratorTest {
     TestDataSource tds = new TestDataSource(smi);
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(tds);
 
-    ssi.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    ssi.seek(new Range(), new ArrayList<>(), false);
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
     testAndCallNext(ssi, "r1", "cf1", "cq3", 5, "v2", true);
     testAndCallNext(ssi, "r2", "cf1", "cq1", 5, "v3", true);
@@ -152,7 +158,7 @@ public class SourceSwitchingIteratorTest {
     TestDataSource tds = new TestDataSource(smi);
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(tds);
 
-    ssi.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    ssi.seek(new Range(), new ArrayList<>(), false);
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
 
     TreeMap<Key,Value> tm2 = new TreeMap<>();
@@ -161,8 +167,7 @@ public class SourceSwitchingIteratorTest {
     put(tm2, "r2", "cf1", "cq1", 5, "v6");
 
     SortedMapIterator smi2 = new SortedMapIterator(tm2);
-    TestDataSource tds2 = new TestDataSource(smi2);
-    tds.next = tds2;
+    tds.next = new TestDataSource(smi2);
 
     testAndCallNext(ssi, "r1", "cf1", "cq3", 5, "v2", true);
     testAndCallNext(ssi, "r2", "cf1", "cq1", 5, "v6", true);
@@ -185,7 +190,7 @@ public class SourceSwitchingIteratorTest {
     TestDataSource tds = new TestDataSource(smi);
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(tds, true);
 
-    ssi.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    ssi.seek(new Range(), new ArrayList<>(), false);
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
 
     TreeMap<Key,Value> tm2 = new TreeMap<>(tm1);
@@ -195,8 +200,7 @@ public class SourceSwitchingIteratorTest {
 
     // setup a new data source, but it should not switch until the current row is finished
     SortedMapIterator smi2 = new SortedMapIterator(tm2);
-    TestDataSource tds2 = new TestDataSource(smi2);
-    tds.next = tds2;
+    tds.next = new TestDataSource(smi2);
 
     testAndCallNext(ssi, "r1", "cf1", "cq2", 5, "v2", true);
     testAndCallNext(ssi, "r1", "cf1", "cq3", 5, "v3", true);
@@ -223,10 +227,9 @@ public class SourceSwitchingIteratorTest {
     put(tm2, "r1", "cf1", "cq2", 6, "v4");
 
     SortedMapIterator smi2 = new SortedMapIterator(tm2);
-    TestDataSource tds2 = new TestDataSource(smi2);
-    tds.next = tds2;
+    tds.next = new TestDataSource(smi2);
 
-    ssi.seek(new Range(), new ArrayList<ByteSequence>(), false);
+    ssi.seek(new Range(), new ArrayList<>(), false);
 
     testAndCallNext(ssi, "r1", "cf1", "cq1", 6, "v3", true);
     testAndCallNext(ssi, "r1", "cf1", "cq2", 6, "v4", true);
@@ -235,7 +238,7 @@ public class SourceSwitchingIteratorTest {
 
   @Test
   public void test5() throws Exception {
-    // esnure switchNow() works w/ deepCopy()
+    // ensure switchNow() works w/ deepCopy()
     TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
     put(tm1, "r1", "cf1", "cq2", 5, "v2");
@@ -256,8 +259,8 @@ public class SourceSwitchingIteratorTest {
 
     ssi.switchNow();
 
-    ssi.seek(new Range("r1"), new ArrayList<ByteSequence>(), false);
-    dc1.seek(new Range("r2"), new ArrayList<ByteSequence>(), false);
+    ssi.seek(new Range("r1"), new ArrayList<>(), false);
+    dc1.seek(new Range("r2"), new ArrayList<>(), false);
 
     testAndCallNext(ssi, "r1", "cf1", "cq1", 6, "v3", true);
     assertFalse(ssi.hasTop());
@@ -280,16 +283,17 @@ public class SourceSwitchingIteratorTest {
 
     assertSame(flag, tds.iflag);
 
-    ssi.seek(new Range("r1"), new ArrayList<ByteSequence>(), false);
+    final Range r1Range = new Range("r1");
+    final List<ByteSequence> columnFamilies = List.of();
+
+    ssi.seek(r1Range, columnFamilies, false);
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
     assertFalse(ssi.hasTop());
 
     flag.set(true);
 
-    try {
-      ssi.seek(new Range("r1"), new ArrayList<ByteSequence>(), false);
-      fail("expected to see IterationInterruptedException");
-    } catch (IterationInterruptedException iie) {}
+    assertThrows(IterationInterruptedException.class,
+        () -> ssi.seek(r1Range, columnFamilies, false));
 
   }
 
@@ -301,8 +305,8 @@ public class SourceSwitchingIteratorTest {
         throw new IOException("Underlying iterator yielded to a position outside of its range: "
             + yieldPosition + " not in " + r);
       }
-      r = new Range(yieldPosition, false, (Key) null, r.isEndKeyInclusive());
-      ssi.seek(r, new ArrayList<ByteSequence>(), false);
+      r = new Range(yieldPosition, false, null, r.isEndKeyInclusive());
+      ssi.seek(r, new ArrayList<>(), false);
     }
     return r;
   }
@@ -323,7 +327,7 @@ public class SourceSwitchingIteratorTest {
     ssi.enableYielding(yield);
 
     Range r = new Range();
-    ssi.seek(r, new ArrayList<ByteSequence>(), false);
+    ssi.seek(r, new ArrayList<>(), false);
     r = doYield(r, ssi, yield);
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
     r = doYield(r, ssi, yield);
@@ -341,8 +345,7 @@ public class SourceSwitchingIteratorTest {
   private final AtomicBoolean yieldNextKey = new AtomicBoolean(false);
   private final AtomicBoolean yieldSeekKey = new AtomicBoolean(false);
 
-  public class YieldingIterator extends WrappingIterator
-      implements YieldingKeyValueIterator<Key,Value> {
+  public class YieldingIterator extends WrappingIterator {
     private Optional<YieldCallback<Key>> yield = Optional.empty();
 
     public YieldingIterator(SortedKeyValueIterator<Key,Value> source) {

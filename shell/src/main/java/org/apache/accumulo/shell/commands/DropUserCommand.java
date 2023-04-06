@@ -1,22 +1,23 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
@@ -37,7 +38,7 @@ public class DropUserCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException {
     final String user = cl.getArgs()[0];
-    if (shellState.getConnector().whoami().equals(user)) {
+    if (shellState.getAccumuloClient().whoami().equals(user)) {
       throw new BadArgumentException("You cannot delete yourself", fullCommand,
           fullCommand.indexOf(user));
     }
@@ -49,19 +50,16 @@ public class DropUserCommand extends Command {
       throws AccumuloException, AccumuloSecurityException {
     boolean operate = true;
 
-    try {
-      if (!force) {
-        shellState.getReader().flush();
-        String line = shellState.getReader().readLine(getName() + " { " + user + " } (yes|no)? ");
-        operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
-      }
-      if (operate) {
-        shellState.getConnector().securityOperations().dropLocalUser(user);
-        Shell.log.debug("Deleted user " + user);
-      }
-    } catch (IOException e) {
-      throw new AccumuloException(e);
+    if (!force) {
+      shellState.getWriter().flush();
+      String line = shellState.getReader().readLine(getName() + " { " + user + " } (yes|no)? ");
+      operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
     }
+    if (operate) {
+      shellState.getAccumuloClient().securityOperations().dropLocalUser(user);
+      Shell.log.debug("Deleted user {}", user);
+    }
+
   }
 
   @Override

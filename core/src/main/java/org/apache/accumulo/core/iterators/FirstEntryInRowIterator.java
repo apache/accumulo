@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators;
 
@@ -27,6 +29,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.hadoop.io.Text;
 
 public class FirstEntryInRowIterator extends SkippingIterator implements OptionDescriber {
@@ -51,12 +54,9 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   }
 
   // this must be public for OptionsDescriber
-  public FirstEntryInRowIterator() {
-    super();
-  }
+  public FirstEntryInRowIterator() {}
 
   public FirstEntryInRowIterator(FirstEntryInRowIterator other, IteratorEnvironment env) {
-    super();
     setSource(other.getSource().deepCopy(env));
   }
 
@@ -76,8 +76,9 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   // this is only ever called immediately after getting "next" entry
   @Override
   protected void consume() throws IOException {
-    if (finished == true || lastRowFound == null)
+    if (finished || lastRowFound == null) {
       return;
+    }
     int count = 0;
     SortedKeyValueIterator<Key,Value> source = getSource();
     while (source.hasTop() && lastRowFound.equals(source.getTopKey().getRow())) {
@@ -92,13 +93,13 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
 
         // determine where to seek to, but don't go beyond the user-specified range
         Key nextKey = source.getTopKey().followingKey(PartialKey.ROW);
-        if (!latestRange.afterEndKey(nextKey))
+        if (latestRange.afterEndKey(nextKey)) {
+          finished = true;
+          break;
+        } else {
           source.seek(
               new Range(nextKey, true, latestRange.getEndKey(), latestRange.isEndKeyInclusive()),
               latestColumnFamilies, latestInclusive);
-        else {
-          finished = true;
-          break;
         }
       }
     }
@@ -129,8 +130,9 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
 
     if (getSource().hasTop()) {
       lastRowFound = getSource().getTopKey().getRow();
-      if (range.beforeStartKey(getSource().getTopKey()))
+      if (range.beforeStartKey(getSource().getTopKey())) {
         consume();
+      }
     }
   }
 
@@ -145,13 +147,10 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    try {
-      String o = options.get(NUM_SCANS_STRING_NAME);
-      if (o != null)
-        Integer.parseInt(o);
-    } catch (Exception e) {
+    String o = options.get(NUM_SCANS_STRING_NAME);
+    if (o != null && !NumberUtils.isParsable(o)) {
       throw new IllegalArgumentException(
-          "bad integer " + NUM_SCANS_STRING_NAME + ":" + options.get(NUM_SCANS_STRING_NAME), e);
+          "bad integer " + NUM_SCANS_STRING_NAME + ":" + options.get(NUM_SCANS_STRING_NAME));
     }
     return true;
   }

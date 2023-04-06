@@ -1,25 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.harness.conf;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
@@ -31,6 +33,8 @@ import org.apache.accumulo.harness.AccumuloClusterHarness.ClusterType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Base class for extracting configuration values from Java Properties
  */
@@ -39,7 +43,6 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
       LoggerFactory.getLogger(AccumuloClusterPropertyConfiguration.class);
 
   public static final String ACCUMULO_IT_PROPERTIES_FILE = "accumulo.it.properties";
-
   public static final String ACCUMULO_CLUSTER_TYPE_KEY = "accumulo.it.cluster.type";
 
   public static final String ACCUMULO_MINI_PREFIX = "accumulo.it.cluster.mini.";
@@ -47,59 +50,37 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
 
   public static final String ACCUMULO_CLUSTER_CLIENT_CONF_KEY = "accumulo.it.cluster.clientconf";
 
-  protected ClusterType clusterType;
-
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static AccumuloClusterPropertyConfiguration get() {
-    Properties systemProperties = System.getProperties();
 
     String clusterTypeValue = null, clientConf = null;
-    String propertyFile = systemProperties.getProperty(ACCUMULO_IT_PROPERTIES_FILE);
+    String propertyFile = System.getProperty(ACCUMULO_IT_PROPERTIES_FILE);
 
-    if (null != propertyFile) {
+    if (propertyFile != null) {
       // Check for properties provided in a file
       File f = new File(propertyFile);
-      if (f.exists() && f.isFile() && f.canRead()) {
-        Properties fileProperties = new Properties();
-        FileReader reader = null;
-        try {
-          reader = new FileReader(f);
-        } catch (FileNotFoundException e) {
-          log.warn("Could not read properties from specified file: {}", propertyFile, e);
-        }
-
-        if (null != reader) {
-          try {
-            fileProperties.load(reader);
-          } catch (IOException e) {
-            log.warn("Could not load properties from specified file: {}", propertyFile, e);
-          } finally {
-            try {
-              reader.close();
-            } catch (IOException e) {
-              log.warn("Could not close reader", e);
-            }
-          }
-
-          clusterTypeValue = fileProperties.getProperty(ACCUMULO_CLUSTER_TYPE_KEY);
-          clientConf = fileProperties.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
-        }
-      } else {
-        log.debug("Property file ({}) is not a readable file", propertyFile);
+      Properties fileProperties = new Properties();
+      try (FileReader reader = new FileReader(f, UTF_8)) {
+        fileProperties.load(reader);
+        clusterTypeValue = fileProperties.getProperty(ACCUMULO_CLUSTER_TYPE_KEY);
+        clientConf = fileProperties.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
+      } catch (IOException e) {
+        throw new RuntimeException("Could not read properties from file: " + propertyFile, e);
       }
     } else {
       log.debug("No properties file found in {}", ACCUMULO_IT_PROPERTIES_FILE);
     }
 
-    if (null == clusterTypeValue) {
-      clusterTypeValue = systemProperties.getProperty(ACCUMULO_CLUSTER_TYPE_KEY);
+    if (clusterTypeValue == null) {
+      clusterTypeValue = System.getProperty(ACCUMULO_CLUSTER_TYPE_KEY);
     }
 
-    if (null == clientConf) {
-      clientConf = systemProperties.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
+    if (clientConf == null) {
+      clientConf = System.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
     }
 
     ClusterType type;
-    if (null == clusterTypeValue) {
+    if (clusterTypeValue == null) {
       type = ClusterType.MINI;
     } else {
       type = ClusterType.valueOf(clusterTypeValue);
@@ -113,7 +94,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
         // started
         return new AccumuloMiniClusterConfiguration();
       case STANDALONE:
-        if (null == clientConf) {
+        if (clientConf == null) {
           throw new RuntimeException(
               "Expected client configuration to be provided: " + ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
         }
@@ -129,6 +110,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public Map<String,String> getConfiguration(ClusterType type) {
     requireNonNull(type);
 
@@ -146,23 +128,21 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
 
     Map<String,String> configuration = new HashMap<>();
 
-    Properties systemProperties = System.getProperties();
-
-    String propertyFile = systemProperties.getProperty(ACCUMULO_IT_PROPERTIES_FILE);
+    String propertyFile = System.getProperty(ACCUMULO_IT_PROPERTIES_FILE);
 
     // Check for properties provided in a file
-    if (null != propertyFile) {
+    if (propertyFile != null) {
       File f = new File(propertyFile);
       if (f.exists() && f.isFile() && f.canRead()) {
         Properties fileProperties = new Properties();
         FileReader reader = null;
         try {
-          reader = new FileReader(f);
-        } catch (FileNotFoundException e) {
+          reader = new FileReader(f, UTF_8);
+        } catch (IOException e) {
           log.warn("Could not read properties from specified file: {}", propertyFile, e);
         }
 
-        if (null != reader) {
+        if (reader != null) {
           try {
             fileProperties.load(reader);
             loadFromProperties(prefix, fileProperties, configuration);
@@ -180,7 +160,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
     }
 
     // Load any properties specified directly in the system properties
-    loadFromProperties(prefix, systemProperties, configuration);
+    loadFromProperties(prefix, System.getProperties(), configuration);
 
     return configuration;
   }

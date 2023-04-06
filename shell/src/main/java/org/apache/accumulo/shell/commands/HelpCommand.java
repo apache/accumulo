@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -37,7 +39,7 @@ public class HelpCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ShellCommandException, IOException {
-    int numColumns = shellState.getReader().getTerminal().getWidth();
+    int numColumns = shellState.getTerminal().getWidth();
     if (cl.hasOption(noWrapOpt.getOpt())) {
       numColumns = Integer.MAX_VALUE;
     }
@@ -62,8 +64,9 @@ public class HelpCommand extends Command {
           }
           int beginIndex = 0;
           int endIndex = s.length();
-          while (beginIndex < endIndex && s.charAt(beginIndex) == ' ')
+          while (beginIndex < endIndex && s.charAt(beginIndex) == ' ') {
             beginIndex++;
+          }
           String dash = "-";
           while (endIndex > beginIndex && endIndex - beginIndex + i + 5 > numColumns) {
             endIndex = s.lastIndexOf(" ", numColumns + beginIndex - i - 5);
@@ -97,7 +100,7 @@ public class HelpCommand extends Command {
     for (String cmd : cl.getArgs()) {
       final Command c = shellState.commandFactory.get(cmd);
       if (c == null) {
-        shellState.getReader().println(String
+        shellState.getWriter().println(String
             .format("Unknown command \"%s\".  Enter \"help\" for a list possible commands.", cmd));
       } else {
         c.printHelp(shellState, numColumns);

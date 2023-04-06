@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators;
 
@@ -30,35 +32,28 @@ import org.apache.hadoop.io.WritableComparable;
  * An iterator that supports iterating over key and value pairs. Anything implementing this
  * interface should return keys in sorted order.
  */
-
-public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extends Writable> {
+public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extends Writable>
+    extends YieldingKeyValueIterator<K,V> {
   /**
    * Initializes the iterator. Data should not be read from the source in this method.
    *
-   * @param source
-   *          <code>SortedKeyValueIterator</code> source to read data from.
-   * @param options
-   *          <code>Map</code> map of string option names to option values.
-   * @param env
-   *          <code>IteratorEnvironment</code> environment in which iterator is being run, provided
-   *          by Accumulo itself and is expected to be non-null.
-   * @throws IOException
-   *           unused.
-   * @exception IllegalArgumentException
-   *              if there are problems with the options.
-   * @exception UnsupportedOperationException
-   *              if not supported.
+   * @param source <code>SortedKeyValueIterator</code> source to read data from.
+   * @param options <code>Map</code> map of string option names to option values.
+   * @param env <code>IteratorEnvironment</code> environment in which iterator is being run,
+   *        provided by Accumulo itself and is expected to be non-null.
+   * @throws IOException unused.
+   * @exception IllegalArgumentException if there are problems with the options.
+   * @exception UnsupportedOperationException if not supported.
    */
   void init(SortedKeyValueIterator<K,V> source, Map<String,String> options, IteratorEnvironment env)
       throws IOException;
 
   /**
    * Returns true if the iterator has more elements. Note that if this iterator has yielded (@see
-   * enableYielding(YieldCallback)), this this method must return false.
+   * YieldingKeyValueIterator.enableYielding(YieldCallback)), this this method must return false.
    *
    * @return <code>true</code> if the iterator has more elements.
-   * @exception IllegalStateException
-   *              if called before seek.
+   * @exception IllegalStateException if called before seek.
    */
   boolean hasTop();
 
@@ -68,12 +63,9 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * all iterators except ones that are strictly scan-time iterators that will never be configured
    * for the minc or majc scopes. Deletion entries are only removed during full major compactions.
    *
-   * @throws IOException
-   *           if an I/O error occurs.
-   * @exception IllegalStateException
-   *              if called before seek.
-   * @exception NoSuchElementException
-   *              if next element doesn't exist.
+   * @throws IOException if an I/O error occurs.
+   * @exception IllegalStateException if called before seek.
+   * @exception NoSuchElementException if next element doesn't exist.
    */
   void next() throws IOException;
 
@@ -100,17 +92,12 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * ensure that {@code columnFamilies} is properly set to the minimum required column families to
    * ensure that data from separate locality groups is not inadvertently read.
    *
-   * @param range
-   *          <code>Range</code> of keys to iterate over.
-   * @param columnFamilies
-   *          <code>Collection</code> of column families to include or exclude.
-   * @param inclusive
-   *          <code>boolean</code> that indicates whether to include (true) or exclude (false)
-   *          column families.
-   * @throws IOException
-   *           if an I/O error occurs.
-   * @exception IllegalArgumentException
-   *              if there are problems with the parameters.
+   * @param range <code>Range</code> of keys to iterate over.
+   * @param columnFamilies <code>Collection</code> of column families to include or exclude.
+   * @param inclusive <code>boolean</code> that indicates whether to include (true) or exclude
+   *        (false) column families.
+   * @throws IOException if an I/O error occurs.
+   * @exception IllegalArgumentException if there are problems with the parameters.
    */
   void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException;
@@ -128,10 +115,8 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * copy the object's data into a new object in order to avoid aliasing bugs.
    *
    * @return <code>K</code>
-   * @exception IllegalStateException
-   *              if called before seek.
-   * @exception NoSuchElementException
-   *              if top element doesn't exist.
+   * @exception IllegalStateException if called before seek.
+   * @exception NoSuchElementException if top element doesn't exist.
    */
   K getTopKey();
 
@@ -145,10 +130,8 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * ought to copy the object's data into a new object in order to avoid aliasing bugs.
    *
    * @return <code>V</code>
-   * @exception IllegalStateException
-   *              if called before seek.
-   * @exception NoSuchElementException
-   *              if top element doesn't exist.
+   * @exception IllegalStateException if called before seek.
+   * @exception NoSuchElementException if top element doesn't exist.
    */
   V getTopValue();
 
@@ -159,13 +142,24 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * method on the iterator it returns. The behavior is unspecified if init is called after deepCopy
    * either on the original or the copy. A proper implementation would call deepCopy on the source.
    *
-   * @param env
-   *          <code>IteratorEnvironment</code> environment in which iterator is being run, provided
-   *          by Accumulo itself and is expected to be non-null.
+   * @param env <code>IteratorEnvironment</code> environment in which iterator is being run,
+   *        provided by Accumulo itself and is expected to be non-null.
    * @return <code>SortedKeyValueIterator</code> a copy of this iterator (with the same source and
    *         settings).
-   * @exception UnsupportedOperationException
-   *              if not supported.
+   * @exception UnsupportedOperationException if not supported.
    */
   SortedKeyValueIterator<K,V> deepCopy(IteratorEnvironment env);
+
+  /**
+   * Returns true when running in a server process and the GarbageCollectionLogger determines that
+   * the server is running low on memory. This is useful for iterators that aggregate KV pairs or
+   * perform long running operations that create a lot of garbage. Server side iterators can
+   * override this method and return the value of IteratorEnvironment.isRunningLowOnMemory.
+   *
+   * @return true if running in server process and server is running low on memory
+   * @since 3.0.0
+   */
+  default boolean isRunningLowOnMemory() {
+    return false;
+  }
 }

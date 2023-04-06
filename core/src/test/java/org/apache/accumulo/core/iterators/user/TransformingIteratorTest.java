@@ -1,25 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,7 +37,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -44,30 +46,28 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
-import org.apache.accumulo.core.iterators.system.VisibilityFilter;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.google.common.collect.ImmutableMap;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TransformingIteratorTest {
 
   private static Authorizations authorizations =
       new Authorizations("vis0", "vis1", "vis2", "vis3", "vis4");
-  private static final Map<String,String> EMPTY_OPTS = ImmutableMap.of();
+  private static final Map<String,String> EMPTY_OPTS = Map.of();
   private TransformingIterator titer;
 
   private TreeMap<Key,Value> data = new TreeMap<>();
 
-  @Before
-  public void createData() throws Exception {
+  @BeforeEach
+  public void createData() {
     data.clear();
     generateRow(data, "row1");
     generateRow(data, "row2");
@@ -88,8 +88,8 @@ public class TransformingIteratorTest {
     ReuseIterator reuserIter = new ReuseIterator();
     reuserIter.init(visFilter, EMPTY_OPTS, null);
     try {
-      titer = clazz.newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+      titer = clazz.getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
 
@@ -104,7 +104,7 @@ public class TransformingIteratorTest {
           new Authorizations("vis0", "vis1", "vis2", "vis3"));
       opts = cfg.getOptions();
     } else {
-      opts = ImmutableMap.of();
+      opts = Map.of();
     }
     titer.init(reuserIter, opts, iterEnv);
   }
@@ -143,7 +143,7 @@ public class TransformingIteratorTest {
       setUpTransformIterator(clazz);
 
       // All rows with visibilities reversed
-      TransformingIterator iter = clazz.newInstance();
+      TransformingIterator iter = clazz.getDeclaredConstructor().newInstance();
       TreeMap<Key,Value> expected = new TreeMap<>();
       for (int row = 1; row <= 3; ++row) {
         for (int cf = 1; cf <= 3; ++cf) {
@@ -163,7 +163,7 @@ public class TransformingIteratorTest {
   public void testVisbilityFiltering() throws Exception {
     // Should return nothing since we produced visibilities that can't be seen
     setUpTransformIterator(BadVisKeyTransformingIterator.class);
-    checkExpected(new TreeMap<Key,Value>());
+    checkExpected(new TreeMap<>());
 
     // Do a "reverse" on the visibility (vis1 -> vis2, vis2 -> vis3, vis3 -> vis0)
     // Source data has vis1, vis2, vis3 so vis0 is a new one that is introduced.
@@ -188,11 +188,11 @@ public class TransformingIteratorTest {
     // illegal visibility created by transform should be filtered on scan, even if evaluation is
     // done
     setUpTransformIterator(IllegalVisKeyTransformingIterator.class, false);
-    checkExpected(new TreeMap<Key,Value>());
+    checkExpected(new TreeMap<>());
 
-    // ensure illegal vis is supressed when evaluations is done
+    // ensure illegal vis is suppressed when evaluations is done
     setUpTransformIterator(IllegalVisKeyTransformingIterator.class);
-    checkExpected(new TreeMap<Key,Value>());
+    checkExpected(new TreeMap<>());
   }
 
   @Test
@@ -229,9 +229,11 @@ public class TransformingIteratorTest {
     // be inside the range.
 
     TreeMap<Key,Value> expected = new TreeMap<>();
-    for (int cq = 1; cq <= 3; ++cq)
-      for (int cv = 1; cv <= 3; ++cv)
+    for (int cq = 1; cq <= 3; ++cq) {
+      for (int cv = 1; cv <= 3; ++cv) {
         putExpected(expected, 1, 3, cq, cv, PartialKey.ROW);
+      }
+    }
     checkExpected(new Range(new Key("row1", "cf0"), true, new Key("row1", "cf1"), false), expected);
   }
 
@@ -240,11 +242,11 @@ public class TransformingIteratorTest {
     // Set a range that's after all data and make sure we don't
     // somehow return something.
     setUpTransformIterator(ColFamReversingKeyTransformingIterator.class);
-    checkExpected(new Range(new Key("row4"), null), new TreeMap<Key,Value>());
+    checkExpected(new Range(new Key("row4"), null), new TreeMap<>());
   }
 
   @Test
-  public void testReplaceKeyParts() throws Exception {
+  public void testReplaceKeyParts() {
     TransformingIterator it = new IdentityKeyTransformingIterator();
     Key originalKey = new Key("r", "cf", "cq", "cv", 42);
     originalKey.setDeleted(true);
@@ -276,10 +278,13 @@ public class TransformingIteratorTest {
     setUpTransformIterator(ColFamReversingKeyTransformingIterator.class);
 
     TreeMap<Key,Value> expected = new TreeMap<>();
-    for (int row = 1; row <= 3; ++row)
-      for (int cq = 1; cq <= 3; ++cq)
-        for (int cv = 1; cv <= 3; ++cv)
+    for (int row = 1; row <= 3; ++row) {
+      for (int cq = 1; cq <= 3; ++cq) {
+        for (int cv = 1; cv <= 3; ++cv) {
           putExpected(expected, row, expectedCF, cq, cv, PartialKey.ROW);
+        }
+      }
+    }
     checkExpected(expected, "cf2");
   }
 
@@ -290,7 +295,7 @@ public class TransformingIteratorTest {
 
     data.clear();
 
-    Value ev = new Value("".getBytes());
+    Value ev = new Value("");
 
     data.put(new Key("shard001", "foo", "doc02", vis1, 78), ev);
     data.put(new Key("shard001", "dog", "doc02", vis3, 78), ev);
@@ -308,7 +313,7 @@ public class TransformingIteratorTest {
         new Text[] {new Text("foo"), new Text("dog"), new Text("cat")});
     iiIter.init(titer, iicfg.getOptions(), null);
 
-    iiIter.seek(new Range(), new HashSet<ByteSequence>(), false);
+    iiIter.seek(new Range(), new HashSet<>(), false);
 
     assertTrue(iiIter.hasTop());
     Key docKey = iiIter.getTopKey();
@@ -328,17 +333,20 @@ public class TransformingIteratorTest {
     setUpTransformIterator(ColFamReversingCompactionKeyTransformingIterator.class);
 
     TreeMap<Key,Value> expected = new TreeMap<>();
-    for (int row = 1; row <= 3; ++row)
-      for (int cq = 1; cq <= 3; ++cq)
-        for (int cv = 1; cv <= 3; ++cv)
+    for (int row = 1; row <= 3; ++row) {
+      for (int cq = 1; cq <= 3; ++cq) {
+        for (int cv = 1; cv <= 3; ++cv) {
           putExpected(expected, row, expectedCF, cq, cv, PartialKey.ROW);
+        }
+      }
+    }
     checkExpected(expected, "cf2");
   }
 
   @Test
   public void testCompactionDoesntFilterVisibilities() throws Exception {
-    // In scan mode, this should return nothing since it produces visibilites
-    // the user can't see. In compaction mode, however, the visibilites
+    // In scan mode, this should return nothing since it produces visibilities
+    // the user can't see. In compaction mode, however, the visibilities
     // should still show up.
     setUpTransformIterator(BadVisCompactionKeyTransformingIterator.class);
 
@@ -353,7 +361,7 @@ public class TransformingIteratorTest {
             String cv = "badvis";
             long ts = 100 * cfID + 10 * cqID + cvID;
             String val = "val" + ts;
-            expected.put(new Key(row, cf, cq, cv, ts), new Value(val.getBytes()));
+            expected.put(new Key(row, cf, cq, cv, ts), new Value(val));
           }
         }
       }
@@ -365,19 +373,14 @@ public class TransformingIteratorTest {
   @Test
   public void testCompactionAndIllegalVisibility() throws Exception {
     setUpTransformIterator(IllegalVisCompactionKeyTransformingIterator.class);
-    try {
-      checkExpected(new TreeMap<Key,Value>());
-      assertTrue(false);
-    } catch (Exception e) {
-
-    }
+    assertThrows(Exception.class, () -> checkExpected(new TreeMap<>()));
   }
 
   @Test
   public void testDupes() throws Exception {
     setUpTransformIterator(DupeTransformingIterator.class);
 
-    titer.seek(new Range(), new HashSet<ByteSequence>(), false);
+    titer.seek(new Range(), new HashSet<>(), false);
 
     int count = 0;
     while (titer.hasTop()) {
@@ -386,7 +389,7 @@ public class TransformingIteratorTest {
       assertEquals("cf1", key.getColumnFamily().toString());
       assertEquals("cq1", key.getColumnQualifier().toString());
       assertEquals("", key.getColumnVisibility().toString());
-      assertEquals(5l, key.getTimestamp());
+      assertEquals(5L, key.getTimestamp());
       count++;
     }
 
@@ -409,17 +412,11 @@ public class TransformingIteratorTest {
 
     opts.clear();
     opts.put(TransformingIterator.MAX_BUFFER_SIZE_OPT, "A,B");
-    try {
-      ti.validateOptions(opts);
-      assertFalse(true);
-    } catch (IllegalArgumentException e) {}
+    assertThrows(IllegalArgumentException.class, () -> ti.validateOptions(opts));
 
     opts.clear();
     opts.put(TransformingIterator.AUTH_OPT, Authorizations.HEADER + "~~~~");
-    try {
-      ti.validateOptions(opts);
-      assertFalse(true);
-    } catch (IllegalArgumentException e) {}
+    assertThrows(IllegalArgumentException.class, () -> ti.validateOptions(opts));
 
   }
 
@@ -431,7 +428,7 @@ public class TransformingIteratorTest {
   }
 
   private void checkExpected(Range range, TreeMap<Key,Value> expectedEntries) throws IOException {
-    checkExpected(range, new HashSet<ByteSequence>(), expectedEntries);
+    checkExpected(range, new HashSet<>(), expectedEntries);
   }
 
   private void checkExpected(TreeMap<Key,Value> expectedEntries, String... fa) throws IOException {
@@ -447,7 +444,7 @@ public class TransformingIteratorTest {
   private void checkExpected(Range range, Set<ByteSequence> families,
       TreeMap<Key,Value> expectedEntries) throws IOException {
 
-    titer.seek(range, families, families.size() != 0);
+    titer.seek(range, families, !families.isEmpty());
 
     while (titer.hasTop()) {
       Entry<Key,Value> expected = expectedEntries.pollFirstEntry();
@@ -455,13 +452,13 @@ public class TransformingIteratorTest {
       Value actualValue = titer.getTopValue();
       titer.next();
 
-      assertNotNull("Ran out of expected entries on: " + actualKey, expected);
-      assertEquals("Key mismatch", expected.getKey(), actualKey);
-      assertEquals("Value mismatch", expected.getValue(), actualValue);
+      assertNotNull(expected, "Ran out of expected entries on: " + actualKey);
+      assertEquals(expected.getKey(), actualKey, "Key mismatch");
+      assertEquals(expected.getValue(), actualValue, "Value mismatch");
     }
 
-    assertTrue("Scanner did not return all expected entries: " + expectedEntries,
-        expectedEntries.isEmpty());
+    assertTrue(expectedEntries.isEmpty(),
+        "Scanner did not return all expected entries: " + expectedEntries);
   }
 
   private static void putExpected(SortedMap<Key,Value> expected, int rowID, int cfID, int cqID,
@@ -489,7 +486,7 @@ public class TransformingIteratorTest {
       }
     }
 
-    expected.put(new Key(row, cf, cq, cv, ts), new Value(val.getBytes()));
+    expected.put(new Key(row, cf, cq, cv, ts), new Value(val));
   }
 
   private static Text transform(Text val) {
@@ -514,7 +511,7 @@ public class TransformingIteratorTest {
           String val = "val" + ts;
 
           Key k = new Key(row, cf, cq, cv, ts);
-          Value v = new Value(val.getBytes());
+          Value v = new Value(val);
           data.put(k, v);
         }
       }
@@ -580,7 +577,7 @@ public class TransformingIteratorTest {
 
   }
 
-  public static abstract class ReversingKeyTransformingIterator extends TransformingIterator {
+  public abstract static class ReversingKeyTransformingIterator extends TransformingIterator {
 
     @Override
     protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output)
@@ -604,8 +601,9 @@ public class TransformingIteratorTest {
     protected Collection<ByteSequence>
         untransformColumnFamilies(Collection<ByteSequence> columnFamilies) {
       HashSet<ByteSequence> untransformed = new HashSet<>();
-      for (ByteSequence cf : columnFamilies)
+      for (ByteSequence cf : columnFamilies) {
         untransformed.add(untransformColumnFamily(cf));
+      }
       return untransformed;
     }
 
@@ -744,7 +742,7 @@ public class TransformingIteratorTest {
     }
   }
 
-  private static class MajCIteratorEnvironmentAdapter extends BaseIteratorEnvironment {
+  private static class MajCIteratorEnvironmentAdapter implements IteratorEnvironment {
     @Override
     public IteratorScope getIteratorScope() {
       return IteratorScope.majc;

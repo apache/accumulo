@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators;
 
@@ -22,7 +24,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,7 +34,6 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +79,6 @@ import org.slf4j.LoggerFactory;
  * row3 steve:20
  * </pre>
  */
-
 public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
   private static final Logger LOG = LoggerFactory.getLogger(OrIterator.class);
   public static final String COLUMNS_KEY = "or.iterator.columns";
@@ -105,8 +104,8 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
       this.iter = Objects.requireNonNull(iter);
       this.term = Objects.requireNonNull(term);
       // The desired column families for this source is the term itself
-      this.seekColfams = Collections.<
-          ByteSequence>singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
+      this.seekColfams =
+          Collections.singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
       // No current range until we're seek()'ed for the first time
       this.currentRange = null;
     }
@@ -118,7 +117,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
 
     @Override
     public boolean equals(Object obj) {
-      return obj == this || (obj instanceof TermSource && 0 == compareTo((TermSource) obj));
+      return obj == this || (obj instanceof TermSource && compareTo((TermSource) obj) == 0);
     }
 
     @Override
@@ -136,7 +135,9 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
      */
     public void seek(Range originalRange) throws IOException {
       // the infinite start key is equivalent to a null startKey on the Range.
-      if (!originalRange.isInfiniteStartKey()) {
+      if (originalRange.isInfiniteStartKey()) {
+        currentRange = originalRange;
+      } else {
         Key originalStartKey = originalRange.getStartKey();
         // Pivot the provided range into the range for this term
         Key newKey = new Key(originalStartKey.getRow(), term, originalStartKey.getColumnQualifier(),
@@ -144,8 +145,6 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
         // Construct the new range, preserving the other attributes on the provided range.
         currentRange = new Range(newKey, originalRange.isStartKeyInclusive(),
             originalRange.getEndKey(), originalRange.isEndKeyInclusive());
-      } else {
-        currentRange = originalRange;
       }
       LOG.trace("Seeking {} to {}", this, currentRange);
       iter.seek(currentRange, seekColfams, true);
@@ -178,8 +177,9 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
   private OrIterator(OrIterator other, IteratorEnvironment env) {
     ArrayList<TermSource> copiedSources = new ArrayList<>();
 
-    for (TermSource TS : other.sources)
+    for (TermSource TS : other.sources) {
       copiedSources.add(new TermSource(TS.iter.deepCopy(env), new Text(TS.term)));
+    }
     this.sources = Collections.unmodifiableList(copiedSources);
   }
 
@@ -198,10 +198,11 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
   }
 
   @Override
-  final public void next() throws IOException {
+  public final void next() throws IOException {
     LOG.trace("next()");
-    if (currentTerm == null)
+    if (currentTerm == null) {
       return;
+    }
 
     // Advance currentTerm
     currentTerm.iter.next();
@@ -255,11 +256,9 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
     // Clear the PriorityQueue so that we can re-populate it.
     sorted.clear();
 
-    Iterator<TermSource> iter = sources.iterator();
     // For each term, seek forward.
     // if a hit is not found, delete it from future searches.
-    while (iter.hasNext()) {
-      TermSource ts = iter.next();
+    for (TermSource ts : sources) {
       // Pivot the provided range into the correct range for this TermSource and seek the TS.
       ts.seek(range);
 
@@ -278,21 +277,21 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
   }
 
   @Override
-  final public Key getTopKey() {
+  public final Key getTopKey() {
     final Key k = currentTerm.iter.getTopKey();
     LOG.trace("getTopKey() = {}", k);
     return k;
   }
 
   @Override
-  final public Value getTopValue() {
+  public final Value getTopValue() {
     final Value v = currentTerm.iter.getTopValue();
     LOG.trace("getTopValue() = {}", v);
     return v;
   }
 
   @Override
-  final public boolean hasTop() {
+  public final boolean hasTop() {
     LOG.trace("hasTop()");
     return currentTerm != null;
   }
@@ -302,11 +301,11 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
       IteratorEnvironment env) throws IOException {
     LOG.trace("init()");
     String columnsValue = options.get(COLUMNS_KEY);
-    if (null == columnsValue) {
+    if (columnsValue == null) {
       throw new IllegalArgumentException(
           COLUMNS_KEY + " was not provided in the iterator configuration");
     }
-    String[] columns = StringUtils.split(columnsValue, ',');
+    String[] columns = columnsValue.split(",");
     setTerms(source, Arrays.asList(columns), env);
     LOG.trace("Set sources: {}", this.sources);
   }
@@ -317,11 +316,11 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
     options.put(COLUMNS_KEY, "A comma-separated list of families");
     return new IteratorOptions("OrIterator",
         "Produces a sorted stream of qualifiers based on families", options,
-        Collections.<String>emptyList());
+        Collections.emptyList());
   }
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    return null != options.get(COLUMNS_KEY);
+    return options.get(COLUMNS_KEY) != null;
   }
 }

@@ -1,27 +1,31 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,23 +43,22 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.test.categories.SunnyDayTests;
+import org.apache.accumulo.harness.WithTestNames;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.functional.NativeMapIT;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MemKey;
-import org.apache.accumulo.tserver.NativeMap;
-import org.apache.hadoop.io.Text;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.TemporaryFolder;
+import org.apache.accumulo.tserver.memory.NativeMapLoader;
+import org.easymock.EasyMock;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * Integration Test for https://issues.apache.org/jira/browse/ACCUMULO-4148
@@ -78,43 +81,39 @@ import com.google.common.collect.ImmutableSet;
  * DefaultMap could move to a unit test in tserver, but they are here for convenience of viewing
  * both at the same time.
  */
-@Category(SunnyDayTests.class)
-public class InMemoryMapIT {
+@Tag(SUNNY_DAY)
+public class InMemoryMapIT extends WithTestNames {
 
   private static final Logger log = LoggerFactory.getLogger(InMemoryMapIT.class);
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
 
-  @BeforeClass
-  public static void ensureNativeLibrary() throws FileNotFoundException {
+  @BeforeAll
+  public static void ensureNativeLibrary() {
     File nativeMapLocation = NativeMapIT.nativeMapLocation();
-    log.debug("Native map location " + nativeMapLocation);
-    NativeMap.loadNativeLib(Collections.singletonList(nativeMapLocation));
-    if (!NativeMap.isLoaded()) {
-      fail("Missing the native library from " + nativeMapLocation.getAbsolutePath()
-          + "\nYou need to build the libaccumulo binary first. "
-          + "\nTry running 'mvn clean verify -Dit.test=InMemoryMapIT -Dtest=foo"
-          + " -DfailIfNoTests=false -Dspotbugs.skip -Dcheckstyle.skip'");
-    }
-    log.debug("Native map loaded");
+    NativeMapLoader.loadForTest(List.of(nativeMapLocation), () -> fail("Can't load native maps"));
+  }
 
+  public static ServerContext getServerContext() {
+    ServerContext context = EasyMock.createMock(ServerContext.class);
+    EasyMock.replay(context);
+    return context;
   }
 
   @Test
   public void testOneMutationOneKey() {
     Mutation m = new Mutation("a");
-    m.put(new Text("1cf"), new Text("1cq"), new Value("vala".getBytes()));
+    m.put("1cf", "1cq", "vala");
 
     assertEquivalentMutate(m);
   }
 
   @Test
-  public void testOneMutationManyKeys() throws IOException {
+  public void testOneMutationManyKeys() {
     Mutation m = new Mutation("a");
     for (int i = 1; i < 6; i++) {
-      m.put(new Text("2cf" + i), new Text("2cq" + i), new Value(Integer.toString(i).getBytes()));
+      m.put("2cf" + i, "2cq" + i, Integer.toString(i));
     }
 
     assertEquivalentMutate(m);
@@ -125,7 +124,7 @@ public class InMemoryMapIT {
     Mutation m = new Mutation("a");
     for (int i = 1; i <= 5; i++) {
       // same keys
-      m.put(new Text("3cf"), new Text("3cq"), new Value(Integer.toString(i).getBytes()));
+      m.put("3cf", "3cq", Integer.toString(i));
     }
 
     assertEquivalentMutate(m);
@@ -134,9 +133,9 @@ public class InMemoryMapIT {
   @Test
   public void testMultipleMutationsOneKey() {
     Mutation m1 = new Mutation("a");
-    m1.put(new Text("4cf"), new Text("4cq"), new Value("vala".getBytes()));
+    m1.put("4cf", "4cq", "vala");
     Mutation m2 = new Mutation("b");
-    m2.put(new Text("4cf"), new Text("4cq"), new Value("vala".getBytes()));
+    m2.put("4cf", "4cq", "vala");
 
     assertEquivalentMutate(Arrays.asList(m1, m2));
   }
@@ -144,9 +143,9 @@ public class InMemoryMapIT {
   @Test
   public void testMultipleMutationsSameOneKey() {
     Mutation m1 = new Mutation("a");
-    m1.put(new Text("5cf"), new Text("5cq"), new Value("vala".getBytes()));
+    m1.put("5cf", "5cq", "vala");
     Mutation m2 = new Mutation("a");
-    m2.put(new Text("5cf"), new Text("5cq"), new Value("vala".getBytes()));
+    m2.put("5cf", "5cq", "vala");
 
     assertEquivalentMutate(Arrays.asList(m1, m2));
   }
@@ -155,11 +154,11 @@ public class InMemoryMapIT {
   public void testMutlipleMutationsMultipleKeys() {
     Mutation m1 = new Mutation("a");
     for (int i = 1; i < 6; i++) {
-      m1.put(new Text("6cf" + i), new Text("6cq" + i), new Value(Integer.toString(i).getBytes()));
+      m1.put("6cf" + i, "6cq" + i, Integer.toString(i));
     }
     Mutation m2 = new Mutation("b");
     for (int i = 1; i < 3; i++) {
-      m2.put(new Text("6cf" + i), new Text("6cq" + i), new Value(Integer.toString(i).getBytes()));
+      m2.put("6cf" + i, "6cq" + i, Integer.toString(i));
     }
 
     assertEquivalentMutate(Arrays.asList(m1, m2));
@@ -169,11 +168,11 @@ public class InMemoryMapIT {
   public void testMultipleMutationsMultipleSameKeys() {
     Mutation m1 = new Mutation("a");
     for (int i = 1; i < 3; i++) {
-      m1.put(new Text("7cf"), new Text("7cq"), new Value(Integer.toString(i).getBytes()));
+      m1.put("7cf", "7cq", Integer.toString(i));
     }
     Mutation m2 = new Mutation("a");
     for (int i = 1; i < 4; i++) {
-      m2.put(new Text("7cf"), new Text("7cq"), new Value(Integer.toString(i).getBytes()));
+      m2.put("7cf", "7cq", Integer.toString(i));
     }
 
     assertEquivalentMutate(Arrays.asList(m1, m2));
@@ -183,24 +182,24 @@ public class InMemoryMapIT {
   public void testMultipleMutationsMultipleKeysSomeSame() {
     Mutation m1 = new Mutation("a");
     for (int i = 1; i < 2; i++) {
-      m1.put(new Text("8cf"), new Text("8cq"), new Value(Integer.toString(i).getBytes()));
+      m1.put("8cf", "8cq", Integer.toString(i));
     }
     for (int i = 1; i < 3; i++) {
-      m1.put(new Text("8cf" + i), new Text("8cq" + i), new Value(Integer.toString(i).getBytes()));
+      m1.put("8cf" + i, "8cq" + i, Integer.toString(i));
     }
     for (int i = 1; i < 2; i++) {
-      m1.put(new Text("8cf" + i), new Text("8cq" + i), new Value(Integer.toString(i).getBytes()));
+      m1.put("8cf" + i, "8cq" + i, Integer.toString(i));
     }
     Mutation m2 = new Mutation("a");
     for (int i = 1; i < 3; i++) {
-      m2.put(new Text("8cf"), new Text("8cq"), new Value(Integer.toString(i).getBytes()));
+      m2.put("8cf", "8cq", Integer.toString(i));
     }
     for (int i = 1; i < 4; i++) {
-      m2.put(new Text("8cf" + i), new Text("8cq" + i), new Value(Integer.toString(i).getBytes()));
+      m2.put("8cf" + i, "8cq" + i, Integer.toString(i));
     }
     Mutation m3 = new Mutation("b");
     for (int i = 1; i < 3; i++) {
-      m3.put(new Text("8cf" + i), new Text("8cq" + i), new Value(Integer.toString(i).getBytes()));
+      m3.put("8cf" + i, "8cq" + i, Integer.toString(i));
     }
 
     assertEquivalentMutate(Arrays.asList(m1, m2, m3));
@@ -211,62 +210,72 @@ public class InMemoryMapIT {
   }
 
   private void assertEquivalentMutate(List<Mutation> mutations) {
-    InMemoryMap defaultMap = null;
-    InMemoryMap nativeMapWrapper = null;
-    InMemoryMap localityGroupMap = null;
-    InMemoryMap localityGroupMapWithNative = null;
+
+    String[] tempFolders = new String[4];
+    for (int i = 0; i < tempFolders.length; i++) {
+      File dir = new File(tempDir, testName() + "_" + i);
+      assertTrue(dir.isDirectory() || dir.mkdir());
+      tempFolders[i] = dir.getAbsolutePath();
+    }
+
+    Map<String,String> defaultMapConfig = new HashMap<>();
+    defaultMapConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
+    defaultMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[0]);
+    defaultMapConfig.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "");
+
+    Map<String,String> nativeMapConfig = new HashMap<>();
+    nativeMapConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "true");
+    nativeMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[1]);
+    nativeMapConfig.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "");
+
+    Map<String,String> localityGroupConfig = new HashMap<>();
+    localityGroupConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
+    localityGroupConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[2]);
+
+    Map<String,String> localityGroupNativeConfig = new HashMap<>();
+    localityGroupNativeConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "true");
+    localityGroupNativeConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(), tempFolders[3]);
+
+    TableId testId = TableId.of("TEST");
 
     try {
-      Map<String,String> defaultMapConfig = new HashMap<>();
-      defaultMapConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      defaultMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
-          tempFolder.newFolder().getAbsolutePath());
-      defaultMapConfig.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "");
-      Map<String,String> nativeMapConfig = new HashMap<>();
-      nativeMapConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "true");
-      nativeMapConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
-          tempFolder.newFolder().getAbsolutePath());
-      nativeMapConfig.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "");
-      Map<String,String> localityGroupConfig = new HashMap<>();
-      localityGroupConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      localityGroupConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
-          tempFolder.newFolder().getAbsolutePath());
-      Map<String,String> localityGroupNativeConfig = new HashMap<>();
-      localityGroupNativeConfig.put(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "true");
-      localityGroupNativeConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
-          tempFolder.newFolder().getAbsolutePath());
-
-      defaultMap = new InMemoryMap(new ConfigurationCopy(defaultMapConfig), "--TEST--");
-      nativeMapWrapper = new InMemoryMap(new ConfigurationCopy(nativeMapConfig), "--TEST--");
-      localityGroupMap = new InMemoryMap(
+      InMemoryMap defaultMap =
+          new InMemoryMap(new ConfigurationCopy(defaultMapConfig), getServerContext(), testId);
+      InMemoryMap nativeMapWrapper =
+          new InMemoryMap(new ConfigurationCopy(nativeMapConfig), getServerContext(), testId);
+      InMemoryMap localityGroupMap = new InMemoryMap(
           updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupConfig)),
-          "--TEST--");
-      localityGroupMapWithNative = new InMemoryMap(
+          getServerContext(), testId);
+      InMemoryMap localityGroupMapWithNative = new InMemoryMap(
           updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupNativeConfig)),
-          "--TEST--");
+          getServerContext(), testId);
+
+      // ensure the maps are correct type
+      assertEquals(InMemoryMap.TYPE_DEFAULT_MAP, defaultMap.getMapType(), "Not a DefaultMap");
+      assertEquals(InMemoryMap.TYPE_NATIVE_MAP_WRAPPER, nativeMapWrapper.getMapType(),
+          "Not a NativeMapWrapper");
+      assertEquals(InMemoryMap.TYPE_LOCALITY_GROUP_MAP, localityGroupMap.getMapType(),
+          "Not a LocalityGroupMap");
+      assertEquals(InMemoryMap.TYPE_LOCALITY_GROUP_MAP_NATIVE,
+          localityGroupMapWithNative.getMapType(), "Not a LocalityGroupMap with native");
+
+      int count = 0;
+      for (Mutation m : mutations) {
+        count += m.size();
+      }
+      defaultMap.mutate(mutations, count);
+      nativeMapWrapper.mutate(mutations, count);
+      localityGroupMap.mutate(mutations, count);
+      localityGroupMapWithNative.mutate(mutations, count);
+
+      // let's use the transitive property to assert all four are equivalent
+      assertMutatesEquivalent(mutations, defaultMap, nativeMapWrapper);
+      assertMutatesEquivalent(mutations, defaultMap, localityGroupMap);
+      assertMutatesEquivalent(mutations, defaultMap, localityGroupMapWithNative);
     } catch (Exception e) {
       log.error("Error getting new InMemoryMap ", e);
       fail(e.getMessage());
     }
-
-    // ensure the maps are correct type
-    assertEquals("Not a DefaultMap", InMemoryMap.TYPE_DEFAULT_MAP, defaultMap.getMapType());
-    assertEquals("Not a NativeMapWrapper", InMemoryMap.TYPE_NATIVE_MAP_WRAPPER,
-        nativeMapWrapper.getMapType());
-    assertEquals("Not a LocalityGroupMap", InMemoryMap.TYPE_LOCALITY_GROUP_MAP,
-        localityGroupMap.getMapType());
-    assertEquals("Not a LocalityGroupMap with native", InMemoryMap.TYPE_LOCALITY_GROUP_MAP_NATIVE,
-        localityGroupMapWithNative.getMapType());
-
-    defaultMap.mutate(mutations);
-    nativeMapWrapper.mutate(mutations);
-    localityGroupMap.mutate(mutations);
-    localityGroupMapWithNative.mutate(mutations);
-
-    // let's use the transitive property to assert all four are equivalent
-    assertMutatesEquivalent(mutations, defaultMap, nativeMapWrapper);
-    assertMutatesEquivalent(mutations, defaultMap, localityGroupMap);
-    assertMutatesEquivalent(mutations, defaultMap, localityGroupMapWithNative);
   }
 
   /**
@@ -281,12 +290,9 @@ public class InMemoryMapIT {
    * <li>Each key value pair in each mutated map has a unique id (kvCount)</li>
    * </ul>
    *
-   * @param mutations
-   *          List of mutations
-   * @param imm1
-   *          InMemoryMap to compare
-   * @param imm2
-   *          InMemoryMap to compare
+   * @param mutations List of mutations
+   * @param imm1 InMemoryMap to compare
+   * @param imm2 InMemoryMap to compare
    */
   private void assertMutatesEquivalent(List<Mutation> mutations, InMemoryMap imm1,
       InMemoryMap imm2) {
@@ -295,14 +301,14 @@ public class InMemoryMapIT {
     List<MemKey> memKeys1 = getArrayOfMemKeys(imm1);
     List<MemKey> memKeys2 = getArrayOfMemKeys(imm2);
 
-    assertEquals("Not all key value pairs included: " + dumpInMemoryMap(imm1, memKeys1),
-        mutationKVPairs, memKeys1.size());
-    assertEquals("InMemoryMaps differ in size: " + dumpInMemoryMap(imm1, memKeys1) + "\n"
-        + dumpInMemoryMap(imm2, memKeys2), memKeys1.size(), memKeys2.size());
-    assertEquals("InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm1, memKeys1),
-        mutationKVPairs, getUniqKVCount(memKeys1));
-    assertEquals("InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm2, memKeys2),
-        mutationKVPairs, getUniqKVCount(memKeys2));
+    assertEquals(mutationKVPairs, memKeys1.size(),
+        "Not all key value pairs included: " + dumpInMemoryMap(imm1, memKeys1));
+    assertEquals(memKeys1.size(), memKeys2.size(), "InMemoryMaps differ in size: "
+        + dumpInMemoryMap(imm1, memKeys1) + "\n" + dumpInMemoryMap(imm2, memKeys2));
+    assertEquals(mutationKVPairs, getUniqKVCount(memKeys1),
+        "InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm1, memKeys1));
+    assertEquals(mutationKVPairs, getUniqKVCount(memKeys2),
+        "InMemoryMap did not have distinct kvCounts " + dumpInMemoryMap(imm2, memKeys2));
 
   }
 
@@ -319,14 +325,14 @@ public class InMemoryMapIT {
 
     List<MemKey> memKeys = new ArrayList<>();
     try {
-      skvi.seek(new Range(), new ArrayList<ByteSequence>(), false); // everything
+      skvi.seek(new Range(), new ArrayList<>(), false); // everything
       while (skvi.hasTop()) {
         memKeys.add((MemKey) skvi.getTopKey());
         skvi.next();
       }
     } catch (IOException ex) {
       log.error("Error getting memkeys", ex);
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     }
 
     return memKeys;
@@ -340,7 +346,7 @@ public class InMemoryMapIT {
 
     for (MemKey mk : memkeys) {
       sb.append("  ");
-      sb.append(mk.toString());
+      sb.append(mk);
       sb.append("\n");
     }
 
@@ -352,7 +358,7 @@ public class InMemoryMapIT {
     for (MemKey m : memKeys) {
       kvCounts.add(m.getKVCount());
     }
-    return ImmutableSet.copyOf(kvCounts).size();
+    return Set.copyOf(kvCounts).size();
   }
 
   private ConfigurationCopy updateConfigurationForLocalityGroups(ConfigurationCopy configuration) {

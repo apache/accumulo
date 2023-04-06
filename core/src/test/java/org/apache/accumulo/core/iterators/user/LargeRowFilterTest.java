@@ -1,26 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -31,10 +34,9 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
-import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.junit.Test;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
+import org.junit.jupiter.api.Test;
 
 public class LargeRowFilterTest {
 
@@ -48,8 +50,7 @@ public class LargeRowFilterTest {
 
   private void genRow(TreeMap<Key,Value> testData, int row, int startCQ, int stopCQ) {
     for (int cq = startCQ; cq < stopCQ; cq++) {
-      testData.put(new Key(genRow(row), "cf001", genCQ(cq), 5),
-          new Value(("v" + row + "_" + cq).getBytes()));
+      testData.put(new Key(genRow(row), "cf001", genCQ(cq), 5), new Value("v" + row + "_" + cq));
     }
   }
 
@@ -81,7 +82,7 @@ public class LargeRowFilterTest {
       genTestData(expectedData, i);
 
       LargeRowFilter lrfi = setupIterator(testData, i, IteratorScope.scan);
-      lrfi.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+      lrfi.seek(new Range(), Set.of(), false);
 
       TreeMap<Key,Value> filteredData = new TreeMap<>();
 
@@ -110,7 +111,7 @@ public class LargeRowFilterTest {
 
       // seek to each row... rows that exceed max columns should be filtered
       for (int j = 1; j <= i; j++) {
-        lrfi.seek(new Range(genRow(j), genRow(j)), LocalityGroupUtil.EMPTY_CF_SET, false);
+        lrfi.seek(new Range(genRow(j), genRow(j)), Set.of(), false);
 
         while (lrfi.hasTop()) {
           assertEquals(genRow(j), lrfi.getTopKey().getRow().toString());
@@ -132,16 +133,12 @@ public class LargeRowFilterTest {
     LargeRowFilter lrfi = setupIterator(testData, 13, IteratorScope.scan);
 
     // test seeking to the middle of a row
-    lrfi.seek(
-        new Range(new Key(genRow(15), "cf001", genCQ(4), 5), true,
-            new Key(genRow(15)).followingKey(PartialKey.ROW), false),
-        LocalityGroupUtil.EMPTY_CF_SET, false);
+    lrfi.seek(new Range(new Key(genRow(15), "cf001", genCQ(4), 5), true,
+        new Key(genRow(15)).followingKey(PartialKey.ROW), false), Set.of(), false);
     assertFalse(lrfi.hasTop());
 
-    lrfi.seek(
-        new Range(new Key(genRow(10), "cf001", genCQ(4), 5), true,
-            new Key(genRow(10)).followingKey(PartialKey.ROW), false),
-        LocalityGroupUtil.EMPTY_CF_SET, false);
+    lrfi.seek(new Range(new Key(genRow(10), "cf001", genCQ(4), 5), true,
+        new Key(genRow(10)).followingKey(PartialKey.ROW), false), Set.of(), false);
     TreeMap<Key,Value> expectedData = new TreeMap<>();
     genRow(expectedData, 10, 4, 10);
 
@@ -161,7 +158,7 @@ public class LargeRowFilterTest {
     genTestData(testData, 20);
 
     LargeRowFilter lrfi = setupIterator(testData, 13, IteratorScope.majc);
-    lrfi.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    lrfi.seek(new Range(), Set.of(), false);
 
     TreeMap<Key,Value> compactedData = new TreeMap<>();
     while (lrfi.hasTop()) {
@@ -177,7 +174,7 @@ public class LargeRowFilterTest {
     // because there are suppression markers.. if there was a bug and data
     // was not suppressed, increasing the threshold would expose the bug
     lrfi = setupIterator(compactedData, 20, IteratorScope.scan);
-    lrfi.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    lrfi.seek(new Range(), Set.of(), false);
 
     // only expect to see 13 rows
     TreeMap<Key,Value> expectedData = new TreeMap<>();
@@ -194,10 +191,8 @@ public class LargeRowFilterTest {
 
     // try seeking to the middle of row 15... row has data and suppression marker... this seeks past
     // the marker but before the column
-    lrfi.seek(
-        new Range(new Key(genRow(15), "cf001", genCQ(4), 5), true,
-            new Key(genRow(15)).followingKey(PartialKey.ROW), false),
-        LocalityGroupUtil.EMPTY_CF_SET, false);
+    lrfi.seek(new Range(new Key(genRow(15), "cf001", genCQ(4), 5), true,
+        new Key(genRow(15)).followingKey(PartialKey.ROW), false), Set.of(), false);
     assertFalse(lrfi.hasTop());
 
     // test seeking w/ column families
@@ -223,7 +218,7 @@ public class LargeRowFilterTest {
     genRow(expectedData, 4, 0, 5);
 
     LargeRowFilter lrfi = setupIterator(testData, 13, IteratorScope.scan);
-    lrfi.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    lrfi.seek(new Range(), Set.of(), false);
 
     TreeMap<Key,Value> filteredData = new TreeMap<>();
     while (lrfi.hasTop()) {

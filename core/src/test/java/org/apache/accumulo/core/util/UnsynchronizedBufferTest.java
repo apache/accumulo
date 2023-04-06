@@ -1,33 +1,34 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 import org.apache.hadoop.io.WritableUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class UnsynchronizedBufferTest {
 
@@ -50,11 +51,10 @@ public class UnsynchronizedBufferTest {
     assertEquals("34567", new String(buf, UTF_8));
 
     buf = new byte[6];
-
+    // the byte buffer has the extra byte, but should not be able to read it...
     final UnsynchronizedBuffer.Reader finalUb = ub;
     final byte[] finalBuf = buf;
-    assertThrows("the byte buffer has the extra byte, but should not be able to read it",
-        ArrayIndexOutOfBoundsException.class, () -> finalUb.readBytes(finalBuf));
+    assertThrows(ArrayIndexOutOfBoundsException.class, () -> finalUb.readBytes(finalBuf));
   }
 
   @Test
@@ -120,13 +120,13 @@ public class UnsynchronizedBufferTest {
       dos.flush();
       accumuloBytes = baos.toByteArray();
     }
-    assertTrue("The byte array written to by UnsynchronizedBuffer is not equal to WritableUtils",
-        Arrays.equals(hadoopBytes, accumuloBytes));
+    assertArrayEquals(hadoopBytes, accumuloBytes,
+        "The byte array written to by UnsynchronizedBuffer is not equal to WritableUtils");
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNextArraySizeNegative() {
-    UnsynchronizedBuffer.nextArraySize(-1);
+    assertThrows(IllegalArgumentException.class, () -> UnsynchronizedBuffer.nextArraySize(-1));
   }
 
   @Test

@@ -1,31 +1,33 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.scan;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
-import org.apache.accumulo.server.util.Halt;
-import org.apache.accumulo.tserver.TabletServer;
-import org.apache.accumulo.tserver.TooManyFilesException;
-import org.apache.accumulo.tserver.session.ScanSession;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
+import org.apache.accumulo.server.fs.TooManyFilesException;
+import org.apache.accumulo.tserver.TabletHostingServer;
+import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
-import org.apache.accumulo.tserver.tablet.Tablet;
+import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.apache.accumulo.tserver.tablet.TabletClosedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,32 +38,36 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
 
   private final long scanID;
 
-  public NextBatchTask(TabletServer server, long scanID, AtomicBoolean interruptFlag) {
+  public NextBatchTask(TabletHostingServer server, long scanID, AtomicBoolean interruptFlag) {
     super(server);
     this.scanID = scanID;
     this.interruptFlag = interruptFlag;
 
-    if (interruptFlag.get())
+    if (interruptFlag.get()) {
       cancel(true);
+    }
   }
 
   @Override
   public void run() {
 
-    final ScanSession scanSession = (ScanSession) server.getSession(scanID);
+    final SingleScanSession scanSession = (SingleScanSession) server.getSession(scanID);
     String oldThreadName = Thread.currentThread().getName();
 
     try {
-      if (isCancelled() || scanSession == null)
+      if (isCancelled() || scanSession == null) {
         return;
+      }
 
-      runState.set(ScanRunState.RUNNING);
+      if (!transitionToRunning()) {
+        return;
+      }
 
       Thread.currentThread()
           .setName("User: " + scanSession.getUser() + " Start: " + scanSession.startTime
               + " Client: " + scanSession.client + " Tablet: " + scanSession.extent);
 
-      Tablet tablet = server.getOnlineTablet(scanSession.extent);
+      TabletBase tablet = scanSession.getTabletResolver().getTablet(scanSession.extent);
 
       if (tablet == null) {
         addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(
@@ -69,10 +75,7 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
         return;
       }
 
-      long t1 = System.currentTimeMillis();
       ScanBatch batch = scanSession.scanner.read();
-      long t2 = System.currentTimeMillis();
-      scanSession.nbTimes.addStat(t2 - t1);
 
       // there should only be one thing on the queue at a time, so
       // it should be ok to call add()
@@ -90,13 +93,9 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
       }
     } catch (TooManyFilesException | SampleNotPresentException e) {
       addResult(e);
-    } catch (OutOfMemoryError ome) {
-      Halt.halt("Ran out of memory scanning " + scanSession.extent + " for " + scanSession.client,
-          1);
-      addResult(ome);
-    } catch (Throwable e) {
-      log.warn("exception while scanning tablet "
-          + (scanSession == null ? "(unknown)" : scanSession.extent), e);
+    } catch (IOException | RuntimeException e) {
+      log.warn("exception while scanning tablet {} for {}", scanSession.extent, scanSession.client,
+          e);
       addResult(e);
     } finally {
       runState.set(ScanRunState.FINISHED);

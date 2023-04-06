@@ -7,13 +7,14 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.data;
 
@@ -25,8 +26,6 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
@@ -53,21 +52,19 @@ public class Value implements WritableComparable<Object> {
   /**
    * Creates a value using the UTF-8 encoding of the CharSequence
    *
-   * @param cs
-   *          may not be null
+   * @param cs may not be null
    *
    * @since 1.8.0
    */
   public Value(CharSequence cs) {
-    this(cs.toString().getBytes(StandardCharsets.UTF_8));
+    this(cs.toString().getBytes(UTF_8));
   }
 
   /**
    * Creates a Value using the bytes of the Text. Makes a copy, does not use the byte array from the
    * Text.
    *
-   * @param text
-   *          may not be null
+   * @param text may not be null
    *
    * @since 1.8.0
    */
@@ -79,8 +76,7 @@ public class Value implements WritableComparable<Object> {
    * Creates a Value using a byte array as the initial value. The given byte array is used directly
    * as the backing array, so later changes made to the array reflect into the new Value.
    *
-   * @param bytes
-   *          May not be null
+   * @param bytes May not be null
    */
   public Value(byte[] bytes) {
     this(bytes, false);
@@ -89,8 +85,7 @@ public class Value implements WritableComparable<Object> {
   /**
    * Creates a Value using the bytes in a buffer as the initial value. Makes a defensive copy.
    *
-   * @param bytes
-   *          May not be null
+   * @param bytes May not be null
    */
   public Value(ByteBuffer bytes) {
     /* TODO ACCUMULO-2509 right now this uses the entire backing array, which must be accessible. */
@@ -98,36 +93,19 @@ public class Value implements WritableComparable<Object> {
   }
 
   /**
-   * @deprecated A copy of the bytes in the buffer is always made. Use {@link #Value(ByteBuffer)}
-   *             instead.
-   *
-   * @param bytes
-   *          bytes of value (may not be null)
-   * @param copy
-   *          false to use the backing array of the buffer directly as the backing array, true to
-   *          force a copy
-   */
-  @Deprecated
-  public Value(ByteBuffer bytes, boolean copy) {
-    /* TODO ACCUMULO-2509 right now this uses the entire backing array, which must be accessible. */
-    this(toBytes(bytes), false);
-  }
-
-  /**
    * Creates a Value using a byte array as the initial value.
    *
-   * @param bytes
-   *          may not be null
-   * @param copy
-   *          false to use the given byte array directly as the backing array, true to force a copy
+   * @param bytes may not be null
+   * @param copy false to use the given byte array directly as the backing array, true to force a
+   *        copy
    */
   public Value(byte[] bytes, boolean copy) {
     requireNonNull(bytes);
-    if (!copy) {
-      this.value = bytes;
-    } else {
+    if (copy) {
       this.value = new byte[bytes.length];
       System.arraycopy(bytes, 0, this.value, 0, bytes.length);
+    } else {
+      this.value = bytes;
     }
 
   }
@@ -135,8 +113,7 @@ public class Value implements WritableComparable<Object> {
   /**
    * Creates a new Value based on another.
    *
-   * @param ibw
-   *          may not be null.
+   * @param ibw may not be null.
    */
   public Value(final Value ibw) {
     this(ibw.get(), 0, ibw.getSize());
@@ -145,14 +122,10 @@ public class Value implements WritableComparable<Object> {
   /**
    * Creates a Value based on a range in a byte array. A copy of the bytes is always made.
    *
-   * @param newData
-   *          source of copy, may not be null
-   * @param offset
-   *          the offset in newData to start with for valye bytes
-   * @param length
-   *          the number of bytes in the value
-   * @throws IndexOutOfBoundsException
-   *           if offset or length are invalid
+   * @param newData source of copy, may not be null
+   * @param offset the offset in newData to start with for value bytes
+   * @param length the number of bytes in the value
+   * @throws IndexOutOfBoundsException if offset or length are invalid
    */
   public Value(final byte[] newData, final int offset, final int length) {
     requireNonNull(newData);
@@ -166,7 +139,7 @@ public class Value implements WritableComparable<Object> {
    * @return the underlying byte array directly.
    */
   public byte[] get() {
-    assert (null != value);
+    assert (value != null);
     return this.value;
   }
 
@@ -174,8 +147,7 @@ public class Value implements WritableComparable<Object> {
    * Sets the byte data of this value. The given byte array is used directly as the backing array,
    * so later changes made to the array reflect into this Value.
    *
-   * @param b
-   *          may not be null
+   * @param b may not be null
    */
   public void set(final byte[] b) {
     requireNonNull(b);
@@ -185,8 +157,7 @@ public class Value implements WritableComparable<Object> {
   /**
    * Sets the byte data of this value. The given byte array is copied.
    *
-   * @param b
-   *          may not be null
+   * @param b may not be null
    */
   public void copy(byte[] b) {
     requireNonNull(b);
@@ -200,7 +171,7 @@ public class Value implements WritableComparable<Object> {
    * @return size in bytes
    */
   public int getSize() {
-    assert (null != value);
+    assert (value != null);
     return this.value.length;
   }
 
@@ -226,8 +197,7 @@ public class Value implements WritableComparable<Object> {
   /**
    * Define the sort order of the BytesWritable.
    *
-   * @param right_obj
-   *          The other bytes writable
+   * @param right_obj The other bytes writable
    * @return Positive if left is bigger than right, 0 if they are equal, and negative if left is
    *         smaller than right.
    */
@@ -250,14 +220,20 @@ public class Value implements WritableComparable<Object> {
 
   @Override
   public boolean equals(Object right_obj) {
-    // compare with byte[] for backwards compatibility, but this is generally a pretty bad practice
-    if (right_obj instanceof byte[]) {
-      return compareTo((byte[]) right_obj) == 0;
-    }
     if (right_obj instanceof Value) {
       return compareTo(right_obj) == 0;
     }
     return false;
+  }
+
+  /**
+   * Compares the bytes in this object to the specified byte array
+   *
+   * @return true if the contents of this Value is equivalent to the supplied byte array
+   * @since 2.0.0
+   */
+  public boolean contentEquals(byte[] right_obj) {
+    return compareTo(right_obj) == 0;
   }
 
   @Override
@@ -284,24 +260,6 @@ public class Value implements WritableComparable<Object> {
 
   static { // register this comparator
     WritableComparator.define(Value.class, new Comparator());
-  }
-
-  /**
-   * Converts a list of byte arrays to a two-dimensional array.
-   *
-   * @param array
-   *          list of byte arrays
-   * @return two-dimensional byte array containing one given byte array per row
-   * @deprecated since 1.7.0; this utility method is not appropriate for the {@link Value} object
-   */
-  @Deprecated
-  public static byte[][] toArray(final List<byte[]> array) {
-    // List#toArray doesn't work on lists of byte [].
-    byte[][] results = new byte[array.size()][];
-    for (int i = 0; i < array.size(); i++) {
-      results[i] = array.get(i);
-    }
-    return results;
   }
 
 }

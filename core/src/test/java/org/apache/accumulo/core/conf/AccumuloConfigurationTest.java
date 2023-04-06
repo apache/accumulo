@@ -1,75 +1,47 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.apache.accumulo.core.conf.Property.TABLE_ITERATOR_MINC_PREFIX;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
 
-import org.junit.Test;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableMap;
+import org.apache.accumulo.core.conf.AccumuloConfiguration.ScanExecutorConfig;
+import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
+import org.junit.jupiter.api.Test;
 
 public class AccumuloConfigurationTest {
 
   @Test
-  public void testGetMemoryInBytes() throws Exception {
-    assertEquals(42l, AccumuloConfiguration.getMemoryInBytes("42"));
-    assertEquals(42l, AccumuloConfiguration.getMemoryInBytes("42b"));
-    assertEquals(42l, AccumuloConfiguration.getMemoryInBytes("42B"));
-    assertEquals(42l * 1024l, AccumuloConfiguration.getMemoryInBytes("42K"));
-    assertEquals(42l * 1024l, AccumuloConfiguration.getMemoryInBytes("42k"));
-    assertEquals(42l * 1024l * 1024l, AccumuloConfiguration.getMemoryInBytes("42M"));
-    assertEquals(42l * 1024l * 1024l, AccumuloConfiguration.getMemoryInBytes("42m"));
-    assertEquals(42l * 1024l * 1024l * 1024l, AccumuloConfiguration.getMemoryInBytes("42G"));
-    assertEquals(42l * 1024l * 1024l * 1024l, AccumuloConfiguration.getMemoryInBytes("42g"));
-
-  }
-
-  @Test
-  public void testGetTimeInMillis() {
-    assertEquals(42L * 24 * 60 * 60 * 1000, AccumuloConfiguration.getTimeInMillis("42d"));
-    assertEquals(42L * 60 * 60 * 1000, AccumuloConfiguration.getTimeInMillis("42h"));
-    assertEquals(42L * 60 * 1000, AccumuloConfiguration.getTimeInMillis("42m"));
-    assertEquals(42L * 1000, AccumuloConfiguration.getTimeInMillis("42s"));
-    assertEquals(42L * 1000, AccumuloConfiguration.getTimeInMillis("42"));
-    assertEquals(42L, AccumuloConfiguration.getTimeInMillis("42ms"));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testGetMemoryInBytesFailureCases1() throws Exception {
-    AccumuloConfiguration.getMemoryInBytes("42x");
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testGetMemoryInBytesFailureCases2() throws Exception {
-    AccumuloConfiguration.getMemoryInBytes("FooBar");
-  }
-
-  @Test
   public void testGetPropertyByString() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     boolean found = false;
     for (Property p : Property.values()) {
       if (p.getType() != PropertyType.PREFIX) {
@@ -80,12 +52,12 @@ public class AccumuloConfigurationTest {
         assertEquals(p.getDefaultValue(), c.get(p.getKey()));
       }
     }
-    assertTrue("test was a dud, and did nothing", found);
+    assertTrue(found, "test was a dud, and did nothing");
   }
 
   @Test
   public void testGetSinglePort() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "9997");
     int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
@@ -95,7 +67,7 @@ public class AccumuloConfigurationTest {
 
   @Test
   public void testGetAnyPort() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "0");
     int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
@@ -105,7 +77,7 @@ public class AccumuloConfigurationTest {
 
   @Test
   public void testGetInvalidPort() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "1020");
     int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
@@ -115,7 +87,7 @@ public class AccumuloConfigurationTest {
 
   @Test
   public void testGetPortRange() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "9997-9999");
     int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
@@ -125,46 +97,64 @@ public class AccumuloConfigurationTest {
     assertEquals(9999, ports[2]);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testGetPortRangeInvalidLow() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "1020-1026");
-    int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
-    assertEquals(3, ports.length);
-    assertEquals(1024, ports[0]);
-    assertEquals(1025, ports[1]);
-    assertEquals(1026, ports[2]);
+    assertThrows(IllegalArgumentException.class, () -> {
+      int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
+      assertEquals(3, ports.length);
+      assertEquals(1024, ports[0]);
+      assertEquals(1025, ports[1]);
+      assertEquals(1026, ports[2]);
+    });
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testGetPortRangeInvalidHigh() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "65533-65538");
-    int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
-    assertEquals(3, ports.length);
-    assertEquals(65533, ports[0]);
-    assertEquals(65534, ports[1]);
-    assertEquals(65535, ports[2]);
+    assertThrows(IllegalArgumentException.class, () -> {
+      int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
+      assertEquals(3, ports.length);
+      assertEquals(65533, ports[0]);
+      assertEquals(65534, ports[1]);
+      assertEquals(65535, ports[2]);
+    });
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testGetPortInvalidSyntax() {
-    AccumuloConfiguration c = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "[65533,65538]");
-    cc.getPort(Property.TSERV_CLIENTPORT);
+    assertThrows(IllegalArgumentException.class, () -> cc.getPort(Property.TSERV_CLIENTPORT));
   }
 
   private static class TestConfiguration extends AccumuloConfiguration {
 
     private HashMap<String,String> props = new HashMap<>();
     private int upCount = 0;
+    private AccumuloConfiguration parent;
+
+    TestConfiguration() {
+      parent = null;
+    }
+
+    TestConfiguration(AccumuloConfiguration parent) {
+      this.parent = parent;
+    }
 
     public void set(String p, String v) {
       props.put(p, v);
       upCount++;
+    }
+
+    @Override
+    public boolean isPropertySet(Property prop) {
+      return props.containsKey(prop.getKey());
     }
 
     @Override
@@ -174,13 +164,20 @@ public class AccumuloConfigurationTest {
 
     @Override
     public String get(Property property) {
-      return props.get(property.getKey());
+      String v = props.get(property.getKey());
+      if (v == null & parent != null) {
+        v = parent.get(property);
+      }
+      return v;
     }
 
     @Override
     public void getProperties(Map<String,String> output, Predicate<String> filter) {
+      if (parent != null) {
+        parent.getProperties(output, filter);
+      }
       for (Entry<String,String> entry : props.entrySet()) {
-        if (filter.apply(entry.getKey())) {
+        if (filter.test(entry.getKey())) {
           output.put(entry.getKey(), entry.getValue());
         }
       }
@@ -236,8 +233,8 @@ public class AccumuloConfigurationTest {
     expected2.put(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1.opt", "o99");
     assertEquals(expected2, pm3);
 
-    Map<String,String> pm5 = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
-    Map<String,String> pm6 = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pm5 = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
+    Map<String,String> pm6 = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
     assertSame(pm5, pm6);
     assertEquals(0, pm5.size());
 
@@ -248,7 +245,7 @@ public class AccumuloConfigurationTest {
     Map<String,String> pm8 = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     assertSame(pm3, pm8);
 
-    Map<String,String> pm9 = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pm9 = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
     assertSame(pm5, pm9);
 
     tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
@@ -269,14 +266,13 @@ public class AccumuloConfigurationTest {
     assertSame(pmC, pmD);
     assertEquals(expected1, pmC);
 
-    tc.set(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1");
+    tc.set(TABLE_ITERATOR_MINC_PREFIX.getKey() + "minc1", "abcd");
 
-    Map<String,String> pmE = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
-    Map<String,String> pmF = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pmE = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
+    Map<String,String> pmF = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
     assertSame(pmE, pmF);
     assertNotSame(pm5, pmE);
-    assertEquals(ImmutableMap.of(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123",
-        "hdfs://ib/p1"), pmE);
+    assertEquals(Map.of(TABLE_ITERATOR_MINC_PREFIX.getKey() + "minc1", "abcd"), pmE);
 
     Map<String,String> pmG = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     Map<String,String> pmH = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
@@ -290,10 +286,163 @@ public class AccumuloConfigurationTest {
     assertSame(pmI, pmJ);
     assertEquals(expected1, pmI);
 
-    Map<String,String> pmK = tc.getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pmK = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
     assertSame(pmE, pmK);
 
     Map<String,String> pmL = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     assertSame(pmG, pmL);
   }
+
+  @Test
+  public void testScanExecutors() {
+    String defName = SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME;
+
+    TestConfiguration tc = new TestConfiguration(DefaultConfiguration.getInstance());
+
+    Collection<ScanExecutorConfig> executors = tc.getScanExecutors(false);
+
+    assertEquals(2, executors.size());
+
+    ScanExecutorConfig sec =
+        executors.stream().filter(c -> c.name.equals(defName)).findFirst().get();
+    assertEquals(Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
+        sec.maxThreads);
+    assertFalse(sec.priority.isPresent());
+    assertTrue(sec.prioritizerClass.get().isEmpty());
+    assertTrue(sec.prioritizerOpts.isEmpty());
+
+    // ensure new props override default props
+    tc.set(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "9");
+    assertEquals(9, sec.getCurrentMaxThreads());
+    assertEquals(Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
+        sec.maxThreads);
+    ScanExecutorConfig sec3 =
+        tc.getScanExecutors(false).stream().filter(c -> c.name.equals(defName)).findFirst().get();
+    assertEquals(9, sec3.maxThreads);
+
+    ScanExecutorConfig sec4 =
+        executors.stream().filter(c -> c.name.equals("meta")).findFirst().get();
+    assertEquals(Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_META_THREADS.getDefaultValue()),
+        sec4.maxThreads);
+    assertFalse(sec4.priority.isPresent());
+    assertFalse(sec4.prioritizerClass.isPresent());
+    assertTrue(sec4.prioritizerOpts.isEmpty());
+
+    tc.set(Property.TSERV_SCAN_EXECUTORS_META_THREADS.getKey(), "2");
+    assertEquals(2, sec4.getCurrentMaxThreads());
+    ScanExecutorConfig sec5 =
+        tc.getScanExecutors(false).stream().filter(c -> c.name.equals("meta")).findFirst().get();
+    assertEquals(2, sec5.maxThreads);
+
+    tc.set(Property.TSERV_SCAN_EXECUTORS_META_THREADS.getKey(), "3");
+    assertEquals(3, sec4.getCurrentMaxThreads());
+    ScanExecutorConfig sec6 =
+        tc.getScanExecutors(false).stream().filter(c -> c.name.equals("meta")).findFirst().get();
+    assertEquals(3, sec6.maxThreads);
+
+    String prefix = Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey();
+    tc.set(prefix + "hulksmash.threads", "66");
+    tc.set(prefix + "hulksmash.priority", "3");
+    tc.set(prefix + "hulksmash.prioritizer", "com.foo.ScanPrioritizer");
+    tc.set(prefix + "hulksmash.prioritizer.opts.k1", "v1");
+    tc.set(prefix + "hulksmash.prioritizer.opts.k2", "v3");
+
+    executors = tc.getScanExecutors(false);
+    assertEquals(3, executors.size());
+    ScanExecutorConfig sec7 =
+        executors.stream().filter(c -> c.name.equals("hulksmash")).findFirst().get();
+    assertEquals(66, sec7.maxThreads);
+    assertEquals(3, sec7.priority.getAsInt());
+    assertEquals("com.foo.ScanPrioritizer", sec7.prioritizerClass.get());
+    assertEquals(Map.of("k1", "v1", "k2", "v3"), sec7.prioritizerOpts);
+
+    tc.set(prefix + "hulksmash.threads", "44");
+    assertEquals(66, sec7.maxThreads);
+    assertEquals(44, sec7.getCurrentMaxThreads());
+
+    ScanExecutorConfig sec8 = tc.getScanExecutors(false).stream()
+        .filter(c -> c.name.equals("hulksmash")).findFirst().get();
+    assertEquals(44, sec8.maxThreads);
+
+    // test scan server props
+    tc.set(Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "6");
+    Collection<ScanExecutorConfig> scanServExecutors = tc.getScanExecutors(true);
+    assertEquals(2, scanServExecutors.size());
+    ScanExecutorConfig sec9 =
+        scanServExecutors.stream().filter(c -> c.name.equals(defName)).findFirst().get();
+    // verify set to 6
+    assertEquals(6, sec9.maxThreads);
+    assertFalse(sec9.priority.isPresent());
+    assertTrue(sec9.prioritizerClass.get().isEmpty());
+    assertTrue(sec9.prioritizerOpts.isEmpty());
+
+    tc.set(Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "17");
+    ScanExecutorConfig sec10 =
+        tc.getScanExecutors(true).stream().filter(c -> c.name.equals(defName)).findFirst().get();
+    assertEquals(17, sec10.maxThreads);
+  }
+
+  // note: this is hard to test if there aren't any deprecated properties
+  // Update a couple of non-deprecated properties using reflection for testing purposes
+  @Test
+  public void testResolveDeprecated() throws Exception {
+    var conf = new ConfigurationCopy();
+
+    final Field isDeprecatedField =
+        Property.INSTANCE_ZK_HOST.getClass().getDeclaredField("isDeprecated");
+    isDeprecatedField.setAccessible(true);
+
+    // Capture the original setting. These are not deprecated but just in case they are in the
+    // future
+    // this will prevent the test from breaking when we reset at the end
+    final boolean origIsDepInstanceZkHost = Property.INSTANCE_ZK_HOST.isDeprecated();
+    final boolean origIsDepInstanceZkTimeout = Property.INSTANCE_ZK_TIMEOUT.isDeprecated();
+
+    try {
+      // Mark these 2 properties as deprecated just for testing purposes to make sure resolve works
+      isDeprecatedField.set(Property.INSTANCE_ZK_HOST, true);
+      isDeprecatedField.set(Property.INSTANCE_ZK_TIMEOUT, true);
+
+      // deprecated first argument
+      var e1 =
+          assertThrows(IllegalArgumentException.class, () -> conf.resolve(Property.INSTANCE_ZK_HOST,
+              Property.INSTANCE_ZK_TIMEOUT, Property.INSTANCE_ZK_TIMEOUT));
+      assertEquals("Unexpected deprecated INSTANCE_ZK_HOST", e1.getMessage());
+
+      // non-deprecated second argument
+      var e2 = assertThrows(IllegalArgumentException.class,
+          () -> conf.resolve(Property.INSTANCE_VOLUMES, Property.INSTANCE_ZK_HOST,
+              Property.INSTANCE_SECRET, Property.INSTANCE_ZK_TIMEOUT, Property.INSTANCE_VOLUMES));
+      assertEquals("Unexpected non-deprecated [INSTANCE_SECRET, INSTANCE_VOLUMES]",
+          e2.getMessage());
+
+      // empty second argument always resolves to non-deprecated first argument
+      assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES));
+
+      // none are set, resolve to non-deprecated
+      assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES,
+          Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT));
+
+      // resolve to first deprecated argument that's set; here, it's the final one
+      conf.set(Property.INSTANCE_ZK_TIMEOUT, "");
+      assertSame(Property.INSTANCE_ZK_TIMEOUT, conf.resolve(Property.INSTANCE_VOLUMES,
+          Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT));
+
+      // resolve to first deprecated argument that's set; now, it's the first one because both are
+      // set
+      conf.set(Property.INSTANCE_ZK_HOST, "");
+      assertSame(Property.INSTANCE_ZK_HOST, conf.resolve(Property.INSTANCE_VOLUMES,
+          Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT));
+
+      // every property is set, so resolve to the non-deprecated one
+      conf.set(Property.INSTANCE_VOLUMES, "");
+      assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES,
+          Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT));
+    } finally {
+      // Reset back to original setting
+      isDeprecatedField.set(Property.INSTANCE_ZK_HOST, origIsDepInstanceZkHost);
+      isDeprecatedField.set(Property.INSTANCE_ZK_TIMEOUT, origIsDepInstanceZkTimeout);
+    }
+  }
+
 }

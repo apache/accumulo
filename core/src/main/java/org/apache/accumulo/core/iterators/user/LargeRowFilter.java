@@ -1,22 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,11 +48,11 @@ import org.apache.hadoop.io.Text;
  */
 public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
 
-  public static final Value SUPPRESS_ROW_VALUE = new Value("SUPPRESS_ROW".getBytes(UTF_8));
+  public static final Value SUPPRESS_ROW_VALUE = new Value("SUPPRESS_ROW");
 
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[] {});
 
-  /* key into hash map, value refers to the row supression limit (maxColumns) */
+  /* key into hash map, value refers to the row suppression limit (maxColumns) */
   private static final String MAX_COLUMNS = "max_columns";
 
   private SortedKeyValueIterator<Key,Value> source;
@@ -65,7 +65,7 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
 
   private int maxColumns;
 
-  private boolean propogateSuppression = false;
+  private boolean propagateSuppression = false;
 
   private Range range;
   private Collection<ByteSequence> columnFamilies;
@@ -116,7 +116,7 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
     values.clear();
     currentPosition = 0;
 
-    while (source.hasTop() && keys.size() == 0) {
+    while (source.hasTop() && keys.isEmpty()) {
 
       addKeyValue(source.getTopKey(), source.getTopValue());
 
@@ -154,16 +154,16 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
 
     bufferNextRow();
 
-    while (!propogateSuppression && currentPosition < keys.size()
+    while (!propagateSuppression && currentPosition < keys.size()
         && isSuppressionMarker(keys.get(0), values.get(0))) {
       bufferNextRow();
     }
   }
 
-  private LargeRowFilter(SortedKeyValueIterator<Key,Value> source, boolean propogateSuppression,
+  private LargeRowFilter(SortedKeyValueIterator<Key,Value> source, boolean propagateSuppression,
       int maxColumns) {
     this.source = source;
-    this.propogateSuppression = propogateSuppression;
+    this.propagateSuppression = propagateSuppression;
     this.maxColumns = maxColumns;
   }
 
@@ -174,7 +174,7 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
       IteratorEnvironment env) throws IOException {
     this.source = source;
     this.maxColumns = Integer.parseInt(options.get(MAX_COLUMNS));
-    this.propogateSuppression = env.getIteratorScope() != IteratorScope.scan;
+    this.propagateSuppression = env.getIteratorScope() != IteratorScope.scan;
   }
 
   @Override
@@ -226,11 +226,13 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
 
       // it is possible that all or some of the data read for the current
       // row is before the start of the range
-      while (currentPosition < keys.size() && range.beforeStartKey(keys.get(currentPosition)))
+      while (currentPosition < keys.size() && range.beforeStartKey(keys.get(currentPosition))) {
         currentPosition++;
+      }
 
-      if (currentPosition == keys.size())
+      if (currentPosition == keys.size()) {
         readNextRow();
+      }
 
     } else {
       source.seek(range, columnFamilies, inclusive);
@@ -251,13 +253,13 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new LargeRowFilter(source.deepCopy(env), propogateSuppression, maxColumns);
+    return new LargeRowFilter(source.deepCopy(env), propagateSuppression, maxColumns);
   }
 
   @Override
   public IteratorOptions describeOptions() {
     String description =
-        "This iterator suppresses rows that exceed a specified" + " number of columns. Once\n"
+        "This iterator suppresses rows that exceed a specified number of columns. Once\n"
             + "a row exceeds the threshold, a marker is emitted and the row is always\n"
             + "suppressed by this iterator after that point in time.\n"
             + " This iterator works in a similar way to the RowDeletingIterator. See its\n"
@@ -273,9 +275,10 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
           "Bad # of options, must supply: " + MAX_COLUMNS + " as value");
     }
 
-    if (!options.containsKey(MAX_COLUMNS))
+    if (!options.containsKey(MAX_COLUMNS)) {
       throw new IllegalArgumentException(
           "Bad # of options, must supply: " + MAX_COLUMNS + " as value");
+    }
     try {
       maxColumns = Integer.parseInt(options.get(MAX_COLUMNS));
     } catch (Exception e) {
@@ -289,10 +292,8 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
   /**
    * A convenience method for setting the maximum number of columns to keep.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param maxColumns
-   *          number of columns to keep.
+   * @param is IteratorSetting object to configure.
+   * @param maxColumns number of columns to keep.
    */
   public static void setMaxColumns(IteratorSetting is, int maxColumns) {
     is.addOption(MAX_COLUMNS, Integer.toString(maxColumns));

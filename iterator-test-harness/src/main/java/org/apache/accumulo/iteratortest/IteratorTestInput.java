@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to you under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.iteratortest;
 
@@ -49,65 +51,49 @@ public class IteratorTestInput {
   /**
    * Construct an instance of the test input, using {@link SimpleIteratorEnvironment}.
    *
-   * @param iteratorClass
-   *          The class for the iterator to test.
-   * @param iteratorOptions
-   *          Options, if any, to provide to the iterator ({@link IteratorSetting}'s Map of
-   *          properties).
-   * @param range
-   *          The Range of data to query ({@link Scanner#setRange(Range)}). By default no column
-   *          families filter is specified.
-   * @param input
-   *          A sorted collection of Key-Value pairs acting as the table.
+   * @param iteratorClass The class for the iterator to test.
+   * @param iteratorOptions Options, if any, to provide to the iterator ({@link IteratorSetting}'s
+   *        Map of properties).
+   * @param range The Range of data to query ({@link Scanner#setRange(Range)}). By default no column
+   *        families filter is specified.
+   * @param input A sorted collection of Key-Value pairs acting as the table.
    */
   public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
       Map<String,String> iteratorOptions, Range range, SortedMap<Key,Value> input) {
-    this(iteratorClass, iteratorOptions, range, input, Collections.<ByteSequence>emptySet(), false,
+    this(iteratorClass, iteratorOptions, range, input, Collections.emptySet(), false,
         new SimpleIteratorEnvironment());
   }
 
   /**
    * Construct an instance of the test input.
    *
-   * @param iteratorClass
-   *          The class for the iterator to test.
-   * @param iteratorOptions
-   *          Options, if any, to provide to the iterator ({@link IteratorSetting}'s Map of
-   *          properties).
-   * @param range
-   *          The Range of data to query ({@link Scanner#setRange(Range)}). By default no column
-   *          families filter is specified.
-   * @param input
-   *          A sorted collection of Key-Value pairs acting as the table.
-   * @param iterEnv
-   *          A provided {@link IteratorEnvironment}.
+   * @param iteratorClass The class for the iterator to test.
+   * @param iteratorOptions Options, if any, to provide to the iterator ({@link IteratorSetting}'s
+   *        Map of properties).
+   * @param range The Range of data to query ({@link Scanner#setRange(Range)}). By default no column
+   *        families filter is specified.
+   * @param input A sorted collection of Key-Value pairs acting as the table.
+   * @param iterEnv A provided {@link IteratorEnvironment}.
    */
   public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
       Map<String,String> iteratorOptions, Range range, SortedMap<Key,Value> input,
       IteratorEnvironment iterEnv) {
-    this(iteratorClass, iteratorOptions, range, input, Collections.<ByteSequence>emptySet(), false,
+    this(iteratorClass, iteratorOptions, range, input, Collections.emptySet(), false,
         requireNonNull(iterEnv));
   }
 
   /**
    * Construct an instance of the test input.
    *
-   * @param iteratorClass
-   *          The class for the iterator to test.
-   * @param iteratorOptions
-   *          Options, if any, to provide to the iterator ({@link IteratorSetting}'s Map of
-   *          properties).
-   * @param range
-   *          The Range of data to query ({@link Scanner#setRange(Range)})
-   * @param input
-   *          A sorted collection of Key-Value pairs acting as the table.
-   * @param families
-   *          Column families passed to {@link SortedKeyValueIterator#seek}.
-   * @param inclusive
-   *          Whether the families are inclusive or exclusive.
-   * @param iterEnv
-   *          An optional provided {@link IteratorEnvironment}. {@link SimpleIteratorEnvironment}
-   *          will be used if null.
+   * @param iteratorClass The class for the iterator to test.
+   * @param iteratorOptions Options, if any, to provide to the iterator ({@link IteratorSetting}'s
+   *        Map of properties).
+   * @param range The Range of data to query ({@link Scanner#setRange(Range)})
+   * @param input A sorted collection of Key-Value pairs acting as the table.
+   * @param families Column families passed to {@link SortedKeyValueIterator#seek}.
+   * @param inclusive Whether the families are inclusive or exclusive.
+   * @param iterEnv An optional provided {@link IteratorEnvironment}.
+   *        {@link SimpleIteratorEnvironment} will be used if null.
    */
   public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
       Map<String,String> iteratorOptions, Range range, SortedMap<Key,Value> input,
@@ -119,7 +105,7 @@ public class IteratorTestInput {
     // Already immutable
     this.range = requireNonNull(range);
     // Make it immutable to the test
-    this.input = Collections.unmodifiableSortedMap((requireNonNull(input)));
+    this.input = Collections.unmodifiableSortedMap(requireNonNull(input));
     this.families = Collections.unmodifiableCollection(requireNonNull(families));
     this.inclusive = inclusive;
     this.iteratorEnvironment = iterEnv == null ? new SimpleIteratorEnvironment() : iterEnv;
@@ -162,10 +148,12 @@ public class IteratorTestInput {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (!(o instanceof IteratorTestInput))
+    }
+    if (!(o instanceof IteratorTestInput)) {
       return false;
+    }
     IteratorTestInput that = (IteratorTestInput) o;
 
     return inclusive == that.inclusive && iteratorClass.equals(that.iteratorClass)

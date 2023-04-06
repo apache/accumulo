@@ -1,24 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,9 +34,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class RegExFilterTest {
 
@@ -41,7 +44,7 @@ public class RegExFilterTest {
 
   private Key newKeyValue(TreeMap<Key,Value> tm, String row, String cf, String cq, String val) {
     Key k = newKey(row, cf, cq);
-    tm.put(k, new Value(val.getBytes()));
+    tm.put(k, new Value(val));
     return k;
   }
 
@@ -68,7 +71,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k3));
+    assertEquals(rei.getTopKey(), k3);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -83,7 +86,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k3));
+    assertEquals(rei.getTopKey(), k3);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -96,7 +99,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k2));
+    assertEquals(rei.getTopKey(), k2);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -109,7 +112,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k1));
+    assertEquals(rei.getTopKey(), k1);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -122,7 +125,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k2));
+    assertEquals(rei.getTopKey(), k2);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -143,7 +146,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k2));
+    assertEquals(rei.getTopKey(), k2);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -164,10 +167,10 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k2));
+    assertEquals(rei.getTopKey(), k2);
     rei.next();
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k1));
+    assertEquals(rei.getTopKey(), k1);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -178,13 +181,13 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k2));
+    assertEquals(rei.getTopKey(), k2);
     rei.next();
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k1));
+    assertEquals(rei.getTopKey(), k1);
     rei.next();
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k3));
+    assertEquals(rei.getTopKey(), k3);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -196,7 +199,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k3));
+    assertEquals(rei.getTopKey(), k3);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -208,7 +211,7 @@ public class RegExFilterTest {
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
-    assertTrue(rei.getTopKey().equals(k2));
+    assertEquals(rei.getTopKey(), k2);
     rei.next();
     assertFalse(rei.hasTop());
 
@@ -220,11 +223,11 @@ public class RegExFilterTest {
     rei.deepCopy(new DefaultIteratorEnvironment());
 
     // -----------------------------------------------------
-    String multiByteText = new String("\u6d67" + "\u6F68" + "\u7067");
-    String multiByteRegex = new String(".*" + "\u6F68" + ".*");
+    String multiByteText = new String("\u6d67\u6F68\u7067");
+    String multiByteRegex = new String(".*\u6F68.*");
 
-    Key k4 = new Key("boo4".getBytes(), "hoo".getBytes(), "20080203".getBytes(), "".getBytes(), 1l);
-    Value inVal = new Value(multiByteText.getBytes(UTF_8));
+    Key k4 = new Key("boo4".getBytes(), "hoo".getBytes(), "20080203".getBytes(), "".getBytes(), 1L);
+    Value inVal = new Value(multiByteText);
     tm.put(k4, inVal);
 
     is.clearOptions();
@@ -236,7 +239,7 @@ public class RegExFilterTest {
     assertTrue(rei.hasTop());
     Value outValue = rei.getTopValue();
     String outVal = new String(outValue.get(), UTF_8);
-    assertTrue(outVal.equals(multiByteText));
+    assertEquals(outVal, multiByteText);
 
   }
 
@@ -252,7 +255,7 @@ public class RegExFilterTest {
     System.arraycopy(b2, 0, ball, b1.length + 1, b2.length);
 
     Key key = new Key(ball, new byte[0], new byte[0], new byte[0], 90, false);
-    Value val = new Value(new byte[0]);
+    Value val = new Value();
     tm.put(key, val);
 
     IteratorSetting is = new IteratorSetting(5, RegExFilter.class);
@@ -262,6 +265,6 @@ public class RegExFilterTest {
     filter.init(new SortedMapIterator(tm), is.getOptions(), null);
     filter.seek(new Range(), EMPTY_COL_FAMS, false);
 
-    assertTrue("iterator couldn't find a match when it should have", filter.hasTop());
+    assertTrue(filter.hasTop(), "iterator couldn't find a match when it should have");
   }
 }

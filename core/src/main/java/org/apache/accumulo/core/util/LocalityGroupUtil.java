@@ -1,20 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.util;
+
+import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,46 +43,42 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.thrift.TMutation;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
-import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class LocalityGroupUtil {
 
   private static final Logger log = LoggerFactory.getLogger(LocalityGroupUtil.class);
 
-  // using an ImmutableSet here for more efficient comparisons in LocalityGroupIterator
-  public static final ImmutableSet<ByteSequence> EMPTY_CF_SET = ImmutableSet.of();
-
   /**
    * Create a set of families to be passed into the SortedKeyValueIterator seek call from a supplied
-   * set of columns. We are using the ImmutableSet to enable faster comparisons down in the
+   * set of columns. We are using the immutable set to enable faster comparisons down in the
    * LocalityGroupIterator.
    *
-   * @param columns
-   *          The set of columns
+   * @param columns The set of columns
    * @return An immutable set of columns
    */
-  public static ImmutableSet<ByteSequence> families(Collection<Column> columns) {
-    if (columns.size() == 0)
-      return EMPTY_CF_SET;
-    Builder<ByteSequence> builder = ImmutableSet.builder();
-    for (Column c : columns) {
-      builder.add(new ArrayByteSequence(c.getColumnFamily()));
+  public static Set<ByteSequence> families(Collection<Column> columns) {
+    if (columns.isEmpty()) {
+      return Set.of();
     }
-    return builder.build();
+    return columns.stream().map(c -> new ArrayByteSequence(c.getColumnFamily()))
+        .collect(toUnmodifiableSet());
   }
 
-  @SuppressWarnings("serial")
-  static public class LocalityGroupConfigurationError extends AccumuloException {
+  public static class LocalityGroupConfigurationError extends AccumuloException {
+    private static final long serialVersionUID = 855450342044719186L;
+
     LocalityGroupConfigurationError(String why) {
       super(why);
     }
@@ -89,7 +89,7 @@ public class LocalityGroupUtil {
         || prop.equals(Property.TABLE_LOCALITY_GROUPS.getKey());
   }
 
-  public static void checkLocalityGroups(Iterable<Entry<String,String>> config)
+  public static void checkLocalityGroups(Map<String,String> config)
       throws LocalityGroupConfigurationError {
     ConfigurationCopy cc = new ConfigurationCopy(config);
     if (cc.get(Property.TABLE_LOCALITY_GROUPS) != null) {
@@ -98,7 +98,7 @@ public class LocalityGroupUtil {
   }
 
   public static Map<String,Set<ByteSequence>>
-      getLocalityGroupsIgnoringErrors(AccumuloConfiguration acuconf, String tableId) {
+      getLocalityGroupsIgnoringErrors(AccumuloConfiguration acuconf, TableId tableId) {
     try {
       return getLocalityGroups(acuconf);
     } catch (LocalityGroupConfigurationError | RuntimeException e) {
@@ -114,8 +114,9 @@ public class LocalityGroupUtil {
     Map<String,Set<ByteSequence>> result = new HashMap<>();
     String[] groups = acuconf.get(Property.TABLE_LOCALITY_GROUPS).split(",");
     for (String group : groups) {
-      if (group.length() > 0)
-        result.put(group, new HashSet<ByteSequence>());
+      if (!group.isEmpty()) {
+        result.put(group, new HashSet<>());
+      }
     }
     HashSet<ByteSequence> all = new HashSet<>();
     for (Entry<String,String> entry : acuconf) {
@@ -127,18 +128,16 @@ public class LocalityGroupUtil {
         String group = property.substring(prefix.length());
         String[] parts = group.split("\\.");
         group = parts[0];
-        if (result.containsKey(group)) {
-          if (parts.length == 1) {
-            Set<ByteSequence> colFamsSet = decodeColumnFamilies(value);
-            if (!Collections.disjoint(all, colFamsSet)) {
-              colFamsSet.retainAll(all);
-              throw new LocalityGroupConfigurationError("Column families " + colFamsSet
-                  + " in group " + group + " is already used by another locality group");
-            }
-
-            all.addAll(colFamsSet);
-            result.put(group, colFamsSet);
+        if (result.containsKey(group) && (parts.length == 1)) {
+          Set<ByteSequence> colFamsSet = decodeColumnFamilies(value);
+          if (!Collections.disjoint(all, colFamsSet)) {
+            colFamsSet.retainAll(all);
+            throw new LocalityGroupConfigurationError("Column families " + colFamsSet + " in group "
+                + group + " is already used by another locality group");
           }
+
+          all.addAll(colFamsSet);
+          result.put(group, colFamsSet);
         }
       }
     }
@@ -169,7 +168,7 @@ public class LocalityGroupUtil {
 
   public static ByteSequence decodeColumnFamily(String colFam)
       throws LocalityGroupConfigurationError {
-    byte output[] = new byte[colFam.length()];
+    byte[] output = new byte[colFam.length()];
     int pos = 0;
 
     for (int i = 0; i < colFam.length(); i++) {
@@ -234,16 +233,16 @@ public class LocalityGroupUtil {
 
     for (int i = 0; i < len; i++) {
       int c = 0xff & ba[i];
-      if (c == '\\')
+      if (c == '\\') {
         sb.append("\\\\");
-      else if (c >= 32 && c <= 126 && c != ',')
+      } else if (c >= 32 && c <= 126 && c != ',') {
         sb.append((char) c);
-      else
+      } else {
         sb.append("\\x").append(String.format("%02X", c));
+      }
     }
 
-    String ecf = sb.toString();
-    return ecf;
+    return sb.toString();
   }
 
   public static class PartitionedMutation extends Mutation {
@@ -276,6 +275,8 @@ public class LocalityGroupUtil {
     }
 
     @Override
+    @SuppressFBWarnings(value = "EQ_UNUSUAL",
+        justification = "method expected to be unused or overridden")
     public boolean equals(Object o) {
       throw new UnsupportedOperationException();
     }
@@ -324,7 +325,7 @@ public class LocalityGroupUtil {
             int lgid = getLgid(mbs, cu);
 
             if (parts.get(lgid) == null) {
-              parts.set(lgid, new ArrayList<ColumnUpdate>());
+              parts.set(lgid, new ArrayList<>());
               lgcount++;
             }
 
@@ -332,16 +333,19 @@ public class LocalityGroupUtil {
           }
 
           if (lgcount == 1) {
-            for (int i = 0; i < parts.length; i++)
+            for (int i = 0; i < parts.length; i++) {
               if (parts.get(i) != null) {
                 partitionedMutations.get(i).add(mutation);
                 break;
               }
+            }
           } else {
-            for (int i = 0; i < parts.length; i++)
-              if (parts.get(i) != null)
+            for (int i = 0; i < parts.length; i++) {
+              if (parts.get(i) != null) {
                 partitionedMutations.get(i)
                     .add(new PartitionedMutation(mutation.getRow(), parts.get(i)));
+              }
+            }
           }
         }
       }
@@ -350,8 +354,9 @@ public class LocalityGroupUtil {
     private Integer getLgid(MutableByteSequence mbs, ColumnUpdate cu) {
       mbs.setArray(cu.getColumnFamily(), 0, cu.getColumnFamily().length);
       Integer lgid = colfamToLgidMap.get(mbs);
-      if (lgid == null)
+      if (lgid == null) {
         lgid = groups.length;
+      }
       return lgid;
     }
   }
@@ -376,11 +381,11 @@ public class LocalityGroupUtil {
     if (lgName == null) {
       // this is the default locality group, create a set of all families not in the default group
       Set<ByteSequence> nonDefaultFamilies = new HashSet<>();
-      for (Entry<String,ArrayList<ByteSequence>> entry : localityGroupCF.entrySet()) {
-        if (entry.getKey() != null) {
-          nonDefaultFamilies.addAll(entry.getValue());
+      localityGroupCF.forEach((k, v) -> {
+        if (k != null) {
+          nonDefaultFamilies.addAll(v);
         }
-      }
+      });
 
       families = nonDefaultFamilies;
       inclusive = false;
@@ -390,5 +395,21 @@ public class LocalityGroupUtil {
     }
 
     reader.seek(range, families, inclusive);
+  }
+
+  public static void ensureNonOverlappingGroups(Map<String,Set<Text>> groups) {
+    HashSet<Text> all = new HashSet<>();
+    for (Entry<String,Set<Text>> entry : groups.entrySet()) {
+      if (!Collections.disjoint(all, entry.getValue())) {
+        throw new IllegalArgumentException(
+            "Group " + entry.getKey() + " overlaps with another group");
+      }
+
+      if (entry.getValue().isEmpty()) {
+        throw new IllegalArgumentException("Group " + entry.getKey() + " is empty");
+      }
+
+      all.addAll(entry.getValue());
+    }
   }
 }

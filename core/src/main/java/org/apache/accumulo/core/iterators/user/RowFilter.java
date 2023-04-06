@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -49,7 +51,6 @@ import org.apache.hadoop.io.Text;
  * be re-executed because the iterator stack is reseeked for each batch. The batch size may be
  * increased to reduce the number of times the test is executed. With the normal Scanner, if
  * isolation is enabled then it will read an entire row w/o seeking this iterator.
- *
  */
 public abstract class RowFilter extends WrappingIterator {
 
@@ -96,8 +97,9 @@ public abstract class RowFilter extends WrappingIterator {
     while (source.hasTop()) {
       Text row = source.getTopKey().getRow();
 
-      if (currentRow != null && currentRow.equals(row))
+      if (currentRow != null && currentRow.equals(row)) {
         break;
+      }
 
       Range rowRange = new Range(row);
       decisionIterator.setRow(rowRange);
@@ -117,10 +119,11 @@ public abstract class RowFilter extends WrappingIterator {
         if (source.hasTop() && source.getTopKey().getRow().equals(row)) {
           Range nextRow = new Range(row, false, null, false);
           nextRow = range.clip(nextRow, true);
-          if (nextRow == null)
+          if (nextRow == null) {
             hasTop = false;
-          else
+          } else {
             source.seek(nextRow, columnFamilies, inclusive);
+          }
         }
       }
     }
@@ -130,12 +133,11 @@ public abstract class RowFilter extends WrappingIterator {
    * Implementation should return false to suppress a row.
    *
    *
-   * @param rowIterator
-   *          - An iterator over the row. This iterator is confined to the row. Seeking past the end
-   *          of the row will return no data. Seeking before the row will always set top to the
-   *          first column in the current row. By default this iterator will only see the columns
-   *          the parent was seeked with. To see more columns reseek this iterator with those
-   *          columns.
+   * @param rowIterator - An iterator over the row. This iterator is confined to the row. Seeking
+   *        past the end of the row will return no data. Seeking before the row will always set top
+   *        to the first column in the current row. By default this iterator will only see the
+   *        columns the parent was seeked with. To see more columns reseek this iterator with those
+   *        columns.
    * @return false if a row should be suppressed, otherwise true.
    */
   public abstract boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator)
@@ -152,7 +154,7 @@ public abstract class RowFilter extends WrappingIterator {
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     RowFilter newInstance;
     try {
-      newInstance = getClass().newInstance();
+      newInstance = getClass().getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

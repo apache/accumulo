@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,39 +35,39 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class GrepIteratorTest {
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   SortedMap<Key,Value> input;
   SortedMap<Key,Value> output;
 
-  @Before
+  @BeforeEach
   public void init() {
     input = new TreeMap<>();
     output = new TreeMap<>();
-    input.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz".getBytes()));
-    output.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz".getBytes()));
+    input.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz"));
+    output.put(new Key("abcdef", "xyz", "xyz", 0), new Value("xyz"));
 
-    input.put(new Key("bdf", "ace", "xyz", 0), new Value("xyz".getBytes()));
-    input.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz".getBytes()));
-    output.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz".getBytes()));
-    input.put(new Key("bdf", "xyz", "xyz", 0), new Value("xyz".getBytes()));
+    input.put(new Key("bdf", "ace", "xyz", 0), new Value("xyz"));
+    input.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz"));
+    output.put(new Key("bdf", "abcdef", "xyz", 0), new Value("xyz"));
+    input.put(new Key("bdf", "xyz", "xyz", 0), new Value("xyz"));
 
-    input.put(new Key("ceg", "xyz", "abcdef", 0), new Value("xyz".getBytes()));
-    output.put(new Key("ceg", "xyz", "abcdef", 0), new Value("xyz".getBytes()));
-    input.put(new Key("ceg", "xyz", "xyz", 0), new Value("xyz".getBytes()));
+    input.put(new Key("ceg", "xyz", "abcdef", 0), new Value("xyz"));
+    output.put(new Key("ceg", "xyz", "abcdef", 0), new Value("xyz"));
+    input.put(new Key("ceg", "xyz", "xyz", 0), new Value("xyz"));
 
-    input.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef".getBytes()));
-    output.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef".getBytes()));
-    input.put(new Key("dfh", "xyz", "xyz", 1), new Value("xyz".getBytes()));
+    input.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef"));
+    output.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef"));
+    input.put(new Key("dfh", "xyz", "xyz", 1), new Value("xyz"));
 
     Key k = new Key("dfh", "xyz", "xyz", 1);
     k.setDeleted(true);
-    input.put(k, new Value("xyz".getBytes()));
-    output.put(k, new Value("xyz".getBytes()));
+    input.put(k, new Value("xyz"));
+    output.put(k, new Value("xyz"));
   }
 
   public static void checkEntries(SortedKeyValueIterator<Key,Value> skvi, SortedMap<Key,Value> map)

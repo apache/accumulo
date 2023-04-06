@@ -1,44 +1,68 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 
 public interface IteratorEnvironment {
 
-  SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException;
+  /**
+   * @deprecated since 2.0.0. This is a legacy method used for internal backwards compatibility.
+   */
+  @Deprecated(since = "2.0.0")
+  default SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
+      throws IOException {
+    throw new UnsupportedOperationException();
+  }
 
-  AccumuloConfiguration getConfig();
+  /**
+   * Return the executed scope of the Iterator. Value will be one of the following:
+   * {@link IteratorScope#scan}, {@link IteratorScope#minc}, {@link IteratorScope#majc}
+   */
+  default IteratorScope getIteratorScope() {
+    throw new UnsupportedOperationException();
+  }
 
-  IteratorScope getIteratorScope();
+  /**
+   * Return true if the compaction is a full major compaction. Will throw IllegalStateException if
+   * {@link #getIteratorScope()} != {@link IteratorScope#majc}.
+   */
+  default boolean isFullMajorCompaction() {
+    throw new UnsupportedOperationException();
+  }
 
-  boolean isFullMajorCompaction();
-
-  void registerSideChannel(SortedKeyValueIterator<Key,Value> iter);
-
-  Authorizations getAuthorizations();
+  /**
+   * Return the Scan Authorizations used in this Iterator. Will throw UnsupportedOperationException
+   * if {@link #getIteratorScope()} != {@link IteratorScope#scan}.
+   */
+  default Authorizations getAuthorizations() {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Returns a new iterator environment object that can be used to create deep copies over sample
@@ -67,11 +91,12 @@ public interface IteratorEnvironment {
    * </code>
    * </pre>
    *
-   * @throws SampleNotPresentException
-   *           when sampling is not configured for table.
+   * @throws SampleNotPresentException when sampling is not configured for table.
    * @since 1.8.0
    */
-  IteratorEnvironment cloneWithSamplingEnabled();
+  default IteratorEnvironment cloneWithSamplingEnabled() {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * There are at least two conditions under which sampling will be enabled for an environment. One
@@ -82,12 +107,58 @@ public interface IteratorEnvironment {
    * @return true if sampling is enabled for this environment.
    * @since 1.8.0
    */
-  boolean isSamplingEnabled();
+  default boolean isSamplingEnabled() {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    *
    * @return sampling configuration is sampling is enabled for environment, otherwise returns null.
    * @since 1.8.0
    */
-  SamplerConfiguration getSamplerConfiguration();
+  default SamplerConfiguration getSamplerConfiguration() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * True if compaction was user initiated.
+   *
+   * @since 2.0.0
+   */
+  default boolean isUserCompaction() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Returns an object containing information about the server where this iterator was run. To
+   * obtain a table configuration, use the following methods:
+   *
+   * <pre>
+   * iterEnv.getPluginEnv().getConfiguration(env.getTableId())
+   * </pre>
+   *
+   * @since 2.1.0
+   */
+  default PluginEnvironment getPluginEnv() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Return the table Id associated with this iterator.
+   *
+   * @since 2.0.0
+   */
+  default TableId getTableId() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Return whether or not the server is running low on memory
+   *
+   * @return true if server is running low on memory
+   * @since 3.0.0
+   */
+  default boolean isRunningLowOnMemory() {
+    throw new UnsupportedOperationException();
+  }
 }

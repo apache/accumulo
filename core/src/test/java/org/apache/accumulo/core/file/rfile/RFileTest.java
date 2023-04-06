@@ -1,24 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,6 +33,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.SecureRandom;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,38 +44,46 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
+import org.apache.accumulo.core.crypto.CryptoTest;
+import org.apache.accumulo.core.crypto.CryptoTest.ConfigMode;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
-import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
+import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
+import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
+import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
-import org.apache.accumulo.core.file.streams.PositionedOutputs;
+import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
-import org.apache.accumulo.core.security.crypto.CryptoTest;
-import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.spi.cache.BlockCacheManager;
+import org.apache.accumulo.core.spi.cache.CacheType;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -77,18 +91,23 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.Text;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class RFileTest {
 
-  public static class SampleIE extends BaseIteratorEnvironment {
+  private static final SecureRandom random = new SecureRandom();
+
+  public static class SampleIE implements IteratorEnvironment {
 
     private SamplerConfiguration samplerConfig;
 
@@ -108,10 +127,15 @@ public class RFileTest {
   }
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
+  private static final Configuration hadoopConf = new Configuration();
 
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static File tempDir;
+
+  @BeforeAll
+  public static void setupCryptoKeyFile() throws Exception {
+    CryptoTest.setupKeyFiles(RFileTest.class);
+  }
 
   static class SeekableByteArrayInputStream extends ByteArrayInputStream
       implements Seekable, PositionedReadable {
@@ -121,49 +145,54 @@ public class RFileTest {
     }
 
     @Override
-    public long getPos() throws IOException {
+    public long getPos() {
       return pos;
     }
 
     @Override
     public void seek(long pos) throws IOException {
-      if (mark != 0)
+      if (mark != 0) {
         throw new IllegalStateException();
+      }
 
       reset();
       long skipped = skip(pos);
 
-      if (skipped != pos)
+      if (skipped != pos) {
         throw new IOException();
+      }
     }
 
     @Override
-    public boolean seekToNewSource(long targetPos) throws IOException {
+    public boolean seekToNewSource(long targetPos) {
       return false;
     }
 
     @Override
-    public int read(long position, byte[] buffer, int offset, int length) throws IOException {
+    public int read(long position, byte[] buffer, int offset, int length) {
 
-      if (position >= buf.length)
+      if (position >= buf.length) {
         throw new IllegalArgumentException();
-      if (position + length > buf.length)
+      }
+      if (position + length > buf.length) {
         throw new IllegalArgumentException();
-      if (length > buffer.length)
+      }
+      if (length > buffer.length) {
         throw new IllegalArgumentException();
+      }
 
       System.arraycopy(buf, (int) position, buffer, offset, length);
       return length;
     }
 
     @Override
-    public void readFully(long position, byte[] buffer) throws IOException {
+    public void readFully(long position, byte[] buffer) {
       read(position, buffer, 0, buffer.length);
 
     }
 
     @Override
-    public void readFully(long position, byte[] buffer, int offset, int length) throws IOException {
+    public void readFully(long position, byte[] buffer, int offset, int length) {
       read(position, buffer, offset, length);
     }
 
@@ -175,16 +204,18 @@ public class RFileTest {
     if (indexIter.hasTop()) {
       Key lastKey = new Key(indexIter.getTopKey());
 
-      if (reader.getFirstKey().compareTo(lastKey) > 0)
+      if (reader.getFirstKey().compareTo(lastKey) > 0) {
         throw new RuntimeException(
             "First key out of order " + reader.getFirstKey() + " " + lastKey);
+      }
 
       indexIter.next();
 
       while (indexIter.hasTop()) {
-        if (lastKey.compareTo(indexIter.getTopKey()) > 0)
+        if (lastKey.compareTo(indexIter.getTopKey()) > 0) {
           throw new RuntimeException(
               "Indext out of order " + lastKey + " " + indexIter.getTopKey());
+        }
 
         lastKey = new Key(indexIter.getTopKey());
         indexIter.next();
@@ -199,7 +230,7 @@ public class RFileTest {
 
   public static class TestRFile {
 
-    protected Configuration conf = CachedConfiguration.getInstance();
+    protected Configuration conf = new Configuration();
     public RFile.Writer writer;
     protected ByteArrayOutputStream baos;
     protected FSDataOutputStream dos;
@@ -208,11 +239,13 @@ public class RFileTest {
     protected AccumuloConfiguration accumuloConfiguration;
     public Reader reader;
     public SortedKeyValueIterator<Key,Value> iter;
+    private BlockCacheManager manager;
 
     public TestRFile(AccumuloConfiguration accumuloConfiguration) {
       this.accumuloConfiguration = accumuloConfiguration;
-      if (this.accumuloConfiguration == null)
-        this.accumuloConfiguration = AccumuloConfiguration.getDefaultConfiguration();
+      if (this.accumuloConfiguration == null) {
+        this.accumuloConfiguration = DefaultConfiguration.getInstance();
+      }
     }
 
     public void openWriter(boolean startDLG) throws IOException {
@@ -222,8 +255,10 @@ public class RFileTest {
     public void openWriter(boolean startDLG, int blockSize) throws IOException {
       baos = new ByteArrayOutputStream();
       dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
-      CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(PositionedOutputs.wrap(dos),
-          "gz", conf, accumuloConfiguration);
+      CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
+          accumuloConfiguration.getAllCryptoProperties());
+
+      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, cs);
 
       SamplerConfigurationImpl samplerConfig =
           SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
@@ -235,8 +270,9 @@ public class RFileTest {
 
       writer = new RFile.Writer(_cbw, blockSize, 1000, samplerConfig, sampler);
 
-      if (startDLG)
+      if (startDLG) {
         writer.startDefaultLocalityGroup();
+      }
     }
 
     public void openWriter() throws IOException {
@@ -269,14 +305,30 @@ public class RFileTest {
       in = new FSDataInputStream(bais);
       fileLength = data.length;
 
-      LruBlockCache indexCache = new LruBlockCache(100000000, 100000);
-      LruBlockCache dataCache = new LruBlockCache(100000000, 100000);
+      DefaultConfiguration dc = DefaultConfiguration.getInstance();
+      ConfigurationCopy cc = new ConfigurationCopy(dc);
+      cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
+      try {
+        manager = BlockCacheManagerFactory.getInstance(cc);
+      } catch (Exception e) {
+        throw new RuntimeException("Error creating BlockCacheManager", e);
+      }
+      cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(100000));
+      cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(100000000));
+      cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(100000000));
+      manager.start(BlockCacheConfiguration.forTabletServer(cc));
+      LruBlockCache indexCache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
+      LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
 
-      CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader("source-1", in, fileLength, conf,
-          dataCache, indexCache, AccumuloConfiguration.getDefaultConfiguration());
-      reader = new RFile.Reader(_cbr);
-      if (cfsi)
+      CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
+          accumuloConfiguration.getAllCryptoProperties());
+
+      CachableBuilder cb = new CachableBuilder().input(in, "source-1").length(fileLength).conf(conf)
+          .cacheProvider(new BasicCacheProvider(indexCache, dataCache)).cryptoService(cs);
+      reader = new RFile.Reader(cb);
+      if (cfsi) {
         iter = new ColumnFamilySkippingIterator(reader);
+      }
 
       checkIndex(reader);
     }
@@ -284,6 +336,9 @@ public class RFileTest {
     public void closeReader() throws IOException {
       reader.close();
       in.close();
+      if (null != manager) {
+        manager.stop();
+      }
     }
 
     public void seek(Key nk) throws IOException {
@@ -296,7 +351,7 @@ public class RFileTest {
   }
 
   static Value newValue(String val) {
-    return new Value(val.getBytes());
+    return new Value(val);
   }
 
   static String formatString(String prefix, int i) {
@@ -319,7 +374,7 @@ public class RFileTest {
     trf.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
-    assertEquals(null, trf.reader.getLastKey());
+    assertNull(trf.reader.getLastKey());
 
     trf.closeReader();
   }
@@ -339,8 +394,8 @@ public class RFileTest {
     // seek before everything
     trf.seek(null);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("r1", "cf1", "cq1", "L1", 55)));
-    assertTrue(trf.iter.getTopValue().equals(newValue("foo")));
+    assertEquals(trf.iter.getTopKey(), newKey("r1", "cf1", "cq1", "L1", 55));
+    assertEquals(trf.iter.getTopValue(), newValue("foo"));
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
@@ -351,8 +406,8 @@ public class RFileTest {
     // seek exactly to the key
     trf.seek(newKey("r1", "cf1", "cq1", "L1", 55));
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("r1", "cf1", "cq1", "L1", 55)));
-    assertTrue(trf.iter.getTopValue().equals(newValue("foo")));
+    assertEquals(trf.iter.getTopKey(), newKey("r1", "cf1", "cq1", "L1", 55));
+    assertEquals(trf.iter.getTopValue(), newValue("foo"));
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
@@ -496,9 +551,8 @@ public class RFileTest {
 
     // test seeking to random location and reading all data from that point
     // there was an off by one bug with this in the transient index
-    Random rand = new Random();
     for (int i = 0; i < 12; i++) {
-      index = rand.nextInt(expectedKeys.size());
+      index = random.nextInt(expectedKeys.size());
       trf.seek(expectedKeys.get(index));
       for (; index < expectedKeys.size(); index++) {
         assertTrue(trf.iter.hasTop());
@@ -539,44 +593,26 @@ public class RFileTest {
   @Test
   public void test4() throws IOException {
     TestRFile trf = new TestRFile(conf);
-
     trf.openWriter();
+    RFile.Writer writer = trf.writer;
 
-    trf.writer.append(newKey("r1", "cf1", "cq1", "L1", 55), newValue("foo1"));
-    try {
-      trf.writer.append(newKey("r0", "cf1", "cq1", "L1", 55), newValue("foo1"));
-      assertFalse(true);
-    } catch (IllegalArgumentException ioe) {
+    final Value foo1 = newValue("foo1");
+    final long ts = 55L;
 
-    }
+    writer.append(newKey("r1", "cf1", "cq1", "L1", ts), foo1);
 
-    try {
-      trf.writer.append(newKey("r1", "cf0", "cq1", "L1", 55), newValue("foo1"));
-      assertFalse(true);
-    } catch (IllegalArgumentException ioe) {
+    // @formatter:off
+    final List<Key> badKeys = List.of(
+            newKey("r0", "cf1", "cq1", "L1", ts),
+            newKey("r1", "cf0", "cq1", "L1", ts),
+            newKey("r1", "cf1", "cq0", "L1", ts),
+            newKey("r1", "cf1", "cq1", "L0", ts),
+            newKey("r1", "cf1", "cq1", "L1", ts + 1)
+    );
+    // @formatter:on
 
-    }
-
-    try {
-      trf.writer.append(newKey("r1", "cf1", "cq0", "L1", 55), newValue("foo1"));
-      assertFalse(true);
-    } catch (IllegalArgumentException ioe) {
-
-    }
-
-    try {
-      trf.writer.append(newKey("r1", "cf1", "cq1", "L0", 55), newValue("foo1"));
-      assertFalse(true);
-    } catch (IllegalArgumentException ioe) {
-
-    }
-
-    try {
-      trf.writer.append(newKey("r1", "cf1", "cq1", "L1", 56), newValue("foo1"));
-      assertFalse(true);
-    } catch (IllegalArgumentException ioe) {
-
-    }
+    badKeys.forEach(
+        key -> assertThrows(IllegalArgumentException.class, () -> writer.append(key, foo1)));
   }
 
   @Test
@@ -660,7 +696,7 @@ public class RFileTest {
     trf.iter.seek(new Range(newKey(formatString("r_", 3), "cf1", "cq1", "L1", 55), true,
         newKey(formatString("r_", 4), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey(formatString("r_", 3), "cf1", "cq1", "L1", 55)));
+    assertEquals(trf.iter.getTopKey(), newKey(formatString("r_", 3), "cf1", "cq1", "L1", 55));
     assertEquals(newValue("foo" + 3), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -692,7 +728,7 @@ public class RFileTest {
     trf.iter.seek(new Range(newKey(formatString("r_", 5), "cf1", "cq1", "L1", 55), true,
         newKey(formatString("r_", 6), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey(formatString("r_", 5), "cf1", "cq1", "L1", 55)));
+    assertEquals(trf.iter.getTopKey(), newKey(formatString("r_", 5), "cf1", "cq1", "L1", 55));
     assertEquals(newValue("foo" + 5), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -869,11 +905,11 @@ public class RFileTest {
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0000", "cf1", "doe,john", "", 4));
     assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0002", "cf2", "doe,jane", "", 5));
     assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -885,11 +921,11 @@ public class RFileTest {
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0001", "cf3", "buck,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0001", "cf3", "buck,john", "", 4));
     assertEquals(newValue("90 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0003", "cf4", "buck,jane", "", 5));
     assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -901,19 +937,19 @@ public class RFileTest {
     assertEquals(2, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0000", "cf1", "doe,john", "", 4));
     assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0001", "cf3", "buck,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0001", "cf3", "buck,john", "", 4));
     assertEquals(newValue("90 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0002", "cf2", "doe,jane", "", 5));
     assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0003", "cf4", "buck,jane", "", 5));
     assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -932,7 +968,7 @@ public class RFileTest {
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0003", "cf4", "buck,jane", "", 5));
     assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -944,7 +980,7 @@ public class RFileTest {
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0001", "cf3", "buck,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0001", "cf3", "buck,john", "", 4));
     assertEquals(newValue("90 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -956,7 +992,7 @@ public class RFileTest {
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0000", "cf1", "doe,john", "", 4));
     assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -968,7 +1004,7 @@ public class RFileTest {
     assertEquals(1, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0002", "cf2", "doe,jane", "", 5));
     assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -980,11 +1016,11 @@ public class RFileTest {
     assertEquals(2, trf.reader.getNumLocalityGroupsSeeked());
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0000", "cf1", "doe,john", "", 4));
     assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0003", "cf4", "buck,jane", "", 5));
     assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -1025,11 +1061,11 @@ public class RFileTest {
     trf.openReader();
     trf.iter.seek(new Range(new Text(""), null), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0000", "cf1", "doe,john", "", 4));
     assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0002", "cf2", "doe,jane", "", 5));
     assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -1050,11 +1086,11 @@ public class RFileTest {
     trf.openReader();
     trf.iter.seek(new Range(new Text(""), null), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0001", "cf3", "buck,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0001", "cf3", "buck,john", "", 4));
     assertEquals(newValue("90 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0003", "cf4", "buck,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0003", "cf4", "buck,jane", "", 5));
     assertEquals(newValue("09 Slum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -1075,11 +1111,11 @@ public class RFileTest {
     trf.openReader();
     trf.iter.seek(new Range(new Text(""), null), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0007", "good citizen", "q,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0007", "good citizen", "q,john", "", 4));
     assertEquals(newValue("70 Apple st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0008", "model citizen", "q,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0008", "model citizen", "q,jane", "", 5));
     assertEquals(newValue("81 Plum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -1102,19 +1138,19 @@ public class RFileTest {
     trf.openReader();
     trf.iter.seek(new Range(new Text(""), null), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0000", "cf1", "doe,john", "", 4));
     assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0002", "cf2", "doe,jane", "", 5));
     assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0007", "good citizen", "q,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0007", "good citizen", "q,john", "", 4));
     assertEquals(newValue("70 Apple st"), trf.iter.getTopValue());
     trf.iter.next();
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0008", "model citizen", "q,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0008", "model citizen", "q,jane", "", 5));
     assertEquals(newValue("81 Plum st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -1147,8 +1183,9 @@ public class RFileTest {
     for (int i = 0; i < 1024; i++) {
 
       int m10 = i % 10;
-      if (m10 == 3 || m10 == 5 || m10 == 7)
+      if (m10 == 3 || m10 == 5 || m10 == 7) {
         continue;
+      }
 
       trf.writer.append(newKey(formatString("i", i), m10 + "mod10", "", "", i + 2),
           newValue("" + i));
@@ -1186,14 +1223,16 @@ public class RFileTest {
       // test excluding an individual column family
       trf.iter.seek(new Range(new Key(), true, null, true), newColFamByteSequence(m + "mod10"),
           false);
-      if (m == 3)
+      if (m == 3) {
         assertEquals(2, trf.reader.getNumLocalityGroupsSeeked());
-      else
+      } else {
         assertEquals(3, trf.reader.getNumLocalityGroupsSeeked());
+      }
       for (int i = 0; i < 1024; i++) {
 
-        if (i % 10 == m)
+        if (i % 10 == m) {
           continue;
+        }
 
         assertTrue(trf.iter.hasTop());
         assertEquals(newKey(formatString("i", i), (i % 10) + "mod10", "", "", i + 2),
@@ -1249,12 +1288,8 @@ public class RFileTest {
 
     trf.writer.append(newKey("0007", "a", "cq1", "", 4), newValue("1"));
 
-    try {
-      trf.writer.append(newKey("0009", "c", "cq1", "", 4), newValue("1"));
-      assertFalse(true);
-    } catch (IllegalArgumentException ioe) {
-
-    }
+    assertThrows(IllegalArgumentException.class,
+        () -> trf.writer.append(newKey("0009", "c", "cq1", "", 4), newValue("1")));
 
     trf.closeWriter();
 
@@ -1280,23 +1315,17 @@ public class RFileTest {
 
     trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("a", "b"));
 
-    trf.writer.append(newKey("0007", "a", "cq1", "", 4), newValue("1"));
+    final Value valueOf1 = newValue("1");
+
+    trf.writer.append(newKey("0007", "a", "cq1", "", 4), valueOf1);
 
     trf.writer.startDefaultLocalityGroup();
 
-    try {
-      trf.writer.append(newKey("0008", "a", "cq1", "", 4), newValue("1"));
-      assertFalse(true);
-    } catch (IllegalArgumentException ioe) {
+    assertThrows(IllegalArgumentException.class,
+        () -> trf.writer.append(newKey("0008", "a", "cq1", "", 4), valueOf1));
 
-    }
-
-    try {
-      trf.writer.append(newKey("0009", "b", "cq1", "", 4), newValue("1"));
-      assertFalse(true);
-    } catch (IllegalArgumentException ioe) {
-
-    }
+    assertThrows(IllegalArgumentException.class,
+        () -> trf.writer.append(newKey("0009", "b", "cq1", "", 4), valueOf1));
 
     trf.closeWriter();
 
@@ -1305,7 +1334,7 @@ public class RFileTest {
     trf.iter.seek(new Range(), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
     assertEquals(newKey("0007", "a", "cq1", "", 4), trf.iter.getTopKey());
-    assertEquals(newValue("1"), trf.iter.getTopValue());
+    assertEquals(valueOf1, trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
@@ -1319,19 +1348,12 @@ public class RFileTest {
     trf.openWriter(false);
 
     trf.writer.startDefaultLocalityGroup();
-    try {
-      trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("a", "b"));
-      assertFalse(true);
-    } catch (IllegalStateException ioe) {
 
-    }
+    Set<ByteSequence> columnFamilies = newColFamByteSequence("a", "b");
+    assertThrows(IllegalStateException.class,
+        () -> trf.writer.startNewLocalityGroup("lg1", columnFamilies));
 
-    try {
-      trf.writer.startDefaultLocalityGroup();
-      assertFalse(true);
-    } catch (IllegalStateException ioe) {
-
-    }
+    assertThrows(IllegalStateException.class, () -> trf.writer.startDefaultLocalityGroup());
 
     trf.writer.close();
   }
@@ -1345,12 +1367,10 @@ public class RFileTest {
     trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("a", "b"));
 
     trf.writer.append(newKey("0007", "a", "cq1", "", 4), newValue("1"));
-    try {
-      trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("b", "c"));
-      assertFalse(true);
-    } catch (IllegalArgumentException ioe) {
 
-    }
+    Set<ByteSequence> columnFamilies = newColFamByteSequence("b", "c");
+    assertThrows(IllegalArgumentException.class,
+        () -> trf.writer.startNewLocalityGroup("lg1", columnFamilies));
 
     trf.closeWriter();
   }
@@ -1509,30 +1529,35 @@ public class RFileTest {
     HashSet<ByteSequence> allCf = new HashSet<>();
 
     trf.writer.startNewLocalityGroup("lg1", t18newColFamByteSequence(0));
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 1; i++) {
       t18Append(trf, allCf, i);
+    }
 
     trf.writer.startNewLocalityGroup("lg2", t18newColFamByteSequence(1, 2));
-    for (int i = 1; i < 3; i++)
+    for (int i = 1; i < 3; i++) {
       t18Append(trf, allCf, i);
+    }
 
     trf.writer.startNewLocalityGroup("lg3", t18newColFamByteSequence(3, 4, 5));
-    for (int i = 3; i < 6; i++)
+    for (int i = 3; i < 6; i++) {
       t18Append(trf, allCf, i);
+    }
 
     trf.writer.startDefaultLocalityGroup();
 
     int max = 6 + RFile.Writer.MAX_CF_IN_DLG + 100;
-    for (int i = 6; i < max; i++)
+    for (int i = 6; i < max; i++) {
       t18Append(trf, allCf, i);
+    }
 
     trf.closeWriter();
 
     trf.openReader();
 
     t18Verify(t18newColFamByteSequence(0), trf.iter, trf.reader, allCf, 1, 3);
-    for (int i = 1; i < 10; i++)
+    for (int i = 1; i < 10; i++) {
       t18Verify(t18newColFamByteSequence(i), trf.iter, trf.reader, allCf, 1, 4);
+    }
 
     t18Verify(t18newColFamByteSequence(max + 1), trf.iter, trf.reader, allCf, 1, 4);
 
@@ -1580,7 +1605,7 @@ public class RFileTest {
     trf.iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0000", "cf1", "doe,john", "", 4)));
+    assertEquals(trf.iter.getTopKey(), newKey("0000", "cf1", "doe,john", "", 4));
     assertEquals(newValue("1123 West Left st"), trf.iter.getTopValue());
     trf.iter.next();
 
@@ -1595,7 +1620,7 @@ public class RFileTest {
     in.close();
 
     assertTrue(trf.iter.hasTop());
-    assertTrue(trf.iter.getTopKey().equals(newKey("0002", "cf2", "doe,jane", "", 5)));
+    assertEquals(trf.iter.getTopKey(), newKey("0002", "cf2", "doe,jane", "", 5));
     assertEquals(newValue("1124 East Right st"), trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
@@ -1618,17 +1643,15 @@ public class RFileTest {
 
     Set<ByteSequence> cfs = Collections.emptySet();
 
-    Random rand = new Random();
-
     for (int count = 0; count < 100; count++) {
 
-      int start = rand.nextInt(2300);
+      int start = random.nextInt(2300);
       Range range = new Range(newKey(formatString("r_", start), "cf1", "cq1", "L1", 42),
           newKey(formatString("r_", start + 100), "cf1", "cq1", "L1", 42));
 
       trf.reader.seek(range, cfs, false);
 
-      int numToScan = rand.nextInt(100);
+      int numToScan = random.nextInt(100);
 
       for (int j = 0; j < numToScan; j++) {
         assertTrue(trf.reader.hasTop());
@@ -1644,8 +1667,8 @@ public class RFileTest {
       // seek a little forward from the last range and read a few keys within the unconsumed portion
       // of the last range
 
-      int start2 = start + numToScan + rand.nextInt(3);
-      int end2 = start2 + rand.nextInt(3);
+      int start2 = start + numToScan + random.nextInt(3);
+      int end2 = start2 + random.nextInt(3);
 
       range = new Range(newKey(formatString("r_", start2), "cf1", "cq1", "L1", 42),
           newKey(formatString("r_", end2), "cf1", "cq1", "L1", 42));
@@ -1664,46 +1687,67 @@ public class RFileTest {
     trf.closeReader();
   }
 
-  @Test(expected = NullPointerException.class)
-  public void testMissingUnreleasedVersions() throws Exception {
-    runVersionTest(5);
+  @Test
+  public void testMissingUnreleasedVersions() {
+    assertThrows(NullPointerException.class,
+        () -> runVersionTest(5, getAccumuloConfig(ConfigMode.CRYPTO_OFF)));
   }
 
   @Test
   public void testOldVersions() throws Exception {
-    runVersionTest(3);
-    runVersionTest(4);
-    runVersionTest(6);
-    runVersionTest(7);
+    ConfigurationCopy defaultConf = getAccumuloConfig(ConfigMode.CRYPTO_OFF);
+    runVersionTest(3, defaultConf);
+    runVersionTest(4, defaultConf);
+    runVersionTest(6, defaultConf);
+    runVersionTest(7, defaultConf);
   }
 
-  private void runVersionTest(int version) throws IOException {
+  @Test
+  public void testOldVersionsWithCrypto() throws Exception {
+    ConfigurationCopy cryptoOnConf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
+    runVersionTest(3, cryptoOnConf);
+    runVersionTest(4, cryptoOnConf);
+    runVersionTest(6, cryptoOnConf);
+    runVersionTest(7, cryptoOnConf);
+  }
+
+  private void runVersionTest(int version, ConfigurationCopy aconf) throws Exception {
     InputStream in = this.getClass().getClassLoader()
         .getResourceAsStream("org/apache/accumulo/core/file/rfile/ver_" + version + ".rf");
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    byte buf[] = new byte[1024];
+    byte[] buf = new byte[1024];
     int read;
-    while ((read = in.read(buf)) > 0)
+    while ((read = in.read(buf)) > 0) {
       baos.write(buf, 0, read);
+    }
 
-    byte data[] = baos.toByteArray();
+    byte[] data = baos.toByteArray();
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in2 = new FSDataInputStream(bais);
-    AccumuloConfiguration aconf = AccumuloConfiguration.getDefaultConfiguration();
-    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader("source-1", in2, data.length,
-        CachedConfiguration.getInstance(), aconf);
-    Reader reader = new RFile.Reader(_cbr);
+    aconf.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
+    aconf.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(100000));
+    aconf.set(Property.TSERV_DATACACHE_SIZE, Long.toString(100000000));
+    aconf.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(100000000));
+    BlockCacheManager manager = BlockCacheManagerFactory.getInstance(aconf);
+    manager.start(BlockCacheConfiguration.forTabletServer(aconf));
+    CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
+        aconf.getAllCryptoProperties());
+    CachableBuilder cb = new CachableBuilder().input(in2, "cache-1").length(data.length)
+        .conf(hadoopConf).cryptoService(cs).cacheProvider(new BasicCacheProvider(
+            manager.getBlockCache(CacheType.INDEX), manager.getBlockCache(CacheType.DATA)));
+    Reader reader = new RFile.Reader(cb);
     checkIndex(reader);
 
     ColumnFamilySkippingIterator iter = new ColumnFamilySkippingIterator(reader);
 
     for (int start : new int[] {0, 10, 100, 998}) {
       for (int cf = 1; cf <= 4; cf++) {
-        if (start == 0)
+        if (start == 0) {
           iter.seek(new Range(), newColFamByteSequence(formatString("cf_", cf)), true);
-        else
+        } else {
           iter.seek(new Range(formatString("r_", start), null),
               newColFamByteSequence(formatString("cf_", cf)), true);
+        }
 
         for (int i = start; i < 1000; i++) {
           assertTrue(iter.hasTop());
@@ -1716,10 +1760,11 @@ public class RFileTest {
         assertFalse(iter.hasTop());
       }
 
-      if (start == 0)
+      if (start == 0) {
         iter.seek(new Range(), newColFamByteSequence(), false);
-      else
+      } else {
         iter.seek(new Range(formatString("r_", start), null), newColFamByteSequence(), false);
+      }
 
       for (int i = start; i < 1000; i++) {
         for (int cf = 1; cf <= 4; cf++) {
@@ -1734,146 +1779,141 @@ public class RFileTest {
       assertFalse(iter.hasTop());
     }
 
+    manager.stop();
     reader.close();
   }
 
-  private AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
-    ConfigurationCopy result =
-        new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
-    Configuration conf = new Configuration(false);
-    conf.addResource(cryptoConfSetting);
-    for (Entry<String,String> e : conf) {
-      result.set(e.getKey(), e.getValue());
-    }
-    return result;
+  private ConfigurationCopy getAccumuloConfig(ConfigMode configMode) {
+    return CryptoTest.getAccumuloConfig(configMode, getClass());
   }
 
   @Test
   public void testEncRFile1() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test1();
     conf = null;
   }
 
   @Test
   public void testEncRFile2() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test2();
     conf = null;
   }
 
   @Test
   public void testEncRFile3() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test3();
     conf = null;
   }
 
   @Test
   public void testEncRFile4() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test4();
     conf = null;
   }
 
   @Test
   public void testEncRFile5() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test5();
     conf = null;
   }
 
   @Test
   public void testEncRFile6() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test6();
     conf = null;
   }
 
   @Test
   public void testEncRFile7() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test7();
     conf = null;
   }
 
   @Test
   public void testEncRFile8() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test8();
     conf = null;
   }
 
   @Test
   public void testEncRFile9() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test9();
     conf = null;
   }
 
   @Test
   public void testEncRFile10() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test10();
     conf = null;
   }
 
   @Test
   public void testEncRFile11() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test11();
     conf = null;
   }
 
   @Test
   public void testEncRFile12() throws Exception {
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test12();
     conf = null;
   }
 
   @Test
   public void testEncRFile13() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test13();
     conf = null;
   }
 
   @Test
   public void testEncRFile14() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test14();
     conf = null;
   }
 
   @Test
   public void testEncRFile16() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test16();
   }
 
   @Test
   public void testEncRFile17() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test17();
   }
 
   @Test
   public void testEncRFile18() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test18();
     conf = null;
   }
 
   @Test
   public void testEncRFile19() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test19();
     conf = null;
   }
 
   @Test
   public void testEncryptedRFiles() throws Exception {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     test1();
     test2();
     test3();
@@ -1900,9 +1940,9 @@ public class RFileTest {
   private Value newValue(int r, int c) {
     switch (c) {
       case 0:
-        return new Value(("123" + r + " west st").getBytes());
+        return new Value("123" + r + " west st");
       case 1:
-        return new Value(("bob" + r).getBytes());
+        return new Value("bob" + r);
       default:
         throw new IllegalArgumentException();
     }
@@ -1954,10 +1994,6 @@ public class RFileTest {
     sample.seek(new Range(), columnFamilies, inclusive);
     assertEquals(sampleData, toList(sample));
 
-    Random rand = new Random();
-    long seed = rand.nextLong();
-    rand = new Random(seed);
-
     // randomly seek sample iterator and verify
     for (int i = 0; i < 33; i++) {
       Key startKey = null;
@@ -1968,29 +2004,29 @@ public class RFileTest {
       boolean endInclusive = false;
       int endIndex = sampleData.size();
 
-      if (rand.nextBoolean()) {
-        startIndex = rand.nextInt(sampleData.size());
+      if (random.nextBoolean()) {
+        startIndex = random.nextInt(sampleData.size());
         startKey = sampleData.get(startIndex).getKey();
-        startInclusive = rand.nextBoolean();
+        startInclusive = random.nextBoolean();
         if (!startInclusive) {
           startIndex++;
         }
       }
 
-      if (startIndex < endIndex && rand.nextBoolean()) {
-        endIndex -= rand.nextInt(endIndex - startIndex);
+      if (startIndex < endIndex && random.nextBoolean()) {
+        endIndex -= random.nextInt(endIndex - startIndex);
         endKey = sampleData.get(endIndex - 1).getKey();
-        endInclusive = rand.nextBoolean();
+        endInclusive = random.nextBoolean();
         if (!endInclusive) {
           endIndex--;
         }
       } else if (startIndex == endIndex) {
-        endInclusive = rand.nextBoolean();
+        endInclusive = random.nextBoolean();
       }
 
       sample.seek(new Range(startKey, startInclusive, endKey, endInclusive), columnFamilies,
           inclusive);
-      assertEquals("seed: " + seed, sampleData.subList(startIndex, endIndex), toList(sample));
+      assertEquals(sampleData.subList(startIndex, endIndex), toList(sample));
     }
   }
 
@@ -2007,8 +2043,8 @@ public class RFileTest {
         Hasher dataHasher = Hashing.sha512().newHasher();
         List<Entry<Key,Value>> sampleData = new ArrayList<>();
 
-        ConfigurationCopy sampleConf = new ConfigurationCopy(
-            conf == null ? AccumuloConfiguration.getDefaultConfiguration() : conf);
+        ConfigurationCopy sampleConf =
+            new ConfigurationCopy(conf == null ? DefaultConfiguration.getInstance() : conf);
         sampleConf.set(Property.TABLE_SAMPLER, RowSampler.class.getName());
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "hasher", "murmur3_32");
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "modulus", modulus + "");
@@ -2092,8 +2128,8 @@ public class RFileTest {
         List<Entry<Key,Value>> sampleDataLG1 = new ArrayList<>();
         List<Entry<Key,Value>> sampleDataLG2 = new ArrayList<>();
 
-        ConfigurationCopy sampleConf = new ConfigurationCopy(
-            conf == null ? AccumuloConfiguration.getDefaultConfiguration() : conf);
+        ConfigurationCopy sampleConf =
+            new ConfigurationCopy(conf == null ? DefaultConfiguration.getInstance() : conf);
         sampleConf.set(Property.TABLE_SAMPLER, RowSampler.class.getName());
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "hasher", "murmur3_32");
         sampleConf.set(Property.TABLE_SAMPLER_OPTS + "modulus", modulus + "");
@@ -2112,9 +2148,9 @@ public class RFileTest {
           Key k2 = new Key(row, "metaB", "q8", 7);
           Key k3 = new Key(row, "metaB", "qA", 7);
 
-          Value v1 = new Value(("" + r).getBytes());
-          Value v2 = new Value(("" + r * 93).getBytes());
-          Value v3 = new Value(("" + r * 113).getBytes());
+          Value v1 = new Value("" + r);
+          Value v2 = new Value("" + r * 93);
+          Value v3 = new Value("" + r * 113);
 
           if (sampler.accept(k1)) {
             sampleDataLG1.add(new AbstractMap.SimpleImmutableEntry<>(k1, v1));
@@ -2133,7 +2169,7 @@ public class RFileTest {
           String row = String.format("r%06d", r);
           Key k1 = new Key(row, "dataA", "q9", 7);
 
-          Value v1 = new Value(("" + r).getBytes());
+          Value v1 = new Value("" + r);
 
           if (sampler.accept(k1)) {
             sampleDataLG2.add(new AbstractMap.SimpleImmutableEntry<>(k1, v1));
@@ -2144,8 +2180,8 @@ public class RFileTest {
 
         trf.closeWriter();
 
-        assertTrue(sampleDataLG1.size() > 0);
-        assertTrue(sampleDataLG2.size() > 0);
+        assertTrue(!sampleDataLG1.isEmpty());
+        assertTrue(!sampleDataLG2.isEmpty());
 
         trf.openReader(false);
         FileSKVIterator sample =
@@ -2163,12 +2199,7 @@ public class RFileTest {
         allSampleData.addAll(sampleDataLG1);
         allSampleData.addAll(sampleDataLG2);
 
-        Collections.sort(allSampleData, new Comparator<Entry<Key,Value>>() {
-          @Override
-          public int compare(Entry<Key,Value> o1, Entry<Key,Value> o2) {
-            return o1.getKey().compareTo(o2.getKey());
-          }
-        });
+        allSampleData.sort(Comparator.comparing(Entry::getKey));
 
         checkSample(sample, allSampleData, newColFamByteSequence("dataA", "metaA"), true);
         checkSample(sample, allSampleData, EMPTY_COL_FAMS, false);
@@ -2180,7 +2211,7 @@ public class RFileTest {
 
   @Test
   public void testEncSample() throws IOException {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     testSample();
     testSampleLG();
     conf = null;
@@ -2199,7 +2230,7 @@ public class RFileTest {
     // add a few keys with long rows
     for (int i = 0; i < 1000; i += 100) {
       String row = String.format("r%06d", i);
-      char ca[] = new char[1000];
+      char[] ca = new char[1000];
       Arrays.fill(ca, 'b');
       row = row + new String(ca);
       keys.add(new Key(row, "cf1", "cq1", 42));
@@ -2212,7 +2243,7 @@ public class RFileTest {
     trf.openWriter();
 
     for (Key k : keys) {
-      trf.writer.append(k, new Value((k.hashCode() + "").getBytes()));
+      trf.writer.append(k, new Value(k.hashCode() + ""));
     }
 
     trf.writer.close();
@@ -2222,7 +2253,7 @@ public class RFileTest {
     FileSKVIterator iiter = trf.reader.getIndex();
     while (iiter.hasTop()) {
       Key k = iiter.getTopKey();
-      assertTrue(k + " " + k.getSize() + " >= 20", k.getSize() < 20);
+      assertTrue(k.getSize() < 20, k + " " + k.getSize() + " >= 20");
       iiter.next();
     }
 
@@ -2232,13 +2263,13 @@ public class RFileTest {
       trf.reader.seek(new Range(key, null), EMPTY_COL_FAMS, false);
       assertTrue(trf.reader.hasTop());
       assertEquals(key, trf.reader.getTopKey());
-      assertEquals(new Value((key.hashCode() + "").getBytes()), trf.reader.getTopValue());
+      assertEquals(new Value(key.hashCode() + ""), trf.reader.getTopValue());
     }
   }
 
   @Test
   public void testCryptoDoesntLeakSensitive() throws IOException {
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
     // test an empty file
 
     TestRFile trf = new TestRFile(conf);
@@ -2261,15 +2292,7 @@ public class RFileTest {
   public void testRootTabletEncryption() throws Exception {
 
     // This tests that the normal set of operations used to populate a root tablet
-    conf = setAndGetAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
-
-    // populate the root tablet with info about the default tablet
-    // the root tablet contains the key extent and locations of all the
-    // metadata tablets
-    // String initRootTabFile = ServerConstants.getMetadataTableDir() + "/root_tablet/00000_00000."
-    // + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
-    // FileSKVWriter mfw = FileOperations.getInstance().openWriter(initRootTabFile, fs, conf,
-    // AccumuloConfiguration.getDefaultConfiguration());
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_TABLE_ON);
 
     TestRFile testRfile = new TestRFile(conf);
     testRfile.openWriter();
@@ -2280,54 +2303,50 @@ public class RFileTest {
 
     // mfw.startDefaultLocalityGroup();
 
-    Text tableExtent = new Text(KeyExtent.getMetadataEntry(MetadataTable.ID,
-        MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
+    Text tableExtent = new Text(
+        TabletsSection.encodeRow(MetadataTable.ID, TabletsSection.getRange().getEndKey().getRow()));
 
     // table tablet's directory
-    Key tableDirKey =
-        new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
-            TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tableDirKey, new Value(/* TABLE_TABLETS_TABLET_DIR */"/table_info".getBytes()));
+    Key tableDirKey = new Key(tableExtent, ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+        ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    mfw.append(tableDirKey, new Value(/* TABLE_TABLETS_TABLET_DIR */"/table_info"));
 
     // table tablet time
-    Key tableTimeKey =
-        new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
-            TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tableTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
+    Key tableTimeKey = new Key(tableExtent, ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+        ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
+    mfw.append(tableTimeKey, new Value(/* TabletTime.LOGICAL_TIME_ID */'L' + "0"));
 
-    // table tablet's prevrow
-    Key tablePrevRowKey =
-        new Key(tableExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-            TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
-    mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(null));
+    // table tablet's prevRow
+    Key tablePrevRowKey = new Key(tableExtent, TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+        TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    mfw.append(tablePrevRowKey, TabletColumnFamily.encodePrevEndRow(null));
 
     // ----------] default tablet info
-    Text defaultExtent = new Text(KeyExtent.getMetadataEntry(MetadataTable.ID, null));
+    Text defaultExtent = new Text(TabletsSection.encodeRow(MetadataTable.ID, null));
 
     // default's directory
     Key defaultDirKey =
-        new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
-            TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_LOCATION.getBytes()));
+        new Key(defaultExtent, ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+            ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    mfw.append(defaultDirKey, new Value(ServerColumnFamily.DEFAULT_TABLET_DIR_NAME));
 
     // default's time
-    Key defaultTimeKey =
-        new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
-            TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
-    mfw.append(defaultTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
+    Key defaultTimeKey = new Key(defaultExtent, ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+        ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
+    mfw.append(defaultTimeKey, new Value(/* TabletTime.LOGICAL_TIME_ID */'L' + "0"));
 
-    // default's prevrow
+    // default's prevRow
     Key defaultPrevRowKey =
-        new Key(defaultExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-            TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+        new Key(defaultExtent, TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+            TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultPrevRowKey,
-        KeyExtent.encodePrevEndRow(MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
+        TabletColumnFamily.encodePrevEndRow(TabletsSection.getRange().getEndKey().getRow()));
 
     testRfile.closeWriter();
 
     if (true) {
       FileOutputStream fileOutputStream =
-          new FileOutputStream(tempFolder.newFile("testEncryptedRootFile.rf"));
+          new FileOutputStream(new File(tempDir, "testEncryptedRootFile.rf"));
       fileOutputStream.write(testRfile.baos.toByteArray());
       fileOutputStream.flush();
       fileOutputStream.close();
@@ -2337,7 +2356,7 @@ public class RFileTest {
     testRfile.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     assertTrue(testRfile.iter.hasTop());
 
-    assertTrue(testRfile.reader.getLastKey() != null);
+    assertNotNull(testRfile.reader.getLastKey());
 
     testRfile.closeReader();
 

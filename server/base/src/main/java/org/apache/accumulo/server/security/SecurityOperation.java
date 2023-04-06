@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security;
 
@@ -22,32 +24,33 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.impl.Namespaces;
-import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.clientImpl.Credentials;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.data.thrift.IterInfo;
-import org.apache.accumulo.core.data.thrift.TColumn;
-import org.apache.accumulo.core.data.thrift.TKeyExtent;
-import org.apache.accumulo.core.data.thrift.TRange;
-import org.apache.accumulo.core.master.thrift.FateOperation;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
+import org.apache.accumulo.core.dataImpl.thrift.TColumn;
+import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
+import org.apache.accumulo.core.dataImpl.thrift.TRange;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.server.AccumuloServerContext;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
 import org.apache.accumulo.server.security.handler.KerberosAuthenticator;
@@ -55,10 +58,11 @@ import org.apache.accumulo.server.security.handler.PermissionHandler;
 import org.apache.accumulo.server.security.handler.ZKAuthenticator;
 import org.apache.accumulo.server.security.handler.ZKAuthorizor;
 import org.apache.accumulo.server.security.handler.ZKPermHandler;
-import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Suppliers;
 
 /**
  * Utility class for performing various security operations with the appropriate checks
@@ -66,95 +70,80 @@ import org.slf4j.LoggerFactory;
 public class SecurityOperation {
   private static final Logger log = LoggerFactory.getLogger(SecurityOperation.class);
 
-  protected Authorizor authorizor;
-  protected Authenticator authenticator;
-  protected PermissionHandler permHandle;
-  protected boolean isKerberos;
-  private static String rootUserName = null;
+  private final Authorizor authorizor;
+  private final Authenticator authenticator;
+  private final PermissionHandler permHandle;
+  private final boolean isKerberos;
+  private final Supplier<String> rootUserName;
   private final ZooCache zooCache;
-  private final String ZKUserPath;
+  private final String zkUserPath;
 
-  protected final AccumuloServerContext context;
+  protected final ServerContext context;
 
-  static SecurityOperation instance;
-
-  public static synchronized SecurityOperation getInstance(AccumuloServerContext context,
-      boolean initialize) {
-    if (instance == null) {
-      String instanceId = context.getInstance().getInstanceID();
-      instance = new SecurityOperation(context, getAuthorizor(instanceId, initialize),
-          getAuthenticator(instanceId, initialize), getPermHandler(instanceId, initialize));
-    }
-    return instance;
-  }
-
-  protected static Authorizor getAuthorizor(String instanceId, boolean initialize) {
-    Authorizor toRet = SiteConfiguration.getInstance().instantiateClassProperty(
-        Property.INSTANCE_SECURITY_AUTHORIZOR, Authorizor.class, ZKAuthorizor.getInstance());
-    toRet.initialize(instanceId, initialize);
+  public static Authorizor getAuthorizor(ServerContext context) {
+    Authorizor toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
+        Property.INSTANCE_SECURITY_AUTHORIZOR, Authorizor.class, new ZKAuthorizor());
+    toRet.initialize(context);
     return toRet;
   }
 
-  protected static Authenticator getAuthenticator(String instanceId, boolean initialize) {
-    Authenticator toRet = SiteConfiguration.getInstance().instantiateClassProperty(
-        Property.INSTANCE_SECURITY_AUTHENTICATOR, Authenticator.class,
-        ZKAuthenticator.getInstance());
-    toRet.initialize(instanceId, initialize);
+  public static Authenticator getAuthenticator(ServerContext context) {
+    Authenticator toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
+        Property.INSTANCE_SECURITY_AUTHENTICATOR, Authenticator.class, new ZKAuthenticator());
+    toRet.initialize(context);
     return toRet;
   }
 
-  protected static PermissionHandler getPermHandler(String instanceId, boolean initialize) {
-    PermissionHandler toRet = SiteConfiguration.getInstance().instantiateClassProperty(
+  public static PermissionHandler getPermHandler(ServerContext context) {
+    PermissionHandler toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_PERMISSION_HANDLER, PermissionHandler.class,
-        ZKPermHandler.getInstance());
-    toRet.initialize(instanceId, initialize);
+        new ZKPermHandler());
+    toRet.initialize(context);
     return toRet;
   }
 
-  protected SecurityOperation(AccumuloServerContext context) {
-    this.context = context;
-    ZKUserPath = Constants.ZROOT + "/" + context.getInstance().getInstanceID() + "/users";
-    zooCache = new ZooCache();
-  }
-
-  public SecurityOperation(AccumuloServerContext context, Authorizor author, Authenticator authent,
+  protected SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
       PermissionHandler pm) {
-    this(context);
+    this.context = context;
+    zkUserPath = context.zkUserPath();
+    zooCache = new ZooCache(context.getZooReader(), null);
+    rootUserName = Suppliers.memoize(() -> new String(zooCache.get(zkUserPath), UTF_8));
     authorizor = author;
     authenticator = authent;
     permHandle = pm;
 
     if (!authorizor.validSecurityHandlers(authenticator, pm)
-        || !authenticator.validSecurityHandlers(authorizor, pm)
-        || !permHandle.validSecurityHandlers(authent, author))
+        || !authenticator.validSecurityHandlers()
+        || !permHandle.validSecurityHandlers(authent, author)) {
       throw new RuntimeException(authorizor + ", " + authenticator + ", and " + pm
-          + " do not play nice with eachother. Please choose authentication and"
+          + " do not play nice with each other. Please choose authentication and"
           + " authorization mechanisms that are compatible with one another.");
+    }
 
     isKerberos = KerberosAuthenticator.class.isAssignableFrom(authenticator.getClass());
   }
 
   public void initializeSecurity(TCredentials credentials, String rootPrincipal, byte[] token)
-      throws AccumuloSecurityException, ThriftSecurityException {
-    if (!isSystemUser(credentials))
+      throws AccumuloSecurityException {
+    if (!isSystemUser(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
 
-    authenticator.initializeSecurity(credentials, rootPrincipal, token);
+    authenticator.initializeSecurity(rootPrincipal, token);
     authorizor.initializeSecurity(credentials, rootPrincipal);
     permHandle.initializeSecurity(credentials, rootPrincipal);
     try {
-      permHandle.grantTablePermission(rootPrincipal, MetadataTable.ID, TablePermission.ALTER_TABLE);
+      permHandle.grantTablePermission(rootPrincipal, MetadataTable.ID.canonical(),
+          TablePermission.ALTER_TABLE);
     } catch (TableNotFoundException e) {
       // Shouldn't happen
       throw new RuntimeException(e);
     }
   }
 
-  public synchronized String getRootUsername() {
-    if (rootUserName == null)
-      rootUserName = new String(zooCache.get(ZKUserPath), UTF_8);
-    return rootUserName;
+  private String getRootUsername() {
+    return rootUserName.get();
   }
 
   public boolean isSystemUser(TCredentials credentials) {
@@ -163,9 +152,10 @@ public class SecurityOperation {
   }
 
   protected void authenticate(TCredentials credentials) throws ThriftSecurityException {
-    if (!credentials.getInstanceId().equals(context.getInstance().getInstanceID()))
+    if (!credentials.getInstanceId().equals(context.getInstanceID().canonical())) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.INVALID_INSTANCEID);
+    }
 
     Credentials creds = Credentials.fromThrift(credentials);
 
@@ -180,9 +170,9 @@ public class SecurityOperation {
               SecurityErrorCode.BAD_CREDENTIALS);
         }
       } else {
-        if (!(context.getCredentials().equals(creds))) {
-          log.debug("Provided credentials did not match server's expected credentials. Expected "
-              + context.getCredentials() + " but got " + creds);
+        if (!context.getCredentials().equals(creds)) {
+          log.debug("Provided credentials did not match server's expected"
+              + " credentials. Expected {} but got {}", context.getCredentials(), creds);
           throw new ThriftSecurityException(creds.getPrincipal(),
               SecurityErrorCode.BAD_CREDENTIALS);
         }
@@ -193,28 +183,23 @@ public class SecurityOperation {
       if (isKerberos) {
         // If we have kerberos credentials for a user from the network but no account
         // in the system, we need to make one before proceeding
-        try {
-          if (!authenticator.userExists(creds.getPrincipal())) {
-            // If we call the normal createUser method, it will loop back into this method
-            // when it tries to check if the user has permission to create users
-            try {
-              _createUser(credentials, creds, Authorizations.EMPTY);
-            } catch (ThriftSecurityException e) {
-              if (SecurityErrorCode.USER_EXISTS != e.getCode()) {
-                // For Kerberos, a user acct is automatically created because there is no notion of
-                // a password
-                // in the traditional sense of Accumulo users. As such, if a user acct already
-                // exists when we
-                // try to automatically create a user account, we should avoid returning this
-                // exception back to the user.
-                // We want to let USER_EXISTS code pass through and continue
-                throw e;
-              }
+        if (!authenticator.userExists(creds.getPrincipal())) {
+          // If we call the normal createUser method, it will loop back into this method
+          // when it tries to check if the user has permission to create users
+          try {
+            _createUser(credentials, creds);
+          } catch (ThriftSecurityException e) {
+            if (e.getCode() != SecurityErrorCode.USER_EXISTS) {
+              // For Kerberos, a user acct is automatically created because there is no notion of
+              // a password
+              // in the traditional sense of Accumulo users. As such, if a user acct already
+              // exists when we
+              // try to automatically create a user account, we should avoid returning this
+              // exception back to the user.
+              // We want to let USER_EXISTS code pass through and continue
+              throw e;
             }
           }
-        } catch (AccumuloSecurityException e) {
-          log.debug("Failed to determine if user exists", e);
-          throw e.asThriftException();
         }
       }
 
@@ -231,21 +216,22 @@ public class SecurityOperation {
     }
   }
 
-  public boolean canAskAboutUser(TCredentials credentials, String user)
-      throws ThriftSecurityException {
-    // Authentication done in canPerformSystemActions
-    if (!(canPerformSystemActions(credentials) || credentials.getPrincipal().equals(user)))
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    return true;
-  }
-
   public boolean authenticateUser(TCredentials credentials, TCredentials toAuth)
       throws ThriftSecurityException {
-    canAskAboutUser(credentials, toAuth.getPrincipal());
-    // User is already authenticated from canAskAboutUser
-    if (credentials.equals(toAuth))
+    authenticate(credentials); // authenticate the current user first
+
+    // if the user to authenticate is not the current user, and the current user lacks
+    // the SYSTEM permission, then deny the request
+    if (!credentials.getPrincipal().equals(toAuth.getPrincipal())
+        && !hasSystemPermission(credentials, SystemPermission.SYSTEM, false)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    // the user is already authenticated above if the credentials to authenticate are the same
+    if (credentials.equals(toAuth)) {
       return true;
+    }
     try {
       Credentials toCreds = Credentials.fromThrift(toAuth);
 
@@ -274,15 +260,12 @@ public class SecurityOperation {
 
     if (!credentials.getPrincipal().equals(user)
         && !hasSystemPermission(credentials, SystemPermission.SYSTEM, false)
-        && !hasSystemPermission(credentials, SystemPermission.ALTER_USER, false))
+        && !hasSystemPermission(credentials, SystemPermission.ALTER_USER, false)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
-
-    try {
-      return authorizor.getCachedUserAuthorizations(user);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
     }
+
+    return authorizor.getCachedUserAuthorizations(user);
   }
 
   public Authorizations getUserAuthorizations(TCredentials credentials)
@@ -298,18 +281,13 @@ public class SecurityOperation {
   /**
    * Check if an already authenticated user has specified authorizations.
    */
-  public boolean authenticatedUserHasAuthorizations(TCredentials credentials, List<ByteBuffer> list)
-      throws ThriftSecurityException {
+  public boolean authenticatedUserHasAuthorizations(TCredentials credentials,
+      List<ByteBuffer> list) {
     if (isSystemUser(credentials)) {
       // system user doesn't need record-level authorizations for the tables it reads (for now)
       return list.isEmpty();
     }
-
-    try {
-      return authorizor.isValidAuthorizations(credentials.getPrincipal(), list);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    return authorizor.isValidAuthorizations(credentials.getPrincipal(), list);
   }
 
   private boolean hasSystemPermission(TCredentials credentials, SystemPermission permission,
@@ -323,13 +301,15 @@ public class SecurityOperation {
    * @return true if a user exists and has permission; false otherwise
    */
   private boolean hasSystemPermissionWithNamespaceId(TCredentials credentials,
-      SystemPermission permission, String namespaceId, boolean useCached)
+      SystemPermission permission, NamespaceId namespaceId, boolean useCached)
       throws ThriftSecurityException {
-    if (isSystemUser(credentials))
+    if (isSystemUser(credentials)) {
       return true;
+    }
 
-    if (_hasSystemPermission(credentials.getPrincipal(), permission, useCached))
+    if (_hasSystemPermission(credentials.getPrincipal(), permission, useCached)) {
       return true;
+    }
     if (namespaceId != null) {
       return _hasNamespacePermission(credentials.getPrincipal(), namespaceId,
           NamespacePermission.getEquivalent(permission), useCached);
@@ -346,18 +326,16 @@ public class SecurityOperation {
    */
   private boolean _hasSystemPermission(String user, SystemPermission permission, boolean useCached)
       throws ThriftSecurityException {
-    if (user.equals(getRootUsername()))
+    if (user.equals(getRootUsername())) {
       return true;
+    }
 
     targetUserExists(user);
 
-    try {
-      if (useCached)
-        return permHandle.hasCachedSystemPermission(user, permission);
-      return permHandle.hasSystemPermission(user, permission);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
+    if (useCached) {
+      return permHandle.hasCachedSystemPermission(user, permission);
     }
+    return permHandle.hasSystemPermission(user, permission);
   }
 
   /**
@@ -365,10 +343,12 @@ public class SecurityOperation {
    *
    * @return true if a user exists and has permission; false otherwise
    */
-  protected boolean hasTablePermission(TCredentials credentials, String tableId, String namespaceId,
-      TablePermission permission, boolean useCached) throws ThriftSecurityException {
-    if (isSystemUser(credentials))
+  protected boolean hasTablePermission(TCredentials credentials, TableId tableId,
+      NamespaceId namespaceId, TablePermission permission, boolean useCached)
+      throws ThriftSecurityException {
+    if (isSystemUser(credentials)) {
       return true;
+    }
     return _hasTablePermission(credentials.getPrincipal(), tableId, permission, useCached)
         || _hasNamespacePermission(credentials.getPrincipal(), namespaceId,
             NamespacePermission.getEquivalent(permission), useCached);
@@ -380,20 +360,20 @@ public class SecurityOperation {
    *
    * @return true if a user exists and has permission; false otherwise
    */
-  protected boolean _hasTablePermission(String user, String table, TablePermission permission,
+  private boolean _hasTablePermission(String user, TableId table, TablePermission permission,
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
-    if ((table.equals(MetadataTable.ID) || table.equals(RootTable.ID)
-        || table.equals(ReplicationTable.ID)) && permission.equals(TablePermission.READ))
+    if ((table.equals(MetadataTable.ID) || table.equals(RootTable.ID))
+        && permission.equals(TablePermission.READ)) {
       return true;
+    }
 
     try {
-      if (useCached)
-        return permHandle.hasCachedTablePermission(user, table, permission);
-      return permHandle.hasTablePermission(user, table, permission);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
+      if (useCached) {
+        return permHandle.hasCachedTablePermission(user, table.canonical(), permission);
+      }
+      return permHandle.hasTablePermission(user, table.canonical(), permission);
     } catch (TableNotFoundException e) {
       throw new ThriftSecurityException(user, SecurityErrorCode.TABLE_DOESNT_EXIST);
     }
@@ -405,23 +385,23 @@ public class SecurityOperation {
    *
    * @return true if a user exists and has permission; false otherwise
    */
-  protected boolean _hasNamespacePermission(String user, String namespace,
+  private boolean _hasNamespacePermission(String user, NamespaceId namespace,
       NamespacePermission permission, boolean useCached) throws ThriftSecurityException {
-    if (permission == null)
+    if (permission == null) {
       return false;
+    }
 
     targetUserExists(user);
 
-    if (namespace.equals(Namespaces.ACCUMULO_NAMESPACE_ID)
-        && permission.equals(NamespacePermission.READ))
+    if (namespace.equals(Namespace.ACCUMULO.id()) && permission.equals(NamespacePermission.READ)) {
       return true;
+    }
 
     try {
-      if (useCached)
-        return permHandle.hasCachedNamespacePermission(user, namespace, permission);
-      return permHandle.hasNamespacePermission(user, namespace, permission);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
+      if (useCached) {
+        return permHandle.hasCachedNamespacePermission(user, namespace.canonical(), permission);
+      }
+      return permHandle.hasNamespacePermission(user, namespace.canonical(), permission);
     } catch (NamespaceNotFoundException e) {
       throw new ThriftSecurityException(user, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
     }
@@ -439,43 +419,42 @@ public class SecurityOperation {
   }
 
   private void targetUserExists(String user) throws ThriftSecurityException {
-    if (user.equals(getRootUsername()))
+    if (user.equals(getRootUsername())) {
       return;
-    try {
-      if (!authenticator.userExists(user))
-        throw new ThriftSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
+    }
+    if (!authenticator.userExists(user)) {
+      throw new ThriftSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST);
     }
   }
 
-  public boolean canScan(TCredentials credentials, String tableId, String namespaceId)
+  public boolean canScan(TCredentials credentials, TableId tableId, NamespaceId namespaceId)
       throws ThriftSecurityException {
     authenticate(credentials);
     return hasTablePermission(credentials, tableId, namespaceId, TablePermission.READ, true);
   }
 
-  public boolean canScan(TCredentials credentials, String tableId, String namespaceId, TRange range,
-      List<TColumn> columns, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      List<ByteBuffer> authorizations) throws ThriftSecurityException {
+  public boolean canScan(TCredentials credentials, TableId tableId, NamespaceId namespaceId,
+      TRange range, List<TColumn> columns, List<IterInfo> ssiList,
+      Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations)
+      throws ThriftSecurityException {
     return canScan(credentials, tableId, namespaceId);
   }
 
-  public boolean canScan(TCredentials credentials, String table, String namespaceId,
+  public boolean canScan(TCredentials credentials, TableId table, NamespaceId namespaceId,
       Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations)
       throws ThriftSecurityException {
     return canScan(credentials, table, namespaceId);
   }
 
-  public boolean canWrite(TCredentials credentials, String tableId, String namespaceId)
+  public boolean canWrite(TCredentials credentials, TableId tableId, NamespaceId namespaceId)
       throws ThriftSecurityException {
     authenticate(credentials);
     return hasTablePermission(credentials, tableId, namespaceId, TablePermission.WRITE, true);
   }
 
-  public boolean canConditionallyUpdate(TCredentials credentials, String tableID,
-      String namespaceId, List<ByteBuffer> authorizations) throws ThriftSecurityException {
+  public boolean canConditionallyUpdate(TCredentials credentials, TableId tableID,
+      NamespaceId namespaceId) throws ThriftSecurityException {
 
     authenticate(credentials);
 
@@ -483,7 +462,7 @@ public class SecurityOperation {
         && hasTablePermission(credentials, tableID, namespaceId, TablePermission.READ, true);
   }
 
-  public boolean canSplitTablet(TCredentials credentials, String tableId, String namespaceId)
+  public boolean canSplitTablet(TCredentials credentials, TableId tableId, NamespaceId namespaceId)
       throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermissionWithNamespaceId(credentials, SystemPermission.ALTER_TABLE,
@@ -503,57 +482,58 @@ public class SecurityOperation {
     return hasSystemPermission(credentials, SystemPermission.SYSTEM, false);
   }
 
-  public boolean canFlush(TCredentials c, String tableId, String namespaceId)
+  public boolean canFlush(TCredentials c, TableId tableId, NamespaceId namespaceId)
       throws ThriftSecurityException {
     authenticate(c);
     return hasTablePermission(c, tableId, namespaceId, TablePermission.WRITE, false)
         || hasTablePermission(c, tableId, namespaceId, TablePermission.ALTER_TABLE, false);
   }
 
-  public boolean canAlterTable(TCredentials c, String tableId, String namespaceId)
+  public boolean canAlterTable(TCredentials c, TableId tableId, NamespaceId namespaceId)
       throws ThriftSecurityException {
     authenticate(c);
     return hasTablePermission(c, tableId, namespaceId, TablePermission.ALTER_TABLE, false)
         || hasSystemPermissionWithNamespaceId(c, SystemPermission.ALTER_TABLE, namespaceId, false);
   }
 
-  public boolean canCreateTable(TCredentials c, String table, String namespaceId)
+  public boolean canCreateTable(TCredentials c, String tableName, NamespaceId namespaceId)
       throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.CREATE_TABLE, namespaceId, false);
   }
 
-  public boolean canRenameTable(TCredentials c, String tableId, String oldTableName,
-      String newTableName, String namespaceId) throws ThriftSecurityException {
+  public boolean canRenameTable(TCredentials c, TableId tableId, String oldTableName,
+      String newTableName, NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.ALTER_TABLE, namespaceId, false)
         || hasTablePermission(c, tableId, namespaceId, TablePermission.ALTER_TABLE, false);
   }
 
-  public boolean canCloneTable(TCredentials c, String tableId, String tableName,
-      String destinationNamespaceId, String srcNamespaceId) throws ThriftSecurityException {
+  public boolean canCloneTable(TCredentials c, TableId tableId, String tableName,
+      NamespaceId destinationNamespaceId, NamespaceId srcNamespaceId)
+      throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.CREATE_TABLE,
         destinationNamespaceId, false)
         && hasTablePermission(c, tableId, srcNamespaceId, TablePermission.READ, false);
   }
 
-  public boolean canDeleteTable(TCredentials c, String tableId, String namespaceId)
+  public boolean canDeleteTable(TCredentials c, TableId tableId, NamespaceId namespaceId)
       throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.DROP_TABLE, namespaceId, false)
         || hasTablePermission(c, tableId, namespaceId, TablePermission.DROP_TABLE, false);
   }
 
-  public boolean canOnlineOfflineTable(TCredentials c, String tableId, FateOperation op,
-      String namespaceId) throws ThriftSecurityException {
+  public boolean canOnlineOfflineTable(TCredentials c, TableId tableId, FateOperation op,
+      NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.SYSTEM, namespaceId, false)
         || hasSystemPermissionWithNamespaceId(c, SystemPermission.ALTER_TABLE, namespaceId, false)
         || hasTablePermission(c, tableId, namespaceId, TablePermission.ALTER_TABLE, false);
   }
 
-  public boolean canMerge(TCredentials c, String tableId, String namespaceId)
+  public boolean canMerge(TCredentials c, TableId tableId, NamespaceId namespaceId)
       throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.SYSTEM, namespaceId, false)
@@ -561,25 +541,20 @@ public class SecurityOperation {
         || hasTablePermission(c, tableId, namespaceId, TablePermission.ALTER_TABLE, false);
   }
 
-  public boolean canDeleteRange(TCredentials c, String tableId, String tableName, Text startRow,
-      Text endRow, String namespaceId) throws ThriftSecurityException {
+  public boolean canDeleteRange(TCredentials c, TableId tableId, String tableName, Text startRow,
+      Text endRow, NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.SYSTEM, namespaceId, false)
         || hasTablePermission(c, tableId, namespaceId, TablePermission.WRITE, false);
   }
 
-  public boolean canBulkImport(TCredentials c, String tableId, String tableName, String dir,
-      String failDir, String namespaceId) throws ThriftSecurityException {
-    return canBulkImport(c, tableId, namespaceId);
-  }
-
-  public boolean canBulkImport(TCredentials c, String tableId, String namespaceId)
-      throws ThriftSecurityException {
+  public boolean canBulkImport(TCredentials c, TableId tableId, String tableName, String dir,
+      String failDir, NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(c);
     return hasTablePermission(c, tableId, namespaceId, TablePermission.BULK_IMPORT, false);
   }
 
-  public boolean canCompact(TCredentials c, String tableId, String namespaceId)
+  public boolean canCompact(TCredentials c, TableId tableId, NamespaceId namespaceId)
       throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.ALTER_TABLE, namespaceId, false)
@@ -606,8 +581,9 @@ public class SecurityOperation {
 
   public boolean canDropUser(TCredentials c, String user) throws ThriftSecurityException {
     authenticate(c);
-    if (user.equals(getRootUsername()))
+    if (user.equals(getRootUsername())) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
     return hasSystemPermission(c, SystemPermission.DROP_USER, false);
   }
 
@@ -617,19 +593,19 @@ public class SecurityOperation {
     return hasSystemPermission(c, SystemPermission.GRANT, false);
   }
 
-  public boolean canGrantTable(TCredentials c, String user, String tableId, String namespaceId)
-      throws ThriftSecurityException {
+  public boolean canGrantTable(TCredentials c, String user, TableId tableId,
+      NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.ALTER_TABLE, namespaceId, false)
         || hasTablePermission(c, tableId, namespaceId, TablePermission.GRANT, false);
   }
 
-  public boolean canGrantNamespace(TCredentials c, String user, String namespace)
+  public boolean canGrantNamespace(TCredentials c, NamespaceId namespace)
       throws ThriftSecurityException {
-    return canModifyNamespacePermission(c, user, namespace);
+    return canModifyNamespacePermission(c, namespace);
   }
 
-  private boolean canModifyNamespacePermission(TCredentials c, String user, String namespace)
+  private boolean canModifyNamespacePermission(TCredentials c, NamespaceId namespace)
       throws ThriftSecurityException {
     authenticate(c);
     // The one case where Table/SystemPermission -> NamespacePermission breaks down. The alternative
@@ -647,36 +623,38 @@ public class SecurityOperation {
       throws ThriftSecurityException {
     authenticate(c);
     // can't modify root user
-    if (user.equals(getRootUsername()))
+    if (user.equals(getRootUsername())) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     return hasSystemPermission(c, SystemPermission.GRANT, false);
   }
 
-  public boolean canRevokeTable(TCredentials c, String user, String tableId, String namespaceId)
-      throws ThriftSecurityException {
+  public boolean canRevokeTable(TCredentials c, String user, TableId tableId,
+      NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.ALTER_TABLE, namespaceId, false)
         || hasTablePermission(c, tableId, namespaceId, TablePermission.GRANT, false);
   }
 
-  public boolean canRevokeNamespace(TCredentials c, String user, String namespace)
+  public boolean canRevokeNamespace(TCredentials c, NamespaceId namespace)
       throws ThriftSecurityException {
-    return canModifyNamespacePermission(c, user, namespace);
+    return canModifyNamespacePermission(c, namespace);
   }
 
   public void changeAuthorizations(TCredentials credentials, String user,
       Authorizations authorizations) throws ThriftSecurityException {
-    if (!canChangeAuthorizations(credentials, user))
+    if (!canChangeAuthorizations(credentials, user)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     targetUserExists(user);
 
     try {
       authorizor.changeAuthorizations(user, authorizations);
-      log.info("Changed authorizations for user " + user + " at the request of user "
-          + credentials.getPrincipal());
+      log.info("Changed authorizations for user {} at the request of user {}", user,
+          credentials.getPrincipal());
     } catch (AccumuloSecurityException ase) {
       throw ase.asThriftException();
     }
@@ -684,14 +662,15 @@ public class SecurityOperation {
 
   public void changePassword(TCredentials credentials, Credentials toChange)
       throws ThriftSecurityException {
-    if (!canChangePassword(credentials, toChange.getPrincipal()))
+    if (!canChangePassword(credentials, toChange.getPrincipal())) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
     try {
       AuthenticationToken token = toChange.getToken();
       authenticator.changePassword(toChange.getPrincipal(), token);
-      log.info("Changed password for user " + toChange.getPrincipal() + " at the request of user "
-          + credentials.getPrincipal());
+      log.info("Changed password for user {} at the request of user {}", toChange.getPrincipal(),
+          credentials.getPrincipal());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     }
@@ -699,10 +678,11 @@ public class SecurityOperation {
 
   public void createUser(TCredentials credentials, Credentials newUser,
       Authorizations authorizations) throws ThriftSecurityException {
-    if (!canCreateUser(credentials, newUser.getPrincipal()))
+    if (!canCreateUser(credentials, newUser.getPrincipal())) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
-    _createUser(credentials, newUser, authorizations);
+    }
+    _createUser(credentials, newUser);
     if (canChangeAuthorizations(credentials, newUser.getPrincipal())) {
       try {
         authorizor.changeAuthorizations(newUser.getPrincipal(), authorizations);
@@ -712,29 +692,30 @@ public class SecurityOperation {
     }
   }
 
-  protected void _createUser(TCredentials credentials, Credentials newUser,
-      Authorizations authorizations) throws ThriftSecurityException {
+  private void _createUser(TCredentials credentials, Credentials newUser)
+      throws ThriftSecurityException {
     try {
       AuthenticationToken token = newUser.getToken();
       authenticator.createUser(newUser.getPrincipal(), token);
       authorizor.initUser(newUser.getPrincipal());
       permHandle.initUser(newUser.getPrincipal());
-      log.info("Created user " + newUser.getPrincipal() + " at the request of user "
-          + credentials.getPrincipal());
+      log.info("Created user {} at the request of user {}", newUser.getPrincipal(),
+          credentials.getPrincipal());
     } catch (AccumuloSecurityException ase) {
       throw ase.asThriftException();
     }
   }
 
   public void dropUser(TCredentials credentials, String user) throws ThriftSecurityException {
-    if (!canDropUser(credentials, user))
+    if (!canDropUser(credentials, user)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
     try {
       authorizor.dropUser(user);
       authenticator.dropUser(user);
       permHandle.cleanUser(user);
-      log.info("Deleted user " + user + " at the request of user " + credentials.getPrincipal());
+      log.info("Deleted user {} at the request of user {}", user, credentials.getPrincipal());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     }
@@ -742,32 +723,34 @@ public class SecurityOperation {
 
   public void grantSystemPermission(TCredentials credentials, String user,
       SystemPermission permissionById) throws ThriftSecurityException {
-    if (!canGrantSystem(credentials, user, permissionById))
+    if (!canGrantSystem(credentials, user, permissionById)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     targetUserExists(user);
 
     try {
       permHandle.grantSystemPermission(user, permissionById);
-      log.info("Granted system permission " + permissionById + " for user " + user
-          + " at the request of user " + credentials.getPrincipal());
+      log.info("Granted system permission {} for user {} at the request of user {}", permissionById,
+          user, credentials.getPrincipal());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     }
   }
 
-  public void grantTablePermission(TCredentials c, String user, String tableId,
-      TablePermission permission, String namespaceId) throws ThriftSecurityException {
-    if (!canGrantTable(c, user, tableId, namespaceId))
+  public void grantTablePermission(TCredentials c, String user, TableId tableId,
+      TablePermission permission, NamespaceId namespaceId) throws ThriftSecurityException {
+    if (!canGrantTable(c, user, tableId, namespaceId)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     targetUserExists(user);
 
     try {
-      permHandle.grantTablePermission(user, tableId, permission);
-      log.info("Granted table permission " + permission + " for user " + user + " on the table "
-          + tableId + " at the request of user " + c.getPrincipal());
+      permHandle.grantTablePermission(user, tableId.canonical(), permission);
+      log.info("Granted table permission {} for user {} on the table {} at the request of user {}",
+          permission, user, tableId, c.getPrincipal());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     } catch (TableNotFoundException e) {
@@ -775,17 +758,18 @@ public class SecurityOperation {
     }
   }
 
-  public void grantNamespacePermission(TCredentials c, String user, String namespace,
+  public void grantNamespacePermission(TCredentials c, String user, NamespaceId namespace,
       NamespacePermission permission) throws ThriftSecurityException {
-    if (!canGrantNamespace(c, user, namespace))
+    if (!canGrantNamespace(c, namespace)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     targetUserExists(user);
 
     try {
-      permHandle.grantNamespacePermission(user, namespace, permission);
-      log.info("Granted namespace permission " + permission + " for user " + user
-          + " on the namespace " + namespace + " at the request of user " + c.getPrincipal());
+      permHandle.grantNamespacePermission(user, namespace.canonical(), permission);
+      log.info("Granted namespace permission {} for user {} on the namespace {}"
+          + " at the request of user {}", permission, user, namespace, c.getPrincipal());
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     } catch (NamespaceNotFoundException e) {
@@ -795,33 +779,35 @@ public class SecurityOperation {
 
   public void revokeSystemPermission(TCredentials credentials, String user,
       SystemPermission permission) throws ThriftSecurityException {
-    if (!canRevokeSystem(credentials, user, permission))
+    if (!canRevokeSystem(credentials, user, permission)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     targetUserExists(user);
 
     try {
       permHandle.revokeSystemPermission(user, permission);
-      log.info("Revoked system permission " + permission + " for user " + user
-          + " at the request of user " + credentials.getPrincipal());
+      log.info("Revoked system permission {} for user {} at the request of user {}", permission,
+          user, credentials.getPrincipal());
 
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     }
   }
 
-  public void revokeTablePermission(TCredentials c, String user, String tableId,
-      TablePermission permission, String namespaceId) throws ThriftSecurityException {
-    if (!canRevokeTable(c, user, tableId, namespaceId))
+  public void revokeTablePermission(TCredentials c, String user, TableId tableId,
+      TablePermission permission, NamespaceId namespaceId) throws ThriftSecurityException {
+    if (!canRevokeTable(c, user, tableId, namespaceId)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     targetUserExists(user);
 
     try {
-      permHandle.revokeTablePermission(user, tableId, permission);
-      log.info("Revoked table permission " + permission + " for user " + user + " on the table "
-          + tableId + " at the request of user " + c.getPrincipal());
+      permHandle.revokeTablePermission(user, tableId.canonical(), permission);
+      log.info("Revoked table permission {} for user {} on the table {} at the request of user {}",
+          permission, user, tableId, c.getPrincipal());
 
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
@@ -830,17 +816,18 @@ public class SecurityOperation {
     }
   }
 
-  public void revokeNamespacePermission(TCredentials c, String user, String namespace,
+  public void revokeNamespacePermission(TCredentials c, String user, NamespaceId namespace,
       NamespacePermission permission) throws ThriftSecurityException {
-    if (!canRevokeNamespace(c, user, namespace))
+    if (!canRevokeNamespace(c, namespace)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
     targetUserExists(user);
 
     try {
-      permHandle.revokeNamespacePermission(user, namespace, permission);
-      log.info("Revoked namespace permission " + permission + " for user " + user
-          + " on the namespace " + namespace + " at the request of user " + c.getPrincipal());
+      permHandle.revokeNamespacePermission(user, namespace.canonical(), permission);
+      log.info("Revoked namespace permission {} for user {} on the namespace {}"
+          + " at the request of user {}", permission, user, namespace, c.getPrincipal());
 
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
@@ -851,44 +838,44 @@ public class SecurityOperation {
 
   public boolean hasSystemPermission(TCredentials credentials, String user,
       SystemPermission permissionById) throws ThriftSecurityException {
-    if (!canAskAboutOtherUsers(credentials, user))
+    if (!canAskAboutOtherUsers(credentials, user)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
     return _hasSystemPermission(user, permissionById, false);
   }
 
-  public boolean hasTablePermission(TCredentials credentials, String user, String tableId,
+  public boolean hasTablePermission(TCredentials credentials, String user, TableId tableId,
       TablePermission permissionById) throws ThriftSecurityException {
-    if (!canAskAboutOtherUsers(credentials, user))
+    if (!canAskAboutOtherUsers(credentials, user)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
     return _hasTablePermission(user, tableId, permissionById, false);
   }
 
-  public boolean hasNamespacePermission(TCredentials credentials, String user, String namespace,
-      NamespacePermission permissionById) throws ThriftSecurityException {
-    if (!canAskAboutOtherUsers(credentials, user))
+  public boolean hasNamespacePermission(TCredentials credentials, String user,
+      NamespaceId namespace, NamespacePermission permissionById) throws ThriftSecurityException {
+    if (!canAskAboutOtherUsers(credentials, user)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
     return _hasNamespacePermission(user, namespace, permissionById, false);
   }
 
   public Set<String> listUsers(TCredentials credentials) throws ThriftSecurityException {
     authenticate(credentials);
-    try {
-      return authenticator.listUsers();
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    return authenticator.listUsers();
   }
 
-  public void deleteTable(TCredentials credentials, String tableId, String namespaceId)
+  public void deleteTable(TCredentials credentials, TableId tableId, NamespaceId namespaceId)
       throws ThriftSecurityException {
-    if (!canDeleteTable(credentials, tableId, namespaceId))
+    if (!canDeleteTable(credentials, tableId, namespaceId)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
     try {
-      permHandle.cleanTablePermissions(tableId);
+      permHandle.cleanTablePermissions(tableId.canonical());
     } catch (AccumuloSecurityException e) {
       e.setUser(credentials.getPrincipal());
       throw e.asThriftException();
@@ -898,13 +885,14 @@ public class SecurityOperation {
     }
   }
 
-  public void deleteNamespace(TCredentials credentials, String namespace)
+  public void deleteNamespace(TCredentials credentials, NamespaceId namespace)
       throws ThriftSecurityException {
-    if (!canDeleteNamespace(credentials, namespace))
+    if (!canDeleteNamespace(credentials, namespace)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
+    }
     try {
-      permHandle.cleanNamespacePermissions(namespace);
+      permHandle.cleanNamespacePermissions(namespace.canonical());
     } catch (AccumuloSecurityException e) {
       e.setUser(credentials.getPrincipal());
       throw e.asThriftException();
@@ -914,45 +902,40 @@ public class SecurityOperation {
     }
   }
 
-  public boolean canExport(TCredentials credentials, String tableId, String tableName,
-      String exportDir, String namespaceId) throws ThriftSecurityException {
+  public boolean canExport(TCredentials credentials, TableId tableId, String tableName,
+      String exportDir, NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(credentials);
     return hasTablePermission(credentials, tableId, namespaceId, TablePermission.READ, false);
   }
 
-  public boolean canImport(TCredentials credentials, String tableName, String importDir,
-      String namespaceId) throws ThriftSecurityException {
+  public boolean canImport(TCredentials credentials, String tableName, Set<String> importDir,
+      NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermissionWithNamespaceId(credentials, SystemPermission.CREATE_TABLE,
         namespaceId, false);
   }
 
-  public boolean canAlterNamespace(TCredentials credentials, String namespaceId)
+  public boolean canAlterNamespace(TCredentials credentials, NamespaceId namespaceId)
       throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermissionWithNamespaceId(credentials, SystemPermission.ALTER_NAMESPACE,
         namespaceId, false);
   }
 
-  public boolean canCreateNamespace(TCredentials credentials, String namespace)
-      throws ThriftSecurityException {
-    return canCreateNamespace(credentials);
-  }
-
-  private boolean canCreateNamespace(TCredentials credentials) throws ThriftSecurityException {
+  public boolean canCreateNamespace(TCredentials credentials) throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermission(credentials, SystemPermission.CREATE_NAMESPACE, false);
   }
 
-  public boolean canDeleteNamespace(TCredentials credentials, String namespaceId)
+  public boolean canDeleteNamespace(TCredentials credentials, NamespaceId namespaceId)
       throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermissionWithNamespaceId(credentials, SystemPermission.DROP_NAMESPACE,
         namespaceId, false);
   }
 
-  public boolean canRenameNamespace(TCredentials credentials, String namespaceId, String oldName,
-      String newName) throws ThriftSecurityException {
+  public boolean canRenameNamespace(TCredentials credentials, NamespaceId namespaceId)
+      throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermissionWithNamespaceId(credentials, SystemPermission.ALTER_NAMESPACE,
         namespaceId, false);
@@ -961,5 +944,19 @@ public class SecurityOperation {
   public boolean canObtainDelegationToken(TCredentials credentials) throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermission(credentials, SystemPermission.OBTAIN_DELEGATION_TOKEN, false);
+  }
+
+  public boolean canGetSummaries(TCredentials credentials, TableId tableId, NamespaceId namespaceId)
+      throws ThriftSecurityException {
+    authenticate(credentials);
+    return hasTablePermission(credentials, tableId, namespaceId, TablePermission.GET_SUMMARIES,
+        false);
+  }
+
+  public boolean validateStoredUserCreditentials() {
+    if (authenticator instanceof ZKAuthenticator) {
+      return !((ZKAuthenticator) authenticator).hasOutdatedHashes();
+    }
+    return true;
   }
 }

@@ -1,27 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.file.rfile.bcfile;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.List;
 
 import org.apache.hadoop.io.Text;
 
@@ -41,10 +40,8 @@ public final class Utils {
    * Encoding an integer into a variable-length encoding format. Synonymous to
    * <code>Utils#writeVLong(out, n)</code>.
    *
-   * @param out
-   *          output stream
-   * @param n
-   *          The integer to be encoded
+   * @param out output stream
+   * @param n The integer to be encoded
    * @see Utils#writeVLong(DataOutput, long)
    */
   public static void writeVInt(DataOutput out, int n) throws IOException {
@@ -80,10 +77,8 @@ public final class Utils {
    * byte[7]=(n&gt;&gt;8)&amp;0xff; byte[8]=n&amp;0xff;
    * </ul>
    *
-   * @param out
-   *          output stream
-   * @param n
-   *          the integer number
+   * @param out output stream
+   * @param n the integer number
    */
   @SuppressWarnings("fallthrough")
   public static void writeVLong(DataOutput out, long n) throws IOException {
@@ -147,15 +142,14 @@ public final class Utils {
         out.writeLong(n);
         return;
       default:
-        throw new RuntimeException("Internel error");
+        throw new RuntimeException("Internal error");
     }
   }
 
   /**
    * Decoding the variable-length integer. Synonymous to <code>(int)Utils#readVLong(in)</code>.
    *
-   * @param in
-   *          input stream
+   * @param in input stream
    * @return the decoded integer
    *
    * @see Utils#readVLong(DataInput)
@@ -181,8 +175,7 @@ public final class Utils {
    * <li>if (FB in [-128, -121]), return interpret NB[FB+129] as a signed big-endian integer.
    * </ul>
    *
-   * @param in
-   *          input stream
+   * @param in input stream
    * @return the decoded long integer.
    */
 
@@ -198,15 +191,15 @@ public final class Utils {
       case 9:
       case 8:
       case 7:
-        return ((firstByte + 52) << 8) | in.readUnsignedByte();
+        return ((firstByte + 52L) << 8) | in.readUnsignedByte();
       case 6:
       case 5:
       case 4:
       case 3:
-        return ((firstByte + 88) << 16) | in.readUnsignedShort();
+        return ((firstByte + 88L) << 16) | in.readUnsignedShort();
       case 2:
       case 1:
-        return ((firstByte + 112) << 24) | (in.readUnsignedShort() << 8) | in.readUnsignedByte();
+        return ((firstByte + 112L) << 24) | (in.readUnsignedShort() << 8) | in.readUnsignedByte();
       case 0:
         int len = firstByte + 129;
         switch (len) {
@@ -247,14 +240,14 @@ public final class Utils {
   /**
    * Read a String as a VInt n, followed by n Bytes in Text format.
    *
-   * @param in
-   *          The input stream.
+   * @param in The input stream.
    * @return The string
    */
   public static String readString(DataInput in) throws IOException {
     int length = readVInt(in);
-    if (length == -1)
+    if (length == -1) {
       return null;
+    }
     byte[] buffer = new byte[length];
     in.readFully(buffer);
     return Text.decode(buffer);
@@ -275,8 +268,7 @@ public final class Utils {
     /**
      * Construct the Version object by reading from the input stream.
      *
-     * @param in
-     *          input stream
+     * @param in input stream
      */
     public Version(DataInput in) throws IOException {
       major = in.readShort();
@@ -286,10 +278,8 @@ public final class Utils {
     /**
      * Constructor.
      *
-     * @param major
-     *          major version.
-     * @param minor
-     *          minor version.
+     * @param major major version.
+     * @param minor minor version.
      */
     public Version(short major, short minor) {
       this.major = major;
@@ -300,30 +290,11 @@ public final class Utils {
      * Write the object to a DataOutput. The serialized format of the Version is major version
      * followed by minor version, both as big-endian short integers.
      *
-     * @param out
-     *          The DataOutput object.
+     * @param out The DataOutput object.
      */
     public void write(DataOutput out) throws IOException {
       out.writeShort(major);
       out.writeShort(minor);
-    }
-
-    /**
-     * Get the major version.
-     *
-     * @return Major version.
-     */
-    public int getMajor() {
-      return major;
-    }
-
-    /**
-     * Get the minor version.
-     *
-     * @return The minor version.
-     */
-    public int getMinor() {
-      return minor;
     }
 
     /**
@@ -343,8 +314,7 @@ public final class Utils {
     /**
      * Test compatibility.
      *
-     * @param other
-     *          The Version object to test compatibility with.
+     * @param other The Version object to test compatibility with.
      * @return true if both versions have the same major version number; false otherwise.
      */
     public boolean compatibleWith(Version other) {
@@ -361,10 +331,12 @@ public final class Utils {
 
     @Override
     public boolean equals(Object other) {
-      if (this == other)
+      if (this == other) {
         return true;
-      if (!(other instanceof Version))
+      }
+      if (!(other instanceof Version)) {
         return false;
+      }
       return compareTo((Version) other) == 0;
     }
 
@@ -372,36 +344,6 @@ public final class Utils {
     public int hashCode() {
       return ((major << 16) + minor);
     }
-  }
-
-  /**
-   * Lower bound binary search. Find the index to the first element in the list that compares
-   * greater than or equal to key.
-   *
-   * @param <T>
-   *          Type of the input key.
-   * @param list
-   *          The list
-   * @param key
-   *          The input key.
-   * @param cmp
-   *          Comparator for the key.
-   * @return The index to the desired element if it exists; or list.size() otherwise.
-   */
-  public static <T> int lowerBound(List<? extends T> list, T key, Comparator<? super T> cmp) {
-    int low = 0;
-    int high = list.size();
-
-    while (low < high) {
-      int mid = (low + high) >>> 1;
-      T midVal = list.get(mid);
-      int ret = cmp.compare(midVal, key);
-      if (ret < 0)
-        low = mid + 1;
-      else
-        high = mid;
-    }
-    return low;
   }
 
 }

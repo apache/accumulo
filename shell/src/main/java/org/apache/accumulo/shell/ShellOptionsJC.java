@@ -1,163 +1,68 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
+import java.util.Properties;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.commons.configuration.ConfigurationException;
+import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.DynamicParameter;
-import com.beust.jcommander.IStringConverter;
+import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.converters.FileConverter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ShellOptionsJC {
-  private static final Logger log = LoggerFactory.getLogger(ShellOptionsJC.class);
 
-  @Parameter(names = {"-u", "--user"}, description = "username (defaults to your OS user)")
+  @Parameter(names = {"-u", "--user"}, description = "username")
   private String username = null;
-
-  public static class PasswordConverter implements IStringConverter<String> {
-    public static final String STDIN = "stdin";
-
-    private enum KeyType {
-      PASS("pass:"), ENV("env:") {
-        @Override
-        String process(String value) {
-          return System.getenv(value);
-        }
-      },
-      FILE("file:") {
-        @Override
-        String process(String value) {
-          Scanner scanner = null;
-          try {
-            scanner = new Scanner(new File(value));
-            return scanner.nextLine();
-          } catch (FileNotFoundException e) {
-            throw new ParameterException(e);
-          } finally {
-            if (scanner != null) {
-              scanner.close();
-            }
-          }
-        }
-      },
-      STDIN(PasswordConverter.STDIN) {
-        @Override
-        public boolean matches(String value) {
-          return prefix.equals(value);
-        }
-
-        @Override
-        public String convert(String value) {
-          // Will check for this later
-          return prefix;
-        }
-      };
-
-      String prefix;
-
-      private KeyType(String prefix) {
-        this.prefix = prefix;
-      }
-
-      public boolean matches(String value) {
-        return value.startsWith(prefix);
-      }
-
-      public String convert(String value) {
-        return process(value.substring(prefix.length()));
-      }
-
-      String process(String value) {
-        return value;
-      }
-    }
-
-    @Override
-    public String convert(String value) {
-      for (KeyType keyType : KeyType.values()) {
-        if (keyType.matches(value)) {
-          return keyType.convert(value);
-        }
-      }
-
-      return value;
-    }
-  }
 
   // Note: Don't use "password = true" because then it will prompt even if we have a token
   @Parameter(names = {"-p", "--password"},
-      description = "password (can be specified as 'pass:<password>',"
+      description = "password (can be specified as '<password>', 'pass:<password>',"
           + " 'file:<local file containing the password>', 'env:<variable containing"
           + " the pass>', or stdin)",
-      converter = PasswordConverter.class)
+      converter = ClientOpts.PasswordConverter.class)
   private String password;
 
-  public static class TokenConverter implements IStringConverter<AuthenticationToken> {
-    @Override
-    public AuthenticationToken convert(String value) {
-      try {
-        return Class.forName(value).asSubclass(AuthenticationToken.class).newInstance();
-      } catch (Exception e) {
-        // Catching ClassNotFoundException, ClassCastException, InstantiationException and
-        // IllegalAccessException
-        log.error("Could not instantiate AuthenticationToken {}", value, e);
-        throw new ParameterException(e);
-      }
-    }
-  }
-
-  @Parameter(names = {"-tc", "--tokenClass"},
-      description = "token type to create, use the -l to pass options",
-      converter = TokenConverter.class)
-  private AuthenticationToken authenticationToken;
-
-  @DynamicParameter(names = {"-l", "--tokenProperty"},
-      description = "login properties in the format key=value. Reuse -l for each property")
-  private Map<String,String> tokenProperties = new TreeMap<>();
+  @DynamicParameter(names = {"-l"},
+      description = "command line properties in the format key=value. Reuse -l for each property")
+  private Map<String,String> commandLineProperties = new TreeMap<>();
 
   @Parameter(names = "--disable-tab-completion",
       description = "disables tab completion (for less overhead when scripting)")
   private boolean tabCompletionDisabled;
 
-  @Parameter(names = "--debug", description = "enables client debugging")
+  @Parameter(names = "--debug", description = "enables client debugging"
+      + "; deprecated, configure debugging through your logging configuration file")
   private boolean debugEnabled;
-
-  @Parameter(names = "--fake", description = "fake a connection to accumulo")
-  private boolean fake;
 
   @Parameter(names = {"-?", "--help"}, help = true, description = "display this help")
   private boolean helpEnabled;
@@ -175,9 +80,6 @@ public class ShellOptionsJC {
       converter = FileConverter.class)
   private File execFileVerbose;
 
-  @Parameter(names = {"-h", "--hdfsZooInstance"}, description = "use hdfs zoo instance")
-  private boolean hdfsZooInstance;
-
   @Parameter(names = {"-z", "--zooKeeperInstance"},
       description = "use a zookeeper instance with the given instance name and"
           + " list of zoo hosts. Syntax: -z <zoo-instance-name> <zoo-hosts>. Where"
@@ -192,10 +94,11 @@ public class ShellOptionsJC {
   private boolean useSasl = false;
 
   @Parameter(names = "--config-file",
-      description = "read the given client"
-          + " config file. If omitted, the path searched can be specified with"
-          + " $ACCUMULO_CLIENT_CONF_PATH, which defaults to"
-          + " ~/.accumulo/config:$ACCUMULO_CONF_DIR/client.conf:/etc/accumulo/client.conf")
+      description = "Read the given"
+          + " accumulo-client.properties file. If omitted, the following locations will be"
+          + " searched ~/.accumulo/accumulo-client.properties:"
+          + "$ACCUMULO_CONF_DIR/accumulo-client.properties:"
+          + "/etc/accumulo/accumulo-client.properties")
   private String clientConfigFile = null;
 
   @Parameter(names = {"-zi", "--zooKeeperInstanceName"},
@@ -209,8 +112,9 @@ public class ShellOptionsJC {
   private String zooKeeperHosts;
 
   @Parameter(names = "--auth-timeout",
-      description = "minutes the shell can be idle without re-entering a password")
-  private int authTimeout = 60; // TODO Add validator for positive number
+      description = "minutes the shell can be idle without re-entering a password",
+      validateWith = PositiveInteger.class)
+  private int authTimeout = 60;
 
   @Parameter(names = "--disable-auth-timeout",
       description = "disables requiring the user to re-type a password after being idle")
@@ -220,16 +124,21 @@ public class ShellOptionsJC {
   private List<String> unrecognizedOptions;
 
   public String getUsername() throws Exception {
-    if (null == username) {
-      final ClientConfiguration clientConf = getClientConfiguration();
-      if (Boolean.parseBoolean(clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED))) {
-        if (!UserGroupInformation.isSecurityEnabled()) {
-          throw new RuntimeException("Kerberos security is not enabled");
+    if (username == null) {
+      username = getClientProperties().getProperty(ClientProperty.AUTH_PRINCIPAL.getKey());
+      if (username == null || username.isEmpty()) {
+        if (ClientProperty.SASL_ENABLED.getBoolean(getClientProperties())) {
+          if (!UserGroupInformation.isSecurityEnabled()) {
+            throw new IllegalArgumentException(
+                "Kerberos security is not enabled. Run with --sasl or set 'sasl.enabled' in"
+                    + " accumulo-client.properties");
+          }
+          UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+          username = ugi.getUserName();
+        } else {
+          throw new IllegalArgumentException("Username is not set. Run with '-u"
+              + " myuser' or set 'auth.principal' in accumulo-client.properties");
         }
-        UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
-        username = ugi.getUserName();
-      } else {
-        username = System.getProperty("user.name", "root");
       }
     }
     return username;
@@ -239,33 +148,12 @@ public class ShellOptionsJC {
     return password;
   }
 
-  public AuthenticationToken getAuthenticationToken() throws Exception {
-    if (null == authenticationToken) {
-      final ClientConfiguration clientConf = getClientConfiguration();
-      // Automatically use a KerberosToken if the client conf is configured for SASL
-      final boolean saslEnabled =
-          Boolean.parseBoolean(clientConf.get(ClientProperty.INSTANCE_RPC_SASL_ENABLED));
-      if (saslEnabled) {
-        authenticationToken = new KerberosToken();
-      }
-    }
-    return authenticationToken;
-  }
-
-  public Map<String,String> getTokenProperties() {
-    return tokenProperties;
-  }
-
   public boolean isTabCompletionDisabled() {
     return tabCompletionDisabled;
   }
 
   public boolean isDebugEnabled() {
     return debugEnabled;
-  }
-
-  public boolean isFake() {
-    return fake;
   }
 
   public boolean isHelpEnabled() {
@@ -284,28 +172,12 @@ public class ShellOptionsJC {
     return execFileVerbose;
   }
 
-  public boolean isHdfsZooInstance() {
-    return hdfsZooInstance;
-  }
-
-  public List<String> getZooKeeperInstance() {
-    return zooKeeperInstance;
-  }
-
-  public String getZooKeeperInstanceName() {
-    return zooKeeperInstanceName;
-  }
-
-  public String getZooKeeperHosts() {
-    return zooKeeperHosts;
-  }
-
   public int getAuthTimeout() {
     return authTimeout;
   }
 
   public boolean isAuthTimeoutDisabled() {
-    if (useSasl()) {
+    if (useSasl) {
       return true;
     }
     return authTimeoutDisabled;
@@ -315,49 +187,72 @@ public class ShellOptionsJC {
     return unrecognizedOptions;
   }
 
-  public boolean useSsl() {
-    return useSsl;
-  }
-
-  public String getClientConfigFile() {
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "user-provided paths intentional")
+  public String getClientPropertiesFile() {
+    if (clientConfigFile == null) {
+      List<String> searchPaths = new LinkedList<>();
+      searchPaths.add(System.getProperty("user.home") + "/.accumulo/accumulo-client.properties");
+      if (System.getenv("ACCUMULO_CONF_DIR") != null) {
+        searchPaths.add(System.getenv("ACCUMULO_CONF_DIR") + "/accumulo-client.properties");
+      }
+      searchPaths.add("/etc/accumulo/accumulo-client.properties");
+      for (String path : searchPaths) {
+        File file = new File(path);
+        if (file.isFile() && file.canRead()) {
+          clientConfigFile = file.getAbsolutePath();
+          System.out.println("Loading configuration from " + clientConfigFile);
+          break;
+        }
+      }
+    }
     return clientConfigFile;
   }
 
-  public ClientConfiguration getClientConfiguration()
-      throws ConfigurationException, FileNotFoundException {
-    ClientConfiguration clientConfig = clientConfigFile == null ? ClientConfiguration.loadDefault()
-        : ClientConfiguration.fromFile(new File(getClientConfigFile()));
-    if (useSsl()) {
-      clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SSL_ENABLED, "true");
+  public Properties getClientProperties() {
+    Properties props = new Properties();
+    if (getClientPropertiesFile() != null) {
+      props = ClientInfoImpl.toProperties(getClientPropertiesFile());
     }
-    if (useSasl()) {
-      clientConfig.setProperty(ClientProperty.INSTANCE_RPC_SASL_ENABLED, "true");
+    for (Map.Entry<String,String> entry : commandLineProperties.entrySet()) {
+      props.setProperty(entry.getKey(), entry.getValue());
     }
-    if (!getZooKeeperInstance().isEmpty()) {
-      List<String> zkOpts = getZooKeeperInstance();
-      String instanceName = zkOpts.get(0);
-      String hosts = zkOpts.get(1);
-      clientConfig.setProperty(ClientProperty.INSTANCE_ZK_HOST, hosts);
-      clientConfig.setProperty(ClientProperty.INSTANCE_NAME, instanceName);
+    if (useSsl) {
+      props.setProperty(ClientProperty.SSL_ENABLED.getKey(), "true");
+    }
+    if (useSasl) {
+      props.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
+    }
+    if (!zooKeeperInstance.isEmpty()) {
+      String instanceName = zooKeeperInstance.get(0);
+      String hosts = zooKeeperInstance.get(1);
+      props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), hosts);
+      props.setProperty(ClientProperty.INSTANCE_NAME.getKey(), instanceName);
     }
     // If the user provided the hosts, set the ZK for tracing too
-    if (null != zooKeeperHosts && !zooKeeperHosts.isEmpty()) {
-      clientConfig.setProperty(ClientProperty.INSTANCE_ZK_HOST, zooKeeperHosts);
+    if (zooKeeperHosts != null && !zooKeeperHosts.isEmpty()) {
+      props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zooKeeperHosts);
     }
-    if (null != zooKeeperInstanceName && !zooKeeperInstanceName.isEmpty()) {
-      clientConfig.setProperty(ClientProperty.INSTANCE_NAME, zooKeeperInstanceName);
+    if (zooKeeperInstanceName != null && !zooKeeperInstanceName.isEmpty()) {
+      props.setProperty(ClientProperty.INSTANCE_NAME.getKey(), zooKeeperInstanceName);
     }
-
-    // Automatically try to add in the proper ZK from accumulo-site for backwards compat.
-    if (!clientConfig.containsKey(ClientProperty.INSTANCE_ZK_HOST.getKey())) {
-      AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
-      clientConfig.withZkHosts(siteConf.get(Property.INSTANCE_ZK_HOST));
-    }
-
-    return clientConfig;
+    return props;
   }
 
-  public boolean useSasl() {
-    return useSasl;
+  static class PositiveInteger implements IParameterValidator {
+    @Override
+    public void validate(String name, String value) throws ParameterException {
+      int n = -1;
+      try {
+        n = Integer.parseInt(value);
+      } catch (NumberFormatException e) {
+        // ignore, will be handled below
+      }
+      if (n < 0) {
+        throw new ParameterException(
+            "Parameter " + name + " should be a positive integer (was " + value + ")");
+      }
+    }
   }
+
 }

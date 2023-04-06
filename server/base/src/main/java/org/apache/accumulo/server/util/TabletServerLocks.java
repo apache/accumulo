@@ -1,76 +1,74 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-
-import com.beust.jcommander.Parameter;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.server.ServerContext;
 
 public class TabletServerLocks {
 
-  static class Opts extends Help {
-    @Parameter(names = "-list")
-    boolean list = false;
-    @Parameter(names = "-delete")
-    String delete = null;
-  }
+  public static void execute(final ServerContext context, final String lock, final String delete)
+      throws Exception {
+    String tserverPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
 
-  public static void main(String[] args) throws Exception {
+    ZooCache cache = context.getZooCache();
+    ZooReaderWriter zoo = context.getZooReaderWriter();
 
-    Instance instance = HdfsZooInstance.getInstance();
-    String tserverPath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
-    Opts opts = new Opts();
-    opts.parseArgs(TabletServerLocks.class.getName(), args);
-
-    ZooCache cache = new ZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
-
-    if (opts.list) {
-      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-
+    if (delete == null) {
       List<String> tabletServers = zoo.getChildren(tserverPath);
+      if (tabletServers.isEmpty()) {
+        System.err.println("No tservers found in ZK at " + tserverPath);
+      }
 
       for (String tabletServer : tabletServers) {
-        byte[] lockData = ZooLock.getLockData(cache, tserverPath + "/" + tabletServer, null);
-        String holder = null;
-        if (lockData != null) {
-          holder = new String(lockData, UTF_8);
+        var zLockPath = ServiceLock.path(tserverPath + "/" + tabletServer);
+        Optional<ServiceLockData> lockData = ServiceLock.getLockData(cache, zLockPath, null);
+        final String holder;
+        if (lockData.isPresent()) {
+          holder = lockData.get().getAddressString(ThriftService.TSERV);
+        } else {
+          holder = "<none>";
         }
 
         System.out.printf("%32s %16s%n", tabletServer, holder);
       }
-    } else if (opts.delete != null) {
-      ZooLock.deleteLock(tserverPath + "/" + args[1]);
     } else {
-      System.out.println(
-          "Usage : " + TabletServerLocks.class.getName() + " -list|-delete <tserver lock>");
-    }
+      if (lock == null) {
+        printUsage();
+      }
 
+      ServiceLock.ServiceLockPath path = ServiceLock.path(tserverPath + "/" + lock);
+      ServiceLock.deleteLock(zoo, path);
+      System.out.printf("Deleted %s", path);
+    }
+  }
+
+  private static void printUsage() {
+    System.out.println("Usage : accumulo admin locks -delete <tserver lock>");
   }
 
 }

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -82,14 +84,17 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
     super.seek(seekRange, columnFamilies, inclusive);
     resetVersionCount();
 
-    if (range.getStartKey() != null)
-      while (hasTop() && range.beforeStartKey(getTopKey()))
+    if (range.getStartKey() != null) {
+      while (hasTop() && range.beforeStartKey(getTopKey())) {
         next();
+      }
+    }
   }
 
   private void resetVersionCount() {
-    if (super.hasTop())
+    if (super.hasTop()) {
       currentKey.set(getSource().getTopKey());
+    }
     numVersions = 1;
   }
 
@@ -114,8 +119,9 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
   }
 
   protected void reseek(Key key) throws IOException {
-    if (key == null)
+    if (key == null) {
       return;
+    }
     if (range.afterEndKey(key)) {
       range = new Range(range.getEndKey(), true, range.getEndKey(), range.isEndKeyInclusive());
       getSource().seek(range, columnFamilies, inclusive);
@@ -132,13 +138,15 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
     this.numVersions = 0;
 
     String maxVerString = options.get("maxVersions");
-    if (maxVerString != null)
+    if (maxVerString != null) {
       this.maxVersions = Integer.parseInt(maxVerString);
-    else
+    } else {
       this.maxVersions = 1;
+    }
 
-    if (maxVersions < 1)
+    if (maxVersions < 1) {
       throw new IllegalArgumentException("maxVersions for versioning iterator must be >= 1");
+    }
   }
 
   @Override
@@ -161,8 +169,9 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
       throw new IllegalArgumentException(
           "bad integer " + MAXVERSIONS_OPT + ":" + options.get(MAXVERSIONS_OPT));
     }
-    if (i < 1)
+    if (i < 1) {
       throw new IllegalArgumentException(MAXVERSIONS_OPT + " for versioning iterator must be >= 1");
+    }
     return true;
   }
 
@@ -170,8 +179,9 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
    * Encode the maximum number of versions to return onto the ScanIterator
    */
   public static void setMaxVersions(IteratorSetting cfg, int maxVersions) {
-    if (maxVersions < 1)
+    if (maxVersions < 1) {
       throw new IllegalArgumentException(MAXVERSIONS_OPT + " for versioning iterator must be >= 1");
+    }
     cfg.addOption(MAXVERSIONS_OPT, Integer.toString(maxVersions));
   }
 }

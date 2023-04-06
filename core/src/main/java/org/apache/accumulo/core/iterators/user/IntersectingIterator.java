@@ -1,22 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.util.Base64;
@@ -51,15 +51,16 @@ import org.apache.hadoop.io.Text;
  *
  * row: shardID, colfam: (empty), colqual: docID
  *
- * This iterator is commonly used with BatchScanner or AccumuloInputFormat, to parallelize the
- * search over all shardIDs.
+ * This iterator is commonly used with BatchScanner to parallelize the search over all shardIDs.
  *
  * This iterator will *ignore* any columnFamilies passed to
  * {@link #seek(Range, Collection, boolean)} as it performs intersections over terms. Extending
  * classes should override the {@link TermSource#seekColfams} in their implementation's
  * {@link #init(SortedKeyValueIterator, Map, IteratorEnvironment)} method.
  *
- * README.shard in docs/examples shows an example of using the IntersectingIterator.
+ * An example of using the IntersectingIterator is available in
+ * <a href="https://github.com/apache/accumulo-examples/blob/main/docs/shard.md">the examples
+ * repo</a>
  */
 public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
 
@@ -111,8 +112,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
       this.term = term;
       this.notFlag = notFlag;
       // The desired column families for this source is the term itself
-      this.seekColfams = Collections.<
-          ByteSequence>singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
+      this.seekColfams =
+          Collections.singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
     }
 
     public String getTermString() {
@@ -185,7 +186,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
 
     if (sources[sourceID].notFlag) {
       while (true) {
-        if (sources[sourceID].iter.hasTop() == false) {
+        if (!sources[sourceID].iter.hasTop()) {
           // an empty column that you are negating is a valid condition
           break;
         }
@@ -267,7 +268,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
       }
     } else {
       while (true) {
-        if (sources[sourceID].iter.hasTop() == false) {
+        if (!sources[sourceID].iter.hasTop()) {
           currentPartition = null;
           // setting currentRow to null counts as advancing the cursor
           return true;
@@ -398,8 +399,9 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   }
 
   public static String stringTopKey(SortedKeyValueIterator<Key,Value> iter) {
-    if (iter.hasTop())
+    if (iter.hasTop()) {
       return iter.getTopKey().toString();
+    }
     return "";
   }
 
@@ -411,8 +413,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    */
   protected static String encodeColumns(Text[] columns) {
     StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < columns.length; i++) {
-      sb.append(Base64.getEncoder().encodeToString(TextUtil.getBytes(columns[i])));
+    for (Text column : columns) {
+      sb.append(Base64.getEncoder().encodeToString(TextUtil.getBytes(column)));
       sb.append('\n');
     }
     return sb.toString();
@@ -424,10 +426,11 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   protected static String encodeBooleans(boolean[] flags) {
     byte[] bytes = new byte[flags.length];
     for (int i = 0; i < flags.length; i++) {
-      if (flags[i])
+      if (flags[i]) {
         bytes[i] = 1;
-      else
+      } else {
         bytes[i] = 0;
+      }
     }
     return Base64.getEncoder().encodeToString(bytes);
   }
@@ -436,7 +439,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     String[] columnStrings = columns.split("\n");
     Text[] columnTexts = new Text[columnStrings.length];
     for (int i = 0; i < columnStrings.length; i++) {
-      columnTexts[i] = new Text(Base64.getDecoder().decode(columnStrings[i].getBytes(UTF_8)));
+      columnTexts[i] = new Text(Base64.getDecoder().decode(columnStrings[i]));
     }
     return columnTexts;
   }
@@ -446,16 +449,14 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    */
   protected static boolean[] decodeBooleans(String flags) {
     // return null of there were no flags
-    if (flags == null)
+    if (flags == null) {
       return null;
+    }
 
-    byte[] bytes = Base64.getDecoder().decode(flags.getBytes(UTF_8));
+    byte[] bytes = Base64.getDecoder().decode(flags);
     boolean[] bFlags = new boolean[bytes.length];
     for (int i = 0; i < bytes.length; i++) {
-      if (bytes[i] == 1)
-        bFlags[i] = true;
-      else
-        bFlags[i] = false;
+      bFlags[i] = bytes[i] == 1;
     }
     return bFlags;
   }
@@ -476,12 +477,13 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     // And we are going to re-order such that the first term is not a ! term
     if (notFlag == null) {
       notFlag = new boolean[terms.length];
-      for (int i = 0; i < terms.length; i++)
+      for (int i = 0; i < terms.length; i++) {
         notFlag[i] = false;
+      }
     }
     if (notFlag[0]) {
       for (int i = 1; i < notFlag.length; i++) {
-        if (notFlag[i] == false) {
+        if (!notFlag[i]) {
           Text swapFamily = new Text(terms[0]);
           terms[0].set(terms[i]);
           terms[i].set(swapFamily);
@@ -532,36 +534,12 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   }
 
   /**
-   * @deprecated since 1.6.0
-   */
-  @Deprecated
-  public void addSource(SortedKeyValueIterator<Key,Value> source, IteratorEnvironment env,
-      Text term, boolean notFlag) {
-    // Check if we have space for the added Source
-    if (sources == null) {
-      sources = new TermSource[1];
-    } else {
-      // allocate space for node, and copy current tree.
-      // TODO: Should we change this to an ArrayList so that we can just add() ? - ACCUMULO-1309
-      TermSource[] localSources = new TermSource[sources.length + 1];
-      int currSource = 0;
-      for (TermSource myTerm : sources) {
-        // TODO: Do I need to call new here? or can I just re-use the term? - ACCUMULO-1309
-        localSources[currSource] = new TermSource(myTerm);
-        currSource++;
-      }
-      sources = localSources;
-    }
-    sources[sourcesCount] = new TermSource(source.deepCopy(env), term, notFlag);
-    sourcesCount++;
-  }
-
-  /**
    * Encode the columns to be used when iterating.
    */
   public static void setColumnFamilies(IteratorSetting cfg, Text[] columns) {
-    if (columns.length < 1)
+    if (columns.length < 1) {
       throw new IllegalArgumentException("Must supply at least one term to intersect");
+    }
     cfg.addOption(IntersectingIterator.columnFamiliesOptionName,
         IntersectingIterator.encodeColumns(columns));
   }
@@ -571,10 +549,12 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    * excluded if matching negated columns, instead of included).
    */
   public static void setColumnFamilies(IteratorSetting cfg, Text[] columns, boolean[] notFlags) {
-    if (columns.length < 1)
+    if (columns.length < 1) {
       throw new IllegalArgumentException("Must supply at least one terms to intersect");
-    if (columns.length != notFlags.length)
+    }
+    if (columns.length != notFlags.length) {
       throw new IllegalArgumentException("columns and notFlags arrays must be the same length");
+    }
     setColumnFamilies(cfg, columns);
     cfg.addOption(IntersectingIterator.notFlagOptionName,
         IntersectingIterator.encodeBooleans(notFlags));

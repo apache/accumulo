@@ -1,24 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -27,80 +30,92 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.ScannerImpl;
-import org.apache.accumulo.core.client.impl.Writer;
+import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.clientImpl.ScannerImpl;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.fs.FileRef;
-import org.apache.accumulo.server.master.state.Assignment;
-import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.tablets.TabletTime;
-import org.apache.accumulo.server.util.FileUtil;
-import org.apache.accumulo.server.util.MasterMetadataUtil;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.manager.state.Assignment;
+import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
-import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.tserver.TabletServer;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class SplitRecoveryIT extends ConfigurableMacBase {
 
   @Override
-  protected int defaultTimeoutSeconds() {
-    return 60;
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
   }
 
   private KeyExtent nke(String table, String endRow, String prevEndRow) {
-    return new KeyExtent(table, endRow == null ? null : new Text(endRow),
+    return new KeyExtent(TableId.of(table), endRow == null ? null : new Text(endRow),
         prevEndRow == null ? null : new Text(prevEndRow));
   }
 
-  private void run() throws Exception {
-    Instance inst = HdfsZooInstance.getInstance();
-    AccumuloServerContext c = new AccumuloServerContext(new ServerConfigurationFactory(inst));
-    String zPath = ZooUtil.getRoot(inst) + "/testLock";
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.OVERWRITE);
-    ZooLock zl = new ZooLock(zPath);
+  private void run(ServerContext c) throws Exception {
+    var zPath = ServiceLock.path(c.getZooKeeperRoot() + "/testLock");
+    ZooReaderWriter zoo = c.getZooReaderWriter();
+    zoo.putPersistentData(zPath.toString(), new byte[0], NodeExistsPolicy.OVERWRITE);
+    ServiceLock zl = new ServiceLock(zoo.getZooKeeper(), zPath, UUID.randomUUID());
     boolean gotLock = zl.tryLock(new LockWatcher() {
 
+      @SuppressFBWarnings(value = "DM_EXIT",
+          justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
       @Override
       public void lostLock(LockLossReason reason) {
         System.exit(-1);
 
       }
 
+      @SuppressFBWarnings(value = "DM_EXIT",
+          justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
       @Override
-      public void unableToMonitorLockNode(Throwable e) {
+      public void unableToMonitorLockNode(Exception e) {
         System.exit(-1);
       }
-    }, "foo".getBytes(UTF_8));
+    }, new ServiceLockData(UUID.randomUUID(), "foo", ThriftService.TSERV,
+        ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME));
 
     if (!gotLock) {
       System.err.println("Failed to get lock " + zPath);
@@ -135,117 +150,146 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         nke("foob", null, "r"));
   }
 
-  private void runSplitRecoveryTest(AccumuloServerContext context, int failPoint, String mr,
-      int extentToSplit, ZooLock zl, KeyExtent... extents) throws Exception {
+  private void runSplitRecoveryTest(ServerContext context, int failPoint, String mr,
+      int extentToSplit, ServiceLock zl, KeyExtent... extents) throws Exception {
 
     Text midRow = new Text(mr);
 
-    SortedMap<FileRef,DataFileValue> splitMapFiles = null;
+    SortedMap<StoredTabletFile,DataFileValue> splitMapFiles = null;
 
     for (int i = 0; i < extents.length; i++) {
       KeyExtent extent = extents[i];
 
-      String tdir = ServerConstants.getTablesDirs()[0] + "/" + extent.getTableId() + "/dir_" + i;
-      MetadataTableUtil.addTablet(extent, tdir, context, TabletTime.LOGICAL_TIME_ID, zl);
-      SortedMap<FileRef,DataFileValue> mapFiles = new TreeMap<>();
-      mapFiles.put(new FileRef(tdir + "/" + RFile.EXTENSION + "_000_000"),
+      String dirName = "dir_" + i;
+      String tdir =
+          context.getTablesDirs().iterator().next() + "/" + extent.tableId() + "/" + dirName;
+      MetadataTableUtil.addTablet(extent, dirName, context, TimeType.LOGICAL, zl);
+      SortedMap<TabletFile,DataFileValue> mapFiles = new TreeMap<>();
+      mapFiles.put(new TabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
           new DataFileValue(1000017 + i, 10000 + i));
 
-      if (i == extentToSplit) {
-        splitMapFiles = mapFiles;
-      }
       int tid = 0;
-      TransactionWatcher.ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, tid);
-      MetadataTableUtil.updateTabletDataFile(tid, extent, mapFiles, "L0", context, zl);
+      TransactionWatcher.ZooArbitrator.start(context, Constants.BULK_ARBITRATOR_TYPE, tid);
+      SortedMap<StoredTabletFile,DataFileValue> storedFiles =
+          new TreeMap<>(MetadataTableUtil.updateTabletDataFile(tid, extent, mapFiles,
+              new MetadataTime(0, TimeType.LOGICAL), context, zl));
+      if (i == extentToSplit) {
+        splitMapFiles = storedFiles;
+      }
     }
 
     KeyExtent extent = extents[extentToSplit];
 
-    KeyExtent high = new KeyExtent(extent.getTableId(), extent.getEndRow(), midRow);
-    KeyExtent low = new KeyExtent(extent.getTableId(), midRow, extent.getPrevEndRow());
+    KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
+    KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
 
     splitPartiallyAndRecover(context, extent, high, low, .4, splitMapFiles, midRow,
         "localhost:1234", failPoint, zl);
   }
 
-  private void splitPartiallyAndRecover(AccumuloServerContext context, KeyExtent extent,
-      KeyExtent high, KeyExtent low, double splitRatio, SortedMap<FileRef,DataFileValue> mapFiles,
-      Text midRow, String location, int steps, ZooLock zl) throws Exception {
+  private static Map<Long,List<TabletFile>> getBulkFilesLoaded(ServerContext context,
+      KeyExtent extent) {
+    Map<Long,List<TabletFile>> bulkFiles = new HashMap<>();
 
-    SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<>();
-    SortedMap<FileRef,DataFileValue> highDatafileSizes = new TreeMap<>();
-    List<FileRef> highDatafilesToRemove = new ArrayList<>();
+    context.getAmple().readTablet(extent).getLoaded()
+        .forEach((path, txid) -> bulkFiles.computeIfAbsent(txid, k -> new ArrayList<>()).add(path));
 
-    MetadataTableUtil.splitDatafiles(extent.getTableId(), midRow, splitRatio,
-        new HashMap<FileRef,FileUtil.FileInfo>(), mapFiles, lowDatafileSizes, highDatafileSizes,
-        highDatafilesToRemove);
+    return bulkFiles;
+  }
 
-    MetadataTableUtil.splitTablet(high, extent.getPrevEndRow(), splitRatio, context, zl);
+  private void splitPartiallyAndRecover(ServerContext context, KeyExtent extent, KeyExtent high,
+      KeyExtent low, double splitRatio, SortedMap<StoredTabletFile,DataFileValue> mapFiles,
+      Text midRow, String location, int steps, ServiceLock zl) throws Exception {
+
+    SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
+    SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
+    List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
+
+    MetadataTableUtil.splitDatafiles(midRow, splitRatio, new HashMap<>(), mapFiles,
+        lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
+
+    MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio, context, zl, Set.of());
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());
-    Writer writer = MetadataTableUtil.getMetadataTable(context);
     Assignment assignment = new Assignment(high, instance);
-    Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
-    assignment.server.putFutureLocation(m);
-    writer.update(m);
+
+    TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
+    tabletMutator.putLocation(Location.future(assignment.server));
+    tabletMutator.mutate();
 
     if (steps >= 1) {
-      Map<Long,? extends Collection<FileRef>> bulkFiles =
-          MetadataTableUtil.getBulkFilesLoaded(context, extent);
-      MasterMetadataUtil.addNewTablet(context, low, "/lowDir", instance, lowDatafileSizes,
-          bulkFiles, TabletTime.LOGICAL_TIME_ID + "0", -1l, -1l, zl);
+      Map<Long,List<TabletFile>> bulkFiles = getBulkFilesLoaded(context, high);
+
+      ManagerMetadataUtil.addNewTablet(context, low, "lowDir", instance, lowDatafileSizes,
+          bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L, -1L, zl);
     }
     if (steps >= 2) {
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context, zl);
     }
 
-    TabletServer.verifyTabletInformation(context, high, instance, null, "127.0.0.1:0", zl);
+    TabletMetadata meta = context.getAmple().readTablet(high);
+    KeyExtent fixedExtent = ManagerMetadataUtil.fixSplit(context, meta, zl);
+
+    if (steps < 2) {
+      assertEquals(splitRatio, meta.getSplitRatio(), 0.0);
+    }
 
     if (steps >= 1) {
+      assertEquals(high, fixedExtent);
       ensureTabletHasNoUnexpectedMetadataEntries(context, low, lowDatafileSizes);
       ensureTabletHasNoUnexpectedMetadataEntries(context, high, highDatafileSizes);
 
-      Map<Long,? extends Collection<FileRef>> lowBulkFiles =
-          MetadataTableUtil.getBulkFilesLoaded(context, low);
-      Map<Long,? extends Collection<FileRef>> highBulkFiles =
-          MetadataTableUtil.getBulkFilesLoaded(context, high);
+      Map<Long,? extends Collection<TabletFile>> lowBulkFiles = getBulkFilesLoaded(context, low);
+      Map<Long,? extends Collection<TabletFile>> highBulkFiles = getBulkFilesLoaded(context, high);
 
       if (!lowBulkFiles.equals(highBulkFiles)) {
         throw new Exception(" " + lowBulkFiles + " != " + highBulkFiles + " " + low + " " + high);
       }
 
-      if (lowBulkFiles.size() == 0) {
+      if (lowBulkFiles.isEmpty()) {
         throw new Exception(" no bulk files " + low);
       }
     } else {
+      assertEquals(extent, fixedExtent);
       ensureTabletHasNoUnexpectedMetadataEntries(context, extent, mapFiles);
     }
   }
 
-  private void ensureTabletHasNoUnexpectedMetadataEntries(AccumuloServerContext context,
-      KeyExtent extent, SortedMap<FileRef,DataFileValue> expectedMapFiles) throws Exception {
+  private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context, KeyExtent extent,
+      SortedMap<StoredTabletFile,DataFileValue> expectedMapFiles) throws Exception {
     try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
-      scanner.setRange(extent.toMetadataRange());
+      scanner.setRange(extent.toMetaRange());
 
       HashSet<ColumnFQ> expectedColumns = new HashSet<>();
-      expectedColumns.add(TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN);
-      expectedColumns.add(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN);
-      expectedColumns.add(TabletsSection.ServerColumnFamily.TIME_COLUMN);
-      expectedColumns.add(TabletsSection.ServerColumnFamily.LOCK_COLUMN);
+      expectedColumns.add(ServerColumnFamily.DIRECTORY_COLUMN);
+      expectedColumns.add(TabletColumnFamily.PREV_ROW_COLUMN);
+      expectedColumns.add(ServerColumnFamily.TIME_COLUMN);
+      expectedColumns.add(ServerColumnFamily.LOCK_COLUMN);
 
       HashSet<Text> expectedColumnFamilies = new HashSet<>();
       expectedColumnFamilies.add(DataFileColumnFamily.NAME);
-      expectedColumnFamilies.add(TabletsSection.FutureLocationColumnFamily.NAME);
-      expectedColumnFamilies.add(TabletsSection.CurrentLocationColumnFamily.NAME);
-      expectedColumnFamilies.add(TabletsSection.LastLocationColumnFamily.NAME);
-      expectedColumnFamilies.add(TabletsSection.BulkFileColumnFamily.NAME);
+      expectedColumnFamilies.add(FutureLocationColumnFamily.NAME);
+      expectedColumnFamilies.add(CurrentLocationColumnFamily.NAME);
+      expectedColumnFamilies.add(LastLocationColumnFamily.NAME);
+      expectedColumnFamilies.add(BulkFileColumnFamily.NAME);
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      while (iter.hasNext()) {
-        Key key = iter.next().getKey();
 
-        if (!key.getRow().equals(extent.getMetadataEntry())) {
+      boolean sawPer = false;
+
+      while (iter.hasNext()) {
+        Entry<Key,Value> entry = iter.next();
+        Key key = entry.getKey();
+
+        if (!key.getRow().equals(extent.toMetaRow())) {
           throw new Exception(
               "Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
+        }
+
+        if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+          sawPer = true;
+          if (!KeyExtent.fromMetaPrevRow(entry).equals(extent)) {
+            throw new Exception("Unexpected prev end row " + entry);
+          }
         }
 
         if (expectedColumnFamilies.contains(key.getColumnFamily())) {
@@ -260,19 +304,20 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
             "Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
       }
 
-      System.out.println("expectedColumns " + expectedColumns);
       if (expectedColumns.size() > 1 || (expectedColumns.size() == 1)) {
         throw new Exception("Not all expected columns seen " + extent + " " + expectedColumns);
       }
 
-      SortedMap<FileRef,DataFileValue> fixedMapFiles =
-          MetadataTableUtil.getDataFileSizes(extent, context);
+      assertTrue(sawPer);
+
+      SortedMap<StoredTabletFile,DataFileValue> fixedMapFiles =
+          MetadataTableUtil.getFileAndLogEntries(context, extent).getSecond();
       verifySame(expectedMapFiles, fixedMapFiles);
     }
   }
 
-  private void verifySame(SortedMap<FileRef,DataFileValue> datafileSizes,
-      SortedMap<FileRef,DataFileValue> fixedDatafileSizes) throws Exception {
+  private void verifySame(SortedMap<StoredTabletFile,DataFileValue> datafileSizes,
+      SortedMap<StoredTabletFile,DataFileValue> fixedDatafileSizes) throws Exception {
 
     if (!datafileSizes.keySet().containsAll(fixedDatafileSizes.keySet())
         || !fixedDatafileSizes.keySet().containsAll(datafileSizes.keySet())) {
@@ -280,7 +325,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
           + fixedDatafileSizes.keySet());
     }
 
-    for (Entry<FileRef,DataFileValue> entry : datafileSizes.entrySet()) {
+    for (Entry<StoredTabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
       DataFileValue dfv = entry.getValue();
       DataFileValue otherDfv = fixedDatafileSizes.get(entry.getKey());
 
@@ -291,7 +336,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   public static void main(String[] args) throws Exception {
-    new SplitRecoveryIT().run();
+    new SplitRecoveryIT().run(new ServerContext(SiteConfiguration.auto()));
   }
 
   @Test

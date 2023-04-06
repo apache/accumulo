@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file;
 
@@ -23,11 +25,12 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.map.MapFileOperations;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
+import org.apache.accumulo.core.summary.SummaryWriter;
 import org.apache.hadoop.fs.Path;
 
 class DispatchingFileFactory extends FileOperations {
 
-  private FileOperations findFileFactory(FileAccessOperation<?> options) {
+  private FileOperations findFileFactory(FileOptions options) {
     String file = options.getFilename();
 
     Path p = new Path(file);
@@ -54,44 +57,31 @@ class DispatchingFileFactory extends FileOperations {
     }
   }
 
-  /**
-   * If the table configuration disallows caching, rewrite the options object to not pass the
-   * caches.
-   */
-  private static <T extends FileReaderOperation<T>> T selectivelyDisableCaches(T input) {
-    if (!input.getTableConfiguration().getBoolean(Property.TABLE_INDEXCACHE_ENABLED)) {
-      input = input.withIndexCache(null);
-    }
-    if (!input.getTableConfiguration().getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) {
-      input = input.withDataCache(null);
-    }
-    return input;
-  }
-
   @Override
-  protected long getFileSize(GetFileSizeOperation options) throws IOException {
+  protected long getFileSize(FileOptions options) throws IOException {
     return findFileFactory(options).getFileSize(options);
   }
 
   @Override
-  protected FileSKVWriter openWriter(OpenWriterOperation options) throws IOException {
-    FileSKVWriter writer = findFileFactory(options).openWriter(options);
+  protected FileSKVWriter openWriter(FileOptions options) throws IOException {
+    FileOperations fileOps = new RFileOperations();
+    FileSKVWriter writer = fileOps.openWriter(options);
     if (options.getTableConfiguration().getBoolean(Property.TABLE_BLOOM_ENABLED)) {
-      return new BloomFilterLayer.Writer(writer, options.getTableConfiguration());
-    } else {
-      return writer;
+      writer = new BloomFilterLayer.Writer(writer, options.getTableConfiguration(),
+          options.isAccumuloStartEnabled());
     }
+
+    return SummaryWriter.wrap(writer, options.getTableConfiguration(),
+        options.isAccumuloStartEnabled());
   }
 
   @Override
-  protected FileSKVIterator openIndex(OpenIndexOperation options) throws IOException {
-    options = selectivelyDisableCaches(options);
+  protected FileSKVIterator openIndex(FileOptions options) throws IOException {
     return findFileFactory(options).openIndex(options);
   }
 
   @Override
-  protected FileSKVIterator openReader(OpenReaderOperation options) throws IOException {
-    options = selectivelyDisableCaches(options);
+  protected FileSKVIterator openReader(FileOptions options) throws IOException {
     FileSKVIterator iter = findFileFactory(options).openReader(options);
     if (options.getTableConfiguration().getBoolean(Property.TABLE_BLOOM_ENABLED)) {
       return new BloomFilterLayer.Reader(iter, options.getTableConfiguration());
@@ -101,8 +91,7 @@ class DispatchingFileFactory extends FileOperations {
   }
 
   @Override
-  protected FileSKVIterator openScanReader(OpenScanReaderOperation options) throws IOException {
-    options = selectivelyDisableCaches(options);
+  protected FileSKVIterator openScanReader(FileOptions options) throws IOException {
     return findFileFactory(options).openScanReader(options);
   }
 }

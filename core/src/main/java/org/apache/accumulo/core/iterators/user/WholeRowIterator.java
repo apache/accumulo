@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -31,7 +33,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
- *
  * The WholeRowIterator is designed to provide row-isolation so that queries see mutations as
  * atomic. It does so by encapsulating an entire row of key/value pairs into a single key/value
  * pair, which is returned through the client as an atomic operation.
@@ -104,6 +105,11 @@ public class WholeRowIterator extends RowEncodingIterator {
     return map;
   }
 
+  private static void encode(DataOutputStream dout, ByteSequence bs) throws IOException {
+    dout.writeInt(bs.length());
+    dout.write(bs.getBackingArray(), bs.offset(), bs.length());
+  }
+
   // take a stream of keys and values and output a value that encodes everything but their row
   // keys and values must be paired one for one
   public static final Value encodeRow(List<Key> keys, List<Value> values) throws IOException {
@@ -113,24 +119,10 @@ public class WholeRowIterator extends RowEncodingIterator {
     for (int i = 0; i < keys.size(); i++) {
       Key k = keys.get(i);
       Value v = values.get(i);
-      // write the colfam
-      {
-        ByteSequence bs = k.getColumnFamilyData();
-        dout.writeInt(bs.length());
-        dout.write(bs.getBackingArray(), bs.offset(), bs.length());
-      }
-      // write the colqual
-      {
-        ByteSequence bs = k.getColumnQualifierData();
-        dout.writeInt(bs.length());
-        dout.write(bs.getBackingArray(), bs.offset(), bs.length());
-      }
-      // write the column visibility
-      {
-        ByteSequence bs = k.getColumnVisibilityData();
-        dout.writeInt(bs.length());
-        dout.write(bs.getBackingArray(), bs.offset(), bs.length());
-      }
+      // write the column family, qualifier & visibility
+      encode(dout, k.getColumnFamilyData());
+      encode(dout, k.getColumnQualifierData());
+      encode(dout, k.getColumnVisibilityData());
       // write the timestamp
       dout.writeLong(k.getTimestamp());
       // write the value
@@ -138,7 +130,6 @@ public class WholeRowIterator extends RowEncodingIterator {
       dout.writeInt(valBytes.length);
       dout.write(valBytes);
     }
-
     return new Value(out.toByteArray());
   }
 }

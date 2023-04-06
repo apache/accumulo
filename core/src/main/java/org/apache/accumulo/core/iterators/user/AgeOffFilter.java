@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -46,29 +48,30 @@ public class AgeOffFilter extends Filter {
    */
   @Override
   public boolean accept(Key k, Value v) {
-    if (currentTime - k.getTimestamp() > threshold)
-      return false;
-    return true;
+    return currentTime - k.getTimestamp() <= threshold;
   }
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
-    if (options == null)
+    if (options == null) {
       throw new IllegalArgumentException(TTL + " must be set for AgeOffFilter");
+    }
 
     String ttl = options.get(TTL);
-    if (ttl == null)
+    if (ttl == null) {
       throw new IllegalArgumentException(TTL + " must be set for AgeOffFilter");
+    }
 
     super.init(source, options, env);
     threshold = Long.parseLong(ttl);
 
     String time = options.get(CURRENT_TIME);
-    if (time != null)
+    if (time != null) {
       currentTime = Long.parseLong(time);
-    else
+    } else {
       currentTime = System.currentTimeMillis();
+    }
 
     // add sanity checks for threshold and currentTime?
   }
@@ -95,8 +98,9 @@ public class AgeOffFilter extends Filter {
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    if (super.validateOptions(options) == false)
+    if (!super.validateOptions(options)) {
       return false;
+    }
     try {
       Long.parseLong(options.get(TTL));
     } catch (Exception e) {
@@ -108,10 +112,8 @@ public class AgeOffFilter extends Filter {
   /**
    * A convenience method for setting the age off threshold.
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param ttl
-   *          age off threshold in milliseconds.
+   * @param is IteratorSetting object to configure.
+   * @param ttl age off threshold in milliseconds.
    */
   public static void setTTL(IteratorSetting is, Long ttl) {
     is.addOption(TTL, Long.toString(ttl));
@@ -121,10 +123,8 @@ public class AgeOffFilter extends Filter {
    * A convenience method for setting the current time (from which to measure the age off
    * threshold).
    *
-   * @param is
-   *          IteratorSetting object to configure.
-   * @param currentTime
-   *          time in milliseconds.
+   * @param is IteratorSetting object to configure.
+   * @param currentTime time in milliseconds.
    */
   public static void setCurrentTime(IteratorSetting is, Long currentTime) {
     is.addOption(CURRENT_TIME, Long.toString(currentTime));

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
@@ -22,17 +24,20 @@ import java.util.Formattable;
 import java.util.Formatter;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.server.zookeeper.ZooLock;
+import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,9 +49,9 @@ public class ListInstances {
 
   private static final int NAME_WIDTH = 20;
   private static final int UUID_WIDTH = 37;
-  private static final int MASTER_WIDTH = 30;
+  private static final int MANAGER_WIDTH = 30;
 
-  private static final int ZOOKEEPER_TIMER_MILLIS = 30 * 1000;
+  private static final int ZOOKEEPER_TIMER_MILLIS = 30_000;
 
   static class Opts extends Help {
     @Parameter(names = "--print-errors", description = "display errors while listing instances")
@@ -65,7 +70,8 @@ public class ListInstances {
     opts.parseArgs(ListInstances.class.getName(), args);
 
     if (opts.keepers == null) {
-      opts.keepers = SiteConfiguration.getInstance().get(Property.INSTANCE_ZK_HOST);
+      var siteConfig = SiteConfiguration.auto();
+      opts.keepers = siteConfig.get(Property.INSTANCE_ZK_HOST);
     }
 
     String keepers = opts.keepers;
@@ -81,28 +87,28 @@ public class ListInstances {
 
     System.out.println("INFO : Using ZooKeepers " + keepers);
     ZooReader rdr = new ZooReader(keepers, ZOOKEEPER_TIMER_MILLIS);
-    ZooCache cache = new ZooCache(keepers, ZOOKEEPER_TIMER_MILLIS);
+    ZooCache cache = new ZooCache(rdr, null);
 
-    TreeMap<String,UUID> instanceNames = getInstanceNames(rdr, printErrors);
+    TreeMap<String,InstanceId> instanceNames = getInstanceNames(rdr, printErrors);
 
     System.out.println();
     printHeader();
 
-    for (Entry<String,UUID> entry : instanceNames.entrySet()) {
+    for (Entry<String,InstanceId> entry : instanceNames.entrySet()) {
       printInstanceInfo(cache, entry.getKey(), entry.getValue(), printErrors);
     }
 
-    TreeSet<UUID> instancedIds = getInstanceIDs(rdr, printErrors);
+    TreeSet<InstanceId> instancedIds = getInstanceIDs(rdr, printErrors);
     instancedIds.removeAll(instanceNames.values());
 
     if (printAll) {
-      for (UUID uuid : instancedIds) {
+      for (InstanceId uuid : instancedIds) {
         printInstanceInfo(cache, null, uuid, printErrors);
       }
-    } else if (instancedIds.size() > 0) {
+    } else if (!instancedIds.isEmpty()) {
       System.out.println();
       System.out.println("INFO : " + instancedIds.size()
-          + " unamed instances were not printed, run with --print-all to see all instances");
+          + " unnamed instances were not printed, run with --print-all to see all instances");
     } else {
       System.out.println();
     }
@@ -123,63 +129,60 @@ public class ListInstances {
 
     @Override
     public void formatTo(Formatter formatter, int flags, int width, int precision) {
-
-      StringBuilder sb = new StringBuilder();
-      for (int i = 0; i < width; i++)
-        sb.append(c);
-      formatter.format(sb.toString());
+      formatter.format(String.valueOf(c).repeat(Math.max(0, width)));
     }
 
   }
 
   private static void printHeader() {
-    System.out.printf(" %-" + NAME_WIDTH + "s| %-" + UUID_WIDTH + "s| %-" + MASTER_WIDTH + "s%n",
-        "Instance Name", "Instance ID", "Master");
+    System.out.printf(" %-" + NAME_WIDTH + "s| %-" + UUID_WIDTH + "s| %-" + MANAGER_WIDTH + "s%n",
+        "Instance Name", "Instance ID", "Manager");
     System.out.printf(
-        "%" + (NAME_WIDTH + 1) + "s+%" + (UUID_WIDTH + 1) + "s+%" + (MASTER_WIDTH + 1) + "s%n",
+        "%" + (NAME_WIDTH + 1) + "s+%" + (UUID_WIDTH + 1) + "s+%" + (MANAGER_WIDTH + 1) + "s%n",
         new CharFiller('-'), new CharFiller('-'), new CharFiller('-'));
 
   }
 
-  private static void printInstanceInfo(ZooCache cache, String instanceName, UUID iid,
+  private static void printInstanceInfo(ZooCache cache, String instanceName, InstanceId iid,
       boolean printErrors) {
-    String master = getMaster(cache, iid, printErrors);
+    String manager = getManager(cache, iid, printErrors);
     if (instanceName == null) {
       instanceName = "";
     }
 
-    if (master == null) {
-      master = "";
+    if (manager == null) {
+      manager = "";
     }
 
-    System.out.printf("%" + NAME_WIDTH + "s |%" + UUID_WIDTH + "s |%" + MASTER_WIDTH + "s%n",
-        "\"" + instanceName + "\"", iid, master);
+    System.out.printf("%" + NAME_WIDTH + "s |%" + UUID_WIDTH + "s |%" + MANAGER_WIDTH + "s%n",
+        "\"" + instanceName + "\"", iid, manager);
   }
 
-  private static String getMaster(ZooCache cache, UUID iid, boolean printErrors) {
+  private static String getManager(ZooCache cache, InstanceId iid, boolean printErrors) {
 
     if (iid == null) {
       return null;
     }
 
     try {
-      String masterLocPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;
-      byte[] master = ZooLock.getLockData(cache, masterLocPath, null);
-      if (master == null) {
+      var zLockManagerPath =
+          ServiceLock.path(Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK);
+      Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, zLockManagerPath, null);
+      if (sld.isEmpty()) {
         return null;
       }
-      return new String(master, UTF_8);
+      return sld.get().getAddressString(ThriftService.MANAGER);
     } catch (Exception e) {
       handleException(e, printErrors);
       return null;
     }
   }
 
-  private static TreeMap<String,UUID> getInstanceNames(ZooReader zk, boolean printErrors) {
+  private static TreeMap<String,InstanceId> getInstanceNames(ZooReader zk, boolean printErrors) {
 
     String instancesPath = Constants.ZROOT + Constants.ZINSTANCES;
 
-    TreeMap<String,UUID> tm = new TreeMap<>();
+    TreeMap<String,InstanceId> tm = new TreeMap<>();
 
     List<String> names;
 
@@ -193,7 +196,7 @@ public class ListInstances {
     for (String name : names) {
       String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
       try {
-        UUID iid = UUID.fromString(new String(zk.getData(instanceNamePath, null), UTF_8));
+        InstanceId iid = InstanceId.of(new String(zk.getData(instanceNamePath), UTF_8));
         tm.put(name, iid);
       } catch (Exception e) {
         handleException(e, printErrors);
@@ -204,19 +207,20 @@ public class ListInstances {
     return tm;
   }
 
-  private static TreeSet<UUID> getInstanceIDs(ZooReader zk, boolean printErrors) {
-    TreeSet<UUID> ts = new TreeSet<>();
+  private static TreeSet<InstanceId> getInstanceIDs(ZooReader zk, boolean printErrors) {
+    TreeSet<InstanceId> ts = new TreeSet<>();
 
     try {
       List<String> children = zk.getChildren(Constants.ZROOT);
 
       for (String iid : children) {
-        if (iid.equals("instances"))
+        if (iid.equals("instances")) {
           continue;
+        }
         try {
-          ts.add(UUID.fromString(iid));
+          ts.add(InstanceId.of(iid));
         } catch (Exception e) {
-          log.error("Exception: " + e);
+          log.error("Exception: ", e);
         }
       }
     } catch (Exception e) {

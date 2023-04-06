@@ -1,35 +1,41 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security.delegation;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
@@ -38,21 +44,20 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.KeyGenerator;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
-import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.server.WithTestNames;
 import org.apache.hadoop.security.token.SecretManager.InvalidToken;
 import org.apache.hadoop.security.token.Token;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
-public class AuthenticationTokenSecretManagerTest {
+public class AuthenticationTokenSecretManagerTest extends WithTestNames {
   private static final Logger log =
       LoggerFactory.getLogger(AuthenticationTokenSecretManagerTest.class);
 
@@ -61,37 +66,32 @@ public class AuthenticationTokenSecretManagerTest {
   private static final int KEY_LENGTH = 64;
   private static KeyGenerator keyGen;
 
-  @BeforeClass
+  private <T> T getOnlyElement(Collection<T> s) {
+    return s.stream().collect(onlyElement());
+  }
+
+  @BeforeAll
   public static void setupKeyGenerator() throws Exception {
     // From org.apache.hadoop.security.token.SecretManager
     keyGen = KeyGenerator.getInstance(DEFAULT_HMAC_ALGORITHM);
     keyGen.init(KEY_LENGTH);
   }
 
-  private Instance instance;
-  private String instanceId;
+  private InstanceId instanceId;
   private DelegationTokenConfig cfg;
 
-  @Before
-  public void setupMocks() {
-    instance = createMock(Instance.class);
-    instanceId = UUID.randomUUID().toString();
+  @BeforeEach
+  public void setup() {
+    instanceId = InstanceId.of(UUID.randomUUID());
     cfg = new DelegationTokenConfig();
-    expect(instance.getInstanceID()).andReturn(instanceId).anyTimes();
-    replay(instance);
-  }
-
-  @After
-  public void verifyMocks() {
-    verify(instance);
   }
 
   @Test
   public void testAddKey() {
     // 1 minute
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
-        new AuthenticationTokenSecretManager(instance, tokenLifetime);
+        new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
     // Add a single key
     AuthenticationKey authKey = new AuthenticationKey(1, 0, tokenLifetime, keyGen.generateKey());
@@ -101,7 +101,7 @@ public class AuthenticationTokenSecretManagerTest {
     Map<Integer,AuthenticationKey> keys = secretManager.getKeys();
     assertNotNull(keys);
     assertEquals(1, keys.size());
-    assertEquals(authKey, Iterables.getOnlyElement(keys.values()));
+    assertEquals(authKey, getOnlyElement(keys.values()));
 
     // Add the same key
     secretManager.addKey(authKey);
@@ -110,15 +110,15 @@ public class AuthenticationTokenSecretManagerTest {
     keys = secretManager.getKeys();
     assertNotNull(keys);
     assertEquals(1, keys.size());
-    assertEquals(authKey, Iterables.getOnlyElement(keys.values()));
+    assertEquals(authKey, getOnlyElement(keys.values()));
   }
 
   @Test
   public void testRemoveKey() {
     // 1 minute
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
-        new AuthenticationTokenSecretManager(instance, tokenLifetime);
+        new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
     // Add a single key
     AuthenticationKey authKey = new AuthenticationKey(1, 0, tokenLifetime, keyGen.generateKey());
@@ -128,7 +128,7 @@ public class AuthenticationTokenSecretManagerTest {
     Map<Integer,AuthenticationKey> keys = secretManager.getKeys();
     assertNotNull(keys);
     assertEquals(1, keys.size());
-    assertEquals(authKey, Iterables.getOnlyElement(keys.values()));
+    assertEquals(authKey, getOnlyElement(keys.values()));
 
     assertTrue(secretManager.removeKey(authKey.getKeyId()));
     assertEquals(0, secretManager.getKeys().size());
@@ -140,9 +140,9 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     // 1 minute
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
-        new AuthenticationTokenSecretManager(instance, tokenLifetime);
+        new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
     // Add a current key
     secretManager
@@ -163,10 +163,12 @@ public class AuthenticationTokenSecretManagerTest {
     long now = System.currentTimeMillis();
 
     // Issue date should be after the test started, but before we deserialized the token
-    assertTrue("Issue date did not fall within the expected upper bound. Expected less than " + now
-        + ", but was " + id.getIssueDate(), id.getIssueDate() <= now);
-    assertTrue("Issue date did not fall within the expected lower bound. Expected greater than "
-        + then + ", but was " + id.getIssueDate(), id.getIssueDate() >= then);
+    assertTrue(id.getIssueDate() <= now,
+        "Issue date did not fall within the expected upper bound. Expected less than " + now
+            + ", but was " + id.getIssueDate());
+    assertTrue(id.getIssueDate() >= then,
+        "Issue date did not fall within the expected lower bound. Expected greater than " + then
+            + ", but was " + id.getIssueDate());
 
     // Expiration is the token lifetime plus the issue date
     assertEquals(id.getIssueDate() + tokenLifetime, id.getExpirationDate());
@@ -184,9 +186,9 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     // 1 minute
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
-        new AuthenticationTokenSecretManager(instance, tokenLifetime);
+        new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
     // Add a current key
     secretManager
@@ -206,6 +208,8 @@ public class AuthenticationTokenSecretManagerTest {
     assertArrayEquals(password, secretManager.retrievePassword(id));
 
     // Make a second token for the same user
+    // Briefly sleep to guarantee token is unique, since the token is based on the time
+    Thread.sleep(100);
     Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair2 =
         secretManager.generateToken(principal, cfg);
     Token<AuthenticationTokenIdentifier> token2 = pair2.getKey();
@@ -217,11 +221,11 @@ public class AuthenticationTokenSecretManagerTest {
     byte[] password2 = secretManager.retrievePassword(id2);
 
     // It should be different than the password for the first user.
-    assertFalse("Different tokens for the same user shouldn't have the same password",
-        Arrays.equals(password, password2));
+    assertFalse(Arrays.equals(password, password2),
+        "Different tokens for the same user shouldn't have the same password");
   }
 
-  @Test(expected = InvalidToken.class)
+  @Test
   public void testExpiredPasswordsThrowError() throws Exception {
     // start of the test
     long then = System.currentTimeMillis();
@@ -229,7 +233,7 @@ public class AuthenticationTokenSecretManagerTest {
     // 500ms lifetime
     long tokenLifetime = 500;
     AuthenticationTokenSecretManager secretManager =
-        new AuthenticationTokenSecretManager(instance, tokenLifetime);
+        new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
     // Add a current key
     secretManager
@@ -247,17 +251,17 @@ public class AuthenticationTokenSecretManagerTest {
     AuthenticationTokenIdentifier id = new AuthenticationTokenIdentifier();
     id.readFields(new DataInputStream(new ByteArrayInputStream(token.getIdentifier())));
 
-    secretManager.retrievePassword(id);
+    assertThrows(InvalidToken.class, () -> secretManager.retrievePassword(id));
   }
 
-  @Test(expected = InvalidToken.class)
+  @Test
   public void testTokenIssuedInFuture() throws Exception {
     // start of the test
     long then = System.currentTimeMillis();
 
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
-        new AuthenticationTokenSecretManager(instance, tokenLifetime);
+        new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
     // Add a current key
     secretManager
@@ -275,17 +279,17 @@ public class AuthenticationTokenSecretManagerTest {
     // Increase the value of issueDate
     id.setIssueDate(Long.MAX_VALUE);
 
-    secretManager.retrievePassword(id);
+    assertThrows(InvalidToken.class, () -> secretManager.retrievePassword(id));
   }
 
-  @Test(expected = InvalidToken.class)
-  public void testRolledMasterKey() throws Exception {
+  @Test
+  public void testRolledManagerKey() throws Exception {
     // start of the test
     long then = System.currentTimeMillis();
 
-    long tokenLifetime = 60 * 1000;
+    long tokenLifetime = MINUTES.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
-        new AuthenticationTokenSecretManager(instance, tokenLifetime);
+        new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
     // Add a current key
     AuthenticationKey authKey1 =
@@ -310,20 +314,21 @@ public class AuthenticationTokenSecretManagerTest {
     secretManager.removeKey(authKey1.getKeyId());
 
     // Should fail -- authKey1 (presumably) expired, cannot authenticate
-    secretManager.retrievePassword(id);
+    assertThrows(InvalidToken.class, () -> secretManager.retrievePassword(id));
   }
 
-  @Test(timeout = 20 * 1000)
-  public void testMasterKeyExpiration() throws Exception {
+  @Test
+  @Timeout(20)
+  public void testManagerKeyExpiration() throws Exception {
     ZooAuthenticationKeyDistributor keyDistributor =
         createMock(ZooAuthenticationKeyDistributor.class);
     // start of the test
     long then = System.currentTimeMillis();
 
     // 10s lifetime
-    long tokenLifetime = 10 * 1000l;
+    long tokenLifetime = 10_000L;
     AuthenticationTokenSecretManager secretManager =
-        new AuthenticationTokenSecretManager(instance, tokenLifetime);
+        new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
     // Make 2 keys, and add only one. The second has double the expiration of the first
     AuthenticationKey authKey1 =
@@ -359,7 +364,7 @@ public class AuthenticationTokenSecretManagerTest {
 
     // Ensure the second still exists
     assertEquals(1, secretManager.getKeys().size());
-    assertEquals(authKey2, Iterables.getOnlyElement(secretManager.getKeys().values()));
+    assertEquals(authKey2, getOnlyElement(secretManager.getKeys().values()));
     assertEquals(authKey2, secretManager.getCurrentKey());
 
     verify(keyDistributor);
@@ -371,16 +376,16 @@ public class AuthenticationTokenSecretManagerTest {
     long then = System.currentTimeMillis();
 
     // 1 hr
-    long tokenLifetime = 60 * 60 * 1000;
+    long tokenLifetime = HOURS.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
-        new AuthenticationTokenSecretManager(instance, tokenLifetime);
+        new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
     // Add a current key
     secretManager
         .addKey(new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()));
 
     // 1 minute
-    cfg.setTokenLifetime(1, TimeUnit.MINUTES);
+    cfg.setTokenLifetime(1, MINUTES);
 
     String principal = "user@EXAMPLE.COM";
     Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair =
@@ -395,21 +400,20 @@ public class AuthenticationTokenSecretManagerTest {
     log.info("actualExpiration={}, approximateLifetime={}", actualExpiration, approximateLifetime);
 
     // We don't know the exact lifetime, but we know that it can be no more than what was requested
-    assertTrue(
+    assertTrue(approximateLifetime <= cfg.getTokenLifetime(TimeUnit.MILLISECONDS),
         "Expected lifetime to be on thet order of the token lifetime, but was "
-            + approximateLifetime,
-        approximateLifetime <= cfg.getTokenLifetime(TimeUnit.MILLISECONDS));
+            + approximateLifetime);
   }
 
-  @Test(expected = AccumuloException.class)
+  @Test
   public void testInvalidRequestedExpirationDate() throws Exception {
     // start of the test
     long then = System.currentTimeMillis();
 
     // 1 hr
-    long tokenLifetime = 60 * 60 * 1000;
+    long tokenLifetime = HOURS.toMillis(1);
     AuthenticationTokenSecretManager secretManager =
-        new AuthenticationTokenSecretManager(instance, tokenLifetime);
+        new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
     // Add a current key
     secretManager
@@ -419,6 +423,7 @@ public class AuthenticationTokenSecretManagerTest {
     cfg.setTokenLifetime(tokenLifetime + 1, TimeUnit.MILLISECONDS);
 
     // Should throw an exception
-    secretManager.generateToken("user@EXAMPLE.COM", cfg);
+    assertThrows(AccumuloException.class,
+        () -> secretManager.generateToken("user@EXAMPLE.COM", cfg));
   }
 }

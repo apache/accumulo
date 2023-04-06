@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile;
 
@@ -41,7 +43,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -51,28 +53,28 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.NoSuchMetaStoreException;
-import org.apache.accumulo.core.file.blockfile.ABlockReader;
-import org.apache.accumulo.core.file.blockfile.ABlockWriter;
-import org.apache.accumulo.core.file.blockfile.BlockFileReader;
-import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
+import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.rfile.BlockIndex.BlockIndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.RelativeKey.SkippR;
+import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
+import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Writer.BlockAppender;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.HeapIterator;
-import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
-import org.apache.accumulo.core.iterators.system.LocalityGroupIterator;
-import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityGroup;
-import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityGroupContext;
-import org.apache.accumulo.core.iterators.system.LocalityGroupIterator.LocalityGroupSeekCache;
+import org.apache.accumulo.core.iteratorsImpl.system.HeapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
+import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroup;
+import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroupContext;
+import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroupSeekCache;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MutableByteSequence;
-import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -159,13 +161,13 @@ public class RFile {
     private MultiLevelIndex.Reader indexReader;
     private int version;
 
-    public LocalityGroupMetadata(int version, BlockFileReader br) {
+    public LocalityGroupMetadata(int version, CachableBlockFile.Reader br) {
       columnFamilies = new HashMap<>();
       indexReader = new MultiLevelIndex.Reader(br, version);
       this.version = version;
     }
 
-    public LocalityGroupMetadata(Set<ByteSequence> pcf, int indexBlockSize, BlockFileWriter bfw) {
+    public LocalityGroupMetadata(Set<ByteSequence> pcf, int indexBlockSize, BCFile.Writer bfw) {
       isDefaultLG = true;
       columnFamilies = new HashMap<>();
       previousColumnFamilies = pcf;
@@ -175,7 +177,7 @@ public class RFile {
     }
 
     public LocalityGroupMetadata(String name, Set<ByteSequence> cfset, int indexBlockSize,
-        BlockFileWriter bfw) {
+        BCFile.Writer bfw) {
       this.name = name;
       isDefaultLG = false;
       columnFamilies = new HashMap<>();
@@ -192,15 +194,16 @@ public class RFile {
     }
 
     private void setFirstKey(Key key) {
-      if (firstKey != null)
+      if (firstKey != null) {
         throw new IllegalStateException();
+      }
       this.firstKey = new Key(key);
     }
 
     public void updateColumnCount(Key key) {
 
       if (isDefaultLG && columnFamilies == null) {
-        if (previousColumnFamilies.size() > 0) {
+        if (!previousColumnFamilies.isEmpty()) {
           // only do this check when there are previous column families
           ByteSequence cf = key.getColumnFamilyData();
           if (previousColumnFamilies.contains(cf)) {
@@ -257,20 +260,22 @@ public class RFile {
       int size = in.readInt();
 
       if (size == -1) {
-        if (!isDefaultLG)
+        if (!isDefaultLG) {
           throw new IllegalStateException(
               "Non default LG " + name + " does not have column families");
+        }
 
         columnFamilies = null;
       } else {
-        if (columnFamilies == null)
+        if (columnFamilies == null) {
           columnFamilies = new HashMap<>();
-        else
+        } else {
           columnFamilies.clear();
+        }
 
         for (int i = 0; i < size; i++) {
           int len = in.readInt();
-          byte cf[] = new byte[len];
+          byte[] cf = new byte[len];
           in.readFully(cf);
           long count = in.readLong();
 
@@ -311,8 +316,9 @@ public class RFile {
       }
 
       out.writeBoolean(firstKey != null);
-      if (firstKey != null)
+      if (firstKey != null) {
         firstKey.write(out);
+      }
 
       indexWriter.close(out);
     }
@@ -355,7 +361,7 @@ public class RFile {
 
       if (includeIndexDetails) {
         out.printf("\t%-22s :\nIndex Entries", lastKey);
-        String prefix = String.format("\t   ");
+        String prefix = "\t   ";
         indexReader.printIndex(prefix, out);
       }
     }
@@ -386,7 +392,7 @@ public class RFile {
       this.sampler = sampler;
     }
 
-    public void append(Key key, Value value) throws IOException {
+    public void append(Key key, Value value) {
       if (sampler.accept(key)) {
         entries.add(new SampleEntry(key, value));
         dataSize += key.getSize() + value.getSize();
@@ -407,7 +413,7 @@ public class RFile {
         // called with true
         List<SampleEntry> subList = entries.subList(0, entries.size() - 1);
 
-        if (subList.size() > 0) {
+        if (!subList.isEmpty()) {
           for (SampleEntry se : subList) {
             lgr.append(se.key, se.val);
           }
@@ -423,10 +429,9 @@ public class RFile {
 
   private static class LocalityGroupWriter {
 
-    private BlockFileWriter fileWriter;
-    private ABlockWriter blockWriter;
+    private BCFile.Writer fileWriter;
+    private BlockAppender blockWriter;
 
-    // private BlockAppender blockAppender;
     private final long blockSize;
     private final long maxBlockSize;
     private int entries = 0;
@@ -441,9 +446,9 @@ public class RFile {
 
     // Use windowed stats to fix ACCUMULO-4669
     private RollingStats keyLenStats = new RollingStats(2017);
-    private double avergageKeySize = 0;
+    private double averageKeySize = 0;
 
-    LocalityGroupWriter(BlockFileWriter fileWriter, long blockSize, long maxBlockSize,
+    LocalityGroupWriter(BCFile.Writer fileWriter, long blockSize, long maxBlockSize,
         LocalityGroupMetadata currentLocalityGroup, SampleLocalityGroupWriter sample) {
       this.fileWriter = fileWriter;
       this.blockSize = blockSize;
@@ -479,22 +484,31 @@ public class RFile {
         blockWriter = fileWriter.prepareDataBlock();
       } else if (blockWriter.getRawSize() > blockSize) {
 
-        // Look for a key thats short to put in the index, defining short as average or below.
-        if (avergageKeySize == 0) {
+        // Look for a key that's short to put in the index, defining short as average or below.
+        if (averageKeySize == 0) {
           // use the same average for the search for a below average key for a block
-          avergageKeySize = keyLenStats.getMean();
+          averageKeySize = keyLenStats.getMean();
         }
 
         // Possibly produce a shorter key that does not exist in data. Even if a key can be
         // shortened, it may not be below average.
         Key closeKey = KeyShortener.shorten(prevKey, key);
 
-        if ((closeKey.getSize() <= avergageKeySize || blockWriter.getRawSize() > maxBlockSize)
+        if ((closeKey.getSize() <= averageKeySize || blockWriter.getRawSize() > maxBlockSize)
             && !isGiantKey(closeKey)) {
           closeBlock(closeKey, false);
           blockWriter = fileWriter.prepareDataBlock();
           // set average to zero so its recomputed for the next block
-          avergageKeySize = 0;
+          averageKeySize = 0;
+          // To constrain the growth of data blocks, we limit our worst case scenarios to closing
+          // blocks if they reach the maximum configurable block size of Integer.MAX_VALUE.
+          // 128 bytes added for metadata overhead
+        } else if (((long) key.getSize() + (long) value.getSize() + blockWriter.getRawSize() + 128L)
+            >= Integer.MAX_VALUE) {
+          closeBlock(closeKey, false);
+          blockWriter = fileWriter.prepareDataBlock();
+          averageKeySize = 0;
+
         }
       }
 
@@ -514,15 +528,17 @@ public class RFile {
     private void closeBlock(Key key, boolean lastBlock) throws IOException {
       blockWriter.close();
 
-      if (lastBlock)
+      if (lastBlock) {
         currentLocalityGroup.indexWriter.addLast(key, entries, blockWriter.getStartPos(),
             blockWriter.getCompressedSize(), blockWriter.getRawSize());
-      else
+      } else {
         currentLocalityGroup.indexWriter.add(key, entries, blockWriter.getStartPos(),
             blockWriter.getCompressedSize(), blockWriter.getRawSize());
+      }
 
-      if (sample != null)
+      if (sample != null) {
         sample.flushIfNeeded();
+      }
 
       blockWriter = null;
       lastKeyInBlock = null;
@@ -545,9 +561,8 @@ public class RFile {
     public static final int MAX_CF_IN_DLG = 1000;
     private static final double MAX_BLOCK_MULTIPLIER = 1.1;
 
-    private BlockFileWriter fileWriter;
+    private BCFile.Writer fileWriter;
 
-    // private BlockAppender blockAppender;
     private final long blockSize;
     private final long maxBlockSize;
     private final int indexBlockSize;
@@ -569,13 +584,13 @@ public class RFile {
     private SamplerConfigurationImpl samplerConfig;
     private Sampler sampler;
 
-    public Writer(BlockFileWriter bfw, int blockSize) throws IOException {
-      this(bfw, blockSize, (int) AccumuloConfiguration.getDefaultConfiguration()
-          .getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX), null, null);
+    public Writer(BCFile.Writer bfw, int blockSize) throws IOException {
+      this(bfw, blockSize, (int) DefaultConfiguration.getInstance()
+          .getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX), null, null);
     }
 
-    public Writer(BlockFileWriter bfw, int blockSize, int indexBlockSize,
-        SamplerConfigurationImpl samplerConfig, Sampler sampler) throws IOException {
+    public Writer(BCFile.Writer bfw, int blockSize, int indexBlockSize,
+        SamplerConfigurationImpl samplerConfig, Sampler sampler) {
       this.blockSize = blockSize;
       this.maxBlockSize = (long) (blockSize * MAX_BLOCK_MULTIPLIER);
       this.indexBlockSize = indexBlockSize;
@@ -594,7 +609,7 @@ public class RFile {
 
       closeData();
 
-      ABlockWriter mba = fileWriter.prepareMetaBlock("RFile.index");
+      BlockAppender mba = fileWriter.prepareMetaBlock("RFile.index");
 
       mba.writeInt(RINDEX_MAGIC);
       mba.writeInt(RINDEX_VER_8);
@@ -646,7 +661,7 @@ public class RFile {
     public void append(Key key, Value value) throws IOException {
 
       if (dataClosed) {
-        throw new IllegalStateException("Cannont append, data closed");
+        throw new IllegalStateException("Cannot append, data closed");
       }
 
       lgWriter.append(key, value);
@@ -656,7 +671,7 @@ public class RFile {
     public DataOutputStream createMetaStore(String name) throws IOException {
       closeData();
 
-      return (DataOutputStream) fileWriter.prepareMetaBlock(name);
+      return fileWriter.prepareMetaBlock(name);
     }
 
     private void _startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies)
@@ -712,8 +727,9 @@ public class RFile {
     @Override
     public void startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies)
         throws IOException {
-      if (columnFamilies == null)
+      if (columnFamilies == null) {
         throw new NullPointerException();
+      }
 
       _startNewLocalityGroup(name, columnFamilies);
     }
@@ -729,7 +745,7 @@ public class RFile {
     }
 
     @Override
-    public long getLength() throws IOException {
+    public long getLength() {
       if (!closed) {
         return fileWriter.getLength();
       }
@@ -739,7 +755,7 @@ public class RFile {
 
   private static class LocalityGroupReader extends LocalityGroup implements FileSKVIterator {
 
-    private BlockFileReader reader;
+    private CachableBlockFile.Reader reader;
     private MultiLevelIndex.Reader index;
     private int blockCount;
     private Key firstKey;
@@ -748,8 +764,8 @@ public class RFile {
     private int version;
     private boolean checkRange = true;
 
-    private LocalityGroupReader(BlockFileReader reader, LocalityGroupMetadata lgm, int version)
-        throws IOException {
+    private LocalityGroupReader(CachableBlockFile.Reader reader, LocalityGroupMetadata lgm,
+        int version) {
       super(lgm.columnFamilies, lgm.isDefaultLG);
       this.firstKey = lgm.firstKey;
       this.index = lgm.indexReader;
@@ -779,14 +795,15 @@ public class RFile {
     public void close() throws IOException {
       closed = true;
       hasTop = false;
-      if (currBlock != null)
+      if (currBlock != null) {
         currBlock.close();
+      }
 
     }
 
     private IndexIterator iiter;
     private int entriesLeft;
-    private ABlockReader currBlock;
+    private CachableBlockFile.CachedBlockRead currBlock;
     private RelativeKey rk;
     private Value val;
     private Key prevKey = null;
@@ -821,13 +838,15 @@ public class RFile {
 
     private void _next() throws IOException {
 
-      if (!hasTop)
+      if (!hasTop) {
         throw new IllegalStateException();
+      }
 
       if (entriesLeft == 0) {
         currBlock.close();
-        if (metricsGatherer != null)
+        if (metricsGatherer != null) {
           metricsGatherer.startBlock();
+        }
 
         if (iiter.hasNext()) {
           IndexEntry indexEntry = iiter.next();
@@ -835,8 +854,9 @@ public class RFile {
           currBlock = getDataBlock(indexEntry);
 
           checkRange = range.afterEndKey(indexEntry.getKey());
-          if (!checkRange)
+          if (!checkRange) {
             hasTop = true;
+          }
 
         } else {
           rk = null;
@@ -850,23 +870,28 @@ public class RFile {
       rk.readFields(currBlock);
       val.readFields(currBlock);
 
-      if (metricsGatherer != null)
+      if (metricsGatherer != null) {
         metricsGatherer.addMetric(rk.getKey(), val);
+      }
 
       entriesLeft--;
-      if (checkRange)
+      if (checkRange) {
         hasTop = !range.afterEndKey(rk.getKey());
+      }
     }
 
-    private ABlockReader getDataBlock(IndexEntry indexEntry) throws IOException {
-      if (interruptFlag != null && interruptFlag.get())
+    private CachableBlockFile.CachedBlockRead getDataBlock(IndexEntry indexEntry)
+        throws IOException {
+      if (interruptFlag != null && interruptFlag.get()) {
         throw new IterationInterruptedException();
+      }
 
-      if (version == RINDEX_VER_3 || version == RINDEX_VER_4)
+      if (version == RINDEX_VER_3 || version == RINDEX_VER_4) {
         return reader.getDataBlock(startBlock + iiter.previousIndex());
-      else
+      } else {
         return reader.getDataBlock(indexEntry.getOffset(), indexEntry.getCompressedSize(),
             indexEntry.getRawSize());
+      }
 
     }
 
@@ -874,11 +899,13 @@ public class RFile {
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
         throws IOException {
 
-      if (closed)
+      if (closed) {
         throw new IllegalStateException("Locality group reader closed");
+      }
 
-      if (columnFamilies.size() != 0 || inclusive)
+      if (!columnFamilies.isEmpty() || inclusive) {
         throw new IllegalArgumentException("I do not know how to filter column families");
+      }
 
       if (interruptFlag != null && interruptFlag.get()) {
         throw new IterationInterruptedException();
@@ -920,8 +947,9 @@ public class RFile {
       }
 
       Key startKey = range.getStartKey();
-      if (startKey == null)
+      if (startKey == null) {
         startKey = new Key();
+      }
 
       boolean reseek = true;
 
@@ -971,7 +999,7 @@ public class RFile {
             && startKey.compareTo(iiter.peekPrevious().getKey()) <= 0) {
           // In the empty space at the end of a block. This can occur when keys are shortened in the
           // index creating index entries that do not exist in the
-          // block. These shortened index entires fall between the last key in a block and first key
+          // block. These shortened index entries fall between the last key in a block and first key
           // in the next block, but may not exist in the data.
           // Just proceed to the next block.
           reseek = false;
@@ -991,9 +1019,7 @@ public class RFile {
 
         reset();
 
-        if (!iiter.hasNext()) {
-          // past the last key
-        } else {
+        if (iiter.hasNext()) {
 
           // if the index contains the same key multiple times, then go to the
           // earliest index entry containing the key
@@ -1002,19 +1028,21 @@ public class RFile {
             iiter.previous();
           }
 
-          if (iiter.hasPrevious())
+          if (iiter.hasPrevious()) {
             prevKey = new Key(iiter.peekPrevious().getKey()); // initially prevKey is the last key
                                                               // of the prev block
-          else
+          } else {
             prevKey = new Key(); // first block in the file, so set prev key to minimal key
+          }
 
           IndexEntry indexEntry = iiter.next();
           entriesLeft = indexEntry.getNumEntries();
           currBlock = getDataBlock(indexEntry);
 
           checkRange = range.afterEndKey(indexEntry.getKey());
-          if (!checkRange)
+          if (!checkRange) {
             hasTop = true;
+          }
 
           MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
 
@@ -1051,6 +1079,8 @@ public class RFile {
           // set rk when everything above is successful, if exception
           // occurs rk will not be set
           rk = skippr.rk;
+        } else {
+          // past the last key
         }
       }
 
@@ -1067,14 +1097,15 @@ public class RFile {
     }
 
     @Override
-    public Key getFirstKey() throws IOException {
+    public Key getFirstKey() {
       return firstKey;
     }
 
     @Override
-    public Key getLastKey() throws IOException {
-      if (index.size() == 0)
+    public Key getLastKey() {
+      if (index.size() == 0) {
         return null;
+      }
       return index.getLastKey();
     }
 
@@ -1084,18 +1115,18 @@ public class RFile {
     }
 
     @Override
-    public void closeDeepCopies() throws IOException {
+    public void closeDeepCopies() {
       throw new UnsupportedOperationException();
     }
 
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-        IteratorEnvironment env) throws IOException {
+        IteratorEnvironment env) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public DataInputStream getMetaStore(String name) throws IOException {
+    public DataInputStream getMetaStore(String name) {
       throw new UnsupportedOperationException();
     }
 
@@ -1119,18 +1150,23 @@ public class RFile {
     public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void setCacheProvider(CacheProvider cacheProvider) {
+      throw new UnsupportedOperationException();
+    }
   }
 
   public static class Reader extends HeapIterator implements FileSKVIterator {
 
-    private final BlockFileReader reader;
+    private final CachableBlockFile.Reader reader;
 
     private final ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
     private final ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
 
-    private final LocalityGroupReader currentReaders[];
-    private final LocalityGroupReader readers[];
-    private final LocalityGroupReader sampleReaders[];
+    private final LocalityGroupReader[] currentReaders;
+    private final LocalityGroupReader[] readers;
+    private final LocalityGroupReader[] sampleReaders;
     private final LocalityGroupContext lgContext;
     private LocalityGroupSeekCache lgCache;
 
@@ -1143,20 +1179,21 @@ public class RFile {
 
     private int rfileVersion;
 
-    public Reader(BlockFileReader rdr) throws IOException {
+    public Reader(CachableBlockFile.Reader rdr) throws IOException {
       this.reader = rdr;
 
-      ABlockReader mb = reader.getMetaBlock("RFile.index");
-      try {
+      try (CachableBlockFile.CachedBlockRead mb = reader.getMetaBlock("RFile.index")) {
         int magic = mb.readInt();
         int ver = mb.readInt();
         rfileVersion = ver;
 
-        if (magic != RINDEX_MAGIC)
+        if (magic != RINDEX_MAGIC) {
           throw new IOException("Did not see expected magic number, saw " + magic);
+        }
         if (ver != RINDEX_VER_8 && ver != RINDEX_VER_7 && ver != RINDEX_VER_6 && ver != RINDEX_VER_4
-            && ver != RINDEX_VER_3)
+            && ver != RINDEX_VER_3) {
           throw new IOException("Did not see expected version, saw " + ver);
+        }
 
         int size = mb.readInt();
         currentReaders = new LocalityGroupReader[size];
@@ -1190,8 +1227,6 @@ public class RFile {
           samplerConfig = null;
         }
 
-      } finally {
-        mb.close();
       }
 
       lgContext = new LocalityGroupContext(currentReaders);
@@ -1199,7 +1234,7 @@ public class RFile {
       createHeap(currentReaders.length);
     }
 
-    private Reader(Reader r, LocalityGroupReader sampleReaders[]) {
+    private Reader(Reader r, LocalityGroupReader[] sampleReaders) {
       super(sampleReaders.length);
       this.reader = r.reader;
       this.currentReaders = new LocalityGroupReader[sampleReaders.length];
@@ -1240,6 +1275,10 @@ public class RFile {
       this.lgContext = new LocalityGroupContext(currentReaders);
     }
 
+    public Reader(CachableBlockFile.CachableBuilder b) throws IOException {
+      this(new CachableBlockFile.Reader(b));
+    }
+
     private void closeLocalityGroupReaders() {
       for (LocalityGroupReader lgr : currentReaders) {
         try {
@@ -1252,19 +1291,22 @@ public class RFile {
 
     @Override
     public void closeDeepCopies() {
-      if (deepCopy)
+      if (deepCopy) {
         throw new RuntimeException("Calling closeDeepCopies on a deep copy is not supported");
+      }
 
-      for (Reader deepCopy : deepCopies)
+      for (Reader deepCopy : deepCopies) {
         deepCopy.closeLocalityGroupReaders();
+      }
 
       deepCopies.clear();
     }
 
     @Override
     public void close() throws IOException {
-      if (deepCopy)
+      if (deepCopy) {
         throw new RuntimeException("Calling close on a deep copy is not supported");
+      }
 
       closeDeepCopies();
       closeLocalityGroupReaders();
@@ -1296,13 +1338,14 @@ public class RFile {
 
       Key minKey = null;
 
-      for (int i = 0; i < currentReaders.length; i++) {
+      for (LocalityGroupReader currentReader : currentReaders) {
         if (minKey == null) {
-          minKey = currentReaders[i].getFirstKey();
+          minKey = currentReader.getFirstKey();
         } else {
-          Key firstKey = currentReaders[i].getFirstKey();
-          if (firstKey != null && firstKey.compareTo(minKey) < 0)
+          Key firstKey = currentReader.getFirstKey();
+          if (firstKey != null && firstKey.compareTo(minKey) < 0) {
             minKey = firstKey;
+          }
         }
       }
 
@@ -1317,13 +1360,14 @@ public class RFile {
 
       Key maxKey = null;
 
-      for (int i = 0; i < currentReaders.length; i++) {
+      for (LocalityGroupReader currentReader : currentReaders) {
         if (maxKey == null) {
-          maxKey = currentReaders[i].getLastKey();
+          maxKey = currentReader.getLastKey();
         } else {
-          Key lastKey = currentReaders[i].getLastKey();
-          if (lastKey != null && lastKey.compareTo(maxKey) > 0)
+          Key lastKey = currentReader.getLastKey();
+          if (lastKey != null && lastKey.compareTo(maxKey) > 0) {
             maxKey = lastKey;
+          }
         }
       }
 
@@ -1333,7 +1377,7 @@ public class RFile {
     @Override
     public DataInputStream getMetaStore(String name) throws IOException, NoSuchMetaStoreException {
       try {
-        return this.reader.getMetaBlock(name).getStream();
+        return this.reader.getMetaBlock(name);
       } catch (MetaBlockDoesNotExist e) {
         throw new NoSuchMetaStoreException("name = " + name, e);
       }
@@ -1366,7 +1410,7 @@ public class RFile {
 
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-        IteratorEnvironment env) throws IOException {
+        IteratorEnvironment env) {
       throw new UnsupportedOperationException();
     }
 
@@ -1403,8 +1447,7 @@ public class RFile {
      * any previously set. The MetricsGatherer should be registered before iterating through the
      * LocalityGroups.
      *
-     * @param vmg
-     *          MetricsGatherer to be registered with the LocalityGroupReaders
+     * @param vmg MetricsGatherer to be registered with the LocalityGroupReaders
      */
     public void registerMetrics(MetricsGatherer<?> vmg) {
       vmg.init(getLocalityGroupCF());
@@ -1456,13 +1499,10 @@ public class RFile {
 
     // only visible for printinfo
     FileSKVIterator getSample() {
-      if (samplerConfig == null)
+      if (samplerConfig == null) {
         return null;
+      }
       return getSample(this.samplerConfig);
-    }
-
-    public void printInfo() throws IOException {
-      printInfo(false);
     }
 
     public void printInfo(boolean includeIndexDetails) throws IOException {
@@ -1474,7 +1514,7 @@ public class RFile {
         lgm.printInfo(false, includeIndexDetails);
       }
 
-      if (sampleGroups.size() > 0) {
+      if (!sampleGroups.isEmpty()) {
 
         System.out.println();
         System.out.printf("%-24s :\n", "Sample Configuration");
@@ -1490,11 +1530,13 @@ public class RFile {
 
     @Override
     public void setInterruptFlag(AtomicBoolean flag) {
-      if (deepCopy)
+      if (deepCopy) {
         throw new RuntimeException("Calling setInterruptFlag on a deep copy is not supported");
+      }
 
-      if (deepCopies.size() != 0)
+      if (!deepCopies.isEmpty()) {
         throw new RuntimeException("Setting interrupt flag after calling deep copy not supported");
+      }
 
       setInterruptFlagInternal(flag);
     }
@@ -1504,6 +1546,11 @@ public class RFile {
       for (LocalityGroupReader lgr : currentReaders) {
         lgr.setInterruptFlag(interruptFlag);
       }
+    }
+
+    @Override
+    public void setCacheProvider(CacheProvider cacheProvider) {
+      reader.setCacheProvider(cacheProvider);
     }
   }
 }

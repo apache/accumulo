@@ -1,24 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
-import java.io.IOException;
-
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -50,34 +50,32 @@ public class MergeCommand extends Command {
       all = true;
     }
     if (cl.hasOption(sizeOpt.getOpt())) {
-      size = AccumuloConfiguration.getMemoryInBytes(cl.getOptionValue(sizeOpt.getOpt()));
+      size = ConfigurationTypeHelper.getFixedMemoryAsBytes(cl.getOptionValue(sizeOpt.getOpt()));
     }
     if (startRow == null && endRow == null && size < 0 && !all) {
-      shellState.getReader().flush();
+      shellState.getWriter().flush();
       String line = shellState.getReader()
           .readLine("Merge the entire table { " + tableName + " } into one tablet (yes|no)? ");
-      if (line == null)
+      if (line == null) {
         return 0;
-      if (!line.equalsIgnoreCase("y") && !line.equalsIgnoreCase("yes"))
+      }
+      if (!line.equalsIgnoreCase("y") && !line.equalsIgnoreCase("yes")) {
         return 0;
+      }
     }
     if (size < 0) {
-      shellState.getConnector().tableOperations().merge(tableName, startRow, endRow);
+      shellState.getAccumuloClient().tableOperations().merge(tableName, startRow, endRow);
     } else {
       final boolean finalVerbose = verbose;
       final Merge merge = new Merge() {
         @Override
         protected void message(String fmt, Object... args) {
           if (finalVerbose) {
-            try {
-              shellState.getReader().println(String.format(fmt, args));
-            } catch (IOException ex) {
-              throw new RuntimeException(ex);
-            }
+            shellState.getWriter().println(String.format(fmt, args));
           }
         }
       };
-      merge.mergomatic(shellState.getConnector(), tableName, startRow, endRow, size, force);
+      merge.mergomatic(shellState.getAccumuloClient(), tableName, startRow, endRow, size, force);
     }
     return 0;
   }

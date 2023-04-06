@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.util;
 
@@ -26,12 +28,15 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
 import java.util.Base64;
 import java.util.Objects;
 
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Partially based from {@link org.apache.commons.lang3.SerializationUtils}.
@@ -62,8 +67,8 @@ public class SerializationUtil {
           classname + " is not a subclass of " + parentClass.getName(), e);
     }
     try {
-      return cm.newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+      return cm.getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException e) {
       throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
     }
   }
@@ -105,14 +110,15 @@ public class SerializationUtil {
       out = new DataOutputStream(outputStream);
       obj.write(out);
     } catch (IOException ex) {
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     } finally {
-      if (out != null)
+      if (out != null) {
         try {
           out.close();
         } catch (IOException e) {
           log.error("cannot close", e);
         }
+      }
     }
   }
 
@@ -124,14 +130,15 @@ public class SerializationUtil {
       in = new DataInputStream(inputStream);
       writable.readFields(in);
     } catch (IOException ex) {
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     } finally {
-      if (in != null)
+      if (in != null) {
         try {
           in.close();
         } catch (IOException e) {
           log.error("cannot close", e);
         }
+      }
     }
   }
 
@@ -152,12 +159,9 @@ public class SerializationUtil {
    * The stream passed in is not buffered internally within this method. This is the responsibility
    * of your application if desired.
    *
-   * @param obj
-   *          the object to serialize to bytes, may be null
-   * @param outputStream
-   *          the stream to write to, must not be null
-   * @throws IllegalArgumentException
-   *           if {@code outputStream} is {@code null}
+   * @param obj the object to serialize to bytes, may be null
+   * @param outputStream the stream to write to, must not be null
+   * @throws NullPointerException if {@code outputStream} is {@code null}
    */
   public static void serialize(Serializable obj, OutputStream outputStream) {
     Objects.requireNonNull(outputStream);
@@ -166,22 +170,22 @@ public class SerializationUtil {
       out = new ObjectOutputStream(outputStream);
       out.writeObject(obj);
     } catch (IOException ex) {
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     } finally {
-      if (out != null)
+      if (out != null) {
         try {
           out.close();
         } catch (IOException e) {
           log.error("cannot close", e);
         }
+      }
     }
   }
 
   /**
    * Serializes an {@code Object} to a byte array for storage/serialization.
    *
-   * @param obj
-   *          the object to serialize to bytes
+   * @param obj the object to serialize to bytes
    * @return a byte[] with the converted Serializable
    */
   public static byte[] serialize(Serializable obj) {
@@ -202,12 +206,11 @@ public class SerializationUtil {
    * The stream passed in is not buffered internally within this method. This is the responsibility
    * of your application if desired.
    *
-   * @param inputStream
-   *          the serialized object input stream, must not be null
+   * @param inputStream the serialized object input stream, must not be null
    * @return the deserialized object
-   * @throws IllegalArgumentException
-   *           if {@code inputStream} is {@code null}
+   * @throws IllegalArgumentException if {@code inputStream} is {@code null}
    */
+  @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION", justification = "okay for test")
   public static Object deserialize(InputStream inputStream) {
     Objects.requireNonNull(inputStream);
     ObjectInputStream in = null;
@@ -217,23 +220,22 @@ public class SerializationUtil {
     } catch (ClassNotFoundException | IOException ex) {
       throw new RuntimeException(ex);
     } finally {
-      if (in != null)
+      if (in != null) {
         try {
           in.close();
         } catch (IOException e) {
           log.error("cannot close", e);
         }
+      }
     }
   }
 
   /**
    * Deserializes a single {@code Object} from an array of bytes.
    *
-   * @param objectData
-   *          the serialized object, must not be null
+   * @param objectData the serialized object, must not be null
    * @return the deserialized object
-   * @throws IllegalArgumentException
-   *           if {@code objectData} is {@code null}
+   * @throws IllegalArgumentException if {@code objectData} is {@code null}
    */
   public static Object deserialize(byte[] objectData) {
     Objects.requireNonNull(objectData);

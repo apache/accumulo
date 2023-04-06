@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -26,20 +28,22 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
-import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
+import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.compaction.CompactionSettings;
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.shell.ShellUtil;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class CompactCommand extends TableOperation {
-  private Option noFlushOption, waitOpt, profileOpt, cancelOpt, strategyOpt, strategyConfigOpt;
+  private Option noFlushOption, waitOpt, profileOpt, cancelOpt;
 
   // file selection and file output options
   private Option enameOption, epathOption, sizeLtOption, sizeGtOption, minFilesOption,
       outBlockSizeOpt, outHdfsBlockSizeOpt, outIndexBlockSizeOpt, outCompressionOpt, outReplication,
-      enoSampleOption;
+      enoSampleOption, extraSummaryOption, enoSummaryOption, hintsOption, configurerOpt,
+      configurerConfigOpt, selectorOpt, selectorConfigOpt;
 
   private CompactionConfig compactionConfig = null;
 
@@ -52,7 +56,7 @@ public class CompactCommand extends TableOperation {
         + " specified, then all files will be compacted. Options that configure"
         + " output settings are only applied to this compaction and not later"
         + " compactions. If multiple concurrent user initiated compactions specify"
-        + " iterators or a compaction strategy, then all but one will fail to" + " start.";
+        + " iterators or a compaction strategy, then all but one will fail to start.";
   }
 
   @Override
@@ -62,8 +66,8 @@ public class CompactCommand extends TableOperation {
 
     if (cancel) {
       try {
-        shellState.getConnector().tableOperations().cancelCompaction(tableName);
-        Shell.log.info("Compaction canceled for table " + tableName);
+        shellState.getAccumuloClient().tableOperations().cancelCompaction(tableName);
+        Shell.log.info("Compaction canceled for table {}", tableName);
       } catch (TableNotFoundException e) {
         throw new AccumuloException(e);
       }
@@ -78,38 +82,60 @@ public class CompactCommand extends TableOperation {
               iteratorSetting.getIteratorClass());
         }
 
-        shellState.getConnector().tableOperations().compact(tableName, compactionConfig);
+        shellState.getAccumuloClient().tableOperations().compact(tableName, compactionConfig);
 
-        Shell.log.info("Compaction of table " + tableName + " "
-            + (compactionConfig.getWait() ? "completed" : "started") + " for given range");
+        Shell.log.info("Compaction of table {} {} for given range", tableName,
+            compactionConfig.getWait() ? "completed" : "started");
       } catch (Exception ex) {
         throw new AccumuloException(ex);
       }
     }
   }
 
-  private void put(CommandLine cl, Map<String,String> opts, Option opt,
+  private void put(CommandLine cl, Map<String,String> sopts, Map<String,String> copts, Option opt,
       CompactionSettings setting) {
-    if (cl.hasOption(opt.getLongOpt()))
-      setting.put(opts, cl.getOptionValue(opt.getLongOpt()));
+    if (cl.hasOption(opt.getLongOpt())) {
+      setting.put(sopts, copts, cl.getOptionValue(opt.getLongOpt()));
+    }
   }
 
-  private Map<String,String> getConfigurableCompactionStrategyOpts(CommandLine cl) {
-    Map<String,String> opts = new HashMap<>();
+  private void setupConfigurableCompaction(CommandLine cl, CompactionConfig compactionConfig) {
+    Map<String,String> sopts = new HashMap<>();
+    Map<String,String> copts = new HashMap<>();
 
-    put(cl, opts, enoSampleOption, CompactionSettings.SF_NO_SAMPLE);
-    put(cl, opts, enameOption, CompactionSettings.SF_NAME_RE_OPT);
-    put(cl, opts, epathOption, CompactionSettings.SF_PATH_RE_OPT);
-    put(cl, opts, sizeLtOption, CompactionSettings.SF_LT_ESIZE_OPT);
-    put(cl, opts, sizeGtOption, CompactionSettings.SF_GT_ESIZE_OPT);
-    put(cl, opts, minFilesOption, CompactionSettings.MIN_FILES_OPT);
-    put(cl, opts, outCompressionOpt, CompactionSettings.OUTPUT_COMPRESSION_OPT);
-    put(cl, opts, outBlockSizeOpt, CompactionSettings.OUTPUT_BLOCK_SIZE_OPT);
-    put(cl, opts, outHdfsBlockSizeOpt, CompactionSettings.OUTPUT_HDFS_BLOCK_SIZE_OPT);
-    put(cl, opts, outIndexBlockSizeOpt, CompactionSettings.OUTPUT_INDEX_BLOCK_SIZE_OPT);
-    put(cl, opts, outReplication, CompactionSettings.OUTPUT_REPLICATION_OPT);
+    put(cl, sopts, copts, extraSummaryOption, CompactionSettings.SF_EXTRA_SUMMARY);
+    put(cl, sopts, copts, enoSummaryOption, CompactionSettings.SF_NO_SUMMARY);
+    put(cl, sopts, copts, enoSampleOption, CompactionSettings.SF_NO_SAMPLE);
+    put(cl, sopts, copts, enameOption, CompactionSettings.SF_NAME_RE_OPT);
+    put(cl, sopts, copts, epathOption, CompactionSettings.SF_PATH_RE_OPT);
+    put(cl, sopts, copts, sizeLtOption, CompactionSettings.SF_LT_ESIZE_OPT);
+    put(cl, sopts, copts, sizeGtOption, CompactionSettings.SF_GT_ESIZE_OPT);
+    put(cl, sopts, copts, minFilesOption, CompactionSettings.MIN_FILES_OPT);
+    put(cl, sopts, copts, outCompressionOpt, CompactionSettings.OUTPUT_COMPRESSION_OPT);
+    put(cl, sopts, copts, outBlockSizeOpt, CompactionSettings.OUTPUT_BLOCK_SIZE_OPT);
+    put(cl, sopts, copts, outHdfsBlockSizeOpt, CompactionSettings.OUTPUT_HDFS_BLOCK_SIZE_OPT);
+    put(cl, sopts, copts, outIndexBlockSizeOpt, CompactionSettings.OUTPUT_INDEX_BLOCK_SIZE_OPT);
+    put(cl, sopts, copts, outReplication, CompactionSettings.OUTPUT_REPLICATION_OPT);
 
-    return opts;
+    if ((!sopts.isEmpty() || !copts.isEmpty())
+        && (cl.hasOption(selectorOpt.getLongOpt()) || cl.hasOption(configurerOpt.getLongOpt()))) {
+      throw new IllegalArgumentException(
+          "Can not specify compaction selector/configurer with file selection and file output options.");
+    }
+
+    if (!sopts.isEmpty()) {
+      PluginConfig selectorCfg = new PluginConfig(
+          "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy",
+          sopts);
+      compactionConfig.setSelector(selectorCfg);
+    }
+
+    if (!copts.isEmpty()) {
+      PluginConfig configurerConfig = new PluginConfig(
+          "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy",
+          copts);
+      compactionConfig.setConfigurer(configurerConfig);
+    }
   }
 
   @Override
@@ -137,41 +163,27 @@ public class CompactCommand extends TableOperation {
       List<IteratorSetting> iterators =
           shellState.iteratorProfiles.get(cl.getOptionValue(profileOpt.getOpt()));
       if (iterators == null) {
-        Shell.log.error("Profile " + cl.getOptionValue(profileOpt.getOpt()) + " does not exist");
+        Shell.log.error("Profile {} does not exist", cl.getOptionValue(profileOpt.getOpt()));
         return -1;
       }
 
       compactionConfig.setIterators(new ArrayList<>(iterators));
     }
 
-    Map<String,String> configurableCompactOpt = getConfigurableCompactionStrategyOpts(cl);
+    setupConfigurableCompaction(cl, compactionConfig);
 
-    if (cl.hasOption(strategyOpt.getOpt())) {
-      if (configurableCompactOpt.size() > 0)
-        throw new IllegalArgumentException(
-            "Can not specify compaction strategy with file selection and file output options.");
-
-      CompactionStrategyConfig csc =
-          new CompactionStrategyConfig(cl.getOptionValue(strategyOpt.getOpt()));
-      if (cl.hasOption(strategyConfigOpt.getOpt())) {
-        Map<String,String> props = new HashMap<>();
-        String[] keyVals = cl.getOptionValue(strategyConfigOpt.getOpt()).split(",");
-        for (String keyVal : keyVals) {
-          String[] sa = keyVal.split("=");
-          props.put(sa[0], sa[1]);
-        }
-
-        csc.setOptions(props);
-      }
-
-      compactionConfig.setCompactionStrategy(csc);
+    if (cl.hasOption(selectorOpt.getLongOpt())) {
+      compactionConfig.setSelector(new PluginConfig(cl.getOptionValue(selectorOpt.getLongOpt()),
+          ShellUtil.parseMapOpt(cl, selectorConfigOpt)));
     }
 
-    if (configurableCompactOpt.size() > 0) {
-      CompactionStrategyConfig csc = new CompactionStrategyConfig(
-          "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy");
-      csc.setOptions(configurableCompactOpt);
-      compactionConfig.setCompactionStrategy(csc);
+    if (cl.hasOption(configurerOpt.getLongOpt())) {
+      compactionConfig.setConfigurer(new PluginConfig(cl.getOptionValue(configurerOpt.getLongOpt()),
+          ShellUtil.parseMapOpt(cl, configurerConfigOpt)));
+    }
+
+    if (cl.hasOption(hintsOption.getLongOpt())) {
+      compactionConfig.setExecutionHints(ShellUtil.parseMapOpt(cl, hintsOption));
     }
 
     return super.execute(fullCommand, cl, shellState);
@@ -197,17 +209,33 @@ public class CompactCommand extends TableOperation {
     profileOpt.setArgName("profile");
     opts.addOption(profileOpt);
 
-    strategyOpt = new Option("s", "strategy", true, "compaction strategy class name");
-    opts.addOption(strategyOpt);
-    strategyConfigOpt = new Option("sc", "strategyConfig", true,
-        "Key value options for compaction strategy.  Expects <prop>=<value>{,<prop>=<value>}");
-    opts.addOption(strategyConfigOpt);
+    hintsOption = newLAO("exec-hints",
+        "Compaction execution hints.  Expects <prop>=<value>{,<prop>=<value>}");
+    opts.addOption(hintsOption);
+
+    selectorOpt = newLAO("selector", "Class name of a compaction selector.");
+    opts.addOption(selectorOpt);
+    selectorConfigOpt = newLAO("selectorConfig",
+        "Key value options for compaction selector.  Expects <prop>=<value>{,<prop>=<value>}");
+    opts.addOption(selectorConfigOpt);
+
+    configurerOpt = newLAO("configurer", "Class name of a compaction configurer.");
+    opts.addOption(configurerOpt);
+    configurerConfigOpt = newLAO("configurerConfig",
+        "Key value options for compaction configurer.  Expects <prop>=<value>{,<prop>=<value>}");
+    opts.addOption(configurerConfigOpt);
 
     cancelOpt = new Option(null, "cancel", false, "cancel user initiated compactions");
     opts.addOption(cancelOpt);
 
+    enoSummaryOption = new Option(null, "sf-no-summary", false,
+        "Select files that do not have the summaries specified in the table configuration.");
+    opts.addOption(enoSummaryOption);
+    extraSummaryOption = new Option(null, "sf-extra-summary", false,
+        "Select files that have summary information which exceeds the tablets boundaries.");
+    opts.addOption(extraSummaryOption);
     enoSampleOption = new Option(null, "sf-no-sample", false,
-        "Select files that have no sample data or sample data that differes"
+        "Select files that have no sample data or sample data that differs"
             + " from the table configuration.");
     opts.addOption(enoSampleOption);
     enameOption =
@@ -243,8 +271,8 @@ public class CompactCommand extends TableOperation {
             + " K,M, and G suffixes. Uses table settings if not specified.");
     opts.addOption(outIndexBlockSizeOpt);
     outCompressionOpt = newLAO("out-compress",
-        "Compression to use for compaction output file. Either snappy, gz, lzo,"
-            + " or none. Uses table settings if not specified.");
+        "Compression to use for compaction output file. Either snappy, gz, bzip2, lzo,"
+            + " lz4, zstd, or none. Uses table settings if not specified.");
     opts.addOption(outCompressionOpt);
     outReplication =
         newLAO("out-replication", "HDFS replication to use for compaction output file. Uses table"

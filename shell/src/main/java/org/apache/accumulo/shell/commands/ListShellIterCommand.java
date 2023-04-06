@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -27,9 +29,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-/**
- *
- */
 public class ListShellIterCommand extends Command {
 
   private Option nameOpt, profileOpt;
@@ -37,29 +36,34 @@ public class ListShellIterCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
-    if (shellState.iteratorProfiles.size() == 0)
+    if (shellState.iteratorProfiles.isEmpty()) {
       return 0;
+    }
 
     final StringBuilder sb = new StringBuilder();
 
     String profile = null;
-    if (cl.hasOption(profileOpt.getOpt()))
+    if (cl.hasOption(profileOpt.getOpt())) {
       profile = cl.getOptionValue(profileOpt.getOpt());
+    }
 
     String name = null;
-    if (cl.hasOption(nameOpt.getOpt()))
+    if (cl.hasOption(nameOpt.getOpt())) {
       name = cl.getOptionValue(nameOpt.getOpt());
+    }
 
     Set<Entry<String,List<IteratorSetting>>> es = shellState.iteratorProfiles.entrySet();
     for (Entry<String,List<IteratorSetting>> entry : es) {
-      if (profile != null && !profile.equals(entry.getKey()))
+      if (profile != null && !profile.equals(entry.getKey())) {
         continue;
+      }
 
       sb.append("-\n");
       sb.append("- Profile : " + entry.getKey() + "\n");
       for (IteratorSetting setting : entry.getValue()) {
-        if (name != null && !name.equals(setting.getName()))
+        if (name != null && !name.equals(setting.getName())) {
           continue;
+        }
 
         sb.append("-    Iterator ").append(setting.getName()).append(", ").append(" options:\n");
         sb.append("-        ").append("iteratorPriority").append(" = ")
@@ -77,7 +81,7 @@ public class ListShellIterCommand extends Command {
       sb.append("-\n");
     }
 
-    shellState.getReader().print(sb.toString());
+    shellState.getWriter().print(sb);
 
     return 0;
   }

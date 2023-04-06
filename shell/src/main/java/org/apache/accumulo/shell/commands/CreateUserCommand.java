@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -25,6 +27,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -37,7 +40,7 @@ public class CreateUserCommand extends Command {
       TableExistsException, IOException {
     final String user = cl.getArgs()[0];
 
-    AuthenticationToken userToken = shellState.getToken();
+    AuthenticationToken userToken = ((ClientContext) shellState.getAccumuloClient()).token();
     PasswordToken passwordToken;
     if (userToken instanceof KerberosToken) {
       passwordToken = new PasswordToken();
@@ -45,13 +48,13 @@ public class CreateUserCommand extends Command {
       final String password =
           shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
       if (password == null) {
-        shellState.getReader().println();
+        shellState.getWriter().println();
         return 0;
       } // user canceled
       String passwordConfirm =
           shellState.readMaskedLine("Please confirm new password for '" + user + "': ", '*');
       if (passwordConfirm == null) {
-        shellState.getReader().println();
+        shellState.getWriter().println();
         return 0;
       } // user canceled
 
@@ -61,8 +64,8 @@ public class CreateUserCommand extends Command {
       passwordToken = new PasswordToken(password);
     }
 
-    shellState.getConnector().securityOperations().createLocalUser(user, passwordToken);
-    Shell.log.debug("Created user " + user);
+    shellState.getAccumuloClient().securityOperations().createLocalUser(user, passwordToken);
+    Shell.log.debug("Created user {}", user);
     return 0;
   }
 
@@ -78,8 +81,7 @@ public class CreateUserCommand extends Command {
 
   @Override
   public Options getOptions() {
-    final Options o = new Options();
-    return o;
+    return new Options();
   }
 
   @Override

@@ -1,23 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.cluster;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Map.Entry;
@@ -25,6 +28,8 @@ import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Property-based configuration of options to control how SSH is performed.
@@ -51,25 +56,26 @@ public class RemoteShellOptions {
 
   protected Properties properties = new Properties();
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input file name")
   public RemoteShellOptions() {
     properties = new Properties();
-    Properties systemProperties = System.getProperties();
 
-    String propertyFile = systemProperties.getProperty(SSH_PROPERTIES_FILE);
+    String propertyFile = System.getProperty(SSH_PROPERTIES_FILE);
 
     // Load properties from the specified file
-    if (null != propertyFile) {
+    if (propertyFile != null) {
       // Check for properties provided in a file
       File f = new File(propertyFile);
       if (f.exists() && f.isFile() && f.canRead()) {
         FileReader reader = null;
         try {
-          reader = new FileReader(f);
-        } catch (FileNotFoundException e) {
+          reader = new FileReader(f, UTF_8);
+        } catch (IOException e) {
           log.warn("Could not read properties from specified file: {}", propertyFile, e);
         }
 
-        if (null != reader) {
+        if (reader != null) {
           try {
             properties.load(reader);
           } catch (IOException e) {
@@ -86,7 +92,7 @@ public class RemoteShellOptions {
     }
 
     // Let other system properties override those in the file
-    for (Entry<Object,Object> entry : systemProperties.entrySet()) {
+    for (Entry<Object,Object> entry : System.getProperties().entrySet()) {
       if (!(entry.getKey() instanceof String)) {
         continue;
       }

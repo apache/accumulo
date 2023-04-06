@@ -1,29 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.log;
 
+import static java.util.Collections.singletonList;
+
 import java.io.IOException;
-import java.util.ArrayList;
+import java.nio.channels.ClosedChannelException;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -36,20 +37,13 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
-import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.accumulo.fate.util.LoggingRunnable;
-import org.apache.accumulo.fate.util.Retry;
-import org.apache.accumulo.fate.util.Retry.RetryFactory;
-import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Retry.RetryFactory;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.replication.StatusUtil;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.accumulo.server.util.Halt;
-import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.apache.accumulo.tserver.Mutations;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.log.DfsLogger.LoggerOperation;
@@ -105,7 +99,7 @@ public class TabletServerLogger {
 
   private final RetryFactory writeRetryFactory;
 
-  static private abstract class TestCallWithWriteLock {
+  private abstract static class TestCallWithWriteLock {
     abstract boolean test();
 
     abstract void withWriteLock() throws IOException;
@@ -114,10 +108,8 @@ public class TabletServerLogger {
   /**
    * Pattern taken from the documentation for ReentrantReadWriteLock
    *
-   * @param rwlock
-   *          lock to use
-   * @param code
-   *          a test/work pair
+   * @param rwlock lock to use
+   * @param code a test/work pair
    */
   private static void testLockAndRun(final ReadWriteLock rwlock, TestCallWithWriteLock code)
       throws IOException {
@@ -126,7 +118,7 @@ public class TabletServerLogger {
     try {
       // does some condition exist that needs the write lock?
       if (code.test()) {
-        // Yes, let go of the readlock
+        // Yes, let go of the readLock
         rwlock.readLock().unlock();
         // Grab the write lock
         rwlock.writeLock().lock();
@@ -137,7 +129,7 @@ public class TabletServerLogger {
             code.withWriteLock();
           }
         } finally {
-          // regain the readlock
+          // regain the readLock
           rwlock.readLock().lock();
           // unlock the write lock
           rwlock.writeLock().unlock();
@@ -168,22 +160,20 @@ public class TabletServerLogger {
       @Override
       boolean test() {
         result.set(currentLog);
-        if (currentLog != null)
+        if (currentLog != null) {
           logIdOut.set(logId.get());
+        }
         return currentLog == null;
       }
 
       @Override
-      void withWriteLock() throws IOException {
-        try {
-          createLogger();
-          result.set(currentLog);
-          if (currentLog != null)
-            logIdOut.set(logId.get());
-          else
-            logIdOut.set(-1);
-        } catch (IOException e) {
-          log.error("Unable to create loggers", e);
+      void withWriteLock() {
+        createLogger();
+        result.set(currentLog);
+        if (currentLog != null) {
+          logIdOut.set(logId.get());
+        } else {
+          logIdOut.set(-1);
         }
       }
     });
@@ -198,7 +188,7 @@ public class TabletServerLogger {
   public String getLogFile() {
     logIdLock.readLock().lock();
     try {
-      if (null == currentLog) {
+      if (currentLog == null) {
         return null;
       }
       return currentLog.getFileName();
@@ -207,7 +197,7 @@ public class TabletServerLogger {
     }
   }
 
-  synchronized private void createLogger() throws IOException {
+  private synchronized void createLogger() {
     if (!logIdLock.isWriteLockedByCurrentThread()) {
       throw new IllegalStateException("createLoggers should be called with write lock held!");
     }
@@ -225,20 +215,19 @@ public class TabletServerLogger {
       if (next instanceof DfsLogger) {
         currentLog = (DfsLogger) next;
         logId.incrementAndGet();
-        log.info("Using next log " + currentLog.getFileName());
+        log.info("Using next log {}", currentLog.getFileName());
 
         // When we successfully create a WAL, make sure to reset the Retry.
-        if (null != createRetry) {
+        if (createRetry != null) {
           createRetry = null;
         }
 
         this.createTime = System.currentTimeMillis();
-        return;
       } else {
         throw new RuntimeException("Error: unexpected type seen: " + next);
       }
     } catch (Exception t) {
-      if (null == createRetry) {
+      if (createRetry == null) {
         createRetry = createRetryFactory.createRetry();
       }
 
@@ -249,7 +238,7 @@ public class TabletServerLogger {
 
         try {
           // Backoff
-          createRetry.waitForNextAttempt();
+          createRetry.waitForNextAttempt(log, "create new WAL ");
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new RuntimeException(e);
@@ -269,137 +258,119 @@ public class TabletServerLogger {
     if (nextLogMaker != null) {
       return;
     }
-    nextLogMaker = new SimpleThreadPool(1, "WALog creator");
-    nextLogMaker.submit(new LoggingRunnable(log, new Runnable() {
-      @Override
-      public void run() {
-        final ServerResources conf = tserver.getServerConfig();
-        final VolumeManager fs = conf.getFileSystem();
-        while (!nextLogMaker.isShutdown()) {
-          log.debug("Creating next WAL");
-          DfsLogger alog = null;
+    nextLogMaker =
+        ThreadPools.getServerThreadPools().createFixedThreadPool(1, "WALog creator", true);
+    nextLogMaker.execute(() -> {
+      final ServerResources conf = tserver.getServerConfig();
+      final VolumeManager fs = conf.getVolumeManager();
+      while (!nextLogMaker.isShutdown()) {
+        log.debug("Creating next WAL");
+        DfsLogger alog = null;
 
-          try {
-            alog = new DfsLogger(conf, syncCounter, flushCounter);
-            alog.open(tserver.getClientAddressString());
-          } catch (Exception t) {
-            log.error("Failed to open WAL", t);
-            // the log is not advertised in ZK yet, so we can just delete it if it exists
-            if (alog != null) {
-              try {
-                alog.close();
-              } catch (Exception e) {
-                log.error("Failed to close WAL after it failed to open", e);
-              }
-
-              try {
-                Path path = alog.getPath();
-                if (fs.exists(path)) {
-                  fs.delete(path);
-                }
-              } catch (Exception e) {
-                log.warn("Failed to delete a WAL that failed to open", e);
-              }
-            }
-
+        try {
+          alog = new DfsLogger(tserver.getContext(), conf, syncCounter, flushCounter);
+          alog.open(tserver.getClientAddressString());
+        } catch (Exception t) {
+          log.error("Failed to open WAL", t);
+          // the log is not advertised in ZK yet, so we can just delete it if it exists
+          if (alog != null) {
             try {
-              nextLog.offer(t, 12, TimeUnit.HOURS);
-            } catch (InterruptedException ex) {
-              // ignore
-            }
-
-            continue;
-          }
-
-          String fileName = alog.getFileName();
-          log.debug("Created next WAL " + fileName);
-
-          try {
-            tserver.addNewLogMarker(alog);
-          } catch (Exception t) {
-            log.error("Failed to add new WAL marker for " + fileName, t);
-
-            try {
-              // Intentionally not deleting walog because it may have been advertised in ZK. See
-              // #949
               alog.close();
             } catch (Exception e) {
               log.error("Failed to close WAL after it failed to open", e);
             }
 
-            // it's possible the log was advertised in ZK even though we got an
-            // exception. If there's a chance the WAL marker may have been created,
-            // this will ensure it's closed. Either the close will be written and
-            // the GC will clean it up, or the tserver is about to die due to sesson
-            // expiration and the GC will also clean it up.
             try {
-              tserver.walogClosed(alog);
+              Path path = alog.getPath();
+              if (fs.exists(path)) {
+                fs.delete(path);
+              }
             } catch (Exception e) {
-              log.error("Failed to close WAL that failed to open: " + fileName, e);
+              log.warn("Failed to delete a WAL that failed to open", e);
             }
-
-            try {
-              nextLog.offer(t, 12, TimeUnit.HOURS);
-            } catch (InterruptedException ex) {
-              // ignore
-            }
-
-            continue;
           }
 
           try {
-            while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
-              log.info("Our WAL was not used for 12 hours: " + fileName);
-            }
-          } catch (InterruptedException e) {
-            // ignore - server is shutting down
+            nextLog.offer(t, 12, TimeUnit.HOURS);
+          } catch (InterruptedException ex) {
+            // ignore
           }
+
+          continue;
+        }
+
+        String fileName = alog.getFileName();
+        log.debug("Created next WAL {}", fileName);
+
+        try {
+          tserver.addNewLogMarker(alog);
+        } catch (Exception t) {
+          log.error("Failed to add new WAL marker for " + fileName, t);
+
+          try {
+            // Intentionally not deleting walog because it may have been advertised in ZK. See
+            // #949
+            alog.close();
+          } catch (Exception e) {
+            log.error("Failed to close WAL after it failed to open", e);
+          }
+
+          // it's possible the log was advertised in ZK even though we got an
+          // exception. If there's a chance the WAL marker may have been created,
+          // this will ensure it's closed. Either the close will be written and
+          // the GC will clean it up, or the tserver is about to die due to sesson
+          // expiration and the GC will also clean it up.
+          try {
+            tserver.walogClosed(alog);
+          } catch (Exception e) {
+            log.error("Failed to close WAL that failed to open: " + fileName, e);
+          }
+
+          try {
+            nextLog.offer(t, 12, TimeUnit.HOURS);
+          } catch (InterruptedException ex) {
+            // ignore
+          }
+
+          continue;
+        }
+
+        try {
+          while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
+            log.info("Our WAL was not used for 12 hours: {}", fileName);
+          }
+        } catch (InterruptedException e) {
+          // ignore - server is shutting down
         }
       }
-    }));
+    });
   }
 
-  synchronized private void close() throws IOException {
+  private synchronized void close() throws IOException {
     if (!logIdLock.isWriteLockedByCurrentThread()) {
       throw new IllegalStateException("close should be called with write lock held!");
     }
     try {
-      if (null != currentLog) {
+      if (currentLog != null) {
         try {
           currentLog.close();
         } catch (DfsLogger.LogClosedException ex) {
           // ignore
-        } catch (Throwable ex) {
+        } catch (Exception ex) {
           log.error("Unable to cleanly close log " + currentLog.getFileName() + ": " + ex, ex);
         } finally {
           this.tserver.walogClosed(currentLog);
+          currentLog = null;
+          logSizeEstimate.set(0);
         }
-        currentLog = null;
-        logSizeEstimate.set(0);
       }
-    } catch (Throwable t) {
+    } catch (Exception t) {
       throw new IOException(t);
     }
   }
 
   interface Writer {
     LoggerOperation write(DfsLogger logger) throws Exception;
-  }
-
-  private void write(CommitSession commitSession, boolean mincFinish, Writer writer)
-      throws IOException {
-    write(commitSession, mincFinish, writer, writeRetryFactory.createRetry());
-  }
-
-  private void write(CommitSession commitSession, boolean mincFinish, Writer writer,
-      Retry writeRetry) throws IOException {
-    List<CommitSession> sessions = Collections.singletonList(commitSession);
-    write(sessions, mincFinish, writer, writeRetry);
-  }
-
-  private void write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer)
-      throws IOException {
-    write(sessions, mincFinish, writer, writeRetryFactory.createRetry());
   }
 
   private void write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer,
@@ -411,9 +382,8 @@ public class TabletServerLogger {
     while (!success) {
       try {
         // get a reference to the loggers that no other thread can touch
-        DfsLogger copy = null;
         AtomicInteger currentId = new AtomicInteger(-1);
-        copy = initializeLoggers(currentId);
+        DfsLogger copy = initializeLoggers(currentId);
         currentLogId = currentId.get();
 
         // add the logger to the log set for the memory in the tablet,
@@ -424,21 +394,10 @@ public class TabletServerLogger {
             if (commitSession.beginUpdatingLogsUsed(copy, mincFinish)) {
               try {
                 // Scribble out a tablet definition and then write to the metadata table
-                defineTablet(commitSession, writeRetry);
+                write(singletonList(commitSession), false,
+                    logger -> logger.defineTablet(commitSession), writeRetry);
               } finally {
                 commitSession.finishUpdatingLogsUsed();
-              }
-
-              // Need to release
-              KeyExtent extent = commitSession.getExtent();
-              if (ReplicationConfigurationUtil.isEnabled(extent,
-                  tserver.getTableConfiguration(extent))) {
-                Status status = StatusUtil.openWithUnknownLength(System.currentTimeMillis());
-                log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for "
-                    + copy.getFileName());
-                // Got some new WALs, note this in the metadata table
-                ReplicationTableUtil.updateFiles(tserver, commitSession.getExtent(),
-                    copy.getFileName(), status);
               }
             }
           }
@@ -454,14 +413,14 @@ public class TabletServerLogger {
           // double-check: did the log set change?
           success = (currentLogId == logId.get());
         }
-      } catch (DfsLogger.LogClosedException ex) {
+      } catch (DfsLogger.LogClosedException | ClosedChannelException ex) {
         writeRetry.logRetry(log, "Logs closed while writing", ex);
       } catch (Exception t) {
         writeRetry.logRetry(log, "Failed to write to WAL", t);
 
         try {
           // Backoff
-          writeRetry.waitForNextAttempt();
+          writeRetry.waitForNextAttempt(log, "write to WAL");
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new RuntimeException(e);
@@ -504,61 +463,30 @@ public class TabletServerLogger {
     });
   }
 
-  public void defineTablet(final CommitSession commitSession, final Retry writeRetry)
+  /**
+   * Log a single mutation. This method expects mutations that have a durability other than NONE.
+   */
+  public void log(final CommitSession commitSession, final Mutation m, final Durability durability)
       throws IOException {
-    // scribble this into the metadata tablet, too.
-    write(commitSession, false, new Writer() {
-      @Override
-      public LoggerOperation write(DfsLogger logger) throws Exception {
-        logger.defineTablet(commitSession.getWALogSeq(), commitSession.getLogId(),
-            commitSession.getExtent());
-        return DfsLogger.NO_WAIT_LOGGER_OP;
-      }
-    }, writeRetry);
-  }
-
-  public void log(final CommitSession commitSession, final long tabletSeq, final Mutation m,
-      final Durability durability) throws IOException {
-    if (durability == Durability.NONE) {
-      return;
-    }
-    if (durability == Durability.DEFAULT) {
+    if (durability == Durability.DEFAULT || durability == Durability.NONE) {
       throw new IllegalArgumentException("Unexpected durability " + durability);
     }
-    write(commitSession, false, new Writer() {
-      @Override
-      public LoggerOperation write(DfsLogger logger) throws Exception {
-        return logger.log(tabletSeq, commitSession.getLogId(), m, durability);
-      }
-    });
+    write(singletonList(commitSession), false, logger -> logger.log(commitSession, m, durability),
+        writeRetryFactory.createRetry());
     logSizeEstimate.addAndGet(m.numBytes());
   }
 
-  public void logManyTablets(Map<CommitSession,Mutations> mutations) throws IOException {
-
-    final Map<CommitSession,Mutations> loggables = new HashMap<>(mutations);
-    for (Entry<CommitSession,Mutations> entry : mutations.entrySet()) {
-      if (entry.getValue().getDurability() == Durability.NONE) {
-        loggables.remove(entry.getKey());
-      }
-    }
-    if (loggables.size() == 0)
+  /**
+   * Log mutations. This method expects mutations that have a durability other than NONE.
+   */
+  public void logManyTablets(Map<CommitSession,TabletMutations> loggables) throws IOException {
+    if (loggables.isEmpty()) {
       return;
+    }
 
-    write(loggables.keySet(), false, new Writer() {
-      @Override
-      public LoggerOperation write(DfsLogger logger) throws Exception {
-        List<TabletMutations> copy = new ArrayList<>(loggables.size());
-        for (Entry<CommitSession,Mutations> entry : loggables.entrySet()) {
-          CommitSession cs = entry.getKey();
-          Durability durability = entry.getValue().getDurability();
-          copy.add(new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
-              entry.getValue().getMutations(), durability));
-        }
-        return logger.logManyTablets(copy);
-      }
-    });
-    for (Mutations entry : loggables.values()) {
+    write(loggables.keySet(), false, logger -> logger.logManyTablets(loggables.values()),
+        writeRetryFactory.createRetry());
+    for (TabletMutations entry : loggables.values()) {
       if (entry.getMutations().size() < 1) {
         throw new IllegalArgumentException("logManyTablets: logging empty mutation list");
       }
@@ -568,42 +496,27 @@ public class TabletServerLogger {
     }
   }
 
-  public void minorCompactionFinished(final CommitSession commitSession,
-      final String fullyQualifiedFileName, final long walogSeq, final Durability durability)
-      throws IOException {
-
-    long t1 = System.currentTimeMillis();
-
-    write(commitSession, true, new Writer() {
-      @Override
-      public LoggerOperation write(DfsLogger logger) throws Exception {
-        return logger.minorCompactionFinished(walogSeq, commitSession.getLogId(),
-            fullyQualifiedFileName, durability);
-      }
-    });
-
-    long t2 = System.currentTimeMillis();
-
-    log.debug(" wrote MinC finish: writeTime:{}ms  durability:{}", (t2 - t1), durability);
+  public void minorCompactionFinished(final CommitSession commitSession, final long walogSeq,
+      final Durability durability) throws IOException {
+    write(singletonList(commitSession), true,
+        logger -> logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), durability),
+        writeRetryFactory.createRetry());
   }
 
   public long minorCompactionStarted(final CommitSession commitSession, final long seq,
       final String fullyQualifiedFileName, final Durability durability) throws IOException {
-    write(commitSession, false, new Writer() {
-      @Override
-      public LoggerOperation write(DfsLogger logger) throws Exception {
-        return logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName,
-            durability);
-      }
-    });
+    write(
+        singletonList(commitSession), false, logger -> logger.minorCompactionStarted(seq,
+            commitSession.getLogId(), fullyQualifiedFileName, durability),
+        writeRetryFactory.createRetry());
     return seq;
   }
 
-  public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf, List<Path> logs,
+  public void recover(ServerContext context, KeyExtent extent, List<Path> recoveryDirs,
       Set<String> tabletFiles, MutationReceiver mr) throws IOException {
     try {
-      SortedLogRecovery recovery = new SortedLogRecovery(fs);
-      recovery.recover(extent, logs, tabletFiles, mr);
+      SortedLogRecovery recovery = new SortedLogRecovery(context);
+      recovery.recover(extent, recoveryDirs, tabletFiles, mr);
     } catch (Exception e) {
       throw new IOException(e);
     }

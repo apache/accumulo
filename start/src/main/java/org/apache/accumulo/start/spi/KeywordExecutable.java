@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.start.spi;
 
@@ -38,22 +40,41 @@ import java.util.ServiceLoader;
  * If the implementing class also wishes to have a redundant main method, it may be useful to simply
  * implement main as:<br>
  * {@code new MyImplementingClass().execute(args);}
- *
  */
 public interface KeywordExecutable {
 
+  enum UsageGroup {
+    CORE, PROCESS, OTHER
+  }
+
   /**
-   * Provides access to the service's keyword.
-   *
-   * @return the keyword which identifies this service
+   * @return Keyword which identifies this service
    */
   String keyword();
 
   /**
+   * @return Usage for service
+   */
+  default String usage() {
+    return keyword();
+  }
+
+  /**
+   * @return Usage group for this command
+   */
+  default UsageGroup usageGroup() {
+    return UsageGroup.OTHER;
+  }
+
+  /**
+   * @return Description of service
+   */
+  String description();
+
+  /**
    * Execute the item with the given arguments.
    *
-   * @param args
-   *          command-line arguments to pass to the executed class
+   * @param args command-line arguments to pass to the executed class
    */
   void execute(final String[] args) throws Exception;
 

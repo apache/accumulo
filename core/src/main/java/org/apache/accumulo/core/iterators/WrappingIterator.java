@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators;
 
@@ -41,6 +43,7 @@ import org.apache.accumulo.core.data.Value;
 public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Value> {
 
   private SortedKeyValueIterator<Key,Value> source = null;
+  private IteratorEnvironment env = null;
   boolean seenSeek = false;
 
   protected void setSource(SortedKeyValueIterator<Key,Value> source) {
@@ -48,8 +51,9 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
   }
 
   protected SortedKeyValueIterator<Key,Value> getSource() {
-    if (source == null)
+    if (source == null) {
       throw new IllegalStateException("getting null source");
+    }
     return source;
   }
 
@@ -60,22 +64,25 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
 
   @Override
   public Key getTopKey() {
-    if (seenSeek == false)
+    if (!seenSeek) {
       throw new IllegalStateException("never been seeked");
+    }
     return getSource().getTopKey();
   }
 
   @Override
   public Value getTopValue() {
-    if (seenSeek == false)
+    if (!seenSeek) {
       throw new IllegalStateException("never been seeked");
+    }
     return getSource().getTopValue();
   }
 
   @Override
   public boolean hasTop() {
-    if (seenSeek == false)
+    if (!seenSeek) {
       throw new IllegalStateException("never been seeked");
+    }
     return getSource().hasTop();
   }
 
@@ -83,13 +90,14 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     this.setSource(source);
-
+    this.env = env;
   }
 
   @Override
   public void next() throws IOException {
-    if (seenSeek == false)
+    if (!seenSeek) {
       throw new IllegalStateException("never been seeked");
+    }
     getSource().next();
   }
 
@@ -98,6 +106,14 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
       throws IOException {
     getSource().seek(range, columnFamilies, inclusive);
     seenSeek = true;
+  }
+
+  @Override
+  public boolean isRunningLowOnMemory() {
+    if (env == null) {
+      return SortedKeyValueIterator.super.isRunningLowOnMemory();
+    }
+    return env.isRunningLowOnMemory();
   }
 
 }
