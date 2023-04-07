@@ -20,42 +20,76 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
+import org.apache.accumulo.core.util.json.RangeAdapter;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
 public class DataFileValue {
-  private long size;
-  private long numEntries;
-  private long time = -1;
 
-  public DataFileValue(long size, long numEntries, long time) {
+  private static final Gson gson = RangeAdapter.createRangeGson();
+
+  private final long size;
+  private final long numEntries;
+  private long time = -1;
+  private final List<Range> ranges;
+
+  public DataFileValue(final long size, final long numEntries, final long time) {
+    this(size, numEntries, time, null);
+  }
+
+  public DataFileValue(final long size, final long numEntries) {
+    this(size, numEntries, null);
+  }
+
+  public DataFileValue(final long size, final long numEntries, final long time,
+      final Collection<Range> ranges) {
     this.size = size;
     this.numEntries = numEntries;
     this.time = time;
+    // If ranges is null then just set to empty list and also merge overlapping to reduce
+    // the data stored if possible.
+    this.ranges = Optional.ofNullable(ranges).map(Range::mergeOverlapping)
+        .map(Collections::unmodifiableList).orElse(List.of());
   }
 
-  public DataFileValue(long size, long numEntries) {
-    this.size = size;
-    this.numEntries = numEntries;
-    this.time = -1;
+  public DataFileValue(long size, long numEntries, Collection<Range> ranges) {
+    this(size, numEntries, -1, ranges);
   }
 
-  public DataFileValue(String encodedDFV) {
-    String[] ba = encodedDFV.split(",");
-
-    size = Long.parseLong(ba[0]);
-    numEntries = Long.parseLong(ba[1]);
-
-    if (ba.length == 3) {
-      time = Long.parseLong(ba[2]);
-    } else {
-      time = -1;
+  public static DataFileValue decode(String encodedDFV) {
+    try {
+      // Optimistically try and decode from Json and fall back to decoding the legacy format
+      // if json parsing fails. Over time the old format will be replaced with the new format
+      // as new values are written or updated.
+      return gson.fromJson(encodedDFV, DataFileValue.class);
+    } catch (JsonSyntaxException e) {
+      return decodeLegacy(encodedDFV);
     }
   }
 
-  public DataFileValue(byte[] encodedDFV) {
-    this(new String(encodedDFV, UTF_8));
+  public static DataFileValue decode(byte[] encodedDFV) {
+    return decode(new String(encodedDFV, UTF_8));
+  }
+
+  /**
+   * Decodes the original CSV format for DataFileValue
+   */
+  private static DataFileValue decodeLegacy(final String encodedDFV) {
+    String[] ba = encodedDFV.split(",");
+    long size = Long.parseLong(ba[0]);
+    long numEntries = Long.parseLong(ba[1]);
+    long time = ba.length == 3 ? Long.parseLong(ba[2]) : -1;
+    return new DataFileValue(size, numEntries, time);
   }
 
   public long getSize() {
@@ -64,6 +98,10 @@ public class DataFileValue {
 
   public long getNumEntries() {
     return numEntries;
+  }
+
+  public List<Range> getRanges() {
+    return ranges;
   }
 
   public boolean isTimeSet() {
@@ -79,10 +117,7 @@ public class DataFileValue {
   }
 
   public String encodeAsString() {
-    if (time >= 0) {
-      return ("" + size + "," + numEntries + "," + time);
-    }
-    return ("" + size + "," + numEntries);
+    return gson.toJson(this);
   }
 
   public Value encodeAsValue() {
@@ -135,4 +170,5 @@ public class DataFileValue {
       return iter;
     }
   }
+
 }

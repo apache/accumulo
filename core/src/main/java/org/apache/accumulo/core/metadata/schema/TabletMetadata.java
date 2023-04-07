@@ -447,7 +447,7 @@ public class TabletMetadata {
           }
           break;
         case DataFileColumnFamily.STR_NAME:
-          filesBuilder.put(new StoredTabletFile(qual), new DataFileValue(val));
+          filesBuilder.put(new StoredTabletFile(qual), DataFileValue.decode(val));
           break;
         case BulkFileColumnFamily.STR_NAME:
           loadedFilesBuilder.put(new StoredTabletFile(qual),

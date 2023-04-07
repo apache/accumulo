@@ -203,7 +203,7 @@ public class MetadataConstraints implements Constraint {
 
       if (columnFamily.equals(DataFileColumnFamily.NAME)) {
         try {
-          DataFileValue dfv = new DataFileValue(columnUpdate.getValue());
+          DataFileValue dfv = DataFileValue.decode(columnUpdate.getValue());
 
           if (dfv.getSize() < 0 || dfv.getNumEntries() < 0) {
             violations = addViolation(violations, 1);

@@ -156,7 +156,7 @@ public class ManagerMetadataUtil {
             if (entry.getKey().compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
               StoredTabletFile stf =
                   new StoredTabletFile(entry.getKey().getColumnQualifierData().toString());
-              origDatafileSizes.put(stf, new DataFileValue(entry.getValue().get()));
+              origDatafileSizes.put(stf, DataFileValue.decode(entry.getValue().get()));
             }
           }
         }

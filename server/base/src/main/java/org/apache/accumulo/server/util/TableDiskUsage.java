@@ -238,7 +238,7 @@ public class TableDiskUsage {
             // This tracks the file size for individual files for computing shared file statistics
             // later
             tdu.addFileSize(file.getFileName(),
-                new DataFileValue(entry.getValue().get()).getSize());
+                DataFileValue.decode(entry.getValue().get()).getSize());
           }
         }
 
