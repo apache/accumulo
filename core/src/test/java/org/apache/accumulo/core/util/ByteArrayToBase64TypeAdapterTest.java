@@ -39,14 +39,17 @@ public class ByteArrayToBase64TypeAdapterTest {
   @Test
   public void testSerializeText() throws IOException {
     final Text original = new Text("This is a test");
-    final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    original.write(new DataOutputStream(baos));
 
-    final String encoded = gson.toJson(baos.toByteArray());
-    final Text decoded = new Text();
-    decoded.readFields(
-        new DataInputStream(new ByteArrayInputStream(gson.fromJson(encoded, byte[].class))));
-    assertEquals(original.toString(), decoded.toString());
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos)) {
+      original.write(new DataOutputStream(dos));
+
+      final String encoded = gson.toJson(baos.toByteArray());
+      final Text decoded = new Text();
+      decoded.readFields(
+          new DataInputStream(new ByteArrayInputStream(gson.fromJson(encoded, byte[].class))));
+      assertEquals(original.toString(), decoded.toString());
+    }
   }
 
   @Test
