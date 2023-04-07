@@ -65,7 +65,8 @@ public class LogSorter {
   private static final Logger log = LoggerFactory.getLogger(LogSorter.class);
   AccumuloConfiguration sortedLogConf;
 
-  private final Map<String,LogProcessor> currentWork = Collections.synchronizedMap(new HashMap<>());
+  // access must synchronize on currentWork to guard against concurrent updates
+  private final Map<String,LogProcessor> currentWork = new HashMap<>();
 
   class LogProcessor implements Processor {
 
