@@ -316,11 +316,11 @@ public interface Ample {
 
     T putOperation(TabletOperation operation, TabletOperationId opId);
 
+    T deleteOperation();
+
     T putOnDemand();
 
     T deleteOnDemand();
-
-    T deleteOperation();
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {
