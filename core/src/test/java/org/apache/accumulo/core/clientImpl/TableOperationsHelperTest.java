@@ -192,9 +192,7 @@ public class TableOperationsHelperTest {
     public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) {}
 
     @Override
-    public void offline(String tableName) {
-
-    }
+    public void offline(String tableName) {}
 
     @Override
     public boolean isOnline(String tableName) {
@@ -211,6 +209,17 @@ public class TableOperationsHelperTest {
 
     @Override
     public void online(String tableName, boolean wait) {}
+
+    @Override
+    public void onDemand(String tableName) {}
+
+    @Override
+    public void onDemand(String tableName, boolean wait) {}
+
+    @Override
+    public boolean isOnDemand(String tableName) {
+      return false;
+    }
 
     @Override
     public void clearLocatorCache(String tableName) {}

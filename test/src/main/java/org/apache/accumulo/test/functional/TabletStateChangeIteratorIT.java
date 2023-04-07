@@ -59,6 +59,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.OnDemandAssignmentStateColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -91,18 +92,22 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      String[] tables = getUniqueNames(6);
+      String[] tables = getUniqueNames(8);
       final String t1 = tables[0];
       final String t2 = tables[1];
       final String t3 = tables[2];
-      final String metaCopy1 = tables[3];
-      final String metaCopy2 = tables[4];
-      final String metaCopy3 = tables[5];
+      final String t4 = tables[3];
+      final String metaCopy1 = tables[4];
+      final String metaCopy2 = tables[5];
+      final String metaCopy3 = tables[6];
+      final String metaCopy4 = tables[7];
 
       // create some metadata
       createTable(client, t1, true);
       createTable(client, t2, false);
       createTable(client, t3, true);
+      createTable(client, t4, false);
+      client.tableOperations().onDemand(t4, true); // t4 is an on-demand table
 
       // examine a clone of the metadata table, so we can manipulate it
       copyTable(client, MetadataTable.NAME, metaCopy1);
@@ -122,6 +127,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       // metaCopy1 is modified, copy it for subsequent test.
       copyTable(client, metaCopy1, metaCopy2);
       copyTable(client, metaCopy1, metaCopy3);
+      copyTable(client, metaCopy1, metaCopy4);
 
       // test the assigned case (no location)
       removeLocation(client, metaCopy1, t3);
@@ -151,8 +157,20 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy3, state),
           "Should have 1 tablet that needs a metadata repair");
 
+      // test the on-demand online tablet case
+      state = new State(client);
+      onDemandFirstTablet(client, metaCopy4, t4);
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy4, state),
+          "Should have 1 tablet that is on-demand and needs to be hosted");
+
+      // test the on-demand offline tablet case
+      state = new State(client);
+      removeOnDemandMarkers(client, state, metaCopy4, t4);
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy4, state),
+          "Should have 1 tablet that is on-demand and needs to be unloaded");
+
       // clean up
-      dropTables(client, t1, t2, t3, metaCopy1, metaCopy2, metaCopy3);
+      dropTables(client, t1, t2, t3, t4, metaCopy1, metaCopy2, metaCopy3, metaCopy4);
     }
   }
 
@@ -186,6 +204,42 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     }
   }
 
+  private void onDemandFirstTablet(AccumuloClient client, String metadataTable, String tableName)
+      throws TableNotFoundException, MutationsRejectedException {
+    TableId tableIdToModify = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+    try (Scanner scanner = client.createScanner(metadataTable, Authorizations.EMPTY)) {
+      scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetaRange());
+      Entry<Key,Value> entry = scanner.iterator().next();
+      Mutation m = new Mutation(entry.getKey().getRow());
+      m.put(OnDemandAssignmentStateColumnFamily.NAME, new Text(""),
+          entry.getKey().getTimestamp() + 1, new Value());
+      try (BatchWriter bw = client.createBatchWriter(metadataTable)) {
+        bw.addMutation(m);
+      }
+    }
+  }
+
+  private void removeOnDemandMarkers(AccumuloClient client, State state, String metadataTable,
+      String tableName) throws TableNotFoundException, MutationsRejectedException {
+    TableId tableIdToModify = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+
+    // Need to insert a current location and then delete the "ondemand" marker so that
+    // the looks like it's hosted and supposed to be unloaded
+    try (Scanner scanner = client.createScanner(metadataTable, Authorizations.EMPTY)) {
+      scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetaRange());
+      Entry<Key,Value> entry = scanner.iterator().next();
+      Mutation m = new Mutation(entry.getKey().getRow());
+      m.put(CurrentLocationColumnFamily.NAME, new Text("1234567"),
+          entry.getKey().getTimestamp() + 1,
+          new Value(state.onlineTabletServers().iterator().next().getHostPort()));
+      m.putDelete(OnDemandAssignmentStateColumnFamily.NAME, new Text(""),
+          entry.getKey().getTimestamp() + 1);
+      try (BatchWriter bw = client.createBatchWriter(metadataTable)) {
+        bw.addMutation(m);
+      }
+    }
+  }
+
   private void removeLocation(AccumuloClient client, String table, String tableNameToModify)
       throws TableNotFoundException, MutationsRejectedException {
     TableId tableIdToModify =
@@ -209,6 +263,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> e : scanner) {
         if (e != null) {
           results++;
+          log.debug("Found tablets that changed state: {}", e.getKey());
           resultList.add(e.getKey());
         }
       }
@@ -270,7 +325,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
     // metadata should be stable with only 6 rows (2 for each table)
     log.debug("Gathered {} rows to create copy {}", mutations.size(), copy);
-    assertEquals(6, mutations.size(), "Metadata should have 6 rows (2 for each table)");
+    assertEquals(8, mutations.size(), "Metadata should have 8 rows (2 for each table)");
     client.tableOperations().create(copy);
 
     try (BatchWriter writer = client.createBatchWriter(copy)) {
@@ -299,6 +354,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
     private Set<TServerInstance> tservers;
     private Set<TableId> onlineTables;
+    private Set<TableId> onDemandTables;
 
     @Override
     public Set<TServerInstance> onlineTabletServers() {
@@ -323,6 +379,14 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       this.onlineTables =
           Sets.filter(onlineTables, tableId -> context.getTableState(tableId) == TableState.ONLINE);
       return this.onlineTables;
+    }
+
+    @Override
+    public Set<TableId> getOnDemandTables() {
+      Set<TableId> tables = context.getTableIdToNameMap().keySet();
+      this.onDemandTables =
+          Sets.filter(tables, tableId -> context.getTableState(tableId) == TableState.ONDEMAND);
+      return this.onDemandTables;
     }
 
     @Override

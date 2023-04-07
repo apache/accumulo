@@ -94,7 +94,7 @@ class ZooTabletStateStore implements TabletStateStore {
           });
 
           return new TabletLocationState(RootTable.EXTENT, futureSession, currentSession,
-              lastSession, null, logs, false);
+              lastSession, null, logs, false, false);
         } catch (Exception ex) {
           throw new RuntimeException(ex);
         }

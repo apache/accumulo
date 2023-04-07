@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,7 +44,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -231,6 +231,7 @@ public class Tablet extends TabletBase {
   private final ConcurrentHashMap<Long,List<TabletFile>> bulkImported = new ConcurrentHashMap<>();
 
   private final int logId;
+  private final boolean onDemand;
 
   public int getLogId() {
     return logId;
@@ -298,6 +299,7 @@ public class Tablet extends TabletBase {
     this.tabletTime = TabletTime.getInstance(data.getTime());
     this.persistedTime = tabletTime.getTime();
     this.logId = tabletServer.createLogId();
+    this.onDemand = data.isOnDemand();
 
     // translate any volume changes
     TabletFiles tabletPaths =
@@ -1338,8 +1340,12 @@ public class Tablet extends TabletBase {
     }
   }
 
-  private AtomicReference<SplitComputations> lastSplitComputation = new AtomicReference<>();
-  private Lock splitComputationLock = new ReentrantLock();
+  // The following caches keys from users files needed to compute a tablets split point. This cached
+  // data could potentially be large and is therefore stored using a soft refence so the Java GC can
+  // release it if needed. If the cached information is not there it can always be recomputed.
+  private volatile SoftReference<SplitComputations> lastSplitComputation =
+      new SoftReference<>(null);
+  private final Lock splitComputationLock = new ReentrantLock();
 
   /**
    * Computes split point information from files when a tablets set of files changes. Do not call
@@ -1384,15 +1390,15 @@ public class Tablet extends TabletBase {
         }
 
         newComputation = new SplitComputations(files, midpoint, lastRow);
+
+        lastSplitComputation = new SoftReference<>(newComputation);
       } catch (IOException e) {
-        lastSplitComputation.set(null);
+        lastSplitComputation.clear();
         log.error("Failed to compute split information from files " + e.getMessage());
         return Optional.empty();
       } finally {
         splitComputationLock.unlock();
       }
-
-      lastSplitComputation.set(newComputation);
 
       return Optional.of(newComputation);
     } else {
@@ -1575,9 +1581,9 @@ public class Tablet extends TabletBase {
       TabletLogger.split(extent, low, high, getTabletServer().getTabletSession());
 
       newTablets.put(high, new TabletData(dirName, highDatafileSizes, time, lastFlushID.get(),
-          lastCompactID.get(), lastLocation, bulkImported));
+          lastCompactID.get(), lastLocation, bulkImported, onDemand));
       newTablets.put(low, new TabletData(lowDirectoryName, lowDatafileSizes, time,
-          lastFlushID.get(), lastCompactID.get(), lastLocation, bulkImported));
+          lastFlushID.get(), lastCompactID.get(), lastLocation, bulkImported, onDemand));
 
       long t2 = System.currentTimeMillis();
 
@@ -1642,8 +1648,7 @@ public class Tablet extends TabletBase {
     return this.lookupCount.get();
   }
 
-  // synchronized?
-  public void updateRates(long now) {
+  public synchronized void updateRates(long now) {
     queryRate.update(now, this.queryResultCount.get());
     queryByteRate.update(now, this.queryResultBytes.get());
     ingestRate.update(now, ingestCount);
@@ -2147,4 +2152,9 @@ public class Tablet extends TabletBase {
   public Compactable asCompactable() {
     return compactable;
   }
+
+  public boolean isOnDemand() {
+    return this.onDemand;
+  }
+
 }

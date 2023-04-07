@@ -80,6 +80,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -1556,4 +1557,19 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       return handleTimeout(sessionId);
     }
   }
+
+  @Override
+  public void bringOnDemandTabletsOnline(TInfo tinfo, TCredentials credentials, String tableId,
+      List<TKeyExtent> extents) throws ThriftSecurityException, TException {
+    final TableId tid = TableId.of(tableId);
+    NamespaceId namespaceId = getNamespaceId(credentials, tid);
+    if (!security.canScan(credentials, tid, namespaceId)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+    try (TabletsMutator mutator = this.context.getAmple().mutateTablets()) {
+      extents.forEach(e -> mutator.mutateTablet(KeyExtent.fromThrift(e)).putOnDemand().mutate());
+    }
+  }
+
 }

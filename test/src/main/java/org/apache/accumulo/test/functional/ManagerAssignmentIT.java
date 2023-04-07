@@ -21,29 +21,60 @@ package org.apache.accumulo.test.functional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
+import java.util.TreeSet;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
+import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class ManagerAssignmentIT extends AccumuloClusterHarness {
+import com.google.common.collect.Iterables;
+
+public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
+  }
+
+  @BeforeAll
+  public static void beforeAll() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig((cfg, core) -> {
+      cfg.setNumTservers(1);
+      cfg.setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "10");
+      cfg.setProperty(Property.GENERAL_THREADPOOL_SIZE, "10");
+      cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "5");
+    });
   }
 
   @Test
@@ -88,7 +119,278 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
       assertNull(online.future);
       assertNotNull(online.current);
       assertEquals(online.getCurrentServer(), online.getLastServer());
+
+      // take the tablet offline
+      c.tableOperations().offline(tableName, true);
+      offline = getTabletLocationState(c, tableId);
+      assertNull(offline.future);
+      assertNull(offline.current);
+      assertEquals(flushed.getCurrentServer(), offline.getLastServer());
+
+      // set the table to on-demand
+      c.tableOperations().onDemand(tableName, true);
+      TabletLocationState ondemand = getTabletLocationState(c, tableId);
+      assertNull(ondemand.future);
+      assertNull(ondemand.current);
+      assertEquals(flushed.getCurrentServer(), ondemand.getLastServer());
+
+      // put it back online
+      c.tableOperations().online(tableName, true);
+      online = getTabletLocationState(c, tableId);
+      assertNull(online.future);
+      assertNotNull(online.current);
+      assertEquals(online.getCurrentServer(), online.getLastServer());
+
     }
+  }
+
+  @Test
+  public void testScannerAssignsOneOnDemandTablets() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = super.getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      String tableId = c.tableOperations().tableIdMap().get(tableName);
+      loadDataForScan(c, tableName);
+
+      TreeSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("f"));
+      splits.add(new Text("m"));
+      splits.add(new Text("t"));
+      c.tableOperations().addSplits(tableName, splits);
+      c.tableOperations().onDemand(tableName, true);
+      assertTrue(c.tableOperations().isOnDemand(tableName));
+
+      // The on-demand tablets should be unassigned
+      List<TabletStats> stats = getTabletStats(c, tableId);
+      while (stats.size() > 0) {
+        Thread.sleep(50);
+        stats = getTabletStats(c, tableId);
+      }
+      assertEquals(0, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
+          .onDemandTabletsOnlined());
+
+      c.tableOperations().clearLocatorCache(tableName);
+
+      Range scanRange = new Range("a", "c");
+      Scanner s = c.createScanner(tableName);
+      s.setRange(scanRange);
+      // Should return keys for a, b, c
+      assertEquals(3, Iterables.size(s));
+
+      stats = getTabletStats(c, tableId);
+      // There should be one tablet online
+      assertEquals(1, stats.size());
+      assertEquals(1, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
+          .onDemandTabletsOnlined());
+
+    }
+  }
+
+  @Test
+  public void testScannerAssignsMultipleOnDemandTablets() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = super.getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      String tableId = c.tableOperations().tableIdMap().get(tableName);
+      loadDataForScan(c, tableName);
+
+      TreeSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("f"));
+      splits.add(new Text("m"));
+      splits.add(new Text("t"));
+      c.tableOperations().addSplits(tableName, splits);
+      c.tableOperations().onDemand(tableName, true);
+      assertTrue(c.tableOperations().isOnDemand(tableName));
+
+      // The on-demand tablets should be unassigned
+      List<TabletStats> stats = getTabletStats(c, tableId);
+      while (stats.size() > 0) {
+        Thread.sleep(50);
+        stats = getTabletStats(c, tableId);
+      }
+      assertEquals(0, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
+          .onDemandTabletsOnlined());
+
+      c.tableOperations().clearLocatorCache(tableName);
+
+      Range scanRange = new Range("a", "s");
+      Scanner s = c.createScanner(tableName);
+      s.setRange(scanRange);
+      assertEquals(19, Iterables.size(s));
+
+      stats = getTabletStats(c, tableId);
+      assertEquals(3, stats.size());
+      assertEquals(3, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
+          .onDemandTabletsOnlined());
+
+      // Run another scan, all tablets should be loaded
+      scanRange = new Range("a", "t");
+      s = c.createScanner(tableName);
+      s.setRange(scanRange);
+      assertEquals(20, Iterables.size(s));
+
+      stats = getTabletStats(c, tableId);
+      assertEquals(3, stats.size());
+      // No more tablets should have been brought online
+      assertEquals(3, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
+          .onDemandTabletsOnlined());
+
+    }
+  }
+
+  @Test
+  public void testBatchScannerAssignsOneOnDemandTablets() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = super.getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      String tableId = c.tableOperations().tableIdMap().get(tableName);
+      loadDataForScan(c, tableName);
+
+      TreeSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("f"));
+      splits.add(new Text("m"));
+      splits.add(new Text("t"));
+      c.tableOperations().addSplits(tableName, splits);
+      c.tableOperations().onDemand(tableName, true);
+      assertTrue(c.tableOperations().isOnDemand(tableName));
+
+      // The on-demand tablets should be unassigned
+      List<TabletStats> stats = getTabletStats(c, tableId);
+      while (stats.size() > 0) {
+        Thread.sleep(50);
+        stats = getTabletStats(c, tableId);
+      }
+      assertEquals(0, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
+          .onDemandTabletsOnlined());
+
+      c.tableOperations().clearLocatorCache(tableName);
+
+      Range scanRange = new Range("a", "c");
+      BatchScanner s = c.createBatchScanner(tableName);
+      s.setRanges(Collections.singleton(scanRange));
+      // Should return keys for a, b, c
+      assertEquals(3, Iterables.size(s));
+
+      stats = getTabletStats(c, tableId);
+      // There should be one tablet online
+      assertEquals(1, stats.size());
+      assertEquals(1, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
+          .onDemandTabletsOnlined());
+
+    }
+  }
+
+  @Test
+  public void testBatchScannerAssignsMultipleOnDemandTablets() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = super.getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      String tableId = c.tableOperations().tableIdMap().get(tableName);
+      loadDataForScan(c, tableName);
+
+      TreeSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("f"));
+      splits.add(new Text("m"));
+      splits.add(new Text("t"));
+      c.tableOperations().addSplits(tableName, splits);
+      c.tableOperations().onDemand(tableName, true);
+      assertTrue(c.tableOperations().isOnDemand(tableName));
+
+      // Wait 2x the TabletGroupWatcher interval for on-demand
+      // tablets to be unassigned.
+      Thread.sleep(10000);
+
+      List<TabletStats> stats = getTabletStats(c, tableId);
+      // There should be no tablets online
+      assertEquals(0, stats.size());
+      assertEquals(0, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
+          .onDemandTabletsOnlined());
+
+      c.tableOperations().clearLocatorCache(tableName);
+
+      Range scanRange = new Range("a", "s");
+      BatchScanner s = c.createBatchScanner(tableName);
+      s.setRanges(Collections.singleton(scanRange));
+      assertEquals(19, Iterables.size(s));
+
+      stats = getTabletStats(c, tableId);
+      assertEquals(3, stats.size());
+      assertEquals(3, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
+          .onDemandTabletsOnlined());
+
+      // Run another scan, all tablets should be loaded
+      scanRange = new Range("a", "t");
+      s = c.createBatchScanner(tableName);
+      s.setRanges(Collections.singleton(scanRange));
+      assertEquals(20, Iterables.size(s));
+
+      stats = getTabletStats(c, tableId);
+      assertEquals(3, stats.size());
+      // No more tablets should have been brought online
+      assertEquals(3, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
+          .onDemandTabletsOnlined());
+
+    }
+  }
+
+  @Test
+  public void testBatchWriterAssignsTablets() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = super.getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      String tableId = c.tableOperations().tableIdMap().get(tableName);
+      loadDataForScan(c, tableName);
+
+      TreeSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("f"));
+      splits.add(new Text("m"));
+      splits.add(new Text("t"));
+      c.tableOperations().addSplits(tableName, splits);
+      c.tableOperations().onDemand(tableName, true);
+      assertTrue(c.tableOperations().isOnDemand(tableName));
+
+      // Wait 2x the TabletGroupWatcher interval for on-demand
+      // tablets to be unassigned.
+      Thread.sleep(10000);
+
+      List<TabletStats> stats = getTabletStats(c, tableId);
+      // There should be no tablets online
+      assertEquals(0, stats.size());
+      assertEquals(0, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
+          .onDemandTabletsOnlined());
+
+      c.tableOperations().clearLocatorCache(tableName);
+      loadDataForScan(c, tableName);
+
+      stats = getTabletStats(c, tableId);
+      assertEquals(4, stats.size());
+      // No more tablets should have been brought online
+      assertEquals(4, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
+          .onDemandTabletsOnlined());
+
+    }
+  }
+
+  public static void loadDataForScan(AccumuloClient c, String tableName)
+      throws MutationsRejectedException, TableNotFoundException {
+    final byte[] empty = new byte[0];
+    try (BatchWriter bw = c.createBatchWriter(tableName)) {
+      IntStream.range(97, 122).forEach((i) -> {
+        try {
+          Mutation m = new Mutation(String.valueOf((char) i));
+          m.put(empty, empty, empty);
+          bw.addMutation(m);
+        } catch (MutationsRejectedException e) {
+          fail("Error inserting data", e);
+        }
+      });
+    }
+  }
+
+  public static List<TabletStats> getTabletStats(AccumuloClient c, String tableId)
+      throws AccumuloException, AccumuloSecurityException {
+    return ThriftClientTypes.TABLET_SERVER.execute((ClientContext) c, client -> client
+        .getTabletStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds(), tableId));
   }
 
   private TabletLocationState getTabletLocationState(AccumuloClient c, String tableId) {

@@ -87,9 +87,9 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       OpTimer timer = null;
 
       if (log.isTraceEnabled()) {
-        log.trace("tid={} Looking up in {} row={} extent={} tserver={}",
-            Thread.currentThread().getId(), src.tablet_extent.tableId(), TextUtil.truncate(row),
-            src.tablet_extent, src.tablet_location);
+        log.trace("tid={} Looking up in {} row={} stopRow={} extent={} tserver={}",
+            Thread.currentThread().getId(), src.getExtent().tableId(), TextUtil.truncate(row),
+            TextUtil.truncate(stopRow), src.getExtent(), src.getTserverLocation());
         timer = new OpTimer().start();
       }
 
@@ -105,8 +105,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       List<IterInfo> serverSideIteratorList = new ArrayList<>();
       serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI"));
       Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
-      boolean more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent,
-          src.tablet_location, encodedResults, locCols, serverSideIteratorList,
+      boolean more = ThriftScanner.getBatchFromServer(context, range, src.getExtent(),
+          src.getTserverLocation(), encodedResults, locCols, serverSideIteratorList,
           serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
 
       decodeRows(encodedResults, results);
@@ -115,7 +115,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME),
             true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
-        ThriftScanner.getBatchFromServer(context, range, src.tablet_extent, src.tablet_location,
+        ThriftScanner.getBatchFromServer(context, range, src.getExtent(), src.getTserverLocation(),
             encodedResults, locCols, serverSideIteratorList, serverSideIteratorOptions,
             Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
 
@@ -125,7 +125,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       if (timer != null) {
         timer.stop();
         log.trace("tid={} Got {} results from {} in {}", Thread.currentThread().getId(),
-            results.size(), src.tablet_extent, String.format("%.3f secs", timer.scale(SECONDS)));
+            results.size(), src.getExtent(), String.format("%.3f secs", timer.scale(SECONDS)));
       }
 
       // if (log.isTraceEnabled()) log.trace("results "+results);
@@ -134,15 +134,15 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
     } catch (AccumuloServerException ase) {
       if (log.isTraceEnabled()) {
-        log.trace("{} lookup failed, {} server side exception", src.tablet_extent.tableId(),
-            src.tablet_location);
+        log.trace("{} lookup failed, {} server side exception", src.getExtent().tableId(),
+            src.getTserverLocation());
       }
       throw ase;
     } catch (AccumuloException e) {
       if (log.isTraceEnabled()) {
-        log.trace("{} lookup failed", src.tablet_extent.tableId(), e);
+        log.trace("{} lookup failed", src.getExtent().tableId(), e);
       }
-      parent.invalidateCache(context, src.tablet_location);
+      parent.invalidateCache(context, src.getTserverLocation());
     }
 
     return null;

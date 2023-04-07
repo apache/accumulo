@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletServerLockChecker;
@@ -56,25 +57,24 @@ public class RootTabletLocator extends TabletLocator {
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures) {
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
-      TabletServerMutations<T> tsm = new TabletServerMutations<>(rootTabletLocation.tablet_session);
+      var tsm = new TabletServerMutations<T>(rootTabletLocation.getTserverSession());
       for (T mutation : mutations) {
         tsm.addMutation(RootTable.EXTENT, mutation);
       }
-      binnedMutations.put(rootTabletLocation.tablet_location, tsm);
+      binnedMutations.put(rootTabletLocation.getTserverLocation(), tsm);
     } else {
       failures.addAll(mutations);
     }
   }
 
   @Override
-  public List<Range> binRanges(ClientContext context, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
+  public List<Range> locateTablets(ClientContext context, List<Range> ranges,
+      BiConsumer<TabletLocation,Range> rangeConsumer) {
 
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
       for (Range range : ranges) {
-        TabletLocatorImpl.addRange(binnedRanges, rootTabletLocation.tablet_location,
-            RootTable.EXTENT, range);
+        rangeConsumer.accept(rootTabletLocation, range);
       }
       return Collections.emptyList();
     }

@@ -25,6 +25,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -63,9 +65,27 @@ public abstract class TabletLocator {
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
-  public abstract List<Range> binRanges(ClientContext context, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+  /**
+   * This method finds what tablets overlap a given set of ranges, passing each range and its
+   * associated tablet to the range consumer. If a range overlaps multiple tablets then it can be
+   * passed to the range consumer multiple times.
+   */
+  public abstract List<Range> locateTablets(ClientContext context, List<Range> ranges,
+      BiConsumer<TabletLocation,Range> rangeConsumer)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+
+  /**
+   * The behavior of this method is similar to
+   * {@link #locateTablets(ClientContext, List, BiConsumer)}, except it bins ranges to the passed in
+   * binnedRanges map instead of passing them to a consumer.
+   *
+   */
+  public List<Range> binRanges(ClientContext context, List<Range> ranges,
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    return locateTablets(context, ranges,
+        ((cachedTablet, range) -> TabletLocatorImpl.addRange(binnedRanges, cachedTablet, range)));
+  }
 
   public abstract void invalidateCache(KeyExtent failedExtent);
 
@@ -132,6 +152,10 @@ public abstract class TabletLocator {
     enabled = true;
   }
 
+  public long onDemandTabletsOnlined() {
+    return 0L;
+  }
+
   public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
         + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
@@ -194,54 +218,53 @@ public abstract class TabletLocator {
     }
   }
 
-  public static class TabletLocation implements Comparable<TabletLocation> {
+  public static class TabletLocation {
     private static final Interner<String> interner = new Interner<>();
 
-    public final KeyExtent tablet_extent;
-    public final String tablet_location;
-    public final String tablet_session;
+    private final KeyExtent tablet_extent;
+    private final String tserverLocation;
+    private final String tserverSession;
 
     public TabletLocation(KeyExtent tablet_extent, String tablet_location, String session) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       checkArgument(tablet_location != null, "tablet_location is null");
       checkArgument(session != null, "session is null");
       this.tablet_extent = tablet_extent;
-      this.tablet_location = interner.intern(tablet_location);
-      this.tablet_session = interner.intern(session);
+      this.tserverLocation = interner.intern(tablet_location);
+      this.tserverSession = interner.intern(session);
     }
 
     @Override
     public boolean equals(Object o) {
       if (o instanceof TabletLocation) {
         TabletLocation otl = (TabletLocation) o;
-        return tablet_extent.equals(otl.tablet_extent)
-            && tablet_location.equals(otl.tablet_location)
-            && tablet_session.equals(otl.tablet_session);
+        return getExtent().equals(otl.getExtent())
+            && getTserverLocation().equals(otl.getTserverLocation())
+            && getTserverSession().equals(otl.getTserverSession());
       }
       return false;
     }
 
     @Override
     public int hashCode() {
-      throw new UnsupportedOperationException(
-          "hashcode is not implemented for class " + this.getClass());
+      return Objects.hash(getExtent(), tserverLocation, tserverSession);
     }
 
     @Override
     public String toString() {
-      return "(" + tablet_extent + "," + tablet_location + "," + tablet_session + ")";
+      return "(" + getExtent() + "," + getTserverLocation() + "," + getTserverSession() + ")";
     }
 
-    @Override
-    public int compareTo(TabletLocation o) {
-      int result = tablet_extent.compareTo(o.tablet_extent);
-      if (result == 0) {
-        result = tablet_location.compareTo(o.tablet_location);
-        if (result == 0) {
-          result = tablet_session.compareTo(o.tablet_session);
-        }
-      }
-      return result;
+    public KeyExtent getExtent() {
+      return tablet_extent;
+    }
+
+    public String getTserverLocation() {
+      return tserverLocation;
+    }
+
+    public String getTserverSession() {
+      return tserverSession;
     }
   }
 

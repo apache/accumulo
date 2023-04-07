@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ON_DEMAND;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -185,7 +186,7 @@ public class TabletMetadataTest {
     Set<TServerInstance> tservers = new LinkedHashSet<>();
     tservers.add(ser1);
     tservers.add(ser2);
-    EnumSet<ColumnType> colsToFetch = EnumSet.of(LOCATION, LAST, SUSPEND);
+    EnumSet<ColumnType> colsToFetch = EnumSet.of(LOCATION, LAST, SUSPEND, ON_DEMAND);
 
     // test assigned
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);

@@ -37,6 +37,9 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocations;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
@@ -170,7 +173,7 @@ public class TabletLocatorImplTest {
 
     for (Entry<KeyExtent,TabletLocation> entry : mcke.entrySet()) {
       setLocation(tservers, metaTabLoc, METADATA_TABLE_EXTENT, entry.getKey(),
-          entry.getValue().tablet_location);
+          entry.getValue().getTserverLocation());
     }
 
     return tab1TabletCache;
@@ -191,12 +194,27 @@ public class TabletLocatorImplTest {
   private InstanceId iid;
 
   @BeforeEach
-  public void setUp() {
+  public void setUp() throws AccumuloException, TableNotFoundException {
     context = EasyMock.createMock(ClientContext.class);
+    TableOperations tops = EasyMock.createMock(TableOperations.class);
+    EasyMock.expect(context.tableOperations()).andReturn(tops).anyTimes();
+    EasyMock.expect(context.getTableName(RootTable.ID)).andReturn(RootTable.NAME).anyTimes();
+    EasyMock.expect(context.getTableName(MetadataTable.ID)).andReturn(MetadataTable.NAME)
+        .anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("0"))).andReturn("0").anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
+    EasyMock.expect(tops.isOnDemand("accumulo.root")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("accumulo.metadata")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("foo")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("0")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("1")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("tab1")).andReturn(false).anyTimes();
     iid = InstanceId.of("instance1");
     EasyMock.expect(context.getRootTabletLocation()).andReturn("tserver1").anyTimes();
     EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();
-    replay(context);
+    replay(context, tops);
   }
 
   private void runTest(List<Range> ranges, TabletLocatorImpl tab1TabletCache,
@@ -236,7 +254,7 @@ public class TabletLocatorImplTest {
 
     HashSet<KeyExtent> eic = new HashSet<>();
     for (TabletLocation tl : metaCache.values()) {
-      eic.add(tl.tablet_extent);
+      eic.add(tl.getExtent());
     }
 
     assertEquals(expected, eic);
@@ -485,22 +503,22 @@ public class TabletLocatorImplTest {
     public TabletLocations lookupTablet(ClientContext context, TabletLocation src, Text row,
         Text stopRow, TabletLocator parent) {
 
-      Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.get(src.tablet_location);
+      Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.get(src.getTserverLocation());
 
       if (tablets == null) {
-        parent.invalidateCache(context, src.tablet_location);
+        parent.invalidateCache(context, src.getTserverLocation());
         return null;
       }
 
-      SortedMap<Key,Value> tabletData = tablets.get(src.tablet_extent);
+      SortedMap<Key,Value> tabletData = tablets.get(src.getExtent());
 
       if (tabletData == null) {
-        parent.invalidateCache(src.tablet_extent);
+        parent.invalidateCache(src.getExtent());
         return null;
       }
 
       // the following clip is done on a tablet, do it here to see if it throws exceptions
-      src.tablet_extent.toDataRange().clip(new Range(row, true, stopRow, true));
+      src.getExtent().toDataRange().clip(new Range(row, true, stopRow, true));
 
       Key startKey = new Key(row);
       Key stopKey = new Key(stopRow).followingKey(PartialKey.ROW);
@@ -661,8 +679,8 @@ public class TabletLocatorImplTest {
       assertNull(tl);
     } else {
       assertNotNull(tl);
-      assertEquals(server, tl.tablet_location);
-      assertEquals(expected, tl.tablet_extent);
+      assertEquals(server, tl.getTserverLocation());
+      assertEquals(expected, tl.getExtent());
     }
   }
 
@@ -749,9 +767,25 @@ public class TabletLocatorImplTest {
     EasyMock.verify(context);
 
     context = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();
+    TableOperations tops = EasyMock.createMock(TableOperations.class);
+    EasyMock.expect(context.tableOperations()).andReturn(tops).anyTimes();
+    EasyMock.expect(context.getTableName(RootTable.ID)).andReturn(RootTable.NAME).anyTimes();
+    EasyMock.expect(context.getTableName(MetadataTable.ID)).andReturn(MetadataTable.NAME)
+        .anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("0"))).andReturn("0").anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
+    EasyMock.expect(context.getTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
+    EasyMock.expect(tops.isOnDemand("accumulo.root")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("accumulo.metadata")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("foo")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("0")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("1")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnDemand("tab1")).andReturn(false).anyTimes();
+    iid = InstanceId.of("instance1");
     EasyMock.expect(context.getRootTabletLocation()).andReturn("tserver4").anyTimes();
-    replay(context);
+    EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();
+    replay(context, tops);
 
     setLocation(tservers, "tserver4", ROOT_TABLE_EXTENT, METADATA_TABLE_EXTENT, "tserver5");
     setLocation(tservers, "tserver5", METADATA_TABLE_EXTENT, tab1e1, "tserver1");
