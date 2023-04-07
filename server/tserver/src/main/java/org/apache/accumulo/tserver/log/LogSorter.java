@@ -125,7 +125,9 @@ public class LogSorter {
         synchronized (this) {
           sortStop = System.currentTimeMillis();
         }
-        currentWork.remove(sortId);
+        synchronized (currentWork) {
+          currentWork.remove(sortId);
+        }
       }
     }
 
