@@ -31,7 +31,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.util.ByteArrayToBase64TypeAdapter;
+import org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
