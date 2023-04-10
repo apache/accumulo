@@ -35,7 +35,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <a href="https://micrometer.io/">Micrometer</a>. Micrometer suggests using a particular
  * <a href="https://micrometer.io/docs/concepts#_naming_meters">naming convention</a> for the
  * metrics. The table below contains a mapping of the old to new metric names.
- *
+ * <p>
  * <table border="1">
  * <caption>Summary of Metric Changes</caption> <!-- fate -->
  * <tr>
@@ -44,6 +44,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <th>New Name</th>
  * <th>Micrometer Type</th>
  * <th>Notes</th>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_APP_LOW_MEMORY}</td>
+ * <td>Guage</td>
+ * <td>reports 1 when process memory usage is above threshold, 0 when memory is okay</td>
  * </tr>
  * <tr>
  * <td>N/A</td>
@@ -594,6 +601,8 @@ public interface MetricsProducer {
 
   Logger LOG = LoggerFactory.getLogger(MetricsProducer.class);
 
+  String METRICS_APP_PREFIX = "accumulo.app.";
+  String METRICS_APP_LOW_MEMORY = "detected.low.memory";
   String METRICS_COMPACTOR_PREFIX = "accumulo.compactor";
   String METRICS_COMPACTOR_MAJC_STUCK = METRICS_COMPACTOR_PREFIX + "majc.stuck";
 
