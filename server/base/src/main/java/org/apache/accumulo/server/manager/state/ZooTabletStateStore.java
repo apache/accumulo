@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
@@ -94,7 +95,7 @@ class ZooTabletStateStore implements TabletStateStore {
           });
 
           return new TabletLocationState(RootTable.EXTENT, futureSession, currentSession,
-              lastSession, null, logs, false, false);
+              lastSession, null, logs, false, false, TabletHostingGoal.ALWAYS);
         } catch (Exception ex) {
           throw new RuntimeException(ex);
         }

@@ -232,7 +232,7 @@ public class TabletLocatorImpl extends TabletLocator {
           TabletLocation tl = _locateTablet(context, row, false, false, false, lcSession);
 
           if (tl == null || !addMutation(binnedMutations, mutation, tl, lcSession)) {
-            bringOnDemandTabletsOnline(context, new Range(row));
+            requestTabletHosting(context, new Range(row));
             failures.add(mutation);
             failed = true;
           }
@@ -324,7 +324,7 @@ public class TabletLocatorImpl extends TabletLocator {
       }
 
       if (tl == null) {
-        bringOnDemandTabletsOnline(context, range);
+        requestTabletHosting(context, range);
         failures.add(range);
         if (!useCache) {
           lookupFailed = true;
@@ -517,7 +517,7 @@ public class TabletLocatorImpl extends TabletLocator {
       TabletLocation tl = _locateTablet(context, row, skipRow, retry, true, lcSession);
 
       if (tl == null && !alreadyMarkedOnDemand) {
-        bringOnDemandTabletsOnline(context, new Range(row));
+        requestTabletHosting(context, new Range(row));
         alreadyMarkedOnDemand = true;
       }
 
@@ -546,29 +546,41 @@ public class TabletLocatorImpl extends TabletLocator {
     return onDemandTabletsOnlinedCount.get();
   }
 
-  private void bringOnDemandTabletsOnline(ClientContext context, Range range)
+  private void requestTabletHosting(ClientContext context, Range range)
       throws AccumuloException, AccumuloSecurityException {
 
-    // Confirm that table is in an on-demand state. Don't throw an exception
+    // Confirm that table is in an online state. Don't throw an exception
     // if the table is not found, calling code will already handle it.
     try {
       String tableName = context.getTableName(tableId);
-      if (!context.tableOperations().isOnDemand(tableName)) {
-        log.trace("bringOnDemandTabletsOnline: table {} is not in ondemand state", tableId);
+      if (!context.tableOperations().isOnline(tableName)) {
+        log.trace("requestTabletHosting: table {} is not in ondemand state", tableId);
         return;
       }
     } catch (TableNotFoundException e) {
-      log.trace("bringOnDemandTabletsOnline: table not found: {}", tableId);
+      log.trace("requestTabletHosting: table not found: {}", tableId);
       return;
     }
 
+    List<TKeyExtent> extentsToBringOnline = findExtentsForRange(context, tableId, range);
+    if (extentsToBringOnline.isEmpty()) {
+      return;
+    }
+    log.debug("Requesting tablets be hosted: {}", extentsToBringOnline);
+    ThriftClientTypes.TABLET_MGMT.executeVoid(context,
+        client -> client.requestTabletHosting(TraceUtil.traceInfo(), context.rpcCreds(),
+            tableId.canonical(), extentsToBringOnline));
+    onDemandTabletsOnlinedCount.addAndGet(extentsToBringOnline.size());
+  }
+  
+  public static List<TKeyExtent> findExtentsForRange(ClientContext context, TableId tableId, Range range) {
     final Text scanRangeStart = range.getStartKey().getRow();
     final Text scanRangeEnd = range.getEndKey().getRow();
-    // Turn the scan range into a KeyExtent and bring online all ondemand tablets
+    // Turn the scan range into a KeyExtent and return all tablets
     // that are overlapped by the scan range
     final KeyExtent scanRangeKE = new KeyExtent(tableId, scanRangeEnd, scanRangeStart);
 
-    List<TKeyExtent> extentsToBringOnline = new ArrayList<>();
+    List<TKeyExtent> extents = new ArrayList<>();
 
     TabletsMetadata m = context.getAmple().readTablets().forTable(tableId)
         .overlapping(scanRangeStart, true, null).build();
@@ -592,20 +604,13 @@ public class TabletLocatorImpl extends TabletLocator {
             log.debug("tablet {} has location of: {}:{}", tabletExtent, loc.getType(),
                 loc.getHostPort());
           }
-          extentsToBringOnline.add(tabletExtent.toThrift());
+          extents.add(tabletExtent.toThrift());
         } else {
           log.trace("Tablet {} already marked as onDemand, but not hosted yet", tabletExtent);
         }
       }
     }
-    if (extentsToBringOnline.isEmpty()) {
-      return;
-    }
-    log.debug("Marking tablets as onDemand: {}", extentsToBringOnline);
-    ThriftClientTypes.TABLET_MGMT.executeVoid(context,
-        client -> client.bringOnDemandTabletsOnline(TraceUtil.traceInfo(), context.rpcCreds(),
-            tableId.canonical(), extentsToBringOnline));
-    onDemandTabletsOnlinedCount.addAndGet(extentsToBringOnline.size());
+    return extents;
   }
 
   private void lookupTabletLocation(ClientContext context, Text row, boolean retry,

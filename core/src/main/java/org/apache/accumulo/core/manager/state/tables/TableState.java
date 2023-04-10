@@ -25,9 +25,6 @@ public enum TableState {
   // ONLINE tablets will be assigned
   ONLINE,
 
-  // ONDEMAND tablets will be offline, unless brought online by request
-  ONDEMAND,
-
   // OFFLINE tablets will be taken offline
   OFFLINE,
 

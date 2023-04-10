@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.TabletType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -80,14 +81,17 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.Gatherer.FileSystemResolver;
 import org.apache.accumulo.core.summary.SummaryCollection;
+import org.apache.accumulo.core.tablet.thrift.THostingGoal;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
@@ -1556,9 +1560,30 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       return handleTimeout(sessionId);
     }
   }
+  
+  @Override
+  public void setTabletHostingGoal(TInfo tinfo, TCredentials credentials, String tableId,
+      List<TKeyExtent> extents, THostingGoal goal) throws ThriftSecurityException, TException {
+    // Can only set to ALWAYS, DEFAULT, and NEVER
+    if (goal == THostingGoal.ONDEMAND) {
+      goal = THostingGoal.DEFAULT;
+    }
+    final TableId tid = TableId.of(tableId);
+    NamespaceId namespaceId = getNamespaceId(credentials, tid);
+    if (!security.canAlterTable(credentials, tid, namespaceId)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+    final THostingGoal g = goal;
+    try (TabletsMutator mutator = this.context.getAmple().mutateTablets()) {
+      extents.forEach(e -> mutator.mutateTablet(KeyExtent.fromThrift(e))
+          .setHostingGoal(TabletHostingGoal.fromThrift(g)).mutate());
+    }
+  }
+
 
   @Override
-  public void bringOnDemandTabletsOnline(TInfo tinfo, TCredentials credentials, String tableId,
+  public void requestTabletHosting(TInfo tinfo, TCredentials credentials, String tableId,
       List<TKeyExtent> extents) throws ThriftSecurityException, TException {
     final TableId tid = TableId.of(tableId);
     NamespaceId namespaceId = getNamespaceId(credentials, tid);
@@ -1566,8 +1591,17 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
-    try (TabletsMutator mutator = this.context.getAmple().mutateTablets()) {
-      extents.forEach(e -> mutator.mutateTablet(KeyExtent.fromThrift(e)).putOnDemand().mutate());
+    final Ample ample = context.getAmple();
+    try (TabletsMutator mutator = ample.mutateTablets()) {
+      extents.forEach(e -> {
+        KeyExtent ke = KeyExtent.fromThrift(e);
+        // TODO: Convert this to conditional mutation
+        // Can only set to ONDEMAND if the current value is DEFAULT
+        if (ample.readTablet(ke, ColumnType.HOSTING_GOAL).getHostingGoal() == TabletHostingGoal.DEFAULT) {
+          mutator.mutateTablet(ke)
+          .setHostingGoal(TabletHostingGoal.ONDEMAND).mutate();
+        }
+      });
     }
   }
 

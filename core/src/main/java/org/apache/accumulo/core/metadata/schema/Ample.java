@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -287,10 +288,8 @@ public interface Ample {
         ExternalCompactionMetadata ecMeta);
 
     TabletMutator deleteExternalCompaction(ExternalCompactionId ecid);
-
-    TabletMutator putOnDemand();
-
-    TabletMutator deleteOnDemand();
+    
+    TabletMutator setHostingGoal(TabletHostingGoal goal);
 
     /**
      * This method persist (or queues for persisting) previous put and deletes against this object.

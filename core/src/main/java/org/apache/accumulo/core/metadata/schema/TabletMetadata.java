@@ -41,6 +41,7 @@ import java.util.SortedMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -62,6 +63,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingGoalColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.OnDemandAssignmentStateColumnFamily;
@@ -109,6 +111,7 @@ public class TabletMetadata {
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
   private boolean chopped = false;
   private boolean onDemand = false;
+  private TabletHostingGoal goal = TabletHostingGoal.DEFAULT;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -132,6 +135,7 @@ public class TabletMetadata {
     SUSPEND,
     CHOPPED,
     ECOMP,
+    HOSTING_GOAL,
     ON_DEMAND
   }
 
@@ -351,6 +355,11 @@ public class TabletMetadata {
     ensureFetched(ColumnType.ON_DEMAND);
     return onDemand;
   }
+  
+  public TabletHostingGoal getHostingGoal() {
+    ensureFetched(ColumnType.HOSTING_GOAL);
+    return goal;
+  }
 
   public SortedMap<Key,Value> getKeyValues() {
     Preconditions.checkState(keyValues != null, "Requested key values when it was not saved");
@@ -362,6 +371,7 @@ public class TabletMetadata {
     ensureFetched(ColumnType.LAST);
     ensureFetched(ColumnType.SUSPEND);
     ensureFetched(ColumnType.ON_DEMAND);
+    ensureFetched(ColumnType.HOSTING_GOAL);
     try {
       Location current = null;
       Location future = null;
@@ -372,7 +382,7 @@ public class TabletMetadata {
       }
       // only care about the state so don't need walogs and chopped params
       var tls =
-          new TabletLocationState(extent, future, current, last, suspend, null, false, onDemand);
+          new TabletLocationState(extent, future, current, last, suspend, null, false, onDemand, goal);
       return tls.getState(liveTServers);
     } catch (TabletLocationState.BadLocationStateException blse) {
       throw new IllegalArgumentException("Error creating TabletLocationState", blse);
@@ -494,6 +504,8 @@ public class TabletMetadata {
         case OnDemandAssignmentStateColumnFamily.STR_NAME:
           te.onDemand = true;
           break;
+        case HostingGoalColumn.STR_NAME:
+          te.goal = TabletHostingGoal.fromColumn(qual);
         default:
           throw new IllegalStateException("Unexpected family " + fam);
       }

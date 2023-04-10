@@ -30,6 +30,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
+import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_TABLE;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -109,6 +110,7 @@ import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
@@ -1477,12 +1479,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw new AccumuloException("Cannot set table to offline state");
         }
         break;
-      case ONDEMAND:
-        op = FateOperation.TABLE_ONDEMAND;
-        if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
-          throw new AccumuloException("Cannot set table to onDemand state");
-        }
-        break;
       case ONLINE:
         op = FateOperation.TABLE_ONLINE;
         if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
@@ -1528,30 +1524,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     changeTableState(tableName, wait, TableState.ONLINE);
   }
 
-  @Override
-  public boolean isOnDemand(String tableName) throws AccumuloException, TableNotFoundException {
-    EXISTING_TABLE_NAME.validate(tableName);
-
-    if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
-      return false;
-    }
-
-    TableId tableId = context.getTableId(tableName);
-    TableState expectedState = context.getTableState(tableId, true);
-    return expectedState == TableState.ONDEMAND;
-  }
-
-  @Override
-  public void onDemand(String tableName)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    onDemand(tableName, false);
-  }
-
-  @Override
-  public void onDemand(String tableName, boolean wait)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    changeTableState(tableName, wait, TableState.ONDEMAND);
-  }
 
   @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
@@ -1758,7 +1730,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(exportDir != null, "exportDir is null");
 
-    if (isOnline(tableName) || isOnDemand(tableName)) {
+    if (isOnline(tableName)) {
       throw new IllegalStateException("The table " + tableName
           + " is not offline; exportTable requires a table to be offline before exporting.");
     }
@@ -2175,4 +2147,26 @@ public class TableOperationsImpl extends TableOperationsHelper {
       opts.put(k, v);
     });
   }
+
+  @Override
+  public void setTabletHostingGoal(String tableName, Range range, String goal)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    EXISTING_TABLE_NAME.validate(tableName);
+    NOT_BUILTIN_TABLE.validate(tableName);
+    checkArgument(range != null, "range is null");
+    checkArgument(goal != null, "goal is null");
+    
+    TableId tableId = context.getTableId(tableName);
+    context.requireNotOffline(tableId, tableName);
+    TabletHostingGoal g = TabletHostingGoal.valueOf(goal);
+    
+    List<TKeyExtent> extents = TabletLocatorImpl.findExtentsForRange(context, tableId, range);
+    
+    ThriftClientTypes.TABLET_MGMT.executeVoid(context,
+        client -> client.setTabletHostingGoal(TraceUtil.traceInfo(), context.rpcCreds(),
+            tableId.canonical(), extents, g.toThrift()));
+
+  }
+  
+  
 }

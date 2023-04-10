@@ -332,6 +332,20 @@ public class MetadataSchema {
       public static final Text NAME = new Text(STR_NAME);
     }
 
+    public static class HostingGoalColumn {
+      public static final String STR_NAME = "hosting_goal";
+      public static final Text NAME = new Text(STR_NAME);
+      public static final String ALWAYS = "always"; // tablet should always be hosted
+      public static final String DEFAULT = "default"; // tablet should be unassigned
+      public static final String ONDEMAND = "ondemand"; // ondemand request has been made to assign
+                                                        // tablet
+      public static final String NEVER = "never"; // tablet should never be hosted
+      public static final ColumnFQ ALWAYS_COLUMN = new ColumnFQ(NAME, new Text(ALWAYS));
+      public static final ColumnFQ DEFAULT_COLUMN = new ColumnFQ(NAME, new Text(DEFAULT));
+      public static final ColumnFQ NEVER_COLUMN = new ColumnFQ(NAME, new Text(NEVER));
+      public static final ColumnFQ ONDEMAND_COLUMN = new ColumnFQ(NAME, new Text(ONDEMAND));
+    }
+
     public static class OnDemandAssignmentStateColumnFamily {
       public static final String STR_NAME = "ondemand";
       public static final Text NAME = new Text(STR_NAME);

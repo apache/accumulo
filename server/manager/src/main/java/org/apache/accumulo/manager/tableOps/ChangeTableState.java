@@ -57,8 +57,6 @@ public class ChangeTableState extends ManagerRepo {
     TableState ts = TableState.ONLINE;
     if (top == TableOperation.OFFLINE) {
       ts = TableState.OFFLINE;
-    } else if (top == TableOperation.ONDEMAND) {
-      ts = TableState.ONDEMAND;
     }
 
     env.getTableManager().transitionTableState(tableId, ts);

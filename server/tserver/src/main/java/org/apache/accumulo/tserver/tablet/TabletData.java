@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -74,7 +75,7 @@ public class TabletData {
     });
 
     this.extCompactions = meta.getExternalCompactions();
-    this.onDemand = meta.getOnDemand();
+    this.onDemand = meta.getHostingGoal() == TabletHostingGoal.ONDEMAND;
   }
 
   // Data pulled from an existing tablet to make a split

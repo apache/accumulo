@@ -31,6 +31,13 @@ enum TUnloadTabletGoal {
   DELETED
 }
 
+enum THostingGoal {
+  ALWAYS
+  DEFAULT
+  NEVER
+  ONDEMAND
+}
+
 service TabletManagementClientService {
 
   oneway void loadTablet(
@@ -73,7 +80,17 @@ service TabletManagementClientService {
     4:data.TKeyExtent extent
   )
   
-  void bringOnDemandTabletsOnline(
+  void setTabletHostingGoal(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string tableId
+    4:list<data.TKeyExtent> extents
+    5:THostingGoal goal
+  ) throws (
+    1:client.ThriftSecurityException sec
+  )
+  
+  void requestTabletHosting(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableId

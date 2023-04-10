@@ -37,6 +37,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
@@ -203,23 +204,15 @@ public class TableOperationsHelperTest {
     public void online(String tableName) {}
 
     @Override
-    public void offline(String tableName, boolean wait) {
-
-    }
+    public void offline(String tableName, boolean wait) {}
 
     @Override
     public void online(String tableName, boolean wait) {}
 
+    
     @Override
-    public void onDemand(String tableName) {}
-
-    @Override
-    public void onDemand(String tableName, boolean wait) {}
-
-    @Override
-    public boolean isOnDemand(String tableName) {
-      return false;
-    }
+    public void setTabletHostingGoal(String tableName, Range range, String goal)
+        throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}
 
     @Override
     public void clearLocatorCache(String tableName) {}

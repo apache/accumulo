@@ -33,9 +33,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -48,6 +50,7 @@ import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateExc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingGoalColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.OnDemandAssignmentStateColumnFamily;
@@ -91,6 +94,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     scanner.fetchColumnFamily(LogColumnFamily.NAME);
     scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
     scanner.fetchColumnFamily(OnDemandAssignmentStateColumnFamily.NAME);
+    scanner.fetchColumn(new Column(HostingGoalColumn.NAME));
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
     IteratorSetting tabletChange =
         new IteratorSetting(1001, "tabletChange", TabletStateChangeIterator.class);
@@ -101,7 +105,6 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       TabletStateChangeIterator.setMigrations(tabletChange, state.migrationsSnapshot());
       TabletStateChangeIterator.setManagerState(tabletChange, state.getManagerState());
       TabletStateChangeIterator.setShuttingDown(tabletChange, state.shutdownServers());
-      TabletStateChangeIterator.setOnDemandTables(tabletChange, state.getOnDemandTables());
     }
     scanner.addScanIterator(tabletChange);
   }
@@ -157,6 +160,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     List<Collection<String>> walogs = new ArrayList<>();
     boolean chopped = false;
     boolean onDemand = false;
+    TabletHostingGoal goal = TabletHostingGoal.DEFAULT;
 
     for (Entry<Key,Value> entry : decodedRow.entrySet()) {
 
@@ -194,6 +198,8 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
         suspend = SuspendingTServer.fromValue(entry.getValue());
       } else if (cf.compareTo(OnDemandAssignmentStateColumnFamily.NAME) == 0) {
         onDemand = true;
+      } else if (cf.compareTo(HostingGoalColumn.NAME) == 0) {
+        goal = TabletHostingGoal.fromColumn(cq.toString());
       }
     }
     if (extent == null) {
@@ -202,7 +208,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       throw new BadLocationStateException(msg, k.getRow());
     }
     return new TabletLocationState(extent, future, current, last, suspend, walogs, chopped,
-        onDemand);
+        onDemand, goal);
   }
 
 }
