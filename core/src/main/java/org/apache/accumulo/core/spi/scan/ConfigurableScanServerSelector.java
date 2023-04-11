@@ -144,6 +144,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * will keep increasing the busy timeout by multiplying 8 until the maximum of 20 minutes is
  * reached. For this profile it will choose from scan servers in the group {@literal lowcost}.
  * </p>
+ *
+ * @since 2.1.0
  */
 public class ConfigurableScanServerSelector implements ScanServerSelector {
 
@@ -284,10 +286,10 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
         defaultProfile = prof;
       }
+    }
 
-      if (defaultProfile == null) {
-        throw new IllegalArgumentException("No default profile specified");
-      }
+    if (defaultProfile == null) {
+      throw new IllegalArgumentException("No default profile specified");
     }
   }
 
