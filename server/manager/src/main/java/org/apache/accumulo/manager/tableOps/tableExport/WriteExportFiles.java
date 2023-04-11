@@ -156,7 +156,6 @@ class WriteExportFiles extends ManagerRepo {
   public static void exportTable(VolumeManager fs, ServerContext context, String tableName,
       TableId tableID, String exportDir) throws Exception {
 
-    // int count = 0;
     Set<String> volumeSet = new TreeSet<>();
 
     fs.mkdirs(new Path(exportDir));

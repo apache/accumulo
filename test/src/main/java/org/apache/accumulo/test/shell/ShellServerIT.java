@@ -167,6 +167,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String table = getUniqueNames(1)[0];
     final String table2 = table + "2";
 
+    String[] pathTokens = rootPath.split("/");
+    String volumeName = pathTokens[2];
+
     // exporttable / importtable
     ts.exec("createtable " + table + " -evc", true);
     make10();
@@ -195,8 +198,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
       fs.mkdirs(importDir);
 
       // Implement a poor-man's DistCp
-      try (BufferedReader reader =
-          new BufferedReader(new FileReader(new File(exportDir, "distcp.txt"), UTF_8))) {
+      try (BufferedReader reader = new BufferedReader(
+          new FileReader(new File(exportDir, "distcp-" + volumeName + ".txt"), UTF_8))) {
         for (String line; (line = reader.readLine()) != null;) {
           Path exportedFile = new Path(line);
           // There isn't a cp on FileSystem??
@@ -208,7 +211,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         }
       }
     } else {
-      String[] distCpArgs = {"-f", exportUri + "/distcp.txt", import_};
+      String[] distCpArgs = {"-f", exportUri + "/distcp-" + volumeName + ".txt", import_};
       assertEquals(0, cp.run(distCpArgs), "Failed to run distcp: " + Arrays.toString(distCpArgs));
     }
     ts.exec("importtable " + table2 + " " + import_, true);
@@ -219,6 +222,66 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("online " + table, true);
     ts.exec("deletetable -f " + table, true);
     ts.exec("deletetable -f " + table2, true);
+  }
+
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
+  @Test
+  public void exporttableWithMultipleVolumes() throws Exception {
+
+    try (AccumuloClient client =
+        getCluster().createAccumuloClient(getPrincipal(), new PasswordToken(getRootPassword()))) {
+      client.securityOperations().grantNamespacePermission(getPrincipal(), "",
+          NamespacePermission.ALTER_NAMESPACE);
+    }
+
+    String[] pathTokens = rootPath.split("/");
+    String volumeName = pathTokens[2];
+
+    // exporttable
+    ts.exec("createtable multVolTable -evc", true);
+    makeTableWithMultipleVolumes();
+    // read table and get volumes!!
+    ts.exec("offline multVolTable", true);
+    File exportDir = new File(rootPath, "ShellServerIT.export");
+    String exportUri = "file://" + exportDir;
+    String localTmp = "file://" + new File(rootPath, "ShellServerIT.tmp");
+    ts.exec("exporttable -t multVolTable" + " " + exportUri, true);
+    DistCp cp = new DistCp(new Configuration(false), null);
+    String import_ = "file://" + new File(rootPath, "ShellServerIT.import");
+    ClientInfo info = ClientInfo.from(getCluster().getClientProperties());
+    if (info.saslEnabled()) {
+      // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it
+      // ourselves by hand.
+      FileSystem fs = getCluster().getFileSystem();
+      FileSystem localFs = FileSystem.getLocal(new Configuration(false));
+
+      // Path on local fs to cp into
+      Path localTmpPath = new Path(localTmp);
+      localFs.mkdirs(localTmpPath);
+
+      // Path in remote fs to importtable from
+      Path importDir = new Path(import_);
+      fs.mkdirs(importDir);
+
+      // Implement a poor-man's DistCp
+      try (BufferedReader reader = new BufferedReader(
+          new FileReader(new File(exportDir, "distcp-" + volumeName + ".txt"), UTF_8))) {
+        for (String line; (line = reader.readLine()) != null;) {
+          Path exportedFile = new Path(line);
+          // There isn't a cp on FileSystem??
+          log.info("Copying {} to {}", line, localTmpPath);
+          fs.copyToLocalFile(exportedFile, localTmpPath);
+          Path tmpFile = new Path(localTmpPath, exportedFile.getName());
+          log.info("Moving {} to the import directory {}", tmpFile, importDir);
+          fs.moveFromLocalFile(tmpFile, importDir);
+        }
+      }
+    } else {
+      String[] distCpArgs = {"-f", exportUri + "/distcp-" + volumeName + ".txt", import_};
+      assertEquals(0, cp.run(distCpArgs), "Failed to run distcp: " + Arrays.toString(distCpArgs));
+    }
+    ts.exec("online multVolTable", true);
+    // ts.exec("deletetable -f multVolTable", true);
   }
 
   @Test
@@ -1965,6 +2028,29 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private void make10() throws IOException {
     for (int i = 0; i < 10; i++) {
       ts.exec(String.format("insert row%d cf col%d value", i, i));
+    }
+  }
+
+  private void makeTableWithMultipleVolumes() throws IOException {
+    for (int i = 1; i <= 4; i++) {
+      ts.exec(String.format(
+          "insert row%d cf I00000%dp.rf hdfs://warehouse-a.com:6093/accumulo/tables/3/default_tablet/I00000%dp.rf",
+          i, i, i));
+    }
+    for (int j = 5; j <= 8; j++) {
+      ts.exec(String.format(
+          "insert row%d cf J00000%dp.rf hdfs://n1.example.com:6093/accumulo/tables/3/default_tablet/J00000%dp.rf",
+          j, j, j));
+    }
+    for (int k = 9; k <= 12; k++) {
+      ts.exec(String.format(
+          "insert row%d cf K00000%dp.rf hdfs://warehouse-b.com:6093/accumulo/tables/3/default_tablet/K00000%dp.rf",
+          k, k, k));
+    }
+    for (int l = 13; l <= 16; l++) {
+      ts.exec(String.format(
+          "insert row%d cf L00000%dp.rf hdfs://n1.example.com:6090/accumulo/tables/3/default_tablet/L00000%dp.rf",
+          l, l, l));
     }
   }
 
