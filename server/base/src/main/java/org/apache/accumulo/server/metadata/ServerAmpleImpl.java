@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -61,7 +62,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.Sk
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactionSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -388,4 +392,29 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
   }
 
+  @Override
+  public void removeClonedFlag(TableId tableId) {
+    Preconditions.checkArgument(DataLevel.of(tableId) == DataLevel.USER);
+    try (
+        Scanner mscanner =
+            new IsolatedScanner(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+        BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
+      mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
+      mscanner.fetchColumnFamily(ClonedColumnFamily.NAME);
+
+      int dirCount = 0;
+
+      for (Map.Entry<Key,Value> entry : mscanner) {
+        Key k = entry.getKey();
+        Mutation m = new Mutation(k.getRow());
+        m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
+        byte[] dirName =
+            FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES);
+        ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dirName));
+        bw.addMutation(m);
+      }
+    } catch (MutationsRejectedException | TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+  }
 }

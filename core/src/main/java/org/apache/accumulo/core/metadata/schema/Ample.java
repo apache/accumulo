@@ -360,6 +360,15 @@ public interface Ample {
   }
 
   /**
+   * Removes a cloned flag from the metadata table.
+   *
+   * @param tableId - TableID for transaction removal
+   */
+  default void removeClonedFlag(TableId tableId) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
    * Remove all the Bulk Load transaction ids from a given table's metadata
    *
    * @param tableId Table ID for transaction removals

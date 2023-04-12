@@ -1525,7 +1525,7 @@ public class Tablet extends TabletBase {
       return null;
     }
 
-    // obtain this info outside of synch block since it will involve opening
+    // obtain this info outside of a synch block since it will involve opening
     // the map files... it is ok if the set of map files changes, because
     // this info is used for optimization... it is ok if map files are missing
     // from the set... can still query and insert into the tablet while this

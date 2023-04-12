@@ -41,7 +41,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -88,7 +87,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
@@ -345,6 +343,7 @@ public class MetadataTableUtil {
 
   public static void deleteTable(TableId tableId, boolean insertDeletes, ServerContext context,
       ServiceLock lock) throws AccumuloException {
+
     try (Scanner ms = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY);
         BatchWriter bw = new BatchWriterImpl(context, MetadataTable.ID,
             new BatchWriterConfig().setMaxMemory(1000000)
@@ -353,6 +352,7 @@ public class MetadataTableUtil {
       // scan metadata for our table and delete everything we find
       Mutation m = null;
       Ample ample = context.getAmple();
+
       ms.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
       // insert deletes before deleting data from metadata... this makes the code fault tolerant
@@ -377,7 +377,6 @@ public class MetadataTableUtil {
         }
 
         bw.flush();
-
         ms.clearColumns();
       }
 
@@ -630,24 +629,7 @@ public class MetadataTableUtil {
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         }
       }
-
-      // delete the clone markers and create directory entries
-      Scanner mscanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
-      mscanner.fetchColumnFamily(ClonedColumnFamily.NAME);
-
-      int dirCount = 0;
-
-      for (Entry<Key,Value> entry : mscanner) {
-        Key k = entry.getKey();
-        Mutation m = new Mutation(k.getRow());
-        m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
-        byte[] dirName =
-            FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES);
-        ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(dirName));
-
-        bw.addMutation(m);
-      }
+      context.getAmple().removeClonedFlag(tableId);
     }
   }
 
