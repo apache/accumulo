@@ -64,10 +64,12 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingGoalColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
@@ -1216,6 +1218,40 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // ensure extensions are really disabled
     ts.exec(extName + "::debug", true, "Unknown command", true);
+  }
+
+  @Test
+  public void goal() throws Exception {
+    final String table = getUniqueNames(1)[0];
+    ts.exec("createtable " + table);
+    ts.exec("addsplits -t " + table + " a c e g");
+    String result = ts.exec("goal -?");
+    assertTrue(result.contains("Sets the hosting goal"));
+    ts.exec("goal -t " + table + " -b a -e a -g never");
+    ts.exec("goal -t " + table + " -b c -e e -ee -g always");
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
+        Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      String tableId = client.tableOperations().tableIdMap().get(table);
+      s.setRange(new Range(tableId, tableId + "<"));
+      s.fetchColumnFamily(HostingGoalColumnFamily.NAME);
+      for (Entry<Key,Value> e : s) {
+        switch (e.getKey().getRow().toString()) {
+          case "1;c":
+            assertEquals("never", e.getValue().toString());
+            break;
+          case "1;e":
+            assertEquals("always", e.getValue().toString());
+            break;
+          case "1<":
+            // this tablet was loaded ondemand when we executed
+            // the addsplits command
+            assertEquals("ondemand", e.getValue().toString());
+            break;
+          default:
+            fail("Unknown row with hosting goal: " + e.getKey().getRow().toString());
+        }
+      }
+    }
   }
 
   @Test

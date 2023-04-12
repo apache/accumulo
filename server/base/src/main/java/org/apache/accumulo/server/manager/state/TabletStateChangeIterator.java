@@ -195,15 +195,16 @@ public class TabletStateChangeIterator extends SkippingIterator {
       final boolean shouldBeOnline = onlineTables.contains(tls.extent.tableId());
 
       if (debug) {
-        log.debug("{} is {}. Table is {}line. Tablet hosting goal is {}",
-            tls.extent, tls.getState(current), (shouldBeOnline ? "on" : "off"), tls.goal);
+        log.debug("{} is {}. Table is {}line. Tablet hosting goal is {}", tls.extent,
+            tls.getState(current), (shouldBeOnline ? "on" : "off"), tls.goal);
       }
       switch (tls.getState(current)) {
         case ASSIGNED:
           // we always want data about assigned tablets
           return;
         case HOSTED:
-          if (!shouldBeOnline || tls.goal == TabletHostingGoal.NEVER || tls.goal == TabletHostingGoal.DEFAULT) {
+          if (!shouldBeOnline || tls.goal == TabletHostingGoal.NEVER
+              || tls.goal == TabletHostingGoal.DEFAULT) {
             return;
           }
           break;
@@ -211,7 +212,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
           return;
         case SUSPENDED:
         case UNASSIGNED:
-          if (shouldBeOnline && (tls.goal == TabletHostingGoal.ALWAYS || tls.goal == TabletHostingGoal.ONDEMAND)) {
+          if (shouldBeOnline
+              && (tls.goal == TabletHostingGoal.ALWAYS || tls.goal == TabletHostingGoal.ONDEMAND)) {
             return;
           }
           break;

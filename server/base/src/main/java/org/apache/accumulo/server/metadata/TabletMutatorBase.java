@@ -39,6 +39,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingGoalColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
@@ -250,8 +251,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
 
   @Override
   public TabletMutator setHostingGoal(TabletHostingGoal goal) {
-    mutation.put(goal.getColumn().getColumnFamily(),
-        goal.getColumn().getColumnQualifier(), new Value());
+    mutation.put(HostingGoalColumnFamily.NAME, new Text(), goal.toValue());
     return this;
   }
 }

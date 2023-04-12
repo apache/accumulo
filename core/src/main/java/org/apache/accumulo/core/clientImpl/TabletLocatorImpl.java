@@ -32,9 +32,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -50,6 +52,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -63,11 +67,14 @@ import org.apache.hadoop.io.WritableComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class TabletLocatorImpl extends TabletLocator {
 
   private static final Logger log = LoggerFactory.getLogger(TabletLocatorImpl.class);
+  private static final AtomicBoolean HOSTING_ENABLED = new AtomicBoolean(true);
 
   // MAX_TEXT represents a TEXT object that is greater than all others. Attempted to use null for
   // this purpose, but there seems to be a bug in TreeMap.tailMap with null. Therefore instead of
@@ -98,7 +105,7 @@ public class TabletLocatorImpl extends TabletLocator {
   private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
   private final Lock rLock = rwLock.readLock();
   private final Lock wLock = rwLock.writeLock();
-  private final AtomicLong onDemandTabletsOnlinedCount = new AtomicLong(0);
+  private final AtomicLong tabletHostingRequestCount = new AtomicLong(0);
 
   public interface TabletLocationObtainer {
     /**
@@ -492,7 +499,7 @@ public class TabletLocatorImpl extends TabletLocator {
     } finally {
       wLock.unlock();
     }
-    this.onDemandTabletsOnlinedCount.set(0);
+    this.tabletHostingRequestCount.set(0);
     if (log.isTraceEnabled()) {
       log.trace("invalidated all {} cache entries for table={}", invalidatedCount, tableId);
     }
@@ -510,15 +517,15 @@ public class TabletLocatorImpl extends TabletLocator {
       timer = new OpTimer().start();
     }
 
-    boolean alreadyMarkedOnDemand = false;
+    boolean tabletHostingRequested = false;
     while (true) {
 
       LockCheckerSession lcSession = new LockCheckerSession();
       TabletLocation tl = _locateTablet(context, row, skipRow, retry, true, lcSession);
 
-      if (tl == null && !alreadyMarkedOnDemand) {
+      if (tl == null && !tabletHostingRequested) {
         requestTabletHosting(context, new Range(row));
-        alreadyMarkedOnDemand = true;
+        tabletHostingRequested = true;
       }
 
       if (retry && tl == null) {
@@ -542,19 +549,38 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   @Override
-  public long onDemandTabletsOnlined() {
-    return onDemandTabletsOnlinedCount.get();
+  public long getTabletHostingRequestCount() {
+    return tabletHostingRequestCount.get();
+  }
+
+  @VisibleForTesting
+  public void resetTabletHostingRequestCount() {
+    tabletHostingRequestCount.set(0);
+  }
+
+  @VisibleForTesting
+  public void enableTabletHostingRequests(boolean enabled) {
+    HOSTING_ENABLED.set(enabled);
   }
 
   private void requestTabletHosting(ClientContext context, Range range)
       throws AccumuloException, AccumuloSecurityException {
+
+    if (!HOSTING_ENABLED.get()) {
+      return;
+    }
+
+    // System tables should always be hosted
+    if (RootTable.ID == tableId || MetadataTable.ID == tableId) {
+      return;
+    }
 
     // Confirm that table is in an online state. Don't throw an exception
     // if the table is not found, calling code will already handle it.
     try {
       String tableName = context.getTableName(tableId);
       if (!context.tableOperations().isOnline(tableName)) {
-        log.trace("requestTabletHosting: table {} is not in ondemand state", tableId);
+        log.trace("requestTabletHosting: table {} is not online", tableId);
         return;
       }
     } catch (TableNotFoundException e) {
@@ -562,7 +588,8 @@ public class TabletLocatorImpl extends TabletLocator {
       return;
     }
 
-    List<TKeyExtent> extentsToBringOnline = findExtentsForRange(context, tableId, range);
+    List<TKeyExtent> extentsToBringOnline =
+        findExtentsForRange(context, tableId, range, Set.of(TabletHostingGoal.NEVER));
     if (extentsToBringOnline.isEmpty()) {
       return;
     }
@@ -570,12 +597,14 @@ public class TabletLocatorImpl extends TabletLocator {
     ThriftClientTypes.TABLET_MGMT.executeVoid(context,
         client -> client.requestTabletHosting(TraceUtil.traceInfo(), context.rpcCreds(),
             tableId.canonical(), extentsToBringOnline));
-    onDemandTabletsOnlinedCount.addAndGet(extentsToBringOnline.size());
+    tabletHostingRequestCount.addAndGet(extentsToBringOnline.size());
   }
-  
-  public static List<TKeyExtent> findExtentsForRange(ClientContext context, TableId tableId, Range range) {
-    final Text scanRangeStart = range.getStartKey().getRow();
-    final Text scanRangeEnd = range.getEndKey().getRow();
+
+  public static List<TKeyExtent> findExtentsForRange(ClientContext context, TableId tableId,
+      Range range, Set<TabletHostingGoal> disallowedStates) throws AccumuloException {
+
+    final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
+    final Text scanRangeEnd = (range.getEndKey() == null) ? null : range.getEndKey().getRow();
     // Turn the scan range into a KeyExtent and return all tablets
     // that are overlapped by the scan range
     final KeyExtent scanRangeKE = new KeyExtent(tableId, scanRangeEnd, scanRangeStart);
@@ -585,29 +614,31 @@ public class TabletLocatorImpl extends TabletLocator {
     TabletsMetadata m = context.getAmple().readTablets().forTable(tableId)
         .overlapping(scanRangeStart, true, null).build();
     for (TabletMetadata tm : m) {
+      if (disallowedStates.contains(tm.getHostingGoal())) {
+        throw new AccumuloException("Range: " + range + " includes tablet: " + tm.getExtent()
+            + " that is not in an allowable state for hosting");
+      }
       final KeyExtent tabletExtent = tm.getExtent();
       log.trace("Evaluating tablet {} against range {}", tabletExtent, scanRangeKE);
-      if (tm.getEndRow() != null && tm.getEndRow().compareTo(scanRangeStart) < 0) {
+      if (scanRangeStart != null && tm.getEndRow() != null
+          && tm.getEndRow().compareTo(scanRangeStart) < 0) {
         // the end row of this tablet is before the start row, skip it
         log.trace("tablet {} is before scan start range: {}", tabletExtent, scanRangeStart);
         continue;
       }
-      if (tm.getPrevEndRow() != null && tm.getPrevEndRow().compareTo(scanRangeEnd) > 0) {
+      if (scanRangeEnd != null && tm.getPrevEndRow() != null
+          && tm.getPrevEndRow().compareTo(scanRangeEnd) > 0) {
         // the start row of this tablet is after the scan range end row, skip it
         log.trace("tablet {} is after scan end range: {}", tabletExtent, scanRangeEnd);
         continue;
       }
       if (scanRangeKE.overlaps(tabletExtent)) {
-        if (!tm.getOnDemand()) {
-          Location loc = tm.getLocation();
-          if (loc != null) {
-            log.debug("tablet {} has location of: {}:{}", tabletExtent, loc.getType(),
-                loc.getHostPort());
-          }
-          extents.add(tabletExtent.toThrift());
-        } else {
-          log.trace("Tablet {} already marked as onDemand, but not hosted yet", tabletExtent);
+        Location loc = tm.getLocation();
+        if (loc != null) {
+          log.debug("tablet {} has location of: {}:{}", tabletExtent, loc.getType(),
+              loc.getHostPort());
         }
+        extents.add(tabletExtent.toThrift());
       }
     }
     return extents;

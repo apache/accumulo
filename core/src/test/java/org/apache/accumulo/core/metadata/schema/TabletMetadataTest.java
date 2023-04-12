@@ -23,9 +23,9 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ON_DEMAND;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -186,7 +186,7 @@ public class TabletMetadataTest {
     Set<TServerInstance> tservers = new LinkedHashSet<>();
     tservers.add(ser1);
     tservers.add(ser2);
-    EnumSet<ColumnType> colsToFetch = EnumSet.of(LOCATION, LAST, SUSPEND, ON_DEMAND);
+    EnumSet<ColumnType> colsToFetch = EnumSet.of(LOCATION, LAST, SUSPEND, HOSTING_GOAL);
 
     // test assigned
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);

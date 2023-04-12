@@ -422,9 +422,6 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       tops.create(table1);
       tops.create(table2);
 
-      tops.onDemand(table1, true);
-      tops.onDemand(table2, true);
-
       accumuloClient.tableOperations().clearLocatorCache(table1);
       accumuloClient.tableOperations().clearLocatorCache(table2);
 

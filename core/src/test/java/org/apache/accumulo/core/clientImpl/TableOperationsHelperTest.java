@@ -209,7 +209,6 @@ public class TableOperationsHelperTest {
     @Override
     public void online(String tableName, boolean wait) {}
 
-    
     @Override
     public void setTabletHostingGoal(String tableName, Range range, String goal)
         throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}

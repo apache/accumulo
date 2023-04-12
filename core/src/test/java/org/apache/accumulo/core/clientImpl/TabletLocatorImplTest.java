@@ -168,6 +168,8 @@ public class TabletLocatorImplTest {
         new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
     TabletLocatorImpl tab1TabletCache =
         new TabletLocatorImpl(TableId.of(table), rootTabletCache, ttlo, tslc);
+    // disable hosting requests for these tests
+    tab1TabletCache.enableTabletHostingRequests(false);
 
     setLocation(tservers, rootTabLoc, ROOT_TABLE_EXTENT, METADATA_TABLE_EXTENT, metaTabLoc);
 
@@ -668,6 +670,7 @@ public class TabletLocatorImplTest {
 
   private void locateTabletTest(TabletLocatorImpl cache, String row, boolean skipRow,
       KeyExtent expected, String server) throws Exception {
+
     TabletLocation tl = cache.locateTablet(context, new Text(row), skipRow, false);
 
     if (expected == null) {

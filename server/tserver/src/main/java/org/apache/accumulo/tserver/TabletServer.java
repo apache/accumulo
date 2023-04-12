@@ -1385,7 +1385,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       KeyExtent oldestKeyExtent = timeSortedOnDemandExtents.get(oldestAccessTime);
       log.warn("Unloading on-demand tablet: {} for table: {} due to low memory", oldestKeyExtent,
           oldestKeyExtent.tableId());
-      getContext().getAmple().mutateTablet(oldestKeyExtent).setHostingGoal(TabletHostingGoal.DEFAULT).mutate();
+      getContext().getAmple().mutateTablet(oldestKeyExtent)
+          .setHostingGoal(TabletHostingGoal.DEFAULT).mutate();
       onDemandUnloadedLowMemory.addAndGet(1);
       return;
     }

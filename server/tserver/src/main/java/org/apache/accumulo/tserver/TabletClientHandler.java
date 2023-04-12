@@ -76,6 +76,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -133,6 +134,7 @@ import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
@@ -1560,7 +1562,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       return handleTimeout(sessionId);
     }
   }
-  
+
   @Override
   public void setTabletHostingGoal(TInfo tinfo, TCredentials credentials, String tableId,
       List<TKeyExtent> extents, THostingGoal goal) throws ThriftSecurityException, TException {
@@ -1574,13 +1576,13 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
-    final THostingGoal g = goal;
+    final TabletHostingGoal g = TabletHostingGoal.fromThrift(goal);
+    log.info("Tablet hosting goal {} requested for: {} ", g, extents);
     try (TabletsMutator mutator = this.context.getAmple().mutateTablets()) {
-      extents.forEach(e -> mutator.mutateTablet(KeyExtent.fromThrift(e))
-          .setHostingGoal(TabletHostingGoal.fromThrift(g)).mutate());
+      extents
+          .forEach(e -> mutator.mutateTablet(KeyExtent.fromThrift(e)).setHostingGoal(g).mutate());
     }
   }
-
 
   @Override
   public void requestTabletHosting(TInfo tinfo, TCredentials credentials, String tableId,
@@ -1591,15 +1593,19 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
+    if (context.getTableState(tid) != TableState.ONLINE) {
+      throw new TApplicationException("Table is not online");
+    }
+    log.info("Tablet hosting requested for: {} ", extents);
     final Ample ample = context.getAmple();
     try (TabletsMutator mutator = ample.mutateTablets()) {
       extents.forEach(e -> {
         KeyExtent ke = KeyExtent.fromThrift(e);
         // TODO: Convert this to conditional mutation
         // Can only set to ONDEMAND if the current value is DEFAULT
-        if (ample.readTablet(ke, ColumnType.HOSTING_GOAL).getHostingGoal() == TabletHostingGoal.DEFAULT) {
-          mutator.mutateTablet(ke)
-          .setHostingGoal(TabletHostingGoal.ONDEMAND).mutate();
+        if (ample.readTablet(ke, ColumnType.HOSTING_GOAL).getHostingGoal()
+            == TabletHostingGoal.DEFAULT) {
+          mutator.mutateTablet(ke).setHostingGoal(TabletHostingGoal.ONDEMAND).mutate();
         }
       });
     }

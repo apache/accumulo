@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -45,9 +46,9 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingGoalColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.OnDemandAssignmentStateColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -99,7 +100,7 @@ public class MetadataConstraints implements Constraint {
           ChoppedColumnFamily.NAME,
           ClonedColumnFamily.NAME,
           ExternalCompactionColumnFamily.NAME,
-          OnDemandAssignmentStateColumnFamily.NAME);
+          HostingGoalColumnFamily.NAME);
   // @formatter:on
 
   private static boolean isValidColumn(ColumnUpdate cu) {
@@ -200,7 +201,7 @@ public class MetadataConstraints implements Constraint {
       }
 
       if (columnUpdate.getValue().length == 0 && !columnFamily.equals(ScanFileColumnFamily.NAME)
-          && !columnFamily.equals(OnDemandAssignmentStateColumnFamily.NAME)) {
+          && !columnFamily.equals(HostingGoalColumnFamily.NAME)) {
         violations = addViolation(violations, 6);
       }
 
@@ -214,9 +215,15 @@ public class MetadataConstraints implements Constraint {
         } catch (NumberFormatException | ArrayIndexOutOfBoundsException nfe) {
           violations = addViolation(violations, 1);
         }
-      } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {} else if (columnFamily
-          .equals(OnDemandAssignmentStateColumnFamily.NAME)) {} else if (columnFamily
-              .equals(BulkFileColumnFamily.NAME)) {
+      } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
+
+      } else if (columnFamily.equals(HostingGoalColumnFamily.NAME)) {
+        try {
+          TabletHostingGoal.fromValue(new Value(columnUpdate.getValue()));
+        } catch (IllegalArgumentException e) {
+          violations = addViolation(violations, 4);
+        }
+      } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
           // splits, which also write the time reference, are allowed to write this reference even
           // when

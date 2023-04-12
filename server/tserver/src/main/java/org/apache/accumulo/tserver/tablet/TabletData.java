@@ -52,7 +52,7 @@ public class TabletData {
   private long splitTime = 0;
   private String directoryName = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
-  private final boolean onDemand;
+  private final TabletHostingGoal goal;
 
   // Read tablet data from metadata tables
   public TabletData(TabletMetadata meta) {
@@ -75,13 +75,13 @@ public class TabletData {
     });
 
     this.extCompactions = meta.getExternalCompactions();
-    this.onDemand = meta.getHostingGoal() == TabletHostingGoal.ONDEMAND;
+    this.goal = meta.getHostingGoal();
   }
 
   // Data pulled from an existing tablet to make a split
   public TabletData(String dirName, SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes,
       MetadataTime time, long lastFlushID, long lastCompactID, Location lastLocation,
-      Map<Long,List<TabletFile>> bulkIngestedFiles, boolean onDemand) {
+      Map<Long,List<TabletFile>> bulkIngestedFiles, TabletHostingGoal goal) {
     this.directoryName = dirName;
     this.dataFiles = highDatafileSizes;
     this.time = time;
@@ -91,7 +91,7 @@ public class TabletData {
     this.bulkImported = bulkIngestedFiles;
     this.splitTime = System.currentTimeMillis();
     this.extCompactions = Map.of();
-    this.onDemand = onDemand;
+    this.goal = goal;
   }
 
   public MetadataTime getTime() {
@@ -138,7 +138,7 @@ public class TabletData {
     return extCompactions;
   }
 
-  public boolean isOnDemand() {
-    return onDemand;
+  public TabletHostingGoal getHostingGoal() {
+    return goal;
   }
 }

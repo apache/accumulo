@@ -121,7 +121,7 @@ public class RootTabletStateStoreTest {
     TabletLocationState assigned = null;
     try {
       assigned = new TabletLocationState(root, Location.future(server), null, null, null, null,
-          false, false, TabletHostingGoal.ALWAYS);
+          false, TabletHostingGoal.ALWAYS);
     } catch (BadLocationStateException e) {
       fail("Unexpected error " + e);
     }
@@ -143,7 +143,7 @@ public class RootTabletStateStoreTest {
 
     try {
       TabletLocationState broken = new TabletLocationState(notRoot, Location.future(server), null,
-          null, null, null, false, false, TabletHostingGoal.DEFAULT);
+          null, null, null, false, TabletHostingGoal.DEFAULT);
       final var assignmentList1 = List.of(broken);
       assertThrows(IllegalArgumentException.class, () -> tstore.unassign(assignmentList1, null));
     } catch (BadLocationStateException e) {

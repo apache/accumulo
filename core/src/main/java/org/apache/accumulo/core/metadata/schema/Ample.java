@@ -288,7 +288,7 @@ public interface Ample {
         ExternalCompactionMetadata ecMeta);
 
     TabletMutator deleteExternalCompaction(ExternalCompactionId ecid);
-    
+
     TabletMutator setHostingGoal(TabletHostingGoal goal);
 
     /**

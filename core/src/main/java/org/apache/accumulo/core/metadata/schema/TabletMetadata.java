@@ -63,15 +63,15 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingGoalColumn;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingGoalColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.OnDemandAssignmentStateColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,7 +110,6 @@ public class TabletMetadata {
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
   private boolean chopped = false;
-  private boolean onDemand = false;
   private TabletHostingGoal goal = TabletHostingGoal.DEFAULT;
 
   public enum LocationType {
@@ -135,8 +134,7 @@ public class TabletMetadata {
     SUSPEND,
     CHOPPED,
     ECOMP,
-    HOSTING_GOAL,
-    ON_DEMAND
+    HOSTING_GOAL
   }
 
   public static class Location {
@@ -351,11 +349,6 @@ public class TabletMetadata {
     return chopped;
   }
 
-  public boolean getOnDemand() {
-    ensureFetched(ColumnType.ON_DEMAND);
-    return onDemand;
-  }
-  
   public TabletHostingGoal getHostingGoal() {
     ensureFetched(ColumnType.HOSTING_GOAL);
     return goal;
@@ -370,7 +363,6 @@ public class TabletMetadata {
     ensureFetched(ColumnType.LOCATION);
     ensureFetched(ColumnType.LAST);
     ensureFetched(ColumnType.SUSPEND);
-    ensureFetched(ColumnType.ON_DEMAND);
     ensureFetched(ColumnType.HOSTING_GOAL);
     try {
       Location current = null;
@@ -381,8 +373,7 @@ public class TabletMetadata {
         future = location;
       }
       // only care about the state so don't need walogs and chopped params
-      var tls =
-          new TabletLocationState(extent, future, current, last, suspend, null, false, onDemand, goal);
+      var tls = new TabletLocationState(extent, future, current, last, suspend, null, false, goal);
       return tls.getState(liveTServers);
     } catch (TabletLocationState.BadLocationStateException blse) {
       throw new IllegalArgumentException("Error creating TabletLocationState", blse);
@@ -501,11 +492,13 @@ public class TabletMetadata {
         case ChoppedColumnFamily.STR_NAME:
           te.chopped = true;
           break;
-        case OnDemandAssignmentStateColumnFamily.STR_NAME:
-          te.onDemand = true;
+        case HostingGoalColumnFamily.STR_NAME:
+          if (StringUtils.isEmpty(kv.getValue().toString())) {
+            te.goal = TabletHostingGoal.DEFAULT;
+          } else {
+            te.goal = TabletHostingGoal.fromValue(kv.getValue());
+          }
           break;
-        case HostingGoalColumn.STR_NAME:
-          te.goal = TabletHostingGoal.fromColumn(qual);
         default:
           throw new IllegalStateException("Unexpected family " + fam);
       }
