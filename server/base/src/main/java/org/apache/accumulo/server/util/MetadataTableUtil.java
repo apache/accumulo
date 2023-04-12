@@ -198,14 +198,6 @@ public class MetadataTableUtil {
     return newFiles;
   }
 
-  public static void updateTabletDir(KeyExtent extent, String newDir, ServerContext context,
-      ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putDirName(newDir);
-    tablet.putZooLock(zooLock);
-    tablet.mutate();
-  }
-
   public static void addTablet(KeyExtent extent, String path, ServerContext context,
       TimeType timeType, ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
@@ -658,19 +650,4 @@ public class MetadataTableUtil {
     tablet.mutate();
   }
 
-  public static SortedMap<Text,SortedMap<ColumnFQ,Value>>
-      getTabletEntries(SortedMap<Key,Value> tabletKeyValues, List<ColumnFQ> columns) {
-    TreeMap<Text,SortedMap<ColumnFQ,Value>> tabletEntries = new TreeMap<>();
-
-    HashSet<ColumnFQ> colSet = columns == null ? null : new HashSet<>(columns);
-
-    tabletKeyValues.forEach((key, val) -> {
-      ColumnFQ currentKey = new ColumnFQ(key);
-      if (columns == null || colSet.contains(currentKey)) {
-        tabletEntries.computeIfAbsent(key.getRow(), k -> new TreeMap<>()).put(currentKey, val);
-      }
-    });
-
-    return tabletEntries;
-  }
 }
