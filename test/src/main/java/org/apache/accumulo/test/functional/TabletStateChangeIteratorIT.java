@@ -111,7 +111,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       // to be hosted. Then, remove the location.
       Scanner s = client.createScanner(t3);
       s.setRange(new Range());
-      Iterables.size(s); // consume all the data
+      @SuppressWarnings("unused")
+      var unused = Iterables.size(s); // consume all the data
 
       // examine a clone of the metadata table, so we can manipulate it
       copyTable(client, MetadataTable.NAME, metaCopy1);

@@ -589,7 +589,7 @@ public class TabletLocatorImpl extends TabletLocator {
     }
 
     List<TKeyExtent> extentsToBringOnline =
-        findExtentsForRange(context, tableId, range, Set.of(TabletHostingGoal.NEVER));
+        findExtentsForRange(context, tableId, range, Set.of(TabletHostingGoal.NEVER), true);
     if (extentsToBringOnline.isEmpty()) {
       return;
     }
@@ -601,7 +601,8 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   public static List<TKeyExtent> findExtentsForRange(ClientContext context, TableId tableId,
-      Range range, Set<TabletHostingGoal> disallowedStates) throws AccumuloException {
+      Range range, Set<TabletHostingGoal> disallowedStates, boolean excludeHostedTablets)
+      throws AccumuloException {
 
     final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
     final Text scanRangeEnd = (range.getEndKey() == null) ? null : range.getEndKey().getRow();
@@ -638,7 +639,9 @@ public class TabletLocatorImpl extends TabletLocator {
           log.debug("tablet {} has location of: {}:{}", tabletExtent, loc.getType(),
               loc.getHostPort());
         }
-        extents.add(tabletExtent.toThrift());
+        if (!(excludeHostedTablets && loc != null)) {
+          extents.add(tabletExtent.toThrift());
+        }
       }
     }
     return extents;

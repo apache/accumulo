@@ -2163,7 +2163,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     TabletHostingGoal g = TabletHostingGoal.valueOf(goal.toUpperCase());
 
     List<TKeyExtent> extents =
-        TabletLocatorImpl.findExtentsForRange(context, tableId, range, Set.of());
+        TabletLocatorImpl.findExtentsForRange(context, tableId, range, Set.of(), false);
 
     log.debug("Setting tablet hosting goal to {} for extents: {}", goal, extents);
     ThriftClientTypes.TABLET_MGMT.executeVoid(context,
