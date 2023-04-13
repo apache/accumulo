@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -55,14 +56,21 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   private final Consumer<ConditionalMutation> mutationConsumer;
   private final Ample.ConditionalTabletsMutator parent;
 
+  private final BiConsumer<KeyExtent,Ample.UknownValidator> unknownValidators;
+
+  private final KeyExtent extent;
+
   private boolean sawOperationRequirement = false;
 
   protected ConditionalTabletMutatorImpl(Ample.ConditionalTabletsMutator parent,
-      ServerContext context, KeyExtent extent, Consumer<ConditionalMutation> mutationConsumer) {
+      ServerContext context, KeyExtent extent, Consumer<ConditionalMutation> mutationConsumer,
+      BiConsumer<KeyExtent,Ample.UknownValidator> unknownValidators) {
     super(context, new ConditionalMutation(extent.toMetaRow()));
     this.mutation = (ConditionalMutation) super.mutation;
     this.mutationConsumer = mutationConsumer;
     this.parent = parent;
+    this.unknownValidators = unknownValidators;
+    this.extent = extent;
   }
 
   @Override
@@ -144,11 +152,19 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
-  public Ample.ConditionalTabletsMutator submit() {
+  public void submit() {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Preconditions.checkState(sawOperationRequirement, "No operation requirements were seen");
     getMutation();
     mutationConsumer.accept(mutation);
-    return parent;
+  }
+
+  @Override
+  public void submit(Ample.UknownValidator unknownCheck) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Preconditions.checkState(sawOperationRequirement, "No operation requirements were seen");
+    getMutation();
+    mutationConsumer.accept(mutation);
+    unknownValidators.accept(extent, unknownCheck);
   }
 }

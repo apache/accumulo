@@ -73,6 +73,10 @@ public class ManagerMetadataUtil {
       Map<Long,? extends Collection<TabletFile>> bulkLoadedFiles, MetadataTime time,
       long lastFlushID, long lastCompactID, ServiceLock zooLock) {
 
+    // ELASTICITY_TODO intentionally not using conditional mutations for this code because its only
+    // called when tablets split. Tablet splitting will drastically change, so there is no need to
+    // update this to use conditional mutations ATM.
+
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putPrevEndRow(extent.prevEndRow());
     tablet.putZooLock(zooLock);
@@ -259,7 +263,7 @@ public class ManagerMetadataUtil {
    * @param location The new location
    */
   public static void updateLastForAssignmentMode(ClientContext context, Ample ample,
-      Ample.TabletMutator tabletMutator, KeyExtent extent, TServerInstance location) {
+      Ample.TabletUpdates<?> tabletMutator, KeyExtent extent, TServerInstance location) {
     // if the location mode is assignment, then preserve the current location in the last
     // location value
     if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
@@ -296,8 +300,9 @@ public class ManagerMetadataUtil {
    * @param previousLocation The location (may be null)
    * @param newLocation The new location
    */
-  private static void updateLocation(TabletMutator tabletMutator, Location previousLocation,
-      Location newLocation) {
+  private static void updateLocation(Ample.TabletUpdates<?> tabletMutator,
+      Location previousLocation, Location newLocation) {
+    // ELASTICITY_TODO pending #3301, update this code to use conditional mutations
     if (previousLocation != null) {
       if (!previousLocation.equals(newLocation)) {
         tabletMutator.deleteLocation(previousLocation);
