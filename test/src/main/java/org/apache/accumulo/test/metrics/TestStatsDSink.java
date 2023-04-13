@@ -24,6 +24,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,7 +84,7 @@ public class TestStatsDSink implements Closeable {
     String[] tag = tags.split(",");
     for (String t : tag) {
       String[] p = t.split(":");
-      m.getTags().put(p[0], p[1].trim());
+      m.getTags().put(p[0], p[1]);
     }
     return m;
   }
@@ -102,7 +103,8 @@ public class TestStatsDSink implements Closeable {
         DatagramPacket packet = new DatagramPacket(buf, len);
         try {
           sock.receive(packet);
-          received.add(new String(packet.getData()));
+          byte[] trimmedBuffer = Arrays.copyOf(packet.getData(), packet.getLength());
+          received.add(new String(trimmedBuffer));
         } catch (IOException e) {
           if (!sock.isClosed()) {
             LOG.error("Error receiving packet", e);
