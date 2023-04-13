@@ -21,6 +21,7 @@ package org.apache.accumulo.core.metadata.schema;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.OLD_PREV_ROW_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
@@ -54,6 +55,7 @@ import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -108,6 +110,8 @@ public class TabletMetadata {
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
   private boolean chopped = false;
+  private TabletOperation operation;
+  private TabletOperationId operationId;
   private boolean onDemand = false;
 
   public enum LocationType {
@@ -132,6 +136,7 @@ public class TabletMetadata {
     SUSPEND,
     CHOPPED,
     ECOMP,
+    OPID,
     ON_DEMAND
   }
 
@@ -384,6 +389,16 @@ public class TabletMetadata {
     return extCompactions;
   }
 
+  public TabletOperation getOperation() {
+    ensureFetched(ColumnType.OPID);
+    return operation;
+  }
+
+  public TabletOperationId getOperationId() {
+    ensureFetched(ColumnType.OPID);
+    return operationId;
+  }
+
   @VisibleForTesting
   public static <E extends Entry<Key,Value>> TabletMetadata convertRow(Iterator<E> rowIter,
       EnumSet<ColumnType> fetchedColumns, boolean buildKeyValueMap) {
@@ -453,6 +468,11 @@ public class TabletMetadata {
               break;
             case COMPACT_QUAL:
               te.compact = OptionalLong.of(Long.parseLong(val));
+              break;
+            case OPID_QUAL:
+              String[] tokens = val.split(":", 2);
+              te.operation = TabletOperation.valueOf(tokens[0]);
+              te.operationId = new TabletOperationId(tokens[1]);
               break;
           }
           break;

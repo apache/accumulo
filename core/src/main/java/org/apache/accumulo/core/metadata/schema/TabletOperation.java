@@ -16,33 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.metadata;
+package org.apache.accumulo.core.metadata.schema;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.server.ServerContext;
-
-class TabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
-    implements Ample.TabletMutator {
-
-  private BatchWriter writer;
-
-  TabletMutatorImpl(ServerContext context, KeyExtent extent, BatchWriter batchWriter) {
-    super(context, extent);
-    this.writer = batchWriter;
-  }
-
-  @Override
-  public void mutate() {
-    try {
-      writer.addMutation(getMutation());
-
-      if (closeAfterMutate != null) {
-        closeAfterMutate.close();
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
+/**
+ * Used to specify what kind of mutually exclusive operation is currently running against a tablet.
+ */
+public enum TabletOperation {
+  SPLITTING, MERGING, DELETING
 }

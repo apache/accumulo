@@ -16,33 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.metadata;
+package org.apache.accumulo.core.metadata;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.core.data.AbstractId;
 
-class TabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
-    implements Ample.TabletMutator {
+/**
+ * Intended to contain a globally unique id that identifies an operation running against a tablet.
+ * The purpose of this is to prevent race conditions.
+ */
+public class TabletOperationId extends AbstractId<TabletOperationId> {
 
-  private BatchWriter writer;
+  private static final long serialVersionUID = 1L;
 
-  TabletMutatorImpl(ServerContext context, KeyExtent extent, BatchWriter batchWriter) {
-    super(context, extent);
-    this.writer = batchWriter;
-  }
-
-  @Override
-  public void mutate() {
-    try {
-      writer.addMutation(getMutation());
-
-      if (closeAfterMutate != null) {
-        closeAfterMutate.close();
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+  public TabletOperationId(String canonical) {
+    super(canonical);
   }
 }
