@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -204,8 +204,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
           // we always want data about assigned tablets
           return;
         case HOSTED:
-          if (!shouldBeOnline || tls.goal == TabletHostingGoalImpl.NEVER
-              || (tls.goal == TabletHostingGoalImpl.ONDEMAND && !tls.onDemandHostingRequested)) {
+          if (!shouldBeOnline || tls.goal == TabletHostingGoal.NEVER
+              || (tls.goal == TabletHostingGoal.ONDEMAND && !tls.onDemandHostingRequested)) {
             return;
           }
           break;
@@ -213,8 +213,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
           return;
         case SUSPENDED:
         case UNASSIGNED:
-          if (shouldBeOnline && (tls.goal == TabletHostingGoalImpl.ALWAYS
-              || (tls.goal == TabletHostingGoalImpl.ONDEMAND && tls.onDemandHostingRequested))) {
+          if (shouldBeOnline && (tls.goal == TabletHostingGoal.ALWAYS
+              || (tls.goal == TabletHostingGoal.ONDEMAND && tls.onDemandHostingRequested))) {
             return;
           }
           break;

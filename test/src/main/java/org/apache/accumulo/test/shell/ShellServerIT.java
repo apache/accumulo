@@ -52,6 +52,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.sample.RowColumnSampler;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -61,7 +62,6 @@ import org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer;
 import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -1240,15 +1240,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
       for (Entry<Key,Value> e : s) {
         switch (e.getKey().getRow().toString()) {
           case "1;c":
-            assertEquals(TabletHostingGoalImpl.NEVER.name(), e.getValue().toString());
+            assertEquals(TabletHostingGoal.NEVER.name(), e.getValue().toString());
             break;
           case "1;e":
-            assertEquals(TabletHostingGoalImpl.ALWAYS.name(), e.getValue().toString());
+            assertEquals(TabletHostingGoal.ALWAYS.name(), e.getValue().toString());
             break;
           case "1<":
             // this tablet was loaded ondemand when we executed
             // the addsplits command
-            assertEquals(TabletHostingGoalImpl.ONDEMAND.name(), e.getValue().toString());
+            assertEquals(TabletHostingGoal.ONDEMAND.name(), e.getValue().toString());
             break;
           default:
             fail("Unknown row with hosting goal: " + e.getKey().getRow().toString());

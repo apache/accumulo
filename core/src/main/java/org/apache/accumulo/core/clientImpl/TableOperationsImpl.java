@@ -1383,10 +1383,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
       for (TabletMetadata tablet : tablets) {
         total++;
         Location loc = tablet.getLocation();
-        TabletHostingGoalImpl goal = tablet.getHostingGoal();
+        TabletHostingGoal goal = tablet.getHostingGoal();
 
         if ((expectedState == TableState.ONLINE
-            && (goal == TabletHostingGoalImpl.ALWAYS || goal == TabletHostingGoalImpl.ONDEMAND)
+            && (goal == TabletHostingGoal.ALWAYS || goal == TabletHostingGoal.ONDEMAND)
             && (loc == null || loc.getType() == LocationType.FUTURE))
             || (expectedState == TableState.OFFLINE && loc != null)) {
           if (continueRow == null) {
@@ -2161,7 +2161,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(goal != null, "goal is null");
 
     TableId tableId = context.getTableId(tableName);
-    TabletHostingGoalImpl g = TabletHostingGoalImpl.fromTabletHostingGoal(goal);
 
     List<TKeyExtent> extents =
         TabletLocatorImpl.findExtentsForRange(context, tableId, range, Set.of(), false);
@@ -2169,7 +2168,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     log.debug("Setting tablet hosting goal to {} for extents: {}", goal, extents);
     ThriftClientTypes.TABLET_MGMT.executeVoid(context,
         client -> client.setTabletHostingGoal(TraceUtil.traceInfo(), context.rpcCreds(),
-            tableId.canonical(), extents, g.toThrift()));
+            tableId.canonical(), extents, TabletHostingGoalUtil.toThrift(goal)));
   }
 
 }

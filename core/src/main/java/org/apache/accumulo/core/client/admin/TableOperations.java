@@ -1014,7 +1014,10 @@ public interface TableOperations {
   }
 
   /**
-   * Sets the hosting goal for a range of Tablets in the specified table.
+   * Sets the hosting goal for a range of Tablets in the specified table, but does not wait for the
+   * tablets to reach this goal state. For the Range parameter, note that the Row portion of the
+   * start and end Keys and the inclusivity parameters are used when determining the range of
+   * affected tablets. The other portions of the start and end Keys are not used.
    *
    * @param tableName table name
    * @param range tablet range

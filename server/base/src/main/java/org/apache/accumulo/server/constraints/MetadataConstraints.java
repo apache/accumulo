@@ -28,7 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -224,7 +224,7 @@ public class MetadataConstraints implements Constraint {
       } else if (columnFamily.equals(HostingColumnFamily.GOAL_COLUMN.getColumnFamily())
           && columnQualifier.equals(HostingColumnFamily.GOAL_COLUMN.getColumnQualifier())) {
         try {
-          TabletHostingGoalImpl.fromValue(new Value(columnUpdate.getValue()));
+          TabletHostingGoalUtil.fromValue(new Value(columnUpdate.getValue()));
         } catch (IllegalArgumentException e) {
           violations = addViolation(violations, 4);
         }

@@ -23,38 +23,23 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.tablet.thrift.THostingGoal;
 
-public enum TabletHostingGoalImpl {
+public class TabletHostingGoalUtil {
 
-  ALWAYS, NEVER, ONDEMAND;
-
-  public static TabletHostingGoalImpl fromTabletHostingGoal(TabletHostingGoal goal) {
+  public static TabletHostingGoal fromThrift(THostingGoal goal) {
     switch (goal) {
       case ALWAYS:
-        return ALWAYS;
-      case ONDEMAND:
-        return ONDEMAND;
+        return TabletHostingGoal.ALWAYS;
       case NEVER:
-        return NEVER;
-      default:
-        throw new IllegalArgumentException("Unhandled goal: " + goal);
-    }
-  }
-
-  public static TabletHostingGoalImpl fromThrift(THostingGoal goal) {
-    switch (goal) {
-      case ALWAYS:
-        return ALWAYS;
-      case NEVER:
-        return NEVER;
+        return TabletHostingGoal.NEVER;
       case ONDEMAND:
-        return ONDEMAND;
+        return TabletHostingGoal.ONDEMAND;
       default:
         throw new IllegalArgumentException("Unhandled value for THostingGoal: " + goal);
     }
   }
 
-  public THostingGoal toThrift() {
-    switch (this) {
+  public static THostingGoal toThrift(TabletHostingGoal goal) {
+    switch (goal) {
       case ALWAYS:
         return THostingGoal.ALWAYS;
       case NEVER:
@@ -66,21 +51,21 @@ public enum TabletHostingGoalImpl {
     }
   }
 
-  public static TabletHostingGoalImpl fromValue(Value value) {
+  public static TabletHostingGoal fromValue(Value value) {
     switch (value.toString()) {
       case "ALWAYS":
-        return ALWAYS;
+        return TabletHostingGoal.ALWAYS;
       case "NEVER":
-        return NEVER;
+        return TabletHostingGoal.NEVER;
       case "ONDEMAND":
-        return ONDEMAND;
+        return TabletHostingGoal.ONDEMAND;
       default:
         throw new IllegalArgumentException("Invalid value for hosting goal: " + value.toString());
     }
   }
 
-  public Value toValue() {
-    switch (this) {
+  public static Value toValue(TabletHostingGoal goal) {
+    switch (goal) {
       case ALWAYS:
         return new Value(HostingColumnFamily.ALWAYS_GOAL);
       case NEVER:

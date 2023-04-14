@@ -46,8 +46,8 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -135,9 +135,9 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       copyTable(client, metaCopy1, metaCopy3);
 
       // t1 is unassigned, setting to always will generate a change to host tablets
-      setTabletHostingGoal(client, metaCopy1, t1, TabletHostingGoalImpl.ALWAYS.name());
+      setTabletHostingGoal(client, metaCopy1, t1, TabletHostingGoal.ALWAYS.name());
       // t3 is hosted, setting to never will generate a change to unhost tablets
-      setTabletHostingGoal(client, metaCopy1, t3, TabletHostingGoalImpl.NEVER.name());
+      setTabletHostingGoal(client, metaCopy1, t3, TabletHostingGoal.NEVER.name());
       state = new State(client);
       assertEquals(4, findTabletsNeedingAttention(client, metaCopy1, state),
           "Should have four tablets with hosting goal changes");

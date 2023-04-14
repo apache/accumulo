@@ -43,8 +43,9 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -116,7 +117,7 @@ public class TabletMetadata {
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
   private boolean chopped = false;
-  private TabletHostingGoalImpl goal = TabletHostingGoalImpl.ONDEMAND;
+  private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
   private boolean onDemandHostingRequested = false;
   private TabletOperation operation;
   private TabletOperationId operationId;
@@ -360,7 +361,7 @@ public class TabletMetadata {
     return chopped;
   }
 
-  public TabletHostingGoalImpl getHostingGoal() {
+  public TabletHostingGoal getHostingGoal() {
     ensureFetched(ColumnType.HOSTING_GOAL);
     return goal;
   }
@@ -529,9 +530,9 @@ public class TabletMetadata {
           switch (qual) {
             case GOAL_QUAL:
               if (StringUtils.isEmpty(kv.getValue().toString())) {
-                te.goal = TabletHostingGoalImpl.ONDEMAND;
+                te.goal = TabletHostingGoal.ONDEMAND;
               } else {
-                te.goal = TabletHostingGoalImpl.fromValue(kv.getValue());
+                te.goal = TabletHostingGoalUtil.fromValue(kv.getValue());
               }
               break;
             case REQUESTED_QUAL:
@@ -546,7 +547,7 @@ public class TabletMetadata {
 
     if (RootTable.ID.equals(te.tableId) || MetadataTable.ID.equals(te.tableId)) {
       // Override the goal for the system tables
-      te.goal = TabletHostingGoalImpl.ALWAYS;
+      te.goal = TabletHostingGoal.ALWAYS;
     }
 
     te.files = filesBuilder.build();

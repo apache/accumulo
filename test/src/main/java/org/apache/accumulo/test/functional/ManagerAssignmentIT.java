@@ -43,7 +43,6 @@ import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -112,7 +111,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       assertNull(newTablet.current);
       assertNull(newTablet.last);
       assertNull(newTablet.future);
-      assertEquals(TabletHostingGoalImpl.ONDEMAND, newTablet.goal);
+      assertEquals(TabletHostingGoal.ONDEMAND, newTablet.goal);
 
       // calling the batch writer will cause the tablet to be hosted
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
@@ -127,7 +126,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       assertNotNull(flushed.current);
       assertEquals(flushed.getCurrentServer(), flushed.getLastServer());
       assertNull(newTablet.future);
-      assertEquals(TabletHostingGoalImpl.ONDEMAND, flushed.goal);
+      assertEquals(TabletHostingGoal.ONDEMAND, flushed.goal);
 
       // take the tablet offline
       c.tableOperations().offline(tableName, true);
@@ -135,7 +134,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       assertNull(offline.future);
       assertNull(offline.current);
       assertEquals(flushed.getCurrentServer(), offline.getLastServer());
-      assertEquals(TabletHostingGoalImpl.ONDEMAND, offline.goal);
+      assertEquals(TabletHostingGoal.ONDEMAND, offline.goal);
 
       // put it back online
       c.tableOperations().online(tableName, true);
@@ -143,7 +142,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       assertNull(online.future);
       assertNotNull(online.current);
       assertEquals(online.getCurrentServer(), online.getLastServer());
-      assertEquals(TabletHostingGoalImpl.ONDEMAND, online.goal);
+      assertEquals(TabletHostingGoal.ONDEMAND, online.goal);
 
       // set the hosting goal to always
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
@@ -151,12 +150,12 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       do {
         UtilWaitThread.sleep(250);
         always = getTabletLocationState(c, tableId);
-      } while (always.goal == TabletHostingGoalImpl.ONDEMAND);
+      } while (always.goal == TabletHostingGoal.ONDEMAND);
 
       assertNull(always.future);
       assertNotNull(always.current);
       assertEquals(flushed.getCurrentServer(), always.getLastServer());
-      assertEquals(TabletHostingGoalImpl.ALWAYS, always.goal);
+      assertEquals(TabletHostingGoal.ALWAYS, always.goal);
 
       // set the hosting goal to never
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.NEVER);
@@ -164,12 +163,12 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       do {
         UtilWaitThread.sleep(250);
         never = getTabletLocationState(c, tableId);
-      } while (never.goal == TabletHostingGoalImpl.ALWAYS);
+      } while (never.goal == TabletHostingGoal.ALWAYS);
 
       assertNull(never.future);
       assertNotNull(never.current);
       assertEquals(flushed.getCurrentServer(), never.getLastServer());
-      assertEquals(TabletHostingGoalImpl.NEVER, never.goal);
+      assertEquals(TabletHostingGoal.NEVER, never.goal);
 
       // set the hosting goal to ondemand
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ONDEMAND);
@@ -177,12 +176,12 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       do {
         UtilWaitThread.sleep(250);
         ondemand = getTabletLocationState(c, tableId);
-      } while (ondemand.goal == TabletHostingGoalImpl.NEVER);
+      } while (ondemand.goal == TabletHostingGoal.NEVER);
 
       assertNull(ondemand.future);
       assertNotNull(ondemand.current);
       assertEquals(flushed.getCurrentServer(), ondemand.getLastServer());
-      assertEquals(TabletHostingGoalImpl.ONDEMAND, ondemand.goal);
+      assertEquals(TabletHostingGoal.ONDEMAND, ondemand.goal);
 
     }
   }

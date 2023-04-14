@@ -35,8 +35,9 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -156,7 +157,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     long lastTimestamp = 0;
     List<Collection<String>> walogs = new ArrayList<>();
     boolean chopped = false;
-    TabletHostingGoalImpl goal = TabletHostingGoalImpl.ONDEMAND;
+    TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
     boolean onDemandHostingRequested = false;
 
     for (Entry<Key,Value> entry : decodedRow.entrySet()) {
@@ -194,7 +195,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       } else if (SuspendLocationColumn.SUSPEND_COLUMN.equals(cf, cq)) {
         suspend = SuspendingTServer.fromValue(entry.getValue());
       } else if (HostingColumnFamily.GOAL_COLUMN.equals(cf, cq)) {
-        goal = TabletHostingGoalImpl.fromValue(entry.getValue());
+        goal = TabletHostingGoalUtil.fromValue(entry.getValue());
       } else if (HostingColumnFamily.REQUESTED_COLUMN.equals(cf, cq)) {
         onDemandHostingRequested = true;
       }
@@ -206,7 +207,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     }
     // Override the goal for root and metadata table, should be always
     if (extent.isMeta()) {
-      goal = TabletHostingGoalImpl.ALWAYS;
+      goal = TabletHostingGoal.ALWAYS;
     }
     return new TabletLocationState(extent, future, current, last, suspend, walogs, chopped, goal,
         onDemandHostingRequested);

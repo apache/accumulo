@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.server.metadata;
 
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -272,9 +273,9 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T setHostingGoal(TabletHostingGoalImpl goal) {
+  public T setHostingGoal(TabletHostingGoal goal) {
     mutation.put(HostingColumnFamily.GOAL_COLUMN.getColumnFamily(),
-        HostingColumnFamily.GOAL_COLUMN.getColumnQualifier(), goal.toValue());
+        HostingColumnFamily.GOAL_COLUMN.getColumnQualifier(), TabletHostingGoalUtil.toValue(goal));
     return getThis();
   }
 

@@ -46,9 +46,10 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.clientImpl.TabletType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -1573,7 +1574,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
-    final TabletHostingGoalImpl g = TabletHostingGoalImpl.fromThrift(goal);
+    final TabletHostingGoal g = TabletHostingGoalUtil.fromThrift(goal);
     log.info("Tablet hosting goal {} requested for: {} ", g, extents);
     try (TabletsMutator mutator = this.context.getAmple().mutateTablets()) {
       extents
@@ -1599,7 +1600,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       extents.forEach(e -> {
         KeyExtent ke = KeyExtent.fromThrift(e);
         if (ample.readTablet(ke, ColumnType.HOSTING_GOAL).getHostingGoal()
-            == TabletHostingGoalImpl.ONDEMAND) {
+            == TabletHostingGoal.ONDEMAND) {
           log.info("Set hosting requested for {}", ke);
           mutator.mutateTablet(ke).setHostingRequested().mutate();
         }

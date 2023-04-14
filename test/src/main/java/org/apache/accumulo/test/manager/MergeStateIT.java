@@ -30,7 +30,7 @@ import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -209,7 +209,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       Collection<Collection<String>> walogs = Collections.emptyList();
       metaDataStateStore.unassign(Collections
           .singletonList(new TabletLocationState(tablet, null, Location.current(state.someTServer),
-              null, null, walogs, false, TabletHostingGoalImpl.ALWAYS, false)),
+              null, null, walogs, false, TabletHostingGoal.ALWAYS, false)),
           null);
 
       // now we can split

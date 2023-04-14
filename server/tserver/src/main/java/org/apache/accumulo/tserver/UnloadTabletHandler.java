@@ -20,7 +20,7 @@ package org.apache.accumulo.tserver;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
@@ -117,7 +117,7 @@ class UnloadTabletHandler implements Runnable {
       TabletLocationState tls = null;
       try {
         tls = new TabletLocationState(extent, null, Location.current(instance), null, null, null,
-            false, TabletHostingGoalImpl.ONDEMAND, false);
+            false, TabletHostingGoal.ONDEMAND, false);
       } catch (BadLocationStateException e) {
         log.error("Unexpected error", e);
       }

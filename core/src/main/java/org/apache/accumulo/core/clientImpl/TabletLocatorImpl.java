@@ -45,6 +45,7 @@ import java.util.function.BiConsumer;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -588,7 +589,7 @@ public class TabletLocatorImpl extends TabletLocator {
     }
 
     List<TKeyExtent> extentsToBringOnline =
-        findExtentsForRange(context, tableId, range, Set.of(TabletHostingGoalImpl.NEVER), true);
+        findExtentsForRange(context, tableId, range, Set.of(TabletHostingGoal.NEVER), true);
     if (extentsToBringOnline.isEmpty()) {
       return;
     }
@@ -600,7 +601,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   public static List<TKeyExtent> findExtentsForRange(ClientContext context, TableId tableId,
-      Range range, Set<TabletHostingGoalImpl> disallowedStates, boolean excludeHostedTablets)
+      Range range, Set<TabletHostingGoal> disallowedStates, boolean excludeHostedTablets)
       throws AccumuloException {
 
     final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();

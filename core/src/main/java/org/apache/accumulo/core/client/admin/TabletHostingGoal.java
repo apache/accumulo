@@ -18,6 +18,11 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+/**
+ * @see TableOperations#setTabletHostingGoal(String, org.apache.accumulo.core.data.Range,
+ *      TabletHostingGoal)
+ * @since ELASTICITY_TODO
+ */
 public enum TabletHostingGoal {
 
   // Signifies that a Tablet should always be hosted
