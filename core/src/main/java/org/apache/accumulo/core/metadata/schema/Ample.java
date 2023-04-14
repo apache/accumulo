@@ -35,7 +35,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.io.Text;
 
@@ -257,9 +257,9 @@ public interface Ample {
 
     TabletMutator putFlushId(long flushId);
 
-    TabletMutator putLocation(TServerInstance tserver, LocationType type);
+    TabletMutator putLocation(Location location);
 
-    TabletMutator deleteLocation(TServerInstance tserver, LocationType type);
+    TabletMutator deleteLocation(Location location);
 
     TabletMutator putZooLock(ServiceLock zooLock);
 
@@ -339,4 +339,34 @@ public interface Ample {
   default void deleteScanServerFileReferences(String serverAddress, UUID serverSessionId) {
     throw new UnsupportedOperationException();
   }
+
+  /**
+   * Create a Bulk Load In Progress flag in the metadata table
+   *
+   * @param path The bulk directory filepath
+   * @param fateTxid The id of the Bulk Import Fate operation.
+   */
+  default void addBulkLoadInProgressFlag(String path, long fateTxid) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Remove a Bulk Load In Progress flag from the metadata table.
+   *
+   * @param path The bulk directory filepath
+   */
+  default void removeBulkLoadInProgressFlag(String path) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Remove all the Bulk Load transaction ids from a given table's metadata
+   *
+   * @param tableId Table ID for transaction removals
+   * @param tid Transaction ID to remove
+   */
+  default void removeBulkLoadEntries(TableId tableId, long tid) {
+    throw new UnsupportedOperationException();
+  }
+
 }

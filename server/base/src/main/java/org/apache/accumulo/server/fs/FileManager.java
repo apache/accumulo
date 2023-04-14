@@ -47,7 +47,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
-import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -514,7 +513,8 @@ public class FileManager {
 
       ArrayList<InterruptibleIterator> iters = new ArrayList<>();
 
-      boolean sawTimeSet = files.values().stream().anyMatch(DataFileValue::isTimeSet);
+      boolean someIteratorsWillWrap =
+          files.values().stream().anyMatch(DataFileValue::willWrapIterator);
 
       for (Entry<FileSKVIterator,String> entry : newlyReservedReaders.entrySet()) {
         FileSKVIterator source = entry.getKey();
@@ -531,12 +531,10 @@ public class FileManager {
         iter = new ProblemReportingIterator(context, tablet.tableId(), filename, continueOnFailure,
             detachable ? getSsi(filename, source) : source);
 
-        if (sawTimeSet) {
+        if (someIteratorsWillWrap) {
           // constructing FileRef is expensive so avoid if not needed
           DataFileValue value = files.get(new TabletFile(new Path(filename)));
-          if (value.isTimeSet()) {
-            iter = new TimeSettingIterator(iter, value.getTime());
-          }
+          iter = value.wrapFileIterator(iter);
         }
 
         iters.add(iter);
