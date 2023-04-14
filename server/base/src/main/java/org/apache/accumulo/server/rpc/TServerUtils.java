@@ -167,7 +167,7 @@ public class TServerUtils {
     // create the TimedProcessor outside the port search loop so we don't try to
     // register the same
     // metrics mbean more than once
-    TimedProcessor timedProcessor = new TimedProcessor(config, processor, serverName, threadName);
+    TimedProcessor timedProcessor = new TimedProcessor(processor);
 
     HostAndPort[] addresses = getHostAndPorts(hostname, portHint);
     try {
@@ -557,9 +557,9 @@ public class TServerUtils {
     }
 
     try {
-      return startTServer(serverType, new TimedProcessor(conf, processor, serverName, threadName),
-          serverName, threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks,
-          maxMessageSize, sslParams, saslParams, serverSocketTimeout, addresses);
+      return startTServer(serverType, new TimedProcessor(processor), serverName, threadName,
+          numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize, sslParams,
+          saslParams, serverSocketTimeout, addresses);
     } catch (TTransportException e) {
       throw new IllegalStateException(e);
     }

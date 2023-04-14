@@ -171,7 +171,7 @@
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.9.8</version>
+        <version>1.10.6</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -186,14 +186,14 @@
       <dependency>
         <groupId>io.opentelemetry</groupId>
         <artifactId>opentelemetry-bom</artifactId>
-        <version>1.19.0</version>
+        <version>1.25.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>io.opentelemetry</groupId>
         <artifactId>opentelemetry-bom-alpha</artifactId>
-        <version>1.19.0-alpha</version>
+        <version>1.25.0-alpha</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
