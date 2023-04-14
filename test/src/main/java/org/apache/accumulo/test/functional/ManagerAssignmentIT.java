@@ -217,7 +217,6 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     stats = getTabletStats(c, tableId);
     while (stats.size() != 4) {
       Thread.sleep(50);
-      System.out.println(stats);
       stats = getTabletStats(c, tableId);
     }
 

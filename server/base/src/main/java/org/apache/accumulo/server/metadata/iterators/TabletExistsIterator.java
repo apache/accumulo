@@ -16,33 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.metadata;
+package org.apache.accumulo.server.metadata.iterators;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.server.ServerContext;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Set;
 
-class TabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
-    implements Ample.TabletMutator {
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.hadoop.io.Text;
 
-  private BatchWriter writer;
-
-  TabletMutatorImpl(ServerContext context, KeyExtent extent, BatchWriter batchWriter) {
-    super(context, extent);
-    this.writer = batchWriter;
-  }
+/**
+ * A specialized iterator used for conditional mutations to check if a tablet has any entries in the
+ * metadata table.
+ */
+public class TabletExistsIterator extends WrappingIterator {
 
   @Override
-  public void mutate() {
-    try {
-      writer.addMutation(getMutation());
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
 
-      if (closeAfterMutate != null) {
-        closeAfterMutate.close();
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    Text tabletRow = LocationExistsIterator.getTabletRow(range);
+
+    Range r = new Range(tabletRow, true, tabletRow, false);
+
+    super.seek(r, Set.of(), false);
   }
 }
