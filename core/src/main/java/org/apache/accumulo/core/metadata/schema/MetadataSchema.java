@@ -21,6 +21,7 @@ package org.apache.accumulo.core.metadata.schema;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -332,14 +333,16 @@ public class MetadataSchema {
       public static final Text NAME = new Text(STR_NAME);
     }
 
-    public static class HostingGoalColumnFamily {
-      public static final String STR_NAME = "hosting_goal";
+    public static class HostingColumnFamily {
+      public static final String STR_NAME = "hosting";
       public static final Text NAME = new Text(STR_NAME);
-      public static final String ALWAYS = "always"; // tablet should always be hosted
-      public static final String DEFAULT = "default"; // tablet should be unassigned
-      public static final String ONDEMAND = "ondemand"; // ondemand request has been made to assign
-                                                        // tablet
-      public static final String NEVER = "never"; // tablet should never be hosted
+      public static final String GOAL_QUAL = "goal";
+      public static final ColumnFQ GOAL_COLUMN = new ColumnFQ(NAME, new Text(GOAL_QUAL));
+      public static final String ALWAYS_GOAL = TabletHostingGoalImpl.ALWAYS.name();
+      public static final String ONDEMAND_GOAL = TabletHostingGoalImpl.ONDEMAND.name();
+      public static final String NEVER_GOAL = TabletHostingGoalImpl.NEVER.name();
+      public static final String REQUESTED_QUAL = "requested";
+      public static final ColumnFQ REQUESTED_COLUMN = new ColumnFQ(NAME, new Text(REQUESTED_QUAL));
     }
 
   }

@@ -53,7 +53,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.Deriver;
 import org.apache.accumulo.core.conf.Property;
@@ -234,7 +234,7 @@ public class Tablet extends TabletBase {
   private final int logId;
 
   // TODO: User can change this, how does it get updated?
-  private final TabletHostingGoal goal;
+  private final TabletHostingGoalImpl goal;
 
   public int getLogId() {
     return logId;
@@ -2157,6 +2157,6 @@ public class Tablet extends TabletBase {
   }
 
   public boolean isOnDemand() {
-    return goal == TabletHostingGoal.ONDEMAND;
+    return goal == TabletHostingGoalImpl.ONDEMAND;
   }
 }

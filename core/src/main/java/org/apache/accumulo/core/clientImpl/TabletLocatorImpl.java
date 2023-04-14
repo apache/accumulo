@@ -310,6 +310,7 @@ public class TabletLocatorImpl extends TabletLocator {
 
     boolean lookupFailed = false;
 
+    Set<Range> requestedTabletHosting = new HashSet<>();
     l1: for (Range range : ranges) {
 
       tabletLocations.clear();
@@ -331,13 +332,18 @@ public class TabletLocatorImpl extends TabletLocator {
       }
 
       if (tl == null) {
-        requestTabletHosting(context, range);
+        if (!requestedTabletHosting.contains(range)) {
+          requestTabletHosting(context, range);
+          requestedTabletHosting.add(range);
+        }
         failures.add(range);
         if (!useCache) {
           lookupFailed = true;
         }
         continue;
       }
+
+      requestedTabletHosting.remove(range);
 
       tabletLocations.add(tl);
 
@@ -564,7 +570,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   private void requestTabletHosting(ClientContext context, Range range)
-      throws AccumuloException, AccumuloSecurityException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     if (!HOSTING_ENABLED.get()) {
       return;
@@ -575,21 +581,14 @@ public class TabletLocatorImpl extends TabletLocator {
       return;
     }
 
-    // Confirm that table is in an online state. Don't throw an exception
-    // if the table is not found, calling code will already handle it.
-    try {
-      String tableName = context.getTableName(tableId);
-      if (!context.tableOperations().isOnline(tableName)) {
-        log.trace("requestTabletHosting: table {} is not online", tableId);
-        return;
-      }
-    } catch (TableNotFoundException e) {
-      log.trace("requestTabletHosting: table not found: {}", tableId);
+    String tableName = context.getTableName(tableId);
+    if (!context.tableOperations().isOnline(tableName)) {
+      log.trace("requestTabletHosting: table {} is not online", tableId);
       return;
     }
 
     List<TKeyExtent> extentsToBringOnline =
-        findExtentsForRange(context, tableId, range, Set.of(TabletHostingGoal.NEVER), true);
+        findExtentsForRange(context, tableId, range, Set.of(TabletHostingGoalImpl.NEVER), true);
     if (extentsToBringOnline.isEmpty()) {
       return;
     }
@@ -601,7 +600,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   public static List<TKeyExtent> findExtentsForRange(ClientContext context, TableId tableId,
-      Range range, Set<TabletHostingGoal> disallowedStates, boolean excludeHostedTablets)
+      Range range, Set<TabletHostingGoalImpl> disallowedStates, boolean excludeHostedTablets)
       throws AccumuloException {
 
     final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();

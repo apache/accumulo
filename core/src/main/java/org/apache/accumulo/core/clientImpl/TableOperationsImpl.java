@@ -87,6 +87,7 @@ import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
@@ -1382,10 +1383,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
       for (TabletMetadata tablet : tablets) {
         total++;
         Location loc = tablet.getLocation();
-        TabletHostingGoal goal = tablet.getHostingGoal();
+        TabletHostingGoalImpl goal = tablet.getHostingGoal();
 
         if ((expectedState == TableState.ONLINE
-            && (goal == TabletHostingGoal.ALWAYS || goal == TabletHostingGoal.ONDEMAND)
+            && (goal == TabletHostingGoalImpl.ALWAYS || goal == TabletHostingGoalImpl.ONDEMAND)
             && (loc == null || loc.getType() == LocationType.FUTURE))
             || (expectedState == TableState.OFFLINE && loc != null)) {
           if (continueRow == null) {
@@ -2152,7 +2153,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void setTabletHostingGoal(String tableName, Range range, String goal)
+  public void setTabletHostingGoal(String tableName, Range range, TabletHostingGoal goal)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
     NOT_BUILTIN_TABLE.validate(tableName);
@@ -2160,7 +2161,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(goal != null, "goal is null");
 
     TableId tableId = context.getTableId(tableName);
-    TabletHostingGoal g = TabletHostingGoal.valueOf(goal.toUpperCase());
+    TabletHostingGoalImpl g = TabletHostingGoalImpl.fromTabletHostingGoal(goal);
 
     List<TKeyExtent> extents =
         TabletLocatorImpl.findExtentsForRange(context, tableId, range, Set.of(), false);

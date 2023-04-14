@@ -1018,10 +1018,10 @@ public interface TableOperations {
    *
    * @param tableName table name
    * @param range tablet range
-   * @param goal hosting goal (one of {@literal ALWAYS, DEFAULT, NEVER})
+   * @param goal hosting goal
    * @since ELASTICITY_TODO
    */
-  default void setTabletHostingGoal(String tableName, Range range, String goal)
+  default void setTabletHostingGoal(String tableName, Range range, TabletHostingGoal goal)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     throw new UnsupportedOperationException();
   }

@@ -48,7 +48,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.clientImpl.TabletType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -1566,17 +1566,13 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   @Override
   public void setTabletHostingGoal(TInfo tinfo, TCredentials credentials, String tableId,
       List<TKeyExtent> extents, THostingGoal goal) throws ThriftSecurityException, TException {
-    // Can only set to ALWAYS, DEFAULT, and NEVER
-    if (goal == THostingGoal.ONDEMAND) {
-      goal = THostingGoal.DEFAULT;
-    }
     final TableId tid = TableId.of(tableId);
     NamespaceId namespaceId = getNamespaceId(credentials, tid);
     if (!security.canAlterTable(credentials, tid, namespaceId)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
-    final TabletHostingGoal g = TabletHostingGoal.fromThrift(goal);
+    final TabletHostingGoalImpl g = TabletHostingGoalImpl.fromThrift(goal);
     log.info("Tablet hosting goal {} requested for: {} ", g, extents);
     try (TabletsMutator mutator = this.context.getAmple().mutateTablets()) {
       extents
@@ -1601,11 +1597,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     try (TabletsMutator mutator = ample.mutateTablets()) {
       extents.forEach(e -> {
         KeyExtent ke = KeyExtent.fromThrift(e);
-        // TODO: Convert this to conditional mutation
-        // Can only set to ONDEMAND if the current value is DEFAULT
         if (ample.readTablet(ke, ColumnType.HOSTING_GOAL).getHostingGoal()
-            == TabletHostingGoal.DEFAULT) {
-          mutator.mutateTablet(ke).setHostingGoal(TabletHostingGoal.ONDEMAND).mutate();
+            == TabletHostingGoalImpl.ONDEMAND) {
+          log.info("Set hosting requested for {}", ke);
+          mutator.mutateTablet(ke).setHostingRequested().mutate();
         }
       });
     }

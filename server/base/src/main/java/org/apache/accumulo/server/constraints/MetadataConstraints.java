@@ -28,7 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -46,7 +46,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingGoalColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
@@ -100,7 +100,7 @@ public class MetadataConstraints implements Constraint {
           ChoppedColumnFamily.NAME,
           ClonedColumnFamily.NAME,
           ExternalCompactionColumnFamily.NAME,
-          HostingGoalColumnFamily.NAME);
+          HostingColumnFamily.NAME);
   // @formatter:on
 
   private static boolean isValidColumn(ColumnUpdate cu) {
@@ -192,6 +192,7 @@ public class MetadataConstraints implements Constraint {
 
     for (ColumnUpdate columnUpdate : colUpdates) {
       Text columnFamily = new Text(columnUpdate.getColumnFamily());
+      Text columnQualifier = new Text(columnUpdate.getColumnQualifier());
 
       if (columnUpdate.isDeleted()) {
         if (!isValidColumn(columnUpdate)) {
@@ -201,7 +202,9 @@ public class MetadataConstraints implements Constraint {
       }
 
       if (columnUpdate.getValue().length == 0 && !columnFamily.equals(ScanFileColumnFamily.NAME)
-          && !columnFamily.equals(HostingGoalColumnFamily.NAME)) {
+          && !(columnFamily.equals(HostingColumnFamily.REQUESTED_COLUMN.getColumnFamily())
+              && columnQualifier
+                  .equals(HostingColumnFamily.REQUESTED_COLUMN.getColumnQualifier()))) {
         violations = addViolation(violations, 6);
       }
 
@@ -217,9 +220,10 @@ public class MetadataConstraints implements Constraint {
         }
       } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
 
-      } else if (columnFamily.equals(HostingGoalColumnFamily.NAME)) {
+      } else if (columnFamily.equals(HostingColumnFamily.GOAL_COLUMN.getColumnFamily())
+          && columnQualifier.equals(HostingColumnFamily.GOAL_COLUMN.getColumnQualifier())) {
         try {
-          TabletHostingGoal.fromValue(new Value(columnUpdate.getValue()));
+          TabletHostingGoalImpl.fromValue(new Value(columnUpdate.getValue()));
         } catch (IllegalArgumentException e) {
           violations = addViolation(violations, 4);
         }

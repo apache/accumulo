@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.metadata;
 
-import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -39,7 +39,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingGoalColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
@@ -56,6 +56,8 @@ import org.apache.hadoop.io.Text;
 import com.google.common.base.Preconditions;
 
 public abstract class TabletMutatorBase implements Ample.TabletMutator {
+
+  private static final Value EMPTY_VALUE = new Value();
 
   private final ServerContext context;
   private final Mutation mutation;
@@ -250,8 +252,24 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   }
 
   @Override
-  public TabletMutator setHostingGoal(TabletHostingGoal goal) {
-    mutation.put(HostingGoalColumnFamily.NAME, new Text(), goal.toValue());
+  public TabletMutator setHostingGoal(TabletHostingGoalImpl goal) {
+    mutation.put(HostingColumnFamily.GOAL_COLUMN.getColumnFamily(),
+        HostingColumnFamily.GOAL_COLUMN.getColumnQualifier(), goal.toValue());
     return this;
   }
+
+  @Override
+  public TabletMutator setHostingRequested() {
+    mutation.put(HostingColumnFamily.REQUESTED_COLUMN.getColumnFamily(),
+        HostingColumnFamily.REQUESTED_COLUMN.getColumnQualifier(), EMPTY_VALUE);
+    return this;
+  }
+
+  @Override
+  public TabletMutator deleteHostingRequested() {
+    mutation.putDelete(HostingColumnFamily.REQUESTED_COLUMN.getColumnFamily(),
+        HostingColumnFamily.REQUESTED_COLUMN.getColumnQualifier());
+    return this;
+  }
+
 }

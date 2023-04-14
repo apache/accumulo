@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -121,7 +121,7 @@ public class RootTabletStateStoreTest {
     TabletLocationState assigned = null;
     try {
       assigned = new TabletLocationState(root, Location.future(server), null, null, null, null,
-          false, TabletHostingGoal.ALWAYS);
+          false, TabletHostingGoalImpl.ALWAYS, false);
     } catch (BadLocationStateException e) {
       fail("Unexpected error " + e);
     }
@@ -143,7 +143,7 @@ public class RootTabletStateStoreTest {
 
     try {
       TabletLocationState broken = new TabletLocationState(notRoot, Location.future(server), null,
-          null, null, null, false, TabletHostingGoal.DEFAULT);
+          null, null, null, false, TabletHostingGoalImpl.ALWAYS, false);
       final var assignmentList1 = List.of(broken);
       assertThrows(IllegalArgumentException.class, () -> tstore.unassign(assignmentList1, null));
     } catch (BadLocationStateException e) {

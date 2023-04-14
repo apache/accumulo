@@ -18,15 +18,29 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingGoalColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.tablet.thrift.THostingGoal;
 
-public enum TabletHostingGoal {
+public enum TabletHostingGoalImpl {
 
-  ALWAYS, DEFAULT, NEVER, ONDEMAND;
+  ALWAYS, NEVER, ONDEMAND;
 
-  public static TabletHostingGoal fromThrift(THostingGoal goal) {
+  public static TabletHostingGoalImpl fromTabletHostingGoal(TabletHostingGoal goal) {
+    switch (goal) {
+      case ALWAYS:
+        return ALWAYS;
+      case ONDEMAND:
+        return ONDEMAND;
+      case NEVER:
+        return NEVER;
+      default:
+        throw new IllegalArgumentException("Unhandled goal: " + goal);
+    }
+  }
+
+  public static TabletHostingGoalImpl fromThrift(THostingGoal goal) {
     switch (goal) {
       case ALWAYS:
         return ALWAYS;
@@ -34,8 +48,6 @@ public enum TabletHostingGoal {
         return NEVER;
       case ONDEMAND:
         return ONDEMAND;
-      case DEFAULT:
-        return DEFAULT;
       default:
         throw new IllegalArgumentException("Unhandled value for THostingGoal: " + goal);
     }
@@ -50,21 +62,18 @@ public enum TabletHostingGoal {
       case ONDEMAND:
         return THostingGoal.ONDEMAND;
       default:
-        return THostingGoal.DEFAULT;
-
+        throw new IllegalArgumentException("Unhandled enum value");
     }
   }
 
-  public static TabletHostingGoal fromValue(Value value) {
+  public static TabletHostingGoalImpl fromValue(Value value) {
     switch (value.toString()) {
-      case HostingGoalColumnFamily.ALWAYS:
+      case "ALWAYS":
         return ALWAYS;
-      case HostingGoalColumnFamily.NEVER:
+      case "NEVER":
         return NEVER;
-      case HostingGoalColumnFamily.ONDEMAND:
+      case "ONDEMAND":
         return ONDEMAND;
-      case HostingGoalColumnFamily.DEFAULT:
-        return DEFAULT;
       default:
         throw new IllegalArgumentException("Invalid value for hosting goal: " + value.toString());
     }
@@ -73,13 +82,13 @@ public enum TabletHostingGoal {
   public Value toValue() {
     switch (this) {
       case ALWAYS:
-        return new Value(HostingGoalColumnFamily.ALWAYS);
+        return new Value(HostingColumnFamily.ALWAYS_GOAL);
       case NEVER:
-        return new Value(HostingGoalColumnFamily.NEVER);
+        return new Value(HostingColumnFamily.NEVER_GOAL);
       case ONDEMAND:
-        return new Value(HostingGoalColumnFamily.ONDEMAND);
+        return new Value(HostingColumnFamily.ONDEMAND_GOAL);
       default:
-        return new Value(HostingGoalColumnFamily.DEFAULT);
+        throw new IllegalArgumentException("Unhandled enum value");
     }
   }
 

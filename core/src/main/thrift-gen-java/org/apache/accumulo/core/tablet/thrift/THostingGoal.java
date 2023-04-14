@@ -27,9 +27,8 @@ package org.apache.accumulo.core.tablet.thrift;
 
 public enum THostingGoal implements org.apache.thrift.TEnum {
   ALWAYS(0),
-  DEFAULT(1),
-  NEVER(2),
-  ONDEMAND(3);
+  NEVER(1),
+  ONDEMAND(2);
 
   private final int value;
 
@@ -55,10 +54,8 @@ public enum THostingGoal implements org.apache.thrift.TEnum {
       case 0:
         return ALWAYS;
       case 1:
-        return DEFAULT;
-      case 2:
         return NEVER;
-      case 3:
+      case 2:
         return ONDEMAND;
       default:
         return null;

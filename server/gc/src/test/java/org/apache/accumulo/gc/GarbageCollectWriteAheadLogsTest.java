@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
@@ -60,9 +60,9 @@ public class GarbageCollectWriteAheadLogsTest {
   {
     try {
       tabletAssignedToServer1 = new TabletLocationState(extent, null, Location.current(server1),
-          null, null, walogs, false, TabletHostingGoal.ALWAYS);
+          null, null, walogs, false, TabletHostingGoalImpl.ALWAYS, false);
       tabletAssignedToServer2 = new TabletLocationState(extent, null, Location.current(server2),
-          null, null, walogs, false, TabletHostingGoal.NEVER);
+          null, null, walogs, false, TabletHostingGoalImpl.NEVER, false);
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }

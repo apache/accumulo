@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.IntStream;
 
@@ -42,8 +41,9 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -79,6 +79,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       cfg.setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "10");
       cfg.setProperty(Property.GENERAL_THREADPOOL_SIZE, "10");
       cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "5s");
+      cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL, "10s");
+      cfg.setProperty("table.custom.ondemand.unloader.inactivity.threshold.seconds", "15");
     });
   }
 
@@ -110,12 +112,9 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       assertNull(newTablet.current);
       assertNull(newTablet.last);
       assertNull(newTablet.future);
-      assertEquals(TabletHostingGoal.DEFAULT, newTablet.goal);
+      assertEquals(TabletHostingGoalImpl.ONDEMAND, newTablet.goal);
 
-      // put something in it
-      // calling the batch writer will cause the tablet to be
-      // hosted and the goal state to transition from DEFAULT
-      // to ONDEMAND
+      // calling the batch writer will cause the tablet to be hosted
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         Mutation m = new Mutation("a");
         m.put("b", "c", "d");
@@ -128,7 +127,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       assertNotNull(flushed.current);
       assertEquals(flushed.getCurrentServer(), flushed.getLastServer());
       assertNull(newTablet.future);
-      assertEquals(TabletHostingGoal.ONDEMAND, flushed.goal);
+      assertEquals(TabletHostingGoalImpl.ONDEMAND, flushed.goal);
 
       // take the tablet offline
       c.tableOperations().offline(tableName, true);
@@ -136,7 +135,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       assertNull(offline.future);
       assertNull(offline.current);
       assertEquals(flushed.getCurrentServer(), offline.getLastServer());
-      assertEquals(TabletHostingGoal.ONDEMAND, offline.goal);
+      assertEquals(TabletHostingGoalImpl.ONDEMAND, offline.goal);
 
       // put it back online
       c.tableOperations().online(tableName, true);
@@ -144,72 +143,59 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       assertNull(online.future);
       assertNotNull(online.current);
       assertEquals(online.getCurrentServer(), online.getLastServer());
-      assertEquals(TabletHostingGoal.ONDEMAND, online.goal);
+      assertEquals(TabletHostingGoalImpl.ONDEMAND, online.goal);
 
       // set the hosting goal to always
-      c.tableOperations().setTabletHostingGoal(tableName, new Range(), "ALWAYS");
+      c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
       TabletLocationState always;
       do {
         UtilWaitThread.sleep(250);
         always = getTabletLocationState(c, tableId);
-      } while (always.goal == TabletHostingGoal.ONDEMAND);
+      } while (always.goal == TabletHostingGoalImpl.ONDEMAND);
 
       assertNull(always.future);
       assertNotNull(always.current);
       assertEquals(flushed.getCurrentServer(), always.getLastServer());
-      assertEquals(TabletHostingGoal.ALWAYS, always.goal);
+      assertEquals(TabletHostingGoalImpl.ALWAYS, always.goal);
 
       // set the hosting goal to never
-      c.tableOperations().setTabletHostingGoal(tableName, new Range(), "never");
+      c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.NEVER);
       TabletLocationState never;
       do {
         UtilWaitThread.sleep(250);
         never = getTabletLocationState(c, tableId);
-      } while (never.goal == TabletHostingGoal.ALWAYS);
+      } while (never.goal == TabletHostingGoalImpl.ALWAYS);
 
       assertNull(never.future);
       assertNotNull(never.current);
       assertEquals(flushed.getCurrentServer(), never.getLastServer());
-      assertEquals(TabletHostingGoal.NEVER, never.goal);
+      assertEquals(TabletHostingGoalImpl.NEVER, never.goal);
 
       // set the hosting goal to ondemand
-      c.tableOperations().setTabletHostingGoal(tableName, new Range(), "ONDEMAND");
+      c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ONDEMAND);
       TabletLocationState ondemand;
       do {
         UtilWaitThread.sleep(250);
         ondemand = getTabletLocationState(c, tableId);
-      } while (ondemand.goal == TabletHostingGoal.NEVER);
+      } while (ondemand.goal == TabletHostingGoalImpl.NEVER);
 
       assertNull(ondemand.future);
       assertNotNull(ondemand.current);
       assertEquals(flushed.getCurrentServer(), ondemand.getLastServer());
-      assertEquals(TabletHostingGoal.DEFAULT, ondemand.goal);
-
-      // set the hosting goal to default
-      c.tableOperations().setTabletHostingGoal(tableName, new Range(), "DEFAULT");
-      TabletLocationState def = getTabletLocationState(c, tableId);
-      assertNull(def.future);
-      assertNotNull(def.current);
-      assertEquals(flushed.getCurrentServer(), def.getLastServer());
-      assertEquals(TabletHostingGoal.DEFAULT, def.goal);
-
-      // put it back online
-      c.tableOperations().online(tableName, true);
-      online = getTabletLocationState(c, tableId);
-      assertNull(online.future);
-      assertNotNull(online.current);
-      assertEquals(online.getCurrentServer(), online.getLastServer());
+      assertEquals(TabletHostingGoalImpl.ONDEMAND, ondemand.goal);
 
     }
   }
 
-  private String prepTableForScanTest(AccumuloClient c, String tableName, SortedSet<Text> splits)
-      throws Exception {
+  private String prepTableForScanTest(AccumuloClient c, String tableName) throws Exception {
+
+    TreeSet<Text> splits = new TreeSet<>();
+    splits.add(new Text("f"));
+    splits.add(new Text("m"));
+    splits.add(new Text("t"));
 
     NewTableConfiguration ntc = new NewTableConfiguration();
-    if (splits != null) {
-      ntc.withSplits(splits);
-    }
+    ntc.withSplits(splits);
     c.tableOperations().create(tableName, ntc);
     String tableId = c.tableOperations().tableIdMap().get(tableName);
 
@@ -229,10 +215,11 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
         .getTabletHostingRequestCount() > 0);
 
     stats = getTabletStats(c, tableId);
-    int numTablets = (splits == null) ? 1 : splits.size() + 1;
-    assertEquals(numTablets, stats.size());
-
-    c.tableOperations().setTabletHostingGoal(tableName, new Range(), "ONDEMAND");
+    while (stats.size() != 4) {
+      Thread.sleep(50);
+      System.out.println(stats);
+      stats = getTabletStats(c, tableId);
+    }
 
     // offline table to force unassign tablets without having to wait for the tablet unloader
     c.tableOperations().offline(tableName, true);
@@ -259,12 +246,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = super.getUniqueNames(1)[0];
 
-      TreeSet<Text> splits = new TreeSet<>();
-      splits.add(new Text("f"));
-      splits.add(new Text("m"));
-      splits.add(new Text("t"));
-
-      String tableId = prepTableForScanTest(c, tableName, splits);
+      String tableId = prepTableForScanTest(c, tableName);
 
       Range scanRange = new Range("a", "c");
       Scanner s = c.createScanner(tableName);
@@ -286,12 +268,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = super.getUniqueNames(1)[0];
 
-      TreeSet<Text> splits = new TreeSet<>();
-      splits.add(new Text("f"));
-      splits.add(new Text("m"));
-      splits.add(new Text("t"));
-
-      String tableId = prepTableForScanTest(c, tableName, splits);
+      String tableId = prepTableForScanTest(c, tableName);
 
       Range scanRange = new Range("a", "s");
       Scanner s = c.createScanner(tableName);
@@ -324,12 +301,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = super.getUniqueNames(1)[0];
 
-      TreeSet<Text> splits = new TreeSet<>();
-      splits.add(new Text("f"));
-      splits.add(new Text("m"));
-      splits.add(new Text("t"));
-
-      String tableId = prepTableForScanTest(c, tableName, splits);
+      String tableId = prepTableForScanTest(c, tableName);
 
       Range scanRange = new Range("a", "c");
       BatchScanner s = c.createBatchScanner(tableName);
@@ -351,12 +323,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = super.getUniqueNames(1)[0];
 
-      TreeSet<Text> splits = new TreeSet<>();
-      splits.add(new Text("f"));
-      splits.add(new Text("m"));
-      splits.add(new Text("t"));
-
-      String tableId = prepTableForScanTest(c, tableName, splits);
+      String tableId = prepTableForScanTest(c, tableName);
 
       Range scanRange = new Range("a", "s");
       BatchScanner s = c.createBatchScanner(tableName);
@@ -389,12 +356,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = super.getUniqueNames(1)[0];
 
-      TreeSet<Text> splits = new TreeSet<>();
-      splits.add(new Text("f"));
-      splits.add(new Text("m"));
-      splits.add(new Text("t"));
-
-      prepTableForScanTest(c, tableName, splits);
+      prepTableForScanTest(c, tableName);
     }
   }
 

@@ -23,7 +23,7 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -39,7 +39,7 @@ public class TabletHostingGoalCommand extends TableOperation {
   private Option goalOpt;
 
   private Range range;
-  private String goal;
+  private TabletHostingGoal goal;
 
   @Override
   public String getName() {
@@ -48,7 +48,7 @@ public class TabletHostingGoalCommand extends TableOperation {
 
   @Override
   public String description() {
-    return "Sets the hosting goal (ALWAYS, DEFAULT, NEVER) for a range of tablets";
+    return "Sets the hosting goal (ALWAYS, ONDEMAND, NEVER) for a range of tablets";
   }
 
   @Override
@@ -80,9 +80,7 @@ public class TabletHostingGoalCommand extends TableOperation {
       this.range = new Range(startRow, startInclusive, endRow, endInclusive);
     }
 
-    this.goal = cl.getOptionValue(goalOpt);
-    // Validate the value
-    TabletHostingGoal.valueOf(this.goal.toUpperCase());
+    this.goal = TabletHostingGoal.valueOf(cl.getOptionValue(goalOpt).toUpperCase());
     return super.execute(fullCommand, cl, shellState);
   }
 

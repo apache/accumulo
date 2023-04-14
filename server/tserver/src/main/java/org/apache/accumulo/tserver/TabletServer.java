@@ -69,7 +69,6 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -1311,6 +1310,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   // called from AssignmentHandler
   public void insertOnDemandAccessTime(KeyExtent extent) {
+    if (extent.isMeta()) {
+      return;
+    }
     onDemandTabletAccessTimes.putIfAbsent(extent, new AtomicLong(System.nanoTime()));
   }
 
@@ -1385,8 +1387,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       KeyExtent oldestKeyExtent = timeSortedOnDemandExtents.get(oldestAccessTime);
       log.warn("Unloading on-demand tablet: {} for table: {} due to low memory", oldestKeyExtent,
           oldestKeyExtent.tableId());
-      getContext().getAmple().mutateTablet(oldestKeyExtent)
-          .setHostingGoal(TabletHostingGoal.DEFAULT).mutate();
+      getContext().getAmple().mutateTablet(oldestKeyExtent).deleteHostingRequested().mutate();
       onDemandUnloadedLowMemory.addAndGet(1);
       return;
     }
@@ -1452,7 +1453,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       unloaders.get(tid).evaluate(params);
       onDemandTabletsToUnload.forEach(ke -> {
         log.debug("Unloading on-demand tablet: {} for table: {}", ke, tid);
-        getContext().getAmple().mutateTablet(ke).setHostingGoal(TabletHostingGoal.DEFAULT).mutate();
+        getContext().getAmple().mutateTablet(ke).deleteHostingRequested().mutate();
       });
     });
   }

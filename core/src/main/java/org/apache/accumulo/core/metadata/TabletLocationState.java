@@ -24,7 +24,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
-import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -58,7 +58,8 @@ public class TabletLocationState {
 
   public TabletLocationState(KeyExtent extent, Location future, Location current, Location last,
       SuspendingTServer suspend, Collection<Collection<String>> walogs, boolean chopped,
-      TabletHostingGoal goal) throws BadLocationStateException {
+      TabletHostingGoalImpl goal, boolean onDemandHostingRequested)
+      throws BadLocationStateException {
     this.extent = extent;
     this.future = validateLocation(future, TabletMetadata.LocationType.FUTURE);
     this.current = validateLocation(current, TabletMetadata.LocationType.CURRENT);
@@ -70,6 +71,7 @@ public class TabletLocationState {
     this.walogs = walogs;
     this.chopped = chopped;
     this.goal = goal;
+    this.onDemandHostingRequested = onDemandHostingRequested;
     if (hasCurrent() && hasFuture()) {
       throw new BadLocationStateException(
           extent + " is both assigned and hosted, which should never happen: " + this,
@@ -84,7 +86,8 @@ public class TabletLocationState {
   public final SuspendingTServer suspend;
   public final Collection<Collection<String>> walogs;
   public final boolean chopped;
-  public final TabletHostingGoal goal;
+  public final TabletHostingGoalImpl goal;
+  public final boolean onDemandHostingRequested;
 
   public TServerInstance getCurrentServer() {
     return serverInstance(current);
@@ -154,7 +157,7 @@ public class TabletLocationState {
   @Override
   public String toString() {
     return extent + "@(" + future + "," + current + "," + last + ")" + (chopped ? " chopped" : "")
-        + "," + goal;
+        + "," + goal + "," + onDemandHostingRequested;
   }
 
   private static Location validateLocation(final Location location,

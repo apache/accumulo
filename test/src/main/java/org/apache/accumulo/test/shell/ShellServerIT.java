@@ -50,6 +50,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.sample.RowColumnSampler;
 import org.apache.accumulo.core.client.sample.RowSampler;
@@ -60,6 +61,7 @@ import org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer;
 import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -69,7 +71,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingGoalColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
@@ -1233,19 +1235,20 @@ public class ShellServerIT extends SharedMiniClusterBase {
         Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       String tableId = client.tableOperations().tableIdMap().get(table);
       s.setRange(new Range(tableId, tableId + "<"));
-      s.fetchColumnFamily(HostingGoalColumnFamily.NAME);
+      s.fetchColumn(new Column(HostingColumnFamily.GOAL_COLUMN.getColumnFamily(),
+          HostingColumnFamily.GOAL_COLUMN.getColumnQualifier()));
       for (Entry<Key,Value> e : s) {
         switch (e.getKey().getRow().toString()) {
           case "1;c":
-            assertEquals("never", e.getValue().toString());
+            assertEquals(TabletHostingGoalImpl.NEVER.name(), e.getValue().toString());
             break;
           case "1;e":
-            assertEquals("always", e.getValue().toString());
+            assertEquals(TabletHostingGoalImpl.ALWAYS.name(), e.getValue().toString());
             break;
           case "1<":
             // this tablet was loaded ondemand when we executed
             // the addsplits command
-            assertEquals("ondemand", e.getValue().toString());
+            assertEquals(TabletHostingGoalImpl.ONDEMAND.name(), e.getValue().toString());
             break;
           default:
             fail("Unknown row with hosting goal: " + e.getKey().getRow().toString());

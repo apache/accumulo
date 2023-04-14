@@ -33,7 +33,6 @@ enum TUnloadTabletGoal {
 
 enum THostingGoal {
   ALWAYS
-  DEFAULT
   NEVER
   ONDEMAND
 }

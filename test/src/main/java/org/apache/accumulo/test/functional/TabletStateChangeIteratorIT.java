@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -60,7 +61,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingGoalColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -134,9 +135,9 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       copyTable(client, metaCopy1, metaCopy3);
 
       // t1 is unassigned, setting to always will generate a change to host tablets
-      setTabletHostingGoal(client, metaCopy1, t1, "always");
+      setTabletHostingGoal(client, metaCopy1, t1, TabletHostingGoalImpl.ALWAYS.name());
       // t3 is hosted, setting to never will generate a change to unhost tablets
-      setTabletHostingGoal(client, metaCopy1, t3, "never");
+      setTabletHostingGoal(client, metaCopy1, t3, TabletHostingGoalImpl.NEVER.name());
       state = new State(client);
       assertEquals(4, findTabletsNeedingAttention(client, metaCopy1, state),
           "Should have four tablets with hosting goal changes");
@@ -183,7 +184,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetaRange());
       for (Entry<Key,Value> entry : scanner) {
         Mutation m = new Mutation(entry.getKey().getRow());
-        m.put(HostingGoalColumnFamily.NAME, new Text(), entry.getKey().getTimestamp() + 1,
+        m.put(HostingColumnFamily.GOAL_COLUMN.getColumnFamily(),
+            HostingColumnFamily.GOAL_COLUMN.getColumnQualifier(), entry.getKey().getTimestamp() + 1,
             new Value(state));
         try (BatchWriter bw = client.createBatchWriter(table)) {
           bw.addMutation(m);
@@ -261,7 +263,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     partitionKeys.add(new Text("some split"));
     NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitionKeys);
     client.tableOperations().create(t, ntc);
-    client.tableOperations().online(t, true);
+    client.tableOperations().online(t);
     if (!online) {
       client.tableOperations().offline(t, true);
     }

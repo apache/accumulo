@@ -626,12 +626,14 @@ public class Manager extends AbstractServer
         switch (tls.goal) {
           case ALWAYS:
             return TabletGoalState.HOSTED;
-          case DEFAULT:
-            return TabletGoalState.UNASSIGNED;
           case NEVER:
             return TabletGoalState.UNASSIGNED;
           case ONDEMAND:
-            return TabletGoalState.HOSTED;
+            if (tls.onDemandHostingRequested) {
+              return TabletGoalState.HOSTED;
+            } else {
+              return TabletGoalState.UNASSIGNED;
+            }
           default:
             throw new IllegalStateException("Tablet Hosting Goal is unhandled: " + tls.goal);
         }

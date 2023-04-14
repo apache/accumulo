@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.Range;
@@ -210,7 +211,7 @@ public class TableOperationsHelperTest {
     public void online(String tableName, boolean wait) {}
 
     @Override
-    public void setTabletHostingGoal(String tableName, Range range, String goal)
+    public void setTabletHostingGoal(String tableName, Range range, TabletHostingGoal goal)
         throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}
 
     @Override

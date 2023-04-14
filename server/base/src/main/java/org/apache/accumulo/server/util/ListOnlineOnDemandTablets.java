@@ -23,7 +23,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoal;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalImpl;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -93,7 +93,7 @@ public class ListOnlineOnDemandTablets {
     while (scanner.hasNext() && !System.out.checkError()) {
       TabletLocationState locationState = scanner.next();
       TabletState state = locationState.getState(tservers.getCurrentServers());
-      if (state == TabletState.HOSTED && locationState.goal == TabletHostingGoal.ONDEMAND) {
+      if (state == TabletState.HOSTED && locationState.goal == TabletHostingGoalImpl.ONDEMAND) {
         System.out
             .println(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
         online++;
