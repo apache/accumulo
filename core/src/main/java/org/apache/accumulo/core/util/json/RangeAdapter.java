@@ -64,24 +64,20 @@ public class RangeAdapter implements JsonSerializer<Range>, JsonDeserializer<Ran
    */
 
   private static byte[] encodeRange(final Range range) {
-    try {
-      try (DataOutputBuffer buffer = new DataOutputBuffer()) {
-        range.write(buffer);
-        return buffer.getData();
-      }
+    try (DataOutputBuffer buffer = new DataOutputBuffer()) {
+      range.write(buffer);
+      return buffer.getData();
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
   }
 
   private static Range decodeRange(byte[] serialized) {
-    try {
-      try (DataInputBuffer buffer = new DataInputBuffer()) {
-        final Range range = new Range();
-        buffer.reset(serialized, serialized.length);
-        range.readFields(buffer);
-        return range;
-      }
+    try (DataInputBuffer buffer = new DataInputBuffer()) {
+      final Range range = new Range();
+      buffer.reset(serialized, serialized.length);
+      range.readFields(buffer);
+      return range;
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
