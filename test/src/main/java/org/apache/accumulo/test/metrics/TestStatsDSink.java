@@ -83,7 +83,7 @@ public class TestStatsDSink implements Closeable {
     String[] tag = tags.split(",");
     for (String t : tag) {
       String[] p = t.split(":");
-      m.getTags().put(p[0], p[1]);
+      m.getTags().put(p[0], p[1].trim());
     }
     return m;
   }
