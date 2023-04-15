@@ -129,6 +129,7 @@ public class DataFileValue {
    * iterators that may take action based on data set in the metadata table.
    */
   public InterruptibleIterator wrapFileIterator(InterruptibleIterator iter) {
+
     if (isTimeSet()) {
       return new TimeSettingIterator(iter, getTime());
     } else {

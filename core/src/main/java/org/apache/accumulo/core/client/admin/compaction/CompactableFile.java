@@ -20,6 +20,7 @@ package org.apache.accumulo.core.client.admin.compaction;
 
 import java.net.URI;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 
 /**
@@ -30,6 +31,8 @@ import org.apache.accumulo.core.metadata.CompactableFileImpl;
 public interface CompactableFile {
 
   public String getFileName();
+
+  public Range getFence();
 
   public URI getUri();
 

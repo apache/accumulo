@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
@@ -184,12 +185,14 @@ public abstract class FileOperations {
     public final Set<ByteSequence> columnFamilies;
     public final boolean inclusive;
     public final boolean dropCacheBehind;
+    public final Range fence;
 
     public FileOptions(AccumuloConfiguration tableConfiguration, String filename, FileSystem fs,
         Configuration fsConf, RateLimiter rateLimiter, String compression,
         FSDataOutputStream outputStream, boolean enableAccumuloStart, CacheProvider cacheProvider,
         Cache<String,Long> fileLenCache, boolean seekToBeginning, CryptoService cryptoService,
-        Range range, Set<ByteSequence> columnFamilies, boolean inclusive, boolean dropCacheBehind) {
+        Range range, Set<ByteSequence> columnFamilies, boolean inclusive, boolean dropCacheBehind,
+        Range fence) {
       this.tableConfiguration = tableConfiguration;
       this.filename = filename;
       this.fs = fs;
@@ -206,6 +209,7 @@ public abstract class FileOperations {
       this.columnFamilies = columnFamilies;
       this.inclusive = inclusive;
       this.dropCacheBehind = dropCacheBehind;
+      this.fence = fence;
     }
 
     public AccumuloConfiguration getTableConfiguration() {
@@ -267,6 +271,10 @@ public abstract class FileOperations {
     public boolean isRangeInclusive() {
       return inclusive;
     }
+
+    public Range getFence() {
+      return fence;
+    }
   }
 
   /**
@@ -320,27 +328,27 @@ public abstract class FileOperations {
         FSDataOutputStream outputStream, boolean startEnabled) {
       return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, compression,
           outputStream, startEnabled, NULL_PROVIDER, null, false, cryptoService, null, null, true,
-          dropCacheBehind);
+          dropCacheBehind, null);
     }
 
     protected FileOptions toReaderBuilderOptions(CacheProvider cacheProvider,
-        Cache<String,Long> fileLenCache, boolean seekToBeginning) {
+        Cache<String,Long> fileLenCache, boolean seekToBeginning, Range fence) {
       return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, null, null,
           false, cacheProvider == null ? NULL_PROVIDER : cacheProvider, fileLenCache,
-          seekToBeginning, cryptoService, null, null, true, dropCacheBehind);
+          seekToBeginning, cryptoService, null, null, true, dropCacheBehind, fence);
     }
 
     protected FileOptions toIndexReaderBuilderOptions(Cache<String,Long> fileLenCache) {
       return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, null, null,
           false, NULL_PROVIDER, fileLenCache, false, cryptoService, null, null, true,
-          dropCacheBehind);
+          dropCacheBehind, null);
     }
 
     protected FileOptions toScanReaderBuilderOptions(Range range, Set<ByteSequence> columnFamilies,
         boolean inclusive) {
       return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, null, null,
           false, NULL_PROVIDER, null, false, cryptoService, range, columnFamilies, inclusive,
-          dropCacheBehind);
+          dropCacheBehind, null);
     }
 
     protected AccumuloConfiguration getTableConfiguration() {
@@ -411,10 +419,23 @@ public abstract class FileOperations {
     private CacheProvider cacheProvider;
     private Cache<String,Long> fileLenCache;
     private boolean seekToBeginning = false;
+    private Range fence;
 
     public ReaderTableConfiguration forFile(String filename, FileSystem fs, Configuration fsConf,
         CryptoService cs) {
       filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
+      return this;
+    }
+
+    public ReaderTableConfiguration forFile(TabletFile file, FileSystem fs, Configuration fsConf,
+        CryptoService cs) {
+      return forFile(file.getPathStr(), file.getFence(), fs, fsConf, cs);
+    }
+
+    public ReaderTableConfiguration forFile(String filename, Range fence, FileSystem fs,
+        Configuration fsConf, CryptoService cs) {
+      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
+      this.fence = Objects.requireNonNull(fence);
       return this;
     }
 
@@ -465,7 +486,8 @@ public abstract class FileOperations {
 
     /** Execute the operation, constructing the specified file reader. */
     public FileSKVIterator build() throws IOException {
-      return openReader(toReaderBuilderOptions(cacheProvider, fileLenCache, seekToBeginning));
+      return openReader(
+          toReaderBuilderOptions(cacheProvider, fileLenCache, seekToBeginning, fence));
     }
   }
 

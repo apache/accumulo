@@ -337,8 +337,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         FileSystem fs = this.fs.getFileSystemByPath(mapFile.getPath());
         FileSKVIterator reader;
 
-        reader = fileFactory.newReaderBuilder()
-            .forFile(mapFile.getPathStr(), fs, fs.getConf(), cryptoService)
+        reader = fileFactory.newReaderBuilder().forFile(mapFile, fs, fs.getConf(), cryptoService)
             .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter())
             .dropCachesBehind().build();
 

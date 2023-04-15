@@ -36,6 +36,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1157,7 +1159,7 @@ public class RFile {
     }
   }
 
-  public static class Reader extends HeapIterator implements FileSKVIterator {
+  public static class Reader extends HeapIterator implements IndexedFileSKVIterator {
 
     private final CachableBlockFile.Reader reader;
 
@@ -1384,7 +1386,7 @@ public class RFile {
     }
 
     @Override
-    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    public Reader deepCopy(IteratorEnvironment env) {
       if (env != null && env.isSamplingEnabled()) {
         SamplerConfiguration sc = env.getSamplerConfiguration();
         if (sc == null) {
@@ -1473,6 +1475,7 @@ public class RFile {
       return (lgCache == null ? 0 : lgCache.getNumLGSeeked());
     }
 
+    @Override
     public FileSKVIterator getIndex() throws IOException {
 
       ArrayList<Iterator<IndexEntry>> indexes = new ArrayList<>();
@@ -1485,7 +1488,7 @@ public class RFile {
     }
 
     @Override
-    public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
+    public Reader getSample(SamplerConfigurationImpl sampleConfig) {
       requireNonNull(sampleConfig);
 
       if (this.samplerConfig != null && this.samplerConfig.equals(sampleConfig)) {
@@ -1551,6 +1554,119 @@ public class RFile {
     @Override
     public void setCacheProvider(CacheProvider cacheProvider) {
       reader.setCacheProvider(cacheProvider);
+    }
+  }
+
+  interface IndexedFileSKVIterator extends FileSKVIterator {
+    FileSKVIterator getIndex() throws IOException;
+  }
+
+  static class FencedReader implements IndexedFileSKVIterator {
+
+    private final Reader reader;
+    private final Range fence;
+
+    public FencedReader(Reader reader, Range seekFence) {
+      this.reader = Objects.requireNonNull(reader);
+      this.fence = seekFence;
+    }
+
+    @Override
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {
+      reader.clear();
+
+      if (fence != null) {
+        range = fence.clip(range, true);
+        if (range == null) {
+          return;
+        }
+      }
+
+      reader.seek(range, columnFamilies, inclusive);
+    }
+
+    @Override
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean hasTop() {
+      return reader.hasTop();
+    }
+
+    @Override
+    public void next() throws IOException {
+      reader.next();
+    }
+
+    @Override
+    public Key getTopKey() {
+      return reader.getTopKey();
+    }
+
+    @Override
+    public Value getTopValue() {
+      return reader.getTopValue();
+    }
+
+    @Override
+    public FencedReader deepCopy(IteratorEnvironment env) {
+      return new FencedReader(reader.deepCopy(env), fence);
+    }
+
+    @Override
+    public boolean isRunningLowOnMemory() {
+      return reader.isRunningLowOnMemory();
+    }
+
+    @Override
+    public void setInterruptFlag(AtomicBoolean flag) {
+      reader.setInterruptFlag(flag);
+    }
+
+    @Override
+    public Key getFirstKey() throws IOException {
+      return fence.isInfiniteStartKey() ? reader.getFirstKey() : fence.getStartKey();
+    }
+
+    @Override
+    public Key getLastKey() throws IOException {
+      return fence.isInfiniteStopKey() ? reader.getLastKey() : fence.getEndKey();
+    }
+
+    @Override
+    public DataInputStream getMetaStore(String name) throws IOException {
+      return reader.getMetaStore(name);
+    }
+
+    @Override
+    public FileSKVIterator getIndex() throws IOException {
+      // TODO: Fence off the index
+      return reader.getIndex();
+    }
+
+    @Override
+    public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
+      return Optional.ofNullable(reader.getSample(sampleConfig))
+          .map(sample -> new FencedReader(sample, fence)).orElse(null);
+    }
+
+    @Override
+    public void closeDeepCopies() throws IOException {
+      reader.closeDeepCopies();
+    }
+
+    @Override
+    public void setCacheProvider(CacheProvider cacheProvider) {
+      reader.setCacheProvider(cacheProvider);
+    }
+
+    @Override
+    public void close() throws IOException {
+      reader.close();
     }
   }
 }

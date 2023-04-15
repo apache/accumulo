@@ -134,7 +134,7 @@ public class MultiThreadedRFileTest {
     public TestRFile deepCopy() throws IOException {
       TestRFile copy = new TestRFile(accumuloConfiguration);
       // does not copy any writer resources. This would be for read only.
-      copy.reader = (Reader) reader.deepCopy(null);
+      copy.reader = reader.deepCopy(null);
       copy.rfile = rfile;
       copy.iter = new ColumnFamilySkippingIterator(copy.reader);
       copy.deepCopy = true;

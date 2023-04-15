@@ -20,8 +20,10 @@ package org.apache.accumulo.core.metadata;
 
 import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
 
+import java.util.Comparator;
 import java.util.Objects;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -46,14 +48,19 @@ public class TabletFile implements Comparable<TabletFile> {
   private final String fileName; // C0004.rf
   protected final Path metaPath;
   private final String normalizedPath;
+  private final Range fence;
 
   private static final Logger log = LoggerFactory.getLogger(TabletFile.class);
+
+  public TabletFile(Path metaPath) {
+    this(metaPath, new Range());
+  }
 
   /**
    * Construct new tablet file using a Path. Used in the case where we had to use Path object to
    * qualify an absolute path or create a new file.
    */
-  public TabletFile(Path metaPath) {
+  public TabletFile(Path metaPath, Range fence) {
     this.metaPath = Objects.requireNonNull(metaPath);
     String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
     log.trace("Parsing TabletFile from {}", metaPath);
@@ -77,6 +84,7 @@ public class TabletFile implements Comparable<TabletFile> {
 
     this.tabletDir = new TabletDirectory(volume, TableId.of(id), tabletDirPath.getName());
     this.normalizedPath = tabletDir.getNormalizedPath() + "/" + fileName;
+    this.fence = Objects.requireNonNull(fence);
   }
 
   public String getVolume() {
@@ -128,12 +136,21 @@ public class TabletFile implements Comparable<TabletFile> {
     return metaPath;
   }
 
+  public Range getFence() {
+    return fence;
+  }
+
+  public boolean isFenced() {
+    return !fence.isInfiniteStartKey() || !fence.isInfiniteStopKey();
+  }
+
   @Override
   public int compareTo(TabletFile o) {
     if (equals(o)) {
       return 0;
     } else {
-      return normalizedPath.compareTo(o.normalizedPath);
+      return Comparator.comparing(TabletFile::getPathStr).thenComparing(TabletFile::getFence)
+          .compare(this, o);
     }
   }
 
@@ -141,18 +158,19 @@ public class TabletFile implements Comparable<TabletFile> {
   public boolean equals(Object obj) {
     if (obj instanceof TabletFile) {
       TabletFile that = (TabletFile) obj;
-      return normalizedPath.equals(that.normalizedPath);
+      return normalizedPath.equals(that.normalizedPath) && fence.equals(that.fence);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return normalizedPath.hashCode();
+    return Objects.hash(normalizedPath, fence);
   }
 
   @Override
   public String toString() {
     return normalizedPath;
   }
+
 }
