@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -101,10 +102,6 @@ public class MergeStateIT extends ConfigurableMacBase {
       return Collections.emptySet();
     }
 
-    @Override
-    public Set<TableId> getOnDemandTables() {
-      return Collections.emptySet();
-    }
   }
 
   private static void update(AccumuloClient c, Mutation m)
@@ -210,8 +207,10 @@ public class MergeStateIT extends ConfigurableMacBase {
       // take it offline
       m = TabletColumnFamily.createPrevRowMutation(tablet);
       Collection<Collection<String>> walogs = Collections.emptyList();
-      metaDataStateStore.unassign(Collections.singletonList(new TabletLocationState(tablet, null,
-          Location.current(state.someTServer), null, null, walogs, false, false)), null);
+      metaDataStateStore.unassign(Collections
+          .singletonList(new TabletLocationState(tablet, null, Location.current(state.someTServer),
+              null, null, walogs, false, TabletHostingGoal.ALWAYS, false)),
+          null);
 
       // now we can split
       stats = scan(state, metaDataStateStore);

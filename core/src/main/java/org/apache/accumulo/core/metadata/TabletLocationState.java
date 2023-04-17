@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -57,7 +58,7 @@ public class TabletLocationState {
 
   public TabletLocationState(KeyExtent extent, Location future, Location current, Location last,
       SuspendingTServer suspend, Collection<Collection<String>> walogs, boolean chopped,
-      boolean ondemand) throws BadLocationStateException {
+      TabletHostingGoal goal, boolean onDemandHostingRequested) throws BadLocationStateException {
     this.extent = extent;
     this.future = validateLocation(future, TabletMetadata.LocationType.FUTURE);
     this.current = validateLocation(current, TabletMetadata.LocationType.CURRENT);
@@ -68,7 +69,8 @@ public class TabletLocationState {
     }
     this.walogs = walogs;
     this.chopped = chopped;
-    this.ondemand = ondemand;
+    this.goal = goal;
+    this.onDemandHostingRequested = onDemandHostingRequested;
     if (hasCurrent() && hasFuture()) {
       throw new BadLocationStateException(
           extent + " is both assigned and hosted, which should never happen: " + this,
@@ -83,7 +85,8 @@ public class TabletLocationState {
   public final SuspendingTServer suspend;
   public final Collection<Collection<String>> walogs;
   public final boolean chopped;
-  public final boolean ondemand;
+  public final TabletHostingGoal goal;
+  public final boolean onDemandHostingRequested;
 
   public TServerInstance getCurrentServer() {
     return serverInstance(current);
@@ -153,7 +156,7 @@ public class TabletLocationState {
   @Override
   public String toString() {
     return extent + "@(" + future + "," + current + "," + last + ")" + (chopped ? " chopped" : "")
-        + "," + ondemand;
+        + "," + goal + "," + onDemandHostingRequested;
   }
 
   private static Location validateLocation(final Location location,

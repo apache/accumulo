@@ -26,10 +26,13 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
+import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_TABLE;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -85,6 +88,7 @@ import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
@@ -109,6 +113,7 @@ import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
@@ -1366,7 +1371,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
 
       TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
-          .overRange(range).fetch(LOCATION, PREV_ROW).build();
+          .overRange(range).fetch(HOSTING_GOAL, HOSTING_REQUESTED, LOCATION, PREV_ROW).build();
 
       KeyExtent lastExtent = null;
 
@@ -1379,8 +1384,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
       for (TabletMetadata tablet : tablets) {
         total++;
         Location loc = tablet.getLocation();
+        TabletHostingGoal goal = tablet.getHostingGoal();
 
         if ((expectedState == TableState.ONLINE
+            && (goal == TabletHostingGoal.ALWAYS
+                || (goal == TabletHostingGoal.ONDEMAND) && tablet.getHostingRequested())
             && (loc == null || loc.getType() == LocationType.FUTURE))
             || (expectedState == TableState.OFFLINE && loc != null)) {
           if (continueRow == null) {
@@ -1477,12 +1485,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw new AccumuloException("Cannot set table to offline state");
         }
         break;
-      case ONDEMAND:
-        op = FateOperation.TABLE_ONDEMAND;
-        if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
-          throw new AccumuloException("Cannot set table to onDemand state");
-        }
-        break;
       case ONLINE:
         op = FateOperation.TABLE_ONLINE;
         if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
@@ -1526,31 +1528,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void online(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     changeTableState(tableName, wait, TableState.ONLINE);
-  }
-
-  @Override
-  public boolean isOnDemand(String tableName) throws AccumuloException, TableNotFoundException {
-    EXISTING_TABLE_NAME.validate(tableName);
-
-    if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
-      return false;
-    }
-
-    TableId tableId = context.getTableId(tableName);
-    TableState expectedState = context.getTableState(tableId, true);
-    return expectedState == TableState.ONDEMAND;
-  }
-
-  @Override
-  public void onDemand(String tableName)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    onDemand(tableName, false);
-  }
-
-  @Override
-  public void onDemand(String tableName, boolean wait)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    changeTableState(tableName, wait, TableState.ONDEMAND);
   }
 
   @Override
@@ -1758,7 +1735,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(exportDir != null, "exportDir is null");
 
-    if (isOnline(tableName) || isOnDemand(tableName)) {
+    if (isOnline(tableName)) {
       throw new IllegalStateException("The table " + tableName
           + " is not offline; exportTable requires a table to be offline before exporting.");
     }
@@ -2175,4 +2152,24 @@ public class TableOperationsImpl extends TableOperationsHelper {
       opts.put(k, v);
     });
   }
+
+  @Override
+  public void setTabletHostingGoal(String tableName, Range range, TabletHostingGoal goal)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    EXISTING_TABLE_NAME.validate(tableName);
+    NOT_BUILTIN_TABLE.validate(tableName);
+    checkArgument(range != null, "range is null");
+    checkArgument(goal != null, "goal is null");
+
+    TableId tableId = context.getTableId(tableName);
+
+    List<TKeyExtent> extents =
+        TabletLocatorImpl.findExtentsForRange(context, tableId, range, Set.of(), false);
+
+    log.debug("Setting tablet hosting goal to {} for extents: {}", goal, extents);
+    ThriftClientTypes.TABLET_MGMT.executeVoid(context,
+        client -> client.setTabletHostingGoal(TraceUtil.traceInfo(), context.rpcCreds(),
+            tableId.canonical(), extents, TabletHostingGoalUtil.toThrift(goal)));
+  }
+
 }

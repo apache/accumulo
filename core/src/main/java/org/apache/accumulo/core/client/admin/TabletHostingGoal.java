@@ -16,22 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.manager.state.tables;
+package org.apache.accumulo.core.client.admin;
 
-public enum TableState {
-  // NEW while making directories and tablets;
-  NEW,
+/**
+ * @see TableOperations#setTabletHostingGoal(String, org.apache.accumulo.core.data.Range,
+ *      TabletHostingGoal)
+ * @since ELASTICITY_TODO
+ */
+public enum TabletHostingGoal {
 
-  // ONLINE tablets will be assigned
-  ONLINE,
+  // Signifies that a Tablet should always be hosted
+  ALWAYS,
 
-  // OFFLINE tablets will be taken offline
-  OFFLINE,
+  // Signifies that a Tablet should be hosted on client request
+  ONDEMAND,
 
-  // DELETING waiting for tablets to go offline and table will be removed
-  DELETING,
+  // Signifies that a Tablet should never be hosted
+  NEVER;
 
-  // UNKNOWN is NOT a valid state; it is reserved for unrecognized serialized
-  // representations of table state
-  UNKNOWN
 }

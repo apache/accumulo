@@ -127,7 +127,8 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       assertThrows(TableOfflineException.class, () -> tableOps.locate(tableName, ranges));
 
-      tableOps.onDemand(tableName, true);
+      tableOps.online(tableName, true);
+
       ArrayList<Range> ranges2 = new ArrayList<>();
       ranges2.add(r1);
       ret = tableOps.locate(tableName, ranges2);

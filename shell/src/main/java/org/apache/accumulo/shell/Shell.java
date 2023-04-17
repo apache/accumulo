@@ -132,7 +132,6 @@ import org.apache.accumulo.shell.commands.NamespacePermissionsCommand;
 import org.apache.accumulo.shell.commands.NamespacesCommand;
 import org.apache.accumulo.shell.commands.NoTableCommand;
 import org.apache.accumulo.shell.commands.OfflineCommand;
-import org.apache.accumulo.shell.commands.OndemandCommand;
 import org.apache.accumulo.shell.commands.OnlineCommand;
 import org.apache.accumulo.shell.commands.OptUtil;
 import org.apache.accumulo.shell.commands.PasswdCommand;
@@ -154,6 +153,7 @@ import org.apache.accumulo.shell.commands.SystemPermissionsCommand;
 import org.apache.accumulo.shell.commands.TableCommand;
 import org.apache.accumulo.shell.commands.TablePermissionsCommand;
 import org.apache.accumulo.shell.commands.TablesCommand;
+import org.apache.accumulo.shell.commands.TabletHostingGoalCommand;
 import org.apache.accumulo.shell.commands.TraceCommand;
 import org.apache.accumulo.shell.commands.UserCommand;
 import org.apache.accumulo.shell.commands.UserPermissionsCommand;
@@ -401,9 +401,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(),
         new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(), new DUCommand(),
         new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(),
-        new OndemandCommand(), new OnlineCommand(), new RenameTableCommand(), new TablesCommand(),
-        new NamespacesCommand(), new CreateNamespaceCommand(), new DeleteNamespaceCommand(),
-        new RenameNamespaceCommand(), new SummariesCommand()};
+        new TabletHostingGoalCommand(), new OnlineCommand(), new RenameTableCommand(),
+        new TablesCommand(), new NamespacesCommand(), new CreateNamespaceCommand(),
+        new DeleteNamespaceCommand(), new RenameNamespaceCommand(), new SummariesCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(),
         new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(), new GetSplitsCommand(),
         new MergeCommand(), new SetGroupsCommand()};

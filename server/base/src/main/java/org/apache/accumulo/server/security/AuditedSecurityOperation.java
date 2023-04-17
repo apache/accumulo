@@ -695,9 +695,6 @@ public class AuditedSecurityOperation extends SecurityOperation {
     if (op == FateOperation.TABLE_OFFLINE) {
       operation = "offlineTable";
     }
-    if (op == FateOperation.TABLE_ONDEMAND) {
-      operation = "onDemandTable";
-    }
     try {
       boolean result = super.canChangeTableState(credentials, tableId, op, namespaceId);
       audit(credentials, result, CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, operation, tableName,

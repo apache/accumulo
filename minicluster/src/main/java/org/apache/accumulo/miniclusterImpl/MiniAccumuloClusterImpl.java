@@ -155,6 +155,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    */
   public MiniAccumuloClusterImpl(MiniAccumuloConfigImpl config) throws IOException {
 
+    // Set the TabletGroupWatcher interval to 5s for all MAC instances
+    config.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "5s");
+
     this.config = config.initialize();
     this.clientProperties = Suppliers.memoize(
         () -> Accumulo.newClientProperties().from(config.getClientPropsFile().toPath()).build());

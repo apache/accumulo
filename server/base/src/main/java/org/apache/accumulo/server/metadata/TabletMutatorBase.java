@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.metadata;
 
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -38,9 +40,9 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.OnDemandAssignmentStateColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -57,6 +59,8 @@ import com.google.common.base.Preconditions;
 
 public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     implements Ample.TabletUpdates<T> {
+
+  private static final Value EMPTY_VALUE = new Value();
 
   private final ServerContext context;
 
@@ -269,18 +273,25 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putOnDemand() {
-    mutation.put(OnDemandAssignmentStateColumnFamily.STR_NAME, "", "");
+  public T setHostingGoal(TabletHostingGoal goal) {
+    HostingColumnFamily.GOAL_COLUMN.put(mutation, TabletHostingGoalUtil.toValue(goal));
     return getThis();
   }
 
   @Override
-  public T deleteOnDemand() {
-    mutation.putDelete(OnDemandAssignmentStateColumnFamily.STR_NAME, "");
+  public T setHostingRequested() {
+    HostingColumnFamily.REQUESTED_COLUMN.put(mutation, EMPTY_VALUE);
+    return getThis();
+  }
+
+  @Override
+  public T deleteHostingRequested() {
+    HostingColumnFamily.REQUESTED_COLUMN.putDelete(mutation);
     return getThis();
   }
 
   public void setCloseAfterMutate(AutoCloseable closeable) {
     this.closeAfterMutate = closeable;
   }
+
 }

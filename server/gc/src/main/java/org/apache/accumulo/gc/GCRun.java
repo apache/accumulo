@@ -496,7 +496,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     } else if (level == DataLevel.USER) {
       Set<TableId> tableIds = new HashSet<>();
       getTableIDs().forEach((k, v) -> {
-        if (v == TableState.ONLINE || v == TableState.OFFLINE || v == TableState.ONDEMAND) {
+        if (v == TableState.ONLINE || v == TableState.OFFLINE) {
           // Don't return tables that are NEW, DELETING, or in an
           // UNKNOWN state.
           tableIds.add(k);
