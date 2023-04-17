@@ -61,14 +61,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
-
-public class OnDemandIT extends SharedMiniClusterBase {
-
-  @FunctionalInterface
-  public static interface Action {
-    void execute(AccumuloClient c, String tableName);
-  }
+public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
 
   private static final int managerTabletGroupWatcherInterval = 5;
   private static final int inactiveOnDemandTabletUnloaderInterval = 10;
@@ -133,79 +126,50 @@ public class OnDemandIT extends SharedMiniClusterBase {
     ONDEMAND_ONLINE_COUNT = 0L;
   }
 
-  public void testLoadUnload(Action action) throws Exception {
+  @Test
+  public void testTabletUnloader() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
       String tableName = super.getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      String tableId = c.tableOperations().tableIdMap().get(tableName);
-      // wait for tablet to be loaded so that on demand is not triggered
-      Wait.waitFor(() -> countTabletsWithLocation(c, tableName) == 1);
-      ManagerAssignmentIT.loadDataForScan(c, tableName);
+
       TreeSet<Text> splits = new TreeSet<>();
       splits.add(new Text("f"));
       splits.add(new Text("m"));
       splits.add(new Text("t"));
-      c.tableOperations().addSplits(tableName, splits);
-      c.tableOperations().onDemand(tableName, true);
-      assertTrue(c.tableOperations().isOnDemand(tableName));
 
-      Wait.waitFor(() -> countTabletsWithLocation(c, tableName) == 0);
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      ntc.withSplits(splits);
+      c.tableOperations().create(tableName, ntc);
+      String tableId = c.tableOperations().tableIdMap().get(tableName);
 
-      List<TabletStats> stats = ManagerAssignmentIT.getTabletStats(c, tableId);
       // There should be no tablets online
+      List<TabletStats> stats = ManagerAssignmentIT.getTabletStats(c, tableId);
       assertEquals(0, stats.size());
       assertEquals(0, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
-          .onDemandTabletsOnlined());
+          .getTabletHostingRequestCount());
       assertEquals(0, ONDEMAND_ONLINE_COUNT);
 
-      c.tableOperations().clearLocatorCache(tableName);
+      // loading data will cause tablets to be hosted
+      ManagerAssignmentIT.loadDataForScan(c, tableName);
+      verifyDataForScan(c, tableName);
 
-      // execute the action that will cause the tablets to be brought online
-      action.execute(c, tableName);
-
-      while (ONDEMAND_ONLINE_COUNT != 4) {
-        Thread.sleep(500);
-      }
+      // There should be four tablets online
       stats = ManagerAssignmentIT.getTabletStats(c, tableId);
       assertEquals(4, stats.size());
-      assertEquals(4, TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
-          .onDemandTabletsOnlined());
+      assertTrue(TabletLocator.getLocator((ClientContext) c, TableId.of(tableId))
+          .getTabletHostingRequestCount() > 0);
 
-      // wait for the inactivity timeout to cause the tablets to be unloaded from the
-      // TabletServer
-      while (ONDEMAND_ONLINE_COUNT != 0) {
-        Thread.sleep(500);
+      while (ONDEMAND_ONLINE_COUNT != 4) {
+        Thread.sleep(100);
       }
-      stats = ManagerAssignmentIT.getTabletStats(c, tableId);
-      assertEquals(0, stats.size());
+
+      // Waiting for tablets to be unloaded due to inactivity
+      while (stats.size() != 0) {
+        Thread.sleep(1000);
+        stats = ManagerAssignmentIT.getTabletStats(c, tableId);
+      }
+
     }
-  }
-
-  @Test
-  public void testLoadUnloadUsingWriter() throws Exception {
-    testLoadUnload((client, t) -> {
-      try {
-        // load the same data again, this will cause the tablets to be brought online.
-        ManagerAssignmentIT.loadDataForScan(client, t);
-      } catch (MutationsRejectedException | TableNotFoundException e) {
-        throw new RuntimeException(e);
-      }
-    });
-  }
-
-  @Test
-  public void testLoadUnloadUsingScan() throws Exception {
-    testLoadUnload((client, t) -> {
-      try {
-        // scan the table, this will cause the tablets to be brought online.
-        Scanner s = client.createScanner(t);
-        @SuppressWarnings("unused")
-        var unused = Iterables.size(s);
-        verifyDataForScan(client, t);
-      } catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
-        throw new RuntimeException(e);
-      }
-    });
   }
 
   private static void verifyDataForScan(AccumuloClient c, String tableName)
@@ -268,8 +232,6 @@ public class OnDemandIT extends SharedMiniClusterBase {
       }
 
       c.tableOperations().flush(tableName, null, null, true);
-
-      c.tableOperations().onDemand(tableName);
 
       // wait for all tablets to be unhosted
       Wait.waitFor(() -> countTabletsWithLocation(c, tableName) == 0);

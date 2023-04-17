@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -45,9 +46,9 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.OnDemandAssignmentStateColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -86,7 +87,10 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.TIME_COLUMN,
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,
-          ServerColumnFamily.COMPACT_COLUMN);
+          ServerColumnFamily.COMPACT_COLUMN,
+          ServerColumnFamily.OPID_COLUMN,
+          HostingColumnFamily.GOAL_COLUMN,
+          HostingColumnFamily.REQUESTED_COLUMN);
 
   private static final Set<Text> validColumnFams =
       Set.of(BulkFileColumnFamily.NAME,
@@ -98,8 +102,7 @@ public class MetadataConstraints implements Constraint {
           FutureLocationColumnFamily.NAME,
           ChoppedColumnFamily.NAME,
           ClonedColumnFamily.NAME,
-          ExternalCompactionColumnFamily.NAME,
-          OnDemandAssignmentStateColumnFamily.NAME);
+          ExternalCompactionColumnFamily.NAME);
   // @formatter:on
 
   private static boolean isValidColumn(ColumnUpdate cu) {
@@ -191,6 +194,7 @@ public class MetadataConstraints implements Constraint {
 
     for (ColumnUpdate columnUpdate : colUpdates) {
       Text columnFamily = new Text(columnUpdate.getColumnFamily());
+      Text columnQualifier = new Text(columnUpdate.getColumnQualifier());
 
       if (columnUpdate.isDeleted()) {
         if (!isValidColumn(columnUpdate)) {
@@ -200,7 +204,7 @@ public class MetadataConstraints implements Constraint {
       }
 
       if (columnUpdate.getValue().length == 0 && !columnFamily.equals(ScanFileColumnFamily.NAME)
-          && !columnFamily.equals(OnDemandAssignmentStateColumnFamily.NAME)) {
+          && !HostingColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)) {
         violations = addViolation(violations, 6);
       }
 
@@ -214,9 +218,15 @@ public class MetadataConstraints implements Constraint {
         } catch (NumberFormatException | ArrayIndexOutOfBoundsException nfe) {
           violations = addViolation(violations, 1);
         }
-      } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {} else if (columnFamily
-          .equals(OnDemandAssignmentStateColumnFamily.NAME)) {} else if (columnFamily
-              .equals(BulkFileColumnFamily.NAME)) {
+      } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
+
+      } else if (HostingColumnFamily.GOAL_COLUMN.equals(columnFamily, columnQualifier)) {
+        try {
+          TabletHostingGoalUtil.fromValue(new Value(columnUpdate.getValue()));
+        } catch (IllegalArgumentException e) {
+          violations = addViolation(violations, 4);
+        }
+      } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
           // splits, which also write the time reference, are allowed to write this reference even
           // when

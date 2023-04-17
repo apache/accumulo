@@ -157,6 +157,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * {@literal lowcost}. This profile also will not fallback to tablet servers when there are
  * currently no scan servers, it will wait for scan servers to become available.
  * </p>
+ *
+ * @since 2.1.0
  */
 public class ConfigurableScanServerSelector implements ScanServerSelector {
 
@@ -298,10 +300,10 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
         defaultProfile = prof;
       }
+    }
 
-      if (defaultProfile == null) {
-        throw new IllegalArgumentException("No default profile specified");
-      }
+    if (defaultProfile == null) {
+      throw new IllegalArgumentException("No default profile specified");
     }
   }
 

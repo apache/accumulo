@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.tserver.data.ServerConditionalMutation;
+import org.apache.accumulo.server.data.ServerConditionalMutation;
 import org.apache.hadoop.io.WritableComparator;
 
 public class ConditionalMutationSet {

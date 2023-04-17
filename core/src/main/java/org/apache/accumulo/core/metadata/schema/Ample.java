@@ -20,9 +20,12 @@ package org.apache.accumulo.core.metadata.schema;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -34,6 +37,7 @@ import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -182,6 +186,10 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
+  default ConditionalTabletsMutator conditionallyMutateTablets() {
+    throw new UnsupportedOperationException();
+  }
+
   default void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
     throw new UnsupportedOperationException();
   }
@@ -239,59 +247,87 @@ public interface Ample {
     void close();
   }
 
+  public interface ConditionalTabletsMutator extends AutoCloseable {
+
+    /**
+     * @return A fluent interface to conditional mutating a tablet. Ensure you call
+     *         {@link ConditionalTabletMutator#submit()} when finished.
+     */
+    OperationRequirements mutateTablet(KeyExtent extent);
+
+    /**
+     * After creating one or more conditional mutations using {@link #mutateTablet(KeyExtent)}, call
+     * this method to process them using a {@link ConditionalWriter}
+     *
+     * @return The result from the {@link ConditionalWriter} of processing each tablet.
+     */
+    Map<KeyExtent,ConditionalWriter.Result> process();
+
+    @Override
+    void close();
+  }
+
   /**
    * Interface for changing a tablets persistent data.
    */
-  interface TabletMutator {
-    TabletMutator putPrevEndRow(Text per);
+  interface TabletUpdates<T> {
+    T putPrevEndRow(Text per);
 
-    TabletMutator putFile(TabletFile path, DataFileValue dfv);
+    T putFile(TabletFile path, DataFileValue dfv);
 
-    TabletMutator deleteFile(StoredTabletFile path);
+    T deleteFile(StoredTabletFile path);
 
-    TabletMutator putScan(TabletFile path);
+    T putScan(TabletFile path);
 
-    TabletMutator deleteScan(StoredTabletFile path);
+    T deleteScan(StoredTabletFile path);
 
-    TabletMutator putCompactionId(long compactionId);
+    T putCompactionId(long compactionId);
 
-    TabletMutator putFlushId(long flushId);
+    T putFlushId(long flushId);
 
-    TabletMutator putLocation(Location location);
+    T putLocation(Location location);
 
-    TabletMutator deleteLocation(Location location);
+    T deleteLocation(Location location);
 
-    TabletMutator putZooLock(ServiceLock zooLock);
+    T putZooLock(ServiceLock zooLock);
 
-    TabletMutator putDirName(String dirName);
+    T putDirName(String dirName);
 
-    TabletMutator putWal(LogEntry logEntry);
+    T putWal(LogEntry logEntry);
 
-    TabletMutator deleteWal(String wal);
+    T deleteWal(String wal);
 
-    TabletMutator deleteWal(LogEntry logEntry);
+    T deleteWal(LogEntry logEntry);
 
-    TabletMutator putTime(MetadataTime time);
+    T putTime(MetadataTime time);
 
-    TabletMutator putBulkFile(TabletFile bulkref, long tid);
+    T putBulkFile(TabletFile bulkref, long tid);
 
-    TabletMutator deleteBulkFile(TabletFile bulkref);
+    T deleteBulkFile(TabletFile bulkref);
 
-    TabletMutator putChopped();
+    T putChopped();
 
-    TabletMutator putSuspension(TServerInstance tserver, long suspensionTime);
+    T putSuspension(TServerInstance tserver, long suspensionTime);
 
-    TabletMutator deleteSuspension();
+    T deleteSuspension();
 
-    TabletMutator putExternalCompaction(ExternalCompactionId ecid,
-        ExternalCompactionMetadata ecMeta);
+    T putExternalCompaction(ExternalCompactionId ecid, ExternalCompactionMetadata ecMeta);
 
-    TabletMutator deleteExternalCompaction(ExternalCompactionId ecid);
+    T deleteExternalCompaction(ExternalCompactionId ecid);
 
-    TabletMutator putOnDemand();
+    T setHostingGoal(TabletHostingGoal goal);
 
-    TabletMutator deleteOnDemand();
+    T setHostingRequested();
 
+    T deleteHostingRequested();
+
+    T putOperation(TabletOperation operation, TabletOperationId opId);
+
+    T deleteOperation();
+
+  }
+
+  interface TabletMutator extends TabletUpdates<TabletMutator> {
     /**
      * This method persist (or queues for persisting) previous put and deletes against this object.
      * Unless this method is called, previous calls will never be persisted. The purpose of this
@@ -305,6 +341,67 @@ public interface Ample {
      * After this method is called, calling any method on this object will result in an exception.
      */
     void mutate();
+  }
+
+  /**
+   * A tablet operation is a mutually exclusive action that is running against a tablet. Its very
+   * important that every conditional mutation specifies requirements about operations in order to
+   * satisfy the mutual exclusion goal. This interface forces those requirements to specified by
+   * making it the only choice avialable before specifying other tablet requirements or mutations.
+   */
+  interface OperationRequirements {
+
+    /**
+     * Require a specific operation with a unique id is present. This would be normally be called by
+     * the code executing that operation.
+     */
+    ConditionalTabletMutator requireOperation(TabletOperation operation,
+        TabletOperationId operationId);
+
+    /**
+     * Require that no mutually exclusive operations are runnnig against this tablet.
+     */
+    ConditionalTabletMutator requireAbsentOperation();
+
+    /**
+     * Require an entire tablet is absent, so the tablet row has no columns. If the entire tablet is
+     * absent, then this implies the tablet operation is also absent so there is no need to specify
+     * that.
+     */
+    ConditionalTabletMutator requireAbsentTablet();
+  }
+
+  interface ConditionalTabletMutator extends TabletUpdates<ConditionalTabletMutator> {
+
+    /**
+     * Require that a tablet has no future or current location set.
+     */
+    ConditionalTabletMutator requireAbsentLocation();
+
+    /**
+     * Require that a tablet currently has the specified future or current location.
+     */
+    ConditionalTabletMutator requireLocation(Location location);
+
+    /**
+     * Require that a tablet currently has the specified file.
+     */
+    ConditionalTabletMutator requireFile(StoredTabletFile path);
+
+    /**
+     * Require that a tablet does not have the specfied bulk load marker.
+     */
+    ConditionalTabletMutator requireAbsentBulkFile(TabletFile bulkref);
+
+    /**
+     * Require that a tablet has the specified previous end row.
+     */
+    ConditionalTabletMutator requirePrevEndRow(Text per);
+
+    /**
+     * Submits or queues a conditional mutation for processing.
+     */
+    ConditionalTabletsMutator submit();
   }
 
   /**

@@ -170,6 +170,8 @@ public class TabletLocatorImplTest {
         new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
     TabletLocatorImpl tab1TabletCache =
         new TabletLocatorImpl(TableId.of(table), rootTabletCache, ttlo, tslc);
+    // disable hosting requests for these tests
+    tab1TabletCache.enableTabletHostingRequests(false);
 
     setLocation(tservers, rootTabLoc, ROOT_TABLE_EXTENT, METADATA_TABLE_EXTENT, metaTabLoc);
 
@@ -207,12 +209,10 @@ public class TabletLocatorImplTest {
     EasyMock.expect(context.getTableName(TableId.of("0"))).andReturn("0").anyTimes();
     EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
     EasyMock.expect(context.getTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
-    EasyMock.expect(tops.isOnDemand("accumulo.root")).andReturn(false).anyTimes();
-    EasyMock.expect(tops.isOnDemand("accumulo.metadata")).andReturn(false).anyTimes();
-    EasyMock.expect(tops.isOnDemand("foo")).andReturn(false).anyTimes();
-    EasyMock.expect(tops.isOnDemand("0")).andReturn(false).anyTimes();
-    EasyMock.expect(tops.isOnDemand("1")).andReturn(false).anyTimes();
-    EasyMock.expect(tops.isOnDemand("tab1")).andReturn(false).anyTimes();
+    EasyMock.expect(tops.isOnline("foo")).andReturn(true).anyTimes();
+    EasyMock.expect(tops.isOnline("0")).andReturn(true).anyTimes();
+    EasyMock.expect(tops.isOnline("1")).andReturn(true).anyTimes();
+    EasyMock.expect(tops.isOnline("tab1")).andReturn(true).anyTimes();
     iid = InstanceId.of("instance1");
     EasyMock.expect(context.getRootTabletLocation()).andReturn("tserver1").anyTimes();
     EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();
@@ -794,12 +794,6 @@ public class TabletLocatorImplTest {
     EasyMock.expect(context.getTableName(TableId.of("0"))).andReturn("0").anyTimes();
     EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
     EasyMock.expect(context.getTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
-    EasyMock.expect(tops.isOnDemand("accumulo.root")).andReturn(false).anyTimes();
-    EasyMock.expect(tops.isOnDemand("accumulo.metadata")).andReturn(false).anyTimes();
-    EasyMock.expect(tops.isOnDemand("foo")).andReturn(false).anyTimes();
-    EasyMock.expect(tops.isOnDemand("0")).andReturn(false).anyTimes();
-    EasyMock.expect(tops.isOnDemand("1")).andReturn(false).anyTimes();
-    EasyMock.expect(tops.isOnDemand("tab1")).andReturn(false).anyTimes();
     iid = InstanceId.of("instance1");
     EasyMock.expect(context.getRootTabletLocation()).andReturn("tserver4").anyTimes();
     EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();

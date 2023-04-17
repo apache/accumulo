@@ -619,17 +619,24 @@ public class Manager extends AbstractServer
     switch (tableState) {
       case DELETING:
         return TabletGoalState.DELETED;
-      case ONDEMAND:
-        if (tls.ondemand) {
-          return TabletGoalState.HOSTED;
-        } else {
-          return TabletGoalState.UNASSIGNED;
-        }
       case OFFLINE:
       case NEW:
         return TabletGoalState.UNASSIGNED;
       default:
-        return TabletGoalState.HOSTED;
+        switch (tls.goal) {
+          case ALWAYS:
+            return TabletGoalState.HOSTED;
+          case NEVER:
+            return TabletGoalState.UNASSIGNED;
+          case ONDEMAND:
+            if (tls.onDemandHostingRequested) {
+              return TabletGoalState.HOSTED;
+            } else {
+              return TabletGoalState.UNASSIGNED;
+            }
+          default:
+            throw new IllegalStateException("Tablet Hosting Goal is unhandled: " + tls.goal);
+        }
     }
   }
 
@@ -1582,7 +1589,7 @@ public class Manager extends AbstractServer
   @Override
   public void stateChanged(TableId tableId, TableState state) {
     nextEvent.event("Table state in zookeeper changed for %s to %s", tableId, state);
-    if (state == TableState.OFFLINE || state == TableState.ONDEMAND) {
+    if (state == TableState.OFFLINE) {
       clearMigrations(tableId);
     }
   }
@@ -1615,14 +1622,6 @@ public class Manager extends AbstractServer
       }
     }
     return result;
-  }
-
-  @Override
-  public Set<TableId> getOnDemandTables() {
-    return getContext().getTableIdToNameMap().keySet().stream().filter(tid -> {
-      TableState state = getContext().getTableManager().getTableState(tid);
-      return ((state != null) && (state == TableState.ONDEMAND));
-    }).collect(Collectors.toSet());
   }
 
   @Override

@@ -23,7 +23,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.server.ServerContext;
 
-class TabletMutatorImpl extends TabletMutatorBase implements Ample.TabletMutator {
+class TabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
+    implements Ample.TabletMutator {
 
   private BatchWriter writer;
 
@@ -44,5 +45,4 @@ class TabletMutatorImpl extends TabletMutatorBase implements Ample.TabletMutator
       throw new RuntimeException(e);
     }
   }
-
 }

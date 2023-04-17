@@ -38,8 +38,7 @@ public class ChangeTableState extends ManagerRepo {
     this.namespaceId = namespaceId;
     this.top = top;
 
-    if (top != TableOperation.ONLINE && top != TableOperation.OFFLINE
-        && top != TableOperation.ONDEMAND) {
+    if (top != TableOperation.ONLINE && top != TableOperation.OFFLINE) {
       throw new IllegalArgumentException(top.toString());
     }
   }
@@ -57,8 +56,6 @@ public class ChangeTableState extends ManagerRepo {
     TableState ts = TableState.ONLINE;
     if (top == TableOperation.OFFLINE) {
       ts = TableState.OFFLINE;
-    } else if (top == TableOperation.ONDEMAND) {
-      ts = TableState.ONDEMAND;
     }
 
     env.getTableManager().transitionTableState(tableId, ts);

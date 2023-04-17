@@ -16,32 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.data;
+package org.apache.accumulo.manager;
 
-import java.util.List;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 
-import org.apache.accumulo.core.dataImpl.thrift.TCondition;
-import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
-import org.apache.accumulo.server.data.ServerMutation;
-
-public class ServerConditionalMutation extends ServerMutation {
-
-  private long cmid;
-  private List<TCondition> conditions;
-
-  public ServerConditionalMutation(TConditionalMutation input) {
-    super(input.mutation);
-
-    this.cmid = input.id;
-    this.conditions = input.conditions;
-  }
-
-  public long getID() {
-    return cmid;
-  }
-
-  public List<TCondition> getConditions() {
-    return conditions;
-  }
-
+public interface TabletOperations {
+  AutoCloseable unassign(KeyExtent tablet);
 }

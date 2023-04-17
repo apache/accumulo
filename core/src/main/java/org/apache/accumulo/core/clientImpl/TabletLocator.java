@@ -203,7 +203,7 @@ public abstract class TabletLocator {
     enabled = true;
   }
 
-  public long onDemandTabletsOnlined() {
+  public long getTabletHostingRequestCount() {
     return 0L;
   }
 

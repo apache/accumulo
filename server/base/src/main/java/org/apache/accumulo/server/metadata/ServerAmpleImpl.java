@@ -94,6 +94,11 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     return new TabletsMutatorImpl(context);
   }
 
+  @Override
+  public ConditionalTabletsMutator conditionallyMutateTablets() {
+    return new ConditionalTabletsMutatorImpl(context);
+  }
+
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {
     String zpath = context.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES;
     try {
