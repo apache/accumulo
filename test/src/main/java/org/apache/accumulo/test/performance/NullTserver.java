@@ -61,6 +61,7 @@ import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.tablet.thrift.THostingGoal;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletingest.thrift.TDurability;
@@ -303,9 +304,12 @@ public class NullTserver {
         String externalCompactionId, TKeyExtent extent) throws TException {}
 
     @Override
-    public void bringOnDemandTabletsOnline(TInfo tinfo, TCredentials credentials, String tableId,
-        List<TKeyExtent> extent) throws ThriftSecurityException, TException {}
+    public void setTabletHostingGoal(TInfo tinfo, TCredentials credentials, String tableId,
+        List<TKeyExtent> extents, THostingGoal goal) throws ThriftSecurityException, TException {}
 
+    @Override
+    public void requestTabletHosting(TInfo tinfo, TCredentials credentials, String tableId,
+        List<TKeyExtent> extents) throws ThriftSecurityException, TException {}
   }
 
   static class Opts extends Help {

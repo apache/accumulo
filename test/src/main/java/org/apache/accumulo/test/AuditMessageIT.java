@@ -221,7 +221,6 @@ public class AuditMessageIT extends ConfigurableMacBase {
         emptyMap, emptySet);
     auditAccumuloClient.tableOperations().delete(OLD_TEST_TABLE_NAME);
     auditAccumuloClient.tableOperations().offline(NEW_TEST_TABLE_NAME);
-    auditAccumuloClient.tableOperations().onDemand(NEW_TEST_TABLE_NAME);
     auditAccumuloClient.tableOperations().delete(NEW_TEST_TABLE_NAME);
     // Testing activity ends here
 
@@ -235,8 +234,6 @@ public class AuditMessageIT extends ConfigurableMacBase {
         findAuditMessage(auditMessages, "action: cloneTable; targetTable: " + NEW_TEST_TABLE_NAME));
     assertEquals(1, findAuditMessage(auditMessages,
         "action: deleteTable; targetTable: " + OLD_TEST_TABLE_NAME));
-    assertEquals(1, findAuditMessage(auditMessages,
-        "action: onDemandTable; targetTable: " + NEW_TEST_TABLE_NAME));
     assertEquals(1, findAuditMessage(auditMessages,
         "action: offlineTable; targetTable: " + NEW_TEST_TABLE_NAME));
     assertEquals(1, findAuditMessage(auditMessages,

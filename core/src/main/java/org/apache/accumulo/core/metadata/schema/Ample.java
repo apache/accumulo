@@ -25,6 +25,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -314,13 +315,16 @@ public interface Ample {
 
     T deleteExternalCompaction(ExternalCompactionId ecid);
 
+    T setHostingGoal(TabletHostingGoal goal);
+
+    T setHostingRequested();
+
+    T deleteHostingRequested();
+
     T putOperation(TabletOperation operation, TabletOperationId opId);
 
     T deleteOperation();
 
-    T putOnDemand();
-
-    T deleteOnDemand();
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {

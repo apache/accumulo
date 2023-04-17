@@ -94,6 +94,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -710,6 +711,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             + " ZooKeeper. Delegation token authentication will be unavailable.", e);
       }
     }
+    try {
+      clientAddress = startTabletClientService();
+    } catch (UnknownHostException e1) {
+      throw new RuntimeException("Failed to start the tablet client service", e1);
+    }
 
     try {
       MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
@@ -734,11 +740,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         getContext(), ceMetrics);
     compactionManager.start();
 
-    try {
-      clientAddress = startTabletClientService();
-    } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the tablet client service", e1);
-    }
     announceExistence();
 
     try {
@@ -1310,6 +1311,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   // called from AssignmentHandler
   public void insertOnDemandAccessTime(KeyExtent extent) {
+    if (extent.isMeta()) {
+      return;
+    }
     onDemandTabletAccessTimes.putIfAbsent(extent, new AtomicLong(System.nanoTime()));
   }
 
@@ -1384,7 +1388,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       KeyExtent oldestKeyExtent = timeSortedOnDemandExtents.get(oldestAccessTime);
       log.warn("Unloading on-demand tablet: {} for table: {} due to low memory", oldestKeyExtent,
           oldestKeyExtent.tableId());
-      getContext().getAmple().mutateTablet(oldestKeyExtent).deleteOnDemand().mutate();
+      getContext().getAmple().mutateTablet(oldestKeyExtent).deleteHostingRequested().mutate();
       onDemandUnloadedLowMemory.addAndGet(1);
       return;
     }
@@ -1448,10 +1452,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       UnloaderParams params = new UnloaderParamsImpl(tid, new ServiceEnvironmentImpl(context),
           subset, onDemandTabletsToUnload);
       unloaders.get(tid).evaluate(params);
-      onDemandTabletsToUnload.forEach(ke -> {
-        log.debug("Unloading on-demand tablet: {} for table: {}", ke, tid);
-        getContext().getAmple().mutateTablet(ke).deleteOnDemand().mutate();
-      });
+      try (TabletsMutator tm = getContext().getAmple().mutateTablets()) {
+        onDemandTabletsToUnload.forEach(ke -> {
+          log.debug("Unloading on-demand tablet: {} for table: {}", ke, tid);
+          tm.mutateTablet(ke).deleteHostingRequested().mutate();
+        });
+      }
     });
   }
 }

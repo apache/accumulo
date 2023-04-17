@@ -77,8 +77,14 @@ public class MetricsUtil {
       tags.add(Tag.of("process.name", processName));
 
       if (address != null) {
-        tags.add(Tag.of("Address", address.toString()));
+        if (!address.getHost().isEmpty()) {
+          tags.add(Tag.of("host", address.getHost()));
+        }
+        if (address.getPort() > 0) {
+          tags.add(Tag.of("port", Integer.toString(address.getPort())));
+        }
       }
+
       commonTags = Collections.unmodifiableList(tags);
 
       Class<? extends MeterRegistryFactory> clazz =

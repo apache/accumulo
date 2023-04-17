@@ -39,7 +39,9 @@ public class TabletManagementClientService {
 
     public void chop(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException;
 
-    public void bringOnDemandTabletsOnline(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public void setTabletHostingGoal(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents, THostingGoal goal) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+
+    public void requestTabletHosting(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
   }
 
@@ -55,7 +57,9 @@ public class TabletManagementClientService {
 
     public void chop(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void bringOnDemandTabletsOnline(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void setTabletHostingGoal(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents, THostingGoal goal, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+
+    public void requestTabletHosting(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -178,26 +182,54 @@ public class TabletManagementClientService {
     }
 
     @Override
-    public void bringOnDemandTabletsOnline(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void setTabletHostingGoal(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents, THostingGoal goal) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_bringOnDemandTabletsOnline(tinfo, credentials, tableId, extents);
-      recv_bringOnDemandTabletsOnline();
+      send_setTabletHostingGoal(tinfo, credentials, tableId, extents, goal);
+      recv_setTabletHostingGoal();
     }
 
-    public void send_bringOnDemandTabletsOnline(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents) throws org.apache.thrift.TException
+    public void send_setTabletHostingGoal(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents, THostingGoal goal) throws org.apache.thrift.TException
     {
-      bringOnDemandTabletsOnline_args args = new bringOnDemandTabletsOnline_args();
+      setTabletHostingGoal_args args = new setTabletHostingGoal_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setTableId(tableId);
       args.setExtents(extents);
-      sendBase("bringOnDemandTabletsOnline", args);
+      args.setGoal(goal);
+      sendBase("setTabletHostingGoal", args);
     }
 
-    public void recv_bringOnDemandTabletsOnline() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public void recv_setTabletHostingGoal() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      bringOnDemandTabletsOnline_result result = new bringOnDemandTabletsOnline_result();
-      receiveBase(result, "bringOnDemandTabletsOnline");
+      setTabletHostingGoal_result result = new setTabletHostingGoal_result();
+      receiveBase(result, "setTabletHostingGoal");
+      if (result.sec != null) {
+        throw result.sec;
+      }
+      return;
+    }
+
+    @Override
+    public void requestTabletHosting(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      send_requestTabletHosting(tinfo, credentials, tableId, extents);
+      recv_requestTabletHosting();
+    }
+
+    public void send_requestTabletHosting(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents) throws org.apache.thrift.TException
+    {
+      requestTabletHosting_args args = new requestTabletHosting_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      args.setTableId(tableId);
+      args.setExtents(extents);
+      sendBase("requestTabletHosting", args);
+    }
+
+    public void recv_requestTabletHosting() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      requestTabletHosting_result result = new requestTabletHosting_result();
+      receiveBase(result, "requestTabletHosting");
       if (result.sec != null) {
         throw result.sec;
       }
@@ -451,19 +483,67 @@ public class TabletManagementClientService {
     }
 
     @Override
-    public void bringOnDemandTabletsOnline(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void setTabletHostingGoal(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents, THostingGoal goal, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      bringOnDemandTabletsOnline_call method_call = new bringOnDemandTabletsOnline_call(tinfo, credentials, tableId, extents, resultHandler, this, ___protocolFactory, ___transport);
+      setTabletHostingGoal_call method_call = new setTabletHostingGoal_call(tinfo, credentials, tableId, extents, goal, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class bringOnDemandTabletsOnline_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
+    public static class setTabletHostingGoal_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private java.lang.String tableId;
       private java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents;
-      public bringOnDemandTabletsOnline_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private THostingGoal goal;
+      public setTabletHostingGoal_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents, THostingGoal goal, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+        this.tableId = tableId;
+        this.extents = extents;
+        this.goal = goal;
+      }
+
+      @Override
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("setTabletHostingGoal", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        setTabletHostingGoal_args args = new setTabletHostingGoal_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.setTableId(tableId);
+        args.setExtents(extents);
+        args.setGoal(goal);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      @Override
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new java.lang.IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_setTabletHostingGoal();
+        return null;
+      }
+    }
+
+    @Override
+    public void requestTabletHosting(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      requestTabletHosting_call method_call = new requestTabletHosting_call(tinfo, credentials, tableId, extents, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class requestTabletHosting_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
+      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
+      private java.lang.String tableId;
+      private java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents;
+      public requestTabletHosting_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -473,8 +553,8 @@ public class TabletManagementClientService {
 
       @Override
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("bringOnDemandTabletsOnline", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        bringOnDemandTabletsOnline_args args = new bringOnDemandTabletsOnline_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("requestTabletHosting", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        requestTabletHosting_args args = new requestTabletHosting_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setTableId(tableId);
@@ -490,7 +570,7 @@ public class TabletManagementClientService {
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        (new Client(prot)).recv_bringOnDemandTabletsOnline();
+        (new Client(prot)).recv_requestTabletHosting();
         return null;
       }
     }
@@ -513,7 +593,8 @@ public class TabletManagementClientService {
       processMap.put("splitTablet", new splitTablet());
       processMap.put("flushTablet", new flushTablet());
       processMap.put("chop", new chop());
-      processMap.put("bringOnDemandTabletsOnline", new bringOnDemandTabletsOnline());
+      processMap.put("setTabletHostingGoal", new setTabletHostingGoal());
+      processMap.put("requestTabletHosting", new requestTabletHosting());
       return processMap;
     }
 
@@ -659,14 +740,14 @@ public class TabletManagementClientService {
       }
     }
 
-    public static class bringOnDemandTabletsOnline<I extends Iface> extends org.apache.thrift.ProcessFunction<I, bringOnDemandTabletsOnline_args> {
-      public bringOnDemandTabletsOnline() {
-        super("bringOnDemandTabletsOnline");
+    public static class setTabletHostingGoal<I extends Iface> extends org.apache.thrift.ProcessFunction<I, setTabletHostingGoal_args> {
+      public setTabletHostingGoal() {
+        super("setTabletHostingGoal");
       }
 
       @Override
-      public bringOnDemandTabletsOnline_args getEmptyArgsInstance() {
-        return new bringOnDemandTabletsOnline_args();
+      public setTabletHostingGoal_args getEmptyArgsInstance() {
+        return new setTabletHostingGoal_args();
       }
 
       @Override
@@ -680,10 +761,42 @@ public class TabletManagementClientService {
       }
 
       @Override
-      public bringOnDemandTabletsOnline_result getResult(I iface, bringOnDemandTabletsOnline_args args) throws org.apache.thrift.TException {
-        bringOnDemandTabletsOnline_result result = new bringOnDemandTabletsOnline_result();
+      public setTabletHostingGoal_result getResult(I iface, setTabletHostingGoal_args args) throws org.apache.thrift.TException {
+        setTabletHostingGoal_result result = new setTabletHostingGoal_result();
         try {
-          iface.bringOnDemandTabletsOnline(args.tinfo, args.credentials, args.tableId, args.extents);
+          iface.setTabletHostingGoal(args.tinfo, args.credentials, args.tableId, args.extents, args.goal);
+        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
+          result.sec = sec;
+        }
+        return result;
+      }
+    }
+
+    public static class requestTabletHosting<I extends Iface> extends org.apache.thrift.ProcessFunction<I, requestTabletHosting_args> {
+      public requestTabletHosting() {
+        super("requestTabletHosting");
+      }
+
+      @Override
+      public requestTabletHosting_args getEmptyArgsInstance() {
+        return new requestTabletHosting_args();
+      }
+
+      @Override
+      protected boolean isOneway() {
+        return false;
+      }
+
+      @Override
+      protected boolean rethrowUnhandledExceptions() {
+        return false;
+      }
+
+      @Override
+      public requestTabletHosting_result getResult(I iface, requestTabletHosting_args args) throws org.apache.thrift.TException {
+        requestTabletHosting_result result = new requestTabletHosting_result();
+        try {
+          iface.requestTabletHosting(args.tinfo, args.credentials, args.tableId, args.extents);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -709,7 +822,8 @@ public class TabletManagementClientService {
       processMap.put("splitTablet", new splitTablet());
       processMap.put("flushTablet", new flushTablet());
       processMap.put("chop", new chop());
-      processMap.put("bringOnDemandTabletsOnline", new bringOnDemandTabletsOnline());
+      processMap.put("setTabletHostingGoal", new setTabletHostingGoal());
+      processMap.put("requestTabletHosting", new requestTabletHosting());
       return processMap;
     }
 
@@ -947,14 +1061,14 @@ public class TabletManagementClientService {
       }
     }
 
-    public static class bringOnDemandTabletsOnline<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, bringOnDemandTabletsOnline_args, Void> {
-      public bringOnDemandTabletsOnline() {
-        super("bringOnDemandTabletsOnline");
+    public static class setTabletHostingGoal<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, setTabletHostingGoal_args, Void> {
+      public setTabletHostingGoal() {
+        super("setTabletHostingGoal");
       }
 
       @Override
-      public bringOnDemandTabletsOnline_args getEmptyArgsInstance() {
-        return new bringOnDemandTabletsOnline_args();
+      public setTabletHostingGoal_args getEmptyArgsInstance() {
+        return new setTabletHostingGoal_args();
       }
 
       @Override
@@ -963,7 +1077,7 @@ public class TabletManagementClientService {
         return new org.apache.thrift.async.AsyncMethodCallback<Void>() { 
           @Override
           public void onComplete(Void o) {
-            bringOnDemandTabletsOnline_result result = new bringOnDemandTabletsOnline_result();
+            setTabletHostingGoal_result result = new setTabletHostingGoal_result();
             try {
               fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
             } catch (org.apache.thrift.transport.TTransportException e) {
@@ -978,7 +1092,7 @@ public class TabletManagementClientService {
           public void onError(java.lang.Exception e) {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
-            bringOnDemandTabletsOnline_result result = new bringOnDemandTabletsOnline_result();
+            setTabletHostingGoal_result result = new setTabletHostingGoal_result();
             if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
@@ -1012,8 +1126,78 @@ public class TabletManagementClientService {
       }
 
       @Override
-      public void start(I iface, bringOnDemandTabletsOnline_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
-        iface.bringOnDemandTabletsOnline(args.tinfo, args.credentials, args.tableId, args.extents,resultHandler);
+      public void start(I iface, setTabletHostingGoal_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+        iface.setTabletHostingGoal(args.tinfo, args.credentials, args.tableId, args.extents, args.goal,resultHandler);
+      }
+    }
+
+    public static class requestTabletHosting<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, requestTabletHosting_args, Void> {
+      public requestTabletHosting() {
+        super("requestTabletHosting");
+      }
+
+      @Override
+      public requestTabletHosting_args getEmptyArgsInstance() {
+        return new requestTabletHosting_args();
+      }
+
+      @Override
+      public org.apache.thrift.async.AsyncMethodCallback<Void> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+        final org.apache.thrift.AsyncProcessFunction fcall = this;
+        return new org.apache.thrift.async.AsyncMethodCallback<Void>() { 
+          @Override
+          public void onComplete(Void o) {
+            requestTabletHosting_result result = new requestTabletHosting_result();
+            try {
+              fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
+            } catch (org.apache.thrift.transport.TTransportException e) {
+              _LOGGER.error("TTransportException writing to internal frame buffer", e);
+              fb.close();
+            } catch (java.lang.Exception e) {
+              _LOGGER.error("Exception writing to internal frame buffer", e);
+              onError(e);
+            }
+          }
+          @Override
+          public void onError(java.lang.Exception e) {
+            byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
+            org.apache.thrift.TSerializable msg;
+            requestTabletHosting_result result = new requestTabletHosting_result();
+            if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
+              result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
+              _LOGGER.error("TTransportException inside handler", e);
+              fb.close();
+              return;
+            } else if (e instanceof org.apache.thrift.TApplicationException) {
+              _LOGGER.error("TApplicationException inside handler", e);
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = (org.apache.thrift.TApplicationException)e;
+            } else {
+              _LOGGER.error("Exception inside handler", e);
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
+            }
+            try {
+              fcall.sendResponse(fb,msg,msgType,seqid);
+            } catch (java.lang.Exception ex) {
+              _LOGGER.error("Exception writing to internal frame buffer", ex);
+              fb.close();
+            }
+          }
+        };
+      }
+
+      @Override
+      protected boolean isOneway() {
+        return false;
+      }
+
+      @Override
+      public void start(I iface, requestTabletHosting_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+        iface.requestTabletHosting(args.tinfo, args.credentials, args.tableId, args.extents,resultHandler);
       }
     }
 
@@ -5286,16 +5470,1276 @@ public class TabletManagementClientService {
   }
 
   @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-  public static class bringOnDemandTabletsOnline_args implements org.apache.thrift.TBase<bringOnDemandTabletsOnline_args, bringOnDemandTabletsOnline_args._Fields>, java.io.Serializable, Cloneable, Comparable<bringOnDemandTabletsOnline_args>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("bringOnDemandTabletsOnline_args");
+  public static class setTabletHostingGoal_args implements org.apache.thrift.TBase<setTabletHostingGoal_args, setTabletHostingGoal_args._Fields>, java.io.Serializable, Cloneable, Comparable<setTabletHostingGoal_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setTabletHostingGoal_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField TABLE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("tableId", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField EXTENTS_FIELD_DESC = new org.apache.thrift.protocol.TField("extents", org.apache.thrift.protocol.TType.LIST, (short)4);
+    private static final org.apache.thrift.protocol.TField GOAL_FIELD_DESC = new org.apache.thrift.protocol.TField("goal", org.apache.thrift.protocol.TType.I32, (short)5);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new setTabletHostingGoal_argsStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new setTabletHostingGoal_argsTupleSchemeFactory();
+
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
+    public @org.apache.thrift.annotation.Nullable java.lang.String tableId; // required
+    public @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents; // required
+    /**
+     * 
+     * @see THostingGoal
+     */
+    public @org.apache.thrift.annotation.Nullable THostingGoal goal; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      TABLE_ID((short)3, "tableId"),
+      EXTENTS((short)4, "extents"),
+      /**
+       * 
+       * @see THostingGoal
+       */
+      GOAL((short)5, "goal");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // TINFO
+            return TINFO;
+          case 2: // CREDENTIALS
+            return CREDENTIALS;
+          case 3: // TABLE_ID
+            return TABLE_ID;
+          case 4: // EXTENTS
+            return EXTENTS;
+          case 5: // GOAL
+            return GOAL;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      @Override
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      @Override
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.TABLE_ID, new org.apache.thrift.meta_data.FieldMetaData("tableId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.EXTENTS, new org.apache.thrift.meta_data.FieldMetaData("extents", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class))));
+      tmpMap.put(_Fields.GOAL, new org.apache.thrift.meta_data.FieldMetaData("goal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, THostingGoal.class)));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setTabletHostingGoal_args.class, metaDataMap);
+    }
+
+    public setTabletHostingGoal_args() {
+    }
+
+    public setTabletHostingGoal_args(
+      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
+      org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
+      java.lang.String tableId,
+      java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents,
+      THostingGoal goal)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+      this.tableId = tableId;
+      this.extents = extents;
+      this.goal = goal;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public setTabletHostingGoal_args(setTabletHostingGoal_args other) {
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
+      }
+      if (other.isSetTableId()) {
+        this.tableId = other.tableId;
+      }
+      if (other.isSetExtents()) {
+        java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> __this__extents = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(other.extents.size());
+        for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent other_element : other.extents) {
+          __this__extents.add(new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other_element));
+        }
+        this.extents = __this__extents;
+      }
+      if (other.isSetGoal()) {
+        this.goal = other.goal;
+      }
+    }
+
+    @Override
+    public setTabletHostingGoal_args deepCopy() {
+      return new setTabletHostingGoal_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+      this.tableId = null;
+      this.extents = null;
+      this.goal = null;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public setTabletHostingGoal_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.securityImpl.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public setTabletHostingGoal_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.lang.String getTableId() {
+      return this.tableId;
+    }
+
+    public setTabletHostingGoal_args setTableId(@org.apache.thrift.annotation.Nullable java.lang.String tableId) {
+      this.tableId = tableId;
+      return this;
+    }
+
+    public void unsetTableId() {
+      this.tableId = null;
+    }
+
+    /** Returns true if field tableId is set (has been assigned a value) and false otherwise */
+    public boolean isSetTableId() {
+      return this.tableId != null;
+    }
+
+    public void setTableIdIsSet(boolean value) {
+      if (!value) {
+        this.tableId = null;
+      }
+    }
+
+    public int getExtentsSize() {
+      return (this.extents == null) ? 0 : this.extents.size();
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.util.Iterator<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> getExtentsIterator() {
+      return (this.extents == null) ? null : this.extents.iterator();
+    }
+
+    public void addToExtents(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent elem) {
+      if (this.extents == null) {
+        this.extents = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>();
+      }
+      this.extents.add(elem);
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> getExtents() {
+      return this.extents;
+    }
+
+    public setTabletHostingGoal_args setExtents(@org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents) {
+      this.extents = extents;
+      return this;
+    }
+
+    public void unsetExtents() {
+      this.extents = null;
+    }
+
+    /** Returns true if field extents is set (has been assigned a value) and false otherwise */
+    public boolean isSetExtents() {
+      return this.extents != null;
+    }
+
+    public void setExtentsIsSet(boolean value) {
+      if (!value) {
+        this.extents = null;
+      }
+    }
+
+    /**
+     * 
+     * @see THostingGoal
+     */
+    @org.apache.thrift.annotation.Nullable
+    public THostingGoal getGoal() {
+      return this.goal;
+    }
+
+    /**
+     * 
+     * @see THostingGoal
+     */
+    public setTabletHostingGoal_args setGoal(@org.apache.thrift.annotation.Nullable THostingGoal goal) {
+      this.goal = goal;
+      return this;
+    }
+
+    public void unsetGoal() {
+      this.goal = null;
+    }
+
+    /** Returns true if field goal is set (has been assigned a value) and false otherwise */
+    public boolean isSetGoal() {
+      return this.goal != null;
+    }
+
+    public void setGoalIsSet(boolean value) {
+      if (!value) {
+        this.goal = null;
+      }
+    }
+
+    @Override
+    public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.securityImpl.thrift.TCredentials)value);
+        }
+        break;
+
+      case TABLE_ID:
+        if (value == null) {
+          unsetTableId();
+        } else {
+          setTableId((java.lang.String)value);
+        }
+        break;
+
+      case EXTENTS:
+        if (value == null) {
+          unsetExtents();
+        } else {
+          setExtents((java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>)value);
+        }
+        break;
+
+      case GOAL:
+        if (value == null) {
+          unsetGoal();
+        } else {
+          setGoal((THostingGoal)value);
+        }
+        break;
+
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    @Override
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      case TABLE_ID:
+        return getTableId();
+
+      case EXTENTS:
+        return getExtents();
+
+      case GOAL:
+        return getGoal();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      case TABLE_ID:
+        return isSetTableId();
+      case EXTENTS:
+        return isSetExtents();
+      case GOAL:
+        return isSetGoal();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that instanceof setTabletHostingGoal_args)
+        return this.equals((setTabletHostingGoal_args)that);
+      return false;
+    }
+
+    public boolean equals(setTabletHostingGoal_args that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      boolean this_present_tableId = true && this.isSetTableId();
+      boolean that_present_tableId = true && that.isSetTableId();
+      if (this_present_tableId || that_present_tableId) {
+        if (!(this_present_tableId && that_present_tableId))
+          return false;
+        if (!this.tableId.equals(that.tableId))
+          return false;
+      }
+
+      boolean this_present_extents = true && this.isSetExtents();
+      boolean that_present_extents = true && that.isSetExtents();
+      if (this_present_extents || that_present_extents) {
+        if (!(this_present_extents && that_present_extents))
+          return false;
+        if (!this.extents.equals(that.extents))
+          return false;
+      }
+
+      boolean this_present_goal = true && this.isSetGoal();
+      boolean that_present_goal = true && that.isSetGoal();
+      if (this_present_goal || that_present_goal) {
+        if (!(this_present_goal && that_present_goal))
+          return false;
+        if (!this.goal.equals(that.goal))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetTinfo()) ? 131071 : 524287);
+      if (isSetTinfo())
+        hashCode = hashCode * 8191 + tinfo.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
+      if (isSetCredentials())
+        hashCode = hashCode * 8191 + credentials.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetTableId()) ? 131071 : 524287);
+      if (isSetTableId())
+        hashCode = hashCode * 8191 + tableId.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetExtents()) ? 131071 : 524287);
+      if (isSetExtents())
+        hashCode = hashCode * 8191 + extents.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetGoal()) ? 131071 : 524287);
+      if (isSetGoal())
+        hashCode = hashCode * 8191 + goal.getValue();
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(setTabletHostingGoal_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.compare(isSetTinfo(), other.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, other.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetCredentials(), other.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, other.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetTableId(), other.isSetTableId());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTableId()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableId, other.tableId);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetExtents(), other.isSetExtents());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetExtents()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.extents, other.extents);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetGoal(), other.isSetGoal());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetGoal()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.goal, other.goal);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    @Override
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    @Override
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    @Override
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+    }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("setTabletHostingGoal_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tableId:");
+      if (this.tableId == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tableId);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("extents:");
+      if (this.extents == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.extents);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("goal:");
+      if (this.goal == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.goal);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class setTabletHostingGoal_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      @Override
+      public setTabletHostingGoal_argsStandardScheme getScheme() {
+        return new setTabletHostingGoal_argsStandardScheme();
+      }
+    }
+
+    private static class setTabletHostingGoal_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<setTabletHostingGoal_args> {
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol iprot, setTabletHostingGoal_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // TABLE_ID
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.tableId = iprot.readString();
+                struct.setTableIdIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 4: // EXTENTS
+              if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
+                {
+                  org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
+                  struct.extents = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list0.size);
+                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem1;
+                  for (int _i2 = 0; _i2 < _list0.size; ++_i2)
+                  {
+                    _elem1 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+                    _elem1.read(iprot);
+                    struct.extents.add(_elem1);
+                  }
+                  iprot.readListEnd();
+                }
+                struct.setExtentsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 5: // GOAL
+              if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
+                struct.goal = org.apache.accumulo.core.tablet.thrift.THostingGoal.findByValue(iprot.readI32());
+                struct.setGoalIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol oprot, setTabletHostingGoal_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.tableId != null) {
+          oprot.writeFieldBegin(TABLE_ID_FIELD_DESC);
+          oprot.writeString(struct.tableId);
+          oprot.writeFieldEnd();
+        }
+        if (struct.extents != null) {
+          oprot.writeFieldBegin(EXTENTS_FIELD_DESC);
+          {
+            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.extents.size()));
+            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter3 : struct.extents)
+            {
+              _iter3.write(oprot);
+            }
+            oprot.writeListEnd();
+          }
+          oprot.writeFieldEnd();
+        }
+        if (struct.goal != null) {
+          oprot.writeFieldBegin(GOAL_FIELD_DESC);
+          oprot.writeI32(struct.goal.getValue());
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class setTabletHostingGoal_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      @Override
+      public setTabletHostingGoal_argsTupleScheme getScheme() {
+        return new setTabletHostingGoal_argsTupleScheme();
+      }
+    }
+
+    private static class setTabletHostingGoal_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<setTabletHostingGoal_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, setTabletHostingGoal_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        if (struct.isSetTableId()) {
+          optionals.set(2);
+        }
+        if (struct.isSetExtents()) {
+          optionals.set(3);
+        }
+        if (struct.isSetGoal()) {
+          optionals.set(4);
+        }
+        oprot.writeBitSet(optionals, 5);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+        if (struct.isSetTableId()) {
+          oprot.writeString(struct.tableId);
+        }
+        if (struct.isSetExtents()) {
+          {
+            oprot.writeI32(struct.extents.size());
+            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter4 : struct.extents)
+            {
+              _iter4.write(oprot);
+            }
+          }
+        }
+        if (struct.isSetGoal()) {
+          oprot.writeI32(struct.goal.getValue());
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, setTabletHostingGoal_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(5);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.tableId = iprot.readString();
+          struct.setTableIdIsSet(true);
+        }
+        if (incoming.get(3)) {
+          {
+            org.apache.thrift.protocol.TList _list5 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+            struct.extents = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list5.size);
+            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem6;
+            for (int _i7 = 0; _i7 < _list5.size; ++_i7)
+            {
+              _elem6 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+              _elem6.read(iprot);
+              struct.extents.add(_elem6);
+            }
+          }
+          struct.setExtentsIsSet(true);
+        }
+        if (incoming.get(4)) {
+          struct.goal = org.apache.accumulo.core.tablet.thrift.THostingGoal.findByValue(iprot.readI32());
+          struct.setGoalIsSet(true);
+        }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
+  public static class setTabletHostingGoal_result implements org.apache.thrift.TBase<setTabletHostingGoal_result, setTabletHostingGoal_result._Fields>, java.io.Serializable, Cloneable, Comparable<setTabletHostingGoal_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setTabletHostingGoal_result");
+
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new setTabletHostingGoal_resultStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new setTabletHostingGoal_resultTupleSchemeFactory();
+
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SEC((short)1, "sec");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // SEC
+            return SEC;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      @Override
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      @Override
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setTabletHostingGoal_result.class, metaDataMap);
+    }
+
+    public setTabletHostingGoal_result() {
+    }
+
+    public setTabletHostingGoal_result(
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
+    {
+      this();
+      this.sec = sec;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public setTabletHostingGoal_result(setTabletHostingGoal_result other) {
+      if (other.isSetSec()) {
+        this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
+      }
+    }
+
+    @Override
+    public setTabletHostingGoal_result deepCopy() {
+      return new setTabletHostingGoal_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.sec = null;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public setTabletHostingGoal_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    @Override
+    public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
+      switch (field) {
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException)value);
+        }
+        break;
+
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    @Override
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SEC:
+        return getSec();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SEC:
+        return isSetSec();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that instanceof setTabletHostingGoal_result)
+        return this.equals((setTabletHostingGoal_result)that);
+      return false;
+    }
+
+    public boolean equals(setTabletHostingGoal_result that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(setTabletHostingGoal_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    @Override
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    @Override
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+      }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("setTabletHostingGoal_result(");
+      boolean first = true;
+
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class setTabletHostingGoal_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      @Override
+      public setTabletHostingGoal_resultStandardScheme getScheme() {
+        return new setTabletHostingGoal_resultStandardScheme();
+      }
+    }
+
+    private static class setTabletHostingGoal_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<setTabletHostingGoal_result> {
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol iprot, setTabletHostingGoal_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol oprot, setTabletHostingGoal_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class setTabletHostingGoal_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      @Override
+      public setTabletHostingGoal_resultTupleScheme getScheme() {
+        return new setTabletHostingGoal_resultTupleScheme();
+      }
+    }
+
+    private static class setTabletHostingGoal_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<setTabletHostingGoal_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, setTabletHostingGoal_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetSec()) {
+          optionals.set(0);
+        }
+        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, setTabletHostingGoal_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(1);
+        if (incoming.get(0)) {
+          struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
+  public static class requestTabletHosting_args implements org.apache.thrift.TBase<requestTabletHosting_args, requestTabletHosting_args._Fields>, java.io.Serializable, Cloneable, Comparable<requestTabletHosting_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("requestTabletHosting_args");
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField TABLE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("tableId", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField EXTENTS_FIELD_DESC = new org.apache.thrift.protocol.TField("extents", org.apache.thrift.protocol.TType.LIST, (short)4);
 
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new bringOnDemandTabletsOnline_argsStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new bringOnDemandTabletsOnline_argsTupleSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new requestTabletHosting_argsStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new requestTabletHosting_argsTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
@@ -5387,13 +6831,13 @@ public class TabletManagementClientService {
           new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
               new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class))));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(bringOnDemandTabletsOnline_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(requestTabletHosting_args.class, metaDataMap);
     }
 
-    public bringOnDemandTabletsOnline_args() {
+    public requestTabletHosting_args() {
     }
 
-    public bringOnDemandTabletsOnline_args(
+    public requestTabletHosting_args(
       org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       java.lang.String tableId,
@@ -5409,7 +6853,7 @@ public class TabletManagementClientService {
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public bringOnDemandTabletsOnline_args(bringOnDemandTabletsOnline_args other) {
+    public requestTabletHosting_args(requestTabletHosting_args other) {
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
@@ -5429,8 +6873,8 @@ public class TabletManagementClientService {
     }
 
     @Override
-    public bringOnDemandTabletsOnline_args deepCopy() {
-      return new bringOnDemandTabletsOnline_args(this);
+    public requestTabletHosting_args deepCopy() {
+      return new requestTabletHosting_args(this);
     }
 
     @Override
@@ -5446,7 +6890,7 @@ public class TabletManagementClientService {
       return this.tinfo;
     }
 
-    public bringOnDemandTabletsOnline_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
+    public requestTabletHosting_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -5471,7 +6915,7 @@ public class TabletManagementClientService {
       return this.credentials;
     }
 
-    public bringOnDemandTabletsOnline_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
+    public requestTabletHosting_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -5496,7 +6940,7 @@ public class TabletManagementClientService {
       return this.tableId;
     }
 
-    public bringOnDemandTabletsOnline_args setTableId(@org.apache.thrift.annotation.Nullable java.lang.String tableId) {
+    public requestTabletHosting_args setTableId(@org.apache.thrift.annotation.Nullable java.lang.String tableId) {
       this.tableId = tableId;
       return this;
     }
@@ -5537,7 +6981,7 @@ public class TabletManagementClientService {
       return this.extents;
     }
 
-    public bringOnDemandTabletsOnline_args setExtents(@org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents) {
+    public requestTabletHosting_args setExtents(@org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> extents) {
       this.extents = extents;
       return this;
     }
@@ -5637,12 +7081,12 @@ public class TabletManagementClientService {
 
     @Override
     public boolean equals(java.lang.Object that) {
-      if (that instanceof bringOnDemandTabletsOnline_args)
-        return this.equals((bringOnDemandTabletsOnline_args)that);
+      if (that instanceof requestTabletHosting_args)
+        return this.equals((requestTabletHosting_args)that);
       return false;
     }
 
-    public boolean equals(bringOnDemandTabletsOnline_args that) {
+    public boolean equals(requestTabletHosting_args that) {
       if (that == null)
         return false;
       if (this == that)
@@ -5711,7 +7155,7 @@ public class TabletManagementClientService {
     }
 
     @Override
-    public int compareTo(bringOnDemandTabletsOnline_args other) {
+    public int compareTo(requestTabletHosting_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
@@ -5779,7 +7223,7 @@ public class TabletManagementClientService {
 
     @Override
     public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("bringOnDemandTabletsOnline_args(");
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("requestTabletHosting_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -5844,17 +7288,17 @@ public class TabletManagementClientService {
       }
     }
 
-    private static class bringOnDemandTabletsOnline_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class requestTabletHosting_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public bringOnDemandTabletsOnline_argsStandardScheme getScheme() {
-        return new bringOnDemandTabletsOnline_argsStandardScheme();
+      public requestTabletHosting_argsStandardScheme getScheme() {
+        return new requestTabletHosting_argsStandardScheme();
       }
     }
 
-    private static class bringOnDemandTabletsOnline_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<bringOnDemandTabletsOnline_args> {
+    private static class requestTabletHosting_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<requestTabletHosting_args> {
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol iprot, bringOnDemandTabletsOnline_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, requestTabletHosting_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -5893,14 +7337,14 @@ public class TabletManagementClientService {
             case 4: // EXTENTS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
-                  struct.extents = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list0.size);
-                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem1;
-                  for (int _i2 = 0; _i2 < _list0.size; ++_i2)
+                  org.apache.thrift.protocol.TList _list8 = iprot.readListBegin();
+                  struct.extents = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list8.size);
+                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem9;
+                  for (int _i10 = 0; _i10 < _list8.size; ++_i10)
                   {
-                    _elem1 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-                    _elem1.read(iprot);
-                    struct.extents.add(_elem1);
+                    _elem9 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+                    _elem9.read(iprot);
+                    struct.extents.add(_elem9);
                   }
                   iprot.readListEnd();
                 }
@@ -5921,7 +7365,7 @@ public class TabletManagementClientService {
       }
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol oprot, bringOnDemandTabletsOnline_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, requestTabletHosting_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -5944,9 +7388,9 @@ public class TabletManagementClientService {
           oprot.writeFieldBegin(EXTENTS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.extents.size()));
-            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter3 : struct.extents)
+            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter11 : struct.extents)
             {
-              _iter3.write(oprot);
+              _iter11.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -5958,17 +7402,17 @@ public class TabletManagementClientService {
 
     }
 
-    private static class bringOnDemandTabletsOnline_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class requestTabletHosting_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public bringOnDemandTabletsOnline_argsTupleScheme getScheme() {
-        return new bringOnDemandTabletsOnline_argsTupleScheme();
+      public requestTabletHosting_argsTupleScheme getScheme() {
+        return new requestTabletHosting_argsTupleScheme();
       }
     }
 
-    private static class bringOnDemandTabletsOnline_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<bringOnDemandTabletsOnline_args> {
+    private static class requestTabletHosting_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<requestTabletHosting_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, bringOnDemandTabletsOnline_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, requestTabletHosting_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
         if (struct.isSetTinfo()) {
@@ -5996,16 +7440,16 @@ public class TabletManagementClientService {
         if (struct.isSetExtents()) {
           {
             oprot.writeI32(struct.extents.size());
-            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter4 : struct.extents)
+            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter12 : struct.extents)
             {
-              _iter4.write(oprot);
+              _iter12.write(oprot);
             }
           }
         }
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, bringOnDemandTabletsOnline_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, requestTabletHosting_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
@@ -6024,14 +7468,14 @@ public class TabletManagementClientService {
         }
         if (incoming.get(3)) {
           {
-            org.apache.thrift.protocol.TList _list5 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.extents = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list5.size);
-            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem6;
-            for (int _i7 = 0; _i7 < _list5.size; ++_i7)
+            org.apache.thrift.protocol.TList _list13 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+            struct.extents = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list13.size);
+            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem14;
+            for (int _i15 = 0; _i15 < _list13.size; ++_i15)
             {
-              _elem6 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-              _elem6.read(iprot);
-              struct.extents.add(_elem6);
+              _elem14 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+              _elem14.read(iprot);
+              struct.extents.add(_elem14);
             }
           }
           struct.setExtentsIsSet(true);
@@ -6045,13 +7489,13 @@ public class TabletManagementClientService {
   }
 
   @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-  public static class bringOnDemandTabletsOnline_result implements org.apache.thrift.TBase<bringOnDemandTabletsOnline_result, bringOnDemandTabletsOnline_result._Fields>, java.io.Serializable, Cloneable, Comparable<bringOnDemandTabletsOnline_result>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("bringOnDemandTabletsOnline_result");
+  public static class requestTabletHosting_result implements org.apache.thrift.TBase<requestTabletHosting_result, requestTabletHosting_result._Fields>, java.io.Serializable, Cloneable, Comparable<requestTabletHosting_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("requestTabletHosting_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new bringOnDemandTabletsOnline_resultStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new bringOnDemandTabletsOnline_resultTupleSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new requestTabletHosting_resultStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new requestTabletHosting_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
 
@@ -6124,13 +7568,13 @@ public class TabletManagementClientService {
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(bringOnDemandTabletsOnline_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(requestTabletHosting_result.class, metaDataMap);
     }
 
-    public bringOnDemandTabletsOnline_result() {
+    public requestTabletHosting_result() {
     }
 
-    public bringOnDemandTabletsOnline_result(
+    public requestTabletHosting_result(
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
@@ -6140,15 +7584,15 @@ public class TabletManagementClientService {
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public bringOnDemandTabletsOnline_result(bringOnDemandTabletsOnline_result other) {
+    public requestTabletHosting_result(requestTabletHosting_result other) {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
       }
     }
 
     @Override
-    public bringOnDemandTabletsOnline_result deepCopy() {
-      return new bringOnDemandTabletsOnline_result(this);
+    public requestTabletHosting_result deepCopy() {
+      return new requestTabletHosting_result(this);
     }
 
     @Override
@@ -6161,7 +7605,7 @@ public class TabletManagementClientService {
       return this.sec;
     }
 
-    public bringOnDemandTabletsOnline_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
+    public requestTabletHosting_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -6222,12 +7666,12 @@ public class TabletManagementClientService {
 
     @Override
     public boolean equals(java.lang.Object that) {
-      if (that instanceof bringOnDemandTabletsOnline_result)
-        return this.equals((bringOnDemandTabletsOnline_result)that);
+      if (that instanceof requestTabletHosting_result)
+        return this.equals((requestTabletHosting_result)that);
       return false;
     }
 
-    public boolean equals(bringOnDemandTabletsOnline_result that) {
+    public boolean equals(requestTabletHosting_result that) {
       if (that == null)
         return false;
       if (this == that)
@@ -6257,7 +7701,7 @@ public class TabletManagementClientService {
     }
 
     @Override
-    public int compareTo(bringOnDemandTabletsOnline_result other) {
+    public int compareTo(requestTabletHosting_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
@@ -6294,7 +7738,7 @@ public class TabletManagementClientService {
 
     @Override
     public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("bringOnDemandTabletsOnline_result(");
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("requestTabletHosting_result(");
       boolean first = true;
 
       sb.append("sec:");
@@ -6329,17 +7773,17 @@ public class TabletManagementClientService {
       }
     }
 
-    private static class bringOnDemandTabletsOnline_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class requestTabletHosting_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public bringOnDemandTabletsOnline_resultStandardScheme getScheme() {
-        return new bringOnDemandTabletsOnline_resultStandardScheme();
+      public requestTabletHosting_resultStandardScheme getScheme() {
+        return new requestTabletHosting_resultStandardScheme();
       }
     }
 
-    private static class bringOnDemandTabletsOnline_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<bringOnDemandTabletsOnline_result> {
+    private static class requestTabletHosting_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<requestTabletHosting_result> {
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol iprot, bringOnDemandTabletsOnline_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, requestTabletHosting_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -6370,7 +7814,7 @@ public class TabletManagementClientService {
       }
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol oprot, bringOnDemandTabletsOnline_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, requestTabletHosting_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
@@ -6385,17 +7829,17 @@ public class TabletManagementClientService {
 
     }
 
-    private static class bringOnDemandTabletsOnline_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class requestTabletHosting_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public bringOnDemandTabletsOnline_resultTupleScheme getScheme() {
-        return new bringOnDemandTabletsOnline_resultTupleScheme();
+      public requestTabletHosting_resultTupleScheme getScheme() {
+        return new requestTabletHosting_resultTupleScheme();
       }
     }
 
-    private static class bringOnDemandTabletsOnline_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<bringOnDemandTabletsOnline_result> {
+    private static class requestTabletHosting_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<requestTabletHosting_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, bringOnDemandTabletsOnline_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, requestTabletHosting_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
         if (struct.isSetSec()) {
@@ -6408,7 +7852,7 @@ public class TabletManagementClientService {
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, bringOnDemandTabletsOnline_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, requestTabletHosting_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {

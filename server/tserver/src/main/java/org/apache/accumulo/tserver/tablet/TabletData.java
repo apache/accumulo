@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -51,7 +52,7 @@ public class TabletData {
   private long splitTime = 0;
   private String directoryName = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
-  private final boolean onDemand;
+  private final TabletHostingGoal goal;
 
   // Read tablet data from metadata tables
   public TabletData(TabletMetadata meta) {
@@ -74,13 +75,13 @@ public class TabletData {
     });
 
     this.extCompactions = meta.getExternalCompactions();
-    this.onDemand = meta.getOnDemand();
+    this.goal = meta.getHostingGoal();
   }
 
   // Data pulled from an existing tablet to make a split
   public TabletData(String dirName, SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes,
       MetadataTime time, long lastFlushID, long lastCompactID, Location lastLocation,
-      Map<Long,List<TabletFile>> bulkIngestedFiles, boolean onDemand) {
+      Map<Long,List<TabletFile>> bulkIngestedFiles, TabletHostingGoal goal) {
     this.directoryName = dirName;
     this.dataFiles = highDatafileSizes;
     this.time = time;
@@ -90,7 +91,7 @@ public class TabletData {
     this.bulkImported = bulkIngestedFiles;
     this.splitTime = System.currentTimeMillis();
     this.extCompactions = Map.of();
-    this.onDemand = onDemand;
+    this.goal = goal;
   }
 
   public MetadataTime getTime() {
@@ -137,7 +138,7 @@ public class TabletData {
     return extCompactions;
   }
 
-  public boolean isOnDemand() {
-    return onDemand;
+  public TabletHostingGoal getHostingGoal() {
+    return goal;
   }
 }

@@ -39,7 +39,6 @@ enum TableOperation {
   IMPORT
   EXPORT
   COMPACT_CANCEL
-  ONDEMAND
 }
 
 enum TableOperationExceptionType {

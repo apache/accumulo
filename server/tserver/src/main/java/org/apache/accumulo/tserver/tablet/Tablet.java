@@ -52,6 +52,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.Deriver;
@@ -231,7 +232,9 @@ public class Tablet extends TabletBase {
   private final ConcurrentHashMap<Long,List<TabletFile>> bulkImported = new ConcurrentHashMap<>();
 
   private final int logId;
-  private final boolean onDemand;
+
+  // TODO: User can change this, how does it get updated?
+  private final TabletHostingGoal goal;
 
   public int getLogId() {
     return logId;
@@ -299,7 +302,7 @@ public class Tablet extends TabletBase {
     this.tabletTime = TabletTime.getInstance(data.getTime());
     this.persistedTime = tabletTime.getTime();
     this.logId = tabletServer.createLogId();
-    this.onDemand = data.isOnDemand();
+    this.goal = data.getHostingGoal();
 
     // translate any volume changes
     TabletFiles tabletPaths =
@@ -1581,9 +1584,9 @@ public class Tablet extends TabletBase {
       TabletLogger.split(extent, low, high, getTabletServer().getTabletSession());
 
       newTablets.put(high, new TabletData(dirName, highDatafileSizes, time, lastFlushID.get(),
-          lastCompactID.get(), lastLocation, bulkImported, onDemand));
+          lastCompactID.get(), lastLocation, bulkImported, goal));
       newTablets.put(low, new TabletData(lowDirectoryName, lowDatafileSizes, time,
-          lastFlushID.get(), lastCompactID.get(), lastLocation, bulkImported, onDemand));
+          lastFlushID.get(), lastCompactID.get(), lastLocation, bulkImported, goal));
 
       long t2 = System.currentTimeMillis();
 
@@ -2154,7 +2157,6 @@ public class Tablet extends TabletBase {
   }
 
   public boolean isOnDemand() {
-    return this.onDemand;
+    return goal == TabletHostingGoal.ONDEMAND;
   }
-
 }

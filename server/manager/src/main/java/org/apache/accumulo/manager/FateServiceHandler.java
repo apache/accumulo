@@ -418,32 +418,6 @@ class FateServiceHandler implements FateService.Iface {
             goalMessage);
         break;
       }
-      case TABLE_ONDEMAND: {
-        TableOperation tableOp = TableOperation.ONDEMAND;
-        validateArgumentCount(arguments, tableOp, 1);
-        final var tableId = validateTableIdArgument(arguments.get(0), tableOp,
-            NOT_ROOT_TABLE_ID.and(NOT_METADATA_TABLE_ID));
-        NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
-
-        final boolean canOnDemandTable;
-        try {
-          canOnDemandTable = manager.security.canChangeTableState(c, tableId, op, namespaceId);
-        } catch (ThriftSecurityException e) {
-          throwIfTableMissingSecurityException(e, tableId, null, TableOperation.ONDEMAND);
-          throw e;
-        }
-
-        if (!canOnDemandTable) {
-          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-        }
-
-        goalMessage += "Ondemand table " + tableId;
-        manager.fate().seedTransaction(op.toString(), opid,
-            new TraceRepo<>(new ChangeTableState(namespaceId, tableId, tableOp)), autoCleanup,
-            goalMessage);
-        break;
-
-      }
       case TABLE_MERGE: {
         TableOperation tableOp = TableOperation.MERGE;
         validateArgumentCount(arguments, tableOp, 3);
