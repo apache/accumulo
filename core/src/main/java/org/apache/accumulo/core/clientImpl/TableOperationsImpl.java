@@ -27,6 +27,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
@@ -1370,7 +1371,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
 
       TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
-          .overRange(range).fetch(HOSTING_GOAL, LOCATION, PREV_ROW).build();
+          .overRange(range).fetch(HOSTING_GOAL, HOSTING_REQUESTED, LOCATION, PREV_ROW).build();
 
       KeyExtent lastExtent = null;
 
@@ -1386,7 +1387,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         TabletHostingGoal goal = tablet.getHostingGoal();
 
         if ((expectedState == TableState.ONLINE
-            && (goal == TabletHostingGoal.ALWAYS || goal == TabletHostingGoal.ONDEMAND)
+            && (goal == TabletHostingGoal.ALWAYS
+                || (goal == TabletHostingGoal.ONDEMAND) && tablet.getHostingRequested())
             && (loc == null || loc.getType() == LocationType.FUTURE))
             || (expectedState == TableState.OFFLINE && loc != null)) {
           if (continueRow == null) {
@@ -1405,8 +1407,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
               "Saw unexpected table Id " + tableId + " " + tablet.getExtent());
         }
 
-        if (expectedState == TableState.OFFLINE && lastExtent != null
-            && !tablet.getExtent().isPreviousExtent(lastExtent)) {
+        if (lastExtent != null && !tablet.getExtent().isPreviousExtent(lastExtent)) {
           holes++;
         }
 

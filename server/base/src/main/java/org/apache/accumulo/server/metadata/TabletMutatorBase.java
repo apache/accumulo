@@ -274,22 +274,19 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
 
   @Override
   public T setHostingGoal(TabletHostingGoal goal) {
-    mutation.put(HostingColumnFamily.GOAL_COLUMN.getColumnFamily(),
-        HostingColumnFamily.GOAL_COLUMN.getColumnQualifier(), TabletHostingGoalUtil.toValue(goal));
+    HostingColumnFamily.GOAL_COLUMN.put(mutation, TabletHostingGoalUtil.toValue(goal));
     return getThis();
   }
 
   @Override
   public T setHostingRequested() {
-    mutation.put(HostingColumnFamily.REQUESTED_COLUMN.getColumnFamily(),
-        HostingColumnFamily.REQUESTED_COLUMN.getColumnQualifier(), EMPTY_VALUE);
+    HostingColumnFamily.REQUESTED_COLUMN.put(mutation, EMPTY_VALUE);
     return getThis();
   }
 
   @Override
   public T deleteHostingRequested() {
-    mutation.putDelete(HostingColumnFamily.REQUESTED_COLUMN.getColumnFamily(),
-        HostingColumnFamily.REQUESTED_COLUMN.getColumnQualifier());
+    HostingColumnFamily.REQUESTED_COLUMN.putDelete(mutation);
     return getThis();
   }
 

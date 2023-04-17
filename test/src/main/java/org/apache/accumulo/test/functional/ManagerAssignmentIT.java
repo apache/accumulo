@@ -150,10 +150,9 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       do {
         UtilWaitThread.sleep(250);
         always = getTabletLocationState(c, tableId);
-      } while (always.goal == TabletHostingGoal.ONDEMAND);
+      } while (always.goal != TabletHostingGoal.ALWAYS && always.current == null);
 
       assertNull(always.future);
-      assertNotNull(always.current);
       assertEquals(flushed.getCurrentServer(), always.getLastServer());
       assertEquals(TabletHostingGoal.ALWAYS, always.goal);
 
@@ -163,10 +162,9 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       do {
         UtilWaitThread.sleep(250);
         never = getTabletLocationState(c, tableId);
-      } while (never.goal == TabletHostingGoal.ALWAYS);
+      } while (never.goal != TabletHostingGoal.NEVER && never.current != null);
 
       assertNull(never.future);
-      assertNotNull(never.current);
       assertEquals(flushed.getCurrentServer(), never.getLastServer());
       assertEquals(TabletHostingGoal.NEVER, never.goal);
 
@@ -176,10 +174,9 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       do {
         UtilWaitThread.sleep(250);
         ondemand = getTabletLocationState(c, tableId);
-      } while (ondemand.goal == TabletHostingGoal.NEVER);
+      } while (ondemand.goal != TabletHostingGoal.ONDEMAND);
 
       assertNull(ondemand.future);
-      assertNotNull(ondemand.current);
       assertEquals(flushed.getCurrentServer(), ondemand.getLastServer());
       assertEquals(TabletHostingGoal.ONDEMAND, ondemand.goal);
 

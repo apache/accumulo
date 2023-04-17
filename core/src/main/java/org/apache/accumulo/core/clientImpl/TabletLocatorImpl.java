@@ -604,7 +604,9 @@ public class TabletLocatorImpl extends TabletLocator {
       Range range, Set<TabletHostingGoal> disallowedStates, boolean excludeHostedTablets)
       throws AccumuloException {
 
-    final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
+    final Text scanRangeStart = (range.getStartKey() == null) ? null : (range.isStartKeyInclusive()
+        ? range.getStartKey().getRow() : range.getStartKey().followingKey(PartialKey.ROW).getRow());
+
     final Text scanRangeEnd = (range.getEndKey() == null) ? null : range.getEndKey().getRow();
     // Turn the scan range into a KeyExtent and return all tablets
     // that are overlapped by the scan range
@@ -628,10 +630,11 @@ public class TabletLocatorImpl extends TabletLocator {
         continue;
       }
       if (scanRangeEnd != null && tm.getPrevEndRow() != null
-          && tm.getPrevEndRow().compareTo(scanRangeEnd) > 0) {
+          && ((!range.isEndKeyInclusive() && tm.getPrevEndRow().compareTo(scanRangeEnd) >= 0)
+              || range.isEndKeyInclusive() && tm.getPrevEndRow().compareTo(scanRangeEnd) > 0)) {
         // the start row of this tablet is after the scan range end row, skip it
         log.trace("tablet {} is after scan end range: {}", tabletExtent, scanRangeEnd);
-        continue;
+        break;
       }
       if (scanRangeKE.overlaps(tabletExtent)) {
         Location loc = tm.getLocation();

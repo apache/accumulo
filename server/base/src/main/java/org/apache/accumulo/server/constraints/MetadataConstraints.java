@@ -88,7 +88,9 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,
           ServerColumnFamily.COMPACT_COLUMN,
-              ServerColumnFamily.OPID_COLUMN);
+          ServerColumnFamily.OPID_COLUMN,
+          HostingColumnFamily.GOAL_COLUMN,
+          HostingColumnFamily.REQUESTED_COLUMN);
 
   private static final Set<Text> validColumnFams =
       Set.of(BulkFileColumnFamily.NAME,
@@ -100,8 +102,7 @@ public class MetadataConstraints implements Constraint {
           FutureLocationColumnFamily.NAME,
           ChoppedColumnFamily.NAME,
           ClonedColumnFamily.NAME,
-          ExternalCompactionColumnFamily.NAME,
-          HostingColumnFamily.NAME);
+          ExternalCompactionColumnFamily.NAME);
   // @formatter:on
 
   private static boolean isValidColumn(ColumnUpdate cu) {
@@ -203,9 +204,7 @@ public class MetadataConstraints implements Constraint {
       }
 
       if (columnUpdate.getValue().length == 0 && !columnFamily.equals(ScanFileColumnFamily.NAME)
-          && !(columnFamily.equals(HostingColumnFamily.REQUESTED_COLUMN.getColumnFamily())
-              && columnQualifier
-                  .equals(HostingColumnFamily.REQUESTED_COLUMN.getColumnQualifier()))) {
+          && !HostingColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)) {
         violations = addViolation(violations, 6);
       }
 
@@ -221,8 +220,7 @@ public class MetadataConstraints implements Constraint {
         }
       } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
 
-      } else if (columnFamily.equals(HostingColumnFamily.GOAL_COLUMN.getColumnFamily())
-          && columnQualifier.equals(HostingColumnFamily.GOAL_COLUMN.getColumnQualifier())) {
+      } else if (HostingColumnFamily.GOAL_COLUMN.equals(columnFamily, columnQualifier)) {
         try {
           TabletHostingGoalUtil.fromValue(new Value(columnUpdate.getValue()));
         } catch (IllegalArgumentException e) {

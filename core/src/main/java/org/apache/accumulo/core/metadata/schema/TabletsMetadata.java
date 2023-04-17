@@ -284,7 +284,10 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             qualifiers.add(FLUSH_COLUMN);
             break;
           case HOSTING_GOAL:
-            families.add(HostingColumnFamily.NAME);
+            qualifiers.add(HostingColumnFamily.GOAL_COLUMN);
+            break;
+          case HOSTING_REQUESTED:
+            qualifiers.add(HostingColumnFamily.REQUESTED_COLUMN);
             break;
           case LAST:
             families.add(LastLocationColumnFamily.NAME);

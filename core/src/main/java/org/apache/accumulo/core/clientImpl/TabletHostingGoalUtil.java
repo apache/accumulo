@@ -20,7 +20,6 @@ package org.apache.accumulo.core.clientImpl;
 
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.tablet.thrift.THostingGoal;
 
 public class TabletHostingGoalUtil {
@@ -67,11 +66,11 @@ public class TabletHostingGoalUtil {
   public static Value toValue(TabletHostingGoal goal) {
     switch (goal) {
       case ALWAYS:
-        return new Value(HostingColumnFamily.ALWAYS_GOAL);
+        return new Value(TabletHostingGoal.ALWAYS.name());
       case NEVER:
-        return new Value(HostingColumnFamily.NEVER_GOAL);
+        return new Value(TabletHostingGoal.NEVER.name());
       case ONDEMAND:
-        return new Value(HostingColumnFamily.ONDEMAND_GOAL);
+        return new Value(TabletHostingGoal.ONDEMAND.name());
       default:
         throw new IllegalArgumentException("Unhandled enum value");
     }
