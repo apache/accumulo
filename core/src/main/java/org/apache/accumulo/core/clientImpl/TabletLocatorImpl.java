@@ -632,11 +632,11 @@ public class TabletLocatorImpl extends TabletLocator {
       }
     }
 
-    if(!extentsToBringOnline.isEmpty()) {
+    if (!extentsToBringOnline.isEmpty()) {
       log.debug("Requesting tablets be hosted: {}", extentsToBringOnline);
       ThriftClientTypes.TABLET_MGMT.executeVoid(context,
-              client -> client.requestTabletHosting(TraceUtil.traceInfo(), context.rpcCreds(),
-                      tableId.canonical(), extentsToBringOnline));
+          client -> client.requestTabletHosting(TraceUtil.traceInfo(), context.rpcCreds(),
+              tableId.canonical(), extentsToBringOnline));
       tabletHostingRequestCount.addAndGet(extentsToBringOnline.size());
     }
   }
