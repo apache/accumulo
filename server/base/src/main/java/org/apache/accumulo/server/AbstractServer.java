@@ -32,12 +32,13 @@ import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
+import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
 
 public abstract class AbstractServer implements AutoCloseable, MetricsProducer, Runnable {
 
@@ -45,7 +46,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   protected final String applicationName;
   private final String hostname;
 
-  private Gauge lowMemoryMetricGuage = null;
+  private final ProcessMetrics processMetrics;
 
   protected AbstractServer(String appName, ConfigOpts opts, String[] args) {
     this.applicationName = appName;
@@ -54,7 +55,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     this.hostname = siteConfig.get(Property.GENERAL_PROCESS_BIND_ADDRESS);
     SecurityUtil.serverLogin(siteConfig);
     context = new ServerContext(siteConfig);
-    Logger log = LoggerFactory.getLogger(getClass().getName());
+    Logger log = LoggerFactory.getLogger(getClass());
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
     context.init(appName);
@@ -69,7 +70,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
         () -> lmd.logGCInfo(context.getConfiguration()), 0,
         lmd.getIntervalMillis(context.getConfiguration()), TimeUnit.MILLISECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
-    MetricsUtil.initializeProducers(this);
+    processMetrics = new ProcessMetrics(context);
   }
 
   /**
@@ -95,20 +96,12 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    lowMemoryMetricGuage =
-        Gauge
-            .builder(METRICS_APP_PREFIX + applicationName + "." + hostname + "."
-                + METRICS_APP_LOW_MEMORY, this, this::lowMemDetected)
-            .description(
-                "reports 1 when process memory usage is above threshold, 0 when memory is okay") // optional
-            .register(registry);
+    processMetrics.registerMetrics(registry);
   }
 
-  private int lowMemDetected(AbstractServer abstractServer) {
-    if (abstractServer.context.getLowMemoryDetector().isRunningLowOnMemory()) {
-      return 1;
-    }
-    return 0;
+  public void intServiceMetrics(MetricsProducer... producers) {
+    registerMetrics(Metrics.globalRegistry);
+    MetricsUtil.initializeProducers(producers);
   }
 
   public String getHostname() {

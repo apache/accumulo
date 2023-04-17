@@ -48,7 +48,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>N/A</td>
  * <td>N/A</td>
- * <td>{@link #METRICS_APP_LOW_MEMORY}</td>
+ * <td>{@link #METRICS_LOW_MEMORY}</td>
  * <td>Guage</td>
  * <td>reports 1 when process memory usage is above threshold, 0 when memory is okay</td>
  * </tr>
@@ -601,8 +601,7 @@ public interface MetricsProducer {
 
   Logger LOG = LoggerFactory.getLogger(MetricsProducer.class);
 
-  String METRICS_APP_PREFIX = "accumulo.app.";
-  String METRICS_APP_LOW_MEMORY = "detected.low.memory";
+  String METRICS_LOW_MEMORY = "accumulo.detected.low.memory";
   String METRICS_COMPACTOR_PREFIX = "accumulo.compactor";
   String METRICS_COMPACTOR_MAJC_STUCK = METRICS_COMPACTOR_PREFIX + "majc.stuck";
 

@@ -22,32 +22,25 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.server.ServerContext;
 
-import com.google.common.net.HostAndPort;
-
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class ProcessMetrics implements MetricsProducer {
 
   private final ServerContext context;
-  private final String appName;
-  private final HostAndPort hostAndPort;
 
-  public ProcessMetrics(final ServerContext context, final String appName,
-      final HostAndPort hostAndPort) {
+  public ProcessMetrics(final ServerContext context) {
     this.context = context;
-    this.appName = appName;
-    this.hostAndPort = hostAndPort;
   }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    registry.gauge(METRICS_APP_LOW_MEMORY, MetricsUtil.getCommonTags(), this, this::lowMemDetected);
+    registry.gauge(METRICS_LOW_MEMORY, MetricsUtil.getCommonTags(), this, this::lowMemDetected);
   }
 
-  private double lowMemDetected(ProcessMetrics processMetrics) {
+  private int lowMemDetected(ProcessMetrics processMetrics) {
     if (context.getLowMemoryDetector().isRunningLowOnMemory()) {
-      return 1.0;
+      return 1;
     }
-    return 0.0;
+    return 0;
   }
 }
