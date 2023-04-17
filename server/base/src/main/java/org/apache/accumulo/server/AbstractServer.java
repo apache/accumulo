@@ -27,6 +27,7 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -35,21 +36,25 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractServer implements AutoCloseable, Runnable {
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+
+public abstract class AbstractServer implements AutoCloseable, MetricsProducer, Runnable {
 
   private final ServerContext context;
   protected final String applicationName;
   private final String hostname;
-  private final Logger log;
+
+  private Gauge lowMemoryMetricGuage = null;
 
   protected AbstractServer(String appName, ConfigOpts opts, String[] args) {
-    this.log = LoggerFactory.getLogger(getClass().getName());
     this.applicationName = appName;
     opts.parseArgs(appName, args);
     var siteConfig = opts.getSiteConfiguration();
     this.hostname = siteConfig.get(Property.GENERAL_PROCESS_BIND_ADDRESS);
     SecurityUtil.serverLogin(siteConfig);
     context = new ServerContext(siteConfig);
+    Logger log = LoggerFactory.getLogger(getClass().getName());
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
     context.init(appName);
@@ -64,6 +69,7 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
         () -> lmd.logGCInfo(context.getConfiguration()), 0,
         lmd.getIntervalMillis(context.getConfiguration()), TimeUnit.MILLISECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
+    MetricsUtil.initializeProducers(this);
   }
 
   /**
@@ -85,6 +91,24 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
       }
       throw new RuntimeException("Weird throwable type thrown", thrown);
     }
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    lowMemoryMetricGuage =
+        Gauge
+            .builder(METRICS_APP_PREFIX + applicationName + "." + hostname + "."
+                + METRICS_APP_LOW_MEMORY, this, this::lowMemDetected)
+            .description(
+                "reports 1 when process memory usage is above threshold, 0 when memory is okay") // optional
+            .register(registry);
+  }
+
+  private int lowMemDetected(AbstractServer abstractServer) {
+    if (abstractServer.context.getLowMemoryDetector().isRunningLowOnMemory()) {
+      return 1;
+    }
+    return 0;
   }
 
   public String getHostname() {
