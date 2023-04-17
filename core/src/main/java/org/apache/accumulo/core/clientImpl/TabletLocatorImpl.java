@@ -531,7 +531,9 @@ public class TabletLocatorImpl extends TabletLocator {
       TabletLocation tl = _locateTablet(context, row, skipRow, retry, true, lcSession);
 
       if (tl == null && !tabletHostingRequested) {
-        requestTabletHosting(context, new Range(row));
+        Range r = skipRow ? new Range(new Key(row).followingKey(PartialKey.ROW).getRow())
+            : new Range(row);
+        requestTabletHosting(context, r);
         tabletHostingRequested = true;
       }
 
@@ -604,13 +606,13 @@ public class TabletLocatorImpl extends TabletLocator {
       Range range, Set<TabletHostingGoal> disallowedStates, boolean excludeHostedTablets)
       throws AccumuloException {
 
-    final Text scanRangeStart = (range.getStartKey() == null) ? null : (range.isStartKeyInclusive()
-        ? range.getStartKey().getRow() : range.getStartKey().followingKey(PartialKey.ROW).getRow());
-
-    final Text scanRangeEnd = (range.getEndKey() == null) ? null : range.getEndKey().getRow();
-    // Turn the scan range into a KeyExtent and return all tablets
-    // that are overlapped by the scan range
-    final KeyExtent scanRangeKE = new KeyExtent(tableId, scanRangeEnd, scanRangeStart);
+    // For all practical purposes the the start row is always inclusive, even if the key in the
+    // range is exclusive. For example the exclusive key row="a",family="b",qualifier="c" may
+    // exclude the column b:c but its still falls somewhere in the row "a". The only case where this
+    // would not be true is if the start key in a range is the last possible key in a row. The last
+    // possible key in a row would contain 2GB column fields of all 0xff, which is why we assume the
+    // row is always inclusive.
+    final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
 
     List<TKeyExtent> extents = new ArrayList<>();
 
@@ -622,30 +624,34 @@ public class TabletLocatorImpl extends TabletLocator {
             + " that is not in an allowable state for hosting");
       }
       final KeyExtent tabletExtent = tm.getExtent();
-      log.trace("Evaluating tablet {} against range {}", tabletExtent, scanRangeKE);
+      log.trace("Evaluating tablet {} against range {}", tabletExtent, range);
       if (scanRangeStart != null && tm.getEndRow() != null
           && tm.getEndRow().compareTo(scanRangeStart) < 0) {
         // the end row of this tablet is before the start row, skip it
         log.trace("tablet {} is before scan start range: {}", tabletExtent, scanRangeStart);
-        continue;
+        throw new RuntimeException("Bug in ample or this code.");
       }
-      if (scanRangeEnd != null && tm.getPrevEndRow() != null
-          && ((!range.isEndKeyInclusive() && tm.getPrevEndRow().compareTo(scanRangeEnd) >= 0)
-              || range.isEndKeyInclusive() && tm.getPrevEndRow().compareTo(scanRangeEnd) > 0)) {
-        // the start row of this tablet is after the scan range end row, skip it
-        log.trace("tablet {} is after scan end range: {}", tabletExtent, scanRangeEnd);
+
+      // Obtaining the end row from a range and knowing if the obtained row is inclusive or
+      // exclusive is really tricky depending on how the Range was created (using row or key
+      // constructors). So avoid trying to obtain an end row from the range and instead use
+      // range.afterKey below.
+      if (tm.getPrevEndRow() != null && range.afterEndKey(new Key(tm.getPrevEndRow()))) {
+        // the start row of this tablet is after the scan range, skip it
+        log.trace("tablet {} is after scan end range: {}", tabletExtent, range);
         break;
       }
-      if (scanRangeKE.overlaps(tabletExtent)) {
-        Location loc = tm.getLocation();
-        if (loc != null) {
-          log.debug("tablet {} has location of: {}:{}", tabletExtent, loc.getType(),
-              loc.getHostPort());
-        }
-        if (!(excludeHostedTablets && loc != null)) {
-          extents.add(tabletExtent.toThrift());
-        }
+
+      // tablet must overlap the range
+      Location loc = tm.getLocation();
+      if (loc != null) {
+        log.debug("tablet {} has location of: {}:{}", tabletExtent, loc.getType(),
+            loc.getHostPort());
       }
+      if (!(excludeHostedTablets && loc != null)) {
+        extents.add(tabletExtent.toThrift());
+      }
+
     }
     return extents;
   }
