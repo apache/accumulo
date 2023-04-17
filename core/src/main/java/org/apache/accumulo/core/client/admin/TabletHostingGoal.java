@@ -21,7 +21,7 @@ package org.apache.accumulo.core.client.admin;
 /**
  * @see TableOperations#setTabletHostingGoal(String, org.apache.accumulo.core.data.Range,
  *      TabletHostingGoal)
- * @since ELASTICITY_TODO
+ * @since 4.0.0
  */
 public enum TabletHostingGoal {
 

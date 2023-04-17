@@ -311,8 +311,7 @@ public enum Property {
       "1.3.5"),
   MANAGER_TABLET_GROUP_WATCHER_INTERVAL("manager.tablet.watcher.interval", "60s",
       PropertyType.TIMEDURATION,
-      "Time to wait between scanning tablet states to determine migrations, etc.",
-      "ELASTICITY_TODO"),
+      "Time to wait between scanning tablet states to determine migrations, etc.", "4.0.0"),
   MANAGER_BULK_RETRIES("manager.bulk.retries", "3", PropertyType.COUNT,
       "The number of attempts to bulk import a RFile before giving up.", "1.4.0"),
   MANAGER_BULK_THREADPOOL_SIZE("manager.bulk.threadpool.size", "5", PropertyType.COUNT,
@@ -752,7 +751,7 @@ public enum Property {
   TSERV_ONDEMAND_UNLOADER_INTERVAL("tserver.ondemand.tablet.unloader.interval", "10m",
       PropertyType.TIMEDURATION,
       "The interval at which the TabletServer will check if on-demand tablets can be unloaded",
-      "ELASTICITY_TODO"),
+      "4.0.0"),
 
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
@@ -891,8 +890,7 @@ public enum Property {
       "Options for the table compaction configuror", "2.1.0"),
   TABLE_ONDEMAND_UNLOADER("tserver.ondemand.tablet.unloader",
       "org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader", PropertyType.CLASSNAME,
-      "The class that will be used to determine which on-demand Tablets to unload.",
-      "ELASTICITY_TODO"),
+      "The class that will be used to determine which on-demand Tablets to unload.", "4.0.0"),
 
   // Crypto-related properties
   @Experimental
