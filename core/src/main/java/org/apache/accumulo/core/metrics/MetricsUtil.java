@@ -79,12 +79,13 @@ public class MetricsUtil {
       List<Tag> tags = new ArrayList<>();
       tags.add(Tag.of("process.name", processName));
 
-      if (address != null && !address.getHost().isEmpty()) {
-        tags.add(Tag.of("host", address.getHost()));
-      }
-
-      if (address != null && address.getPort() > 0) {
-        tags.add(Tag.of("port", Integer.toString(address.getPort())));
+      if (address != null) {
+        if (!address.getHost().isEmpty()) {
+          tags.add(Tag.of("host", address.getHost()));
+        }
+        if (address.getPort() > 0) {
+          tags.add(Tag.of("port", Integer.toString(address.getPort())));
+        }
       }
 
       commonTags = Collections.unmodifiableList(tags);
