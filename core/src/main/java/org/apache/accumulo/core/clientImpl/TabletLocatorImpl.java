@@ -636,7 +636,8 @@ public class TabletLocatorImpl extends TabletLocator {
       // exclusive is really tricky depending on how the Range was created (using row or key
       // constructors). So avoid trying to obtain an end row from the range and instead use
       // range.afterKey below.
-      if (tm.getPrevEndRow() != null && range.afterEndKey(new Key(tm.getPrevEndRow()))) {
+      if (tm.getPrevEndRow() != null
+          && range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW))) {
         // the start row of this tablet is after the scan range, skip it
         log.trace("tablet {} is after scan end range: {}", tabletExtent, range);
         break;
