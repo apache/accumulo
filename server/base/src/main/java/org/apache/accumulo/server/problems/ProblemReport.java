@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ProblemSection;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -140,13 +141,14 @@ public class ProblemReport {
   }
 
   void removeFromMetadataTable(ServerContext context) throws Exception {
-    Mutation m = new Mutation(new Text("~err_" + tableId));
+
+    Mutation m = new Mutation(new Text(ProblemSection.getRowPrefix() + tableId));
     m.putDelete(new Text(problemType.name()), new Text(resource));
     MetadataTableUtil.getMetadataTable(context).update(m);
   }
 
   void saveToMetadataTable(ServerContext context) throws Exception {
-    Mutation m = new Mutation(new Text("~err_" + tableId));
+    Mutation m = new Mutation(new Text(ProblemSection.getRowPrefix() + tableId));
     m.put(new Text(problemType.name()), new Text(resource), new Value(encode()));
     MetadataTableUtil.getMetadataTable(context).update(m);
   }
@@ -199,7 +201,8 @@ public class ProblemReport {
   }
 
   public static ProblemReport decodeMetadataEntry(Entry<Key,Value> entry) throws IOException {
-    TableId tableId = TableId.of(entry.getKey().getRow().toString().substring("~err_".length()));
+    TableId tableId = TableId
+        .of(entry.getKey().getRow().toString().substring(ProblemSection.getRowPrefix().length()));
     String problemType = entry.getKey().getColumnFamily().toString();
     String resource = entry.getKey().getColumnQualifier().toString();
 

@@ -44,6 +44,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iterators.SortedKeyIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ProblemSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
@@ -161,9 +162,9 @@ public class ProblemReports implements Iterable<ProblemReport> {
     Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.addScanIterator(new IteratorSetting(1, "keys-only", SortedKeyIterator.class));
 
-    scanner.setRange(new Range(new Text("~err_" + table)));
+    scanner.setRange(new Range(new Text(ProblemSection.getRowPrefix() + table)));
 
-    Mutation delMut = new Mutation(new Text("~err_" + table));
+    Mutation delMut = new Mutation(new Text(ProblemSection.getRowPrefix() + table));
 
     boolean hasProblems = false;
     for (Entry<Key,Value> entry : scanner) {
@@ -217,9 +218,9 @@ public class ProblemReports implements Iterable<ProblemReport> {
                 scanner.setTimeout(3, TimeUnit.SECONDS);
 
                 if (table == null) {
-                  scanner.setRange(new Range(new Text("~err_"), false, new Text("~err`"), false));
+                  scanner.setRange(ProblemSection.getRange());
                 } else {
-                  scanner.setRange(new Range(new Text("~err_" + table)));
+                  scanner.setRange(new Range(new Text(ProblemSection.getRowPrefix() + table)));
                 }
 
                 iter2 = scanner.iterator();

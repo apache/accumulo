@@ -402,6 +402,23 @@ public class MetadataSchema {
   }
 
   /**
+   * Holds error message processing flags
+   */
+  public static class ProblemSection {
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "err_", true, RESERVED_PREFIX + "err`", false);
+
+    public static Range getRange() {
+      return section.getRange();
+    }
+
+    public static String getRowPrefix() {
+      return section.getRowPrefix();
+    }
+
+  }
+
+  /**
    * Holds references to files that need replication
    *
    * <pre>
