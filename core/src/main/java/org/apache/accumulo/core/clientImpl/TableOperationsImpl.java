@@ -1311,34 +1311,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return ret;
   }
 
-  @Override
-  @Deprecated(since = "2.0.0")
-  public void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
-      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    EXISTING_TABLE_NAME.validate(tableName);
-    checkArgument(dir != null, "dir is null");
-    checkArgument(failureDir != null, "failureDir is null");
-
-    // check for table existence
-    context.getTableId(tableName);
-    Path dirPath = checkPath(dir, "Bulk", "");
-    Path failPath = checkPath(failureDir, "Bulk", "failure");
-
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
-        ByteBuffer.wrap(dirPath.toString().getBytes(UTF_8)),
-        ByteBuffer.wrap(failPath.toString().getBytes(UTF_8)),
-        ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<>();
-
-    try {
-      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_BULK_IMPORT,
-          args, opts);
-    } catch (TableExistsException e) {
-      // should not happen
-      throw new AssertionError(e);
-    }
-  }
-
   private void waitForTableStateTransition(TableId tableId, TableState expectedState)
       throws AccumuloException, TableNotFoundException {
     Text startRow = null;

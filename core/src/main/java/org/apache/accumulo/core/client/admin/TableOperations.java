@@ -563,27 +563,6 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
-   * Bulk import all the files in a directory into a table. Files can be created using
-   * {@link RFile#newWriter()}
-   *
-   * @param tableName the name of the table
-   * @param dir the HDFS directory to find files for importing
-   * @param failureDir the HDFS directory to place files that failed to be imported, must exist and
-   *        be empty
-   * @param setTime override the time values in the input files, and use the current time for all
-   *        mutations
-   * @throws IOException when there is an error reading/writing to HDFS
-   * @throws AccumuloException when there is a general accumulo error
-   * @throws AccumuloSecurityException when the user does not have the proper permissions
-   * @throws TableNotFoundException when the table no longer exists
-   *
-   * @deprecated since 2.0.0 use {@link #importDirectory(String)} instead.
-   */
-  @Deprecated(since = "2.0.0")
-  void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
-      throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException;
-
-  /**
    * @since 2.0.0
    */
   interface ImportOptions {
