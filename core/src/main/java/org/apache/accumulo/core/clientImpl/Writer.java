@@ -26,7 +26,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.TabletLocator.HostingNeed;
+import org.apache.accumulo.core.clientImpl.TabletLocator.LocationNeed;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Mutation;
@@ -91,7 +91,7 @@ public class Writer {
 
     while (true) {
       TabletLocation tabLoc = TabletLocator.getLocator(context, tableId).locateTablet(context,
-          new Text(m.getRow()), false, HostingNeed.HOSTED);
+          new Text(m.getRow()), false, LocationNeed.REQUIRED);
 
       if (tabLoc == null) {
         log.trace("No tablet location found for row {}", new String(m.getRow(), UTF_8));

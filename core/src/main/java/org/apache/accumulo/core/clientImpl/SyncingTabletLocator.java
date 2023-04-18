@@ -66,9 +66,9 @@ public class SyncingTabletLocator extends TabletLocator {
 
   @Override
   public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-      HostingNeed hostingNeed)
+      LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    return syncLocator().locateTablet(context, row, skipRow, hostingNeed);
+    return syncLocator().locateTablet(context, row, skipRow, locationNeed);
   }
 
   @Override
@@ -80,9 +80,9 @@ public class SyncingTabletLocator extends TabletLocator {
 
   @Override
   public List<Range> locateTablets(ClientContext context, List<Range> ranges,
-      BiConsumer<TabletLocation,Range> rangeConsumer, HostingNeed hostingNeed)
+      BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    return syncLocator().locateTablets(context, ranges, rangeConsumer, hostingNeed);
+    return syncLocator().locateTablets(context, ranges, rangeConsumer, locationNeed);
   }
 
   @Override

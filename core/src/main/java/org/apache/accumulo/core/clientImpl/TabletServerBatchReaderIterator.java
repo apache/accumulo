@@ -50,7 +50,7 @@ import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
-import org.apache.accumulo.core.clientImpl.TabletLocator.HostingNeed;
+import org.apache.accumulo.core.clientImpl.TabletLocator.LocationNeed;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -659,7 +659,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       extentToRangesMap.computeIfAbsent(cachedTablet.getExtent(), k -> new ArrayList<>())
           .add(range);
       tabletIds.add(new TabletIdImpl(cachedTablet.getExtent()));
-    }, HostingNeed.NONE);
+    }, LocationNeed.NOT_REQUIRED);
 
     if (!failures.isEmpty()) {
       return new ScanServerData(failures);
@@ -733,7 +733,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     if (!failures.isEmpty()) {
       // if there are failures at this point its because tablets are not hosted, so lets attempt to
       // get them hosted
-      tabletLocator.locateTablets(context, ranges, (cachedTablet, range) -> {}, HostingNeed.HOSTED);
+      tabletLocator.locateTablets(context, ranges, (cachedTablet, range) -> {},
+          LocationNeed.REQUIRED);
       return new ScanServerData(failures);
     }
 

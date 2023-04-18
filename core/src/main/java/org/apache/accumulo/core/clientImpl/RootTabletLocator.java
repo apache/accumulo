@@ -71,11 +71,11 @@ public class RootTabletLocator extends TabletLocator {
 
   @Override
   public List<Range> locateTablets(ClientContext context, List<Range> ranges,
-      BiConsumer<TabletLocation,Range> rangeConsumer, HostingNeed hostingNeed) {
+      BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed) {
 
     // only expect the hosted case so this code only handles that, so throw an exception is
-    // something else is seed
-    Preconditions.checkArgument(hostingNeed == HostingNeed.HOSTED);
+    // something else is seen
+    Preconditions.checkArgument(locationNeed == LocationNeed.REQUIRED);
 
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
@@ -138,10 +138,10 @@ public class RootTabletLocator extends TabletLocator {
 
   @Override
   public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-      HostingNeed hostingNeed) {
+      LocationNeed locationNeed) {
     // only expect the hosted case so this code only handles that, so throw an exception is
-    // something else is seed
-    Preconditions.checkArgument(hostingNeed == HostingNeed.HOSTED);
+    // something else is seen
+    Preconditions.checkArgument(locationNeed == LocationNeed.REQUIRED);
 
     TabletLocation location = getRootTabletLocation(context);
     // Always retry when finding the root tablet

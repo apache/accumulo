@@ -62,35 +62,35 @@ public abstract class TabletLocator {
   }
 
   /**
-   * Used to indicate if a user of this interface needs a tablet hosted or not. This simple enum was
-   * created instead of using a boolean for code clarity.
+   * Used to indicate if a user of this interface needs a tablet with a location. This simple enum
+   * was created instead of using a boolean for code clarity.
    */
-  public enum HostingNeed {
-    HOSTED, NONE
+  public enum LocationNeed {
+    REQUIRED, NOT_REQUIRED
   }
 
   // ELASTICITY_TODO rename to findTablet
   /**
    * Finds the tablet that contains the given row.
    *
-   * @param hostingNeed When {@link HostingNeed#HOSTED} is passed will only return a tablet if it
-   *        has location. When {@link HostingNeed#NONE} is passed will return the tablet that
-   *        overlaps the row.
+   * @param locationNeed When {@link LocationNeed#REQUIRED} is passed will only return a tablet if
+   *        it has location. When {@link LocationNeed#NOT_REQUIRED} is passed will return the tablet
+   *        that overlaps the row with or without a location.
    *
-   * @return overlapping tablet. If no overlapping tablet exists, returns null. If hosting is
+   * @return overlapping tablet. If no overlapping tablet exists, returns null. If location is
    *         required and the tablet currently has no location ,returns null.
    */
   public abstract TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-      HostingNeed hostingNeed)
+      LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   public TabletLocation locateTabletWithRetry(ClientContext context, Text row, boolean skipRow,
-      HostingNeed hostingNeed)
+      LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    var tl = locateTablet(context, row, skipRow, hostingNeed);
-    while (tl == null && hostingNeed == HostingNeed.HOSTED) {
+    var tl = locateTablet(context, row, skipRow, locationNeed);
+    while (tl == null && locationNeed == LocationNeed.REQUIRED) {
       UtilWaitThread.sleep(100);
-      tl = locateTablet(context, row, skipRow, hostingNeed);
+      tl = locateTablet(context, row, skipRow, locationNeed);
     }
     return tl;
   }
@@ -107,10 +107,11 @@ public abstract class TabletLocator {
    * passed to the range consumer multiple times.
    * </p>
    *
-   * @param hostingNeed When {@link HostingNeed#HOSTED} is passed only tablets that have a location
-   *        are provided to the rangeConsumer, any range that overlaps a tablet without a location
-   *        will be returned as a failure. When {@link HostingNeed#NONE} is passed, ranges that
-   *        overlap tablets with and without a location are provided to the range consumer.
+   * @param locationNeed When {@link LocationNeed#REQUIRED} is passed only tablets that have a
+   *        location are provided to the rangeConsumer, any range that overlaps a tablet without a
+   *        location will be returned as a failure. When {@link LocationNeed#NOT_REQUIRED} is
+   *        passed, ranges that overlap tablets with and without a location are provided to the
+   *        range consumer.
    * @param ranges For each range will try to find overlapping contiguous tablets that optionally
    *        have a location.
    * @param rangeConsumer If all of the tablets that a range overlaps are found, then the range and
@@ -121,12 +122,12 @@ public abstract class TabletLocator {
    *         contiguous tablets could not be found.
    */
   public abstract List<Range> locateTablets(ClientContext context, List<Range> ranges,
-      BiConsumer<TabletLocation,Range> rangeConsumer, HostingNeed hostingNeed)
+      BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * The behavior of this method is similar to
-   * {@link #locateTablets(ClientContext, List, BiConsumer, HostingNeed)}, except it bins ranges to
+   * {@link #locateTablets(ClientContext, List, BiConsumer, LocationNeed)}, except it bins ranges to
    * the passed in binnedRanges map instead of passing them to a consumer. This method only bins to
    * hosted tablets with a location.
    */
@@ -135,7 +136,7 @@ public abstract class TabletLocator {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     return locateTablets(context, ranges,
         ((cachedTablet, range) -> TabletLocatorImpl.addRange(binnedRanges, cachedTablet, range)),
-        HostingNeed.HOSTED);
+        LocationNeed.REQUIRED);
   }
 
   public abstract void invalidateCache(KeyExtent failedExtent);

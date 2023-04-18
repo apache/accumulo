@@ -40,7 +40,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.clientImpl.TabletLocator.HostingNeed;
+import org.apache.accumulo.core.clientImpl.TabletLocator.LocationNeed;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocations;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
@@ -682,8 +682,8 @@ public class TabletLocatorImplTest {
   }
 
   private void locateTabletTest(TabletLocatorImpl cache, String row, boolean skipRow,
-      KeyExtent expected, String server, HostingNeed hostingNeeded) throws Exception {
-    TabletLocation tl = cache.locateTablet(context, new Text(row), skipRow, hostingNeeded);
+      KeyExtent expected, String server, LocationNeed locationNeeded) throws Exception {
+    TabletLocation tl = cache.locateTablet(context, new Text(row), skipRow, locationNeeded);
 
     if (expected == null) {
       if (tl != null) {
@@ -704,7 +704,7 @@ public class TabletLocatorImplTest {
 
   private void locateTabletTest(TabletLocatorImpl cache, String row, KeyExtent expected,
       String server) throws Exception {
-    locateTabletTest(cache, row, false, expected, server, HostingNeed.HOSTED);
+    locateTabletTest(cache, row, false, expected, server, LocationNeed.REQUIRED);
   }
 
   @Test
@@ -739,9 +739,9 @@ public class TabletLocatorImplTest {
     tab1TabletCache.invalidateCache(tab1e);
     locateTabletTest(tab1TabletCache, "r1", tab1e2, "tserver5");
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4");
-    locateTabletTest(tab1TabletCache, "a", true, tab1e1, "tserver4", HostingNeed.HOSTED);
+    locateTabletTest(tab1TabletCache, "a", true, tab1e1, "tserver4", LocationNeed.REQUIRED);
     locateTabletTest(tab1TabletCache, "g", tab1e1, "tserver4");
-    locateTabletTest(tab1TabletCache, "g", true, tab1e2, "tserver5", HostingNeed.HOSTED);
+    locateTabletTest(tab1TabletCache, "g", true, tab1e2, "tserver5", LocationNeed.REQUIRED);
 
     // simulate a partial split
     KeyExtent tab1e22 = createNewKeyExtent("tab1", null, "m");
@@ -1506,7 +1506,7 @@ public class TabletLocatorImplTest {
     tservers.tservers.put("tserver3", ts3);
 
     assertNull(tab0TabletCache.locateTablet(context, new Text("row_0000000000"), false,
-        HostingNeed.HOSTED));
+        LocationNeed.REQUIRED));
 
   }
 
@@ -1562,7 +1562,7 @@ public class TabletLocatorImplTest {
     setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "L2", "I2");
 
     var e = assertThrows(IllegalStateException.class,
-        () -> metaCache.locateTablet(context, new Text("a"), false, HostingNeed.HOSTED));
+        () -> metaCache.locateTablet(context, new Text("a"), false, LocationNeed.REQUIRED));
     assertTrue(e.getMessage().startsWith("Tablet has multiple locations : "));
 
   }
@@ -1727,11 +1727,11 @@ public class TabletLocatorImplTest {
     setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke3, "L2", "I2");
     setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke4, "L2", "I2");
 
-    locateTabletTest(metaCache, "a", false, ke1, null, HostingNeed.NONE);
-    locateTabletTest(metaCache, "a", false, null, null, HostingNeed.HOSTED);
+    locateTabletTest(metaCache, "a", false, ke1, null, LocationNeed.NOT_REQUIRED);
+    locateTabletTest(metaCache, "a", false, null, null, LocationNeed.REQUIRED);
 
-    locateTabletTest(metaCache, "n", false, ke3, "L2", HostingNeed.NONE);
-    locateTabletTest(metaCache, "n", false, ke3, "L2", HostingNeed.HOSTED);
+    locateTabletTest(metaCache, "n", false, ke3, "L2", LocationNeed.NOT_REQUIRED);
+    locateTabletTest(metaCache, "n", false, ke3, "L2", LocationNeed.REQUIRED);
 
     var r1 = new Range(null, "a");
     var r2 = new Range("d", "o");
@@ -1739,7 +1739,7 @@ public class TabletLocatorImplTest {
     List<Range> ranges = List.of(r1, r2);
     Set<Pair<TabletLocation,Range>> actual = new HashSet<>();
     var failures = metaCache.locateTablets(context, ranges,
-        (tl, r) -> actual.add(new Pair<>(tl, r)), HostingNeed.NONE);
+        (tl, r) -> actual.add(new Pair<>(tl, r)), LocationNeed.NOT_REQUIRED);
     assertEquals(List.of(), failures);
     var tl1 = new TabletLocation(ke1);
     var tl2 = new TabletLocation(ke2);
@@ -1750,25 +1750,25 @@ public class TabletLocatorImplTest {
 
     actual.clear();
     failures = metaCache.locateTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
-        HostingNeed.HOSTED);
+        LocationNeed.REQUIRED);
     assertEquals(new HashSet<>(ranges), new HashSet<>(failures));
     assertEquals(Set.of(), actual);
 
     setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "L3", "I3");
     // the cache contains ke1 w/o a location, even though the location is now set we should get the
     // cached version w/o the location
-    locateTabletTest(metaCache, "a", false, ke1, null, HostingNeed.NONE);
+    locateTabletTest(metaCache, "a", false, ke1, null, LocationNeed.NOT_REQUIRED);
     // the cache contains an extent w/o a location this should force it to clear
-    locateTabletTest(metaCache, "a", false, ke1, "L3", HostingNeed.HOSTED);
+    locateTabletTest(metaCache, "a", false, ke1, "L3", LocationNeed.REQUIRED);
     // now that the location is cached, should see it
-    locateTabletTest(metaCache, "a", false, ke1, "L3", HostingNeed.NONE);
+    locateTabletTest(metaCache, "a", false, ke1, "L3", LocationNeed.NOT_REQUIRED);
 
     setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke2, "L4", "I4");
     // even though the location is set for ke2 the cache should have ke2 w/o a location and that
     // should be seeen
     actual.clear();
     failures = metaCache.locateTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
-        HostingNeed.NONE);
+        LocationNeed.NOT_REQUIRED);
     assertEquals(List.of(), failures);
     tl1 = new TabletLocation(ke1, "L3", "I3");
     expected =
@@ -1777,7 +1777,7 @@ public class TabletLocatorImplTest {
     // this should cause the location for ke2 to be pulled into the cache
     actual.clear();
     failures = metaCache.locateTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
-        HostingNeed.HOSTED);
+        LocationNeed.REQUIRED);
     assertEquals(List.of(), failures);
     tl2 = new TabletLocation(ke2, "L4", "I4");
     expected =
@@ -1786,14 +1786,14 @@ public class TabletLocatorImplTest {
     // should still see locations in cache
     actual.clear();
     failures = metaCache.locateTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
-        HostingNeed.NONE);
+        LocationNeed.NOT_REQUIRED);
     assertEquals(List.of(), failures);
     assertEquals(expected, actual);
 
     // ensure bin mutations works when the cache contains an entry w/o a location
     deleteLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke2, "I4");
     metaCache.invalidateCache(ke2);
-    locateTabletTest(metaCache, "i", false, ke2, null, HostingNeed.NONE);
+    locateTabletTest(metaCache, "i", false, ke2, null, LocationNeed.NOT_REQUIRED);
 
     // one mutation should fail because there is no location for ke2
     List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),

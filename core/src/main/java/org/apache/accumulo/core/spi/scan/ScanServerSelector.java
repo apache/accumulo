@@ -130,7 +130,7 @@ public interface ScanServerSelector {
      *         {@link ScannerBase#setTimeout(long, TimeUnit)} is exceeded while waiting. Do not
      *         catch this exception, let it escape.
      *
-     * @since ELASTICITY_TODO
+     * @since 4.0.0
      */
     public <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
         String description);

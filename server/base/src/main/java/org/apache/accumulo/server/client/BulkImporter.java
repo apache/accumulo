@@ -667,7 +667,7 @@ public class BulkImporter {
         }
         row = reader.getTopKey().getRow();
         TabletLocation tabletLocation =
-            locator.locateTabletWithRetry(context, row, false, TabletLocator.HostingNeed.HOSTED);
+            locator.locateTabletWithRetry(context, row, false, TabletLocator.LocationNeed.REQUIRED);
         // log.debug(filename + " found row " + row + " at location " + tabletLocation);
         result.add(tabletLocation);
         row = tabletLocation.getExtent().endRow();

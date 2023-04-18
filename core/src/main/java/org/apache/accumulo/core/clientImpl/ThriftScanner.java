@@ -465,8 +465,8 @@ public class ThriftScanner {
 
     ScanAddress addr = null;
 
-    var hostingNeed = scanState.runOnScanServer ? TabletLocator.HostingNeed.NONE
-        : TabletLocator.HostingNeed.HOSTED;
+    var hostingNeed = scanState.runOnScanServer ? TabletLocator.LocationNeed.NOT_REQUIRED
+        : TabletLocator.LocationNeed.REQUIRED;
 
     while (addr == null) {
       long currentTime = System.currentTimeMillis();
@@ -539,7 +539,7 @@ public class ThriftScanner {
           addr = getScanServerAddress(context, scanState, loc, timeOut, startTime).orElse(null);
           if (addr == null && loc.getTserverLocation().isEmpty()) {
             // wanted to fall back to tserver but tablet was not hosted so make another loop
-            hostingNeed = TabletLocator.HostingNeed.HOSTED;
+            hostingNeed = TabletLocator.LocationNeed.REQUIRED;
           }
         } else {
           addr = new ScanAddress(loc.getTserverLocation().get(), ServerType.TSERVER, loc);

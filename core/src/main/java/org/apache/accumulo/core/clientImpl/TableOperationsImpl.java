@@ -95,7 +95,7 @@ import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
-import org.apache.accumulo.core.clientImpl.TabletLocator.HostingNeed;
+import org.apache.accumulo.core.clientImpl.TabletLocator.LocationNeed;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
@@ -559,7 +559,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         attempt++;
 
-        TabletLocation tl = tabLocator.locateTablet(context, split, false, HostingNeed.HOSTED);
+        TabletLocation tl = tabLocator.locateTablet(context, split, false, LocationNeed.REQUIRED);
 
         if (tl == null) {
           context.requireTableExists(env.tableId, env.tableName);
