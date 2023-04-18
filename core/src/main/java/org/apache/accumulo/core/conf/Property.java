@@ -309,22 +309,11 @@ public enum Property {
       "The balancer class that accumulo will use to make tablet assignment and "
           + "migration decisions.",
       "1.3.5"),
-  MANAGER_BULK_RETRIES("manager.bulk.retries", "3", PropertyType.COUNT,
-      "The number of attempts to bulk import a RFile before giving up.", "1.4.0"),
-  MANAGER_BULK_THREADPOOL_SIZE("manager.bulk.threadpool.size", "5", PropertyType.COUNT,
-      "The number of threads to use when coordinating a bulk import.", "1.4.0"),
-  MANAGER_BULK_THREADPOOL_TIMEOUT("manager.bulk.threadpool.timeout", "0s",
-      PropertyType.TIMEDURATION,
-      "The time after which bulk import threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely.",
-      "2.1.0"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request", "1.4.3"),
   MANAGER_RENAME_THREADS("manager.rename.threadpool.size", "20", PropertyType.COUNT,
       "The number of threads to use when renaming user files during table import or bulk ingest.",
       "2.1.0"),
-  MANAGER_BULK_TSERVER_REGEX("manager.bulk.tserver.regex", "", PropertyType.STRING,
-      "Regular expression that defines the set of Tablet Servers that will perform bulk imports",
-      "2.0.0"),
   MANAGER_MINTHREADS("manager.server.threads.minimum", "20", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "1.4.0"),
   MANAGER_MINTHREADS_TIMEOUT("manager.server.threads.timeout", "0s", PropertyType.TIMEDURATION,
@@ -635,23 +624,6 @@ public enum Property {
           + " minor compacted file because it may have been modified by iterators. The"
           + " file dumped to the local dir is an exact copy of what was in memory.",
       "1.3.5"),
-  TSERV_BULK_PROCESS_THREADS("tserver.bulk.process.threads", "1", PropertyType.COUNT,
-      "The manager will task a tablet server with pre-processing a bulk import"
-          + " RFile prior to assigning it to the appropriate tablet servers. This"
-          + " configuration value controls the number of threads used to process the files.",
-      "1.4.0"),
-  TSERV_BULK_ASSIGNMENT_THREADS("tserver.bulk.assign.threads", "1", PropertyType.COUNT,
-      "The manager delegates bulk import RFile processing and assignment to"
-          + " tablet servers. After file has been processed, the tablet server will"
-          + " assign the file to the appropriate tablets on all servers. This property"
-          + " controls the number of threads used to communicate to the other servers.",
-      "1.4.0"),
-  TSERV_BULK_RETRY("tserver.bulk.retry.max", "5", PropertyType.COUNT,
-      "The number of times the tablet server will attempt to assign a RFile to"
-          + " a tablet as it migrates and splits.",
-      "1.4.0"),
-  TSERV_BULK_TIMEOUT("tserver.bulk.timeout", "5m", PropertyType.TIMEDURATION,
-      "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
   TSERV_HEALTH_CHECK_FREQ("tserver.health.check.interval", "30m", PropertyType.TIMEDURATION,
       "The time between tablet server health checks.", "2.1.0"),
   TSERV_MINTHREADS("tserver.server.threads.minimum", "20", PropertyType.COUNT,

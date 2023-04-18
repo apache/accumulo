@@ -413,7 +413,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     HostAndPort location = HostAndPort
         .fromString(locator.locateTablet(context, new Text(""), false, true).getTserverLocation());
 
-    long timeInMillis = context.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
+    long timeInMillis = context.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
     TabletIngestClientService.Iface client =
         ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, location, context, timeInMillis);
     return client;
