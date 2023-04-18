@@ -19,7 +19,7 @@
 package org.apache.accumulo.server.conf;
 
 import static org.apache.accumulo.core.conf.Property.GC_PORT;
-import static org.apache.accumulo.core.conf.Property.MANAGER_BULK_RETRIES;
+import static org.apache.accumulo.core.conf.Property.MANAGER_BULK_TIMEOUT;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_SIZE;
 import static org.apache.accumulo.core.conf.Property.TABLE_DURABILITY;
@@ -167,7 +167,7 @@ public class ZooBasedConfigurationTest {
     assertEquals("9998", zbc.get(GC_PORT));
 
     // read a property from the sysconfig
-    assertEquals("3", zbc.get(MANAGER_BULK_RETRIES));
+    assertEquals(5 * 60 * 1000, zbc.getTimeInMillis(MANAGER_BULK_TIMEOUT));
   }
 
   @Test
