@@ -602,7 +602,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
     pausedMetrics = new PausedCompactionMetrics();
-    MetricsUtil.initializeProducers(this, pausedMetrics);
+    initServerMetrics(pausedMetrics);
 
     LOG.info("Compactor started, waiting for work");
     try {

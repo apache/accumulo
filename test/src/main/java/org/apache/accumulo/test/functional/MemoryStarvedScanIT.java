@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.metrics.MetricsProducer.METRICS_APP_LOW_MEMORY;
+import static org.apache.accumulo.core.metrics.MetricsProducer.METRICS_LOW_MEMORY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -107,10 +107,12 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
             } else if (MetricsProducer.METRICS_SCAN_RETURN_FOR_MEM.equals(metric.getName())) {
               double val = Double.parseDouble(metric.getValue());
               SCAN_RETURNED_EARLY.add(val);
-            } else if (metric.getName().endsWith(METRICS_APP_LOW_MEMORY)
-                && metric.getName().contains("tserver")) {
-              int val = Integer.parseInt(metric.getValue());
-              LOW_MEM_DETECTED.set(val);
+            } else if (metric.getName().equals(METRICS_LOW_MEMORY)) {
+              String process = metric.getTags().get("process.name");
+              if (process != null && process.contains("tserver")) {
+                int val = Integer.parseInt(metric.getValue());
+                LOW_MEM_DETECTED.set(val);
+              }
             }
           }
         }
@@ -250,7 +252,6 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         // Confirm that some data was fetched by the memoryConsumingScanner
         currentCount = fetched.get();
         assertTrue(currentCount > 0 && currentCount < 100);
-        assertEquals(1, LOW_MEM_DETECTED.get());
 
         // Grab the current metric counts, wait
         double returned = SCAN_RETURNED_EARLY.doubleValue();
@@ -270,6 +271,8 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         returned = SCAN_RETURNED_EARLY.doubleValue();
         Thread.sleep(1500);
         assertEquals(currentCount, fetched.get());
+
+        assertEquals(1, LOW_MEM_DETECTED.get());
 
         // Free the memory which will allow the pausing scanner to continue
         freeServerMemory(client, table);

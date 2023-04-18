@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.rpc;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.server.metrics.ThriftMetrics;
 import org.apache.thrift.TException;
@@ -32,16 +31,11 @@ public class TimedProcessor implements TProcessor {
 
   private final TProcessor other;
   private final ThriftMetrics thriftMetrics;
-  private long idleStart = 0;
+  private long idleStart;
 
-  public TimedProcessor(AccumuloConfiguration conf, TProcessor next, String serverName,
-      String threadName) {
-    this(next, serverName, threadName);
-  }
-
-  public TimedProcessor(TProcessor next, String serverName, String threadName) {
+  public TimedProcessor(TProcessor next) {
     this.other = next;
-    thriftMetrics = new ThriftMetrics(serverName, threadName);
+    thriftMetrics = new ThriftMetrics();
     MetricsUtil.initializeProducers(thriftMetrics);
     idleStart = System.currentTimeMillis();
   }
