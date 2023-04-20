@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -156,8 +157,9 @@ public class PreUpgradeValidation {
     ThreadPoolExecutor lockCheckPool = ThreadPools.getServerThreadPools().createThreadPool(8,
         numCheckThreads, 10, MINUTES, "update-lock-check", false);
 
+    final Map<String,String> deletedLocks = new ConcurrentHashMap<>(hostsWithLocks.size());
+    final Map<String,String> pathErrors = new ConcurrentHashMap<>(hostsWithLocks.size());
     // try a thrift call to the hosts - hosts running previous versions will fail the call
-    final Map<String,String> pathErrors = new ConcurrentHashMap<>(0);
     hostsWithLocks.forEach(h -> lockCheckPool.execute(() -> {
       HostAndPort host = h.getFirst();
       ServiceLock.ServiceLockPath lockPath = h.getSecond();
@@ -168,6 +170,7 @@ public class PreUpgradeValidation {
             lockPath, ex);
         try {
           zk.delete(lockPath.toString(), -1);
+          deletedLocks.put(lockPath.toString(), "");
         } catch (KeeperException.NoNodeException e) {
           // ignore - node already gone.
         } catch (InterruptedException | KeeperException e) {
@@ -177,27 +180,47 @@ public class PreUpgradeValidation {
       }
     }));
     lockCheckPool.shutdown();
+    boolean lockCheckTimeout = false;
+    final long blockTimeMinutes = 60;
+    final long lockCheckStart = System.nanoTime();
     try {
       // wait to all to finish
-      if (!lockCheckPool.awaitTermination(10, MINUTES)) {
+      log.info("waiting for lock check tasks to complete. May block for up to {} minutes",
+          blockTimeMinutes);
+      if (!lockCheckPool.awaitTermination(blockTimeMinutes, MINUTES)) {
         log.warn(
             "Timed out waiting for lock check to finish - continuing, but tservers running prior versions may be present");
+        lockCheckTimeout = true;
       }
     } catch (InterruptedException ex) {
       var remaining = lockCheckPool.shutdownNow();
       log.warn(
-          "Interrupted waiting for lock check to finish. {} tasks were remaing.  Continuing, by tservers running prior versions may be present",
+          "Interrupted waiting for lock check to finish. {} tasks were remaining.  Continuing, by tservers running prior versions may be present",
           remaining.size());
     }
-    if (pathErrors.size() == 0) {
-      log.info("Completed tserver lock check with no lock path errors");
+    log.info("tserver lock completed in {} minutes",
+        NANOSECONDS.toMinutes(System.nanoTime() - lockCheckStart));
+    if (deletedLocks.size() == 0) {
+      log.info("All tserver locks found and processed are valid.");
     } else {
-      log.info(
-          "Completed tserver lock check with error count of: {}. (Paths printed at debug level)",
-          pathErrors.size());
-      if (log.isDebugEnabled()) {
-        log.debug("tserver lock paths that could not be processed: {}", new TreeMap<>(pathErrors));
-      }
+      log.warn("Completed lock check with {} lock(s) removed.", deletedLocks.size());
+      Map<String,String> sorted = new TreeMap<>(pathErrors);
+      sorted.forEach((p, v) -> {
+        log.warn("Deleted tserver lock: {}", p);
+      });
+    }
+    if (pathErrors.size() == 0) {
+      log.info("Completed lock check with no lock path delete errors");
+    } else {
+      log.warn("Completed tserver lock check with error count of: {}.", pathErrors.size());
+      Map<String,String> sorted = new TreeMap<>(pathErrors);
+      sorted.forEach((p, v) -> {
+        log.warn("failed to delete tserver lock: {}", p);
+      });
+    }
+    if (lockCheckTimeout) {
+      throw new IllegalStateException(
+          "Failed to complete tserver lock check - cannot validate that all tservers running current version");
     }
   }
 
