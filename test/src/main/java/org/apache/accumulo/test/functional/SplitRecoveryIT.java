@@ -71,7 +71,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.state.Assignment;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.fs.Path;
@@ -217,15 +216,30 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     if (steps >= 1) {
       Map<Long,List<TabletFile>> bulkFiles = getBulkFilesLoaded(context, high);
 
-      ManagerMetadataUtil.addNewTablet(context, low, "lowDir", instance, lowDatafileSizes,
-          bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L, -1L, zl);
+      TabletMutator tablet = context.getAmple().mutateTablet(low);
+      tablet.putPrevEndRow(low.prevEndRow());
+      tablet.putZooLock(zl);
+      tablet.putDirName("lowDir");
+      tablet.putTime(new MetadataTime(0, TimeType.LOGICAL));
+
+      tablet.putLocation(Location.current(instance));
+      tablet.deleteLocation(Location.future(instance));
+
+      lowDatafileSizes.forEach(tablet::putFile);
+
+      for (Entry<Long,? extends Collection<TabletFile>> entry : bulkFiles.entrySet()) {
+        for (TabletFile ref : entry.getValue()) {
+          tablet.putBulkFile(ref, entry.getKey());
+        }
+      }
+      tablet.mutate();
     }
     if (steps >= 2) {
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context, zl);
     }
 
     TabletMetadata meta = context.getAmple().readTablet(high);
-    KeyExtent fixedExtent = ManagerMetadataUtil.fixSplit(context, meta, zl);
+    KeyExtent fixedExtent = context.getAmple().fixSplit(meta, zl);
 
     if (steps < 2) {
       assertEquals(splitRatio, meta.getSplitRatio(), 0.0);

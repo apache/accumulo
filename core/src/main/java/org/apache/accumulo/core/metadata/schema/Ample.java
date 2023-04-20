@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -182,6 +183,18 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Use this method to fix or rollback an incomplete split operation.
+   *
+   * @param tabletMetadata tablet meta to fix
+   * @param lock Zookeeper lock to pass to the finishSplit operation.
+   * @return KeyExtent of a fixed split
+   */
+  default KeyExtent fixSplit(TabletMetadata tabletMetadata, ServiceLock lock)
+      throws AccumuloException {
+    throw new UnsupportedOperationException();
+  }
+
   default void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
     throw new UnsupportedOperationException();
   }
@@ -243,6 +256,10 @@ public interface Ample {
    * Interface for changing a tablets persistent data.
    */
   interface TabletMutator {
+    TabletMutator updateLastForAssignmentMode(KeyExtent extent, TServerInstance location);
+
+    TabletMutator updateLastForCompactionMode(Location location, TServerInstance serverInstance);
+
     TabletMutator putPrevEndRow(Text per);
 
     TabletMutator putFile(TabletFile path, DataFileValue dfv);

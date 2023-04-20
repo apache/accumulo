@@ -32,6 +32,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -40,7 +41,6 @@ import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
@@ -107,13 +107,13 @@ class AssignmentHandler implements Runnable {
     TabletMetadata tabletMetadata = null;
     boolean canLoad = false;
     try {
-      tabletMetadata = server.getContext().getAmple().readTablet(extent);
+      Ample ample = server.getContext().getAmple();
+      tabletMetadata = ample.readTablet(extent);
 
       canLoad = checkTabletMetadata(extent, server.getTabletSession(), tabletMetadata);
 
       if (canLoad && tabletMetadata.sawOldPrevEndRow()) {
-        KeyExtent fixedExtent =
-            ManagerMetadataUtil.fixSplit(server.getContext(), tabletMetadata, server.getLock());
+        KeyExtent fixedExtent = ample.fixSplit(tabletMetadata, server.getLock());
 
         synchronized (server.openingTablets) {
           server.openingTablets.remove(extent);

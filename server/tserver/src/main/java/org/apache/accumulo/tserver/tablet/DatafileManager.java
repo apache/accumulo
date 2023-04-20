@@ -37,9 +37,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -48,10 +51,10 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -510,11 +513,38 @@ class DatafileManager {
       if (!filesInUseByScans.isEmpty()) {
         log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
       }
-      ManagerMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
-          filesInUseByScans, newFile, compactionIdToWrite, dfv,
-          tablet.getTabletServer().getClientAddressString(), lastLocation,
-          tablet.getTabletServer().getLock(), ecid);
-      tablet.setLastCompactionID(compactionIdToWrite);
+
+      ServiceLock zooLock = tablet.getTabletServer().getLock();
+      TServerInstance newLocation =
+          getTServerInstance(tablet.getTabletServer().getClientAddressString(), zooLock);
+
+      Ample ample = tablet.getContext().getAmple();
+      ample.putGcCandidates(extent.tableId(), oldDatafiles);
+
+      Ample.TabletMutator tablet = ample.mutateTablet(extent);
+
+      oldDatafiles.forEach(tablet::deleteFile);
+      filesInUseByScans.forEach(tablet::putScan);
+
+      if (newFile.isPresent()) {
+        tablet.putFile(newFile.get(), dfv);
+      }
+
+      if (compactionIdToWrite != null) {
+        tablet.putCompactionId(compactionIdToWrite);
+      }
+
+      tablet.updateLastForCompactionMode(lastLocation, newLocation);
+
+      if (ecid.isPresent()) {
+        tablet.deleteExternalCompaction(ecid.get());
+      }
+
+      tablet.putZooLock(zooLock);
+
+      tablet.mutate();
+
+      this.tablet.setLastCompactionID(compactionIdToWrite);
       removeFilesAfterScan(filesInUseByScans);
 
     } finally {
@@ -551,4 +581,14 @@ class DatafileManager {
     return metadataUpdateCount.get();
   }
 
+  private TServerInstance getTServerInstance(String address, ServiceLock zooLock) {
+    while (true) {
+      try {
+        return new TServerInstance(address, zooLock.getSessionId());
+      } catch (KeeperException | InterruptedException e) {
+        log.error("{}", e.getMessage(), e);
+      }
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
+    }
+  }
 }

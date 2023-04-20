@@ -31,7 +31,6 @@ import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.hadoop.fs.Path;
 
 class MetaDataStateStore implements TabletStateStore {
@@ -63,8 +62,7 @@ class MetaDataStateStore implements TabletStateStore {
       for (Assignment assignment : assignments) {
         TabletMutator tabletMutator = tabletsMutator.mutateTablet(assignment.tablet);
         tabletMutator.putLocation(Location.current(assignment.server));
-        ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator,
-            assignment.tablet, assignment.server);
+        tabletMutator.updateLastForAssignmentMode(assignment.tablet, assignment.server);
         tabletMutator.deleteLocation(Location.future(assignment.server));
         tabletMutator.deleteSuspension();
         tabletMutator.mutate();
@@ -107,8 +105,7 @@ class MetaDataStateStore implements TabletStateStore {
       for (TabletLocationState tls : tablets) {
         TabletMutator tabletMutator = tabletsMutator.mutateTablet(tls.extent);
         if (tls.current != null) {
-          ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator, tls.extent,
-              tls.current.getServerInstance());
+          tabletMutator.updateLastForAssignmentMode(tls.extent, tls.current.getServerInstance());
           tabletMutator.deleteLocation(tls.current);
           if (logsForDeadServers != null) {
             List<Path> logs = logsForDeadServers.get(tls.current.getServerInstance());
