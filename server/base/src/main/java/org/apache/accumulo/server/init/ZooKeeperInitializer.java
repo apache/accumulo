@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.InstanceId;
@@ -179,6 +180,9 @@ public class ZooKeeperInitializer {
 
     MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mutation,
         new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
+
+    MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_COLUMN.put(mutation,
+        new Value(TabletHostingGoal.ALWAYS.name()));
 
     RootTabletMetadata rootTabletJson = new RootTabletMetadata();
     rootTabletJson.update(mutation);
