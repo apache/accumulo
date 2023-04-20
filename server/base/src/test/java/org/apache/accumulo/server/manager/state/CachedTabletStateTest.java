@@ -42,7 +42,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class TabletLocationStateTest {
+public class CachedTabletStateTest {
   private static final Collection<String> innerWalogs = new java.util.HashSet<>();
   private static final Collection<Collection<String>> walogs = new java.util.HashSet<>();
 

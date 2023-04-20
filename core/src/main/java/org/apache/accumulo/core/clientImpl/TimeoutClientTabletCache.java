@@ -37,7 +37,7 @@ import org.apache.hadoop.io.Text;
  * <p>
  * This class is safe to cache locally.
  */
-public class TimeoutTabletLocator extends SyncingTabletLocator {
+public class TimeoutClientTabletCache extends SyncingClientTabletCache {
 
   private long timeout;
   private Long firstFailTime = null;
@@ -54,17 +54,17 @@ public class TimeoutTabletLocator extends SyncingTabletLocator {
     firstFailTime = null;
   }
 
-  public TimeoutTabletLocator(long timeout, final ClientContext context, final TableId table) {
+  public TimeoutClientTabletCache(long timeout, final ClientContext context, final TableId table) {
     super(context, table);
     this.timeout = timeout;
   }
 
   @Override
-  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
+  public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
       LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     try {
-      TabletLocation ret = super.locateTablet(context, row, skipRow, locationNeed);
+      CachedTablet ret = super.findTablet(context, row, skipRow, locationNeed);
 
       if (ret == null) {
         failed();

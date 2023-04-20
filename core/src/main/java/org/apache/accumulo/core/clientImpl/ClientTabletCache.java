@@ -37,7 +37,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataLocationObtainer;
+import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
@@ -48,11 +48,14 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
-// ELASTICITY_TODO rename to TabletCache
-public abstract class TabletLocator {
+/**
+ * Client side cache of information about Tablets. Currently, a tablet prev end row is cached and
+ * locations are cached if they exists.
+ */
+public abstract class ClientTabletCache {
 
   /**
-   * Flipped false on call to {@link #clearLocators}. Checked by client classes that locally cache
+   * Flipped false on call to {@link #clearInstances}. Checked by client classes that locally cache
    * Locators.
    */
   private volatile boolean isValid = true;
@@ -69,7 +72,6 @@ public abstract class TabletLocator {
     REQUIRED, NOT_REQUIRED
   }
 
-  // ELASTICITY_TODO rename to findTablet
   /**
    * Finds the tablet that contains the given row.
    *
@@ -80,17 +82,17 @@ public abstract class TabletLocator {
    * @return overlapping tablet. If no overlapping tablet exists, returns null. If location is
    *         required and the tablet currently has no location ,returns null.
    */
-  public abstract TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
+  public abstract CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
       LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
-  public TabletLocation locateTabletWithRetry(ClientContext context, Text row, boolean skipRow,
+  public CachedTablet findTabletWithRetry(ClientContext context, Text row, boolean skipRow,
       LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    var tl = locateTablet(context, row, skipRow, locationNeed);
+    var tl = findTablet(context, row, skipRow, locationNeed);
     while (tl == null && locationNeed == LocationNeed.REQUIRED) {
       UtilWaitThread.sleep(100);
-      tl = locateTablet(context, row, skipRow, locationNeed);
+      tl = findTablet(context, row, skipRow, locationNeed);
     }
     return tl;
   }
@@ -121,22 +123,21 @@ public abstract class TabletLocator {
    * @return The failed ranges that did not have a location (if a location is required) or where
    *         contiguous tablets could not be found.
    */
-  public abstract List<Range> locateTablets(ClientContext context, List<Range> ranges,
-      BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed)
+  public abstract List<Range> findTablets(ClientContext context, List<Range> ranges,
+      BiConsumer<CachedTablet,Range> rangeConsumer, LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * The behavior of this method is similar to
-   * {@link #locateTablets(ClientContext, List, BiConsumer, LocationNeed)}, except it bins ranges to
+   * {@link #findTablets(ClientContext, List, BiConsumer, LocationNeed)}, except it bins ranges to
    * the passed in binnedRanges map instead of passing them to a consumer. This method only bins to
    * hosted tablets with a location.
    */
   public List<Range> binRanges(ClientContext context, List<Range> ranges,
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    return locateTablets(context, ranges,
-        ((cachedTablet, range) -> TabletLocatorImpl.addRange(binnedRanges, cachedTablet, range)),
-        LocationNeed.REQUIRED);
+    return findTablets(context, ranges, ((cachedTablet, range) -> ClientTabletCacheImpl
+        .addRange(binnedRanges, cachedTablet, range)), LocationNeed.REQUIRED);
   }
 
   public abstract void invalidateCache(KeyExtent failedExtent);
@@ -153,11 +154,11 @@ public abstract class TabletLocator {
    */
   public abstract void invalidateCache(ClientContext context, String server);
 
-  private static class LocatorKey {
+  private static class InstanceKey {
     InstanceId instanceId;
     TableId tableId;
 
-    LocatorKey(InstanceId instanceId, TableId table) {
+    InstanceKey(InstanceId instanceId, TableId table) {
       this.instanceId = instanceId;
       this.tableId = table;
     }
@@ -169,26 +170,26 @@ public abstract class TabletLocator {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof LocatorKey) {
-        return equals((LocatorKey) o);
+      if (o instanceof InstanceKey) {
+        return equals((InstanceKey) o);
       }
       return false;
     }
 
-    public boolean equals(LocatorKey lk) {
+    public boolean equals(InstanceKey lk) {
       return instanceId.equals(lk.instanceId) && tableId.equals(lk.tableId);
     }
 
   }
 
-  private static final HashMap<LocatorKey,TabletLocator> locators = new HashMap<>();
+  private static final HashMap<InstanceKey,ClientTabletCache> instances = new HashMap<>();
   private static boolean enabled = true;
 
-  public static synchronized void clearLocators() {
-    for (TabletLocator locator : locators.values()) {
+  public static synchronized void clearInstances() {
+    for (ClientTabletCache locator : instances.values()) {
       locator.isValid = false;
     }
-    locators.clear();
+    instances.clear();
   }
 
   static synchronized boolean isEnabled() {
@@ -196,7 +197,7 @@ public abstract class TabletLocator {
   }
 
   static synchronized void disable() {
-    clearLocators();
+    clearInstances();
     enabled = false;
   }
 
@@ -208,24 +209,24 @@ public abstract class TabletLocator {
     return 0L;
   }
 
-  public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
+  public static synchronized ClientTabletCache getInstance(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
         + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
-    LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
-    TabletLocator tl = locators.get(key);
+    InstanceKey key = new InstanceKey(context.getInstanceID(), tableId);
+    ClientTabletCache tl = instances.get(key);
     if (tl == null) {
-      MetadataLocationObtainer mlo = new MetadataLocationObtainer();
+      MetadataCachedTabletObtainer mlo = new MetadataCachedTabletObtainer();
 
       if (RootTable.ID.equals(tableId)) {
-        tl = new RootTabletLocator(new ZookeeperLockChecker(context));
+        tl = new RootClientTabletCache(new ZookeeperLockChecker(context));
       } else if (MetadataTable.ID.equals(tableId)) {
-        tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
+        tl = new ClientTabletCacheImpl(MetadataTable.ID, getInstance(context, RootTable.ID), mlo,
             new ZookeeperLockChecker(context));
       } else {
-        tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
+        tl = new ClientTabletCacheImpl(tableId, getInstance(context, MetadataTable.ID), mlo,
             new ZookeeperLockChecker(context));
       }
-      locators.put(key, tl);
+      instances.put(key, tl);
     }
 
     return tl;
@@ -236,43 +237,42 @@ public abstract class TabletLocator {
 
       @Override
       public boolean isEnabled() {
-        return TabletLocator.isEnabled();
+        return ClientTabletCache.isEnabled();
       }
 
       @Override
       public void enable() {
-        TabletLocator.enable();
+        ClientTabletCache.enable();
       }
 
       @Override
       public void disable() {
-        TabletLocator.disable();
+        ClientTabletCache.disable();
       }
     });
   }
 
-  public static class TabletLocations {
+  public static class CachedTablets {
 
-    private final List<TabletLocation> locations;
+    private final List<CachedTablet> cachedTablets;
 
-    public TabletLocations(List<TabletLocation> locations) {
-      this.locations = locations;
+    public CachedTablets(List<CachedTablet> cachedTablets) {
+      this.cachedTablets = cachedTablets;
     }
 
-    public List<TabletLocation> getLocations() {
-      return locations;
+    public List<CachedTablet> getCachedTablets() {
+      return cachedTablets;
     }
   }
 
-  // ELASTICITY_TODO rename to CachedTablet
-  public static class TabletLocation {
+  public static class CachedTablet {
     private static final Interner<String> interner = new Interner<>();
 
     private final KeyExtent tablet_extent;
     private final String tserverLocation;
     private final String tserverSession;
 
-    public TabletLocation(KeyExtent tablet_extent, String tablet_location, String session) {
+    public CachedTablet(KeyExtent tablet_extent, String tablet_location, String session) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       checkArgument(tablet_location != null, "tablet_location is null");
       checkArgument(session != null, "session is null");
@@ -281,7 +281,7 @@ public abstract class TabletLocator {
       this.tserverSession = interner.intern(session);
     }
 
-    public TabletLocation(KeyExtent tablet_extent, Optional<String> tablet_location,
+    public CachedTablet(KeyExtent tablet_extent, Optional<String> tablet_location,
         Optional<String> session) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       this.tablet_extent = tablet_extent;
@@ -289,7 +289,7 @@ public abstract class TabletLocator {
       this.tserverSession = session.map(interner::intern).orElse(null);
     }
 
-    public TabletLocation(KeyExtent tablet_extent) {
+    public CachedTablet(KeyExtent tablet_extent) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       this.tablet_extent = tablet_extent;
       this.tserverLocation = null;
@@ -298,8 +298,8 @@ public abstract class TabletLocator {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof TabletLocation) {
-        TabletLocation otl = (TabletLocation) o;
+      if (o instanceof CachedTablet) {
+        CachedTablet otl = (CachedTablet) o;
         return getExtent().equals(otl.getExtent())
             && getTserverLocation().equals(otl.getTserverLocation())
             && getTserverSession().equals(otl.getTserverSession());

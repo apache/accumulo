@@ -40,8 +40,8 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -128,10 +128,10 @@ public class BulkImporter {
         Collections.synchronizedSortedMap(new TreeMap<>());
 
     ClientService.Client client = null;
-    final TabletLocator locator = TabletLocator.getLocator(context, tableId);
+    final ClientTabletCache locator = ClientTabletCache.getInstance(context, tableId);
 
     try {
-      final Map<Path,List<TabletLocation>> assignments =
+      final Map<Path,List<CachedTablet>> assignments =
           Collections.synchronizedSortedMap(new TreeMap<>());
 
       timer.start(Timers.EXAMINE_MAP_FILES);
@@ -141,7 +141,7 @@ public class BulkImporter {
       for (Path path : paths) {
         final Path mapFile = path;
         Runnable getAssignments = () -> {
-          List<TabletLocation> tabletsToAssignMapFileTo = Collections.emptyList();
+          List<CachedTablet> tabletsToAssignMapFileTo = Collections.emptyList();
           try {
             tabletsToAssignMapFileTo =
                 findOverlappingTablets(context, fs, locator, mapFile, tableConf.getCryptoService());
@@ -204,7 +204,7 @@ public class BulkImporter {
         for (Entry<Path,List<KeyExtent>> entry : assignmentFailures.entrySet()) {
           Iterator<KeyExtent> keListIter = entry.getValue().iterator();
 
-          List<TabletLocation> tabletsToAssignMapFileTo = new ArrayList<>();
+          List<CachedTablet> tabletsToAssignMapFileTo = new ArrayList<>();
 
           while (keListIter.hasNext()) {
             KeyExtent ke = keListIter.next();
@@ -337,16 +337,16 @@ public class BulkImporter {
     long estSize;
   }
 
-  private static List<KeyExtent> extentsOf(List<TabletLocation> locations) {
+  private static List<KeyExtent> extentsOf(List<CachedTablet> locations) {
     List<KeyExtent> result = new ArrayList<>(locations.size());
-    for (TabletLocation tl : locations) {
+    for (CachedTablet tl : locations) {
       result.add(tl.getExtent());
     }
     return result;
   }
 
   private Map<Path,List<AssignmentInfo>> estimateSizes(final VolumeManager vm,
-      Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads) {
+      Map<Path,List<CachedTablet>> assignments, Collection<Path> paths, int numThreads) {
 
     long t1 = System.currentTimeMillis();
     final Map<Path,Long> mapFileSizes = new TreeMap<>();
@@ -366,15 +366,15 @@ public class BulkImporter {
     ExecutorService threadPool = ThreadPools.getServerThreadPools()
         .createFixedThreadPool(numThreads, "estimateSizes", false);
 
-    for (final Entry<Path,List<TabletLocation>> entry : assignments.entrySet()) {
+    for (final Entry<Path,List<CachedTablet>> entry : assignments.entrySet()) {
       if (entry.getValue().size() == 1) {
-        TabletLocation tabletLocation = entry.getValue().get(0);
+        CachedTablet cachedTablet = entry.getValue().get(0);
 
         // if the tablet completely contains the map file, there is no
         // need to estimate its
         // size
         ais.put(entry.getKey(), Collections.singletonList(
-            new AssignmentInfo(tabletLocation.getExtent(), mapFileSizes.get(entry.getKey()))));
+            new AssignmentInfo(cachedTablet.getExtent(), mapFileSizes.get(entry.getKey()))));
         continue;
       }
 
@@ -397,7 +397,7 @@ public class BulkImporter {
           estimatedSizes = new TreeMap<>();
           long estSize =
               (long) (mapFileSizes.get(entry.getKey()) / (double) entry.getValue().size());
-          for (TabletLocation tl : entry.getValue()) {
+          for (CachedTablet tl : entry.getValue()) {
             estimatedSizes.put(tl.getExtent(), estSize);
           }
         }
@@ -433,10 +433,10 @@ public class BulkImporter {
     return ais;
   }
 
-  private static Map<KeyExtent,String> locationsOf(Map<Path,List<TabletLocation>> assignments) {
+  private static Map<KeyExtent,String> locationsOf(Map<Path,List<CachedTablet>> assignments) {
     Map<KeyExtent,String> result = new HashMap<>();
-    for (List<TabletLocation> entry : assignments.values()) {
-      for (TabletLocation tl : entry) {
+    for (List<CachedTablet> entry : assignments.values()) {
+      for (CachedTablet tl : entry) {
         result.put(tl.getExtent(), tl.getTserverLocation().get());
       }
     }
@@ -444,7 +444,7 @@ public class BulkImporter {
   }
 
   private Map<Path,List<KeyExtent>> assignMapFiles(VolumeManager fs,
-      Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads,
+      Map<Path,List<CachedTablet>> assignments, Collection<Path> paths, int numThreads,
       int numMapThreads) {
     timer.start(Timers.EXAMINE_MAP_FILES);
     Map<Path,List<AssignmentInfo>> assignInfo =
@@ -618,13 +618,13 @@ public class BulkImporter {
     }
   }
 
-  public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager fs,
-      TabletLocator locator, Path file, CryptoService cs) throws Exception {
+  public static List<CachedTablet> findOverlappingTablets(ServerContext context, VolumeManager fs,
+      ClientTabletCache locator, Path file, CryptoService cs) throws Exception {
     return findOverlappingTablets(context, fs, locator, file, null, null, cs);
   }
 
-  public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager fs,
-      TabletLocator locator, Path file, KeyExtent failed, CryptoService cs) throws Exception {
+  public static List<CachedTablet> findOverlappingTablets(ServerContext context, VolumeManager fs,
+      ClientTabletCache locator, Path file, KeyExtent failed, CryptoService cs) throws Exception {
     locator.invalidateCache(failed);
     Text start = getStartRowForExtent(failed);
     return findOverlappingTablets(context, fs, locator, file, start, failed.endRow(), cs);
@@ -643,10 +643,10 @@ public class BulkImporter {
 
   static final byte[] byte0 = {0};
 
-  public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager vm,
-      TabletLocator locator, Path file, Text startRow, Text endRow, CryptoService cs)
+  public static List<CachedTablet> findOverlappingTablets(ServerContext context, VolumeManager vm,
+      ClientTabletCache locator, Path file, Text startRow, Text endRow, CryptoService cs)
       throws Exception {
-    List<TabletLocation> result = new ArrayList<>();
+    List<CachedTablet> result = new ArrayList<>();
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
     String filename = file.toString();
     // log.debug(filename + " finding overlapping tablets " + startRow + " -> " + endRow);
@@ -666,11 +666,11 @@ public class BulkImporter {
           break;
         }
         row = reader.getTopKey().getRow();
-        TabletLocation tabletLocation =
-            locator.locateTabletWithRetry(context, row, false, TabletLocator.LocationNeed.REQUIRED);
+        CachedTablet cachedTablet = locator.findTabletWithRetry(context, row, false,
+            ClientTabletCache.LocationNeed.REQUIRED);
         // log.debug(filename + " found row " + row + " at location " + tabletLocation);
-        result.add(tabletLocation);
-        row = tabletLocation.getExtent().endRow();
+        result.add(cachedTablet);
+        row = cachedTablet.getExtent().endRow();
         if (row != null && (endRow == null || row.compareTo(endRow) < 0)) {
           row = new Text(row);
           row.append(byte0, 0, byte0.length);
@@ -694,9 +694,9 @@ public class BulkImporter {
       numUniqueMapFiles = fileCount;
     }
 
-    void attemptingAssignments(Map<Path,List<TabletLocation>> assignments) {
-      for (Entry<Path,List<TabletLocation>> entry : assignments.entrySet()) {
-        for (TabletLocation tl : entry.getValue()) {
+    void attemptingAssignments(Map<Path,List<CachedTablet>> assignments) {
+      for (Entry<Path,List<CachedTablet>> entry : assignments.entrySet()) {
+        for (CachedTablet tl : entry.getValue()) {
 
           Integer count = getCount(tl.getExtent());
 
