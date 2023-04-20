@@ -708,7 +708,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         // no scan server was given so use the tablet server
         serverToUse = extentToTserverMap.get(extent);
         if (serverToUse != null) {
-          log.trace("For tablet {} scan server selector chose tablet_server {}", tabletId, serverToUse);
+          log.trace("For tablet {} scan server selector chose tablet_server {}", tabletId,
+              serverToUse);
         } else {
           log.trace(
               "For tablet {} scan server selector chose tablet_server, but tablet is not hosted",

@@ -433,7 +433,8 @@ public class ThriftScanner {
           addr = new ScanAddress(loc.getTserverLocation().get(), ServerType.TSERVER, loc);
           delay = actions.getDelay();
           scanState.busyTimeout = Duration.ZERO;
-          log.trace("For tablet {} scan server selector chose tablet_server: {}", loc.getExtent(), addr);
+          log.trace("For tablet {} scan server selector chose tablet_server: {}", loc.getExtent(),
+              addr);
         } else {
           log.trace(
               "For tablet {} scan server selector chose tablet_server, but the tablet is not currently hosted",
