@@ -31,8 +31,8 @@ import java.util.TreeSet;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.clientImpl.TabletCache;
+import org.apache.accumulo.core.clientImpl.TabletCache.TabletLocation;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -67,11 +67,11 @@ public class BulkImporterTest {
     fakeMetaData.add(new KeyExtent(tableId, null, fakeMetaData.last().endRow()));
   }
 
-  class MockTabletLocator extends TabletLocator {
+  class MockTabletCache extends TabletCache {
     int invalidated = 0;
 
     @Override
-    public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
+    public TabletLocation findTablet(ClientContext context, Text row, boolean skipRow,
         LocationNeed locationNeed) {
       return new TabletLocation(fakeMetaData.tailSet(new KeyExtent(tableId, row, null)).first(),
           "localhost", "1");
@@ -84,7 +84,7 @@ public class BulkImporterTest {
     }
 
     @Override
-    public List<Range> locateTablets(ClientContext context, List<Range> ranges,
+    public List<Range> findTablets(ClientContext context, List<Range> ranges,
         BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed) {
       throw new UnsupportedOperationException();
     }
@@ -112,7 +112,7 @@ public class BulkImporterTest {
 
   @Test
   public void testFindOverlappingTablets() throws Exception {
-    MockTabletLocator locator = new MockTabletLocator();
+    MockTabletCache locator = new MockTabletCache();
     FileSystem fs = FileSystem.getLocal(new Configuration());
     ServerContext context = MockServerContext.get();
     CryptoService cs = NoCryptoServiceFactory.NONE;

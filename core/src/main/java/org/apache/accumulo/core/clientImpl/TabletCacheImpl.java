@@ -74,9 +74,9 @@ import com.google.common.annotations.VisibleForTesting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class TabletLocatorImpl extends TabletLocator {
+public class TabletCacheImpl extends TabletCache {
 
-  private static final Logger log = LoggerFactory.getLogger(TabletLocatorImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletCacheImpl.class);
   private static final AtomicBoolean HOSTING_ENABLED = new AtomicBoolean(true);
 
   // MAX_TEXT represents a TEXT object that is greater than all others. Attempted to use null for
@@ -98,7 +98,7 @@ public class TabletLocatorImpl extends TabletLocator {
   };
 
   protected TableId tableId;
-  protected TabletLocator parent;
+  protected TabletCache parent;
   protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
   protected TabletLocationObtainer locationObtainer;
   private final TabletServerLockChecker lockChecker;
@@ -118,10 +118,10 @@ public class TabletLocatorImpl extends TabletLocator {
      * @return null when unable to read information successfully
      */
     TabletLocations lookupTablet(ClientContext context, TabletLocation src, Text row, Text stopRow,
-        TabletLocator parent) throws AccumuloSecurityException, AccumuloException;
+        TabletCache parent) throws AccumuloSecurityException, AccumuloException;
 
     List<TabletLocation> lookupTablets(ClientContext context, String tserver,
-        Map<KeyExtent,List<Range>> map, TabletLocator parent)
+        Map<KeyExtent,List<Range>> map, TabletCache parent)
         throws AccumuloSecurityException, AccumuloException;
   }
 
@@ -178,7 +178,7 @@ public class TabletLocatorImpl extends TabletLocator {
     }
   }
 
-  public TabletLocatorImpl(TableId tableId, TabletLocator parent, TabletLocationObtainer tlo,
+  public TabletCacheImpl(TableId tableId, TabletCache parent, TabletLocationObtainer tlo,
       TabletServerLockChecker tslc) {
     this.tableId = tableId;
     this.parent = parent;
@@ -397,7 +397,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   @Override
-  public List<Range> locateTablets(ClientContext context, List<Range> ranges,
+  public List<Range> findTablets(ClientContext context, List<Range> ranges,
       BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
@@ -538,7 +538,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   @Override
-  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
+  public TabletLocation findTablet(ClientContext context, Text row, boolean skipRow,
       LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
@@ -644,7 +644,7 @@ public class TabletLocatorImpl extends TabletLocator {
     Text metadataRow = new Text(tableId.canonical());
     metadataRow.append(new byte[] {';'}, 0, 1);
     metadataRow.append(row.getBytes(), 0, row.getLength());
-    TabletLocation ptl = parent.locateTablet(context, metadataRow, false, LocationNeed.REQUIRED);
+    TabletLocation ptl = parent.findTablet(context, metadataRow, false, LocationNeed.REQUIRED);
 
     if (ptl != null) {
       TabletLocations locations =
@@ -654,7 +654,7 @@ public class TabletLocatorImpl extends TabletLocator {
         Text er = ptl.getExtent().endRow();
         if (er != null && er.compareTo(lastTabletRow) < 0) {
           // System.out.println("er "+er+" ltr "+lastTabletRow);
-          ptl = parent.locateTablet(context, er, true, LocationNeed.REQUIRED);
+          ptl = parent.findTablet(context, er, true, LocationNeed.REQUIRED);
           if (ptl != null) {
             locations =
                 locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
@@ -862,7 +862,7 @@ public class TabletLocatorImpl extends TabletLocator {
 
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
-      parent.locateTablets(context, lookups,
+      parent.findTablets(context, lookups,
           (cachedTablet, range) -> addRange(binnedRanges, cachedTablet, range),
           LocationNeed.REQUIRED);
 

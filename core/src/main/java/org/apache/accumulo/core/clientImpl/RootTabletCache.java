@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletServerLockChecker;
+import org.apache.accumulo.core.clientImpl.TabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -46,11 +46,11 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-public class RootTabletLocator extends TabletLocator {
+public class RootTabletCache extends TabletCache {
 
   private final TabletServerLockChecker lockChecker;
 
-  RootTabletLocator(TabletServerLockChecker lockChecker) {
+  RootTabletCache(TabletServerLockChecker lockChecker) {
     this.lockChecker = lockChecker;
   }
 
@@ -70,7 +70,7 @@ public class RootTabletLocator extends TabletLocator {
   }
 
   @Override
-  public List<Range> locateTablets(ClientContext context, List<Range> ranges,
+  public List<Range> findTablets(ClientContext context, List<Range> ranges,
       BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed) {
 
     // only expect the hosted case so this code only handles that, so throw an exception is
@@ -137,7 +137,7 @@ public class RootTabletLocator extends TabletLocator {
   }
 
   @Override
-  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
+  public TabletLocation findTablet(ClientContext context, Text row, boolean skipRow,
       LocationNeed locationNeed) {
     // only expect the hosted case so this code only handles that, so throw an exception is
     // something else is seen

@@ -40,12 +40,12 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.clientImpl.TabletLocator.LocationNeed;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocations;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
-import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletLocationObtainer;
-import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletServerLockChecker;
+import org.apache.accumulo.core.clientImpl.TabletCache.LocationNeed;
+import org.apache.accumulo.core.clientImpl.TabletCache.TabletLocation;
+import org.apache.accumulo.core.clientImpl.TabletCache.TabletLocations;
+import org.apache.accumulo.core.clientImpl.TabletCache.TabletServerMutations;
+import org.apache.accumulo.core.clientImpl.TabletCacheImpl.TabletLocationObtainer;
+import org.apache.accumulo.core.clientImpl.TabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -65,7 +65,7 @@ import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class TabletLocatorImplTest {
+public class TabletCacheImplTest {
 
   private static final KeyExtent ROOT_TABLE_EXTENT = RootTable.EXTENT;
   private static final KeyExtent METADATA_TABLE_EXTENT =
@@ -145,11 +145,11 @@ public class TabletLocatorImplTest {
   static TreeMap<Text,TabletLocation> createMetaCache(Object... data) {
     TreeMap<KeyExtent,TabletLocation> mcke = createMetaCacheKE(data);
 
-    TreeMap<Text,TabletLocation> mc = new TreeMap<>(TabletLocatorImpl.END_ROW_COMPARATOR);
+    TreeMap<Text,TabletLocation> mc = new TreeMap<>(TabletCacheImpl.END_ROW_COMPARATOR);
 
     for (Entry<KeyExtent,TabletLocation> entry : mcke.entrySet()) {
       if (entry.getKey().endRow() == null) {
-        mc.put(TabletLocatorImpl.MAX_TEXT, entry.getValue());
+        mc.put(TabletCacheImpl.MAX_TEXT, entry.getValue());
       } else {
         mc.put(entry.getKey().endRow(), entry.getValue());
       }
@@ -158,18 +158,18 @@ public class TabletLocatorImplTest {
     return mc;
   }
 
-  static TabletLocatorImpl createLocators(TServers tservers, String rootTabLoc, String metaTabLoc,
+  static TabletCacheImpl createLocators(TServers tservers, String rootTabLoc, String metaTabLoc,
       String table, TabletServerLockChecker tslc, Object... data) {
 
     TreeMap<KeyExtent,TabletLocation> mcke = createMetaCacheKE(data);
 
     TestTabletLocationObtainer ttlo = new TestTabletLocationObtainer(tservers);
 
-    RootTabletLocator rtl = new TestRootTabletLocator();
-    TabletLocatorImpl rootTabletCache =
-        new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
-    TabletLocatorImpl tab1TabletCache =
-        new TabletLocatorImpl(TableId.of(table), rootTabletCache, ttlo, tslc);
+    RootTabletCache rtl = new TestRootTabletCache();
+    TabletCacheImpl rootTabletCache =
+        new TabletCacheImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
+    TabletCacheImpl tab1TabletCache =
+        new TabletCacheImpl(TableId.of(table), rootTabletCache, ttlo, tslc);
     // disable hosting requests for these tests
     tab1TabletCache.enableTabletHostingRequests(false);
 
@@ -184,12 +184,12 @@ public class TabletLocatorImplTest {
 
   }
 
-  static TabletLocatorImpl createLocators(TServers tservers, String rootTabLoc, String metaTabLoc,
+  static TabletCacheImpl createLocators(TServers tservers, String rootTabLoc, String metaTabLoc,
       String table, Object... data) {
     return createLocators(tservers, rootTabLoc, metaTabLoc, table, new YesLockChecker(), data);
   }
 
-  static TabletLocatorImpl createLocators(String table, Object... data) {
+  static TabletCacheImpl createLocators(String table, Object... data) {
     TServers tservers = new TServers();
     return createLocators(tservers, "tserver1", "tserver2", table, data);
   }
@@ -219,13 +219,13 @@ public class TabletLocatorImplTest {
     replay(context, tops);
   }
 
-  private void runTest(List<Range> ranges, TabletLocatorImpl tab1TabletCache,
+  private void runTest(List<Range> ranges, TabletCacheImpl tab1TabletCache,
       Map<String,Map<KeyExtent,List<Range>>> expected) throws Exception {
     List<Range> failures = Collections.emptyList();
     runTest(ranges, tab1TabletCache, expected, failures);
   }
 
-  private void runTest(List<Range> ranges, TabletLocatorImpl tab1TabletCache,
+  private void runTest(List<Range> ranges, TabletCacheImpl tab1TabletCache,
       Map<String,Map<KeyExtent,List<Range>>> expected, List<Range> efailures) throws Exception {
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
@@ -252,7 +252,7 @@ public class TabletLocatorImplTest {
 
     metaCache = new TreeMap<>(metaCache);
 
-    TabletLocatorImpl.removeOverlapping(metaCache, remove);
+    TabletCacheImpl.removeOverlapping(metaCache, remove);
 
     HashSet<KeyExtent> eic = new HashSet<>();
     for (TabletLocation tl : metaCache.values()) {
@@ -279,7 +279,7 @@ public class TabletLocatorImplTest {
     return List.of(ma);
   }
 
-  private void runTest(TabletLocatorImpl metaCache, List<Mutation> ml,
+  private void runTest(TabletCacheImpl metaCache, List<Mutation> ml,
       Map<String,Map<KeyExtent,List<String>>> emb, String... efailures) throws Exception {
     Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
     List<Mutation> afailures = new ArrayList<>();
@@ -503,7 +503,7 @@ public class TabletLocatorImplTest {
 
     @Override
     public TabletLocations lookupTablet(ClientContext context, TabletLocation src, Text row,
-        Text stopRow, TabletLocator parent) {
+        Text stopRow, TabletCache parent) {
 
       Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.get(src.getTserverLocation().get());
 
@@ -532,7 +532,7 @@ public class TabletLocatorImplTest {
 
     @Override
     public List<TabletLocation> lookupTablets(ClientContext context, String tserver,
-        Map<KeyExtent,List<Range>> map, TabletLocator parent) {
+        Map<KeyExtent,List<Range>> map, TabletCache parent) {
 
       ArrayList<TabletLocation> list = new ArrayList<>();
 
@@ -595,9 +595,9 @@ public class TabletLocatorImplTest {
     public void invalidateCache(String server) {}
   }
 
-  static class TestRootTabletLocator extends RootTabletLocator {
+  static class TestRootTabletCache extends RootTabletCache {
 
-    TestRootTabletLocator() {
+    TestRootTabletCache() {
       super(new YesLockChecker());
     }
 
@@ -681,9 +681,9 @@ public class TabletLocatorImplTest {
 
   }
 
-  private void locateTabletTest(TabletLocatorImpl cache, String row, boolean skipRow,
+  private void locateTabletTest(TabletCacheImpl cache, String row, boolean skipRow,
       KeyExtent expected, String server, LocationNeed locationNeeded) throws Exception {
-    TabletLocation tl = cache.locateTablet(context, new Text(row), skipRow, locationNeeded);
+    TabletLocation tl = cache.findTablet(context, new Text(row), skipRow, locationNeeded);
 
     if (expected == null) {
       if (tl != null) {
@@ -702,7 +702,7 @@ public class TabletLocatorImplTest {
     }
   }
 
-  private void locateTabletTest(TabletLocatorImpl cache, String row, KeyExtent expected,
+  private void locateTabletTest(TabletCacheImpl cache, String row, KeyExtent expected,
       String server) throws Exception {
     locateTabletTest(cache, row, false, expected, server, LocationNeed.REQUIRED);
   }
@@ -712,11 +712,11 @@ public class TabletLocatorImplTest {
     TServers tservers = new TServers();
     TestTabletLocationObtainer ttlo = new TestTabletLocationObtainer(tservers);
 
-    RootTabletLocator rtl = new TestRootTabletLocator();
-    TabletLocatorImpl rootTabletCache =
-        new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
-    TabletLocatorImpl tab1TabletCache =
-        new TabletLocatorImpl(TableId.of("tab1"), rootTabletCache, ttlo, new YesLockChecker());
+    RootTabletCache rtl = new TestRootTabletCache();
+    TabletCacheImpl rootTabletCache =
+        new TabletCacheImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
+    TabletCacheImpl tab1TabletCache =
+        new TabletCacheImpl(TableId.of("tab1"), rootTabletCache, ttlo, new YesLockChecker());
 
     locateTabletTest(tab1TabletCache, "r1", null, null);
 
@@ -874,7 +874,7 @@ public class TabletLocatorImplTest {
   @Test
   public void test2() throws Exception {
     TServers tservers = new TServers();
-    TabletLocatorImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
+    TabletCacheImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
 
     KeyExtent ke1 = createNewKeyExtent("foo", "m", null);
     KeyExtent ke2 = createNewKeyExtent("foo", null, "m");
@@ -894,8 +894,7 @@ public class TabletLocatorImplTest {
   @Test
   public void testBinRanges1() throws Exception {
 
-    TabletLocatorImpl metaCache =
-        createLocators("foo", createNewKeyExtent("foo", null, null), "l1");
+    TabletCacheImpl metaCache = createLocators("foo", createNewKeyExtent("foo", null, null), "l1");
 
     List<Range> ranges = createNewRangeList(createNewRange(null, null));
     Map<String,Map<KeyExtent,List<Range>>> expected =
@@ -925,7 +924,7 @@ public class TabletLocatorImplTest {
   public void testBinRanges2() throws Exception {
 
     List<Range> ranges = createNewRangeList(createNewRange(null, null));
-    TabletLocatorImpl metaCache = createLocators("foo", createNewKeyExtent("foo", "g", null), "l1",
+    TabletCacheImpl metaCache = createLocators("foo", createNewKeyExtent("foo", "g", null), "l1",
         createNewKeyExtent("foo", null, "g"), "l2");
 
     Map<String,
@@ -943,7 +942,7 @@ public class TabletLocatorImplTest {
 
     // test with three tablets and a range that covers the whole table
     List<Range> ranges = createNewRangeList(createNewRange(null, null));
-    TabletLocatorImpl metaCache = createLocators("foo", createNewKeyExtent("foo", "g", null), "l1",
+    TabletCacheImpl metaCache = createLocators("foo", createNewKeyExtent("foo", "g", null), "l1",
         createNewKeyExtent("foo", "m", "g"), "l2", createNewKeyExtent("foo", null, "m"), "l2");
 
     Map<String,Map<KeyExtent,List<Range>>> expected = createExpectedBinnings(
@@ -1016,7 +1015,7 @@ public class TabletLocatorImplTest {
   public void testBinRanges4() throws Exception {
 
     List<Range> ranges = createNewRangeList(new Range(new Text("1")));
-    TabletLocatorImpl metaCache = createLocators("foo", createNewKeyExtent("foo", "0", null), "l1",
+    TabletCacheImpl metaCache = createLocators("foo", createNewKeyExtent("foo", "0", null), "l1",
         createNewKeyExtent("foo", "1", "0"), "l2", createNewKeyExtent("foo", "2", "1"), "l3",
         createNewKeyExtent("foo", "3", "2"), "l4", createNewKeyExtent("foo", null, "3"), "l5");
 
@@ -1078,7 +1077,7 @@ public class TabletLocatorImplTest {
     // Test binning when there is a hole in the metadata
 
     List<Range> ranges = createNewRangeList(new Range(new Text("1")));
-    TabletLocatorImpl metaCache = createLocators("foo", createNewKeyExtent("foo", "0", null), "l1",
+    TabletCacheImpl metaCache = createLocators("foo", createNewKeyExtent("foo", "0", null), "l1",
         createNewKeyExtent("foo", "1", "0"), "l2", createNewKeyExtent("foo", "3", "2"), "l4",
         createNewKeyExtent("foo", null, "3"), "l5");
 
@@ -1135,7 +1134,7 @@ public class TabletLocatorImplTest {
     KeyExtent e3 = createNewKeyExtent("foo", "2", "05");
 
     TServers tservers = new TServers();
-    TabletLocatorImpl metaCache =
+    TabletCacheImpl metaCache =
         createLocators(tservers, "tserver1", "tserver2", "foo", e1, "l1", e2, "l1");
 
     List<Range> ranges = createNewRangeList(createNewRange("01", "07"));
@@ -1180,7 +1179,7 @@ public class TabletLocatorImplTest {
     KeyExtent e7 = createNewKeyExtent("foo", null, "s");
 
     TServers tservers = new TServers();
-    TabletLocatorImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo", e1, "l1",
+    TabletCacheImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo", e1, "l1",
         e2, "l1", e4, "l1", e5, "l1", e7, "l1");
 
     Range r1 = createNewRange("art", "cooking"); // overlaps e1 e2
@@ -1226,38 +1225,38 @@ public class TabletLocatorImplTest {
     TabletLocation e3 = new TabletLocation(createNewKeyExtent("foo", "3", "2"), "l1", "1");
     TabletLocation e4 = new TabletLocation(createNewKeyExtent("foo", null, "3"), "l1", "1");
 
-    assertTrue(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3, e4)));
-    assertTrue(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3)));
-    assertTrue(TabletLocatorImpl.isContiguous(List.of(e2, e3, e4)));
-    assertTrue(TabletLocatorImpl.isContiguous(List.of(e2, e3)));
-    assertTrue(TabletLocatorImpl.isContiguous(List.of(e1)));
-    assertTrue(TabletLocatorImpl.isContiguous(List.of(e2)));
-    assertTrue(TabletLocatorImpl.isContiguous(List.of(e4)));
+    assertTrue(TabletCacheImpl.isContiguous(List.of(e1, e2, e3, e4)));
+    assertTrue(TabletCacheImpl.isContiguous(List.of(e1, e2, e3)));
+    assertTrue(TabletCacheImpl.isContiguous(List.of(e2, e3, e4)));
+    assertTrue(TabletCacheImpl.isContiguous(List.of(e2, e3)));
+    assertTrue(TabletCacheImpl.isContiguous(List.of(e1)));
+    assertTrue(TabletCacheImpl.isContiguous(List.of(e2)));
+    assertTrue(TabletCacheImpl.isContiguous(List.of(e4)));
 
-    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e4)));
-    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e3, e4)));
+    assertFalse(TabletCacheImpl.isContiguous(List.of(e1, e2, e4)));
+    assertFalse(TabletCacheImpl.isContiguous(List.of(e1, e3, e4)));
 
     TabletLocation e5 = new TabletLocation(createNewKeyExtent("foo", null, null), "l1", "1");
-    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3, e4, e5)));
-    assertFalse(TabletLocatorImpl.isContiguous(List.of(e5, e1, e2, e3, e4)));
-    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3, e5)));
-    assertFalse(TabletLocatorImpl.isContiguous(List.of(e5, e2, e3, e4)));
-    assertTrue(TabletLocatorImpl.isContiguous(List.of(e5)));
+    assertFalse(TabletCacheImpl.isContiguous(List.of(e1, e2, e3, e4, e5)));
+    assertFalse(TabletCacheImpl.isContiguous(List.of(e5, e1, e2, e3, e4)));
+    assertFalse(TabletCacheImpl.isContiguous(List.of(e1, e2, e3, e5)));
+    assertFalse(TabletCacheImpl.isContiguous(List.of(e5, e2, e3, e4)));
+    assertTrue(TabletCacheImpl.isContiguous(List.of(e5)));
 
     TabletLocation e6 = new TabletLocation(createNewKeyExtent("foo", null, "1"), "l1", "1");
 
-    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e3, e6)));
+    assertFalse(TabletCacheImpl.isContiguous(List.of(e1, e2, e3, e6)));
 
     TabletLocation e7 = new TabletLocation(createNewKeyExtent("foo", "33", "11"), "l1", "1");
 
-    assertFalse(TabletLocatorImpl.isContiguous(List.of(e1, e2, e7, e4)));
+    assertFalse(TabletCacheImpl.isContiguous(List.of(e1, e2, e7, e4)));
   }
 
   @Test
   public void testBinMutations1() throws Exception {
     // one tablet table
     KeyExtent ke1 = createNewKeyExtent("foo", null, null);
-    TabletLocatorImpl metaCache = createLocators("foo", ke1, "l1");
+    TabletCacheImpl metaCache = createLocators("foo", ke1, "l1");
 
     List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
         createNewMutation("c", "cf1:cq1=v3", "cf1:cq2=v4"));
@@ -1280,7 +1279,7 @@ public class TabletLocatorImplTest {
   @Test
   public void testBinMutations2() throws Exception {
     // no tablets for table
-    TabletLocatorImpl metaCache = createLocators("foo");
+    TabletCacheImpl metaCache = createLocators("foo");
 
     List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
         createNewMutation("c", "cf1:cq1=v3", "cf1:cq2=v4"));
@@ -1295,7 +1294,7 @@ public class TabletLocatorImplTest {
     KeyExtent ke2 = createNewKeyExtent("foo", "t", "h");
     KeyExtent ke3 = createNewKeyExtent("foo", null, "t");
 
-    TabletLocatorImpl metaCache = createLocators("foo", ke1, "l1", ke2, "l2", ke3, "l3");
+    TabletCacheImpl metaCache = createLocators("foo", ke1, "l1", ke2, "l2", ke3, "l3");
 
     List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
         createNewMutation("i", "cf1:cq1=v3", "cf1:cq2=v4"));
@@ -1339,7 +1338,7 @@ public class TabletLocatorImplTest {
 
     KeyExtent ke3 = createNewKeyExtent("foo", null, "t");
 
-    TabletLocatorImpl metaCache = createLocators("foo", ke1, "l1", ke3, "l3");
+    TabletCacheImpl metaCache = createLocators("foo", ke1, "l1", ke3, "l3");
 
     List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
         createNewMutation("i", "cf1:cq1=v3", "cf1:cq2=v4"));
@@ -1388,7 +1387,7 @@ public class TabletLocatorImplTest {
 
       KeyExtent ke1 = createNewKeyExtent("foo", null, null);
       TServers tservers = new TServers();
-      TabletLocatorImpl metaCache =
+      TabletCacheImpl metaCache =
           createLocators(tservers, "tserver1", "tserver2", "foo", ke1, "l1");
 
       List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
@@ -1462,11 +1461,11 @@ public class TabletLocatorImplTest {
     TServers tservers = new TServers();
     TestTabletLocationObtainer ttlo = new TestTabletLocationObtainer(tservers);
 
-    RootTabletLocator rtl = new TestRootTabletLocator();
-    TabletLocatorImpl rootTabletCache =
-        new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
-    TabletLocatorImpl tab0TabletCache =
-        new TabletLocatorImpl(TableId.of("0"), rootTabletCache, ttlo, new YesLockChecker());
+    RootTabletCache rtl = new TestRootTabletCache();
+    TabletCacheImpl rootTabletCache =
+        new TabletCacheImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
+    TabletCacheImpl tab0TabletCache =
+        new TabletCacheImpl(TableId.of("0"), rootTabletCache, ttlo, new YesLockChecker());
 
     setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte1, "tserver2");
     setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte2, "tserver3");
@@ -1491,11 +1490,11 @@ public class TabletLocatorImplTest {
     TServers tservers = new TServers();
     TestTabletLocationObtainer ttlo = new TestTabletLocationObtainer(tservers);
 
-    RootTabletLocator rtl = new TestRootTabletLocator();
-    TabletLocatorImpl rootTabletCache =
-        new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
-    TabletLocatorImpl tab0TabletCache =
-        new TabletLocatorImpl(TableId.of("0"), rootTabletCache, ttlo, new YesLockChecker());
+    RootTabletCache rtl = new TestRootTabletCache();
+    TabletCacheImpl rootTabletCache =
+        new TabletCacheImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
+    TabletCacheImpl tab0TabletCache =
+        new TabletCacheImpl(TableId.of("0"), rootTabletCache, ttlo, new YesLockChecker());
 
     setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte1, "tserver2");
     setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte2, "tserver3");
@@ -1505,7 +1504,7 @@ public class TabletLocatorImplTest {
     ts3.put(mte2, new TreeMap<>());
     tservers.tservers.put("tserver3", ts3);
 
-    assertNull(tab0TabletCache.locateTablet(context, new Text("row_0000000000"), false,
+    assertNull(tab0TabletCache.findTablet(context, new Text("row_0000000000"), false,
         LocationNeed.REQUIRED));
 
   }
@@ -1525,12 +1524,12 @@ public class TabletLocatorImplTest {
     TServers tservers = new TServers();
     TestTabletLocationObtainer ttlo = new TestTabletLocationObtainer(tservers);
 
-    RootTabletLocator rtl = new TestRootTabletLocator();
+    RootTabletCache rtl = new TestRootTabletCache();
 
-    TabletLocatorImpl rootTabletCache =
-        new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
-    TabletLocatorImpl tab0TabletCache =
-        new TabletLocatorImpl(TableId.of("1"), rootTabletCache, ttlo, new YesLockChecker());
+    TabletCacheImpl rootTabletCache =
+        new TabletCacheImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
+    TabletCacheImpl tab0TabletCache =
+        new TabletCacheImpl(TableId.of("1"), rootTabletCache, ttlo, new YesLockChecker());
 
     setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte1, "tserver2");
     setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte2, "tserver3");
@@ -1551,7 +1550,7 @@ public class TabletLocatorImplTest {
   @Test
   public void testAccumulo1248() {
     TServers tservers = new TServers();
-    TabletLocatorImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
+    TabletCacheImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
 
     KeyExtent ke1 = createNewKeyExtent("foo", null, null);
 
@@ -1562,7 +1561,7 @@ public class TabletLocatorImplTest {
     setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "L2", "I2");
 
     var e = assertThrows(IllegalStateException.class,
-        () -> metaCache.locateTablet(context, new Text("a"), false, LocationNeed.REQUIRED));
+        () -> metaCache.findTablet(context, new Text("a"), false, LocationNeed.REQUIRED));
     assertTrue(e.getMessage().startsWith("Tablet has multiple locations : "));
 
   }
@@ -1573,7 +1572,7 @@ public class TabletLocatorImplTest {
     final HashSet<String> activeLocks = new HashSet<>();
 
     TServers tservers = new TServers();
-    TabletLocatorImpl metaCache =
+    TabletCacheImpl metaCache =
         createLocators(tservers, "tserver1", "tserver2", "foo", new TabletServerLockChecker() {
           @Override
           public boolean isLockHeld(String tserver, String session) {
@@ -1715,7 +1714,7 @@ public class TabletLocatorImplTest {
     // this test caching tablets without a location
 
     TServers tservers = new TServers();
-    TabletLocatorImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
+    TabletCacheImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
 
     var ke1 = createNewKeyExtent("foo", "g", null);
     var ke2 = createNewKeyExtent("foo", "m", "g");
@@ -1738,8 +1737,8 @@ public class TabletLocatorImplTest {
 
     List<Range> ranges = List.of(r1, r2);
     Set<Pair<TabletLocation,Range>> actual = new HashSet<>();
-    var failures = metaCache.locateTablets(context, ranges,
-        (tl, r) -> actual.add(new Pair<>(tl, r)), LocationNeed.NOT_REQUIRED);
+    var failures = metaCache.findTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
+        LocationNeed.NOT_REQUIRED);
     assertEquals(List.of(), failures);
     var tl1 = new TabletLocation(ke1);
     var tl2 = new TabletLocation(ke2);
@@ -1749,7 +1748,7 @@ public class TabletLocatorImplTest {
     assertEquals(expected, actual);
 
     actual.clear();
-    failures = metaCache.locateTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
+    failures = metaCache.findTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
         LocationNeed.REQUIRED);
     assertEquals(new HashSet<>(ranges), new HashSet<>(failures));
     assertEquals(Set.of(), actual);
@@ -1767,7 +1766,7 @@ public class TabletLocatorImplTest {
     // even though the location is set for ke2 the cache should have ke2 w/o a location and that
     // should be seeen
     actual.clear();
-    failures = metaCache.locateTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
+    failures = metaCache.findTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
         LocationNeed.NOT_REQUIRED);
     assertEquals(List.of(), failures);
     tl1 = new TabletLocation(ke1, "L3", "I3");
@@ -1776,7 +1775,7 @@ public class TabletLocatorImplTest {
     assertEquals(expected, actual);
     // this should cause the location for ke2 to be pulled into the cache
     actual.clear();
-    failures = metaCache.locateTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
+    failures = metaCache.findTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
         LocationNeed.REQUIRED);
     assertEquals(List.of(), failures);
     tl2 = new TabletLocation(ke2, "L4", "I4");
@@ -1785,7 +1784,7 @@ public class TabletLocatorImplTest {
     assertEquals(expected, actual);
     // should still see locations in cache
     actual.clear();
-    failures = metaCache.locateTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
+    failures = metaCache.findTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
         LocationNeed.NOT_REQUIRED);
     assertEquals(List.of(), failures);
     assertEquals(expected, actual);

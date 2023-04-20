@@ -24,16 +24,16 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletServerLockChecker;
+import org.apache.accumulo.core.clientImpl.TabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class RootTabletLocatorTest {
+public class RootTabletCacheTest {
   private ClientContext context;
   private TabletServerLockChecker lockChecker;
   private ZooCache zc;
-  private RootTabletLocator rtl;
+  private RootTabletCache rtl;
 
   @BeforeEach
   public void setUp() {
@@ -43,7 +43,7 @@ public class RootTabletLocatorTest {
     expect(context.getZooCache()).andReturn(zc).anyTimes();
     replay(context);
     lockChecker = createMock(TabletServerLockChecker.class);
-    rtl = new RootTabletLocator(lockChecker);
+    rtl = new RootTabletCache(lockChecker);
   }
 
   @Test

@@ -53,7 +53,7 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
+import org.apache.accumulo.core.clientImpl.TabletCache.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -660,7 +660,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     private final ThreadPoolExecutor binningThreadPool;
     private final Map<String,TabletServerMutations<Mutation>> serversMutations;
     private final Set<String> queued;
-    private final Map<TableId,TabletLocator> locators;
+    private final Map<TableId,TabletCache> locators;
 
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
@@ -673,10 +673,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
-    private synchronized TabletLocator getLocator(TableId tableId) {
-      TabletLocator ret = locators.get(tableId);
+    private synchronized TabletCache getLocator(TableId tableId) {
+      TabletCache ret = locators.get(tableId);
       if (ret == null) {
-        ret = new TimeoutTabletLocator(timeout, context, tableId);
+        ret = new TimeoutTabletCache(timeout, context, tableId);
         locators.put(tableId, ret);
       }
 
@@ -690,7 +690,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
         Set<Entry<TableId,List<Mutation>>> es = mutationsToProcess.getMutations().entrySet();
         for (Entry<TableId,List<Mutation>> entry : es) {
           tableId = entry.getKey();
-          TabletLocator locator = getLocator(tableId);
+          TabletCache locator = getLocator(tableId);
           List<Mutation> tableMutations = entry.getValue();
 
           if (tableMutations != null) {

@@ -48,7 +48,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.clientImpl.TabletCache;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
@@ -179,15 +179,15 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       Set<TServerInstance> tserverSet = new HashSet<>();
       Set<TServerInstance> metadataServerSet = new HashSet<>();
 
-      TabletLocator tl = TabletLocator.getLocator(ctx, MetadataTable.ID);
+      TabletCache tl = TabletCache.getLocator(ctx, MetadataTable.ID);
       for (TabletLocationState tls : locs.locationStates.values()) {
         if (tls.current != null) {
           // add to set of all servers
           tserverSet.add(tls.current.getServerInstance());
 
           // get server that the current tablets metadata is on
-          TabletLocator.TabletLocation tab = tl.locateTablet(ctx, tls.extent.toMetaRow(), false,
-              TabletLocator.LocationNeed.REQUIRED);
+          TabletCache.TabletLocation tab =
+              tl.findTablet(ctx, tls.extent.toMetaRow(), false, TabletCache.LocationNeed.REQUIRED);
           // add it to the set of servers with metadata
           metadataServerSet.add(new TServerInstance(tab.getTserverLocation().get(),
               Long.valueOf(tab.getTserverSession().get(), 16)));

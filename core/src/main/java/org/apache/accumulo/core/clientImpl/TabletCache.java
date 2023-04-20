@@ -48,8 +48,11 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
-// ELASTICITY_TODO rename to TabletCache
-public abstract class TabletLocator {
+/**
+ * Client side cache of information about Tablets. Currently, a tablet prev end row is cached and
+ * locations are cached if they exists.
+ */
+public abstract class TabletCache {
 
   /**
    * Flipped false on call to {@link #clearLocators}. Checked by client classes that locally cache
@@ -69,7 +72,6 @@ public abstract class TabletLocator {
     REQUIRED, NOT_REQUIRED
   }
 
-  // ELASTICITY_TODO rename to findTablet
   /**
    * Finds the tablet that contains the given row.
    *
@@ -80,17 +82,17 @@ public abstract class TabletLocator {
    * @return overlapping tablet. If no overlapping tablet exists, returns null. If location is
    *         required and the tablet currently has no location ,returns null.
    */
-  public abstract TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
+  public abstract TabletLocation findTablet(ClientContext context, Text row, boolean skipRow,
       LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
-  public TabletLocation locateTabletWithRetry(ClientContext context, Text row, boolean skipRow,
+  public TabletLocation findTabletWithRetry(ClientContext context, Text row, boolean skipRow,
       LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    var tl = locateTablet(context, row, skipRow, locationNeed);
+    var tl = findTablet(context, row, skipRow, locationNeed);
     while (tl == null && locationNeed == LocationNeed.REQUIRED) {
       UtilWaitThread.sleep(100);
-      tl = locateTablet(context, row, skipRow, locationNeed);
+      tl = findTablet(context, row, skipRow, locationNeed);
     }
     return tl;
   }
@@ -121,21 +123,21 @@ public abstract class TabletLocator {
    * @return The failed ranges that did not have a location (if a location is required) or where
    *         contiguous tablets could not be found.
    */
-  public abstract List<Range> locateTablets(ClientContext context, List<Range> ranges,
+  public abstract List<Range> findTablets(ClientContext context, List<Range> ranges,
       BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * The behavior of this method is similar to
-   * {@link #locateTablets(ClientContext, List, BiConsumer, LocationNeed)}, except it bins ranges to
+   * {@link #findTablets(ClientContext, List, BiConsumer, LocationNeed)}, except it bins ranges to
    * the passed in binnedRanges map instead of passing them to a consumer. This method only bins to
    * hosted tablets with a location.
    */
   public List<Range> binRanges(ClientContext context, List<Range> ranges,
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    return locateTablets(context, ranges,
-        ((cachedTablet, range) -> TabletLocatorImpl.addRange(binnedRanges, cachedTablet, range)),
+    return findTablets(context, ranges,
+        ((cachedTablet, range) -> TabletCacheImpl.addRange(binnedRanges, cachedTablet, range)),
         LocationNeed.REQUIRED);
   }
 
@@ -181,11 +183,11 @@ public abstract class TabletLocator {
 
   }
 
-  private static final HashMap<LocatorKey,TabletLocator> locators = new HashMap<>();
+  private static final HashMap<LocatorKey,TabletCache> locators = new HashMap<>();
   private static boolean enabled = true;
 
   public static synchronized void clearLocators() {
-    for (TabletLocator locator : locators.values()) {
+    for (TabletCache locator : locators.values()) {
       locator.isValid = false;
     }
     locators.clear();
@@ -208,21 +210,21 @@ public abstract class TabletLocator {
     return 0L;
   }
 
-  public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
+  public static synchronized TabletCache getLocator(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
         + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
     LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
-    TabletLocator tl = locators.get(key);
+    TabletCache tl = locators.get(key);
     if (tl == null) {
       MetadataLocationObtainer mlo = new MetadataLocationObtainer();
 
       if (RootTable.ID.equals(tableId)) {
-        tl = new RootTabletLocator(new ZookeeperLockChecker(context));
+        tl = new RootTabletCache(new ZookeeperLockChecker(context));
       } else if (MetadataTable.ID.equals(tableId)) {
-        tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
+        tl = new TabletCacheImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
             new ZookeeperLockChecker(context));
       } else {
-        tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
+        tl = new TabletCacheImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
             new ZookeeperLockChecker(context));
       }
       locators.put(key, tl);
@@ -236,17 +238,17 @@ public abstract class TabletLocator {
 
       @Override
       public boolean isEnabled() {
-        return TabletLocator.isEnabled();
+        return TabletCache.isEnabled();
       }
 
       @Override
       public void enable() {
-        TabletLocator.enable();
+        TabletCache.enable();
       }
 
       @Override
       public void disable() {
-        TabletLocator.disable();
+        TabletCache.disable();
       }
     });
   }

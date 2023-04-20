@@ -40,8 +40,8 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.clientImpl.TabletCache;
+import org.apache.accumulo.core.clientImpl.TabletCache.TabletLocation;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -128,7 +128,7 @@ public class BulkImporter {
         Collections.synchronizedSortedMap(new TreeMap<>());
 
     ClientService.Client client = null;
-    final TabletLocator locator = TabletLocator.getLocator(context, tableId);
+    final TabletCache locator = TabletCache.getLocator(context, tableId);
 
     try {
       final Map<Path,List<TabletLocation>> assignments =
@@ -619,12 +619,12 @@ public class BulkImporter {
   }
 
   public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager fs,
-      TabletLocator locator, Path file, CryptoService cs) throws Exception {
+      TabletCache locator, Path file, CryptoService cs) throws Exception {
     return findOverlappingTablets(context, fs, locator, file, null, null, cs);
   }
 
   public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager fs,
-      TabletLocator locator, Path file, KeyExtent failed, CryptoService cs) throws Exception {
+      TabletCache locator, Path file, KeyExtent failed, CryptoService cs) throws Exception {
     locator.invalidateCache(failed);
     Text start = getStartRowForExtent(failed);
     return findOverlappingTablets(context, fs, locator, file, start, failed.endRow(), cs);
@@ -644,7 +644,7 @@ public class BulkImporter {
   static final byte[] byte0 = {0};
 
   public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager vm,
-      TabletLocator locator, Path file, Text startRow, Text endRow, CryptoService cs)
+      TabletCache locator, Path file, Text startRow, Text endRow, CryptoService cs)
       throws Exception {
     List<TabletLocation> result = new ArrayList<>();
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
@@ -667,7 +667,7 @@ public class BulkImporter {
         }
         row = reader.getTopKey().getRow();
         TabletLocation tabletLocation =
-            locator.locateTabletWithRetry(context, row, false, TabletLocator.LocationNeed.REQUIRED);
+            locator.findTabletWithRetry(context, row, false, TabletCache.LocationNeed.REQUIRED);
         // log.debug(filename + " found row " + row + " at location " + tabletLocation);
         result.add(tabletLocation);
         row = tabletLocation.getExtent().endRow();

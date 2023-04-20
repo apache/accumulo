@@ -46,7 +46,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.clientImpl.TabletCache;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -302,13 +302,13 @@ public class BulkFailureIT extends AccumuloClusterHarness {
   protected static TabletIngestClientService.Iface getClient(ClientContext context,
       KeyExtent extent) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TTransportException {
-    TabletLocator locator = TabletLocator.getLocator(context, extent.tableId());
+    TabletCache locator = TabletCache.getLocator(context, extent.tableId());
 
     locator.invalidateCache(extent);
 
-    HostAndPort location = HostAndPort.fromString(locator
-        .locateTabletWithRetry(context, new Text(""), false, TabletLocator.LocationNeed.REQUIRED)
-        .getTserverLocation().get());
+    HostAndPort location = HostAndPort.fromString(
+        locator.findTabletWithRetry(context, new Text(""), false, TabletCache.LocationNeed.REQUIRED)
+            .getTserverLocation().get());
 
     long timeInMillis = context.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
     TabletIngestClientService.Iface client =

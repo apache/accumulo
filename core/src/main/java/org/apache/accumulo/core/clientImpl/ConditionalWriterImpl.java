@@ -49,7 +49,7 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.TimedOutException;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
+import org.apache.accumulo.core.clientImpl.TabletCache.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -97,7 +97,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   private VisibilityEvaluator ve;
   private Map<Text,Boolean> cache = Collections.synchronizedMap(new LRUMap<>(1000));
   private final ClientContext context;
-  private TabletLocator locator;
+  private TabletCache locator;
   private final TableId tableId;
   private final String tableName;
   private long timeout;
@@ -373,7 +373,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
     this.threadPool = context.threadPools().createScheduledExecutorService(
         config.getMaxWriteThreads(), this.getClass().getSimpleName(), false);
-    this.locator = new SyncingTabletLocator(context, tableId);
+    this.locator = new SyncingTabletCache(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;
     this.tableName = tableName;

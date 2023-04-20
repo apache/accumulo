@@ -50,7 +50,7 @@ import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
-import org.apache.accumulo.core.clientImpl.TabletLocator.LocationNeed;
+import org.apache.accumulo.core.clientImpl.TabletCache.LocationNeed;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -113,7 +113,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private Set<String> timedoutServers;
   private final long retryTimeout;
 
-  private TabletLocator locator;
+  private TabletCache locator;
 
   private ScanServerAttemptsImpl scanAttempts = new ScanServerAttemptsImpl();
 
@@ -134,7 +134,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.options = new ScannerOptions(scannerOptions);
     resultsQueue = new ArrayBlockingQueue<>(numThreads);
 
-    this.locator = new TimeoutTabletLocator(retryTimeout, context, tableId);
+    this.locator = new TimeoutTabletCache(retryTimeout, context, tableId);
 
     timeoutTrackers = Collections.synchronizedMap(new HashMap<>());
     timedoutServers = Collections.synchronizedSet(new HashSet<>());
@@ -246,7 +246,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     doLookups(binnedRanges, receiver, columns, ssd);
   }
 
-  private ScanServerData binRanges(TabletLocator tabletLocator, List<Range> ranges,
+  private ScanServerData binRanges(TabletCache tabletCache, List<Range> ranges,
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
@@ -263,10 +263,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       List<Range> failures;
 
       if (options.getConsistencyLevel().equals(ConsistencyLevel.IMMEDIATE)) {
-        failures = tabletLocator.binRanges(context, ranges, binnedRanges);
+        failures = tabletCache.binRanges(context, ranges, binnedRanges);
         ssd = new ScanServerData();
       } else if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
-        ssd = binRangesForScanServers(tabletLocator, ranges, binnedRanges, startTime);
+        ssd = binRangesForScanServers(tabletCache, ranges, binnedRanges, startTime);
         failures = ssd.failures;
       } else {
         throw new IllegalStateException();
@@ -641,7 +641,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
   }
 
-  private ScanServerData binRangesForScanServers(TabletLocator tabletLocator, List<Range> ranges,
+  private ScanServerData binRangesForScanServers(TabletCache tabletCache, List<Range> ranges,
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges, long startTime)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
 
@@ -652,7 +652,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     Set<TabletIdImpl> tabletIds = new HashSet<>();
 
-    List<Range> failures = tabletLocator.locateTablets(context, ranges, (cachedTablet, range) -> {
+    List<Range> failures = tabletCache.findTablets(context, ranges, (cachedTablet, range) -> {
       if (cachedTablet.getTserverLocation().isPresent()) {
         extentToTserverMap.put(cachedTablet.getExtent(), cachedTablet.getTserverLocation().get());
       }
@@ -734,8 +734,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     if (!failures.isEmpty()) {
       // if there are failures at this point its because tablets are not hosted, so lets attempt to
       // get them hosted
-      tabletLocator.locateTablets(context, ranges, (cachedTablet, range) -> {},
-          LocationNeed.REQUIRED);
+      tabletCache.findTablets(context, ranges, (cachedTablet, range) -> {}, LocationNeed.REQUIRED);
       return new ScanServerData(failures);
     }
 

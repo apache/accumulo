@@ -39,10 +39,10 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocations;
-import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletLocationObtainer;
+import org.apache.accumulo.core.clientImpl.TabletCache;
+import org.apache.accumulo.core.clientImpl.TabletCache.TabletLocation;
+import org.apache.accumulo.core.clientImpl.TabletCache.TabletLocations;
+import org.apache.accumulo.core.clientImpl.TabletCacheImpl.TabletLocationObtainer;
 import org.apache.accumulo.core.clientImpl.TabletServerBatchReaderIterator;
 import org.apache.accumulo.core.clientImpl.TabletServerBatchReaderIterator.ResultReceiver;
 import org.apache.accumulo.core.clientImpl.ThriftScanner;
@@ -80,7 +80,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
   @Override
   public TabletLocations lookupTablet(ClientContext context, TabletLocation src, Text row,
-      Text stopRow, TabletLocator parent) throws AccumuloSecurityException, AccumuloException {
+      Text stopRow, TabletCache parent) throws AccumuloSecurityException, AccumuloException {
 
     try {
 
@@ -170,7 +170,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
   @Override
   public List<TabletLocation> lookupTablets(ClientContext context, String tserver,
-      Map<KeyExtent,List<Range>> tabletsRanges, TabletLocator parent)
+      Map<KeyExtent,List<Range>> tabletsRanges, TabletCache parent)
       throws AccumuloSecurityException, AccumuloException {
 
     final TreeMap<Key,Value> results = new TreeMap<>();
