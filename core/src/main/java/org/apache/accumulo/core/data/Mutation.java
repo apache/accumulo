@@ -431,18 +431,6 @@ public class Mutation implements Writable {
    * @param columnQualifier column qualifier
    * @see #at()
    */
-  // public void putDelete(String columnFamily, String columnQualifier) {
-  // put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
-  // }
-
-  /**
-   * Puts a deletion in this mutation. Matches empty column visibility; timestamp is not set. All
-   * parameters are defensively copied.
-   *
-   * @param columnFamily column family
-   * @param columnQualifier column qualifier
-   * @see #at()
-   */
   public void putDelete(Text columnFamily, Text columnQualifier) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
   }
