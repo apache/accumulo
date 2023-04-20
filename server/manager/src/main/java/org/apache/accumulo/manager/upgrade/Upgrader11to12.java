@@ -36,19 +36,19 @@ public class Upgrader11to12 implements Upgrader {
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
-    LOG.info("upgrade root - skipping, nothing to do");
+    LOG.info("setting root table stored hosting goal");
+    addHostingGoalToRootTable(context);
   }
 
   @Override
   public void upgradeRoot(ServerContext context) {
-    LOG.info("upgrade root - skipping, nothing to do");
+    LOG.info("setting metadata table hosting goal");
+    addHostingGoalToMetadataTable(context);
   }
 
   @Override
   public void upgradeMetadata(ServerContext context) {
-    LOG.info("upgrade metadata entries");
-    addHostingGoalToRootTable(context);
-    addHostingGoalToMetadataTable(context);
+    LOG.info("setting hosting goal on user tables");
     addHostingGoalToUserTables(context);
   }
 
