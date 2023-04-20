@@ -72,7 +72,7 @@ public class BulkImporterTest {
 
     @Override
     public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-        boolean retry) {
+        LocationNeed locationNeed) {
       return new TabletLocation(fakeMetaData.tailSet(new KeyExtent(tableId, row, null)).first(),
           "localhost", "1");
     }
@@ -85,7 +85,7 @@ public class BulkImporterTest {
 
     @Override
     public List<Range> locateTablets(ClientContext context, List<Range> ranges,
-        BiConsumer<TabletLocation,Range> rangeConsumer) {
+        BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed) {
       throw new UnsupportedOperationException();
     }
 

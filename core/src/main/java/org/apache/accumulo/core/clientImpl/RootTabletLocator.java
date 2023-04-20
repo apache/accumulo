@@ -44,6 +44,8 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class RootTabletLocator extends TabletLocator {
 
   private final TabletServerLockChecker lockChecker;
@@ -57,11 +59,11 @@ public class RootTabletLocator extends TabletLocator {
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures) {
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
-      var tsm = new TabletServerMutations<T>(rootTabletLocation.getTserverSession());
+      var tsm = new TabletServerMutations<T>(rootTabletLocation.getTserverSession().get());
       for (T mutation : mutations) {
         tsm.addMutation(RootTable.EXTENT, mutation);
       }
-      binnedMutations.put(rootTabletLocation.getTserverLocation(), tsm);
+      binnedMutations.put(rootTabletLocation.getTserverLocation().get(), tsm);
     } else {
       failures.addAll(mutations);
     }
@@ -69,7 +71,11 @@ public class RootTabletLocator extends TabletLocator {
 
   @Override
   public List<Range> locateTablets(ClientContext context, List<Range> ranges,
-      BiConsumer<TabletLocation,Range> rangeConsumer) {
+      BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed) {
+
+    // only expect the hosted case so this code only handles that, so throw an exception is
+    // something else is seen
+    Preconditions.checkArgument(locationNeed == LocationNeed.REQUIRED);
 
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
@@ -132,10 +138,14 @@ public class RootTabletLocator extends TabletLocator {
 
   @Override
   public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-      boolean retry) {
+      LocationNeed locationNeed) {
+    // only expect the hosted case so this code only handles that, so throw an exception is
+    // something else is seen
+    Preconditions.checkArgument(locationNeed == LocationNeed.REQUIRED);
+
     TabletLocation location = getRootTabletLocation(context);
     // Always retry when finding the root tablet
-    while (retry && location == null) {
+    while (location == null) {
       sleepUninterruptibly(500, MILLISECONDS);
       location = getRootTabletLocation(context);
     }

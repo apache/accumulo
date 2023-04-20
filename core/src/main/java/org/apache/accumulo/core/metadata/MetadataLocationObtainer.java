@@ -106,7 +106,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI"));
       Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
       boolean more = ThriftScanner.getBatchFromServer(context, range, src.getExtent(),
-          src.getTserverLocation(), encodedResults, locCols, serverSideIteratorList,
+          src.getTserverLocation().get(), encodedResults, locCols, serverSideIteratorList,
           serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
 
       decodeRows(encodedResults, results);
@@ -115,9 +115,9 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME),
             true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
-        ThriftScanner.getBatchFromServer(context, range, src.getExtent(), src.getTserverLocation(),
-            encodedResults, locCols, serverSideIteratorList, serverSideIteratorOptions,
-            Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
+        ThriftScanner.getBatchFromServer(context, range, src.getExtent(),
+            src.getTserverLocation().get(), encodedResults, locCols, serverSideIteratorList,
+            serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
 
         decodeRows(encodedResults, results);
       }
@@ -142,7 +142,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       if (log.isTraceEnabled()) {
         log.trace("{} lookup failed", src.getExtent().tableId(), e);
       }
-      parent.invalidateCache(context, src.getTserverLocation());
+      parent.invalidateCache(context, src.getTserverLocation().get());
     }
 
     return null;
@@ -218,7 +218,6 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     Text session = null;
 
     List<TabletLocation> results = new ArrayList<>();
-    ArrayList<KeyExtent> locationless = new ArrayList<>();
 
     Text lastRowFromKey = new Text();
 
@@ -252,12 +251,12 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         if (location != null) {
           results.add(new TabletLocation(ke, location.toString(), session.toString()));
         } else {
-          locationless.add(ke);
+          results.add(new TabletLocation(ke));
         }
         location = null;
       }
     }
 
-    return new TabletLocations(results, locationless);
+    return new TabletLocations(results);
   }
 }

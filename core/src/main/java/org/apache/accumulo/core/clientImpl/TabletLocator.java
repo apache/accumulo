@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -42,10 +43,12 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.Interner;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
+// ELASTICITY_TODO rename to TabletCache
 public abstract class TabletLocator {
 
   /**
@@ -58,33 +61,82 @@ public abstract class TabletLocator {
     return isValid;
   }
 
+  /**
+   * Used to indicate if a user of this interface needs a tablet with a location. This simple enum
+   * was created instead of using a boolean for code clarity.
+   */
+  public enum LocationNeed {
+    REQUIRED, NOT_REQUIRED
+  }
+
+  // ELASTICITY_TODO rename to findTablet
+  /**
+   * Finds the tablet that contains the given row.
+   *
+   * @param locationNeed When {@link LocationNeed#REQUIRED} is passed will only return a tablet if
+   *        it has location. When {@link LocationNeed#NOT_REQUIRED} is passed will return the tablet
+   *        that overlaps the row with or without a location.
+   *
+   * @return overlapping tablet. If no overlapping tablet exists, returns null. If location is
+   *         required and the tablet currently has no location ,returns null.
+   */
   public abstract TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-      boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+      LocationNeed locationNeed)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+
+  public TabletLocation locateTabletWithRetry(ClientContext context, Text row, boolean skipRow,
+      LocationNeed locationNeed)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    var tl = locateTablet(context, row, skipRow, locationNeed);
+    while (tl == null && locationNeed == LocationNeed.REQUIRED) {
+      UtilWaitThread.sleep(100);
+      tl = locateTablet(context, row, skipRow, locationNeed);
+    }
+    return tl;
+  }
 
   public abstract <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
+  // ELASTICITY_TODO rename to findTablets
   /**
+   * <p>
    * This method finds what tablets overlap a given set of ranges, passing each range and its
    * associated tablet to the range consumer. If a range overlaps multiple tablets then it can be
    * passed to the range consumer multiple times.
+   * </p>
+   *
+   * @param locationNeed When {@link LocationNeed#REQUIRED} is passed only tablets that have a
+   *        location are provided to the rangeConsumer, any range that overlaps a tablet without a
+   *        location will be returned as a failure. When {@link LocationNeed#NOT_REQUIRED} is
+   *        passed, ranges that overlap tablets with and without a location are provided to the
+   *        range consumer.
+   * @param ranges For each range will try to find overlapping contiguous tablets that optionally
+   *        have a location.
+   * @param rangeConsumer If all of the tablets that a range overlaps are found, then the range and
+   *        tablets will be passed to this consumer one at time. A range will either be passed to
+   *        this consumer one more mor times OR returned as a failuer, but never both.
+   *
+   * @return The failed ranges that did not have a location (if a location is required) or where
+   *         contiguous tablets could not be found.
    */
   public abstract List<Range> locateTablets(ClientContext context, List<Range> ranges,
-      BiConsumer<TabletLocation,Range> rangeConsumer)
+      BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * The behavior of this method is similar to
-   * {@link #locateTablets(ClientContext, List, BiConsumer)}, except it bins ranges to the passed in
-   * binnedRanges map instead of passing them to a consumer.
-   *
+   * {@link #locateTablets(ClientContext, List, BiConsumer, LocationNeed)}, except it bins ranges to
+   * the passed in binnedRanges map instead of passing them to a consumer. This method only bins to
+   * hosted tablets with a location.
    */
   public List<Range> binRanges(ClientContext context, List<Range> ranges,
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     return locateTablets(context, ranges,
-        ((cachedTablet, range) -> TabletLocatorImpl.addRange(binnedRanges, cachedTablet, range)));
+        ((cachedTablet, range) -> TabletLocatorImpl.addRange(binnedRanges, cachedTablet, range)),
+        LocationNeed.REQUIRED);
   }
 
   public abstract void invalidateCache(KeyExtent failedExtent);
@@ -202,22 +254,17 @@ public abstract class TabletLocator {
   public static class TabletLocations {
 
     private final List<TabletLocation> locations;
-    private final List<KeyExtent> locationless;
 
-    public TabletLocations(List<TabletLocation> locations, List<KeyExtent> locationless) {
+    public TabletLocations(List<TabletLocation> locations) {
       this.locations = locations;
-      this.locationless = locationless;
     }
 
     public List<TabletLocation> getLocations() {
       return locations;
     }
-
-    public List<KeyExtent> getLocationless() {
-      return locationless;
-    }
   }
 
+  // ELASTICITY_TODO rename to CachedTablet
   public static class TabletLocation {
     private static final Interner<String> interner = new Interner<>();
 
@@ -232,6 +279,21 @@ public abstract class TabletLocator {
       this.tablet_extent = tablet_extent;
       this.tserverLocation = interner.intern(tablet_location);
       this.tserverSession = interner.intern(session);
+    }
+
+    public TabletLocation(KeyExtent tablet_extent, Optional<String> tablet_location,
+        Optional<String> session) {
+      checkArgument(tablet_extent != null, "tablet_extent is null");
+      this.tablet_extent = tablet_extent;
+      this.tserverLocation = tablet_location.map(interner::intern).orElse(null);
+      this.tserverSession = session.map(interner::intern).orElse(null);
+    }
+
+    public TabletLocation(KeyExtent tablet_extent) {
+      checkArgument(tablet_extent != null, "tablet_extent is null");
+      this.tablet_extent = tablet_extent;
+      this.tserverLocation = null;
+      this.tserverSession = null;
     }
 
     @Override
@@ -259,12 +321,12 @@ public abstract class TabletLocator {
       return tablet_extent;
     }
 
-    public String getTserverLocation() {
-      return tserverLocation;
+    public Optional<String> getTserverLocation() {
+      return Optional.ofNullable(tserverLocation);
     }
 
-    public String getTserverSession() {
-      return tserverSession;
+    public Optional<String> getTserverSession() {
+      return Optional.ofNullable(tserverSession);
     }
   }
 
