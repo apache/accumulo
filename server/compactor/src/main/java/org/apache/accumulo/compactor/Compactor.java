@@ -168,6 +168,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
+    super.registerMetrics(registry);
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
         .description("Number and duration of stuck major compactions").register(registry);
     CompactionWatcher.setTimer(timer);
@@ -602,7 +603,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
     pausedMetrics = new PausedCompactionMetrics();
-    initServerMetrics(pausedMetrics);
+    MetricsUtil.initializeProducers(this, pausedMetrics);
 
     LOG.info("Compactor started, waiting for work");
     try {

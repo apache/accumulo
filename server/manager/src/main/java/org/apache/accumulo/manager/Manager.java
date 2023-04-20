@@ -1108,7 +1108,7 @@ public class Manager extends AbstractServer
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
           sa.getAddress());
       ManagerMetrics mm = new ManagerMetrics(getConfiguration(), this);
-      initServerMetrics(mm);
+      MetricsUtil.initializeProducers(this, mm);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
         | SecurityException e1) {

@@ -363,7 +363,7 @@ public class ScanServer extends AbstractServer
       LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
     scanMetrics = new TabletServerScanMetrics();
-    initServerMetrics(scanMetrics);
+    MetricsUtil.initializeProducers(this, scanMetrics);
 
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 

@@ -38,7 +38,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Metrics;
 
 public abstract class AbstractServer implements AutoCloseable, MetricsProducer, Runnable {
 
@@ -94,14 +93,15 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     }
   }
 
+  /**
+   * Called
+   */
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    processMetrics.registerMetrics(registry);
-  }
-
-  public void initServerMetrics(MetricsProducer... producers) {
-    registerMetrics(Metrics.globalRegistry);
-    MetricsUtil.initializeProducers(producers);
+    // makes mocking subclasses easier
+    if (processMetrics != null) {
+      processMetrics.registerMetrics(registry);
+    }
   }
 
   public String getHostname() {
