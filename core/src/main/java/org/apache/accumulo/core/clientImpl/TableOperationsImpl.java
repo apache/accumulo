@@ -95,8 +95,8 @@ import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
-import org.apache.accumulo.core.clientImpl.TabletCache.LocationNeed;
-import org.apache.accumulo.core.clientImpl.TabletCache.TabletLocation;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
@@ -547,7 +547,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private void addSplits(SplitEnv env, SortedSet<Text> partitionKeys) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, AccumuloServerException {
 
-    TabletCache tabLocator = TabletCache.getLocator(context, env.tableId);
+    ClientTabletCache tabLocator = ClientTabletCache.getLocator(context, env.tableId);
     for (Text split : partitionKeys) {
       boolean successful = false;
       int attempt = 0;
@@ -561,7 +561,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         attempt++;
 
-        TabletLocation tl = tabLocator.findTablet(context, split, false, LocationNeed.REQUIRED);
+        CachedTablet tl = tabLocator.findTablet(context, split, false, LocationNeed.REQUIRED);
 
         if (tl == null) {
           context.requireTableExists(env.tableId, env.tableName);
@@ -1243,7 +1243,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     TableId tableId = context.getTableId(tableName);
-    TabletCache tl = TabletCache.getLocator(context, tableId);
+    ClientTabletCache tl = ClientTabletCache.getLocator(context, tableId);
     // its possible that the cache could contain complete, but old information about a tables
     // tablets... so clear it
     tl.invalidateCache();
@@ -1538,7 +1538,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    TabletCache tabLocator = TabletCache.getLocator(context, context.getTableId(tableName));
+    ClientTabletCache tabLocator =
+        ClientTabletCache.getLocator(context, context.getTableId(tableName));
     tabLocator.invalidateCache();
   }
 
@@ -1939,7 +1940,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     requireNonNull(ranges, "ranges must be non null");
 
     TableId tableId = context.getTableId(tableName);
-    TabletCache locator = TabletCache.getLocator(context, tableId);
+    ClientTabletCache locator = ClientTabletCache.getLocator(context, tableId);
 
     List<Range> rangeList = null;
     if (ranges instanceof List) {

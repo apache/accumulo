@@ -38,22 +38,22 @@ import org.apache.hadoop.io.Text;
  * will automatically get the most up-to-date version. Caching TabletLocators locally is safe when
  * using SyncingTabletLocator.
  */
-public class SyncingTabletCache extends TabletCache {
+public class SyncingClientTabletCache extends ClientTabletCache {
 
-  private volatile TabletCache locator;
-  private final Supplier<TabletCache> getLocatorFunction;
+  private volatile ClientTabletCache locator;
+  private final Supplier<ClientTabletCache> getLocatorFunction;
 
-  public SyncingTabletCache(Supplier<TabletCache> getLocatorFunction) {
+  public SyncingClientTabletCache(Supplier<ClientTabletCache> getLocatorFunction) {
     this.getLocatorFunction = getLocatorFunction;
     this.locator = getLocatorFunction.get();
   }
 
-  public SyncingTabletCache(final ClientContext context, final TableId tableId) {
-    this(() -> TabletCache.getLocator(context, tableId));
+  public SyncingClientTabletCache(final ClientContext context, final TableId tableId) {
+    this(() -> ClientTabletCache.getLocator(context, tableId));
   }
 
-  private TabletCache syncLocator() {
-    TabletCache loc = this.locator;
+  private ClientTabletCache syncLocator() {
+    ClientTabletCache loc = this.locator;
     if (!loc.isValid()) {
       synchronized (this) {
         if (locator == loc) {
@@ -65,7 +65,7 @@ public class SyncingTabletCache extends TabletCache {
   }
 
   @Override
-  public TabletLocation findTablet(ClientContext context, Text row, boolean skipRow,
+  public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
       LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     return syncLocator().findTablet(context, row, skipRow, locationNeed);
@@ -80,7 +80,7 @@ public class SyncingTabletCache extends TabletCache {
 
   @Override
   public List<Range> findTablets(ClientContext context, List<Range> ranges,
-      BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed)
+      BiConsumer<CachedTablet,Range> rangeConsumer, LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     return syncLocator().findTablets(context, ranges, rangeConsumer, locationNeed);
   }

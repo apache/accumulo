@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.TabletCacheImpl.TabletServerLockChecker;
+import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -46,24 +46,24 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-public class RootTabletCache extends TabletCache {
+public class RootClientTabletCache extends ClientTabletCache {
 
   private final TabletServerLockChecker lockChecker;
 
-  RootTabletCache(TabletServerLockChecker lockChecker) {
+  RootClientTabletCache(TabletServerLockChecker lockChecker) {
     this.lockChecker = lockChecker;
   }
 
   @Override
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures) {
-    TabletLocation rootTabletLocation = getRootTabletLocation(context);
-    if (rootTabletLocation != null) {
-      var tsm = new TabletServerMutations<T>(rootTabletLocation.getTserverSession().get());
+    CachedTablet rootCachedTablet = getRootTabletLocation(context);
+    if (rootCachedTablet != null) {
+      var tsm = new TabletServerMutations<T>(rootCachedTablet.getTserverSession().get());
       for (T mutation : mutations) {
         tsm.addMutation(RootTable.EXTENT, mutation);
       }
-      binnedMutations.put(rootTabletLocation.getTserverLocation().get(), tsm);
+      binnedMutations.put(rootCachedTablet.getTserverLocation().get(), tsm);
     } else {
       failures.addAll(mutations);
     }
@@ -71,16 +71,16 @@ public class RootTabletCache extends TabletCache {
 
   @Override
   public List<Range> findTablets(ClientContext context, List<Range> ranges,
-      BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed) {
+      BiConsumer<CachedTablet,Range> rangeConsumer, LocationNeed locationNeed) {
 
     // only expect the hosted case so this code only handles that, so throw an exception is
     // something else is seen
     Preconditions.checkArgument(locationNeed == LocationNeed.REQUIRED);
 
-    TabletLocation rootTabletLocation = getRootTabletLocation(context);
-    if (rootTabletLocation != null) {
+    CachedTablet rootCachedTablet = getRootTabletLocation(context);
+    if (rootCachedTablet != null) {
       for (Range range : ranges) {
-        rangeConsumer.accept(rootTabletLocation, range);
+        rangeConsumer.accept(rootCachedTablet, range);
       }
       return Collections.emptyList();
     }
@@ -103,7 +103,7 @@ public class RootTabletCache extends TabletCache {
   @Override
   public void invalidateCache() {}
 
-  protected TabletLocation getRootTabletLocation(ClientContext context) {
+  protected CachedTablet getRootTabletLocation(ClientContext context) {
     Logger log = LoggerFactory.getLogger(this.getClass());
 
     OpTimer timer = null;
@@ -130,20 +130,20 @@ public class RootTabletCache extends TabletCache {
     String server = loc.getHostPort();
 
     if (lockChecker.isLockHeld(server, loc.getSession())) {
-      return new TabletLocation(RootTable.EXTENT, server, loc.getSession());
+      return new CachedTablet(RootTable.EXTENT, server, loc.getSession());
     } else {
       return null;
     }
   }
 
   @Override
-  public TabletLocation findTablet(ClientContext context, Text row, boolean skipRow,
+  public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
       LocationNeed locationNeed) {
     // only expect the hosted case so this code only handles that, so throw an exception is
     // something else is seen
     Preconditions.checkArgument(locationNeed == LocationNeed.REQUIRED);
 
-    TabletLocation location = getRootTabletLocation(context);
+    CachedTablet location = getRootTabletLocation(context);
     // Always retry when finding the root tablet
     while (location == null) {
       sleepUninterruptibly(500, MILLISECONDS);

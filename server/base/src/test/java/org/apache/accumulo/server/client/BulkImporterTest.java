@@ -31,8 +31,8 @@ import java.util.TreeSet;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletCache;
-import org.apache.accumulo.core.clientImpl.TabletCache.TabletLocation;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -67,13 +67,13 @@ public class BulkImporterTest {
     fakeMetaData.add(new KeyExtent(tableId, null, fakeMetaData.last().endRow()));
   }
 
-  class MockTabletCache extends TabletCache {
+  class MockClientTabletCache extends ClientTabletCache {
     int invalidated = 0;
 
     @Override
-    public TabletLocation findTablet(ClientContext context, Text row, boolean skipRow,
+    public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
         LocationNeed locationNeed) {
-      return new TabletLocation(fakeMetaData.tailSet(new KeyExtent(tableId, row, null)).first(),
+      return new CachedTablet(fakeMetaData.tailSet(new KeyExtent(tableId, row, null)).first(),
           "localhost", "1");
     }
 
@@ -85,7 +85,7 @@ public class BulkImporterTest {
 
     @Override
     public List<Range> findTablets(ClientContext context, List<Range> ranges,
-        BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed) {
+        BiConsumer<CachedTablet,Range> rangeConsumer, LocationNeed locationNeed) {
       throw new UnsupportedOperationException();
     }
 
@@ -112,7 +112,7 @@ public class BulkImporterTest {
 
   @Test
   public void testFindOverlappingTablets() throws Exception {
-    MockTabletCache locator = new MockTabletCache();
+    MockClientTabletCache locator = new MockClientTabletCache();
     FileSystem fs = FileSystem.getLocal(new Configuration());
     ServerContext context = MockServerContext.get();
     CryptoService cs = NoCryptoServiceFactory.NONE;
@@ -146,7 +146,7 @@ public class BulkImporterTest {
     writer.append(new Key("xyzzy", "cf", "cq"), empty);
     writer.close();
     try (var vm = VolumeManagerImpl.getLocalForTesting("file:///")) {
-      List<TabletLocation> overlaps =
+      List<CachedTablet> overlaps =
           BulkImporter.findOverlappingTablets(context, vm, locator, new Path(file), null, null, cs);
       assertEquals(5, overlaps.size());
       Collections.sort(overlaps, Comparator.comparing(tl -> tl.getExtent()));
@@ -159,7 +159,7 @@ public class BulkImporterTest {
           overlaps.get(3).getExtent());
       assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).getExtent());
 
-      List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(context, vm, locator,
+      List<CachedTablet> overlaps2 = BulkImporter.findOverlappingTablets(context, vm, locator,
           new Path(file), new KeyExtent(tableId, new Text("h"), new Text("b")), cs);
       assertEquals(3, overlaps2.size());
       assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),

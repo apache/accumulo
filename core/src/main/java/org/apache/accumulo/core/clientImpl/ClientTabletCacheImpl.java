@@ -74,9 +74,9 @@ import com.google.common.annotations.VisibleForTesting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class TabletCacheImpl extends TabletCache {
+public class ClientTabletCacheImpl extends ClientTabletCache {
 
-  private static final Logger log = LoggerFactory.getLogger(TabletCacheImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(ClientTabletCacheImpl.class);
   private static final AtomicBoolean HOSTING_ENABLED = new AtomicBoolean(true);
 
   // MAX_TEXT represents a TEXT object that is greater than all others. Attempted to use null for
@@ -98,9 +98,9 @@ public class TabletCacheImpl extends TabletCache {
   };
 
   protected TableId tableId;
-  protected TabletCache parent;
-  protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
-  protected TabletLocationObtainer locationObtainer;
+  protected ClientTabletCache parent;
+  protected TreeMap<Text,CachedTablet> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
+  protected CachedTabletObtainer locationObtainer;
   private final TabletServerLockChecker lockChecker;
   protected Text lastTabletRow;
 
@@ -113,15 +113,15 @@ public class TabletCacheImpl extends TabletCache {
   private final Cache<KeyExtent,Long> recentOndemandRequest =
       Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build();
 
-  public interface TabletLocationObtainer {
+  public interface CachedTabletObtainer {
     /**
      * @return null when unable to read information successfully
      */
-    TabletLocations lookupTablet(ClientContext context, TabletLocation src, Text row, Text stopRow,
-        TabletCache parent) throws AccumuloSecurityException, AccumuloException;
+    CachedTablets lookupTablet(ClientContext context, CachedTablet src, Text row, Text stopRow,
+        ClientTabletCache parent) throws AccumuloSecurityException, AccumuloException;
 
-    List<TabletLocation> lookupTablets(ClientContext context, String tserver,
-        Map<KeyExtent,List<Range>> map, TabletCache parent)
+    List<CachedTablet> lookupTablets(ClientContext context, String tserver,
+        Map<KeyExtent,List<Range>> map, ClientTabletCache parent)
         throws AccumuloSecurityException, AccumuloException;
   }
 
@@ -136,7 +136,7 @@ public class TabletCacheImpl extends TabletCache {
     private final HashSet<Pair<String,String>> okLocks = new HashSet<>();
     private final HashSet<Pair<String,String>> invalidLocks = new HashSet<>();
 
-    private TabletLocation checkLock(TabletLocation tl) {
+    private CachedTablet checkLock(CachedTablet tl) {
       // the goal of this class is to minimize calls out to lockChecker under that assumption that
       // its a resource synchronized among many threads... want to
       // avoid fine grained synchronization when binning lots of mutations or ranges... remember
@@ -178,7 +178,7 @@ public class TabletCacheImpl extends TabletCache {
     }
   }
 
-  public TabletCacheImpl(TableId tableId, TabletCache parent, TabletLocationObtainer tlo,
+  public ClientTabletCacheImpl(TableId tableId, ClientTabletCache parent, CachedTabletObtainer tlo,
       TabletServerLockChecker tslc) {
     this.tableId = tableId;
     this.parent = parent;
@@ -221,7 +221,7 @@ public class TabletCacheImpl extends TabletCache {
 
       for (T mutation : mutations) {
         row.set(mutation.getRow());
-        TabletLocation tl = locateTabletInCache(row);
+        CachedTablet tl = locateTabletInCache(row);
         if (!addMutation(binnedMutations, mutation, tl, lcSession)) {
           notInCache.add(mutation);
         }
@@ -242,7 +242,7 @@ public class TabletCacheImpl extends TabletCache {
 
           row.set(mutation.getRow());
 
-          TabletLocation tl =
+          CachedTablet tl =
               _locateTablet(context, row, false, false, false, lcSession, LocationNeed.REQUIRED);
 
           if (!addMutation(binnedMutations, mutation, tl, lcSession)) {
@@ -269,7 +269,7 @@ public class TabletCacheImpl extends TabletCache {
   }
 
   private <T extends Mutation> boolean addMutation(
-      Map<String,TabletServerMutations<T>> binnedMutations, T mutation, TabletLocation tl,
+      Map<String,TabletServerMutations<T>> binnedMutations, T mutation, CachedTablet tl,
       LockCheckerSession lcSession) {
 
     if (tl == null || tl.getTserverLocation().isEmpty()) {
@@ -298,9 +298,9 @@ public class TabletCacheImpl extends TabletCache {
     return false;
   }
 
-  static boolean isContiguous(List<TabletLocation> tabletLocations) {
+  static boolean isContiguous(List<CachedTablet> cachedTablets) {
 
-    Iterator<TabletLocation> iter = tabletLocations.iterator();
+    Iterator<CachedTablet> iter = cachedTablets.iterator();
     KeyExtent prevExtent = iter.next().getExtent();
 
     while (iter.hasNext()) {
@@ -317,16 +317,15 @@ public class TabletCacheImpl extends TabletCache {
   }
 
   private List<Range> locateTablets(ClientContext context, List<Range> ranges,
-      BiConsumer<TabletLocation,Range> rangeConsumer, boolean useCache,
-      LockCheckerSession lcSession, LocationNeed locationNeed,
-      Consumer<KeyExtent> locationlessConsumer)
+      BiConsumer<CachedTablet,Range> rangeConsumer, boolean useCache, LockCheckerSession lcSession,
+      LocationNeed locationNeed, Consumer<KeyExtent> locationlessConsumer)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     List<Range> failures = new ArrayList<>();
-    List<TabletLocation> tabletLocations = new ArrayList<>();
+    List<CachedTablet> cachedTablets = new ArrayList<>();
 
     l1: for (Range range : ranges) {
 
-      tabletLocations.clear();
+      cachedTablets.clear();
 
       Text startRow;
 
@@ -336,7 +335,7 @@ public class TabletCacheImpl extends TabletCache {
         startRow = new Text();
       }
 
-      TabletLocation tl = null;
+      CachedTablet tl = null;
 
       if (useCache) {
         tl = lcSession.checkLock(locateTabletInCache(startRow));
@@ -349,7 +348,7 @@ public class TabletCacheImpl extends TabletCache {
         continue;
       }
 
-      tabletLocations.add(tl);
+      cachedTablets.add(tl);
 
       while (tl.getExtent().endRow() != null
           && !range.afterEndKey(new Key(tl.getExtent().endRow()).followingKey(PartialKey.ROW))) {
@@ -366,15 +365,15 @@ public class TabletCacheImpl extends TabletCache {
           failures.add(range);
           continue l1;
         }
-        tabletLocations.add(tl);
+        cachedTablets.add(tl);
       }
 
       // pass all tablets without a location before failing range
-      tabletLocations.stream().filter(tloc -> tloc.getTserverLocation().isEmpty())
-          .map(TabletLocation::getExtent).forEach(locationlessConsumer);
+      cachedTablets.stream().filter(tloc -> tloc.getTserverLocation().isEmpty())
+          .map(CachedTablet::getExtent).forEach(locationlessConsumer);
 
       if (locationNeed == LocationNeed.REQUIRED
-          && !tabletLocations.stream().allMatch(tloc -> tloc.getTserverLocation().isPresent())) {
+          && !cachedTablets.stream().allMatch(tloc -> tloc.getTserverLocation().isPresent())) {
         failures.add(range);
         continue;
       }
@@ -383,8 +382,8 @@ public class TabletCacheImpl extends TabletCache {
       // from the cache and other from the metadata table in the loop above we may end up with
       // non-contiguous extents. This can happen when a subset of exents are placed in the cache and
       // then after that merges and splits happen.
-      if (isContiguous(tabletLocations)) {
-        for (TabletLocation tl2 : tabletLocations) {
+      if (isContiguous(cachedTablets)) {
+        for (CachedTablet tl2 : cachedTablets) {
           rangeConsumer.accept(tl2, range);
         }
       } else {
@@ -398,7 +397,7 @@ public class TabletCacheImpl extends TabletCache {
 
   @Override
   public List<Range> findTablets(ClientContext context, List<Range> ranges,
-      BiConsumer<TabletLocation,Range> rangeConsumer, LocationNeed locationNeed)
+      BiConsumer<CachedTablet,Range> rangeConsumer, LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     /*
@@ -501,7 +500,7 @@ public class TabletCacheImpl extends TabletCache {
 
     wLock.lock();
     try {
-      for (TabletLocation cacheEntry : metaCache.values()) {
+      for (CachedTablet cacheEntry : metaCache.values()) {
         var loc = cacheEntry.getTserverLocation();
         if (loc.isPresent() && loc.get().equals(server)) {
           badExtents.add(cacheEntry.getExtent());
@@ -538,7 +537,7 @@ public class TabletCacheImpl extends TabletCache {
   }
 
   @Override
-  public TabletLocation findTablet(ClientContext context, Text row, boolean skipRow,
+  public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
       LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
@@ -551,7 +550,7 @@ public class TabletCacheImpl extends TabletCache {
     }
 
     LockCheckerSession lcSession = new LockCheckerSession();
-    TabletLocation tl = _locateTablet(context, row, skipRow, false, true, lcSession, locationNeed);
+    CachedTablet tl = _locateTablet(context, row, skipRow, false, true, lcSession, locationNeed);
 
     if (timer != null) {
       timer.stop();
@@ -644,10 +643,10 @@ public class TabletCacheImpl extends TabletCache {
     Text metadataRow = new Text(tableId.canonical());
     metadataRow.append(new byte[] {';'}, 0, 1);
     metadataRow.append(row.getBytes(), 0, row.getLength());
-    TabletLocation ptl = parent.findTablet(context, metadataRow, false, LocationNeed.REQUIRED);
+    CachedTablet ptl = parent.findTablet(context, metadataRow, false, LocationNeed.REQUIRED);
 
     if (ptl != null) {
-      TabletLocations locations =
+      CachedTablets locations =
           locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
       while (locations != null && locations.getLocations().isEmpty()) {
         // try the next tablet, the current tablet does not have any tablets that overlap the row
@@ -674,18 +673,18 @@ public class TabletCacheImpl extends TabletCache {
       // best to deal with each extent individually
 
       Text lastEndRow = null;
-      for (TabletLocation tabletLocation : locations.getLocations()) {
+      for (CachedTablet cachedTablet : locations.getLocations()) {
 
-        KeyExtent ke = tabletLocation.getExtent();
-        TabletLocation locToCache;
+        KeyExtent ke = cachedTablet.getExtent();
+        CachedTablet locToCache;
 
         // create new location if current prevEndRow == endRow
         if ((lastEndRow != null) && (ke.prevEndRow() != null)
             && ke.prevEndRow().equals(lastEndRow)) {
-          locToCache = new TabletLocation(new KeyExtent(ke.tableId(), ke.endRow(), lastEndRow),
-              tabletLocation.getTserverLocation(), tabletLocation.getTserverSession());
+          locToCache = new CachedTablet(new KeyExtent(ke.tableId(), ke.endRow(), lastEndRow),
+              cachedTablet.getTserverLocation(), cachedTablet.getTserverSession());
         } else {
-          locToCache = tabletLocation;
+          locToCache = cachedTablet;
         }
 
         // save endRow for next iteration
@@ -697,46 +696,46 @@ public class TabletCacheImpl extends TabletCache {
 
   }
 
-  private void updateCache(TabletLocation tabletLocation, LockCheckerSession lcSession) {
-    if (!tabletLocation.getExtent().tableId().equals(tableId)) {
+  private void updateCache(CachedTablet cachedTablet, LockCheckerSession lcSession) {
+    if (!cachedTablet.getExtent().tableId().equals(tableId)) {
       // sanity check
       throw new IllegalStateException(
-          "Unexpected extent returned " + tableId + "  " + tabletLocation.getExtent());
+          "Unexpected extent returned " + tableId + "  " + cachedTablet.getExtent());
     }
 
     // clear out any overlapping extents in cache
-    removeOverlapping(metaCache, tabletLocation.getExtent());
+    removeOverlapping(metaCache, cachedTablet.getExtent());
 
     // do not add to cache unless lock is held
-    if (lcSession.checkLock(tabletLocation) == null) {
+    if (lcSession.checkLock(cachedTablet) == null) {
       return;
     }
 
     // add it to cache
-    Text er = tabletLocation.getExtent().endRow();
+    Text er = cachedTablet.getExtent().endRow();
     if (er == null) {
       er = MAX_TEXT;
     }
-    metaCache.put(er, tabletLocation);
+    metaCache.put(er, cachedTablet);
 
     if (!badExtents.isEmpty()) {
-      removeOverlapping(badExtents, tabletLocation.getExtent());
+      removeOverlapping(badExtents, cachedTablet.getExtent());
     }
   }
 
-  static void removeOverlapping(TreeMap<Text,TabletLocation> metaCache, KeyExtent nke) {
-    Iterator<Entry<Text,TabletLocation>> iter;
+  static void removeOverlapping(TreeMap<Text,CachedTablet> metaCache, KeyExtent nke) {
+    Iterator<Entry<Text,CachedTablet>> iter;
 
     if (nke.prevEndRow() == null) {
       iter = metaCache.entrySet().iterator();
     } else {
       Text row = rowAfterPrevRow(nke);
-      SortedMap<Text,TabletLocation> tailMap = metaCache.tailMap(row);
+      SortedMap<Text,CachedTablet> tailMap = metaCache.tailMap(row);
       iter = tailMap.entrySet().iterator();
     }
 
     while (iter.hasNext()) {
-      Entry<Text,TabletLocation> entry = iter.next();
+      Entry<Text,CachedTablet> entry = iter.next();
 
       KeyExtent ke = entry.getValue().getExtent();
 
@@ -765,9 +764,9 @@ public class TabletCacheImpl extends TabletCache {
     }
   }
 
-  private TabletLocation locateTabletInCache(Text row) {
+  private CachedTablet locateTabletInCache(Text row) {
 
-    Entry<Text,TabletLocation> entry = metaCache.ceilingEntry(row);
+    Entry<Text,CachedTablet> entry = metaCache.ceilingEntry(row);
 
     if (entry != null) {
       KeyExtent ke = entry.getValue().getExtent();
@@ -778,7 +777,7 @@ public class TabletCacheImpl extends TabletCache {
     return null;
   }
 
-  protected TabletLocation _locateTablet(ClientContext context, Text row, boolean skipRow,
+  protected CachedTablet _locateTablet(ClientContext context, Text row, boolean skipRow,
       boolean retry, boolean lock, LockCheckerSession lcSession, LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
@@ -787,7 +786,7 @@ public class TabletCacheImpl extends TabletCache {
       row.append(new byte[] {0}, 0, 1);
     }
 
-    TabletLocation tl;
+    CachedTablet tl;
 
     if (lock) {
       rLock.lock();
@@ -818,14 +817,14 @@ public class TabletCacheImpl extends TabletCache {
     return tl;
   }
 
-  private TabletLocation lookupTabletLocationAndCheckLock(ClientContext context, Text row,
+  private CachedTablet lookupTabletLocationAndCheckLock(ClientContext context, Text row,
       boolean retry, LockCheckerSession lcSession)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     lookupTabletLocation(context, row, retry, lcSession);
     return lcSession.checkLock(locateTabletInCache(row));
   }
 
-  private TabletLocation processInvalidatedAndCheckLock(ClientContext context,
+  private CachedTablet processInvalidatedAndCheckLock(ClientContext context,
       LockCheckerSession lcSession, Text row)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     processInvalidated(context, lcSession);
@@ -871,11 +870,11 @@ public class TabletCacheImpl extends TabletCache {
       Collections.shuffle(tabletServers);
 
       for (String tserver : tabletServers) {
-        List<TabletLocation> locations =
+        List<CachedTablet> locations =
             locationObtainer.lookupTablets(context, tserver, binnedRanges.get(tserver), parent);
 
-        for (TabletLocation tabletLocation : locations) {
-          updateCache(tabletLocation, lcSession);
+        for (CachedTablet cachedTablet : locations) {
+          updateCache(cachedTablet, lcSession);
         }
       }
     } finally {
@@ -886,7 +885,7 @@ public class TabletCacheImpl extends TabletCache {
     }
   }
 
-  static void addRange(Map<String,Map<KeyExtent,List<Range>>> binnedRanges, TabletLocation ct,
+  static void addRange(Map<String,Map<KeyExtent,List<Range>>> binnedRanges, CachedTablet ct,
       Range range) {
     binnedRanges.computeIfAbsent(ct.getTserverLocation().get(), k -> new HashMap<>())
         .computeIfAbsent(ct.getExtent(), k -> new ArrayList<>()).add(range);
