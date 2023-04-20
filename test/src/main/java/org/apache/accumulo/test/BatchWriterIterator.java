@@ -217,7 +217,7 @@ public class BatchWriterIterator extends WrappingIterator {
         if (firstWrite) {
           batchWriter.flush();
           if (clearCacheAfterFirstWrite) {
-            ClientTabletCache.clearLocators();
+            ClientTabletCache.clearInstances();
           }
           if (splitAfterFirstWrite) {
             SortedSet<Text> splits = new TreeSet<>();

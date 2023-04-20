@@ -179,7 +179,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       Set<TServerInstance> tserverSet = new HashSet<>();
       Set<TServerInstance> metadataServerSet = new HashSet<>();
 
-      ClientTabletCache tl = ClientTabletCache.getLocator(ctx, MetadataTable.ID);
+      ClientTabletCache tl = ClientTabletCache.getInstance(ctx, MetadataTable.ID);
       for (TabletLocationState tls : locs.locationStates.values()) {
         if (tls.current != null) {
           // add to set of all servers

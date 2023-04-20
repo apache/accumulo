@@ -100,7 +100,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   protected TableId tableId;
   protected ClientTabletCache parent;
   protected TreeMap<Text,CachedTablet> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
-  protected CachedTabletObtainer locationObtainer;
+  protected CachedTabletObtainer tabletObtainer;
   private final TabletServerLockChecker lockChecker;
   protected Text lastTabletRow;
 
@@ -182,7 +182,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       TabletServerLockChecker tslc) {
     this.tableId = tableId;
     this.parent = parent;
-    this.locationObtainer = tlo;
+    this.tabletObtainer = tlo;
     this.lockChecker = tslc;
 
     this.lastTabletRow = new Text(tableId.canonical());
@@ -221,7 +221,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
       for (T mutation : mutations) {
         row.set(mutation.getRow());
-        CachedTablet tl = locateTabletInCache(row);
+        CachedTablet tl = findTabletInCache(row);
         if (!addMutation(binnedMutations, mutation, tl, lcSession)) {
           notInCache.add(mutation);
         }
@@ -243,7 +243,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
           row.set(mutation.getRow());
 
           CachedTablet tl =
-              _locateTablet(context, row, false, false, false, lcSession, LocationNeed.REQUIRED);
+              _findTablet(context, row, false, false, false, lcSession, LocationNeed.REQUIRED);
 
           if (!addMutation(binnedMutations, mutation, tl, lcSession)) {
             failures.add(mutation);
@@ -316,7 +316,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     return true;
   }
 
-  private List<Range> locateTablets(ClientContext context, List<Range> ranges,
+  private List<Range> findTablets(ClientContext context, List<Range> ranges,
       BiConsumer<CachedTablet,Range> rangeConsumer, boolean useCache, LockCheckerSession lcSession,
       LocationNeed locationNeed, Consumer<KeyExtent> locationlessConsumer)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
@@ -338,9 +338,9 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       CachedTablet tl = null;
 
       if (useCache) {
-        tl = lcSession.checkLock(locateTabletInCache(startRow));
+        tl = lcSession.checkLock(findTabletInCache(startRow));
       } else {
-        tl = _locateTablet(context, startRow, false, false, false, lcSession, locationNeed);
+        tl = _findTablet(context, startRow, false, false, false, lcSession, locationNeed);
       }
 
       if (tl == null) {
@@ -355,9 +355,9 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
         if (useCache) {
           Text row = new Text(tl.getExtent().endRow());
           row.append(new byte[] {0}, 0, 1);
-          tl = lcSession.checkLock(locateTabletInCache(row));
+          tl = lcSession.checkLock(findTabletInCache(row));
         } else {
-          tl = _locateTablet(context, tl.getExtent().endRow(), true, false, false, lcSession,
+          tl = _findTablet(context, tl.getExtent().endRow(), true, false, false, lcSession,
               locationNeed);
         }
 
@@ -425,7 +425,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       // sort ranges... therefore try binning ranges using only the cache
       // and sort whatever fails and retry
 
-      failures = locateTablets(context, ranges, rangeConsumer, true, lcSession, locationNeed,
+      failures = findTablets(context, ranges, rangeConsumer, true, lcSession, locationNeed,
           keyExtent -> {});
     } finally {
       rLock.unlock();
@@ -449,7 +449,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       wLock.lock();
       try {
 
-        failures = locateTablets(context, failures, rangeConsumer, false, lcSession, locationNeed,
+        failures = findTablets(context, failures, rangeConsumer, false, lcSession, locationNeed,
             locationLessConsumer);
       } finally {
         wLock.unlock();
@@ -550,7 +550,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
 
     LockCheckerSession lcSession = new LockCheckerSession();
-    CachedTablet tl = _locateTablet(context, row, skipRow, false, true, lcSession, locationNeed);
+    CachedTablet tl = _findTablet(context, row, skipRow, false, true, lcSession, locationNeed);
 
     if (timer != null) {
       timer.stop();
@@ -637,7 +637,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
   }
 
-  private void lookupTabletLocation(ClientContext context, Text row, boolean retry,
+  private void lookupTablet(ClientContext context, Text row, boolean retry,
       LockCheckerSession lcSession)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Text metadataRow = new Text(tableId.canonical());
@@ -646,17 +646,17 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     CachedTablet ptl = parent.findTablet(context, metadataRow, false, LocationNeed.REQUIRED);
 
     if (ptl != null) {
-      CachedTablets locations =
-          locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
-      while (locations != null && locations.getLocations().isEmpty()) {
+      CachedTablets cachedTablets =
+          tabletObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
+      while (cachedTablets != null && cachedTablets.getCachedTablets().isEmpty()) {
         // try the next tablet, the current tablet does not have any tablets that overlap the row
         Text er = ptl.getExtent().endRow();
         if (er != null && er.compareTo(lastTabletRow) < 0) {
           // System.out.println("er "+er+" ltr "+lastTabletRow);
           ptl = parent.findTablet(context, er, true, LocationNeed.REQUIRED);
           if (ptl != null) {
-            locations =
-                locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
+            cachedTablets =
+                tabletObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
           } else {
             break;
           }
@@ -665,7 +665,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
         }
       }
 
-      if (locations == null) {
+      if (cachedTablets == null) {
         return;
       }
 
@@ -673,7 +673,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       // best to deal with each extent individually
 
       Text lastEndRow = null;
-      for (CachedTablet cachedTablet : locations.getLocations()) {
+      for (CachedTablet cachedTablet : cachedTablets.getCachedTablets()) {
 
         KeyExtent ke = cachedTablet.getExtent();
         CachedTablet locToCache;
@@ -764,7 +764,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
   }
 
-  private CachedTablet locateTabletInCache(Text row) {
+  private CachedTablet findTabletInCache(Text row) {
 
     Entry<Text,CachedTablet> entry = metaCache.ceilingEntry(row);
 
@@ -777,7 +777,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     return null;
   }
 
-  protected CachedTablet _locateTablet(ClientContext context, Text row, boolean skipRow,
+  protected CachedTablet _findTablet(ClientContext context, Text row, boolean skipRow,
       boolean retry, boolean lock, LockCheckerSession lcSession, LocationNeed locationNeed)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
@@ -820,15 +820,15 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   private CachedTablet lookupTabletLocationAndCheckLock(ClientContext context, Text row,
       boolean retry, LockCheckerSession lcSession)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    lookupTabletLocation(context, row, retry, lcSession);
-    return lcSession.checkLock(locateTabletInCache(row));
+    lookupTablet(context, row, retry, lcSession);
+    return lcSession.checkLock(findTabletInCache(row));
   }
 
   private CachedTablet processInvalidatedAndCheckLock(ClientContext context,
       LockCheckerSession lcSession, Text row)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     processInvalidated(context, lcSession);
-    return lcSession.checkLock(locateTabletInCache(row));
+    return lcSession.checkLock(findTabletInCache(row));
   }
 
   @SuppressFBWarnings(value = {"UL_UNRELEASED_LOCK", "UL_UNRELEASED_LOCK_EXCEPTION_PATH"},
@@ -871,7 +871,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
       for (String tserver : tabletServers) {
         List<CachedTablet> locations =
-            locationObtainer.lookupTablets(context, tserver, binnedRanges.get(tserver), parent);
+            tabletObtainer.lookupTablets(context, tserver, binnedRanges.get(tserver), parent);
 
         for (CachedTablet cachedTablet : locations) {
           updateCache(cachedTablet, lcSession);

@@ -145,7 +145,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
       // There should be no tablets online
       List<TabletStats> stats = ManagerAssignmentIT.getTabletStats(c, tableId);
       assertEquals(0, stats.size());
-      assertEquals(0, ClientTabletCache.getLocator((ClientContext) c, TableId.of(tableId))
+      assertEquals(0, ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
           .getTabletHostingRequestCount());
       assertEquals(0, ONDEMAND_ONLINE_COUNT);
 
@@ -156,7 +156,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
       // There should be four tablets online
       stats = ManagerAssignmentIT.getTabletStats(c, tableId);
       assertEquals(4, stats.size());
-      assertTrue(ClientTabletCache.getLocator((ClientContext) c, TableId.of(tableId))
+      assertTrue(ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
           .getTabletHostingRequestCount() > 0);
 
       while (ONDEMAND_ONLINE_COUNT != 4) {

@@ -480,7 +480,7 @@ public class ThriftScanner {
       Span child1 = TraceUtil.startSpan(ThriftScanner.class, "scan::locateTablet");
       try (Scope locateSpan = child1.makeCurrent()) {
 
-        loc = ClientTabletCache.getLocator(context, scanState.tableId).findTablet(context,
+        loc = ClientTabletCache.getInstance(context, scanState.tableId).findTablet(context,
             scanState.startRow, scanState.skipStartRow, hostingNeed);
 
         if (loc == null) {
@@ -606,7 +606,7 @@ public class ThriftScanner {
           }
           lastError = error;
 
-          ClientTabletCache.getLocator(context, scanState.tableId)
+          ClientTabletCache.getInstance(context, scanState.tableId)
               .invalidateCache(addr.getExtent());
 
           // no need to try the current scan id somewhere else
@@ -682,7 +682,7 @@ public class ThriftScanner {
           if (addr.serverType == ServerType.TSERVER) {
             // only tsever locations are in cache, invalidating a scan server would not find
             // anything the cache
-            ClientTabletCache.getLocator(context, scanState.tableId).invalidateCache(context,
+            ClientTabletCache.getInstance(context, scanState.tableId).invalidateCache(context,
                 addr.serverAddress);
           }
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage()

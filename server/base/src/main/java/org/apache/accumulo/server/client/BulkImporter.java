@@ -128,7 +128,7 @@ public class BulkImporter {
         Collections.synchronizedSortedMap(new TreeMap<>());
 
     ClientService.Client client = null;
-    final ClientTabletCache locator = ClientTabletCache.getLocator(context, tableId);
+    final ClientTabletCache locator = ClientTabletCache.getInstance(context, tableId);
 
     try {
       final Map<Path,List<CachedTablet>> assignments =

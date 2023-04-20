@@ -49,7 +49,7 @@ public class SyncingClientTabletCache extends ClientTabletCache {
   }
 
   public SyncingClientTabletCache(final ClientContext context, final TableId tableId) {
-    this(() -> ClientTabletCache.getLocator(context, tableId));
+    this(() -> ClientTabletCache.getInstance(context, tableId));
   }
 
   private ClientTabletCache syncLocator() {

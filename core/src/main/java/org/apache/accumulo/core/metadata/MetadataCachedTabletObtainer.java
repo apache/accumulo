@@ -210,7 +210,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
       throw e;
     }
 
-    return MetadataCachedTabletObtainer.getMetadataLocationEntries(results).getLocations();
+    return MetadataCachedTabletObtainer.getMetadataLocationEntries(results).getCachedTablets();
   }
 
   public static CachedTablets getMetadataLocationEntries(SortedMap<Key,Value> entries) {

@@ -55,7 +55,7 @@ import com.google.common.base.Preconditions;
 public abstract class ClientTabletCache {
 
   /**
-   * Flipped false on call to {@link #clearLocators}. Checked by client classes that locally cache
+   * Flipped false on call to {@link #clearInstances}. Checked by client classes that locally cache
    * Locators.
    */
   private volatile boolean isValid = true;
@@ -154,11 +154,11 @@ public abstract class ClientTabletCache {
    */
   public abstract void invalidateCache(ClientContext context, String server);
 
-  private static class LocatorKey {
+  private static class InstanceKey {
     InstanceId instanceId;
     TableId tableId;
 
-    LocatorKey(InstanceId instanceId, TableId table) {
+    InstanceKey(InstanceId instanceId, TableId table) {
       this.instanceId = instanceId;
       this.tableId = table;
     }
@@ -170,26 +170,26 @@ public abstract class ClientTabletCache {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof LocatorKey) {
-        return equals((LocatorKey) o);
+      if (o instanceof InstanceKey) {
+        return equals((InstanceKey) o);
       }
       return false;
     }
 
-    public boolean equals(LocatorKey lk) {
+    public boolean equals(InstanceKey lk) {
       return instanceId.equals(lk.instanceId) && tableId.equals(lk.tableId);
     }
 
   }
 
-  private static final HashMap<LocatorKey,ClientTabletCache> locators = new HashMap<>();
+  private static final HashMap<InstanceKey,ClientTabletCache> instances = new HashMap<>();
   private static boolean enabled = true;
 
-  public static synchronized void clearLocators() {
-    for (ClientTabletCache locator : locators.values()) {
+  public static synchronized void clearInstances() {
+    for (ClientTabletCache locator : instances.values()) {
       locator.isValid = false;
     }
-    locators.clear();
+    instances.clear();
   }
 
   static synchronized boolean isEnabled() {
@@ -197,7 +197,7 @@ public abstract class ClientTabletCache {
   }
 
   static synchronized void disable() {
-    clearLocators();
+    clearInstances();
     enabled = false;
   }
 
@@ -209,24 +209,24 @@ public abstract class ClientTabletCache {
     return 0L;
   }
 
-  public static synchronized ClientTabletCache getLocator(ClientContext context, TableId tableId) {
+  public static synchronized ClientTabletCache getInstance(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
         + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
-    LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
-    ClientTabletCache tl = locators.get(key);
+    InstanceKey key = new InstanceKey(context.getInstanceID(), tableId);
+    ClientTabletCache tl = instances.get(key);
     if (tl == null) {
       MetadataCachedTabletObtainer mlo = new MetadataCachedTabletObtainer();
 
       if (RootTable.ID.equals(tableId)) {
         tl = new RootClientTabletCache(new ZookeeperLockChecker(context));
       } else if (MetadataTable.ID.equals(tableId)) {
-        tl = new ClientTabletCacheImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
+        tl = new ClientTabletCacheImpl(MetadataTable.ID, getInstance(context, RootTable.ID), mlo,
             new ZookeeperLockChecker(context));
       } else {
-        tl = new ClientTabletCacheImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
+        tl = new ClientTabletCacheImpl(tableId, getInstance(context, MetadataTable.ID), mlo,
             new ZookeeperLockChecker(context));
       }
-      locators.put(key, tl);
+      instances.put(key, tl);
     }
 
     return tl;
@@ -254,14 +254,14 @@ public abstract class ClientTabletCache {
 
   public static class CachedTablets {
 
-    private final List<CachedTablet> locations;
+    private final List<CachedTablet> cachedTablets;
 
-    public CachedTablets(List<CachedTablet> locations) {
-      this.locations = locations;
+    public CachedTablets(List<CachedTablet> cachedTablets) {
+      this.cachedTablets = cachedTablets;
     }
 
-    public List<CachedTablet> getLocations() {
-      return locations;
+    public List<CachedTablet> getCachedTablets() {
+      return cachedTablets;
     }
   }
 

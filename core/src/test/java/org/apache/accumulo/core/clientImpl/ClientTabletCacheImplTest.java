@@ -579,7 +579,7 @@ public class ClientTabletCacheImplTest {
         parent.invalidateCache(failures);
       }
 
-      return MetadataCachedTabletObtainer.getMetadataLocationEntries(results).getLocations();
+      return MetadataCachedTabletObtainer.getMetadataLocationEntries(results).getCachedTablets();
 
     }
 
