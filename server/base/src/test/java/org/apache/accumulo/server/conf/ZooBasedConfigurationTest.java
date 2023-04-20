@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.conf;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.conf.Property.GC_PORT;
 import static org.apache.accumulo.core.conf.Property.MANAGER_BULK_TIMEOUT;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_ENABLED;
@@ -167,7 +168,7 @@ public class ZooBasedConfigurationTest {
     assertEquals("9998", zbc.get(GC_PORT));
 
     // read a property from the sysconfig
-    assertEquals(5 * 60 * 1000, zbc.getTimeInMillis(MANAGER_BULK_TIMEOUT));
+    assertEquals(MINUTES.toMillis(5), zbc.getTimeInMillis(MANAGER_BULK_TIMEOUT));
   }
 
   @Test

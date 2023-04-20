@@ -152,8 +152,9 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     final UniqueNameAllocator namer = manager.getUniqueNameAllocator();
 
     AccumuloConfiguration serverConfig = manager.getConfiguration();
-    ExecutorService workers = ThreadPools.getServerThreadPools().createExecutorService(serverConfig,
-        Property.MANAGER_RENAME_THREADS, false);
+    int numThreads = serverConfig.getCount(Property.MANAGER_RENAME_THREADS);
+    ExecutorService workers =
+        ThreadPools.getServerThreadPools().createFixedThreadPool(numThreads, "bulk rename", false);
     List<Future<Exception>> results = new ArrayList<>();
 
     for (FileStatus file : mapFiles) {
