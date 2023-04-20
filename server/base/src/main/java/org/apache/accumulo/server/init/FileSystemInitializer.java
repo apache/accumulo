@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.init;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
@@ -29,7 +30,9 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
@@ -186,6 +189,7 @@ class FileSystemInitializer {
     addEntry(map, extent, TIME_COLUMN, new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
     addEntry(map, extent, PREV_ROW_COLUMN,
         MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow(tablet.prevEndRow));
+    addEntry(map, extent, GOAL_COLUMN, TabletHostingGoalUtil.toValue(TabletHostingGoal.ALWAYS));
     for (String file : tablet.files) {
       addEntry(map, extent,
           new ColumnFQ(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME, new Text(file)),
