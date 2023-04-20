@@ -38,11 +38,11 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablets;
+import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.CachedTabletObtainer;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocations;
-import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletLocationObtainer;
 import org.apache.accumulo.core.clientImpl.TabletServerBatchReaderIterator;
 import org.apache.accumulo.core.clientImpl.TabletServerBatchReaderIterator.ResultReceiver;
 import org.apache.accumulo.core.clientImpl.ThriftScanner;
@@ -64,13 +64,13 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MetadataLocationObtainer implements TabletLocationObtainer {
-  private static final Logger log = LoggerFactory.getLogger(MetadataLocationObtainer.class);
+public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
+  private static final Logger log = LoggerFactory.getLogger(MetadataCachedTabletObtainer.class);
 
   private SortedSet<Column> locCols;
   private ArrayList<Column> columns;
 
-  public MetadataLocationObtainer() {
+  public MetadataCachedTabletObtainer() {
 
     locCols = new TreeSet<>();
     locCols.add(new Column(TextUtil.getBytes(CurrentLocationColumnFamily.NAME), null, null));
@@ -79,8 +79,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
 
   @Override
-  public TabletLocations lookupTablet(ClientContext context, TabletLocation src, Text row,
-      Text stopRow, TabletLocator parent) throws AccumuloSecurityException, AccumuloException {
+  public CachedTablets lookupTablet(ClientContext context, CachedTablet src, Text row, Text stopRow,
+      ClientTabletCache parent) throws AccumuloSecurityException, AccumuloException {
 
     try {
 
@@ -106,7 +106,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI"));
       Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
       boolean more = ThriftScanner.getBatchFromServer(context, range, src.getExtent(),
-          src.getTserverLocation(), encodedResults, locCols, serverSideIteratorList,
+          src.getTserverLocation().get(), encodedResults, locCols, serverSideIteratorList,
           serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
 
       decodeRows(encodedResults, results);
@@ -115,9 +115,9 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME),
             true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
-        ThriftScanner.getBatchFromServer(context, range, src.getExtent(), src.getTserverLocation(),
-            encodedResults, locCols, serverSideIteratorList, serverSideIteratorOptions,
-            Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
+        ThriftScanner.getBatchFromServer(context, range, src.getExtent(),
+            src.getTserverLocation().get(), encodedResults, locCols, serverSideIteratorList,
+            serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
 
         decodeRows(encodedResults, results);
       }
@@ -130,7 +130,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
 
       // if (log.isTraceEnabled()) log.trace("results "+results);
 
-      return MetadataLocationObtainer.getMetadataLocationEntries(results);
+      return MetadataCachedTabletObtainer.getMetadataLocationEntries(results);
 
     } catch (AccumuloServerException ase) {
       if (log.isTraceEnabled()) {
@@ -142,7 +142,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       if (log.isTraceEnabled()) {
         log.trace("{} lookup failed", src.getExtent().tableId(), e);
       }
-      parent.invalidateCache(context, src.getTserverLocation());
+      parent.invalidateCache(context, src.getTserverLocation().get());
     }
 
     return null;
@@ -169,8 +169,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
 
   @Override
-  public List<TabletLocation> lookupTablets(ClientContext context, String tserver,
-      Map<KeyExtent,List<Range>> tabletsRanges, TabletLocator parent)
+  public List<CachedTablet> lookupTablets(ClientContext context, String tserver,
+      Map<KeyExtent,List<Range>> tabletsRanges, ClientTabletCache parent)
       throws AccumuloSecurityException, AccumuloException {
 
     final TreeMap<Key,Value> results = new TreeMap<>();
@@ -210,15 +210,14 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       throw e;
     }
 
-    return MetadataLocationObtainer.getMetadataLocationEntries(results).getLocations();
+    return MetadataCachedTabletObtainer.getMetadataLocationEntries(results).getCachedTablets();
   }
 
-  public static TabletLocations getMetadataLocationEntries(SortedMap<Key,Value> entries) {
+  public static CachedTablets getMetadataLocationEntries(SortedMap<Key,Value> entries) {
     Text location = null;
     Text session = null;
 
-    List<TabletLocation> results = new ArrayList<>();
-    ArrayList<KeyExtent> locationless = new ArrayList<>();
+    List<CachedTablet> results = new ArrayList<>();
 
     Text lastRowFromKey = new Text();
 
@@ -250,14 +249,14 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
         KeyExtent ke = KeyExtent.fromMetaPrevRow(entry);
         if (location != null) {
-          results.add(new TabletLocation(ke, location.toString(), session.toString()));
+          results.add(new CachedTablet(ke, location.toString(), session.toString()));
         } else {
-          locationless.add(ke);
+          results.add(new CachedTablet(ke));
         }
         location = null;
       }
     }
 
-    return new TabletLocations(results, locationless);
+    return new CachedTablets(results);
   }
 }

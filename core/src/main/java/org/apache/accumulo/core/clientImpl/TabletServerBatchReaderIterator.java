@@ -34,12 +34,13 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -49,6 +50,7 @@ import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -111,7 +113,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private Set<String> timedoutServers;
   private final long retryTimeout;
 
-  private TabletLocator locator;
+  private ClientTabletCache locator;
 
   private ScanServerAttemptsImpl scanAttempts = new ScanServerAttemptsImpl();
 
@@ -132,7 +134,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.options = new ScannerOptions(scannerOptions);
     resultsQueue = new ArrayBlockingQueue<>(numThreads);
 
-    this.locator = new TimeoutTabletLocator(retryTimeout, context, tableId);
+    this.locator = new TimeoutClientTabletCache(retryTimeout, context, tableId);
 
     timeoutTrackers = Collections.synchronizedMap(new HashMap<>());
     timedoutServers = Collections.synchronizedSet(new HashSet<>());
@@ -244,7 +246,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     doLookups(binnedRanges, receiver, columns, ssd);
   }
 
-  private ScanServerData binRanges(TabletLocator tabletLocator, List<Range> ranges,
+  private ScanServerData binRanges(ClientTabletCache clientTabletCache, List<Range> ranges,
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
@@ -261,10 +263,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       List<Range> failures;
 
       if (options.getConsistencyLevel().equals(ConsistencyLevel.IMMEDIATE)) {
-        failures = tabletLocator.binRanges(context, ranges, binnedRanges);
+        failures = clientTabletCache.binRanges(context, ranges, binnedRanges);
         ssd = new ScanServerData();
       } else if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
-        ssd = binRangesForScanServers(tabletLocator, ranges, binnedRanges);
+        ssd = binRangesForScanServers(clientTabletCache, ranges, binnedRanges, startTime);
         failures = ssd.failures;
       } else {
         throw new IllegalStateException();
@@ -639,8 +641,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
   }
 
-  private ScanServerData binRangesForScanServers(TabletLocator tabletLocator, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
+  private ScanServerData binRangesForScanServers(ClientTabletCache clientTabletCache,
+      List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, long startTime)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
 
     ScanServerSelector ecsm = context.getScanServerSelector();
@@ -650,12 +652,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     Set<TabletIdImpl> tabletIds = new HashSet<>();
 
-    List<Range> failures = tabletLocator.locateTablets(context, ranges, (cachedTablet, range) -> {
-      extentToTserverMap.put(cachedTablet.getExtent(), cachedTablet.getTserverLocation());
+    List<Range> failures = clientTabletCache.findTablets(context, ranges, (cachedTablet, range) -> {
+      if (cachedTablet.getTserverLocation().isPresent()) {
+        extentToTserverMap.put(cachedTablet.getExtent(), cachedTablet.getTserverLocation().get());
+      }
       extentToRangesMap.computeIfAbsent(cachedTablet.getExtent(), k -> new ArrayList<>())
           .add(range);
       tabletIds.add(new TabletIdImpl(cachedTablet.getExtent()));
-    });
+    }, LocationNeed.NOT_REQUIRED);
 
     if (!failures.isEmpty()) {
       return new ScanServerData(failures);
@@ -663,6 +667,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     // get a snapshot of this once,not each time the plugin request it
     var scanAttemptsSnapshot = scanAttempts.snapshot();
+
+    Duration timeoutLeft = Duration.ofMillis(retryTimeout)
+        .minus(Duration.ofMillis(System.currentTimeMillis() - startTime));
 
     ScanServerSelector.SelectorParameters params = new ScanServerSelector.SelectorParameters() {
       @Override
@@ -679,32 +686,56 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       public Map<String,String> getHints() {
         return options.executionHints;
       }
+
+      @Override
+      public <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
+          String description) {
+        return ThriftScanner.waitUntil(condition, maxWaitTime, description, timeoutLeft, context,
+            tableId, log);
+      }
     };
 
     var actions = ecsm.selectServers(params);
 
     Map<String,ScanServerAttemptReporter> reporters = new HashMap<>();
 
+    failures = new ArrayList<>();
+
     for (TabletIdImpl tabletId : tabletIds) {
       KeyExtent extent = tabletId.toKeyExtent();
       String serverToUse = actions.getScanServer(tabletId);
       if (serverToUse == null) {
         // no scan server was given so use the tablet server
-        serverToUse = Objects.requireNonNull(extentToTserverMap.get(extent));
-        log.trace("For tablet {} scan server selector chose tablet_server", tabletId);
+        serverToUse = extentToTserverMap.get(extent);
+        if (serverToUse != null) {
+          log.trace("For tablet {} scan server selector chose tablet_server {}", tabletId,
+              serverToUse);
+        } else {
+          log.trace(
+              "For tablet {} scan server selector chose tablet_server, but tablet is not hosted",
+              tabletId);
+        }
       } else {
         log.trace("For tablet {} scan server selector chose scan_server:{}", tabletId, serverToUse);
       }
 
-      var rangeMap = binnedRanges.computeIfAbsent(serverToUse, k -> new HashMap<>());
-      List<Range> extentRanges = extentToRangesMap.get(extent);
-      rangeMap.put(extent, extentRanges);
+      if (serverToUse != null) {
+        var rangeMap = binnedRanges.computeIfAbsent(serverToUse, k -> new HashMap<>());
+        List<Range> extentRanges = extentToRangesMap.get(extent);
+        rangeMap.put(extent, extentRanges);
 
-      var server = serverToUse;
-      reporters.computeIfAbsent(serverToUse, k -> scanAttempts.createReporter(server, tabletId));
+        var server = serverToUse;
+        reporters.computeIfAbsent(serverToUse, k -> scanAttempts.createReporter(server, tabletId));
+      } else {
+        failures.addAll(extentToRangesMap.get(extent));
+      }
     }
 
     if (!failures.isEmpty()) {
+      // if there are failures at this point its because tablets are not hosted, so lets attempt to
+      // get them hosted
+      clientTabletCache.findTablets(context, ranges, (cachedTablet, range) -> {},
+          LocationNeed.REQUIRED);
       return new ScanServerData(failures);
     }
 
