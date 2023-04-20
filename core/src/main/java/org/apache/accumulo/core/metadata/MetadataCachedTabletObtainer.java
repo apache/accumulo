@@ -64,13 +64,13 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MetadataObtainerCached implements CachedTabletObtainer {
-  private static final Logger log = LoggerFactory.getLogger(MetadataObtainerCached.class);
+public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
+  private static final Logger log = LoggerFactory.getLogger(MetadataCachedTabletObtainer.class);
 
   private SortedSet<Column> locCols;
   private ArrayList<Column> columns;
 
-  public MetadataObtainerCached() {
+  public MetadataCachedTabletObtainer() {
 
     locCols = new TreeSet<>();
     locCols.add(new Column(TextUtil.getBytes(CurrentLocationColumnFamily.NAME), null, null));
@@ -130,7 +130,7 @@ public class MetadataObtainerCached implements CachedTabletObtainer {
 
       // if (log.isTraceEnabled()) log.trace("results "+results);
 
-      return MetadataObtainerCached.getMetadataLocationEntries(results);
+      return MetadataCachedTabletObtainer.getMetadataLocationEntries(results);
 
     } catch (AccumuloServerException ase) {
       if (log.isTraceEnabled()) {
@@ -210,7 +210,7 @@ public class MetadataObtainerCached implements CachedTabletObtainer {
       throw e;
     }
 
-    return MetadataObtainerCached.getMetadataLocationEntries(results).getLocations();
+    return MetadataCachedTabletObtainer.getMetadataLocationEntries(results).getLocations();
   }
 
   public static CachedTablets getMetadataLocationEntries(SortedMap<Key,Value> entries) {

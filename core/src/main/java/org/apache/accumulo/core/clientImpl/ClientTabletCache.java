@@ -37,7 +37,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataObtainerCached;
+import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
@@ -215,7 +215,7 @@ public abstract class ClientTabletCache {
     LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
     ClientTabletCache tl = locators.get(key);
     if (tl == null) {
-      MetadataObtainerCached mlo = new MetadataObtainerCached();
+      MetadataCachedTabletObtainer mlo = new MetadataCachedTabletObtainer();
 
       if (RootTable.ID.equals(tableId)) {
         tl = new RootClientTabletCache(new ZookeeperLockChecker(context));

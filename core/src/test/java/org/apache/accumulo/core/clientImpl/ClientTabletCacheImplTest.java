@@ -54,7 +54,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataObtainerCached;
+import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -527,7 +527,7 @@ public class ClientTabletCacheImplTest {
 
       SortedMap<Key,Value> results = tabletData.tailMap(startKey).headMap(stopKey);
 
-      return MetadataObtainerCached.getMetadataLocationEntries(results);
+      return MetadataCachedTabletObtainer.getMetadataLocationEntries(results);
     }
 
     @Override
@@ -579,7 +579,7 @@ public class ClientTabletCacheImplTest {
         parent.invalidateCache(failures);
       }
 
-      return MetadataObtainerCached.getMetadataLocationEntries(results).getLocations();
+      return MetadataCachedTabletObtainer.getMetadataLocationEntries(results).getLocations();
 
     }
 
