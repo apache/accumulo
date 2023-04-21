@@ -18,12 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.goal;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -35,7 +30,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -51,14 +45,14 @@ public class SetHostingGoal extends ManagerRepo {
 
   private final TableId tableId;
   private final NamespaceId namespaceId;
-  private final TRange range;
+  private final TRange tRange;
   private final TabletHostingGoal goal;
 
   public SetHostingGoal(TableId tableId, NamespaceId namespaceId, TRange range,
       TabletHostingGoal goal) {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
-    this.range = range;
+    this.tRange = range;
     this.goal = goal;
   }
 
@@ -71,11 +65,51 @@ public class SetHostingGoal extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    final Range r = new Range(range);
-    final List<KeyExtent> extents = findExtentsForRange(manager.getContext(), tableId, r);
-    LOG.debug("Setting tablet hosting goal to {} requested for: {} ", goal, extents);
+
+    final Range range = new Range(tRange);
+    LOG.debug("Finding tablets in Range: {} for table:{}", range, tableId);
+
+    // For all practical purposes the the start row is always inclusive, even if the key in the
+    // range is exclusive. For example the exclusive key row="a",family="b",qualifier="c" may
+    // exclude the column b:c but its still falls somewhere in the row "a". The only case where this
+    // would not be true is if the start key in a range is the last possible key in a row. The last
+    // possible key in a row would contain 2GB column fields of all 0xff, which is why we assume the
+    // row is always inclusive.
+    final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
+
+    TabletsMetadata m = manager.getContext().getAmple().readTablets().forTable(tableId)
+        .overlapping(scanRangeStart, true, null).build();
+
     try (TabletsMutator mutator = manager.getContext().getAmple().mutateTablets()) {
-      extents.forEach(e -> mutator.mutateTablet(e).setHostingGoal(goal).mutate());
+      for (TabletMetadata tm : m) {
+        final KeyExtent tabletExtent = tm.getExtent();
+        LOG.trace("Evaluating tablet {} against range {}", tabletExtent, range);
+        if (scanRangeStart != null && tm.getEndRow() != null
+            && tm.getEndRow().compareTo(scanRangeStart) < 0) {
+          // the end row of this tablet is before the start row, skip it
+          LOG.trace("tablet {} is before scan start range: {}", tabletExtent, scanRangeStart);
+          throw new RuntimeException("Bug in ample or this code.");
+        }
+
+        // Obtaining the end row from a range and knowing if the obtained row is inclusive or
+        // exclusive is really tricky depending on how the Range was created (using row or key
+        // constructors). So avoid trying to obtain an end row from the range and instead use
+        // range.afterKey below.
+        if (tm.getPrevEndRow() != null
+            && range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW))) {
+          // the start row of this tablet is after the scan range, skip it
+          LOG.trace("tablet {} is after scan end range: {}", tabletExtent, range);
+          break;
+        }
+
+        if (tm.getHostingGoal() == goal) {
+          LOG.trace("Skipping tablet: {}, goal is already in required state");
+          continue;
+        }
+
+        LOG.debug("Setting tablet hosting goal to {} requested for: {} ", goal, tabletExtent);
+        mutator.mutateTablet(tabletExtent).setHostingGoal(goal).mutate();
+      }
     }
     Utils.unreserveNamespace(manager, namespaceId, tid, false);
     Utils.unreserveTable(manager, tableId, tid, true);
@@ -86,54 +120,6 @@ public class SetHostingGoal extends ManagerRepo {
   public void undo(long tid, Manager manager) throws Exception {
     Utils.unreserveNamespace(manager, namespaceId, tid, false);
     Utils.unreserveTable(manager, tableId, tid, true);
-  }
-
-  public static List<KeyExtent> findExtentsForRange(ClientContext context, TableId tableId,
-      Range range) throws AccumuloException {
-
-    // For all practical purposes the the start row is always inclusive, even if the key in the
-    // range is exclusive. For example the exclusive key row="a",family="b",qualifier="c" may
-    // exclude the column b:c but its still falls somewhere in the row "a". The only case where this
-    // would not be true is if the start key in a range is the last possible key in a row. The last
-    // possible key in a row would contain 2GB column fields of all 0xff, which is why we assume the
-    // row is always inclusive.
-    final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
-
-    List<KeyExtent> extents = new ArrayList<>();
-
-    TabletsMetadata m = context.getAmple().readTablets().forTable(tableId)
-        .overlapping(scanRangeStart, true, null).build();
-    for (TabletMetadata tm : m) {
-      final KeyExtent tabletExtent = tm.getExtent();
-      LOG.trace("Evaluating tablet {} against range {}", tabletExtent, range);
-      if (scanRangeStart != null && tm.getEndRow() != null
-          && tm.getEndRow().compareTo(scanRangeStart) < 0) {
-        // the end row of this tablet is before the start row, skip it
-        LOG.trace("tablet {} is before scan start range: {}", tabletExtent, scanRangeStart);
-        throw new RuntimeException("Bug in ample or this code.");
-      }
-
-      // Obtaining the end row from a range and knowing if the obtained row is inclusive or
-      // exclusive is really tricky depending on how the Range was created (using row or key
-      // constructors). So avoid trying to obtain an end row from the range and instead use
-      // range.afterKey below.
-      if (tm.getPrevEndRow() != null
-          && range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW))) {
-        // the start row of this tablet is after the scan range, skip it
-        LOG.trace("tablet {} is after scan end range: {}", tabletExtent, range);
-        break;
-      }
-
-      // tablet must overlap the range
-      Location loc = tm.getLocation();
-      if (loc != null) {
-        LOG.debug("tablet {} has location of: {}:{}", tabletExtent, loc.getType(),
-            loc.getHostPort());
-      }
-      extents.add(tabletExtent);
-
-    }
-    return extents;
   }
 
 }
