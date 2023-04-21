@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -191,18 +192,20 @@ public class TabletStateChangeIterator extends SkippingIterator {
       }
 
       // is the table supposed to be online or offline?
-      boolean shouldBeOnline = onlineTables.contains(tls.extent.tableId());
+      final boolean shouldBeOnline = onlineTables.contains(tls.extent.tableId());
 
       if (debug) {
-        log.debug("{} is {} and should be {} line", tls.extent, tls.getState(current),
-            (shouldBeOnline ? "on" : "off"));
+        log.debug("{} is {}. Table is {}line. Tablet hosting goal is {}, hostingRequested: {}",
+            tls.extent, tls.getState(current), (shouldBeOnline ? "on" : "off"), tls.goal,
+            tls.onDemandHostingRequested);
       }
       switch (tls.getState(current)) {
         case ASSIGNED:
           // we always want data about assigned tablets
           return;
         case HOSTED:
-          if (!shouldBeOnline) {
+          if (!shouldBeOnline || tls.goal == TabletHostingGoal.NEVER
+              || (tls.goal == TabletHostingGoal.ONDEMAND && !tls.onDemandHostingRequested)) {
             return;
           }
           break;
@@ -210,7 +213,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
           return;
         case SUSPENDED:
         case UNASSIGNED:
-          if (shouldBeOnline) {
+          if (shouldBeOnline && (tls.goal == TabletHostingGoal.ALWAYS
+              || (tls.goal == TabletHostingGoal.ONDEMAND && tls.onDemandHostingRequested))) {
             return;
           }
           break;

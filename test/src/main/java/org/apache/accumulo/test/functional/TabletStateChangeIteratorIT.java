@@ -46,9 +46,11 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -59,6 +61,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -71,6 +74,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
@@ -104,6 +108,13 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       createTable(client, t2, false);
       createTable(client, t3, true);
 
+      // Scan table t3 which will cause it's tablets
+      // to be hosted. Then, remove the location.
+      Scanner s = client.createScanner(t3);
+      s.setRange(new Range());
+      @SuppressWarnings("unused")
+      var unused = Iterables.size(s); // consume all the data
+
       // examine a clone of the metadata table, so we can manipulate it
       copyTable(client, MetadataTable.NAME, metaCopy1);
 
@@ -122,6 +133,14 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       // metaCopy1 is modified, copy it for subsequent test.
       copyTable(client, metaCopy1, metaCopy2);
       copyTable(client, metaCopy1, metaCopy3);
+
+      // t1 is unassigned, setting to always will generate a change to host tablets
+      setTabletHostingGoal(client, metaCopy1, t1, TabletHostingGoal.ALWAYS.name());
+      // t3 is hosted, setting to never will generate a change to unhost tablets
+      setTabletHostingGoal(client, metaCopy1, t3, TabletHostingGoal.NEVER.name());
+      state = new State(client);
+      assertEquals(4, findTabletsNeedingAttention(client, metaCopy1, state),
+          "Should have four tablets with hosting goal changes");
 
       // test the assigned case (no location)
       removeLocation(client, metaCopy1, t3);
@@ -153,6 +172,25 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
       // clean up
       dropTables(client, t1, t2, t3, metaCopy1, metaCopy2, metaCopy3);
+    }
+  }
+
+  private void setTabletHostingGoal(AccumuloClient client, String table, String tableNameToModify,
+      String state) throws TableNotFoundException, MutationsRejectedException {
+    TableId tableIdToModify =
+        TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
+
+    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
+      scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetaRange());
+      for (Entry<Key,Value> entry : scanner) {
+        Mutation m = new Mutation(entry.getKey().getRow());
+        m.put(HostingColumnFamily.GOAL_COLUMN.getColumnFamily(),
+            HostingColumnFamily.GOAL_COLUMN.getColumnQualifier(), entry.getKey().getTimestamp() + 1,
+            new Value(state));
+        try (BatchWriter bw = client.createBatchWriter(table)) {
+          bw.addMutation(m);
+        }
+      }
     }
   }
 
@@ -209,6 +247,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> e : scanner) {
         if (e != null) {
           results++;
+          log.debug("Found tablets that changed state: {}", e.getKey());
           resultList.add(e.getKey());
         }
       }
@@ -224,7 +263,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     partitionKeys.add(new Text("some split"));
     NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitionKeys);
     client.tableOperations().create(t, ntc);
-    client.tableOperations().online(t, true);
+    client.tableOperations().online(t);
     if (!online) {
       client.tableOperations().offline(t, true);
     }

@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -40,6 +41,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
@@ -69,20 +71,25 @@ public class RootTabletStateStoreTest {
       throw new UnsupportedOperationException("This method should be implemented in subclasses");
     }
 
+    private class TestTabletMutator extends TabletMutatorBase<TabletMutator>
+        implements TabletMutator {
+      public TestTabletMutator(ServerContext context, KeyExtent extent) {
+        super(context, extent);
+      }
+
+      public void mutate() {
+        Mutation m = getMutation();
+
+        var rtm = new RootTabletMetadata(json);
+        rtm.update(m);
+        json = rtm.toJson();
+      }
+    }
+
     @Override
     public TabletMutator mutateTablet(KeyExtent extent) {
       Preconditions.checkArgument(extent.equals(RootTable.EXTENT));
-      return new TabletMutatorBase(null, extent) {
-
-        @Override
-        public void mutate() {
-          Mutation m = getMutation();
-
-          var rtm = new RootTabletMetadata(json);
-          rtm.update(m);
-          json = rtm.toJson();
-        }
-      };
+      return new TestTabletMutator(null, RootTable.EXTENT);
     }
 
   }
@@ -102,7 +109,7 @@ public class RootTabletStateStoreTest {
     int count = 0;
     for (TabletLocationState location : tstore) {
       assertEquals(location.extent, root);
-      assertEquals(location.future, server);
+      assertEquals(location.future.getServerInstance(), server);
       assertNull(location.current);
       count++;
     }
@@ -112,13 +119,14 @@ public class RootTabletStateStoreTest {
     for (TabletLocationState location : tstore) {
       assertEquals(location.extent, root);
       assertNull(location.future);
-      assertEquals(location.current, server);
+      assertEquals(location.current.getServerInstance(), server);
       count++;
     }
     assertEquals(count, 1);
     TabletLocationState assigned = null;
     try {
-      assigned = new TabletLocationState(root, server, null, null, null, null, false);
+      assigned = new TabletLocationState(root, Location.future(server), null, null, null, null,
+          false, TabletHostingGoal.ALWAYS, false);
     } catch (BadLocationStateException e) {
       fail("Unexpected error " + e);
     }
@@ -139,8 +147,8 @@ public class RootTabletStateStoreTest {
     assertThrows(IllegalArgumentException.class, () -> tstore.setFutureLocations(assignmentList));
 
     try {
-      TabletLocationState broken =
-          new TabletLocationState(notRoot, server, null, null, null, null, false);
+      TabletLocationState broken = new TabletLocationState(notRoot, Location.future(server), null,
+          null, null, null, false, TabletHostingGoal.ALWAYS, false);
       final var assignmentList1 = List.of(broken);
       assertThrows(IllegalArgumentException.class, () -> tstore.unassign(assignmentList1, null));
     } catch (BadLocationStateException e) {

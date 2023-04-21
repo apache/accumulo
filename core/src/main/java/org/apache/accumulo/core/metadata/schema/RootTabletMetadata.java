@@ -27,6 +27,7 @@ import java.nio.charset.CharsetDecoder;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.EnumSet;
 import java.util.Map.Entry;
+import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -145,19 +146,30 @@ public class RootTabletMetadata {
     }
   }
 
+  public SortedMap<Key,Value> toKeyValues() {
+    TreeMap<Key,Value> metamap = new TreeMap<>();
+    getKeyValues().forEach(e -> metamap.put(e.getKey(), e.getValue()));
+    return metamap;
+  }
+
   /**
    * Convert this class to a {@link TabletMetadata}
    */
   public TabletMetadata toTabletMetadata() {
-    String row = RootTable.EXTENT.toMetaRow().toString();
     // use a stream so we don't have to re-sort in a new TreeMap<Key,Value> structure
+    Stream<SimpleImmutableEntry<Key,Value>> entries = getKeyValues();
+    return TabletMetadata.convertRow(entries.iterator(),
+        EnumSet.allOf(TabletMetadata.ColumnType.class), false);
+  }
+
+  private Stream<SimpleImmutableEntry<Key,Value>> getKeyValues() {
+    String row = RootTable.EXTENT.toMetaRow().toString();
     Stream<SimpleImmutableEntry<Key,Value>> entries = data.columnValues.entrySet().stream()
         .flatMap(famToQualVal -> famToQualVal.getValue().entrySet().stream()
             .map(qualVal -> new SimpleImmutableEntry<>(
                 new Key(row, famToQualVal.getKey(), qualVal.getKey(), 1),
                 new Value(qualVal.getValue()))));
-    return TabletMetadata.convertRow(entries.iterator(),
-        EnumSet.allOf(TabletMetadata.ColumnType.class), false);
+    return entries;
   }
 
   /**

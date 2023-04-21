@@ -18,9 +18,12 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.REQUESTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.OLD_PREV_ROW_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
@@ -40,7 +43,9 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -49,11 +54,14 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -62,6 +70,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
@@ -69,6 +78,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,6 +117,10 @@ public class TabletMetadata {
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
   private boolean chopped = false;
+  private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
+  private boolean onDemandHostingRequested = false;
+  private TabletOperation operation;
+  private TabletOperationId operationId;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -129,20 +143,95 @@ public class TabletMetadata {
     SPLIT_RATIO,
     SUSPEND,
     CHOPPED,
-    ECOMP
+    ECOMP,
+    HOSTING_GOAL,
+    HOSTING_REQUESTED,
+    OPID
   }
 
-  public static class Location extends TServerInstance {
+  public static class Location {
+    private final TServerInstance tServerInstance;
     private final LocationType lt;
 
-    public Location(String server, String session, LocationType lt) {
-      super(HostAndPort.fromString(server), session);
-      this.lt = lt;
+    private Location(final String server, final String session, final LocationType lt) {
+      this(new TServerInstance(HostAndPort.fromString(server), session), lt);
+    }
+
+    private Location(final TServerInstance tServerInstance, final LocationType lt) {
+      this.tServerInstance =
+          Objects.requireNonNull(tServerInstance, "tServerInstance must not be null");
+      this.lt = Objects.requireNonNull(lt, "locationType must not be null");
     }
 
     public LocationType getType() {
       return lt;
     }
+
+    public TServerInstance getServerInstance() {
+      return tServerInstance;
+    }
+
+    public String getHostPortSession() {
+      return tServerInstance.getHostPortSession();
+    }
+
+    public String getHost() {
+      return tServerInstance.getHost();
+    }
+
+    public String getHostPort() {
+      return tServerInstance.getHostPort();
+    }
+
+    public HostAndPort getHostAndPort() {
+      return tServerInstance.getHostAndPort();
+    }
+
+    public String getSession() {
+      return tServerInstance.getSession();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      Location location = (Location) o;
+      return Objects.equals(tServerInstance, location.tServerInstance) && lt == location.lt;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(tServerInstance, lt);
+    }
+
+    public static Location last(TServerInstance instance) {
+      return new Location(instance, LocationType.LAST);
+    }
+
+    public static Location last(final String server, final String session) {
+      return last(new TServerInstance(HostAndPort.fromString(server), session));
+    }
+
+    public static Location current(TServerInstance instance) {
+      return new Location(instance, LocationType.CURRENT);
+    }
+
+    public static Location current(final String server, final String session) {
+      return current(new TServerInstance(HostAndPort.fromString(server), session));
+    }
+
+    public static Location future(TServerInstance instance) {
+      return new Location(instance, LocationType.FUTURE);
+    }
+
+    public static Location future(final String server, final String session) {
+      return future(new TServerInstance(HostAndPort.fromString(server), session));
+    }
+
   }
 
   public TableId getTableId() {
@@ -272,6 +361,16 @@ public class TabletMetadata {
     return chopped;
   }
 
+  public TabletHostingGoal getHostingGoal() {
+    ensureFetched(ColumnType.HOSTING_GOAL);
+    return goal;
+  }
+
+  public boolean getHostingRequested() {
+    ensureFetched(ColumnType.HOSTING_REQUESTED);
+    return onDemandHostingRequested;
+  }
+
   public SortedMap<Key,Value> getKeyValues() {
     Preconditions.checkState(keyValues != null, "Requested key values when it was not saved");
     return keyValues;
@@ -281,16 +380,19 @@ public class TabletMetadata {
     ensureFetched(ColumnType.LOCATION);
     ensureFetched(ColumnType.LAST);
     ensureFetched(ColumnType.SUSPEND);
+    ensureFetched(ColumnType.HOSTING_GOAL);
+    ensureFetched(ColumnType.HOSTING_REQUESTED);
     try {
-      TServerInstance current = null;
-      TServerInstance future = null;
+      Location current = null;
+      Location future = null;
       if (hasCurrent()) {
         current = location;
       } else {
         future = location;
       }
       // only care about the state so don't need walogs and chopped params
-      var tls = new TabletLocationState(extent, future, current, last, suspend, null, false);
+      var tls = new TabletLocationState(extent, future, current, last, suspend, null, false, goal,
+          onDemandHostingRequested);
       return tls.getState(liveTServers);
     } catch (TabletLocationState.BadLocationStateException blse) {
       throw new IllegalArgumentException("Error creating TabletLocationState", blse);
@@ -300,6 +402,16 @@ public class TabletMetadata {
   public Map<ExternalCompactionId,ExternalCompactionMetadata> getExternalCompactions() {
     ensureFetched(ColumnType.ECOMP);
     return extCompactions;
+  }
+
+  public TabletOperation getOperation() {
+    ensureFetched(ColumnType.OPID);
+    return operation;
+  }
+
+  public TabletOperationId getOperationId() {
+    ensureFetched(ColumnType.OPID);
+    return operationId;
   }
 
   @VisibleForTesting
@@ -372,6 +484,11 @@ public class TabletMetadata {
             case COMPACT_QUAL:
               te.compact = OptionalLong.of(Long.parseLong(val));
               break;
+            case OPID_QUAL:
+              String[] tokens = val.split(":", 2);
+              te.operation = TabletOperation.valueOf(tokens[0]);
+              te.operationId = new TabletOperationId(tokens[1]);
+              break;
           }
           break;
         case DataFileColumnFamily.STR_NAME:
@@ -388,7 +505,7 @@ public class TabletMetadata {
           te.setLocationOnce(val, qual, LocationType.FUTURE);
           break;
         case LastLocationColumnFamily.STR_NAME:
-          te.last = new Location(val, qual, LocationType.LAST);
+          te.last = Location.last(val, qual);
           break;
         case SuspendLocationColumn.STR_NAME:
           te.suspend = SuspendingTServer.fromValue(kv.getValue());
@@ -409,9 +526,28 @@ public class TabletMetadata {
         case ChoppedColumnFamily.STR_NAME:
           te.chopped = true;
           break;
-        default:
-          throw new IllegalStateException("Unexpected family " + fam);
+        case HostingColumnFamily.STR_NAME:
+          switch (qual) {
+            case GOAL_QUAL:
+              if (StringUtils.isEmpty(kv.getValue().toString())) {
+                te.goal = TabletHostingGoal.ONDEMAND;
+              } else {
+                te.goal = TabletHostingGoalUtil.fromValue(kv.getValue());
+              }
+              break;
+            case REQUESTED_QUAL:
+              te.onDemandHostingRequested = true;
+              break;
+            default:
+              throw new IllegalStateException("Unexpected family " + fam);
+          }
+          break;
       }
+    }
+
+    if (RootTable.ID.equals(te.tableId) || MetadataTable.ID.equals(te.tableId)) {
+      // Override the goal for the system tables
+      te.goal = TabletHostingGoal.ALWAYS;
     }
 
     te.files = filesBuilder.build();

@@ -26,10 +26,13 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
+import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_TABLE;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -85,13 +88,15 @@ import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
@@ -103,12 +108,15 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
@@ -539,7 +547,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private void addSplits(SplitEnv env, SortedSet<Text> partitionKeys) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, AccumuloServerException {
 
-    TabletLocator tabLocator = TabletLocator.getLocator(context, env.tableId);
+    ClientTabletCache tabLocator = ClientTabletCache.getInstance(context, env.tableId);
     for (Text split : partitionKeys) {
       boolean successful = false;
       int attempt = 0;
@@ -553,7 +561,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         attempt++;
 
-        TabletLocation tl = tabLocator.locateTablet(context, split, false, false);
+        CachedTablet tl = tabLocator.findTablet(context, split, false, LocationNeed.REQUIRED);
 
         if (tl == null) {
           context.requireTableExists(env.tableId, env.tableName);
@@ -561,7 +569,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           continue;
         }
 
-        HostAndPort address = HostAndPort.fromString(tl.tablet_location);
+        HostAndPort address = HostAndPort.fromString(tl.getTserverLocation().get());
 
         try {
           TabletManagementClientService.Client client =
@@ -572,15 +580,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
             if (log.isTraceEnabled()) {
               log.trace("tid={} Splitting tablet {} on {} at {}", Thread.currentThread().getId(),
-                  tl.tablet_extent, address, split);
+                  tl.getExtent(), address, split);
               timer = new OpTimer().start();
             }
 
-            client.splitTablet(TraceUtil.traceInfo(), context.rpcCreds(),
-                tl.tablet_extent.toThrift(), TextUtil.getByteBuffer(split));
+            client.splitTablet(TraceUtil.traceInfo(), context.rpcCreds(), tl.getExtent().toThrift(),
+                TextUtil.getByteBuffer(split));
 
             // just split it, might as well invalidate it in the cache
-            tabLocator.invalidateCache(tl.tablet_extent);
+            tabLocator.invalidateCache(tl.getExtent());
 
             if (timer != null) {
               timer.stop();
@@ -605,10 +613,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
                 + " Seen {} failures.", split, env.tableName, locationFailures);
           }
 
-          tabLocator.invalidateCache(tl.tablet_extent);
+          tabLocator.invalidateCache(tl.getExtent());
           continue;
         } catch (TException e) {
-          tabLocator.invalidateCache(context, tl.tablet_location);
+          tabLocator.invalidateCache(context, tl.getTserverLocation().get());
           continue;
         }
 
@@ -1235,10 +1243,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     TableId tableId = context.getTableId(tableName);
-    TabletLocator tl = TabletLocator.getLocator(context, tableId);
+    ClientTabletCache tl = ClientTabletCache.getInstance(context, tableId);
     // its possible that the cache could contain complete, but old information about a tables
     // tablets... so clear it
     tl.invalidateCache();
+    // ELASTICITY_TODO this will cause tablets to be hosted, but that may not be desired
     while (!tl.binRanges(context, Collections.singletonList(range), binnedRanges).isEmpty()) {
       context.requireNotDeleted(tableId);
       context.requireNotOffline(tableId, tableName);
@@ -1366,7 +1375,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
 
       TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
-          .overRange(range).fetch(LOCATION, PREV_ROW).build();
+          .overRange(range).fetch(HOSTING_GOAL, HOSTING_REQUESTED, LOCATION, PREV_ROW).build();
 
       KeyExtent lastExtent = null;
 
@@ -1379,8 +1388,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
       for (TabletMetadata tablet : tablets) {
         total++;
         Location loc = tablet.getLocation();
+        TabletHostingGoal goal = tablet.getHostingGoal();
 
         if ((expectedState == TableState.ONLINE
+            && (goal == TabletHostingGoal.ALWAYS
+                || (goal == TabletHostingGoal.ONDEMAND) && tablet.getHostingRequested())
             && (loc == null || loc.getType() == LocationType.FUTURE))
             || (expectedState == TableState.OFFLINE && loc != null)) {
           if (continueRow == null) {
@@ -1445,23 +1457,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void offline(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    EXISTING_TABLE_NAME.validate(tableName);
-
-    TableId tableId = context.getTableId(tableName);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<>();
-
-    try {
-      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_OFFLINE,
-          args, opts);
-    } catch (TableExistsException e) {
-      // should not happen
-      throw new AssertionError(e);
-    }
-
-    if (wait) {
-      waitForTableStateTransition(tableId, TableState.OFFLINE);
-    }
+    changeTableState(tableName, wait, TableState.OFFLINE);
   }
 
   @Override
@@ -1479,18 +1475,39 @@ public class TableOperationsImpl extends TableOperationsHelper {
     online(tableName, false);
   }
 
-  @Override
-  public void online(String tableName, boolean wait)
+  private void changeTableState(String tableName, boolean wait, TableState newState)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
     TableId tableId = context.getTableId(tableName);
+
+    FateOperation op = null;
+    switch (newState) {
+      case OFFLINE:
+        op = FateOperation.TABLE_OFFLINE;
+        if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
+          throw new AccumuloException("Cannot set table to offline state");
+        }
+        break;
+      case ONLINE:
+        op = FateOperation.TABLE_ONLINE;
+        if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME)) {
+          // Don't submit a Fate operation for this, these tables can only be online.
+          return;
+        }
+        break;
+      default:
+        throw new IllegalArgumentException(newState + " is not handled.");
+    }
+
     /**
-     * ACCUMULO-4574 if table is already online return without executing fate operation.
+     * ACCUMULO-4574 Don't submit a fate operation to change the table state to newState if it's
+     * already in that state.
      */
-    if (isOnline(tableName)) {
+    TableState currentState = context.getTableState(tableId, true);
+    if (newState == currentState) {
       if (wait) {
-        waitForTableStateTransition(tableId, TableState.ONLINE);
+        waitForTableStateTransition(tableId, newState);
       }
       return;
     }
@@ -1499,23 +1516,30 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> opts = new HashMap<>();
 
     try {
-      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_ONLINE,
-          args, opts);
+      doTableFateOperation(tableName, TableNotFoundException.class, op, args, opts);
     } catch (TableExistsException e) {
       // should not happen
       throw new AssertionError(e);
     }
 
     if (wait) {
-      waitForTableStateTransition(tableId, TableState.ONLINE);
+      waitForTableStateTransition(tableId, newState);
     }
+
+  }
+
+  @Override
+  public void online(String tableName, boolean wait)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    changeTableState(tableName, wait, TableState.ONLINE);
   }
 
   @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    TabletLocator tabLocator = TabletLocator.getLocator(context, context.getTableId(tableName));
+    ClientTabletCache tabLocator =
+        ClientTabletCache.getInstance(context, context.getTableId(tableName));
     tabLocator.invalidateCache();
   }
 
@@ -1717,8 +1741,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(exportDir != null, "exportDir is null");
 
     if (isOnline(tableName)) {
-      throw new IllegalStateException("The table " + tableName + " is online; exportTable requires"
-          + " a table to be offline before exporting.");
+      throw new IllegalStateException("The table " + tableName
+          + " is not offline; exportTable requires a table to be offline before exporting.");
     }
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
@@ -1916,7 +1940,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     requireNonNull(ranges, "ranges must be non null");
 
     TableId tableId = context.getTableId(tableName);
-    TabletLocator locator = TabletLocator.getLocator(context, tableId);
+    ClientTabletCache locator = ClientTabletCache.getInstance(context, tableId);
 
     List<Range> rangeList = null;
     if (ranges instanceof List) {
@@ -1933,6 +1957,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
         .logInterval(3, MINUTES).createRetry();
 
+    // ELASTICITY_TODO this will cause tablets to be hosted, but that may not be desired
     while (!locator.binRanges(context, rangeList, binnedRanges).isEmpty()) {
       context.requireTableExists(tableId, tableName);
       context.requireNotOffline(tableId, tableName);
@@ -2133,4 +2158,78 @@ public class TableOperationsImpl extends TableOperationsHelper {
       opts.put(k, v);
     });
   }
+
+  public static List<TKeyExtent> findExtentsForRange(ClientContext context, TableId tableId,
+      Range range, Set<TabletHostingGoal> disallowedStates, boolean excludeHostedTablets)
+      throws AccumuloException {
+
+    // For all practical purposes the the start row is always inclusive, even if the key in the
+    // range is exclusive. For example the exclusive key row="a",family="b",qualifier="c" may
+    // exclude the column b:c but its still falls somewhere in the row "a". The only case where this
+    // would not be true is if the start key in a range is the last possible key in a row. The last
+    // possible key in a row would contain 2GB column fields of all 0xff, which is why we assume the
+    // row is always inclusive.
+    final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
+
+    List<TKeyExtent> extents = new ArrayList<>();
+
+    TabletsMetadata m = context.getAmple().readTablets().forTable(tableId)
+        .overlapping(scanRangeStart, true, null).build();
+    for (TabletMetadata tm : m) {
+      if (disallowedStates.contains(tm.getHostingGoal())) {
+        throw new AccumuloException("Range: " + range + " includes tablet: " + tm.getExtent()
+            + " that is not in an allowable state for hosting");
+      }
+      final KeyExtent tabletExtent = tm.getExtent();
+      log.trace("Evaluating tablet {} against range {}", tabletExtent, range);
+      if (scanRangeStart != null && tm.getEndRow() != null
+          && tm.getEndRow().compareTo(scanRangeStart) < 0) {
+        // the end row of this tablet is before the start row, skip it
+        log.trace("tablet {} is before scan start range: {}", tabletExtent, scanRangeStart);
+        throw new RuntimeException("Bug in ample or this code.");
+      }
+
+      // Obtaining the end row from a range and knowing if the obtained row is inclusive or
+      // exclusive is really tricky depending on how the Range was created (using row or key
+      // constructors). So avoid trying to obtain an end row from the range and instead use
+      // range.afterKey below.
+      if (tm.getPrevEndRow() != null
+          && range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW))) {
+        // the start row of this tablet is after the scan range, skip it
+        log.trace("tablet {} is after scan end range: {}", tabletExtent, range);
+        break;
+      }
+
+      // tablet must overlap the range
+      Location loc = tm.getLocation();
+      if (loc != null) {
+        log.debug("tablet {} has location of: {}:{}", tabletExtent, loc.getType(),
+            loc.getHostPort());
+      }
+      if (!(excludeHostedTablets && loc != null)) {
+        extents.add(tabletExtent.toThrift());
+      }
+
+    }
+    return extents;
+  }
+
+  @Override
+  public void setTabletHostingGoal(String tableName, Range range, TabletHostingGoal goal)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    EXISTING_TABLE_NAME.validate(tableName);
+    NOT_BUILTIN_TABLE.validate(tableName);
+    checkArgument(range != null, "range is null");
+    checkArgument(goal != null, "goal is null");
+
+    TableId tableId = context.getTableId(tableName);
+
+    List<TKeyExtent> extents = findExtentsForRange(context, tableId, range, Set.of(), false);
+
+    log.debug("Setting tablet hosting goal to {} for extents: {}", goal, extents);
+    ThriftClientTypes.TABLET_MGMT.executeVoid(context,
+        client -> client.setTabletHostingGoal(TraceUtil.traceInfo(), context.rpcCreds(),
+            tableId.canonical(), extents, TabletHostingGoalUtil.toThrift(goal)));
+  }
+
 }

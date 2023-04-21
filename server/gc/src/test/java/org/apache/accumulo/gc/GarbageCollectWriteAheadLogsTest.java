@@ -24,11 +24,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -57,10 +59,10 @@ public class GarbageCollectWriteAheadLogsTest {
 
   {
     try {
-      tabletAssignedToServer1 =
-          new TabletLocationState(extent, null, server1, null, null, walogs, false);
-      tabletAssignedToServer2 =
-          new TabletLocationState(extent, null, server2, null, null, walogs, false);
+      tabletAssignedToServer1 = new TabletLocationState(extent, null, Location.current(server1),
+          null, null, walogs, false, TabletHostingGoal.ALWAYS, false);
+      tabletAssignedToServer2 = new TabletLocationState(extent, null, Location.current(server2),
+          null, null, walogs, false, TabletHostingGoal.NEVER, false);
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }

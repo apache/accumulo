@@ -21,7 +21,8 @@ package org.apache.accumulo.core.clientImpl;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -31,45 +32,32 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Syncs itself with the static collection of TabletLocators, so that when the server clears it, it
  * will automatically get the most up-to-date version. Caching TabletLocators locally is safe when
  * using SyncingTabletLocator.
  */
-public class SyncingTabletLocator extends TabletLocator {
-  private static final Logger log = LoggerFactory.getLogger(SyncingTabletLocator.class);
+public class SyncingClientTabletCache extends ClientTabletCache {
 
-  private volatile TabletLocator locator;
-  private final Callable<TabletLocator> getLocatorFunction;
+  private volatile ClientTabletCache locator;
+  private final Supplier<ClientTabletCache> getLocatorFunction;
 
-  public SyncingTabletLocator(Callable<TabletLocator> getLocatorFunction) {
+  public SyncingClientTabletCache(Supplier<ClientTabletCache> getLocatorFunction) {
     this.getLocatorFunction = getLocatorFunction;
-    try {
-      this.locator = getLocatorFunction.call();
-    } catch (Exception e) {
-      log.error("Problem obtaining TabletLocator", e);
-      throw new RuntimeException(e);
-    }
+    this.locator = getLocatorFunction.get();
   }
 
-  public SyncingTabletLocator(final ClientContext context, final TableId tableId) {
-    this(() -> TabletLocator.getLocator(context, tableId));
+  public SyncingClientTabletCache(final ClientContext context, final TableId tableId) {
+    this(() -> ClientTabletCache.getInstance(context, tableId));
   }
 
-  private TabletLocator syncLocator() {
-    TabletLocator loc = this.locator;
+  private ClientTabletCache syncLocator() {
+    ClientTabletCache loc = this.locator;
     if (!loc.isValid()) {
       synchronized (this) {
         if (locator == loc) {
-          try {
-            loc = locator = getLocatorFunction.call();
-          } catch (Exception e) {
-            log.error("Problem obtaining TabletLocator", e);
-            throw new RuntimeException(e);
-          }
+          loc = locator = getLocatorFunction.get();
         }
       }
     }
@@ -77,9 +65,10 @@ public class SyncingTabletLocator extends TabletLocator {
   }
 
   @Override
-  public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-      boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    return syncLocator().locateTablet(context, row, skipRow, retry);
+  public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
+      LocationNeed locationNeed)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    return syncLocator().findTablet(context, row, skipRow, locationNeed);
   }
 
   @Override
@@ -87,6 +76,13 @@ public class SyncingTabletLocator extends TabletLocator {
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     syncLocator().binMutations(context, mutations, binnedMutations, failures);
+  }
+
+  @Override
+  public List<Range> findTablets(ClientContext context, List<Range> ranges,
+      BiConsumer<CachedTablet,Range> rangeConsumer, LocationNeed locationNeed)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    return syncLocator().findTablets(context, ranges, rangeConsumer, locationNeed);
   }
 
   @Override

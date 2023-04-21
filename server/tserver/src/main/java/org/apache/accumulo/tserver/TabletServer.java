@@ -62,12 +62,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.Durability;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
@@ -92,11 +94,15 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.core.spi.ondemand.OnDemandTabletUnloader;
+import org.apache.accumulo.core.spi.ondemand.OnDemandTabletUnloader.UnloaderParams;
+import org.apache.accumulo.core.tabletserver.UnloaderParamsImpl;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
@@ -110,6 +116,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
@@ -210,6 +217,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final AtomicLong syncCounter = new AtomicLong(0);
 
   final OnlineTablets onlineTablets = new OnlineTablets();
+  private final Map<KeyExtent,AtomicLong> onDemandTabletAccessTimes =
+      Collections.synchronizedMap(new HashMap<>());
   final SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<>());
   final SortedSet<KeyExtent> openingTablets = Collections.synchronizedSortedSet(new TreeSet<>());
   final Map<KeyExtent,Long> recentlyUnloadedCache = Collections.synchronizedMap(new LRUMap<>(1000));
@@ -235,6 +244,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   public static final AtomicLong seekCount = new AtomicLong(0);
 
   private final AtomicLong totalMinorCompactions = new AtomicLong(0);
+  private final AtomicInteger onDemandUnloadedLowMemory = new AtomicInteger(0);
 
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
   private final WalStateManager walMarker;
@@ -345,7 +355,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     this.security = context.getSecurityOperation();
 
     watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
-        TabletLocator::clearLocators, jitter(), jitter(), TimeUnit.MILLISECONDS));
+        ClientTabletCache::clearInstances, jitter(), jitter(), TimeUnit.MILLISECONDS));
     walMarker = new WalStateManager(context);
 
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
@@ -444,7 +454,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
             // if we need to split AND compact, we need a good way
             // to decide what to do
-            if (tablet.needsSplit()) {
+            if (tablet.needsSplit(tablet.getSplitComputations())) {
               executeSplit(tablet);
               continue;
             }
@@ -701,6 +711,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             + " ZooKeeper. Delegation token authentication will be unavailable.", e);
       }
     }
+    try {
+      clientAddress = startTabletClientService();
+    } catch (UnknownHostException e1) {
+      throw new RuntimeException("Failed to start the tablet client service", e1);
+    }
 
     try {
       MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
@@ -725,11 +740,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         getContext(), ceMetrics);
     compactionManager.start();
 
-    try {
-      clientAddress = startTabletClientService();
-    } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the tablet client service", e1);
-    }
     announceExistence();
 
     try {
@@ -759,6 +769,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       throw new RuntimeException(ex);
     }
     final AccumuloConfiguration aconf = getConfiguration();
+
+    final long onDemandUnloaderInterval =
+        aconf.getTimeInMillis(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL);
+    watchCriticalFixedDelay(aconf, onDemandUnloaderInterval, () -> {
+      evaluateOnDemandTabletsForUnload();
+    });
 
     long tabletCheckFrequency = aconf.getTimeInMillis(Property.TSERV_HEALTH_CHECK_FREQ);
     // Periodically check that metadata of tablets matches what is held in memory
@@ -1134,7 +1150,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   @Override
   public Tablet getOnlineTablet(KeyExtent extent) {
-    return onlineTablets.snapshot().get(extent);
+    Tablet t = onlineTablets.snapshot().get(extent);
+    if (t != null && t.isOnDemand()) {
+      updateOnDemandAccessTime(extent);
+    }
+    return t;
   }
 
   @Override
@@ -1285,4 +1305,159 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return BlockCacheConfiguration.forTabletServer(acuConf);
   }
 
+  public int getOnDemandOnlineUnloadedForLowMemory() {
+    return onDemandUnloadedLowMemory.get();
+  }
+
+  // called from AssignmentHandler
+  public void insertOnDemandAccessTime(KeyExtent extent) {
+    if (extent.isMeta()) {
+      return;
+    }
+    onDemandTabletAccessTimes.putIfAbsent(extent, new AtomicLong(System.nanoTime()));
+  }
+
+  // called from getOnlineExtent
+  private void updateOnDemandAccessTime(KeyExtent extent) {
+    final long currentTime = System.nanoTime();
+    AtomicLong l = onDemandTabletAccessTimes.get(extent);
+    if (l != null) {
+      l.set(currentTime);
+    }
+  }
+
+  // called from UnloadTabletHandler
+  public void removeOnDemandAccessTime(KeyExtent extent) {
+    onDemandTabletAccessTimes.remove(extent);
+  }
+
+  private boolean isTabletInUse(KeyExtent extent) {
+    // Don't call getOnlineTablet as that will update the last access time
+    final Tablet t = onlineTablets.snapshot().get(extent);
+    if (t == null) {
+      return false;
+    }
+    t.updateRates(System.currentTimeMillis());
+    if (t.ingestRate() != 0.0 && t.queryRate() != 0.0 && t.scanRate() != 0.0) {
+      // tablet is ingesting or scanning
+      return true;
+    }
+    return false;
+  }
+
+  public void evaluateOnDemandTabletsForUnload() {
+
+    final SortedMap<KeyExtent,Tablet> online = getOnlineTablets();
+
+    // Find and remove access time entries for KeyExtents
+    // that are no longer in the onlineTablets collection
+    Set<KeyExtent> missing = onDemandTabletAccessTimes.keySet().stream()
+        .filter(k -> !online.containsKey(k)).collect(Collectors.toSet());
+    if (!missing.isEmpty()) {
+      log.debug("Removing onDemandAccessTimes for tablets as tablets no longer online: {}",
+          missing);
+      missing.forEach(onDemandTabletAccessTimes::remove);
+      if (onDemandTabletAccessTimes.isEmpty()) {
+        return;
+      }
+    }
+
+    // It's possible, from a tablet split or merge for example,
+    // that there is an on-demand tablet that is hosted for which
+    // we have no access time. Add any missing online on-demand
+    // tablets
+    online.forEach((k, v) -> {
+      if (v.isOnDemand() && !onDemandTabletAccessTimes.containsKey(k)) {
+        insertOnDemandAccessTime(k);
+      }
+    });
+
+    log.debug("Evaluating online on-demand tablets: {}", onDemandTabletAccessTimes);
+
+    if (onDemandTabletAccessTimes.isEmpty()) {
+      return;
+    }
+
+    // If the TabletServer is running low on memory, don't call the SPI
+    // plugin to evaluate which on-demand tablets to unload, just get the
+    // on-demand tablet with the oldest access time and unload it.
+    if (getContext().getLowMemoryDetector().isRunningLowOnMemory()) {
+      final SortedMap<Long,KeyExtent> timeSortedOnDemandExtents = new TreeMap<>();
+      onDemandTabletAccessTimes.forEach((k, v) -> timeSortedOnDemandExtents.put(v.get(), k));
+      Long oldestAccessTime = timeSortedOnDemandExtents.firstKey();
+      KeyExtent oldestKeyExtent = timeSortedOnDemandExtents.get(oldestAccessTime);
+      log.warn("Unloading on-demand tablet: {} for table: {} due to low memory", oldestKeyExtent,
+          oldestKeyExtent.tableId());
+      getContext().getAmple().mutateTablet(oldestKeyExtent).deleteHostingRequested().mutate();
+      onDemandUnloadedLowMemory.addAndGet(1);
+      return;
+    }
+
+    // onDemandTabletAccessTimes is a HashMap. Sort the extents
+    // so that we can process them by table.
+    final SortedMap<KeyExtent,AtomicLong> sortedOnDemandExtents =
+        new TreeMap<KeyExtent,AtomicLong>();
+    sortedOnDemandExtents.putAll(onDemandTabletAccessTimes);
+
+    // The access times are updated when getOnlineTablet is called by other methods,
+    // but may not necessarily capture whether or not the Tablet is currently being used.
+    // For example, getOnlineTablet is called from startScan but not from continueScan.
+    // Instead of instrumenting all of the locations where the tablet is touched we
+    // can use the Tablet metrics.
+    final Set<KeyExtent> onDemandTabletsInUse = new HashSet<>();
+    for (KeyExtent extent : sortedOnDemandExtents.keySet()) {
+      if (isTabletInUse(extent)) {
+        onDemandTabletsInUse.add(extent);
+      }
+    }
+    if (!onDemandTabletsInUse.isEmpty()) {
+      log.debug("Removing onDemandAccessTimes for tablets as tablets are in use: {}",
+          onDemandTabletsInUse);
+      onDemandTabletsInUse.forEach(sortedOnDemandExtents::remove);
+      if (sortedOnDemandExtents.isEmpty()) {
+        return;
+      }
+    }
+
+    Set<TableId> tableIds = sortedOnDemandExtents.keySet().stream().map((k) -> {
+      return k.tableId();
+    }).distinct().collect(Collectors.toSet());
+    log.debug("Tables that have online on-demand tablets: {}", tableIds);
+    final Map<TableId,OnDemandTabletUnloader> unloaders = new HashMap<>();
+    tableIds.forEach(tid -> {
+      TableConfiguration tconf = getContext().getTableConfiguration(tid);
+      String tableContext = ClassLoaderUtil.tableContext(tconf);
+      String unloaderClassName = tconf.get(Property.TABLE_ONDEMAND_UNLOADER);
+      try {
+        Class<? extends OnDemandTabletUnloader> clazz = ClassLoaderUtil.loadClass(tableContext,
+            unloaderClassName, OnDemandTabletUnloader.class);
+        unloaders.put(tid, clazz.getConstructor().newInstance());
+      } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+          | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+          | SecurityException e) {
+        log.error(
+            "Error constructing OnDemandTabletUnloader implementation, not unloading on-demand tablets",
+            e);
+        return;
+      }
+    });
+    tableIds.forEach(tid -> {
+      Map<KeyExtent,
+          AtomicLong> subset = sortedOnDemandExtents.entrySet().stream()
+              .filter((e) -> e.getKey().tableId().equals(tid))
+              .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+      Set<KeyExtent> onDemandTabletsToUnload = new HashSet<>();
+      log.debug("Evaluating on-demand tablets for unload for table {}, extents {}", tid,
+          subset.keySet());
+      UnloaderParams params = new UnloaderParamsImpl(tid, new ServiceEnvironmentImpl(context),
+          subset, onDemandTabletsToUnload);
+      unloaders.get(tid).evaluate(params);
+      try (TabletsMutator tm = getContext().getAmple().mutateTablets()) {
+        onDemandTabletsToUnload.forEach(ke -> {
+          log.debug("Unloading on-demand tablet: {} for table: {}", ke, tid);
+          tm.mutateTablet(ke).deleteHostingRequested().mutate();
+        });
+      }
+    });
+  }
 }

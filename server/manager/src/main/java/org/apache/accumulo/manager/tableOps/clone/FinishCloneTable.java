@@ -50,7 +50,9 @@ class FinishCloneTable extends ManagerRepo {
     if (cloneInfo.keepOffline) {
       environment.getTableManager().transitionTableState(cloneInfo.tableId, TableState.OFFLINE);
     } else {
-      environment.getTableManager().transitionTableState(cloneInfo.tableId, TableState.ONLINE);
+      // transition clone table state to state of original table
+      TableState ts = environment.getTableManager().getTableState(cloneInfo.srcTableId);
+      environment.getTableManager().transitionTableState(cloneInfo.tableId, ts);
     }
 
     Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false);

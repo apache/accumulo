@@ -24,7 +24,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
@@ -53,19 +56,21 @@ public class TabletLocationState {
     }
   }
 
-  public TabletLocationState(KeyExtent extent, TServerInstance future, TServerInstance current,
-      TServerInstance last, SuspendingTServer suspend, Collection<Collection<String>> walogs,
-      boolean chopped) throws BadLocationStateException {
+  public TabletLocationState(KeyExtent extent, Location future, Location current, Location last,
+      SuspendingTServer suspend, Collection<Collection<String>> walogs, boolean chopped,
+      TabletHostingGoal goal, boolean onDemandHostingRequested) throws BadLocationStateException {
     this.extent = extent;
-    this.future = future;
-    this.current = current;
-    this.last = last;
+    this.future = validateLocation(future, TabletMetadata.LocationType.FUTURE);
+    this.current = validateLocation(current, TabletMetadata.LocationType.CURRENT);
+    this.last = validateLocation(last, TabletMetadata.LocationType.LAST);
     this.suspend = suspend;
     if (walogs == null) {
       walogs = Collections.emptyList();
     }
     this.walogs = walogs;
     this.chopped = chopped;
+    this.goal = goal;
+    this.onDemandHostingRequested = onDemandHostingRequested;
     if (hasCurrent() && hasFuture()) {
       throw new BadLocationStateException(
           extent + " is both assigned and hosted, which should never happen: " + this,
@@ -74,27 +79,44 @@ public class TabletLocationState {
   }
 
   public final KeyExtent extent;
-  public final TServerInstance future;
-  public final TServerInstance current;
-  public final TServerInstance last;
+  public final Location future;
+  public final Location current;
+  public final Location last;
   public final SuspendingTServer suspend;
   public final Collection<Collection<String>> walogs;
   public final boolean chopped;
+  public final TabletHostingGoal goal;
+  public final boolean onDemandHostingRequested;
 
-  public TServerInstance futureOrCurrent() {
+  public TServerInstance getCurrentServer() {
+    return serverInstance(current);
+  }
+
+  public TServerInstance getFutureServer() {
+    return serverInstance(future);
+  }
+
+  public TServerInstance getLastServer() {
+    return serverInstance(last);
+  }
+
+  public TServerInstance futureOrCurrentServer() {
+    return serverInstance(futureOrCurrent());
+  }
+
+  public Location futureOrCurrent() {
     if (hasCurrent()) {
       return current;
     }
     return future;
   }
 
-  @Override
-  public String toString() {
-    return extent + "@(" + future + "," + current + "," + last + ")" + (chopped ? " chopped" : "");
+  public TServerInstance getServer() {
+    return serverInstance(getLocation());
   }
 
-  public TServerInstance getLocation() {
-    TServerInstance result = null;
+  public Location getLocation() {
+    Location result = null;
     if (hasCurrent()) {
       result = current;
     } else if (hasFuture()) {
@@ -119,15 +141,33 @@ public class TabletLocationState {
 
   public TabletState getState(Set<TServerInstance> liveServers) {
     if (hasFuture()) {
-      return liveServers.contains(future) ? TabletState.ASSIGNED
+      return liveServers.contains(future.getServerInstance()) ? TabletState.ASSIGNED
           : TabletState.ASSIGNED_TO_DEAD_SERVER;
     } else if (hasCurrent()) {
-      return liveServers.contains(current) ? TabletState.HOSTED
+      return liveServers.contains(current.getServerInstance()) ? TabletState.HOSTED
           : TabletState.ASSIGNED_TO_DEAD_SERVER;
     } else if (hasSuspend()) {
       return TabletState.SUSPENDED;
     } else {
       return TabletState.UNASSIGNED;
     }
+  }
+
+  @Override
+  public String toString() {
+    return extent + "@(" + future + "," + current + "," + last + ")" + (chopped ? " chopped" : "")
+        + "," + goal + "," + onDemandHostingRequested;
+  }
+
+  private static Location validateLocation(final Location location,
+      final TabletMetadata.LocationType type) {
+    if (location != null && !location.getType().equals(type)) {
+      throw new IllegalArgumentException("Location type is required to be of type " + type);
+    }
+    return location;
+  }
+
+  protected static TServerInstance serverInstance(final Location location) {
+    return location != null ? location.getServerInstance() : null;
   }
 }

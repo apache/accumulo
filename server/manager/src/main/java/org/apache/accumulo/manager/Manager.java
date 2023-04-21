@@ -177,9 +177,6 @@ public class Manager extends AbstractServer
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
   static final int ONE_SECOND = 1000;
-  static final long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
-  // made this less than TIME_TO_WAIT_BETWEEN_SCANS, so that the cache is cleared between cycles
-  static final long TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE = TIME_TO_WAIT_BETWEEN_SCANS / 4;
   private static final long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
   static final long WAIT_BETWEEN_ERRORS = ONE_SECOND;
   private static final long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
@@ -228,6 +225,8 @@ public class Manager extends AbstractServer
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
   private final AtomicBoolean managerUpgrading = new AtomicBoolean(false);
 
+  private final long waitTimeBetweenScans;
+  private final long timeToCacheRecoveryWalExistence;
   private ExecutorService tableInformationStatusPool = null;
 
   @Override
@@ -455,6 +454,13 @@ public class Manager extends AbstractServer
       log.info("SASL is not enabled, delegation tokens will not be available");
       delegationTokensAvailable = false;
     }
+    this.waitTimeBetweenScans =
+        aconf.getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
+    this.timeToCacheRecoveryWalExistence = this.waitTimeBetweenScans / 4;
+  }
+
+  public long getWaitTimeBetweenScans() {
+    return this.waitTimeBetweenScans;
   }
 
   public InstanceId getInstanceID() {
@@ -609,8 +615,8 @@ public class Manager extends AbstractServer
     }
   }
 
-  TabletGoalState getTableGoalState(KeyExtent extent) {
-    TableState tableState = getContext().getTableManager().getTableState(extent.tableId());
+  TabletGoalState getTableGoalState(TabletLocationState tls) {
+    TableState tableState = getContext().getTableManager().getTableState(tls.extent.tableId());
     if (tableState == null) {
       return TabletGoalState.DELETED;
     }
@@ -621,7 +627,20 @@ public class Manager extends AbstractServer
       case NEW:
         return TabletGoalState.UNASSIGNED;
       default:
-        return TabletGoalState.HOSTED;
+        switch (tls.goal) {
+          case ALWAYS:
+            return TabletGoalState.HOSTED;
+          case NEVER:
+            return TabletGoalState.UNASSIGNED;
+          case ONDEMAND:
+            if (tls.onDemandHostingRequested) {
+              return TabletGoalState.HOSTED;
+            } else {
+              return TabletGoalState.UNASSIGNED;
+            }
+          default:
+            throw new IllegalStateException("Tablet Hosting Goal is unhandled: " + tls.goal);
+        }
     }
   }
 
@@ -636,7 +655,7 @@ public class Manager extends AbstractServer
         return TabletGoalState.UNASSIGNED;
       }
 
-      if (tls.current != null && serversToShutdown.contains(tls.current)) {
+      if (tls.current != null && serversToShutdown.contains(tls.current.getServerInstance())) {
         return TabletGoalState.SUSPENDED;
       }
       // Handle merge transitions
@@ -673,11 +692,11 @@ public class Manager extends AbstractServer
       }
 
       // taking table offline?
-      state = getTableGoalState(extent);
+      state = getTableGoalState(tls);
       if (state == TabletGoalState.HOSTED) {
         // Maybe this tablet needs to be migrated
         TServerInstance dest = migrations.get(extent);
-        if (dest != null && tls.current != null && !dest.equals(tls.current)) {
+        if (dest != null && tls.current != null && !dest.equals(tls.current.getServerInstance())) {
           return TabletGoalState.UNASSIGNED;
         }
       }
@@ -1119,7 +1138,7 @@ public class Manager extends AbstractServer
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
-    recoveryManager = new RecoveryManager(this, TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE);
+    recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
     context.getTableManager().addObserver(this);
 
@@ -1792,4 +1811,5 @@ public class Manager extends AbstractServer
         AssignmentParamsImpl.fromThrift(currentStatus, unassigned, assignedOut);
     tabletBalancer.getAssignments(params);
   }
+
 }

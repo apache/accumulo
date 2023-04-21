@@ -35,7 +35,9 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -48,10 +50,12 @@ import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateExc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.hadoop.io.Text;
@@ -88,6 +92,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     scanner.fetchColumnFamily(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily());
     scanner.fetchColumnFamily(LogColumnFamily.NAME);
     scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
+    scanner.fetchColumnFamily(HostingColumnFamily.NAME);
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
     IteratorSetting tabletChange =
         new IteratorSetting(1001, "tabletChange", TabletStateChangeIterator.class);
@@ -145,13 +150,15 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       throws IOException, BadLocationStateException {
     final SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(k, v);
     KeyExtent extent = null;
-    TServerInstance future = null;
-    TServerInstance current = null;
-    TServerInstance last = null;
+    Location future = null;
+    Location current = null;
+    Location last = null;
     SuspendingTServer suspend = null;
     long lastTimestamp = 0;
     List<Collection<String>> walogs = new ArrayList<>();
     boolean chopped = false;
+    TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
+    boolean onDemandHostingRequested = false;
 
     for (Entry<Key,Value> entry : decodedRow.entrySet()) {
 
@@ -161,14 +168,14 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       Text cq = key.getColumnQualifier();
 
       if (cf.compareTo(FutureLocationColumnFamily.NAME) == 0) {
-        TServerInstance location = new TServerInstance(entry.getValue(), cq);
+        Location location = Location.future(new TServerInstance(entry.getValue(), cq));
         if (future != null) {
           throw new BadLocationStateException("found two assignments for the same extent " + row
               + ": " + future + " and " + location, row);
         }
         future = location;
       } else if (cf.compareTo(CurrentLocationColumnFamily.NAME) == 0) {
-        TServerInstance location = new TServerInstance(entry.getValue(), cq);
+        Location location = Location.current(new TServerInstance(entry.getValue(), cq));
         if (current != null) {
           throw new BadLocationStateException("found two locations for the same extent " + row
               + ": " + current + " and " + location, row);
@@ -179,7 +186,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
         walogs.add(Arrays.asList(split));
       } else if (cf.compareTo(LastLocationColumnFamily.NAME) == 0) {
         if (lastTimestamp < entry.getKey().getTimestamp()) {
-          last = new TServerInstance(entry.getValue(), cq);
+          last = Location.last(new TServerInstance(entry.getValue(), cq));
         }
       } else if (cf.compareTo(ChoppedColumnFamily.NAME) == 0) {
         chopped = true;
@@ -187,6 +194,10 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
         extent = KeyExtent.fromMetaPrevRow(entry);
       } else if (SuspendLocationColumn.SUSPEND_COLUMN.equals(cf, cq)) {
         suspend = SuspendingTServer.fromValue(entry.getValue());
+      } else if (HostingColumnFamily.GOAL_COLUMN.equals(cf, cq)) {
+        goal = TabletHostingGoalUtil.fromValue(entry.getValue());
+      } else if (HostingColumnFamily.REQUESTED_COLUMN.equals(cf, cq)) {
+        onDemandHostingRequested = true;
       }
     }
     if (extent == null) {
@@ -194,7 +205,12 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       log.error(msg);
       throw new BadLocationStateException(msg, k.getRow());
     }
-    return new TabletLocationState(extent, future, current, last, suspend, walogs, chopped);
+    // Override the goal for root and metadata table, should be always
+    if (extent.isMeta()) {
+      goal = TabletHostingGoal.ALWAYS;
+    }
+    return new TabletLocationState(extent, future, current, last, suspend, walogs, chopped, goal,
+        onDemandHostingRequested);
   }
 
 }

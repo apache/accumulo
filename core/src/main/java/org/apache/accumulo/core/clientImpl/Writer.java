@@ -26,7 +26,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -89,8 +90,8 @@ public class Writer {
     }
 
     while (true) {
-      TabletLocation tabLoc = TabletLocator.getLocator(context, tableId).locateTablet(context,
-          new Text(m.getRow()), false, true);
+      CachedTablet tabLoc = ClientTabletCache.getInstance(context, tableId).findTablet(context,
+          new Text(m.getRow()), false, LocationNeed.REQUIRED);
 
       if (tabLoc == null) {
         log.trace("No tablet location found for row {}", new String(m.getRow(), UTF_8));
@@ -98,21 +99,21 @@ public class Writer {
         continue;
       }
 
-      final HostAndPort parsedLocation = HostAndPort.fromString(tabLoc.tablet_location);
+      final HostAndPort parsedLocation = HostAndPort.fromString(tabLoc.getTserverLocation().get());
       try {
-        updateServer(context, m, tabLoc.tablet_extent, parsedLocation);
+        updateServer(context, m, tabLoc.getExtent(), parsedLocation);
         return;
       } catch (NotServingTabletException e) {
         log.trace("Not serving tablet, server = {}", parsedLocation);
-        TabletLocator.getLocator(context, tableId).invalidateCache(tabLoc.tablet_extent);
+        ClientTabletCache.getInstance(context, tableId).invalidateCache(tabLoc.getExtent());
       } catch (ConstraintViolationException cve) {
         log.error("error sending update to {}", parsedLocation, cve);
         // probably do not need to invalidate cache, but it does not hurt
-        TabletLocator.getLocator(context, tableId).invalidateCache(tabLoc.tablet_extent);
+        ClientTabletCache.getInstance(context, tableId).invalidateCache(tabLoc.getExtent());
         throw cve;
       } catch (TException e) {
         log.error("error sending update to {}", parsedLocation, e);
-        TabletLocator.getLocator(context, tableId).invalidateCache(tabLoc.tablet_extent);
+        ClientTabletCache.getInstance(context, tableId).invalidateCache(tabLoc.getExtent());
       }
 
       sleepUninterruptibly(500, MILLISECONDS);

@@ -18,16 +18,49 @@
  */
 package org.apache.accumulo.core.rpc.clients;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService.Client;
+import org.apache.accumulo.core.util.Pair;
+import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Client side object that can be used to interact with services that support management operations
  * against tablets. See TabletManagementClientService$Iface for a list of supported operations.
  */
-public class TabletManagementClientServiceThriftClient extends ThriftClientTypes<Client> {
+public class TabletManagementClientServiceThriftClient extends ThriftClientTypes<Client>
+    implements TServerClient<Client> {
+
+  private static final Logger LOG =
+      LoggerFactory.getLogger(TabletManagementClientServiceThriftClient.class);
+  private final AtomicBoolean warnedAboutTServersBeingDown = new AtomicBoolean(false);
 
   public TabletManagementClientServiceThriftClient(String serviceName) {
     super(serviceName, new Client.Factory());
+  }
+
+  @Override
+  public Pair<String,Client> getTabletServerConnection(ClientContext context,
+      boolean preferCachedConnections) throws TTransportException {
+    return getTabletServerConnection(LOG, this, context, preferCachedConnections,
+        warnedAboutTServersBeingDown);
+  }
+
+  @Override
+  public <R> R execute(ClientContext context, Exec<R,Client> exec)
+      throws AccumuloException, AccumuloSecurityException {
+    return execute(LOG, context, exec);
+  }
+
+  @Override
+  public void executeVoid(ClientContext context, ExecVoid<Client> exec)
+      throws AccumuloException, AccumuloSecurityException {
+    executeVoid(LOG, context, exec);
   }
 
 }

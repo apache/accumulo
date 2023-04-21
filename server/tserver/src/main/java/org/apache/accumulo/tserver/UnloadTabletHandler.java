@@ -20,12 +20,14 @@ package org.apache.accumulo.tserver;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.server.manager.state.DistributedStoreException;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
@@ -105,13 +107,17 @@ class UnloadTabletHandler implements Runnable {
     // exceptions
     server.recentlyUnloadedCache.put(extent, System.currentTimeMillis());
     server.onlineTablets.remove(extent);
+    if (t.isOnDemand()) {
+      server.removeOnDemandAccessTime(extent);
+    }
 
     try {
       TServerInstance instance =
           new TServerInstance(server.clientAddress, server.getLock().getSessionId());
       TabletLocationState tls = null;
       try {
-        tls = new TabletLocationState(extent, null, instance, null, null, null, false);
+        tls = new TabletLocationState(extent, null, Location.current(instance), null, null, null,
+            false, TabletHostingGoal.ONDEMAND, false);
       } catch (BadLocationStateException e) {
         log.error("Unexpected error", e);
       }

@@ -203,7 +203,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
   @Test
   public void testTableOperationsAudits() throws AccumuloException, AccumuloSecurityException,
-      TableExistsException, TableNotFoundException, IOException {
+      TableExistsException, TableNotFoundException, InterruptedException, IOException {
 
     client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     client.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);

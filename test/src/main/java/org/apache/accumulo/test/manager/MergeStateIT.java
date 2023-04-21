@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -43,6 +44,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.manager.state.MergeStats;
@@ -99,6 +101,7 @@ public class MergeStateIT extends ConfigurableMacBase {
     public Set<TServerInstance> shutdownServers() {
       return Collections.emptySet();
     }
+
   }
 
   private static void update(AccumuloClient c, Mutation m)
@@ -204,9 +207,9 @@ public class MergeStateIT extends ConfigurableMacBase {
       // take it offline
       m = TabletColumnFamily.createPrevRowMutation(tablet);
       Collection<Collection<String>> walogs = Collections.emptyList();
-      metaDataStateStore.unassign(
-          Collections.singletonList(
-              new TabletLocationState(tablet, null, state.someTServer, null, null, walogs, false)),
+      metaDataStateStore.unassign(Collections
+          .singletonList(new TabletLocationState(tablet, null, Location.current(state.someTServer),
+              null, null, walogs, false, TabletHostingGoal.ALWAYS, false)),
           null);
 
       // now we can split

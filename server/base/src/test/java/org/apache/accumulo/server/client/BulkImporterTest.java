@@ -23,14 +23,16 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -65,13 +67,13 @@ public class BulkImporterTest {
     fakeMetaData.add(new KeyExtent(tableId, null, fakeMetaData.last().endRow()));
   }
 
-  class MockTabletLocator extends TabletLocator {
+  class MockClientTabletCache extends ClientTabletCache {
     int invalidated = 0;
 
     @Override
-    public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-        boolean retry) {
-      return new TabletLocation(fakeMetaData.tailSet(new KeyExtent(tableId, row, null)).first(),
+    public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
+        LocationNeed locationNeed) {
+      return new CachedTablet(fakeMetaData.tailSet(new KeyExtent(tableId, row, null)).first(),
           "localhost", "1");
     }
 
@@ -82,8 +84,8 @@ public class BulkImporterTest {
     }
 
     @Override
-    public List<Range> binRanges(ClientContext context, List<Range> ranges,
-        Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
+    public List<Range> findTablets(ClientContext context, List<Range> ranges,
+        BiConsumer<CachedTablet,Range> rangeConsumer, LocationNeed locationNeed) {
       throw new UnsupportedOperationException();
     }
 
@@ -110,7 +112,7 @@ public class BulkImporterTest {
 
   @Test
   public void testFindOverlappingTablets() throws Exception {
-    MockTabletLocator locator = new MockTabletLocator();
+    MockClientTabletCache locator = new MockClientTabletCache();
     FileSystem fs = FileSystem.getLocal(new Configuration());
     ServerContext context = MockServerContext.get();
     CryptoService cs = NoCryptoServiceFactory.NONE;
@@ -144,28 +146,28 @@ public class BulkImporterTest {
     writer.append(new Key("xyzzy", "cf", "cq"), empty);
     writer.close();
     try (var vm = VolumeManagerImpl.getLocalForTesting("file:///")) {
-      List<TabletLocation> overlaps =
+      List<CachedTablet> overlaps =
           BulkImporter.findOverlappingTablets(context, vm, locator, new Path(file), null, null, cs);
       assertEquals(5, overlaps.size());
-      Collections.sort(overlaps);
-      assertEquals(new KeyExtent(tableId, new Text("a"), null), overlaps.get(0).tablet_extent);
+      Collections.sort(overlaps, Comparator.comparing(tl -> tl.getExtent()));
+      assertEquals(new KeyExtent(tableId, new Text("a"), null), overlaps.get(0).getExtent());
       assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
-          overlaps.get(1).tablet_extent);
+          overlaps.get(1).getExtent());
       assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")),
-          overlaps.get(2).tablet_extent);
+          overlaps.get(2).getExtent());
       assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")),
-          overlaps.get(3).tablet_extent);
-      assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).tablet_extent);
+          overlaps.get(3).getExtent());
+      assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).getExtent());
 
-      List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(context, vm, locator,
+      List<CachedTablet> overlaps2 = BulkImporter.findOverlappingTablets(context, vm, locator,
           new Path(file), new KeyExtent(tableId, new Text("h"), new Text("b")), cs);
       assertEquals(3, overlaps2.size());
       assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
-          overlaps2.get(0).tablet_extent);
+          overlaps2.get(0).getExtent());
       assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")),
-          overlaps2.get(1).tablet_extent);
+          overlaps2.get(1).getExtent());
       assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")),
-          overlaps2.get(2).tablet_extent);
+          overlaps2.get(2).getExtent());
       assertEquals(locator.invalidated, 1);
     }
   }
