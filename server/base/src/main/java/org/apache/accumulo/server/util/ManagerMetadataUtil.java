@@ -257,14 +257,23 @@ public class ManagerMetadataUtil {
    * @param tabletMutator The mutator being built
    * @param extent The tablet extent
    * @param location The new location
+   * @param prevLastLocation The previous last location, if known
    */
   public static void updateLastForAssignmentMode(ClientContext context, Ample ample,
-      Ample.TabletMutator tabletMutator, KeyExtent extent, TServerInstance location) {
+      Ample.TabletMutator tabletMutator, KeyExtent extent, TServerInstance location,
+      Location prevLastLocation) {
     // if the location mode is assignment, then preserve the current location in the last
     // location value
     if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-      TabletMetadata lastMetadata = ample.readTablet(extent, TabletMetadata.ColumnType.LAST);
-      Location lastLocation = (lastMetadata == null ? null : lastMetadata.getLast());
+      // If prevLastLocation is not provided then look it up from metadata
+      final Location lastLocation = Optional.ofNullable(prevLastLocation).orElseGet(() -> {
+        log.trace(
+            "Previous last location for {} not provided to updateLastForAssignmentMode, loading from metadata.",
+            extent);
+        final TabletMetadata lastMetadata =
+            ample.readTablet(extent, TabletMetadata.ColumnType.LAST);
+        return lastMetadata == null ? null : lastMetadata.getLast();
+      });
       ManagerMetadataUtil.updateLocation(tabletMutator, lastLocation, Location.last(location));
     }
   }
