@@ -39,6 +39,7 @@ enum TableOperation {
   IMPORT
   EXPORT
   COMPACT_CANCEL
+  SET_HOSTING_GOAL
 }
 
 enum TableOperationExceptionType {
@@ -118,6 +119,12 @@ struct TVersionedProperties {
 
 struct TInfo {
   1:map<string,string> headers
+}
+
+enum THostingGoal {
+  ALWAYS
+  NEVER
+  ONDEMAND
 }
 
 service ClientService {

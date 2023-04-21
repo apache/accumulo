@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.InitialTableState;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
@@ -62,6 +63,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
@@ -81,6 +83,7 @@ import org.apache.accumulo.manager.tableOps.compact.CompactRange;
 import org.apache.accumulo.manager.tableOps.compact.cancel.CancelCompactions;
 import org.apache.accumulo.manager.tableOps.create.CreateTable;
 import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
+import org.apache.accumulo.manager.tableOps.goal.SetHostingGoal;
 import org.apache.accumulo.manager.tableOps.merge.TableRangeOp;
 import org.apache.accumulo.manager.tableOps.namespace.create.CreateNamespace;
 import org.apache.accumulo.manager.tableOps.namespace.delete.DeleteNamespace;
@@ -95,6 +98,8 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 
 class FateServiceHandler implements FateService.Iface {
@@ -642,7 +647,7 @@ class FateServiceHandler implements FateService.Iface {
             autoCleanup, goalMessage);
         break;
       }
-      case TABLE_BULK_IMPORT2:
+      case TABLE_BULK_IMPORT2: {
         TableOperation tableOp = TableOperation.BULK_IMPORT;
         validateArgumentCount(arguments, tableOp, 3);
         final var tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_TABLE_ID);
@@ -677,6 +682,50 @@ class FateServiceHandler implements FateService.Iface {
         manager.fate().seedTransaction(op.toString(), opid,
             new TraceRepo<>(new PrepBulkImport(tableId, dir, setTime)), autoCleanup, goalMessage);
         break;
+      }
+      case TABLE_HOSTING_GOAL: {
+        TableOperation tableOp = TableOperation.SET_HOSTING_GOAL;
+        validateArgumentCount(arguments, tableOp, 3);
+        String tableName = validateName(arguments.get(0), tableOp, NOT_METADATA_TABLE);
+        TableId tableId = null;
+        try {
+          tableId = manager.getContext().getTableId(tableName);
+        } catch (TableNotFoundException e) {
+          throw new ThriftTableOperationException(null, tableName, TableOperation.SET_HOSTING_GOAL,
+              TableOperationExceptionType.NOTFOUND, "Table no longer exists");
+        }
+        final NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+
+        final boolean canSetHostingGoal;
+        try {
+          canSetHostingGoal = manager.security.canAlterTable(c, tableId, namespaceId);
+        } catch (ThriftSecurityException e) {
+          throwIfTableMissingSecurityException(e, tableId, tableName,
+              TableOperation.SET_HOSTING_GOAL);
+          throw e;
+        }
+        if (!canSetHostingGoal) {
+          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
+
+        TRange tRange = new TRange();
+        try {
+          new TDeserializer().deserialize(tRange, ByteBufferUtil.toBytes(arguments.get(1)));
+        } catch (TException e) {
+          throw new ThriftTableOperationException(tableId.canonical(), tableName,
+              TableOperation.SET_HOSTING_GOAL, TableOperationExceptionType.BAD_RANGE,
+              e.getMessage());
+        }
+        TabletHostingGoal goal =
+            TabletHostingGoal.valueOf(ByteBufferUtil.toString(arguments.get(2)));
+
+        goalMessage += "Set Hosting Goal for table: " + tableName + "(" + tableId + ") range: "
+            + tRange + " to: " + goal.name();
+        manager.fate().seedTransaction(op.toString(), opid,
+            new TraceRepo<>(new SetHostingGoal(tableId, namespaceId, tRange, goal)), autoCleanup,
+            goalMessage);
+        break;
+      }
       default:
         throw new UnsupportedOperationException();
     }

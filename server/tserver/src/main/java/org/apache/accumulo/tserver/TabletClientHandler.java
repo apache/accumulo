@@ -49,7 +49,6 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.clientImpl.TabletType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -93,7 +92,6 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.Gatherer.FileSystemResolver;
 import org.apache.accumulo.core.summary.SummaryCollection;
-import org.apache.accumulo.core.tablet.thrift.THostingGoal;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
@@ -1562,23 +1560,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       return tsums;
     } catch (TimeoutException e) {
       return handleTimeout(sessionId);
-    }
-  }
-
-  @Override
-  public void setTabletHostingGoal(TInfo tinfo, TCredentials credentials, String tableId,
-      List<TKeyExtent> extents, THostingGoal goal) throws ThriftSecurityException, TException {
-    final TableId tid = TableId.of(tableId);
-    NamespaceId namespaceId = getNamespaceId(credentials, tid);
-    if (!security.canAlterTable(credentials, tid, namespaceId)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-    final TabletHostingGoal g = TabletHostingGoalUtil.fromThrift(goal);
-    log.info("Tablet hosting goal {} requested for: {} ", g, extents);
-    try (TabletsMutator mutator = this.context.getAmple().mutateTablets()) {
-      extents
-          .forEach(e -> mutator.mutateTablet(KeyExtent.fromThrift(e)).setHostingGoal(g).mutate());
     }
   }
 
