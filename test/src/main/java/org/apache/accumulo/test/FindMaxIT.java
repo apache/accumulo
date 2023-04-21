@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -50,6 +51,7 @@ public class FindMaxIT extends AccumuloClusterHarness {
     return m;
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void test1() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -121,5 +123,79 @@ public class FindMaxIT extends AccumuloClusterHarness {
         assertEquals(rows.get(0), max);
       }
     }
+  }
+
+  @Test
+  public void testRowRange() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+
+      client.tableOperations().create(tableName);
+
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        bw.addMutation(nm(new byte[] {0}));
+        bw.addMutation(nm(new byte[] {0, 0}));
+        bw.addMutation(nm(new byte[] {0, 1}));
+        bw.addMutation(nm(new byte[] {0, 1, 0}));
+        bw.addMutation(nm(new byte[] {1, 0}));
+        bw.addMutation(nm(new byte[] {'a', 'b', 'c'}));
+        bw.addMutation(nm(new byte[] {(byte) 0xff}));
+        bw.addMutation(nm(new byte[] {(byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff}));
+
+        for (int i = 0; i < 1000; i += 5) {
+          bw.addMutation(nm(String.format("r%05d", i)));
+        }
+      }
+
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+
+        ArrayList<Text> rows = new ArrayList<>();
+
+        for (Entry<Key,Value> entry : scanner) {
+          rows.add(entry.getKey().getRow());
+        }
+
+        for (int i = rows.size() - 1; i > 0; i--) {
+          RowRange range = new RowRange(rows.get(i - 1), true, rows.get(i), false);
+          Text max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
+          assertEquals(rows.get(i - 1), max);
+
+          range = new RowRange(rows.get(i - 1), true, rows.get(i), true);
+          max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
+          assertEquals(rows.get(i), max);
+
+          range = new RowRange(rows.get(i - 1), false, rows.get(i), false);
+          max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
+          assertNull(max);
+
+          range = new RowRange(null, true, rows.get(i), true);
+          max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
+          assertEquals(rows.get(i), max);
+
+          range = new RowRange(rows.get(i), true, rows.get(i), true);
+          max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
+          assertEquals(rows.get(i), max);
+
+          range = new RowRange(rows.get(i - 1), false, rows.get(i), true);
+          max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
+          assertEquals(rows.get(i), max);
+
+        }
+
+        RowRange range = new RowRange(null, true, null, true);
+        Text max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
+        assertEquals(rows.get(rows.size() - 1), max);
+
+        range = new RowRange(null, true, new Text(new byte[] {0}), false);
+        max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
+        assertNull(max);
+
+        range = new RowRange(null, true, new Text(new byte[] {0}), true);
+        max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
+        assertEquals(rows.get(0), max);
+      }
+    }
+
   }
 }

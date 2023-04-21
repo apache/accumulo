@@ -42,6 +42,7 @@ import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
@@ -222,6 +223,7 @@ public interface TableOperations {
    * Finds the max row within a given range. To find the max row in a table, pass null for start and
    * end row.
    *
+   * @param tableName the table to search
    * @param auths find the max row that can seen with these auths
    * @param startRow row to start looking at, null means -Infinity
    * @param startInclusive determines if the start row is included
@@ -229,9 +231,25 @@ public interface TableOperations {
    * @param endInclusive determines if the end row is included
    *
    * @return The max row in the range, or null if there is no visible data in the range.
+   *
+   * @deprecated since 4.0.0 use {@link #getMaxRow(String, Authorizations, RowRange)} instead.
    */
+  @Deprecated(since = "4.0.0")
   Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive,
       Text endRow, boolean endInclusive)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Finds the max row within a given range. To find the max row in a table, pass null for start and
+   * end row.
+   *
+   * @param tableName the table to search
+   * @param auths find the max row that can seen with these auths
+   * @param range the range of rows to search
+   *
+   * @return The max row in the range, or null if there is no visible data in the range.
+   */
+  Text getMaxRow(String tableName, Authorizations auths, RowRange range)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**

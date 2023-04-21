@@ -25,10 +25,10 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyIterator;
 import org.apache.hadoop.io.Text;
@@ -163,8 +163,7 @@ public class FindMax {
     return end;
   }
 
-  public static Text findMax(Scanner scanner, Text start, boolean is, Text end, boolean ie)
-      throws TableNotFoundException {
+  public static Text findMax(Scanner scanner, Text start, boolean is, Text end, boolean ie) {
 
     scanner.setBatchSize(12);
     IteratorSetting cfg = new IteratorSetting(Integer.MAX_VALUE, SortedKeyIterator.class);
@@ -180,5 +179,10 @@ public class FindMax {
     }
 
     return _findMax(scanner, start, is, end, ie);
+  }
+
+  public static Text findMax(Scanner scanner, RowRange rowRange) {
+    return findMax(scanner, rowRange.getStartRow(), rowRange.isStartKeyInclusive(),
+        rowRange.getEndRow(), rowRange.isEndKeyInclusive());
   }
 }
