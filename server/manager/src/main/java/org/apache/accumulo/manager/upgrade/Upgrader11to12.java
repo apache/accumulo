@@ -53,9 +53,10 @@ public class Upgrader11to12 implements Upgrader {
   }
 
   private void addHostingGoalToSystemTable(ServerContext context, TableId tableId) {
-    TabletsMetadata tm =
-        context.getAmple().readTablets().forTable(tableId).fetch(ColumnType.PREV_ROW).build();
-    try (TabletsMutator mut = context.getAmple().mutateTablets()) {
+    try (
+        TabletsMetadata tm =
+            context.getAmple().readTablets().forTable(tableId).fetch(ColumnType.PREV_ROW).build();
+        TabletsMutator mut = context.getAmple().mutateTablets()) {
       tm.forEach(t -> mut.mutateTablet(t.getExtent()).setHostingGoal(TabletHostingGoal.ALWAYS));
     }
   }
@@ -69,9 +70,10 @@ public class Upgrader11to12 implements Upgrader {
   }
 
   private void addHostingGoalToUserTables(ServerContext context) {
-    TabletsMetadata tm = context.getAmple().readTablets().forLevel(DataLevel.USER)
-        .fetch(ColumnType.PREV_ROW).build();
-    try (TabletsMutator mut = context.getAmple().mutateTablets()) {
+    try (
+        TabletsMetadata tm = context.getAmple().readTablets().forLevel(DataLevel.USER)
+            .fetch(ColumnType.PREV_ROW).build();
+        TabletsMutator mut = context.getAmple().mutateTablets()) {
       tm.forEach(t -> mut.mutateTablet(t.getExtent()).setHostingGoal(TabletHostingGoal.ONDEMAND));
     }
   }
