@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -301,7 +302,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
 
   protected static TabletIngestClientService.Iface getClient(ClientContext context,
       KeyExtent extent) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      TTransportException {
+      TTransportException, InvalidTabletHostingRequestException {
     ClientTabletCache locator = ClientTabletCache.getInstance(context, extent.tableId());
 
     locator.invalidateCache(extent);

@@ -25,6 +25,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
@@ -82,7 +83,7 @@ public class Writer {
   }
 
   public void update(Mutation m) throws AccumuloException, AccumuloSecurityException,
-      ConstraintViolationException, TableNotFoundException {
+      ConstraintViolationException, TableNotFoundException, InvalidTabletHostingRequestException {
     checkArgument(m != null, "m is null");
 
     if (m.size() == 0) {

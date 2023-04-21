@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -66,29 +67,31 @@ public class SyncingClientTabletCache extends ClientTabletCache {
 
   @Override
   public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
-      LocationNeed locationNeed)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      LocationNeed locationNeed) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, InvalidTabletHostingRequestException {
     return syncLocator().findTablet(context, row, skipRow, locationNeed);
   }
 
   @Override
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
     syncLocator().binMutations(context, mutations, binnedMutations, failures);
   }
 
   @Override
   public List<Range> findTablets(ClientContext context, List<Range> ranges,
       BiConsumer<CachedTablet,Range> rangeConsumer, LocationNeed locationNeed)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
     return syncLocator().findTablets(context, ranges, rangeConsumer, locationNeed);
   }
 
   @Override
   public List<Range> binRanges(ClientContext context, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
     return syncLocator().binRanges(context, ranges, binnedRanges);
   }
 

@@ -72,6 +72,7 @@ import java.util.zip.ZipInputStream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
@@ -544,8 +545,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private void addSplits(SplitEnv env, SortedSet<Text> partitionKeys) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, AccumuloServerException {
+  private void addSplits(SplitEnv env, SortedSet<Text> partitionKeys)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      AccumuloServerException, InvalidTabletHostingRequestException {
 
     ClientTabletCache tabLocator = ClientTabletCache.getInstance(context, env.tableId);
     for (Text split : partitionKeys) {
@@ -1230,7 +1232,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(range != null, "range is null");
 
@@ -1934,8 +1937,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public Locations locate(String tableName, Collection<Range> ranges)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public Locations locate(String tableName, Collection<Range> ranges) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
     EXISTING_TABLE_NAME.validate(tableName);
     requireNonNull(ranges, "ranges must be non null");
 

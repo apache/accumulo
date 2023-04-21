@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.data.Mutation;
@@ -61,8 +62,8 @@ public class TimeoutClientTabletCache extends SyncingClientTabletCache {
 
   @Override
   public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
-      LocationNeed locationNeed)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      LocationNeed locationNeed) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, InvalidTabletHostingRequestException {
     try {
       CachedTablet ret = super.findTablet(context, row, skipRow, locationNeed);
 
@@ -82,7 +83,8 @@ public class TimeoutClientTabletCache extends SyncingClientTabletCache {
   @Override
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
     try {
       super.binMutations(context, mutations, binnedMutations, failures);
 
@@ -100,8 +102,8 @@ public class TimeoutClientTabletCache extends SyncingClientTabletCache {
 
   @Override
   public List<Range> binRanges(ClientContext context, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
     try {
       List<Range> ret = super.binRanges(context, ranges, binnedRanges);
 

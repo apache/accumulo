@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
@@ -457,8 +458,9 @@ public class ThriftScanner {
   }
 
   static ScanAddress getNextScanAddress(ClientContext context, ScanState scanState, long timeOut,
-      long startTime, long maxSleepTime) throws TableNotFoundException, AccumuloSecurityException,
-      AccumuloServerException, InterruptedException, ScanTimedOutException {
+      long startTime, long maxSleepTime)
+      throws TableNotFoundException, AccumuloSecurityException, AccumuloServerException,
+      InterruptedException, ScanTimedOutException, InvalidTabletHostingRequestException {
 
     String lastError = null;
     String error = null;
@@ -719,6 +721,9 @@ public class ThriftScanner {
     } catch (InterruptedException ex) {
       TraceUtil.setException(parent, ex, true);
       throw new AccumuloException(ex);
+    } catch (InvalidTabletHostingRequestException e) {
+      TraceUtil.setException(parent, e, true);
+      throw new AccumuloException(e);
     } finally {
       parent.end();
     }

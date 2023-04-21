@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -357,8 +358,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
               tl.invalidateCache();
             }
           }
-        } catch (TableOfflineException | TableNotFoundException | AccumuloException
-            | AccumuloSecurityException e) {
+        } catch (InvalidTabletHostingRequestException | TableOfflineException
+            | TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
           throw new IOException(e);
         }
 

@@ -32,6 +32,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -213,10 +214,12 @@ public interface TableOperations {
    * @param ranges The input ranges that should be mapped to tablet servers and tablets.
    *
    * @throws TableOfflineException if the table is offline or goes offline during the operation
+   * @throws InvalidTabletHostingRequestException if tablet hosting is requested for table with
+   *         NEVER goal
    * @since 1.8.0
    */
-  Locations locate(String tableName, Collection<Range> ranges)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  Locations locate(String tableName, Collection<Range> ranges) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException;
 
   /**
    * Finds the max row within a given range. To find the max row in a table, pass null for start and
@@ -558,9 +561,12 @@ public interface TableOperations {
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
    * @throws TableNotFoundException if the table does not exist
+   * @throws InvalidTabletHostingRequestException if tablet hosting is requested for table with
+   *         NEVER goal
    */
   Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException;
 
   /**
    * Bulk import all the files in a directory into a table. Files can be created using

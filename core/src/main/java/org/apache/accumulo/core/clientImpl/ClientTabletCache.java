@@ -31,6 +31,7 @@ import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Mutation;
@@ -83,12 +84,12 @@ public abstract class ClientTabletCache {
    *         required and the tablet currently has no location ,returns null.
    */
   public abstract CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
-      LocationNeed locationNeed)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+      LocationNeed locationNeed) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, InvalidTabletHostingRequestException;
 
   public CachedTablet findTabletWithRetry(ClientContext context, Text row, boolean skipRow,
-      LocationNeed locationNeed)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      LocationNeed locationNeed) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, InvalidTabletHostingRequestException {
     var tl = findTablet(context, row, skipRow, locationNeed);
     while (tl == null && locationNeed == LocationNeed.REQUIRED) {
       UtilWaitThread.sleep(100);
@@ -99,7 +100,8 @@ public abstract class ClientTabletCache {
 
   public abstract <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException;
 
   // ELASTICITY_TODO rename to findTablets
   /**
@@ -125,7 +127,8 @@ public abstract class ClientTabletCache {
    */
   public abstract List<Range> findTablets(ClientContext context, List<Range> ranges,
       BiConsumer<CachedTablet,Range> rangeConsumer, LocationNeed locationNeed)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException;
 
   /**
    * The behavior of this method is similar to
@@ -134,8 +137,8 @@ public abstract class ClientTabletCache {
    * hosted tablets with a location.
    */
   public List<Range> binRanges(ClientContext context, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
     return findTablets(context, ranges, ((cachedTablet, range) -> ClientTabletCacheImpl
         .addRange(binnedRanges, cachedTablet, range)), LocationNeed.REQUIRED);
   }

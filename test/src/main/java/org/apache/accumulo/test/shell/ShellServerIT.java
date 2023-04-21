@@ -49,6 +49,7 @@ import java.util.regex.Pattern;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
@@ -1736,6 +1737,29 @@ public class ShellServerIT extends SharedMiniClusterBase {
     result = ts.exec("scan -np -e row:");
     assertEquals(11, result.split("\n").length);
     ts.exec("deletetable -f t");
+  }
+
+  @Test
+  public void scansWithNeverHostedTablets() throws Exception {
+    final String table = getUniqueNames(1)[0];
+    ts.exec("createtable " + table);
+    ts.exec("addsplits -t " + table + " a c e g m t");
+    ts.exec("goal -t " + table + " -b a -e a -g never");
+    ts.exec("goal -t " + table + " -b c -e e -ee -g always");
+
+    ts.exec("scan -t " + table + " -np -b a -e c", false);
+    ts.exec("scan -t " + table + " -np -b a -e e", false);
+    ts.exec("scan -t " + table + " -np -b d -e d", true);
+    ts.exec("scan -t " + table + " -np -b d -e z", true);
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
+        Scanner s = client.createScanner(table, Authorizations.EMPTY);
+        BatchScanner bs = client.createBatchScanner(table);) {
+      assertThrows(RuntimeException.class, () -> Iterables.size(s));
+      bs.setRanges(Collections.singleton(new Range()));
+      assertThrows(RuntimeException.class, () -> Iterables.size(bs));
+    }
+
   }
 
   @Test
