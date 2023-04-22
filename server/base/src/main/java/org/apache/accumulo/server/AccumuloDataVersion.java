@@ -37,20 +37,20 @@ import java.util.Set;
 public class AccumuloDataVersion {
 
   /**
+   * version (12) reflects On-Demand tablets starting with 4.0
+   */
+  public static final int ONDEMAND_TABLETS_FOR_VERSION_4 = 12;
+
+  /**
    * version (11) reflects removal of replication starting with 3.0
    */
   public static final int REMOVE_DEPRECATIONS_FOR_VERSION_3 = 11;
 
   /**
-   * version (10) reflects changes to how root tablet metadata is serialized in zookeeper starting
-   * with 2.1. See {@link org.apache.accumulo.core.metadata.schema.RootTabletMetadata}.
-   */
-  public static final int ROOT_TABLET_META_CHANGES = 10;
-
-  /**
    * Historic data versions
    *
    * <ul>
+   * <li>version (10) Changes to how root tablet metadata is serialized in zookeeper in 2.1.0</li>
    * <li>version (9) RFiles and wal crypto serialization changes. RFile summary data in 2.0.0</li>
    * <li>version (8) RFile index (ACCUMULO-1124) and wal tracking in ZK in 1.8.0</li>
    * <li>version (7) also reflects the addition of a replication table in 1.7.0
@@ -59,7 +59,7 @@ public class AccumuloDataVersion {
    * <li>version (4) moves logging to HDFS in 1.5.0
    * </ul>
    */
-  private static final int CURRENT_VERSION = REMOVE_DEPRECATIONS_FOR_VERSION_3;
+  private static final int CURRENT_VERSION = ONDEMAND_TABLETS_FOR_VERSION_4;
 
   /**
    * Get the current Accumulo Data Version. See Javadoc of static final integers for a detailed
@@ -71,7 +71,8 @@ public class AccumuloDataVersion {
     return CURRENT_VERSION;
   }
 
-  public static final Set<Integer> CAN_RUN = Set.of(ROOT_TABLET_META_CHANGES, CURRENT_VERSION);
+  public static final Set<Integer> CAN_RUN =
+      Set.of(REMOVE_DEPRECATIONS_FOR_VERSION_3, CURRENT_VERSION);
 
   /**
    * Get the stored, current working version.
@@ -92,10 +93,10 @@ public class AccumuloDataVersion {
 
   private static String dataVersionToReleaseName(final int version) {
     switch (version) {
-      case ROOT_TABLET_META_CHANGES:
-        return "2.1.0";
       case REMOVE_DEPRECATIONS_FOR_VERSION_3:
         return "3.0.0";
+      case ONDEMAND_TABLETS_FOR_VERSION_4:
+        return "4.0.0";
     }
     throw new IllegalArgumentException("Unsupported data version " + version);
   }

@@ -53,7 +53,7 @@ import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -705,19 +705,19 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Initializes an Accumulo {@link TabletLocator} based on the configuration.
+   * Initializes an Accumulo {@link ClientTabletCache} based on the configuration.
    *
    * @param implementingClass the class whose name will be used as a prefix for the property
    *        configuration key
    * @param conf the Hadoop configuration object to configure
-   * @param tableId The table id for which to initialize the {@link TabletLocator}
+   * @param tableId The table id for which to initialize the {@link ClientTabletCache}
    * @return an Accumulo tablet locator
    * @since 1.6.0
    */
-  public static TabletLocator getTabletLocator(Class<?> implementingClass, Configuration conf,
+  public static ClientTabletCache getTabletLocator(Class<?> implementingClass, Configuration conf,
       TableId tableId) {
     try (AccumuloClient client = createClient(implementingClass, conf)) {
-      return TabletLocator.getLocator((ClientContext) client, tableId);
+      return ClientTabletCache.getInstance((ClientContext) client, tableId);
     }
   }
 
