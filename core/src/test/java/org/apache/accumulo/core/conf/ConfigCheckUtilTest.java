@@ -39,7 +39,7 @@ public class ConfigCheckUtilTest {
     m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
     m.put(Property.MANAGER_TABLET_BALANCER.getKey(),
         "org.apache.accumulo.server.manager.balancer.TableLoadBalancer");
-    m.put(Property.MANAGER_BULK_RETRIES.getKey(), "3");
+    m.put(Property.MANAGER_BULK_TIMEOUT.getKey(), "5m");
     ConfigCheckUtil.validate(m.entrySet(), "test");
   }
 

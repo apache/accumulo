@@ -18,19 +18,25 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -46,13 +52,15 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
+import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -62,24 +70,29 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.manager.tableOps.bulkVer1.BulkImport;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.MapFile;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
 public class BulkFailureIT extends AccumuloClusterHarness {
+
+  private static final Logger LOG = LoggerFactory.getLogger(BulkFailureIT.class);
 
   interface Loader {
     void load(long txid, ClientContext context, KeyExtent extent, Path path, long size,
@@ -90,11 +103,126 @@ public class BulkFailureIT extends AccumuloClusterHarness {
   public void testImportCompactionImport() throws Exception {
     String[] tables = getUniqueNames(2);
 
-    // run test calling old bulk import RPCs
-    runTest(tables[0], 99999999L, BulkFailureIT::oldLoad);
-
     // run test calling new bulk import RPCs
     runTest(tables[1], 22222222L, BulkFailureIT::newLoad);
+  }
+
+  private static Path createNewBulkDir(ServerContext context, VolumeManager fs, String sourceDir,
+      TableId tableId) throws IOException {
+    Path tableDir = fs.matchingFileSystem(new Path(sourceDir), context.getTablesDirs());
+    if (tableDir == null) {
+      throw new IOException(
+          sourceDir + " is not in the same file system as any volume configured for Accumulo");
+    }
+
+    Path directory = new Path(tableDir, tableId.canonical());
+    fs.mkdirs(directory);
+
+    // only one should be able to create the lock file
+    // the purpose of the lock file is to avoid a race
+    // condition between the call to fs.exists() and
+    // fs.mkdirs()... if only hadoop had a mkdir() function
+    // that failed when the dir existed
+
+    UniqueNameAllocator namer = context.getUniqueNameAllocator();
+
+    while (true) {
+      Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
+      if (fs.exists(newBulkDir)) { // sanity check
+        throw new IOException("Dir exist when it should not " + newBulkDir);
+      }
+      if (fs.mkdirs(newBulkDir)) {
+        return newBulkDir;
+      }
+
+      sleepUninterruptibly(3, TimeUnit.SECONDS);
+    }
+  }
+
+  public static String prepareBulkImport(ServerContext manager, final VolumeManager fs, String dir,
+      TableId tableId, long tid) throws Exception {
+    final Path bulkDir = createNewBulkDir(manager, fs, dir, tableId);
+
+    manager.getAmple().addBulkLoadInProgressFlag(
+        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);
+
+    Path dirPath = new Path(dir);
+    FileStatus[] mapFiles = fs.listStatus(dirPath);
+
+    final UniqueNameAllocator namer = manager.getUniqueNameAllocator();
+
+    AccumuloConfiguration serverConfig = manager.getConfiguration();
+    int numThreads = serverConfig.getCount(Property.MANAGER_RENAME_THREADS);
+    ExecutorService workers =
+        ThreadPools.getServerThreadPools().createFixedThreadPool(numThreads, "bulk rename", false);
+    List<Future<Exception>> results = new ArrayList<>();
+
+    for (FileStatus file : mapFiles) {
+      final FileStatus fileStatus = file;
+      results.add(workers.submit(() -> {
+        try {
+          String[] sa = fileStatus.getPath().getName().split("\\.");
+          String extension = "";
+          if (sa.length > 1) {
+            extension = sa[sa.length - 1];
+
+            if (!FileOperations.getValidExtensions().contains(extension)) {
+              LOG.warn("{} does not have a valid extension, ignoring", fileStatus.getPath());
+              return null;
+            }
+          } else {
+            // assume it is a map file
+            extension = Constants.MAPFILE_EXTENSION;
+          }
+
+          if (extension.equals(Constants.MAPFILE_EXTENSION)) {
+            if (!fileStatus.isDirectory()) {
+              LOG.warn("{} is not a map file, ignoring", fileStatus.getPath());
+              return null;
+            }
+
+            if (fileStatus.getPath().getName().equals("_logs")) {
+              LOG.info("{} is probably a log directory from a map/reduce task, skipping",
+                  fileStatus.getPath());
+              return null;
+            }
+            try {
+              FileStatus dataStatus =
+                  fs.getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
+              if (dataStatus.isDirectory()) {
+                LOG.warn("{} is not a map file, ignoring", fileStatus.getPath());
+                return null;
+              }
+            } catch (FileNotFoundException fnfe) {
+              LOG.warn("{} is not a map file, ignoring", fileStatus.getPath());
+              return null;
+            }
+          }
+
+          String newName = "I" + namer.getNextName() + "." + extension;
+          Path newPath = new Path(bulkDir, newName);
+          try {
+            fs.rename(fileStatus.getPath(), newPath);
+            LOG.debug("Moved {} to {}", fileStatus.getPath(), newPath);
+          } catch (IOException E1) {
+            LOG.error("Could not move: {} {}", fileStatus.getPath(), E1.getMessage());
+          }
+
+        } catch (Exception ex) {
+          return ex;
+        }
+        return null;
+      }));
+    }
+    workers.shutdown();
+    while (!workers.awaitTermination(1000L, TimeUnit.MILLISECONDS)) {}
+
+    for (Future<Exception> ex : results) {
+      if (ex.get() != null) {
+        throw ex.get();
+      }
+    }
+    return bulkDir.toString();
   }
 
   /**
@@ -126,8 +254,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       VolumeManager vm = asCtx.getVolumeManager();
 
       // move the file into a directory for the table and rename the file to something unique
-      String bulkDir =
-          BulkImport.prepareBulkImport(asCtx, vm, testFile, TableId.of(tableId), fateTxid);
+      String bulkDir = prepareBulkImport(asCtx, vm, testFile, TableId.of(tableId), fateTxid);
+      assertNotNull(bulkDir);
 
       // determine the files new name and path
       FileStatus status = fs.listStatus(new Path(bulkDir))[0];
@@ -251,29 +379,6 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     return files;
   }
 
-  private static void oldLoad(long txid, ClientContext context, KeyExtent extent, Path path,
-      long size, boolean expectFailure) throws Exception {
-
-    TabletIngestClientService.Iface client = getClient(context, extent);
-    try {
-
-      Map<String,MapFileInfo> val = Map.of(path.toString(), new MapFileInfo(size));
-      Map<KeyExtent,Map<String,MapFileInfo>> files = Map.of(extent, val);
-
-      client.bulkImport(TraceUtil.traceInfo(), context.rpcCreds(), txid, files.entrySet().stream()
-          .collect(Collectors.toMap(entry -> entry.getKey().toThrift(), Entry::getValue)), false);
-      if (expectFailure) {
-        fail("Expected RPC to fail");
-      }
-    } catch (TApplicationException tae) {
-      if (!expectFailure) {
-        throw tae;
-      }
-    } finally {
-      ThriftUtil.returnClient((TServiceClient) client, context);
-    }
-  }
-
   private static void newLoad(long txid, ClientContext context, KeyExtent extent, Path path,
       long size, boolean expectFailure) throws Exception {
 
@@ -302,15 +407,15 @@ public class BulkFailureIT extends AccumuloClusterHarness {
   protected static TabletIngestClientService.Iface getClient(ClientContext context,
       KeyExtent extent) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TTransportException {
-    TabletLocator locator = TabletLocator.getLocator(context, extent.tableId());
+    ClientTabletCache locator = ClientTabletCache.getInstance(context, extent.tableId());
 
     locator.invalidateCache(extent);
 
     HostAndPort location = HostAndPort.fromString(locator
-        .locateTabletWithRetry(context, new Text(""), false, TabletLocator.LocationNeed.REQUIRED)
+        .findTabletWithRetry(context, new Text(""), false, ClientTabletCache.LocationNeed.REQUIRED)
         .getTserverLocation().get());
 
-    long timeInMillis = context.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
+    long timeInMillis = context.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
     TabletIngestClientService.Iface client =
         ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, location, context, timeInMillis);
     return client;

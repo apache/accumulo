@@ -117,12 +117,6 @@ public class NullTserver {
     }
 
     @Override
-    public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, long tid,
-        Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime) {
-      return null;
-    }
-
-    @Override
     public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
         Map<TKeyExtent,Map<String,MapFileInfo>> fileMap, boolean setTime) {}
 

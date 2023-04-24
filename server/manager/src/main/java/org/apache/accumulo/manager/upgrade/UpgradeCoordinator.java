@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
-import static org.apache.accumulo.server.AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
+import static org.apache.accumulo.server.AccumuloDataVersion.REMOVE_DEPRECATIONS_FOR_VERSION_3;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -112,8 +112,8 @@ public class UpgradeCoordinator {
   private int currentVersion;
   // map of "current version" -> upgrader to next version.
   // Sorted so upgrades execute in order from the oldest supported data version to current
-  private final Map<Integer,Upgrader> upgraders = Collections
-      .unmodifiableMap(new TreeMap<>(Map.of(ROOT_TABLET_META_CHANGES, new Upgrader10to11())));
+  private final Map<Integer,Upgrader> upgraders = Collections.unmodifiableMap(
+      new TreeMap<>(Map.of(REMOVE_DEPRECATIONS_FOR_VERSION_3, new Upgrader11to12())));
 
   private volatile UpgradeStatus status;
 
