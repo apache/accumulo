@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.bulkVer2;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Optional;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.FateTxId;
@@ -33,6 +34,7 @@ import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +62,9 @@ public class CleanUpBulkImport extends ManagerRepo {
         Collections.singleton(new ReferenceFile(info.tableId, bulkDir.toString())));
     if (info.tableState == TableState.ONLINE) {
       log.debug("removing the metadata table markers for loaded files");
-      ample.removeBulkLoadEntries(info.tableId, tid);
+      ample.removeBulkLoadEntries(info.tableId, tid,
+          Optional.ofNullable(info.firstSplit).map(Text::new).orElse(null),
+          Optional.ofNullable(info.lastSplit).map(Text::new).orElse(null));
     }
     Utils.unreserveHdfsDirectory(manager, info.sourceDir, tid);
     Utils.getReadLock(manager, info.tableId, tid).unlock();

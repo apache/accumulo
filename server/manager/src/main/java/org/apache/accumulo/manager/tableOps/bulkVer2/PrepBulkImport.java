@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -113,7 +115,7 @@ public class PrepBulkImport extends ManagerRepo {
    * file goes to too many tablets.
    */
   @VisibleForTesting
-  static void sanityCheckLoadMapping(String tableId, LoadMappingIterator lmi,
+  static KeyExtent validateLoadMapping(String tableId, LoadMappingIterator lmi,
       TabletIterFactory tabletIterFactory, int maxNumTablets, long tid) throws Exception {
     var currRange = lmi.next();
 
@@ -125,6 +127,9 @@ public class PrepBulkImport extends ManagerRepo {
 
     var fileCounts = new HashMap<String,Integer>();
     int count;
+
+    KeyExtent firstTablet = currRange.getKey();
+    KeyExtent lastTablet = currRange.getKey();
 
     if (!tabletIter.hasNext() && equals(KeyExtent::prevEndRow, currTablet, currRange.getKey())
         && equals(KeyExtent::endRow, currTablet, currRange.getKey())) {
@@ -138,6 +143,7 @@ public class PrepBulkImport extends ManagerRepo {
           break;
         }
         currRange = lmi.next();
+        lastTablet = currRange.getKey();
       }
 
       while (!equals(KeyExtent::prevEndRow, currTablet, currRange.getKey())
@@ -146,6 +152,11 @@ public class PrepBulkImport extends ManagerRepo {
       }
 
       boolean matchedPrevRow = equals(KeyExtent::prevEndRow, currTablet, currRange.getKey());
+
+      if (matchedPrevRow && firstTablet == null) {
+        firstTablet = currTablet;
+      }
+
       count = matchedPrevRow ? 1 : 0;
 
       while (!equals(KeyExtent::endRow, currTablet, currRange.getKey()) && tabletIter.hasNext()) {
@@ -179,9 +190,11 @@ public class PrepBulkImport extends ManagerRepo {
                 + ") number of tablets: " + new TreeMap<>(fileCounts));
       }
     }
+
+    return new KeyExtent(firstTablet.tableId(), lastTablet.endRow(), firstTablet.prevEndRow());
   }
 
-  private void checkForMerge(final long tid, final Manager manager) throws Exception {
+  private KeyExtent checkForMerge(final long tid, final Manager manager) throws Exception {
 
     VolumeManager fs = manager.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
@@ -197,14 +210,23 @@ public class PrepBulkImport extends ManagerRepo {
               .overlapping(startRow, null).checkConsistency().fetch(PREV_ROW).build().stream()
               .map(TabletMetadata::getExtent).iterator();
 
-      sanityCheckLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets, tid);
+      return validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets,
+          tid);
     }
   }
 
   @Override
   public Repo<Manager> call(final long tid, final Manager manager) throws Exception {
     // now that table lock is acquired check that all splits in load mapping exists in table
-    checkForMerge(tid, manager);
+    KeyExtent tabletsRange = checkForMerge(tid, manager);
+
+    bulkInfo.firstSplit =
+        Optional.ofNullable(tabletsRange.prevEndRow()).map(Text::getBytes).orElse(null);
+    bulkInfo.lastSplit =
+        Optional.ofNullable(tabletsRange.endRow()).map(Text::getBytes).orElse(null);
+
+    log.trace("{} first split:{} last split:{}", FateTxId.formatTid(tid), tabletsRange.prevEndRow(),
+        tabletsRange.endRow());
 
     bulkInfo.tableState = manager.getContext().getTableState(bulkInfo.tableId);
 
