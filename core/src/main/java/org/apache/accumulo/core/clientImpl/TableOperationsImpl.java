@@ -1241,34 +1241,32 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return Collections.singleton(range);
     }
 
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     TableId tableId = context.getTableId(tableName);
     ClientTabletCache tl = ClientTabletCache.getInstance(context, tableId);
     // its possible that the cache could contain complete, but old information about a tables
     // tablets... so clear it
     tl.invalidateCache();
-    // ELASTICITY_TODO this will cause tablets to be hosted, but that may not be desired
-    while (!tl.binRanges(context, Collections.singletonList(range), binnedRanges).isEmpty()) {
+
+    // group key extents to get <= maxSplits
+    LinkedList<KeyExtent> unmergedExtents = new LinkedList<>();
+
+    while (!tl.findTablets(context, Collections.singletonList(range),
+        (cachedTablet, range1) -> unmergedExtents.add(cachedTablet.getExtent()),
+        LocationNeed.NOT_REQUIRED).isEmpty()) {
       context.requireNotDeleted(tableId);
       context.requireNotOffline(tableId, tableName);
 
       log.warn("Unable to locate bins for specified range. Retrying.");
       // sleep randomly between 100 and 200ms
       sleepUninterruptibly(100 + random.nextInt(100), MILLISECONDS);
-      binnedRanges.clear();
+      unmergedExtents.clear();
       tl.invalidateCache();
-    }
-
-    // group key extents to get <= maxSplits
-    LinkedList<KeyExtent> unmergedExtents = new LinkedList<>();
-    List<KeyExtent> mergedExtents = new ArrayList<>();
-
-    for (Map<KeyExtent,List<Range>> map : binnedRanges.values()) {
-      unmergedExtents.addAll(map.keySet());
     }
 
     // the sort method is efficient for linked list
     Collections.sort(unmergedExtents);
+
+    List<KeyExtent> mergedExtents = new ArrayList<>();
 
     while (unmergedExtents.size() + mergedExtents.size() > maxSplits) {
       if (unmergedExtents.size() >= 2) {
