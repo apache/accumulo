@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -34,15 +35,23 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.Iterables;
 
 public class MergeIT extends AccumuloClusterHarness {
 
@@ -72,9 +81,30 @@ public class MergeIT extends AccumuloClusterHarness {
           bw.addMutation(m);
         }
       }
+      c.tableOperations().setTabletHostingGoal(tableName, new Range("d", "e"),
+          TabletHostingGoal.ALWAYS);
+      c.tableOperations().setTabletHostingGoal(tableName, new Range("e", "f"),
+          TabletHostingGoal.NEVER);
       c.tableOperations().flush(tableName, null, null, true);
       c.tableOperations().merge(tableName, new Text("c1"), new Text("f1"));
       assertEquals(8, c.tableOperations().listSplits(tableName).size());
+      try (Scanner s = c.createScanner(MetadataTable.NAME)) {
+        String tid = c.tableOperations().tableIdMap().get(tableName);
+        s.setRange(new Range(tid + ";g"));
+        TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
+        HostingColumnFamily.GOAL_COLUMN.fetch(s);
+        assertEquals(2, Iterables.size(s));
+        for (Entry<Key,Value> rows : s) {
+          if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(rows.getKey())) {
+            assertEquals("c", TabletColumnFamily.decodePrevEndRow(rows.getValue()).toString());
+          } else if (HostingColumnFamily.GOAL_COLUMN.hasColumns(rows.getKey())) {
+            assertEquals(TabletHostingGoal.ALWAYS,
+                TabletHostingGoalUtil.fromValue(rows.getValue()));
+          } else {
+            fail("Unknown column");
+          }
+        }
+      }
     }
   }
 
