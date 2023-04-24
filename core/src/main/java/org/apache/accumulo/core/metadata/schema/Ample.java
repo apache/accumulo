@@ -364,8 +364,8 @@ public interface Ample {
    *
    * @param tableId Table ID for transaction removals
    * @param tid Transaction ID to remove
-   * @param firstSplit
-   * @param lastSplit
+   * @param firstSplit non-inclusive table split point at which to start looking for load markers
+   * @param lastSplit inclusive tablet split point at which to stop looking for load markers
    */
   default void removeBulkLoadEntries(TableId tableId, long tid, Text firstSplit, Text lastSplit) {
     throw new UnsupportedOperationException();
