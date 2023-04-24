@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -48,7 +49,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.manager.tableOps.bulkVer2.PrepBulkImport.TabletIterFactory;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
@@ -122,7 +122,7 @@ public class PrepBulkImportTest {
     try (LoadMappingIterator lmi = createLoadMappingIter(loadRanges)) {
       var extent =
           PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets, 10001);
-      Assertions.assertEquals(nke(minPrevEndRow, maxPrevEndRow), extent,
+      assertEquals(nke(minPrevEndRow, maxPrevEndRow), extent,
           loadRanges + " " + tabletRanges);
     }
   }
