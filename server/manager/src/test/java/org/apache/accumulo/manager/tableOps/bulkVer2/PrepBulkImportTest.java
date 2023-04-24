@@ -122,8 +122,7 @@ public class PrepBulkImportTest {
     try (LoadMappingIterator lmi = createLoadMappingIter(loadRanges)) {
       var extent =
           PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets, 10001);
-      assertEquals(nke(minPrevEndRow, maxPrevEndRow), extent,
-          loadRanges + " " + tabletRanges);
+      assertEquals(nke(minPrevEndRow, maxPrevEndRow), extent, loadRanges + " " + tabletRanges);
     }
   }
 
