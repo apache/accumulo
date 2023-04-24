@@ -84,11 +84,6 @@ import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-/**
- * Tests new bulk import technique. For the old technique see {@link BulkOldIT}
- *
- * @since 2.0
- */
 public class BulkNewIT extends SharedMiniClusterBase {
 
   @Override

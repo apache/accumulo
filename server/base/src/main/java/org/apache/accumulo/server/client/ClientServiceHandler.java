@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.SortedSet;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -54,7 +53,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.BulkImportStatus;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -400,31 +398,6 @@ public class ClientServiceHandler implements ClientService.Iface {
     checkTablePermission(credentials, tableId, TablePermission.ALTER_TABLE);
     return Optional.of(context.getPropStore().get(TablePropKey.of(context, tableId)))
         .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
-  }
-
-  @Override
-  public List<String> bulkImportFiles(TInfo tinfo, final TCredentials credentials, final long tid,
-      final String tableId, final List<String> files, final String errorDir, final boolean setTime)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {
-    try {
-      if (!security.canPerformSystemActions(credentials)) {
-        throw new AccumuloSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED);
-      }
-      bulkImportStatus.updateBulkImportStatus(files, BulkImportState.INITIAL);
-      log.debug("Got request to bulk import files to table({}): {}", tableId, files);
-
-      bulkImportStatus.updateBulkImportStatus(files, BulkImportState.PROCESSING);
-      try {
-        return BulkImporter.bulkLoad(context, tid, tableId, files, setTime);
-      } finally {
-        bulkImportStatus.removeBulkImportStatus(files);
-      }
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    } catch (Exception ex) {
-      throw new TException(ex);
-    }
   }
 
   @Override

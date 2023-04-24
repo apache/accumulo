@@ -1244,34 +1244,32 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return Collections.singleton(range);
     }
 
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     TableId tableId = context.getTableId(tableName);
     ClientTabletCache tl = ClientTabletCache.getInstance(context, tableId);
     // its possible that the cache could contain complete, but old information about a tables
     // tablets... so clear it
     tl.invalidateCache();
-    // ELASTICITY_TODO this will cause tablets to be hosted, but that may not be desired
-    while (!tl.binRanges(context, Collections.singletonList(range), binnedRanges).isEmpty()) {
+
+    // group key extents to get <= maxSplits
+    LinkedList<KeyExtent> unmergedExtents = new LinkedList<>();
+
+    while (!tl.findTablets(context, Collections.singletonList(range),
+        (cachedTablet, range1) -> unmergedExtents.add(cachedTablet.getExtent()),
+        LocationNeed.NOT_REQUIRED).isEmpty()) {
       context.requireNotDeleted(tableId);
       context.requireNotOffline(tableId, tableName);
 
       log.warn("Unable to locate bins for specified range. Retrying.");
       // sleep randomly between 100 and 200ms
       sleepUninterruptibly(100 + random.nextInt(100), MILLISECONDS);
-      binnedRanges.clear();
+      unmergedExtents.clear();
       tl.invalidateCache();
-    }
-
-    // group key extents to get <= maxSplits
-    LinkedList<KeyExtent> unmergedExtents = new LinkedList<>();
-    List<KeyExtent> mergedExtents = new ArrayList<>();
-
-    for (Map<KeyExtent,List<Range>> map : binnedRanges.values()) {
-      unmergedExtents.addAll(map.keySet());
     }
 
     // the sort method is efficient for linked list
     Collections.sort(unmergedExtents);
+
+    List<KeyExtent> mergedExtents = new ArrayList<>();
 
     while (unmergedExtents.size() + mergedExtents.size() > maxSplits) {
       if (unmergedExtents.size() >= 2) {
@@ -1321,34 +1319,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     return ret;
-  }
-
-  @Override
-  @Deprecated(since = "2.0.0")
-  public void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
-      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    EXISTING_TABLE_NAME.validate(tableName);
-    checkArgument(dir != null, "dir is null");
-    checkArgument(failureDir != null, "failureDir is null");
-
-    // check for table existence
-    context.getTableId(tableName);
-    Path dirPath = checkPath(dir, "Bulk", "");
-    Path failPath = checkPath(failureDir, "Bulk", "failure");
-
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
-        ByteBuffer.wrap(dirPath.toString().getBytes(UTF_8)),
-        ByteBuffer.wrap(failPath.toString().getBytes(UTF_8)),
-        ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
-    Map<String,String> opts = new HashMap<>();
-
-    try {
-      doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_BULK_IMPORT,
-          args, opts);
-    } catch (TableExistsException e) {
-      // should not happen
-      throw new AssertionError(e);
-    }
   }
 
   private void waitForTableStateTransition(TableId tableId, TableState expectedState)

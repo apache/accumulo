@@ -1310,23 +1310,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("history", true, "deletetable -f " + table, true);
   }
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
-  @Test
-  public void importDirectoryOld() throws Exception {
-    final String table = getUniqueNames(1)[0];
-    Configuration conf = new Configuration();
-    FileSystem fs = FileSystem.get(conf);
-    File errorsDir = new File(rootPath, "errors_" + table);
-    assertTrue(errorsDir.mkdir());
-    fs.mkdirs(new Path(errorsDir.toString()));
-    File importDir = createRFiles(conf, fs, table);
-    ts.exec("createtable " + table, true);
-    ts.exec("importdirectory " + importDir + " " + errorsDir + " true", true);
-    ts.exec("scan -r 00000000", true, "00000000", true);
-    ts.exec("scan -r 00000099", true, "00000099", true);
-    ts.exec("deletetable -f " + table);
-  }
-
   @Test
   public void importDirectory() throws Exception {
     final String table = getUniqueNames(1)[0];
@@ -1914,12 +1897,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     ts.exec("createtable " + table, true);
 
-    // validate -t option is used.
-    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), true);
-
-    // validate -t option is used.
-    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), true);
-
     // validate -t and -i option is used with new bulk import.
     // This will fail as there are no files in the import directory
     ts.exec(String.format("importdirectory -t %s %s false", table, importDir), false);
@@ -1928,12 +1905,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // This should pass even if no files in import directory. Empty import dir is ignored.
     ts.exec(String.format("importdirectory -t %s %s false -i", table, importDir), true);
 
-    // validate original cmd format.
-    ts.exec(String.format("table %s", table), true);
-    ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), true);
-
     // expect fail - invalid command,
-    ts.exec("importdirectory false", false, "Expected 2 or 3 arguments. There was 1.");
+    ts.exec("importdirectory false", false, "Expected 2 arguments. There was 1.");
 
     // expect fail - original cmd without a table.
     ts.exec("notable", true);

@@ -485,41 +485,6 @@ class FateServiceHandler implements FateService.Iface {
             autoCleanup, goalMessage);
         break;
       }
-      case TABLE_BULK_IMPORT: {
-        TableOperation tableOp = TableOperation.BULK_IMPORT;
-        validateArgumentCount(arguments, tableOp, 4);
-        String tableName =
-            validateName(arguments.get(0), tableOp, EXISTING_TABLE_NAME.and(NOT_BUILTIN_TABLE));
-        String dir = ByteBufferUtil.toString(arguments.get(1));
-        String failDir = ByteBufferUtil.toString(arguments.get(2));
-        boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(3)));
-
-        final TableId tableId =
-            ClientServiceHandler.checkTableId(manager.getContext(), tableName, tableOp);
-        NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
-
-        final boolean canBulkImport;
-        try {
-          canBulkImport =
-              manager.security.canBulkImport(c, tableId, tableName, dir, failDir, namespaceId);
-        } catch (ThriftSecurityException e) {
-          throwIfTableMissingSecurityException(e, tableId, tableName, TableOperation.BULK_IMPORT);
-          throw e;
-        }
-
-        if (!canBulkImport) {
-          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-        }
-
-        manager.updateBulkImportStatus(dir, BulkImportState.INITIAL);
-        goalMessage +=
-            "Bulk import " + dir + " to " + tableName + "(" + tableId + ") failing to " + failDir;
-        manager.fate().seedTransaction(op.toString(), opid,
-            new TraceRepo<>(new org.apache.accumulo.manager.tableOps.bulkVer1.BulkImport(tableId,
-                dir, failDir, setTime)),
-            autoCleanup, goalMessage);
-        break;
-      }
       case TABLE_COMPACT: {
         TableOperation tableOp = TableOperation.COMPACT;
         validateArgumentCount(arguments, tableOp, 2);
