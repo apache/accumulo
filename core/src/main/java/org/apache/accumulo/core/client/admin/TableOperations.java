@@ -561,12 +561,9 @@ public interface TableOperations {
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
    * @throws TableNotFoundException if the table does not exist
-   * @throws InvalidTabletHostingRequestException if tablet hosting is requested for table with
-   *         NEVER goal
    */
   Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      InvalidTabletHostingRequestException;
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * @since 2.0.0

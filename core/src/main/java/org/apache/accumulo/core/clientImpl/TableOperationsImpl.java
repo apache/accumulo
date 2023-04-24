@@ -1232,8 +1232,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      InvalidTabletHostingRequestException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(range != null, "range is null");
 
@@ -1253,17 +1252,21 @@ public class TableOperationsImpl extends TableOperationsHelper {
     // group key extents to get <= maxSplits
     LinkedList<KeyExtent> unmergedExtents = new LinkedList<>();
 
-    while (!tl.findTablets(context, Collections.singletonList(range),
-        (cachedTablet, range1) -> unmergedExtents.add(cachedTablet.getExtent()),
-        LocationNeed.NOT_REQUIRED).isEmpty()) {
-      context.requireNotDeleted(tableId);
-      context.requireNotOffline(tableId, tableName);
+    try {
+      while (!tl.findTablets(context, Collections.singletonList(range),
+          (cachedTablet, range1) -> unmergedExtents.add(cachedTablet.getExtent()),
+          LocationNeed.NOT_REQUIRED).isEmpty()) {
+        context.requireNotDeleted(tableId);
+        context.requireNotOffline(tableId, tableName);
 
-      log.warn("Unable to locate bins for specified range. Retrying.");
-      // sleep randomly between 100 and 200ms
-      sleepUninterruptibly(100 + random.nextInt(100), MILLISECONDS);
-      unmergedExtents.clear();
-      tl.invalidateCache();
+        log.warn("Unable to locate bins for specified range. Retrying.");
+        // sleep randomly between 100 and 200ms
+        sleepUninterruptibly(100 + random.nextInt(100), MILLISECONDS);
+        unmergedExtents.clear();
+        tl.invalidateCache();
+      }
+    } catch (InvalidTabletHostingRequestException e) {
+      throw new RuntimeException("findTablets requested tablet hosting when it should not have", e);
     }
 
     // the sort method is efficient for linked list
