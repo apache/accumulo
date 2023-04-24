@@ -106,17 +106,6 @@ service TabletIngestClientService {
     2:data.UpdateID sessID
   )
 
-  // on success, returns an empty list
-  list<data.TKeyExtent> bulkImport(
-    3:client.TInfo tinfo
-    1:security.TCredentials credentials
-    4:i64 tid
-    2:data.TabletFiles files
-    5:bool setTime
-  ) throws (
-    1:client.ThriftSecurityException sec
-  )
-
   oneway void loadFiles(
     1:client.TInfo tinfo
     2:security.TCredentials credentials

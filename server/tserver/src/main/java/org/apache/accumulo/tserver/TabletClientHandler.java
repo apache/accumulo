@@ -164,54 +164,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, final long tid,
-      final Map<TKeyExtent,Map<String,MapFileInfo>> files, final boolean setTime)
-      throws ThriftSecurityException {
-
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    try {
-      return watcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
-        List<TKeyExtent> failures = new ArrayList<>();
-
-        for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
-          TKeyExtent tke = entry.getKey();
-          Map<String,MapFileInfo> fileMap = entry.getValue();
-          Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
-          for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
-            Path path = new Path(mapping.getKey());
-            FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
-            path = ns.makeQualified(path);
-            fileRefMap.put(new TabletFile(path), mapping.getValue());
-          }
-
-          Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));
-
-          if (importTablet == null) {
-            failures.add(tke);
-          } else {
-            try {
-              importTablet.importMapFiles(tid, fileRefMap, setTime);
-            } catch (IOException ioe) {
-              log.info("files {} not imported to {}: {}", fileMap.keySet(),
-                  KeyExtent.fromThrift(tke), ioe.getMessage());
-              failures.add(tke);
-            }
-          }
-        }
-        return failures;
-      });
-    } catch (RuntimeException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  @Override
   public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
       Map<TKeyExtent,Map<String,MapFileInfo>> tabletImports, boolean setTime)
       throws ThriftSecurityException {
