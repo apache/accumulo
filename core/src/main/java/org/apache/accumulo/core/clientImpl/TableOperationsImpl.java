@@ -670,7 +670,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (true) {
       try {
         return context.getAmple().readTablets().forTable(tableId).fetch(PREV_ROW).checkConsistency()
-            .build().stream().map(tm -> tm.getExtent().endRow()).filter(Objects::nonNull).collect(Collectors.toList());
+            .build().stream().map(tm -> tm.getExtent().endRow()).filter(Objects::nonNull)
+            .collect(Collectors.toList());
       } catch (TabletDeletedException tde) {
         // see if the table was deleted
         context.requireTableExists(tableId, tableName);
