@@ -50,7 +50,6 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.commons.collections4.map.LRUMap;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -162,9 +161,9 @@ public class ProblemReports implements Iterable<ProblemReport> {
     Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.addScanIterator(new IteratorSetting(1, "keys-only", SortedKeyIterator.class));
 
-    scanner.setRange(new Range(new Text(ProblemSection.getRowPrefix() + table)));
+    scanner.setRange(new Range(ProblemSection.getRowPrefix() + table));
 
-    Mutation delMut = new Mutation(new Text(ProblemSection.getRowPrefix() + table));
+    Mutation delMut = new Mutation(ProblemSection.getRowPrefix() + table);
 
     boolean hasProblems = false;
     for (Entry<Key,Value> entry : scanner) {
@@ -220,7 +219,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
                 if (table == null) {
                   scanner.setRange(ProblemSection.getRange());
                 } else {
-                  scanner.setRange(new Range(new Text(ProblemSection.getRowPrefix() + table)));
+                  scanner.setRange(new Range(ProblemSection.getRowPrefix() + table));
                 }
 
                 iter2 = scanner.iterator();
