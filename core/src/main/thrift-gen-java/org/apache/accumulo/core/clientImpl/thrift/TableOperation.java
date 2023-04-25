@@ -42,7 +42,8 @@ public enum TableOperation implements org.apache.thrift.TEnum {
   COMPACT(13),
   IMPORT(14),
   EXPORT(15),
-  COMPACT_CANCEL(16);
+  COMPACT_CANCEL(16),
+  SET_HOSTING_GOAL(17);
 
   private final int value;
 
@@ -99,6 +100,8 @@ public enum TableOperation implements org.apache.thrift.TEnum {
         return EXPORT;
       case 16:
         return COMPACT_CANCEL;
+      case 17:
+        return SET_HOSTING_GOAL;
       default:
         return null;
     }

@@ -84,6 +84,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
             TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(line);
             if (MetricsProducer.METRICS_TSERVER_TABLETS_ONLINE_ONDEMAND.equals(metric.getName())) {
               Long val = Long.parseLong(metric.getValue());
+              System.out.println(val);
               ONDEMAND_ONLINE_COUNT = val;
             }
           }
@@ -122,8 +123,9 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
   }
 
   @BeforeEach
-  public void before() {
-    ONDEMAND_ONLINE_COUNT = 0L;
+  public void before() throws Exception {
+    // wait for tablets from previous test to be unloaded
+    Wait.waitFor(() -> ONDEMAND_ONLINE_COUNT == 0);
   }
 
   @Test
