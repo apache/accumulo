@@ -19,6 +19,7 @@
 package org.apache.accumulo.shell.commands;
 
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -43,10 +44,12 @@ public class MaxRowCommand extends ScanCommand {
     final Authorizations auths = getAuths(cl, shellState);
     final Text startRow = range.getStartKey() == null ? null : range.getStartKey().getRow();
     final Text endRow = range.getEndKey() == null ? null : range.getEndKey().getRow();
+    final RowRange rowRange =
+        new RowRange(startRow, range.isStartKeyInclusive(), endRow, range.isEndKeyInclusive());
 
     try {
-      final Text max = shellState.getAccumuloClient().tableOperations().getMaxRow(tableName, auths,
-          startRow, range.isStartKeyInclusive(), endRow, range.isEndKeyInclusive());
+      final Text max =
+          shellState.getAccumuloClient().tableOperations().getMaxRow(tableName, auths, rowRange);
       if (max != null) {
         shellState.getWriter().println(max);
       }
