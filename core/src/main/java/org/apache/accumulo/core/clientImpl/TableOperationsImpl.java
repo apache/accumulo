@@ -1556,19 +1556,19 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Deprecated(since = "4.0.0")
   public Text getMaxRow(String tableName, Authorizations auths, Text startRow,
       boolean startInclusive, Text endRow, boolean endInclusive) throws TableNotFoundException {
-    EXISTING_TABLE_NAME.validate(tableName);
-
-    Scanner scanner = context.createScanner(tableName, auths);
-    return FindMax.findMax(scanner, startRow, startInclusive, endRow, endInclusive);
+    return getMaxRow(tableName, auths,
+        new RowRange(startRow, startInclusive, endRow, endInclusive));
   }
 
   @Override
   public Text getMaxRow(String tableName, Authorizations auths, RowRange rowRange)
       throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
-    // TODO should this scanner be closed?
-    Scanner scanner = context.createScanner(tableName, auths);
-    return FindMax.findMax(scanner, rowRange);
+    Text maxRow;
+    try (Scanner scanner = context.createScanner(tableName, auths)) {
+      maxRow = FindMax.findMax(scanner, rowRange);
+    }
+    return maxRow;
   }
 
   @Override

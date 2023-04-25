@@ -163,26 +163,24 @@ public class FindMax {
     return end;
   }
 
-  public static Text findMax(Scanner scanner, Text start, boolean is, Text end, boolean ie) {
+  public static Text findMax(Scanner scanner, RowRange rowRange) {
 
     scanner.setBatchSize(12);
     IteratorSetting cfg = new IteratorSetting(Integer.MAX_VALUE, SortedKeyIterator.class);
     scanner.addScanIterator(cfg);
 
+    Text start = rowRange.getStartRow();
+    boolean is = rowRange.isStartRowInclusive();
     if (start == null) {
       start = new Text();
       is = true;
     }
 
+    Text end = rowRange.getEndRow();
     if (end == null) {
       end = findInitialEnd(scanner);
     }
 
-    return _findMax(scanner, start, is, end, ie);
-  }
-
-  public static Text findMax(Scanner scanner, RowRange rowRange) {
-    return findMax(scanner, rowRange.getStartRow(), rowRange.isStartRowInclusive(),
-        rowRange.getEndRow(), rowRange.isEndRowInclusive());
+    return _findMax(scanner, start, is, end, rowRange.isEndRowInclusive());
   }
 }
