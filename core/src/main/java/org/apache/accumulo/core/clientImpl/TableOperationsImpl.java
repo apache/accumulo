@@ -119,9 +119,9 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
-import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -664,37 +664,22 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private List<Text> _listSplits(String tableName)
       throws TableNotFoundException, AccumuloSecurityException {
+
     TableId tableId = context.getTableId(tableName);
-    TreeMap<KeyExtent,String> tabletLocations = new TreeMap<>();
+
     while (true) {
       try {
-        tabletLocations.clear();
-        // the following method throws AccumuloException for some conditions that should be retried
-        MetadataServicer.forTableId(context, tableId).getTabletLocations(tabletLocations);
-        break;
-      } catch (AccumuloSecurityException ase) {
-        throw ase;
-      } catch (Exception e) {
+        return context.getAmple().readTablets().forTable(tableId).fetch(PREV_ROW).checkConsistency()
+            .build().stream().map(tm -> tm.getExtent().endRow()).filter(Objects::nonNull)
+            .collect(Collectors.toList());
+      } catch (TabletDeletedException tde) {
+        // see if the table was deleted
         context.requireTableExists(tableId, tableName);
-
-        if (e instanceof RuntimeException && e.getCause() instanceof AccumuloSecurityException) {
-          throw (AccumuloSecurityException) e.getCause();
-        }
-
-        log.info("{} ... retrying ...", e, e);
+        log.debug("A merge happened while trying to list splits for {} {}, retrying ", tableName,
+            tableId, tde);
         sleepUninterruptibly(3, SECONDS);
       }
     }
-
-    ArrayList<Text> endRows = new ArrayList<>(tabletLocations.size());
-    for (KeyExtent ke : tabletLocations.keySet()) {
-      if (ke.endRow() != null) {
-        endRows.add(ke.endRow());
-      }
-    }
-
-    return endRows;
-
   }
 
   /**
