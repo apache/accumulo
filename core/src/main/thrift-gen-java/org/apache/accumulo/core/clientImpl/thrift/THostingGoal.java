@@ -22,7 +22,7 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.tablet.thrift;
+package org.apache.accumulo.core.clientImpl.thrift;
 
 
 public enum THostingGoal implements org.apache.thrift.TEnum {
