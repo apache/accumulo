@@ -767,21 +767,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
       }
 
-      // Set the TabletHostingGoal for this tablet based on the goals of the other tablets in
-      // the merge range. Always takes priority over never.
-      TabletHostingGoal mergeHostingGoal = TabletHostingGoal.ONDEMAND;
-      if (range.isMeta() || goals.contains(TabletHostingGoal.ALWAYS)) {
-        mergeHostingGoal = TabletHostingGoal.ALWAYS;
-      } else if (goals.contains(TabletHostingGoal.NEVER)) {
-        mergeHostingGoal = TabletHostingGoal.NEVER;
-      }
-      HostingColumnFamily.GOAL_COLUMN.put(m, TabletHostingGoalUtil.toValue(mergeHostingGoal));
-
       // read the logical time from the last tablet in the merge range, it is not included in
       // the loop above
       scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(new Range(stopRow));
       ServerColumnFamily.TIME_COLUMN.fetch(scanner);
+      HostingColumnFamily.GOAL_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
       Set<String> extCompIds = new HashSet<>();
       for (Entry<Key,Value> entry : scanner) {
@@ -790,6 +781,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               MetadataTime.parse(entry.getValue().toString()));
         } else if (ExternalCompactionColumnFamily.NAME.equals(entry.getKey().getColumnFamily())) {
           extCompIds.add(entry.getKey().getColumnQualifierData().toString());
+        } else if (HostingColumnFamily.GOAL_COLUMN.hasColumns(entry.getKey())) {
+          TabletHostingGoal thisGoal = TabletHostingGoalUtil.fromValue(entry.getValue());
+          goals.add(thisGoal);
         }
       }
 
@@ -799,6 +793,16 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       // delete any entries for external compactions
       extCompIds.forEach(ecid -> m.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid));
+
+      // Set the TabletHostingGoal for this tablet based on the goals of the other tablets in
+      // the merge range. Always takes priority over never.
+      TabletHostingGoal mergeHostingGoal = TabletHostingGoal.ONDEMAND;
+      if (range.isMeta() || goals.contains(TabletHostingGoal.ALWAYS)) {
+        mergeHostingGoal = TabletHostingGoal.ALWAYS;
+      } else if (goals.contains(TabletHostingGoal.NEVER)) {
+        mergeHostingGoal = TabletHostingGoal.NEVER;
+      }
+      HostingColumnFamily.GOAL_COLUMN.put(m, TabletHostingGoalUtil.toValue(mergeHostingGoal));
 
       if (!m.getUpdates().isEmpty()) {
         bw.addMutation(m);
