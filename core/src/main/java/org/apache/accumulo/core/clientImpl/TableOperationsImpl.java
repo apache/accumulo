@@ -1908,13 +1908,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public Locations locate(String tableName, Collection<Range> ranges) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
+  public Locations locate(String tableName, Collection<Range> ranges)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
     requireNonNull(ranges, "ranges must be non null");
 
     TableId tableId = context.getTableId(tableName);
-    ClientTabletCache locator = ClientTabletCache.getInstance(context, tableId);
+
+    context.requireTableExists(tableId, tableName);
+    context.requireNotOffline(tableId, tableName);
 
     List<Range> rangeList = null;
     if (ranges instanceof List) {
@@ -1923,27 +1925,19 @@ public class TableOperationsImpl extends TableOperationsHelper {
       rangeList = new ArrayList<>(ranges);
     }
 
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
-
+    ClientTabletCache locator = ClientTabletCache.getInstance(context, tableId);
     locator.invalidateCache();
 
-    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
-        .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
-        .logInterval(3, MINUTES).createRetry();
-
-    // ELASTICITY_TODO this will cause tablets to be hosted, but that may not be desired
-    while (!locator.binRanges(context, rangeList, binnedRanges).isEmpty()) {
-      context.requireTableExists(tableId, tableName);
-      context.requireNotOffline(tableId, tableName);
-      binnedRanges.clear();
-      try {
-        retry.waitForNextAttempt(log,
-            String.format("locating tablets in table %s(%s) for %d ranges", tableName, tableId,
-                rangeList.size()));
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-      locator.invalidateCache();
+    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+    try {
+      @SuppressWarnings("unused")
+      List<Range> failed = locator.findTablets(context, rangeList, ((cachedTablet, range) -> {
+        if (cachedTablet.getTserverLocation().isPresent()) {
+          ClientTabletCacheImpl.addRange(binnedRanges, cachedTablet, range);
+        }
+      }), LocationNeed.NOT_REQUIRED);
+    } catch (InvalidTabletHostingRequestException e) {
+      throw new RuntimeException("findTablets requested tablet hosting when it should not have", e);
     }
 
     return new LocationsImpl(binnedRanges);
