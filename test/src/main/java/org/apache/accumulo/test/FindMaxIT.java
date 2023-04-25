@@ -183,7 +183,7 @@ public class FindMaxIT extends AccumuloClusterHarness {
 
         }
 
-        RowRange range = new RowRange(null, true, null, true);
+        RowRange range = new RowRange();
         Text max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
         assertEquals(rows.get(rows.size() - 1), max);
 

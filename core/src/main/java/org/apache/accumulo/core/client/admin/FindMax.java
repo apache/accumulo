@@ -182,7 +182,7 @@ public class FindMax {
   }
 
   public static Text findMax(Scanner scanner, RowRange rowRange) {
-    return findMax(scanner, rowRange.getStartRow(), rowRange.isStartKeyInclusive(),
-        rowRange.getEndRow(), rowRange.isEndKeyInclusive());
+    return findMax(scanner, rowRange.getStartRow(), rowRange.isStartRowInclusive(),
+        rowRange.getEndRow(), rowRange.isEndRowInclusive());
   }
 }
