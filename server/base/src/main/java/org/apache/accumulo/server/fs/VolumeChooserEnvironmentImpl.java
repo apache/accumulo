@@ -95,7 +95,7 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
 
   @Override
   public TableId getTableId() {
-    return tableId.get();
+    return tableId.orElseThrow();
   }
 
   @Override

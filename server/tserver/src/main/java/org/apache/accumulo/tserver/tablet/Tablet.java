@@ -1221,7 +1221,7 @@ public class Tablet extends TabletBase {
       return null;
     }
 
-    SortedMap<Double,Key> keys = splitComputations.get().midPoint;
+    SortedMap<Double,Key> keys = splitComputations.orElseThrow().midPoint;
 
     if (keys.isEmpty()) {
       log.info("Cannot split tablet " + extent + ", files contain no data for tablet.");
@@ -1232,7 +1232,7 @@ public class Tablet extends TabletBase {
     // check to see if one row takes up most of the tablet, in which case we can not split
     Text lastRow;
     if (extent.endRow() == null) {
-      lastRow = splitComputations.get().lastRowForDefaultTablet;
+      lastRow = splitComputations.orElseThrow().lastRowForDefaultTablet;
     } else {
       lastRow = extent.endRow();
     }

@@ -32,7 +32,7 @@ public class WithTestNames {
 
   @BeforeEach
   public void setTestName(TestInfo info) {
-    testName = info.getTestMethod().get().getName();
+    testName = info.getTestMethod().orElseThrow().getName();
   }
 
   public String testName() {

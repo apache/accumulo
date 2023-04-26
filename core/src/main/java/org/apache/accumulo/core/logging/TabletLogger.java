@@ -147,7 +147,7 @@ public class TabletLogger {
 
   public static void flushed(KeyExtent extent, Optional<StoredTabletFile> newDatafile) {
     if (newDatafile.isPresent()) {
-      fileLog.debug("Flushed {} created {} from [memory]", extent, newDatafile.get());
+      fileLog.debug("Flushed {} created {} from [memory]", extent, newDatafile.orElseThrow());
     } else {
       fileLog.debug("Flushed {} from [memory] but no file was written.", extent);
     }

@@ -187,11 +187,11 @@ public class CompactionService {
         planningExecutor.execute(() -> {
           try {
             Optional<Compactable.Files> files = compactable.getFiles(myId, kind);
-            if (files.isEmpty() || files.get().candidates.isEmpty()) {
+            if (files.isEmpty() || files.orElseThrow().candidates.isEmpty()) {
               log.trace("Compactable returned no files {} {}", compactable.getExtent(), kind);
             } else {
-              CompactionPlan plan = getCompactionPlan(kind, files.get(), compactable);
-              submitCompactionJob(plan, files.get(), compactable, completionCallback);
+              CompactionPlan plan = getCompactionPlan(kind, files.orElseThrow(), compactable);
+              submitCompactionJob(plan, files.orElseThrow(), compactable, completionCallback);
             }
           } finally {
             queuedForPlanning.get(kind).remove(compactable.getExtent());
