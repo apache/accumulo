@@ -32,7 +32,7 @@ public class RowRange {
   private final boolean infiniteEndRow;
 
   /**
-   * Creates a range of rows that goes from negative to positive infinity
+   * Creates a range that includes all possible rows.
    */
   public RowRange() {
     this(null, true, null, true);
@@ -41,7 +41,7 @@ public class RowRange {
   /**
    * Creates a range of rows from startRow inclusive to endRow inclusive.
    *
-   * @param startRow starting row; set to null for negative infinity
+   * @param startRow starting row; set to null for the smallest possible row (an empty one)
    * @param endRow ending row; set to null for positive infinity
    * @throws IllegalArgumentException if end row is before start row
    */
@@ -52,7 +52,7 @@ public class RowRange {
   /**
    * Creates a range of rows from startRow to endRow.
    *
-   * @param startRow starting row; set to null for negative infinity
+   * @param startRow starting row; set to null for the smallest possible row (an empty one)
    * @param startInclusive true to include start row, false to skip
    * @param endRow ending row; set to null for positive infinity
    * @param endInclusive true to include end row, false to skip
