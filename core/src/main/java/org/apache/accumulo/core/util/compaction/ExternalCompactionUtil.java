@@ -108,7 +108,7 @@ public class ExternalCompactionUtil {
       if (sld.isEmpty()) {
         return Optional.empty();
       }
-      return Optional.ofNullable(sld.get().getAddress(ThriftService.COORDINATOR));
+      return Optional.ofNullable(sld.orElseThrow().getAddress(ThriftService.COORDINATOR));
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
