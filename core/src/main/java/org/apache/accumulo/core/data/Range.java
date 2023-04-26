@@ -122,7 +122,7 @@ public class Range implements WritableComparable<Range> {
    * @param endRow
    *          ending row; set to null for positive infinity
    * @param endRowInclusive
-   *          true to include start row, false to skip
+   *          true to include end row, false to skip
    * @throws IllegalArgumentException
    *           if end row is before start row
    */
@@ -147,7 +147,7 @@ public class Range implements WritableComparable<Range> {
    * @param endRow
    *          ending row; set to null for positive infinity
    * @param endRowInclusive
-   *          true to include start row, false to skip
+   *          true to include end row, false to skip
    * @throws IllegalArgumentException
    *           if end row is before start row
    */
@@ -167,7 +167,7 @@ public class Range implements WritableComparable<Range> {
    * @param endKey
    *          ending key; set to null for positive infinity
    * @param endKeyInclusive
-   *          true to include start key, false to skip
+   *          true to include end key, false to skip
    * @throws IllegalArgumentException
    *           if end key is before start key
    */
@@ -301,7 +301,7 @@ public class Range implements WritableComparable<Range> {
   }
 
   /**
-   * Implements logic of {@code #beforeStartKey(Key)}, but in a private method, so that it can be
+   * Implements logic of {@link #beforeStartKey(Key)}, but in a private method, so that it can be
    * safely used by constructors if a subclass overrides that {@link #beforeStartKey(Key)}
    */
   private boolean beforeStartKeyImpl(Key key) {
@@ -780,7 +780,7 @@ public class Range implements WritableComparable<Range> {
    * Creates a range that covers an exact row and column family.
    *
    * @param row
-   *          row row to cover
+   *          row to cover
    * @param cf
    *          column family to cover
    */
@@ -793,7 +793,7 @@ public class Range implements WritableComparable<Range> {
    * Creates a range that covers an exact row, column family, and column qualifier.
    *
    * @param row
-   *          row row to cover
+   *          row to cover
    * @param cf
    *          column family to cover
    * @param cq
@@ -809,7 +809,7 @@ public class Range implements WritableComparable<Range> {
    * visibility.
    *
    * @param row
-   *          row row to cover
+   *          row to cover
    * @param cf
    *          column family to cover
    * @param cq
@@ -828,7 +828,7 @@ public class Range implements WritableComparable<Range> {
    * and timestamp.
    *
    * @param row
-   *          row row to cover
+   *          row to cover
    * @param cf
    *          column family to cover
    * @param cq
@@ -950,7 +950,7 @@ public class Range implements WritableComparable<Range> {
    * Creates a range that covers an exact row and column family.
    *
    * @param row
-   *          row row to cover
+   *          row to cover
    * @param cf
    *          column family to cover
    * @see #exact(Text, Text)
@@ -963,7 +963,7 @@ public class Range implements WritableComparable<Range> {
    * Creates a range that covers an exact row, column family, and column qualifier.
    *
    * @param row
-   *          row row to cover
+   *          row to cover
    * @param cf
    *          column family to cover
    * @param cq
@@ -979,7 +979,7 @@ public class Range implements WritableComparable<Range> {
    * visibility.
    *
    * @param row
-   *          row row to cover
+   *          row to cover
    * @param cf
    *          column family to cover
    * @param cq
@@ -998,7 +998,7 @@ public class Range implements WritableComparable<Range> {
    * and timestamp.
    *
    * @param row
-   *          row row to cover
+   *          row to cover
    * @param cf
    *          column family to cover
    * @param cq
