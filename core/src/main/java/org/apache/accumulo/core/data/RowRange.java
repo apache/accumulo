@@ -28,14 +28,14 @@ public class RowRange {
   final private Text endRow;
   final private boolean startRowInclusive;
   final private boolean endRowInclusive;
-  private final boolean infiniteStartRow;
-  private final boolean infiniteEndRow;
+  final private boolean infiniteStartRow;
+  final private boolean infiniteEndRow;
 
   /**
    * Creates a range that includes all possible rows.
    */
-  public RowRange() {
-    this(null, true, null, true);
+  public static RowRange all() {
+    return create(null, true, null, true);
   }
 
   /**
@@ -45,8 +45,77 @@ public class RowRange {
    * @param endRow ending row; set to null for positive infinity
    * @throws IllegalArgumentException if end row is before start row
    */
-  public RowRange(Text startRow, Text endRow) {
-    this(startRow, true, endRow, true);
+  public static RowRange open(Text startRow, Text endRow) {
+    return create(startRow, true, endRow, true);
+  }
+
+  /**
+   * Creates a range of rows from startRow exclusive to endRow exclusive.
+   *
+   * @param startRow starting row; set to null for the smallest possible row (an empty one)
+   * @param endRow ending row; set to null for positive infinity
+   * @throws IllegalArgumentException if end row is before start row
+   */
+  public static RowRange closed(Text startRow, Text endRow) {
+    return create(startRow, false, endRow, false);
+  }
+
+  /**
+   * Creates a range of rows from startRow inclusive to endRow exclusive.
+   *
+   * @param startRow starting row; set to null for the smallest possible row (an empty one)
+   * @param endRow ending row; set to null for positive infinity
+   * @throws IllegalArgumentException if end row is before start row
+   */
+  public static RowRange openClosed(Text startRow, Text endRow) {
+    return create(startRow, true, endRow, false);
+  }
+
+  /**
+   * Creates a range of rows from startRow exclusive to endRow inclusive.
+   *
+   * @param startRow starting row; set to null for the smallest possible row (an empty one)
+   * @param endRow ending row; set to null for positive infinity
+   * @throws IllegalArgumentException if end row is before start row
+   */
+  public static RowRange closedOpen(Text startRow, Text endRow) {
+    return create(startRow, false, endRow, true);
+  }
+
+  /**
+   * Creates a range of rows strictly greater than startRow.
+   *
+   * @param startRow starting row; set to null for the smallest possible row (an empty one)
+   */
+  public static RowRange greaterThan(Text startRow) {
+    return create(startRow, false, null, true);
+  }
+
+  /**
+   * Creates a range of rows greater than or equal to startRow.
+   *
+   * @param startRow starting row; set to null for the smallest possible row (an empty one)
+   */
+  public static RowRange atLeast(Text startRow) {
+    return create(startRow, true, null, true);
+  }
+
+  /**
+   * Creates a range of rows strictly less than endRow.
+   *
+   * @param endRow ending row; set to null for positive infinity
+   */
+  public static RowRange lessThan(Text endRow) {
+    return create(null, true, endRow, false);
+  }
+
+  /**
+   * Creates a range of rows less than or equal to endRow.
+   *
+   * @param endRow ending row; set to null for positive infinity
+   */
+  public static RowRange atMost(Text endRow) {
+    return create(null, true, endRow, true);
   }
 
   /**
@@ -58,7 +127,21 @@ public class RowRange {
    * @param endInclusive true to include end row, false to skip
    * @throws IllegalArgumentException if end row is before start row
    */
-  public RowRange(Text startRow, boolean startInclusive, Text endRow, boolean endInclusive) {
+  public static RowRange create(Text startRow, boolean startInclusive, Text endRow,
+      boolean endInclusive) {
+    return new RowRange(startRow, startInclusive, endRow, endInclusive);
+  }
+
+  /**
+   * Creates a range of rows from startRow to endRow.
+   *
+   * @param startRow starting row; set to null for the smallest possible row (an empty one)
+   * @param startInclusive true to include start row, false to skip
+   * @param endRow ending row; set to null for positive infinity
+   * @param endInclusive true to include end row, false to skip
+   * @throws IllegalArgumentException if end row is before start row
+   */
+  private RowRange(Text startRow, boolean startInclusive, Text endRow, boolean endInclusive) {
     this.startRow = startRow;
     this.startRowInclusive = startInclusive;
     this.infiniteStartRow = startRow == null;
@@ -103,7 +186,7 @@ public class RowRange {
    * safely used by constructors if a subclass overrides that {@link #beforeStartRow(Text)}
    */
   private boolean beforeStartKeyImpl(Text row) {
-    if (infiniteStartRow) {
+    if (this.infiniteStartRow) {
       return false;
     }
 

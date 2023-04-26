@@ -1490,7 +1490,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public Text getMaxRow(String tableName, Authorizations auths, Text startRow,
       boolean startInclusive, Text endRow, boolean endInclusive) throws TableNotFoundException {
     return getMaxRow(tableName, auths,
-        new RowRange(startRow, startInclusive, endRow, endInclusive));
+        RowRange.create(startRow, startInclusive, endRow, endInclusive));
   }
 
   @Override

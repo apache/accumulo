@@ -157,41 +157,41 @@ public class FindMaxIT extends AccumuloClusterHarness {
         }
 
         for (int i = rows.size() - 1; i > 0; i--) {
-          RowRange range = new RowRange(rows.get(i - 1), true, rows.get(i), false);
+          RowRange range = RowRange.openClosed(rows.get(i - 1), rows.get(i));
           Text max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
           assertEquals(rows.get(i - 1), max);
 
-          range = new RowRange(rows.get(i - 1), rows.get(i));
+          range = RowRange.open(rows.get(i - 1), rows.get(i));
           max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
           assertEquals(rows.get(i), max);
 
-          range = new RowRange(rows.get(i - 1), false, rows.get(i), false);
+          range = RowRange.closed(rows.get(i - 1), rows.get(i));
           max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
           assertNull(max);
 
-          range = new RowRange(null, rows.get(i));
+          range = RowRange.atMost(rows.get(i));
           max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
           assertEquals(rows.get(i), max);
 
-          range = new RowRange(rows.get(i), rows.get(i));
+          range = RowRange.open(rows.get(i), rows.get(i));
           max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
           assertEquals(rows.get(i), max);
 
-          range = new RowRange(rows.get(i - 1), false, rows.get(i), true);
+          range = RowRange.closedOpen(rows.get(i - 1), rows.get(i));
           max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
           assertEquals(rows.get(i), max);
 
         }
 
-        RowRange range = new RowRange();
+        RowRange range = RowRange.all();
         Text max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
         assertEquals(rows.get(rows.size() - 1), max);
 
-        range = new RowRange(null, true, new Text(new byte[] {0}), false);
+        range = RowRange.lessThan(new Text(new byte[] {0}));
         max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
         assertNull(max);
 
-        range = new RowRange(null, new Text(new byte[] {0}));
+        range = RowRange.atMost(new Text(new byte[] {0}));
         max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
         assertEquals(rows.get(0), max);
       }
