@@ -147,7 +147,7 @@ public class TabletServerResourceManager {
     } else {
       ScanPrioritizer factory = null;
       try {
-        factory = ConfigurationTypeHelper.getClassInstance(null, sec.prioritizerClass.get(),
+        factory = ConfigurationTypeHelper.getClassInstance(null, sec.prioritizerClass.orElseThrow(),
             ScanPrioritizer.class);
       } catch (Exception e) {
         throw new RuntimeException(e);

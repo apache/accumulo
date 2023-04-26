@@ -75,7 +75,7 @@ public class DelegatingChooser implements VolumeChooser {
   private VolumeChooser getVolumeChooserForTable(VolumeChooserEnvironment env) {
     log.trace("Looking up property {} for table id: {}", TABLE_CUSTOM_SUFFIX, env.getTable());
 
-    String clazz = env.getServiceEnv().getConfiguration(env.getTable().get())
+    String clazz = env.getServiceEnv().getConfiguration(env.getTable().orElseThrow())
         .getTableCustom(TABLE_CUSTOM_SUFFIX);
 
     // fall back to global default scope, so setting only one default is necessary, rather than a
@@ -92,7 +92,7 @@ public class DelegatingChooser implements VolumeChooser {
       throw new RuntimeException(msg);
     }
 
-    return createVolumeChooser(env, clazz, TABLE_CUSTOM_SUFFIX, env.getTable().get(),
+    return createVolumeChooser(env, clazz, TABLE_CUSTOM_SUFFIX, env.getTable().orElseThrow(),
         tableSpecificChooserCache);
   }
 

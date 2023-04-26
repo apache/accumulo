@@ -91,7 +91,8 @@ public class TableDiskUsageTest {
 
     assertEquals(4096, getTotalUsage(result, tableId1));
     assertEquals(1, result.size());
-    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    Map.Entry<SortedSet<String>,Long> firstResult =
+        result.entrySet().stream().findFirst().orElseThrow();
     assertEquals(1, firstResult.getKey().size());
     assertTrue(firstResult.getKey().contains(getTableName(tableId1)));
     assertEquals(4096, firstResult.getValue());
@@ -120,7 +121,8 @@ public class TableDiskUsageTest {
 
     assertEquals(14096, getTotalUsage(result, tableId1));
     assertEquals(1, result.size());
-    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    Map.Entry<SortedSet<String>,Long> firstResult =
+        result.entrySet().stream().findFirst().orElseThrow();
     assertEquals(1, firstResult.getKey().size());
     assertEquals(14096, firstResult.getValue());
 
@@ -148,7 +150,8 @@ public class TableDiskUsageTest {
 
     assertEquals(1024, getTotalUsage(result, MetadataTable.ID));
     assertEquals(1, result.size());
-    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    Map.Entry<SortedSet<String>,Long> firstResult =
+        result.entrySet().stream().findFirst().orElseThrow();
     assertEquals(1024, firstResult.getValue());
 
     EasyMock.verify(client, scanner);
@@ -171,7 +174,8 @@ public class TableDiskUsageTest {
 
     assertEquals(1024, getTotalUsage(result, tableId1));
     assertEquals(1, result.size());
-    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    Map.Entry<SortedSet<String>,Long> firstResult =
+        result.entrySet().stream().findFirst().orElseThrow();
     assertEquals(1, firstResult.getKey().size());
     assertTrue(firstResult.getKey().contains(getTableName(tableId1)));
     assertEquals(1024, firstResult.getValue());
@@ -194,7 +198,8 @@ public class TableDiskUsageTest {
 
     assertEquals(0, getTotalUsage(result, tableId1));
     assertEquals(1, result.size());
-    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    Map.Entry<SortedSet<String>,Long> firstResult =
+        result.entrySet().stream().findFirst().orElseThrow();
     assertEquals(1, firstResult.getKey().size());
     assertEquals(0, firstResult.getValue());
 
