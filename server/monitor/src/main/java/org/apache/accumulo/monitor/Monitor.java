@@ -390,7 +390,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
         coordinatorCheckNanos = System.nanoTime();
         if (previousHost.isEmpty() && coordinatorHost.isPresent()) {
-          log.info("External Compaction Coordinator found at {}", coordinatorHost.get());
+          log.info("External Compaction Coordinator found at {}", coordinatorHost.orElseThrow());
         }
       }
 
@@ -669,7 +669,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     if (coordinatorHost.isEmpty()) {
       throw new IllegalStateException(coordinatorMissingMsg);
     }
-    var ccHost = coordinatorHost.get();
+    var ccHost = coordinatorHost.orElseThrow();
     log.info("User initiated fetch of running External Compactions from " + ccHost);
     var client = getCoordinator(ccHost);
     TExternalCompactionList running;
