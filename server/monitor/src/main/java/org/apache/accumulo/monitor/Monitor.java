@@ -431,7 +431,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         Optional<ServiceLockData> sld =
             ServiceLockData.parse(zk.getData(path + "/" + locks.get(0)));
         if (sld.isPresent()) {
-          address = sld.get().getAddress(ThriftService.GC);
+          address = sld.orElseThrow().getAddress(ThriftService.GC);
         }
         GCMonitorService.Client client =
             ThriftUtil.getClient(ThriftClientTypes.GC, address, context);
