@@ -27,10 +27,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.lang.reflect.Type;
-import java.util.Base64;
-import java.util.Base64.Decoder;
-import java.util.Base64.Encoder;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -41,17 +37,10 @@ import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.Mapping;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter;
 import org.apache.hadoop.fs.Path;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonWriter;
 
@@ -60,28 +49,7 @@ import com.google.gson.stream.JsonWriter;
  */
 public class BulkSerialize {
 
-  private static class ByteArrayToBase64TypeAdapter
-      implements JsonSerializer<byte[]>, JsonDeserializer<byte[]> {
-
-    Decoder decoder = Base64.getUrlDecoder();
-    Encoder encoder = Base64.getUrlEncoder();
-
-    @Override
-    public byte[] deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
-        throws JsonParseException {
-      return decoder.decode(json.getAsString());
-    }
-
-    @Override
-    public JsonElement serialize(byte[] src, Type typeOfSrc, JsonSerializationContext context) {
-      return new JsonPrimitive(encoder.encodeToString(src));
-    }
-  }
-
-  static Gson createGson() {
-    return new GsonBuilder()
-        .registerTypeHierarchyAdapter(byte[].class, new ByteArrayToBase64TypeAdapter()).create();
-  }
+  private static final Gson gson = ByteArrayToBase64TypeAdapter.createBase64Gson();
 
   public interface Output {
     OutputStream create(Path path) throws IOException;
@@ -100,7 +68,6 @@ public class BulkSerialize {
 
     try (OutputStream fsOut = output.create(lmFile); JsonWriter writer =
         new JsonWriter(new BufferedWriter(new OutputStreamWriter(fsOut, UTF_8)))) {
-      Gson gson = createGson();
       writer.setIndent("  ");
       writer.beginArray();
       Set<Entry<KeyExtent,Files>> es = loadMapping.entrySet();
@@ -141,7 +108,6 @@ public class BulkSerialize {
   public static Map<String,String> readRenameMap(String bulkDir, Input input) throws IOException {
     final Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
     Map<String,String> oldToNewNameMap;
-    Gson gson = createGson();
     try (InputStream fis = input.open(renamingFile);
         BufferedReader reader = new BufferedReader(new InputStreamReader(fis))) {
       oldToNewNameMap = gson.fromJson(reader, new TypeToken<Map<String,String>>() {}.getType());

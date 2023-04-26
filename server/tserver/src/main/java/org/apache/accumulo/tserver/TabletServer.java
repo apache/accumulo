@@ -701,6 +701,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             + " ZooKeeper. Delegation token authentication will be unavailable.", e);
       }
     }
+    try {
+      clientAddress = startTabletClientService();
+    } catch (UnknownHostException e1) {
+      throw new RuntimeException("Failed to start the tablet client service", e1);
+    }
 
     try {
       MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
@@ -725,11 +730,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         getContext(), ceMetrics);
     compactionManager.start();
 
-    try {
-      clientAddress = startTabletClientService();
-    } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the tablet client service", e1);
-    }
     announceExistence();
 
     try {
