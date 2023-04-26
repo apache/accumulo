@@ -547,7 +547,7 @@ public class TabletMetadata {
 
     if (sld.isPresent()) {
       log.trace("Checking server at ZK path = " + lockPath);
-      HostAndPort client = sld.get().getAddress(ServiceLockData.ThriftService.TSERV);
+      HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
       if (client != null) {
         server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
       }
