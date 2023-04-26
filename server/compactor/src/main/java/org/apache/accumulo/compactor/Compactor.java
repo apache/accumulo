@@ -458,8 +458,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
-    LOG.trace("CompactionCoordinator address is: {}", coordinatorHost.get());
-    return ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.get(), getContext());
+    LOG.trace("CompactionCoordinator address is: {}", coordinatorHost.orElseThrow());
+    return ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(),
+        getContext());
   }
 
   /**
