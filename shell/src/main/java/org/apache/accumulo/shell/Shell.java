@@ -375,11 +375,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     rootToken = new Token();
 
-    @SuppressWarnings("deprecation")
     Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(),
-        new EGrepCommand(), new FormatterCommand(),
-        new org.apache.accumulo.shell.commands.InterpreterCommand(), new GrepCommand(),
-        new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
+        new EGrepCommand(), new FormatterCommand(), new GrepCommand(), new ImportDirectoryCommand(),
+        new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
     Command[] debuggingCommands =
         {new ClasspathCommand(), new ListScansCommand(), new ListCompactionsCommand(),
             new TraceCommand(), new PingCommand(), new ListBulkCommand(), new ListTabletsCommand()};
