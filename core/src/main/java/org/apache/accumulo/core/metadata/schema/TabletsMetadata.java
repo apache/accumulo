@@ -97,7 +97,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private final List<Text> families = new ArrayList<>();
     private final List<ColumnFQ> qualifiers = new ArrayList<>();
     private Collection<KeyExtent> extentsToFetch = null;
-    private boolean fetchTablets=false;
+    private boolean fetchTablets = false;
     private Consumer<KeyExtent> notFoundHandler;
     private Ample.DataLevel level;
     private String table;
@@ -124,7 +124,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       }
 
       checkState((level == null) != (table == null),
-          "scanTable() cannot be used in conjunction with forLevel(), forTable() or forTablet() %s %s", level,table);
+          "scanTable() cannot be used in conjunction with forLevel(), forTable() or forTablet() %s %s",
+          level, table);
       if (level == DataLevel.ROOT) {
         ClientContext ctx = ((ClientContext) _client);
         return new TabletsMetadata(getRootMetadata(ctx, readConsistency));
