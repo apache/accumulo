@@ -349,6 +349,12 @@ public interface Ample {
 
     T deleteOperation();
 
+    /**
+     * @see MetadataSchema.TabletsSection.RefreshIdColumnFamily
+     */
+    T putRefreshId(long tid, TServerInstance location);
+
+    T deleteRefreshId(long transactionId);
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {
@@ -498,15 +504,4 @@ public interface Ample {
   default void removeBulkLoadInProgressFlag(String path) {
     throw new UnsupportedOperationException();
   }
-
-  /**
-   * Remove all the Bulk Load transaction ids from a given table's metadata
-   *
-   * @param tableId Table ID for transaction removals
-   * @param tid Transaction ID to remove
-   */
-  default void removeBulkLoadEntries(TableId tableId, long tid) {
-    throw new UnsupportedOperationException();
-  }
-
 }

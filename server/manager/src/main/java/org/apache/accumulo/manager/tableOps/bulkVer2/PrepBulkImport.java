@@ -207,8 +207,6 @@ public class PrepBulkImport extends ManagerRepo {
     // now that table lock is acquired check that all splits in load mapping exists in table
     checkForMerge(tid, manager);
 
-    bulkInfo.tableState = manager.getContext().getTableState(bulkInfo.tableId);
-
     VolumeManager fs = manager.getVolumeManager();
     final UniqueNameAllocator namer = manager.getContext().getUniqueNameAllocator();
     Path sourceDir = new Path(bulkInfo.sourceDir);

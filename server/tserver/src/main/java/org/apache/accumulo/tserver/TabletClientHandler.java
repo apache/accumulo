@@ -85,6 +85,7 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -170,6 +171,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     log.debug("{} created", TabletClientHandler.class.getName());
   }
 
+  // ELASTICITY_TODO remove this and all the code it calls in Tablet and the thrift methods
   @Override
   public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
       Map<TKeyExtent,Map<String,MapFileInfo>> tabletImports, boolean setTime)
@@ -1372,6 +1374,23 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     server.getCompactionManager().externalCompactionFailed(
         ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
         server.getOnlineTablets());
+  }
+
+  /**
+   * @see MetadataSchema.TabletsSection.RefreshIdColumnFamily
+   */
+  @Override
+  public void refreshTablet(TInfo tinfo, TCredentials credentials, TKeyExtent extent,
+      long transactionId) throws TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    var tablet = server.getOnlineTablets().get(KeyExtent.fromThrift(extent));
+    if (tablet != null) {
+      tablet.refresh(transactionId);
+    }
   }
 
   @Override

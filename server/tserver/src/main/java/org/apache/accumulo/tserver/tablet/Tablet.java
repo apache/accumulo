@@ -78,6 +78,7 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -2158,5 +2159,40 @@ public class Tablet extends TabletBase {
 
   public boolean isOnDemand() {
     return goal == TabletHostingGoal.ONDEMAND;
+  }
+
+  // ELASTICITY_TODO properly implement this method
+  /**
+   * @see MetadataSchema.TabletsSection.RefreshIdColumnFamily
+   */
+  public void refresh(long transactionId) {
+    // ELASTICITY_TODO keep track of recently completed refresh transactionIds and ignore ones
+    // already processed
+
+    // ELASTICITY_TODO this entire method is a hack at the moment with race conditions... want to
+    // move twoards the tablet just using a cached TabletMetadata object and have a central orderly
+    // thread safe way to update it within the tablet in response to external refresh request and
+    // internal events like minor compactions. Would probably be easiest to implement this after
+    // removing bulk import, split, and compactions from the tablet server.
+    TabletMetadata tabletMetadata =
+        getContext().getAmple().readTablet(getExtent(), ColumnType.FILES, ColumnType.REFRESH);
+
+    if (tabletMetadata.getRefreshIds().containsKey(transactionId)) {
+      // ELASTICITY_TODO could check value on map returned from getRefreshIds()
+
+      Map<StoredTabletFile,DataFileValue> metadataFiles = tabletMetadata.getFilesMap();
+
+      Map<StoredTabletFile,DataFileValue> currentFiles = getDatafileManager().getDatafileSizes();
+
+      metadataFiles.forEach((f, v) -> {
+        if (!currentFiles.containsKey(f)) {
+          getDatafileManager().addFilesHack(f, v);
+
+        }
+      });
+
+      // ELASTICITY_TODO use conditional mutation with tserver location
+      getContext().getAmple().mutateTablet(getExtent()).deleteRefreshId(transactionId).mutate();
+    }
   }
 }

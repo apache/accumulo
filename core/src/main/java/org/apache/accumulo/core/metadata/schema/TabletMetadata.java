@@ -72,6 +72,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.RefreshIdColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -119,6 +120,7 @@ public class TabletMetadata {
   private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
   private boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
+  private Map<Long,TServerInstance> refreshIds;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -144,7 +146,8 @@ public class TabletMetadata {
     ECOMP,
     HOSTING_GOAL,
     HOSTING_REQUESTED,
-    OPID
+    OPID,
+    REFRESH
   }
 
   public static class Location {
@@ -411,6 +414,14 @@ public class TabletMetadata {
     return operationId;
   }
 
+  /**
+   * @see MetadataSchema.TabletsSection.RefreshIdColumnFamily
+   */
+  public Map<Long,TServerInstance> getRefreshIds() {
+    ensureFetched(ColumnType.REFRESH);
+    return refreshIds;
+  }
+
   @VisibleForTesting
   public static <E extends Entry<Key,Value>> TabletMetadata convertRow(Iterator<E> rowIter,
       EnumSet<ColumnType> fetchedColumns, boolean buildKeyValueMap) {
@@ -427,6 +438,7 @@ public class TabletMetadata {
         ImmutableMap.<ExternalCompactionId,ExternalCompactionMetadata>builder();
     final var loadedFilesBuilder = ImmutableMap.<TabletFile,Long>builder();
     ByteSequence row = null;
+    final var requestIdsBuilder = ImmutableMap.<Long,TServerInstance>builder();
 
     while (rowIter.hasNext()) {
       final Entry<Key,Value> kv = rowIter.next();
@@ -537,6 +549,12 @@ public class TabletMetadata {
               throw new IllegalStateException("Unexpected family " + fam);
           }
           break;
+        case RefreshIdColumnFamily.STR_NAME: {
+          var id = Long.parseLong(qual, 16);
+          var tsi = new TServerInstance(val);
+          requestIdsBuilder.put(id, tsi);
+          break;
+        }
       }
     }
 
@@ -551,6 +569,7 @@ public class TabletMetadata {
     te.scans = scansBuilder.build();
     te.logs = logsBuilder.build();
     te.extCompactions = extCompBuilder.build();
+    te.refreshIds = requestIdsBuilder.build();
     if (buildKeyValueMap) {
       te.keyValues = kvBuilder.build();
     }

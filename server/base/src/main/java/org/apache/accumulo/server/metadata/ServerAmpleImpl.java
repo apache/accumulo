@@ -24,7 +24,6 @@ import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -34,11 +33,9 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -60,15 +57,12 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactionSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
@@ -183,32 +177,6 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
     try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
       bw.addMutation(m);
-    } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  @Override
-  public void removeBulkLoadEntries(TableId tableId, long tid) {
-    Preconditions.checkArgument(DataLevel.of(tableId) == DataLevel.USER);
-    try (
-        Scanner mscanner =
-            new IsolatedScanner(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-        BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
-      mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
-      mscanner.fetchColumnFamily(BulkFileColumnFamily.NAME);
-
-      for (Map.Entry<Key,Value> entry : mscanner) {
-        log.trace("Looking at entry {} with tid {}", entry, tid);
-        long entryTid = BulkFileColumnFamily.getBulkLoadTid(entry.getValue());
-        if (tid == entryTid) {
-          log.trace("deleting entry {}", entry);
-          Key key = entry.getKey();
-          Mutation m = new Mutation(key.getRow());
-          m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
-          bw.addMutation(m);
-        }
-      }
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new RuntimeException(e);
     }
