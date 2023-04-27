@@ -33,9 +33,9 @@ import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.InputArgs;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
@@ -94,7 +94,7 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
         SummaryReader fileSummary = SummaryReader.load(in.getFileSystem().getConf(), sources[i],
             "source-" + i, summarySelector, factory, cservice);
         SummaryCollection sc = fileSummary
-            .getSummaries(Collections.singletonList(new Gatherer.RowRange(startRow, endRow)));
+            .getSummaries(Collections.singletonList(RowRange.openClosed(startRow, endRow)));
         all.merge(sc, factory);
       }
       return all.getSummaries();

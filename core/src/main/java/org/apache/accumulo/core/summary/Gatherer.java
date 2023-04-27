@@ -56,8 +56,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
@@ -73,7 +73,6 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CancelFlagFuture;
 import org.apache.accumulo.core.util.CompletableFutureUtil;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -437,7 +436,7 @@ public class Gatherer {
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {
       futures.add(CompletableFuture.supplyAsync(() -> {
         List<RowRange> rrl =
-            entry.getValue().stream().map(RowRange::new).collect(Collectors.toList());
+            entry.getValue().stream().map(RowRange::fromThrift).collect(Collectors.toList());
         return getSummaries(volMgr, entry.getKey(), rrl, summaryCache, indexCache, fileLenCache);
       }, srp));
     }
@@ -537,48 +536,7 @@ public class Gatherer {
     Text startRow = removeTrailingZeroFromRow(r.getStartKey());
     Text endRow = removeTrailingZeroFromRow(r.getEndKey());
 
-    return new RowRange(startRow, endRow);
-  }
-
-  public static class RowRange {
-    private Text startRow;
-    private Text endRow;
-
-    public RowRange(KeyExtent ke) {
-      this.startRow = ke.prevEndRow();
-      this.endRow = ke.endRow();
-    }
-
-    public RowRange(TRowRange trr) {
-      this.startRow = ByteBufferUtil.toText(trr.startRow);
-      this.endRow = ByteBufferUtil.toText(trr.endRow);
-    }
-
-    public RowRange(Text startRow, Text endRow) {
-      this.startRow = startRow;
-      this.endRow = endRow;
-    }
-
-    public Range toRange() {
-      return new Range(startRow, false, endRow, true);
-    }
-
-    public TRowRange toThrift() {
-      return new TRowRange(TextUtil.getByteBuffer(startRow), TextUtil.getByteBuffer(endRow));
-    }
-
-    public Text getStartRow() {
-      return startRow;
-    }
-
-    public Text getEndRow() {
-      return endRow;
-    }
-
-    @Override
-    public String toString() {
-      return startRow + " " + endRow;
-    }
+    return RowRange.openClosed(startRow, endRow);
   }
 
   private SummaryCollection getSummaries(FileSystemResolver volMgr, String file,

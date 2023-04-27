@@ -18,6 +18,11 @@
  */
 package org.apache.accumulo.core.data;
 
+import java.nio.ByteBuffer;
+
+import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
+import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -169,6 +174,28 @@ public class RowRange {
 
   public boolean isEndRowInclusive() {
     return endRowInclusive;
+  }
+
+  /**
+   * Converts this row range to Thrift.
+   *
+   * @return Thrift row range
+   */
+  public TRowRange toThrift() {
+    final ByteBuffer startRow = TextUtil.getByteBuffer(this.startRow);
+    final ByteBuffer endRow = TextUtil.getByteBuffer(this.endRow);
+    return new TRowRange(startRow, endRow);
+  }
+
+  /**
+   * Creates a row range from Thrift.
+   *
+   * @param rowRange Thrift row range
+   */
+  public static RowRange fromThrift(TRowRange rowRange) {
+    final Text startRow = ByteBufferUtil.toText(rowRange.startRow);
+    final Text endRow = ByteBufferUtil.toText(rowRange.endRow);
+    return create(startRow, true, endRow, false);
   }
 
   /**
