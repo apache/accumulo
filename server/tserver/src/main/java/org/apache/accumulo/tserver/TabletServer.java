@@ -776,10 +776,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       Duration duration;
       Span mdScanSpan = TraceUtil.startSpan(this.getClass(), "metadataScan");
       try (Scope scope = mdScanSpan.makeCurrent()) {
+        List<KeyExtent> missingTablets = new ArrayList<>();
         // gather metadata for all tablets readTablets()
-        try (TabletsMetadata tabletsMetadata =
-            getContext().getAmple().readTablets().forTablets(onlineTabletsSnapshot.keySet())
-                .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
+        try (TabletsMetadata tabletsMetadata = getContext().getAmple().readTablets()
+            .forTablets(onlineTabletsSnapshot.keySet(), missingTablets::add)
+            .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
           mdScanSpan.end();
           duration = Duration.between(start, Instant.now());
           log.debug("Metadata scan took {}ms for {} tablets read.", duration.toMillis(),
@@ -791,6 +792,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             Tablet tablet = onlineTabletsSnapshot.get(extent);
             MetadataUpdateCount counter = updateCounts.get(extent);
             tablet.compareTabletInfo(counter, tabletMetadata);
+          }
+
+          for (var extent : missingTablets) {
+            Tablet tablet = onlineTabletsSnapshot.get(extent);
+            if (!tablet.isClosed()) {
+              log.error("Tablet {} is open but does not exists in metadata table.", extent);
+            }
           }
         }
       }

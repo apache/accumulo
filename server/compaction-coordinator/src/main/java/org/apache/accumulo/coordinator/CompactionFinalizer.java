@@ -155,7 +155,7 @@ public class CompactionFinalizer {
 
         Map<KeyExtent,TabletMetadata> tabletsMetadata;
         var extents = batch.stream().map(ExternalCompactionFinalState::getExtent).collect(toList());
-        try (TabletsMetadata tablets = context.getAmple().readTablets().forTablets(extents)
+        try (TabletsMetadata tablets = context.getAmple().readTablets().forTablets(extents, e -> {})
             .fetch(ColumnType.LOCATION, ColumnType.PREV_ROW, ColumnType.ECOMP).build()) {
           tabletsMetadata = tablets.stream().collect(toMap(TabletMetadata::getExtent, identity()));
         }

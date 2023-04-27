@@ -149,8 +149,8 @@ public class ScanServer extends AbstractServer
         loadAll(Set<? extends KeyExtent> keys) {
       long t1 = System.currentTimeMillis();
       @SuppressWarnings("unchecked")
-      var tms = ample.readTablets().forTablets((Collection<KeyExtent>) keys).build().stream()
-          .collect(Collectors.toMap(tm -> tm.getExtent(), tm -> tm));
+      var tms = ample.readTablets().forTablets((Collection<KeyExtent>) keys, e -> {}).build()
+          .stream().collect(Collectors.toMap(tm -> tm.getExtent(), tm -> tm));
       long t2 = System.currentTimeMillis();
       LOG.trace("Read metadata for {} tablets in {} ms", keys.size(), t2 - t1);
       return tms;
