@@ -93,8 +93,11 @@ public class FindMax {
     return ret;
   }
 
-  private static Text _findMax(Scanner scanner, Text start, boolean inclStart, Text end,
-      boolean inclEnd) {
+  private static Text _findMax(Scanner scanner, RowRange rowRange) {
+    final Text start = rowRange.getStartRow();
+    final Text end = rowRange.getEndRow();
+    final boolean inclStart = rowRange.isStartRowInclusive();
+    final boolean inclEnd = rowRange.isEndRowInclusive();
 
     // System.out.printf("findMax(%s, %s, %s, %s)%n", Key.toPrintableString(start.getBytes(), 0,
     // start.getLength(), 1000), inclStart,
@@ -135,7 +138,8 @@ public class FindMax {
         return next.getRow();
       }
 
-      Text ret = _findMax(scanner, next.followingKey(PartialKey.ROW).getRow(), true, end, inclEnd);
+      Text ret = _findMax(scanner,
+          RowRange.create(next.followingKey(PartialKey.ROW).getRow(), true, end, inclEnd));
       if (ret == null) {
         return next.getRow();
       } else {
@@ -143,7 +147,8 @@ public class FindMax {
       }
     } else {
 
-      return _findMax(scanner, start, inclStart, mid, mid.equals(start) ? inclStart : false);
+      return _findMax(scanner,
+          RowRange.create(start, inclStart, mid, mid.equals(start) && inclStart));
     }
   }
 
@@ -181,6 +186,6 @@ public class FindMax {
       end = findInitialEnd(scanner);
     }
 
-    return _findMax(scanner, start, is, end, rowRange.isEndRowInclusive());
+    return _findMax(scanner, RowRange.create(start, is, end, rowRange.isEndRowInclusive()));
   }
 }
