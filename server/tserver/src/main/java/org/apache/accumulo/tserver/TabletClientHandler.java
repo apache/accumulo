@@ -49,7 +49,6 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.clientImpl.TabletType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -93,7 +92,6 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.Gatherer.FileSystemResolver;
 import org.apache.accumulo.core.summary.SummaryCollection;
-import org.apache.accumulo.core.tablet.thrift.THostingGoal;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
@@ -170,54 +168,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
         .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);
     log.debug("{} created", TabletClientHandler.class.getName());
-  }
-
-  @Override
-  public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, final long tid,
-      final Map<TKeyExtent,Map<String,MapFileInfo>> files, final boolean setTime)
-      throws ThriftSecurityException {
-
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    try {
-      return watcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
-        List<TKeyExtent> failures = new ArrayList<>();
-
-        for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
-          TKeyExtent tke = entry.getKey();
-          Map<String,MapFileInfo> fileMap = entry.getValue();
-          Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
-          for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
-            Path path = new Path(mapping.getKey());
-            FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
-            path = ns.makeQualified(path);
-            fileRefMap.put(new TabletFile(path), mapping.getValue());
-          }
-
-          Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));
-
-          if (importTablet == null) {
-            failures.add(tke);
-          } else {
-            try {
-              importTablet.importMapFiles(tid, fileRefMap, setTime);
-            } catch (IOException ioe) {
-              log.info("files {} not imported to {}: {}", fileMap.keySet(),
-                  KeyExtent.fromThrift(tke), ioe.getMessage());
-              failures.add(tke);
-            }
-          }
-        }
-        return failures;
-      });
-    } catch (RuntimeException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
   }
 
   @Override
@@ -1562,23 +1512,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       return tsums;
     } catch (TimeoutException e) {
       return handleTimeout(sessionId);
-    }
-  }
-
-  @Override
-  public void setTabletHostingGoal(TInfo tinfo, TCredentials credentials, String tableId,
-      List<TKeyExtent> extents, THostingGoal goal) throws ThriftSecurityException, TException {
-    final TableId tid = TableId.of(tableId);
-    NamespaceId namespaceId = getNamespaceId(credentials, tid);
-    if (!security.canAlterTable(credentials, tid, namespaceId)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-    final TabletHostingGoal g = TabletHostingGoalUtil.fromThrift(goal);
-    log.info("Tablet hosting goal {} requested for: {} ", g, extents);
-    try (TabletsMutator mutator = this.context.getAmple().mutateTablets()) {
-      extents
-          .forEach(e -> mutator.mutateTablet(KeyExtent.fromThrift(e)).setHostingGoal(g).mutate());
     }
   }
 

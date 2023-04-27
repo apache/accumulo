@@ -19,8 +19,8 @@
 package org.apache.accumulo.core.clientImpl;
 
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.clientImpl.thrift.THostingGoal;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.tablet.thrift.THostingGoal;
 
 public class TabletHostingGoalUtil {
 
