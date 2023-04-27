@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
@@ -398,9 +399,7 @@ public interface Ample {
   /**
    * Convenience interface for handling conditional mutations with a status of UNKNOWN.
    */
-  interface UknownValidator {
-    boolean shouldAccept(TabletMetadata tabletMetadata);
-  }
+  interface UknownValidator extends Predicate<TabletMetadata> {}
 
   interface ConditionalTabletMutator extends TabletUpdates<ConditionalTabletMutator> {
 
