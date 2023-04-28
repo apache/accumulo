@@ -45,10 +45,9 @@ else
 fi
 
 fulldownloadloc=$(readlink -f "$downloadloc")
-export PATH="$fulldownloadloc:$PATH"
 
 echo 'Checking if thrift modified any files...'
-(cd core && src/main/scripts/generate-thrift.sh)
+(export PATH="$fulldownloadloc:$PATH" && cd core && src/main/scripts/generate-thrift.sh)
 
 if [[ -n $(git status --porcelain --ignored=no) ]]; then
   echo 'Thrift build changed files in worktree:'
