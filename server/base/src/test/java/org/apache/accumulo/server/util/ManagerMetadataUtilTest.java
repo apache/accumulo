@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -25,7 +27,6 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.easymock.EasyMock;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -48,21 +49,25 @@ public class ManagerMetadataUtilTest {
     tabletMutator = EasyMock.createMock(Ample.TabletMutator.class);
   }
 
-  @AfterEach
-  public void after() {
-    EasyMock.verify(conf, context, tabletMutator);
-  }
-
   @Test
   public void testUpdateLastForAssignmentModeNullLastLocation() {
     // Expect a put of last1 as the previous value
     EasyMock.expect(tabletMutator.putLocation(last1)).andReturn(tabletMutator).once();
-
     EasyMock.replay(conf, context, tabletMutator);
 
     // Pass in a null last location value. There should be a call to
     // tabletMutator.putLocation of last 1 but no deletion as lastLocation is null
     ManagerMetadataUtil.updateLastForAssignmentMode(context, tabletMutator, server1, null);
+    EasyMock.verify(conf, context, tabletMutator);
+  }
+
+  @Test
+  public void testUpdateLastForAssignModeInvalidType() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      // Should throw an IllegalArgumentException as the lastLocation is not LocationType.LAST
+      ManagerMetadataUtil.updateLastForAssignmentMode(context, tabletMutator, server1,
+          Location.current(server1));
+    });
   }
 
   @Test
@@ -74,6 +79,7 @@ public class ManagerMetadataUtilTest {
     // as the locations are equal so no expects() are defined and any method calls would
     // throw an error
     ManagerMetadataUtil.updateLastForAssignmentMode(context, tabletMutator, server1, last1);
+    EasyMock.verify(conf, context, tabletMutator);
   }
 
   @Test
@@ -90,6 +96,7 @@ public class ManagerMetadataUtilTest {
     // There should be a call to tabletMutator.putLocation and tabletMutator.deleteLocation
     // as the last location is being updated as last1 does not match server 2
     ManagerMetadataUtil.updateLastForAssignmentMode(context, tabletMutator, server2, last1);
+    EasyMock.verify(conf, context, tabletMutator);
   }
 
 }

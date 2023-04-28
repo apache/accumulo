@@ -19,13 +19,18 @@
 package org.apache.accumulo.server.manager.state;
 
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+
+import com.google.common.base.Preconditions;
 
 public class UnassignedTablet {
   private final Location location;
   private final Location lastLocation;
 
   public UnassignedTablet(Location location, Location lastLocation) {
+    Preconditions.checkArgument(
+        lastLocation == null || lastLocation.getType() == TabletMetadata.LocationType.LAST);
     this.location = location;
     this.lastLocation = lastLocation;
   }

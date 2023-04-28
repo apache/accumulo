@@ -20,7 +20,10 @@ package org.apache.accumulo.server.manager.state;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+
+import com.google.common.base.Preconditions;
 
 public class Assignment {
   public final KeyExtent tablet;
@@ -28,6 +31,8 @@ public class Assignment {
   public final Location lastLocation;
 
   public Assignment(KeyExtent tablet, TServerInstance server, Location lastLocation) {
+    Preconditions.checkArgument(
+        lastLocation == null || lastLocation.getType() == TabletMetadata.LocationType.LAST);
     this.tablet = tablet;
     this.server = server;
     this.lastLocation = lastLocation;
