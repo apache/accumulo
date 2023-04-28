@@ -30,25 +30,14 @@ ver=${ver%%-*}
 
 echo "Using Thrift $ver"
 
-downloadloc=~/devtools/thrift-"$ver"
 url="https://dist.apache.org/repos/dist/dev/accumulo/devtools/thrift-$ver/thrift"
 
-mkdir -p "$downloadloc"
-
-echo "Checking $downloadloc for thrift binary..."
-
-if [[ -f "$downloadloc/thrift" ]]; then
-  echo 'Thrift found. No download necessary.'
-else
-  echo "Downloading from $url ..."
-  curl "$url" -o "$downloadloc/thrift"
-  chmod +x "$downloadloc/thrift"
-fi
-
-fulldownloadloc=$(readlink -f "$downloadloc")
+echo "Downloading from $url ..."
+sudo wget "$url" -O /usr/local/bin/thrift &&
+  sudo chmod +x /usr/local/bin/thrift
 
 echo 'Checking if thrift modified any files...'
-(export PATH="$fulldownloadloc:$PATH" && which thrift && cd core && src/main/scripts/generate-thrift.sh)
+(cd core && src/main/scripts/generate-thrift.sh)
 
 if [[ -n $(git status --porcelain --ignored=no) ]]; then
   echo 'Thrift build changed files in worktree:'
