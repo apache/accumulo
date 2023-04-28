@@ -23,9 +23,9 @@ import java.util.List;
 
 import jakarta.xml.bind.annotation.XmlAttribute;
 
-import org.apache.accumulo.core.master.thrift.RecoveryStatus;
-import org.apache.accumulo.core.master.thrift.TableInfo;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.RecoveryStatus;
+import org.apache.accumulo.core.manager.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.tables.CompactionsList;
 import org.apache.accumulo.monitor.rest.tables.CompactionsTypes;
