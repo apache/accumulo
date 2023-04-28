@@ -40,7 +40,7 @@ public class RowRange {
    * Creates a range that includes all possible rows.
    */
   public static RowRange all() {
-    return create(null, true, null, true);
+    return range(null, true, null, true);
   }
 
   /**
@@ -51,7 +51,7 @@ public class RowRange {
    * @throws IllegalArgumentException if end row is before start row
    */
   public static RowRange open(Text startRow, Text endRow) {
-    return create(startRow, true, endRow, true);
+    return range(startRow, true, endRow, true);
   }
 
   /**
@@ -62,7 +62,7 @@ public class RowRange {
    * @throws IllegalArgumentException if end row is before start row
    */
   public static RowRange closed(Text startRow, Text endRow) {
-    return create(startRow, false, endRow, false);
+    return range(startRow, false, endRow, false);
   }
 
   /**
@@ -73,7 +73,7 @@ public class RowRange {
    * @throws IllegalArgumentException if end row is before start row
    */
   public static RowRange openClosed(Text startRow, Text endRow) {
-    return create(startRow, true, endRow, false);
+    return range(startRow, true, endRow, false);
   }
 
   /**
@@ -84,7 +84,7 @@ public class RowRange {
    * @throws IllegalArgumentException if end row is before start row
    */
   public static RowRange closedOpen(Text startRow, Text endRow) {
-    return create(startRow, false, endRow, true);
+    return range(startRow, false, endRow, true);
   }
 
   /**
@@ -93,7 +93,7 @@ public class RowRange {
    * @param startRow starting row; set to null for the smallest possible row (an empty one)
    */
   public static RowRange greaterThan(Text startRow) {
-    return create(startRow, false, null, true);
+    return range(startRow, false, null, true);
   }
 
   /**
@@ -102,7 +102,7 @@ public class RowRange {
    * @param startRow starting row; set to null for the smallest possible row (an empty one)
    */
   public static RowRange atLeast(Text startRow) {
-    return create(startRow, true, null, true);
+    return range(startRow, true, null, true);
   }
 
   /**
@@ -111,7 +111,7 @@ public class RowRange {
    * @param endRow ending row; set to null for positive infinity
    */
   public static RowRange lessThan(Text endRow) {
-    return create(null, true, endRow, false);
+    return range(null, true, endRow, false);
   }
 
   /**
@@ -120,7 +120,7 @@ public class RowRange {
    * @param endRow ending row; set to null for positive infinity
    */
   public static RowRange atMost(Text endRow) {
-    return create(null, true, endRow, true);
+    return range(null, true, endRow, true);
   }
 
   /**
@@ -132,7 +132,7 @@ public class RowRange {
    * @param endInclusive true to include end row, false to skip
    * @throws IllegalArgumentException if end row is before start row
    */
-  public static RowRange create(Text startRow, boolean startInclusive, Text endRow,
+  public static RowRange range(Text startRow, boolean startInclusive, Text endRow,
       boolean endInclusive) {
     return new RowRange(startRow, startInclusive, endRow, endInclusive);
   }
@@ -195,7 +195,7 @@ public class RowRange {
   public static RowRange fromThrift(TRowRange rowRange) {
     final Text startRow = ByteBufferUtil.toText(rowRange.startRow);
     final Text endRow = ByteBufferUtil.toText(rowRange.endRow);
-    return create(startRow, true, endRow, false);
+    return range(startRow, true, endRow, false);
   }
 
   /**

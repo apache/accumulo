@@ -45,7 +45,7 @@ public class MaxRowCommand extends ScanCommand {
     final Text startRow = range.getStartKey() == null ? null : range.getStartKey().getRow();
     final Text endRow = range.getEndKey() == null ? null : range.getEndKey().getRow();
     final RowRange rowRange =
-        RowRange.create(startRow, range.isStartKeyInclusive(), endRow, range.isEndKeyInclusive());
+        RowRange.range(startRow, range.isStartKeyInclusive(), endRow, range.isEndKeyInclusive());
 
     try {
       final Text max =

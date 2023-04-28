@@ -139,7 +139,7 @@ public class FindMax {
       }
 
       Text ret = _findMax(scanner,
-          RowRange.create(next.followingKey(PartialKey.ROW).getRow(), true, end, inclEnd));
+          RowRange.range(next.followingKey(PartialKey.ROW).getRow(), true, end, inclEnd));
       if (ret == null) {
         return next.getRow();
       } else {
@@ -148,7 +148,7 @@ public class FindMax {
     } else {
 
       return _findMax(scanner,
-          RowRange.create(start, inclStart, mid, mid.equals(start) && inclStart));
+          RowRange.range(start, inclStart, mid, mid.equals(start) && inclStart));
     }
   }
 
@@ -186,6 +186,6 @@ public class FindMax {
       end = findInitialEnd(scanner);
     }
 
-    return _findMax(scanner, RowRange.create(start, is, end, rowRange.isEndRowInclusive()));
+    return _findMax(scanner, RowRange.range(start, is, end, rowRange.isEndRowInclusive()));
   }
 }
