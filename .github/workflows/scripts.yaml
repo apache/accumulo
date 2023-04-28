@@ -59,3 +59,13 @@ jobs:
     - name: Running shellcheck on all scripts
       run: contrib/ci/run-shellcheck.sh
 
+  thrift:
+    name: Thrift
+    timeout-minutes: 3
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Show the first log message
+      run: git log -n1
+    - name: Checking that thrift code gen matches repo contents
+      run: contrib/ci/check-thrift.sh
