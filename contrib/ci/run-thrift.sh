@@ -23,19 +23,6 @@
 
 set -e
 
-thriftdefault="0.16.0"
-rootDir=$(git rev-parse --show-toplevel 2>/dev/null) || ver=$thriftdefault
-ver=$({ xmllint --shell "$rootDir/pom.xml" <<<'xpath /*[local-name()="project"]/*[local-name()="properties"]/*[local-name()="thrift.version"]/text()' | grep content= | cut -f2 -d=; } 2>/dev/null || echo "$thriftdefault")
-ver=${ver%%-*}
-
-echo "Using Thrift $ver"
-
-url="https://dist.apache.org/repos/dist/dev/accumulo/devtools/thrift-$ver/thrift"
-
-echo "Downloading from $url ..."
-sudo wget "$url" -O /usr/local/bin/thrift &&
-  sudo chmod +x /usr/local/bin/thrift
-
 echo 'Checking if thrift modified any files...'
 (cd core && src/main/scripts/generate-thrift.sh)
 
