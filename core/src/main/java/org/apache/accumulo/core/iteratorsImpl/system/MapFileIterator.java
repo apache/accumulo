@@ -20,6 +20,7 @@ package org.apache.accumulo.core.iteratorsImpl.system;
 
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -124,14 +125,15 @@ public class MapFileIterator implements FileSKVIterator {
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     try {
-      @SuppressWarnings("deprecation")
-      SortedKeyValueIterator<Key,Value> other = env.reserveMapFileReader(dirName);
-      ((InterruptibleIterator) other).setInterruptFlag(interruptFlag);
+      Configuration hadoopConf = new Configuration();
+      FileSystem fs = FileSystem.get(hadoopConf);
+      MapFileIterator other = new MapFileIterator(fs, dirName, hadoopConf);
+      other.setInterruptFlag(interruptFlag);
       log.debug("deep copying MapFile: {} -> {}", this, other);
       return other;
     } catch (IOException e) {
       log.error("failed to clone map file reader", e);
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
   }
 
