@@ -59,3 +59,19 @@ jobs:
     - name: Running shellcheck on all scripts
       run: contrib/ci/run-shellcheck.sh
 
+  thrift:
+    name: Thrift
+    timeout-minutes: 3
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Show the first log message
+      run: git log -n1
+    - name: Update package repository
+      run: sudo apt-get update
+    - name: Install xmllint
+      run: sudo apt-get install libxml2-utils
+    - name: Install thrift
+      run: contrib/ci/install-thrift.sh
+    - name: Running thrift to check for changes
+      run: contrib/ci/run-thrift.sh
