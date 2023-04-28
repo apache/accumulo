@@ -67,5 +67,9 @@ jobs:
     - uses: actions/checkout@v3
     - name: Show the first log message
       run: git log -n1
+    - name: Update package repository
+      run: sudo apt-get update
+    - name: Install xmllint
+      run: sudo apt-get install libxml2-utils
     - name: Checking that thrift code gen matches repo contents
       run: contrib/ci/check-thrift.sh
