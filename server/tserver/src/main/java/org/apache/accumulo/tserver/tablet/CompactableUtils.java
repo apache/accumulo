@@ -283,9 +283,9 @@ public class CompactableUtils {
           FileSystem ns = tablet.getTabletServer().getVolumeManager().getFileSystemByPath(path);
           var tableConf = tablet.getTableConfiguration();
           var fiter = fileFactory.newReaderBuilder()
-              .forFile(path.toString(), file.getFence(), ns, ns.getConf(),
-                  tableConf.getCryptoService())
-              .withTableConfiguration(tableConf).seekToBeginning().build();
+              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+              .withFence(file.getFence()).withTableConfiguration(tableConf).seekToBeginning()
+              .build();
           return Optional.ofNullable(fiter.getSample(new SamplerConfigurationImpl(sc)));
         } catch (IOException e) {
           throw new UncheckedIOException(e);

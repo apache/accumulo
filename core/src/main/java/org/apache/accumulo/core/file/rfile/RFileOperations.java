@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.Optional;
 
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -63,9 +62,7 @@ public class RFileOperations extends FileOperations {
         .cacheProvider(options.cacheProvider).readLimiter(options.getRateLimiter())
         .cryptoService(options.getCryptoService());
     final RFile.Reader reader = new RFile.Reader(cb);
-    return Optional.ofNullable(options.getFence())
-        .map(fence -> (IndexedFileSKVIterator) new FencedReader(reader, options.getFence()))
-        .orElse(reader);
+    return options.getFence() == null ? reader : new FencedReader(reader, options.getFence());
   }
 
   @Override

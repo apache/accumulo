@@ -28,7 +28,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -37,7 +36,6 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
@@ -73,9 +71,9 @@ public class FileManager {
   private static class OpenReader implements Comparable<OpenReader> {
     long releaseTime;
     FileSKVIterator reader;
-    FencedFile file;
+    TabletFile file;
 
-    public OpenReader(FencedFile file, FileSKVIterator reader) {
+    public OpenReader(TabletFile file, FileSKVIterator reader) {
       this.file = file;
       this.reader = reader;
       this.releaseTime = System.currentTimeMillis();
@@ -100,8 +98,8 @@ public class FileManager {
     }
   }
 
-  private Map<FencedFile,List<OpenReader>> openFiles;
-  private HashMap<FileSKVIterator,FencedFile> reservedReaders;
+  private Map<TabletFile,List<OpenReader>> openFiles;
+  private HashMap<FileSKVIterator,TabletFile> reservedReaders;
 
   private Semaphore filePermits;
 
@@ -124,9 +122,9 @@ public class FileManager {
       // determine which files to close in a sync block, and then close the
       // files outside of the sync block
       synchronized (FileManager.this) {
-        Iterator<Entry<FencedFile,List<OpenReader>>> iter = openFiles.entrySet().iterator();
+        Iterator<Entry<TabletFile,List<OpenReader>>> iter = openFiles.entrySet().iterator();
         while (iter.hasNext()) {
-          Entry<FencedFile,List<OpenReader>> entry = iter.next();
+          Entry<TabletFile,List<OpenReader>> entry = iter.next();
           List<OpenReader> ofl = entry.getValue();
 
           for (Iterator<OpenReader> oflIter = ofl.iterator(); oflIter.hasNext();) {
@@ -175,7 +173,7 @@ public class FileManager {
         this.context.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FILEPERMIT_MILLIS);
   }
 
-  private static int countReaders(Map<FencedFile,List<OpenReader>> files) {
+  private static int countReaders(Map<TabletFile,List<OpenReader>> files) {
     int count = 0;
 
     for (List<OpenReader> list : files.values()) {
@@ -189,7 +187,7 @@ public class FileManager {
 
     ArrayList<OpenReader> openReaders = new ArrayList<>();
 
-    for (Entry<FencedFile,List<OpenReader>> entry : openFiles.entrySet()) {
+    for (Entry<TabletFile,List<OpenReader>> entry : openFiles.entrySet()) {
       openReaders.addAll(entry.getValue());
     }
 
@@ -225,10 +223,10 @@ public class FileManager {
     }
   }
 
-  private List<FencedFile> takeOpenFiles(Collection<FencedFile> files,
-      Map<FileSKVIterator,FencedFile> readersReserved) {
-    List<FencedFile> filesToOpen = Collections.emptyList();
-    for (FencedFile file : files) {
+  private List<TabletFile> takeOpenFiles(Collection<TabletFile> files,
+      Map<FileSKVIterator,TabletFile> readersReserved) {
+    List<TabletFile> filesToOpen = Collections.emptyList();
+    for (TabletFile file : files) {
       List<OpenReader> ofl = openFiles.get(file);
       if (ofl != null && !ofl.isEmpty()) {
         OpenReader openReader = ofl.remove(ofl.size() - 1);
@@ -246,8 +244,8 @@ public class FileManager {
     return filesToOpen;
   }
 
-  private Map<FileSKVIterator,FencedFile> reserveReaders(KeyExtent tablet,
-      Collection<FencedFile> files, boolean continueOnFailure, CacheProvider cacheProvider)
+  private Map<FileSKVIterator,TabletFile> reserveReaders(KeyExtent tablet,
+      Collection<TabletFile> files, boolean continueOnFailure, CacheProvider cacheProvider)
       throws IOException {
 
     if (!tablet.isMeta() && files.size() >= maxOpen) {
@@ -258,9 +256,9 @@ public class FileManager {
       return Collections.emptyMap();
     }
 
-    List<FencedFile> filesToOpen = null;
+    List<TabletFile> filesToOpen = null;
     List<FileSKVIterator> filesToClose = Collections.emptyList();
-    Map<FileSKVIterator,FencedFile> readersReserved = new HashMap<>();
+    Map<FileSKVIterator,TabletFile> readersReserved = new HashMap<>();
 
     if (!tablet.isMeta()) {
       long start = System.currentTimeMillis();
@@ -300,24 +298,24 @@ public class FileManager {
     closeReaders(filesToClose);
 
     // open any files that need to be opened
-    for (FencedFile file : filesToOpen) {
+    for (TabletFile file : filesToOpen) {
       try {
-        if (!file.path.contains(":")) {
+        if (!file.getPathStr().contains(":")) {
           throw new IllegalArgumentException("Expected uri, got : " + file);
         }
-        Path path = new Path(file.path);
+        Path path = new Path(file.getPathStr());
         FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
         // log.debug("Opening "+file + " path " + path);
         var tableConf = context.getTableConfiguration(tablet.tableId());
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(path.toString(), file.fence, ns, ns.getConf(), tableConf.getCryptoService())
-            .withTableConfiguration(tableConf).withCacheProvider(cacheProvider)
-            .withFileLenCache(fileLenCache).build();
+            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+            .withFence(file.getFence()).withTableConfiguration(tableConf)
+            .withCacheProvider(cacheProvider).withFileLenCache(fileLenCache).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
 
-        ProblemReports.getInstance(context)
-            .report(new ProblemReport(tablet.tableId(), ProblemType.FILE_READ, file.path, e));
+        ProblemReports.getInstance(context).report(
+            new ProblemReport(tablet.tableId(), ProblemType.FILE_READ, file.getPathStr(), e));
 
         if (continueOnFailure) {
           // release the permit for the file that failed to open
@@ -369,7 +367,7 @@ public class FileManager {
       }
 
       for (FileSKVIterator reader : readers) {
-        FencedFile file = reservedReaders.remove(reader);
+        TabletFile file = reservedReaders.remove(reader);
         if (!sawIOException) {
           openFiles.computeIfAbsent(file, k -> new ArrayList<>()).add(new OpenReader(file, reader));
         }
@@ -393,10 +391,10 @@ public class FileManager {
     private ArrayList<FileDataSource> deepCopies;
     private boolean current = true;
     private IteratorEnvironment env;
-    private FencedFile file;
+    private TabletFile file;
     private AtomicBoolean iflag;
 
-    FileDataSource(FencedFile file, SortedKeyValueIterator<Key,Value> iter) {
+    FileDataSource(TabletFile file, SortedKeyValueIterator<Key,Value> iter) {
       this.file = file;
       this.iter = iter;
       this.deepCopies = new ArrayList<>();
@@ -483,7 +481,7 @@ public class FileManager {
       }
     }
 
-    private Map<FileSKVIterator,FencedFile> openFiles(List<FencedFile> files)
+    private Map<FileSKVIterator,TabletFile> openFiles(List<TabletFile> files)
         throws TooManyFilesException, IOException {
       // one tablet can not open more than maxOpen files, otherwise it could get stuck
       // forever waiting on itself to release files
@@ -495,7 +493,7 @@ public class FileManager {
                 + maxOpen + " tablet = " + tablet);
       }
 
-      Map<FileSKVIterator,FencedFile> newlyReservedReaders =
+      Map<FileSKVIterator,TabletFile> newlyReservedReaders =
           reserveReaders(tablet, files, continueOnFailure, cacheProvider);
 
       tabletReservedReaders.addAll(newlyReservedReaders.keySet());
@@ -505,17 +503,17 @@ public class FileManager {
     public synchronized List<InterruptibleIterator> openFiles(Map<TabletFile,DataFileValue> files,
         boolean detachable, SamplerConfigurationImpl samplerConfig) throws IOException {
 
-      Map<FileSKVIterator,FencedFile> newlyReservedReaders =
-          openFiles(files.keySet().stream().map(FencedFile::toFenced).collect(Collectors.toList()));
+      Map<FileSKVIterator,TabletFile> newlyReservedReaders =
+          openFiles(files.keySet().stream().collect(Collectors.toList()));
 
       ArrayList<InterruptibleIterator> iters = new ArrayList<>();
 
       boolean someIteratorsWillWrap =
           files.values().stream().anyMatch(DataFileValue::willWrapIterator);
 
-      for (Entry<FileSKVIterator,FencedFile> entry : newlyReservedReaders.entrySet()) {
+      for (Entry<FileSKVIterator,TabletFile> entry : newlyReservedReaders.entrySet()) {
         FileSKVIterator source = entry.getKey();
-        FencedFile file = entry.getValue();
+        TabletFile file = entry.getValue();
         InterruptibleIterator iter;
 
         if (samplerConfig != null) {
@@ -525,12 +523,12 @@ public class FileManager {
           }
         }
 
-        iter = new ProblemReportingIterator(context, tablet.tableId(), file.path, continueOnFailure,
-            detachable ? getSsi(file, source) : source);
+        iter = new ProblemReportingIterator(context, tablet.tableId(), file.getPathStr(),
+            continueOnFailure, detachable ? getSsi(file, source) : source);
 
         if (someIteratorsWillWrap) {
           // constructing FileRef is expensive so avoid if not needed
-          DataFileValue value = files.get(new TabletFile(new Path(file.path), file.fence));
+          DataFileValue value = files.get(file);
           iter = value.wrapFileIterator(iter);
         }
 
@@ -540,7 +538,7 @@ public class FileManager {
       return iters;
     }
 
-    private SourceSwitchingIterator getSsi(FencedFile file, FileSKVIterator source) {
+    private SourceSwitchingIterator getSsi(TabletFile file, FileSKVIterator source) {
       FileDataSource fds = new FileDataSource(file, source);
       dataSources.add(fds);
       return new SourceSwitchingIterator(fds);
@@ -561,9 +559,9 @@ public class FileManager {
         throw new IllegalStateException();
       }
 
-      List<FencedFile> files = dataSources.stream().map(x -> x.file).collect(Collectors.toList());
-      Map<FileSKVIterator,FencedFile> newlyReservedReaders = openFiles(files);
-      Map<FencedFile,List<FileSKVIterator>> map = new HashMap<>();
+      List<TabletFile> files = dataSources.stream().map(x -> x.file).collect(Collectors.toList());
+      Map<FileSKVIterator,TabletFile> newlyReservedReaders = openFiles(files);
+      Map<TabletFile,List<FileSKVIterator>> map = new HashMap<>();
       newlyReservedReaders.forEach(
           (reader, file) -> map.computeIfAbsent(file, k -> new LinkedList<>()).add(reader));
 
@@ -594,34 +592,4 @@ public class FileManager {
     return new ScanFileManager(tablet, cacheProvider);
   }
 
-  private static class FencedFile {
-    final String path;
-    final Range fence;
-
-    private FencedFile(String path, Range fence) {
-      this.path = path;
-      this.fence = fence;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      FencedFile that = (FencedFile) o;
-      return Objects.equals(path, that.path) && Objects.equals(fence, that.fence);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(path, fence);
-    }
-
-    static FencedFile toFenced(TabletFile tabletFile) {
-      return new FencedFile(Objects.requireNonNull(tabletFile).getPathStr(), tabletFile.getFence());
-    }
-  }
 }

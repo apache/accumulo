@@ -1630,8 +1630,11 @@ public class RFile {
     @Override
     public Key getFirstKey() throws IOException {
       var rfk = reader.getFirstKey();
-      if(fence.beforeStartKey(rfk)) {
-        // TODO could seek the reader to find the least key in the range.  Not sure this is worth the effort, would result in ensuring when a tablet splits that files are only assigned to child tablets when they have data for that tablet.  Also its possible that rfile has no key within the fence range.
+      if (fence.beforeStartKey(rfk)) {
+        // TODO could seek the reader to find the least key in the range. Not sure this is worth the
+        // effort, would result in ensuring when a tablet splits that files are only assigned to
+        // child tablets when they have data for that tablet. Also its possible that rfile has no
+        // key within the fence range.
         return fence.getStartKey();
       } else {
         return rfk;
@@ -1641,8 +1644,9 @@ public class RFile {
     @Override
     public Key getLastKey() throws IOException {
       var rlk = reader.getLastKey();
-      if(fence.afterEndKey(rlk)) {
-        //TODO could attempt to find the greatest key in the reader that is in the range.   may need to add internal methods to rfile to do this efficiently
+      if (fence.afterEndKey(rlk)) {
+        // TODO could attempt to find the greatest key in the reader that is in the range. may need
+        // to add internal methods to rfile to do this efficiently
         return fence.getEndKey();
       } else {
         return rlk;

@@ -421,22 +421,15 @@ public abstract class FileOperations {
     private boolean seekToBeginning = false;
     private Range fence;
 
-    public ReaderTableConfiguration forFile(String filename, FileSystem fs, Configuration fsConf,
+    public ReaderBuilder forFile(String filename, FileSystem fs, Configuration fsConf,
         CryptoService cs) {
       filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
     }
 
-    public ReaderTableConfiguration forFile(TabletFile file, FileSystem fs, Configuration fsConf,
+    public ReaderBuilder forFile(TabletFile file, FileSystem fs, Configuration fsConf,
         CryptoService cs) {
-      return forFile(file.getPathStr(), file.getFence(), fs, fsConf, cs);
-    }
-
-    public ReaderTableConfiguration forFile(String filename, Range fence, FileSystem fs,
-        Configuration fsConf, CryptoService cs) {
-      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
-      this.fence = Objects.requireNonNull(fence);
-      return this;
+      return forFile(file.getPathStr(), fs, fsConf, cs).withFence(file.getFence());
     }
 
     @Override
@@ -481,6 +474,11 @@ public abstract class FileOperations {
     /** If true, seek the constructed iterator to the beginning of its domain before returning. */
     public ReaderBuilder seekToBeginning(boolean seekToBeginning) {
       this.seekToBeginning = seekToBeginning;
+      return this;
+    }
+
+    public ReaderBuilder withFence(Range fence) {
+      this.fence = Objects.requireNonNull(fence);
       return this;
     }
 
