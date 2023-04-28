@@ -1808,8 +1808,8 @@ public class Manager extends AbstractServer
   void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,
       Map<KeyExtent,UnassignedTablet> unassigned, Map<KeyExtent,TServerInstance> assignedOut) {
     AssignmentParamsImpl params = AssignmentParamsImpl.fromThrift(currentStatus,
-        unassigned.entrySet().stream().collect(
-            Collectors.toMap(Entry::getKey, e -> e.getValue().getLocation().getServerInstance())),
+        unassigned.entrySet().stream().collect(HashMap::new,
+            (m, e) -> m.put(e.getKey(), e.getValue().getServerInstance()), Map::putAll),
         assignedOut);
     tabletBalancer.getAssignments(params);
   }

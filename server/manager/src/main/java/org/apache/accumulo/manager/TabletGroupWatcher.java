@@ -919,8 +919,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             }
 
             final UnassignedTablet unassignedTablet = unassigned.get(assignment.getKey());
-            final TServerInstance serverInstance = unassignedTablet != null
-                ? unassignedTablet.getLocation().getServerInstance() : null;
+            final TServerInstance serverInstance =
+                unassignedTablet != null ? unassignedTablet.getServerInstance() : null;
             if (serverInstance != null
                 && !assignment.getValue().getHostPort().equals(serverInstance.getHostPort())) {
               Manager.log.warn(

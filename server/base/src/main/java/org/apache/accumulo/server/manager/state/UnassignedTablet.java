@@ -18,8 +18,7 @@
  */
 package org.apache.accumulo.server.manager.state;
 
-import java.util.Objects;
-
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 
 public class UnassignedTablet {
@@ -27,7 +26,7 @@ public class UnassignedTablet {
   private final Location lastLocation;
 
   public UnassignedTablet(Location location, Location lastLocation) {
-    this.location = Objects.requireNonNull(location);
+    this.location = location;
     this.lastLocation = lastLocation;
   }
 
@@ -37,5 +36,9 @@ public class UnassignedTablet {
 
   public Location getLastLocation() {
     return lastLocation;
+  }
+
+  public TServerInstance getServerInstance() {
+    return location != null ? location.getServerInstance() : null;
   }
 }
