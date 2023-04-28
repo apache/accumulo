@@ -52,6 +52,9 @@ import org.junit.jupiter.api.Test;
 
 public class ZKAuthenticatorTest {
 
+  // test password
+  private byte[] rawPass = "myPassword".getBytes(UTF_8);
+
   @Test
   public void testPermissionIdConversions() {
     for (SystemPermission s : SystemPermission.values()) {
@@ -112,8 +115,6 @@ public class ZKAuthenticatorTest {
     storedBytes = ZKSecurityTool.createPass(rawPass.clone());
     assertTrue(ZKSecurityTool.checkCryptPass(rawPass.clone(), storedBytes));
   }
-
-  private byte[] rawPass = "myPassword".getBytes(UTF_8);
 
   @Test
   public void testOutdatedPassword() throws AccumuloException {
