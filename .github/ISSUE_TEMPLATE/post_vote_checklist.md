@@ -24,8 +24,8 @@ assignees: ''
 - Verify published artifacts
   - [ ] In [Maven Central](https://repo1.maven.org/maven2/org/apache/accumulo/accumulo-core/)
   - [ ] In [ASF Downloads](https://downloads.apache.org/accumulo)
-  - [ ] In [several mirrors](https://www.apache.org/dyn/closer.lua/accumulo)
-- Update the [staging website](https://accumulo.staged.apache.org/)
+  - [ ] In [several mirrors or CDN](https://www.apache.org/dyn/closer.lua/accumulo)
+- Update the [website](https://accumulo.apache.org/)
   - [ ] Release notes
   - [ ] Add `LTM: true` to the release notes front-matter for LTM releases
   - [ ] Navigation
@@ -37,7 +37,6 @@ assignees: ''
   - [ ] Jekyll config
   - [ ] Grep for, and update any links to previous version to now point to the new version
   - [ ] Update any older release notes front-matter to indicate they are either `archived: true` or `archived_critical: true`
-  - [ ] [Publish to production](https://github.com/apache/accumulo-website#publishing-staging-to-production)
 - Announcement email
   - [ ] Prepare and get review on dev list (see examples [from previous announcement messages](https://lists.apache.org/list.html?announce@apache.org:gte=1d:accumulo))
   - [ ] Send to announce@apache.org and user@accumulo.apache.org (use plain text mode only; html email will be rejected)
