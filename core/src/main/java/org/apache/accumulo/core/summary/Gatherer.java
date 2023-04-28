@@ -73,6 +73,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CancelFlagFuture;
 import org.apache.accumulo.core.util.CompletableFutureUtil;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -214,15 +215,16 @@ public class Gatherer {
         location = tservers.get(idx);
       }
 
+      Function<RowRange,TRowRange> toTRowRange =
+          r -> new TRowRange(TextUtil.getByteBuffer(r.getStartRow()),
+              TextUtil.getByteBuffer(r.getEndRow()));
+
       // merge contiguous ranges
       List<Range> merged = Range.mergeOverlapping(entry.getValue().stream()
           .map(tm -> tm.getExtent().toDataRange()).collect(Collectors.toList()));
+      // clip ranges to queried range
       List<TRowRange> ranges =
-          merged.stream().map(r -> toClippedExtent(r).toThrift()).collect(Collectors.toList()); // clip
-                                                                                                // ranges
-                                                                                                // to
-                                                                                                // queried
-                                                                                                // range
+          merged.stream().map(this::toClippedExtent).map(toTRowRange).collect(Collectors.toList());
 
       locations.computeIfAbsent(location, s -> new HashMap<>()).put(entry.getKey(), ranges);
     }
@@ -432,11 +434,13 @@ public class Gatherer {
   public Future<SummaryCollection> processFiles(FileSystemResolver volMgr,
       Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
       Cache<String,Long> fileLenCache, ExecutorService srp) {
+    Function<TRowRange,RowRange> fromThrift =
+        tRowRange -> RowRange.closedOpen(ByteBufferUtil.toText(tRowRange.startRow),
+            ByteBufferUtil.toText(tRowRange.endRow));
     List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {
       futures.add(CompletableFuture.supplyAsync(() -> {
-        List<RowRange> rrl =
-            entry.getValue().stream().map(RowRange::fromThrift).collect(Collectors.toList());
+        List<RowRange> rrl = entry.getValue().stream().map(fromThrift).collect(Collectors.toList());
         return getSummaries(volMgr, entry.getKey(), rrl, summaryCache, indexCache, fileLenCache);
       }, srp));
     }
