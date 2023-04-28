@@ -63,8 +63,8 @@ class MetaDataStateStore implements TabletStateStore {
       for (Assignment assignment : assignments) {
         TabletMutator tabletMutator = tabletsMutator.mutateTablet(assignment.tablet);
         tabletMutator.putLocation(Location.current(assignment.server));
-        ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator,
-            assignment.tablet, assignment.server, assignment.lastLocation);
+        ManagerMetadataUtil.updateLastForAssignmentMode(context, tabletMutator, assignment.server,
+            assignment.lastLocation);
         tabletMutator.deleteLocation(Location.future(assignment.server));
         tabletMutator.deleteSuspension();
         tabletMutator.mutate();
@@ -107,7 +107,7 @@ class MetaDataStateStore implements TabletStateStore {
       for (TabletLocationState tls : tablets) {
         TabletMutator tabletMutator = tabletsMutator.mutateTablet(tls.extent);
         if (tls.current != null) {
-          ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator, tls.extent,
+          ManagerMetadataUtil.updateLastForAssignmentMode(context, tabletMutator,
               tls.current.getServerInstance(), tls.last);
           tabletMutator.deleteLocation(tls.current);
           if (logsForDeadServers != null) {

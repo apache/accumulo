@@ -74,6 +74,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
@@ -282,11 +283,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 hostSuspendedTablet(tLists, tls, location, tableConf);
                 break;
               case UNASSIGNED:
-                hostUnassignedTablet(tLists, tls.extent, location);
+                hostUnassignedTablet(tLists, tls.extent, location, tls.last);
                 break;
               case ASSIGNED:
                 // Send another reminder
-                tLists.assigned.add(new Assignment(tls.extent, tls.getFutureServer()));
+                tLists.assigned.add(new Assignment(tls.extent, tls.getFutureServer(), tls.last));
                 break;
             }
           } else {
@@ -380,14 +381,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
-  private void hostUnassignedTablet(TabletLists tLists, KeyExtent tablet,
-      TServerInstance location) {
+  private void hostUnassignedTablet(TabletLists tLists, KeyExtent tablet, TServerInstance location,
+      Location lastLocation) {
     // maybe it's a finishing migration
     TServerInstance dest = manager.migrations.get(tablet);
     if (dest != null) {
       // if destination is still good, assign it
       if (tLists.destinations.containsKey(dest)) {
-        tLists.assignments.add(new Assignment(tablet, dest));
+        tLists.assignments.add(new Assignment(tablet, dest, lastLocation));
       } else {
         // get rid of this migration
         manager.migrations.remove(tablet);
@@ -415,7 +416,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       // Old tablet server is back. Return this tablet to its previous owner.
       if (returnInstance != null) {
-        tLists.assignments.add(new Assignment(tls.extent, returnInstance));
+        tLists.assignments.add(new Assignment(tls.extent, returnInstance, tls.last));
       }
       // else - tablet server not back. Don't ask for a new assignment right now.
 
@@ -924,7 +925,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                   lastLocation.getHostPort());
             }
 
-            tLists.assignments.add(new Assignment(assignment.getKey(), assignment.getValue()));
+            tLists.assignments.add(new Assignment(assignment.getKey(), assignment.getValue(),
+                lastLocation != null ? Location.last(lastLocation) : null));
           }
         } else {
           Manager.log.warn(

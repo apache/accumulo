@@ -23,18 +23,9 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 
 public class Assignment {
-  public KeyExtent tablet;
-  public TServerInstance server;
-
-  /**
-   * Optional field to track the lastLocation of the Tablet that is being assigned
-   */
-  public Location lastLocation;
-
-  public Assignment(KeyExtent tablet, TServerInstance server) {
-    this.tablet = tablet;
-    this.server = server;
-  }
+  public final KeyExtent tablet;
+  public final TServerInstance server;
+  public final Location lastLocation;
 
   public Assignment(KeyExtent tablet, TServerInstance server, Location lastLocation) {
     this.tablet = tablet;
