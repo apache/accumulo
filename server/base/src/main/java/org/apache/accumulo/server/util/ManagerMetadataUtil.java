@@ -261,7 +261,6 @@ public class ManagerMetadataUtil {
       Ample.TabletMutator tabletMutator, TServerInstance location, Location lastLocation) {
     // if the location mode is assignment, then preserve the current location in the last
     // location value
-    log.info("Loaded Last location: {}", lastLocation);
     if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
       ManagerMetadataUtil.updateLocation(tabletMutator, lastLocation, Location.last(location));
     }
