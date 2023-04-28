@@ -34,7 +34,7 @@ import java.util.ServiceLoader;
  *
  * <p>
  * One way to easily create META-INF/services files is to use the
- * <a href="https://github.com/google/auto/tree/master/service">AutoService</a> annotation.
+ * <a href="https://github.com/google/auto/tree/main/service">AutoService</a> annotation.
  *
  * <p>
  * If the implementing class also wishes to have a redundant main method, it may be useful to simply

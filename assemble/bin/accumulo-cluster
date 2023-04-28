@@ -50,14 +50,6 @@ function parse_fail {
 
 function parse_config {
 
-  for file in slaves tservers monitor tracers gc managers masters; do
-    if [[ -f ${conf}/${file} ]]; then
-      echo "ERROR: A '${file}' file was found in ${conf}/"
-      echo "Accumulo now uses cluster host configuration information from 'cluster.yaml' and requires that the '${file}' file not be present to reduce confusion."
-      exit 1
-    fi
-  done
-
   if [[ ! -f ${conf}/cluster.yaml ]]; then
     echo "ERROR: A 'cluster.yaml' file was not found at ${conf}/cluster.yaml"
     echo "Please make sure it exists and is configured with the host information. Run 'accumulo-cluster create-config' to create an example configuration."

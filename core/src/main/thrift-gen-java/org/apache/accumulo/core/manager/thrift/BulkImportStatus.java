@@ -22,7 +22,7 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.master.thrift;
+package org.apache.accumulo.core.manager.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
 public class BulkImportStatus implements org.apache.thrift.TBase<BulkImportStatus, BulkImportStatus._Fields>, java.io.Serializable, Cloneable, Comparable<BulkImportStatus> {
@@ -525,7 +525,7 @@ public class BulkImportStatus implements org.apache.thrift.TBase<BulkImportStatu
             break;
           case 3: // STATE
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-              struct.state = org.apache.accumulo.core.master.thrift.BulkImportState.findByValue(iprot.readI32());
+              struct.state = org.apache.accumulo.core.manager.thrift.BulkImportState.findByValue(iprot.readI32());
               struct.setStateIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -613,7 +613,7 @@ public class BulkImportStatus implements org.apache.thrift.TBase<BulkImportStatu
         struct.setFilenameIsSet(true);
       }
       if (incoming.get(2)) {
-        struct.state = org.apache.accumulo.core.master.thrift.BulkImportState.findByValue(iprot.readI32());
+        struct.state = org.apache.accumulo.core.manager.thrift.BulkImportState.findByValue(iprot.readI32());
         struct.setStateIsSet(true);
       }
     }
