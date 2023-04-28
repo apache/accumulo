@@ -1257,9 +1257,6 @@ public class Manager extends AbstractServer
       sleepUninterruptibly(100, MILLISECONDS);
     }
 
-    // checking stored user hashes if any of them uses an outdated algorithm
-    security.validateStoredUserCreditentials();
-
     // The manager is fully initialized. Clients are allowed to connect now.
     managerInitialized.set(true);
 
