@@ -20,12 +20,10 @@ package org.apache.accumulo.core.util;
 
 import java.util.Base64;
 
-import org.apache.hadoop.io.Text;
-
 public class Encoding {
 
-  public static String encodeAsBase64FileName(Text data) {
-    String encodedRow = Base64.getUrlEncoder().encodeToString(TextUtil.getBytes(data));
+  public static String encodeAsBase64FileName(byte[] data) {
+    String encodedRow = Base64.getUrlEncoder().encodeToString(data);
 
     int index = encodedRow.length() - 1;
     while (index >= 0 && encodedRow.charAt(index) == '=') {

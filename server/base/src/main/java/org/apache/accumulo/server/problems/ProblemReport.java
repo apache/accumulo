@@ -37,10 +37,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ProblemSection;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 
 public class ProblemReport {
@@ -140,14 +140,14 @@ public class ProblemReport {
   }
 
   void removeFromMetadataTable(ServerContext context) throws Exception {
-    Mutation m = new Mutation(new Text("~err_" + tableId));
-    m.putDelete(new Text(problemType.name()), new Text(resource));
+    Mutation m = new Mutation(ProblemSection.getRowPrefix() + tableId);
+    m.putDelete(problemType.name(), resource);
     MetadataTableUtil.getMetadataTable(context).update(m);
   }
 
   void saveToMetadataTable(ServerContext context) throws Exception {
-    Mutation m = new Mutation(new Text("~err_" + tableId));
-    m.put(new Text(problemType.name()), new Text(resource), new Value(encode()));
+    Mutation m = new Mutation(ProblemSection.getRowPrefix() + tableId);
+    m.put(problemType.name(), resource, new Value(encode()));
     MetadataTableUtil.getMetadataTable(context).update(m);
   }
 
@@ -176,8 +176,7 @@ public class ProblemReport {
     dos.close();
     baos.close();
 
-    return zkRoot + Constants.ZPROBLEMS + "/"
-        + Encoding.encodeAsBase64FileName(new Text(baos.toByteArray()));
+    return zkRoot + Constants.ZPROBLEMS + "/" + Encoding.encodeAsBase64FileName(baos.toByteArray());
   }
 
   static ProblemReport decodeZooKeeperEntry(ServerContext context, String node)
@@ -199,7 +198,8 @@ public class ProblemReport {
   }
 
   public static ProblemReport decodeMetadataEntry(Entry<Key,Value> entry) throws IOException {
-    TableId tableId = TableId.of(entry.getKey().getRow().toString().substring("~err_".length()));
+    TableId tableId = TableId
+        .of(entry.getKey().getRow().toString().substring(ProblemSection.getRowPrefix().length()));
     String problemType = entry.getKey().getColumnFamily().toString();
     String resource = entry.getKey().getColumnQualifier().toString();
 

@@ -820,7 +820,7 @@ public class Upgrader9to10 implements Upgrader {
     // A relative path file of the form "/tableId/tabletDir/file" will have depth == 3
     Preconditions.checkState(
         oldDelete.startsWith("/") && (pathToCheck.depth() == 2 || pathToCheck.depth() == 3),
-        "Unrecognized relative delete marker {}", oldDelete);
+        "Unrecognized relative delete marker (%s)", oldDelete);
 
     // found relative paths so verify the property used to build the absolute paths
     if (upgradeProperty == null || upgradeProperty.isBlank()) {

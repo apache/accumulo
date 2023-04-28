@@ -668,7 +668,7 @@ public class ShellIT extends SharedMiniClusterBase {
 
   private String getTableNameFromId(Map<String,String> map, String value) {
     return map.entrySet().stream().filter(entry -> value.equals(entry.getValue()))
-        .map(Map.Entry::getKey).findFirst().get();
+        .map(Map.Entry::getKey).findFirst().orElseThrow();
   }
 
   private void createTables(final int limit, final int modifier) throws IOException {

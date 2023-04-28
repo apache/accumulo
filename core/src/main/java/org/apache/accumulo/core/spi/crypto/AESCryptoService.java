@@ -169,11 +169,11 @@ public class AESCryptoService implements CryptoService {
     ensureInit();
     CryptoModule cm;
     var decryptionParams = environment.getDecryptionParams();
-    if (decryptionParams.isEmpty() || checkNoCrypto(decryptionParams.get())) {
+    if (decryptionParams.isEmpty() || checkNoCrypto(decryptionParams.orElseThrow())) {
       return new NoFileDecrypter();
     }
 
-    ParsedCryptoParameters parsed = parseCryptoParameters(decryptionParams.get());
+    ParsedCryptoParameters parsed = parseCryptoParameters(decryptionParams.orElseThrow());
     Key kek = loadDecryptionKek(parsed);
     Key fek = unwrapKey(parsed.getEncFek(), kek);
     switch (parsed.getCryptoServiceVersion()) {

@@ -180,8 +180,8 @@ public class MetadataIT extends AccumuloClusterHarness {
       TabletsMetadata tablets = cc.getAmple().readTablets().forTable(TableId.of("1"))
           .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build();
 
-      TabletMetadata tabletMetadata0 = tablets.stream().findFirst().get();
-      TabletMetadata tabletMetadata1 = tablets.stream().skip(1).findFirst().get();
+      TabletMetadata tabletMetadata0 = tablets.stream().findFirst().orElseThrow();
+      TabletMetadata tabletMetadata1 = tablets.stream().skip(1).findFirst().orElseThrow();
 
       String infoTabletId0 = tabletMetadata0.getTableId().toString();
       String infoExtent0 = tabletMetadata0.getExtent().toString();

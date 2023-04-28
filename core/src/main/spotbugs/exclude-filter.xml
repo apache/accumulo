@@ -39,11 +39,6 @@
     </Or>
   </Match>
   <Match>
-    <!-- Must ignore these everywhere, because of a javac byte code generation bug -->
-    <!-- https://github.com/spotbugs/spotbugs/issues/756 -->
-    <Bug pattern="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE" />
-  </Match>
-  <Match>
     <!-- More convenient to ignore these everywhere, because it's very common and unimportant -->
     <Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS" />
   </Match>
