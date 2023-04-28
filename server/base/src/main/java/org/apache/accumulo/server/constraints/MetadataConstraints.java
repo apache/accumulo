@@ -53,6 +53,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.server.ServerContext;
@@ -224,8 +225,15 @@ public class MetadataConstraints implements Constraint {
         try {
           TabletHostingGoalUtil.fromValue(new Value(columnUpdate.getValue()));
         } catch (IllegalArgumentException e) {
-          violations = addViolation(violations, 4);
+          violations = addViolation(violations, 10);
         }
+      } else if (ServerColumnFamily.OPID_COLUMN.equals(columnFamily, columnQualifier)) {
+        try {
+          TabletOperationId.validate(new String(columnUpdate.getValue(), UTF_8));
+        } catch (IllegalArgumentException e) {
+          violations = addViolation(violations, 9);
+        }
+
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
           // splits, which also write the time reference, are allowed to write this reference even
@@ -357,6 +365,10 @@ public class MetadataConstraints implements Constraint {
         return "Lock not held in zookeeper by writer";
       case 8:
         return "Bulk load transaction no longer running";
+      case 9:
+        return "Malformed operation id";
+      case 10:
+        return "Malformed hosting goal";
     }
     return null;
   }
