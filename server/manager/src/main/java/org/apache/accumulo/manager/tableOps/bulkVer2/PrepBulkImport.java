@@ -95,7 +95,6 @@ public class PrepBulkImport extends ManagerRepo {
     if (manager.onlineTabletServers().isEmpty()) {
       return 500;
     }
-    manager.getContext().clearTableListCache();
 
     return Utils.reserveHdfsDirectory(manager, bulkInfo.sourceDir, tid);
   }

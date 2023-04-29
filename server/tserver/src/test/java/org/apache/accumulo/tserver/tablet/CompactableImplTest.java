@@ -370,7 +370,7 @@ public class CompactableImplTest {
         newFiles("F00001", "F00002", "F00003", "F00004", "F00005", "F00006"), toRemove);
     assertEquals(Set.of(), toRemove.keySet());
     assertTrue(selInfoOpt.isPresent());
-    var selInfo = selInfoOpt.get();
+    var selInfo = selInfoOpt.orElseThrow();
 
     assertTrue(selInfo.initiallySelectedAll);
     assertEquals(CompactionKind.USER, selInfo.selectKind);

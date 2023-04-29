@@ -26798,13 +26798,13 @@ public class ManagerClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list78 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<java.lang.String>(_list78.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _elem79;
-                  for (int _i80 = 0; _i80 < _list78.size; ++_i80)
+                  org.apache.thrift.protocol.TList _list104 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<java.lang.String>(_list104.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _elem105;
+                  for (int _i106 = 0; _i106 < _list104.size; ++_i106)
                   {
-                    _elem79 = iprot.readString();
-                    struct.success.add(_elem79);
+                    _elem105 = iprot.readString();
+                    struct.success.add(_elem105);
                   }
                   iprot.readListEnd();
                 }
@@ -26851,9 +26851,9 @@ public class ManagerClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.lang.String _iter81 : struct.success)
+            for (java.lang.String _iter107 : struct.success)
             {
-              oprot.writeString(_iter81);
+              oprot.writeString(_iter107);
             }
             oprot.writeListEnd();
           }
@@ -26901,9 +26901,9 @@ public class ManagerClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.lang.String _iter82 : struct.success)
+            for (java.lang.String _iter108 : struct.success)
             {
-              oprot.writeString(_iter82);
+              oprot.writeString(_iter108);
             }
           }
         }
@@ -26921,13 +26921,13 @@ public class ManagerClientService {
         java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list83 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
-            struct.success = new java.util.ArrayList<java.lang.String>(_list83.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _elem84;
-            for (int _i85 = 0; _i85 < _list83.size; ++_i85)
+            org.apache.thrift.protocol.TList _list109 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.success = new java.util.ArrayList<java.lang.String>(_list109.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem110;
+            for (int _i111 = 0; _i111 < _list109.size; ++_i111)
             {
-              _elem84 = iprot.readString();
-              struct.success.add(_elem84);
+              _elem110 = iprot.readString();
+              struct.success.add(_elem110);
             }
           }
           struct.setSuccessIsSet(true);

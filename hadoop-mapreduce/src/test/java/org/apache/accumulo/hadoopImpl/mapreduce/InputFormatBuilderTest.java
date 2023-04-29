@@ -115,7 +115,7 @@ public class InputFormatBuilderTest {
     formatBuilderTest.classLoaderContext(context);
 
     Optional<String> classLoaderContextStr = formatBuilderTest.getClassLoaderContext();
-    assertEquals(context, classLoaderContextStr.get());
+    assertEquals(context, classLoaderContextStr.orElseThrow());
   }
 
   @Test
