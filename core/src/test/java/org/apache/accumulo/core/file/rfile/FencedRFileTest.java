@@ -19,16 +19,19 @@
 package org.apache.accumulo.core.file.rfile;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.accumulo.core.crypto.CryptoTest;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.rfile.RFile.FencedReader;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -62,7 +65,7 @@ public class FencedRFileTest extends AbstractRFileTest {
   @Test
   public void testFencing2() throws IOException {
     // Test with 2 ranges that are continuous which should be merged
-    // Expect entire range to be seen as first range end key is inclusive
+    // Expect entire all rows to be seen as first range end key is inclusive
     assertEquals(1024,
         testFencing(List.of(new Range(null, new Key("r_000002")), new Range("r_000002", null)),
             List.of(new Range())));
@@ -170,6 +173,49 @@ public class FencedRFileTest extends AbstractRFileTest {
     assertEquals(512, testFencing(ranges, ranges));
   }
 
+  @Test
+  public void testFencing11() throws IOException {
+    // Test fence covering just a single row
+    final List<Range> ranges = List.of(new Range("r_000001", true, "r_000002", false));
+
+    // should be 256 keys in row r_000001
+    assertEquals(256, testFencing(ranges, ranges));
+  }
+
+  @Test
+  public void testFencing12() throws IOException {
+    final TestRFile trf = new TestRFile(conf);
+    trf.openWriter();
+    writeTestFile(trf);
+    trf.closeWriter();
+
+    // Fence off the file to contain only 1 row (r_00001)
+    Range range = new Range(new Range("r_000001", true, "r_000002", false));
+    trf.openReader(range);
+
+    // Open a fenced reader
+    final SortedKeyValueIterator<Key,Value> iter = trf.iter;
+    assertTrue(iter instanceof FencedReader);
+
+    // Seek to the row that is part of the fence
+    seek(iter, new Key(new Text("r_000001")));
+    assertTrue(iter.hasTop());
+
+    // each row has 256 keys, read 1/4 of the keys
+    // and verify hasTop() is true
+    for (int i = 0; i < 64; i++) {
+      iter.next();
+      assertTrue(iter.hasTop());
+    }
+
+    // Seek to a range that is disjoint. The fence only covers
+    // row r_000001 as end row is exclusive so seeking to row r_000002
+    // should result in hasTop() returning false
+    seek(iter, new Key(new Text("r_000002")));
+    // Verify hasTop() is now false
+    assertFalse(iter.hasTop());
+  }
+
   private int testFencing(List<Range> fencedRange, List<Range> expectedRange) throws IOException {
     // test an rfile with multiple rows having multiple columns
 
@@ -186,7 +232,7 @@ public class FencedRFileTest extends AbstractRFileTest {
       expectedValues.clear();
       final TestRFile trf = new TestRFile(conf);
       trf.openWriter();
-      write(trf, expectedKeys, expectedValues, expectedRange);
+      writeTestFile(trf, expectedKeys, expectedValues, expectedRange);
       trf.closeWriter();
       rangedTrfs.add(trf);
       trf.openReader(range);
@@ -292,8 +338,12 @@ public class FencedRFileTest extends AbstractRFileTest {
     iter.seek(new Range(nk, null), EMPTY_COL_FAMS, false);
   }
 
-  private void write(final TestRFile trf, final List<Key> expectedKeys,
-      final List<Value> expectedValues, List<Range> expected) throws IOException {
+  private void writeTestFile(final TestRFile trf) throws IOException {
+    writeTestFile(trf, null, null, null);
+  }
+
+  private void writeTestFile(final TestRFile trf, final List<Key> expectedKeys,
+      final List<Value> expectedValues, List<Range> expectedRange) throws IOException {
     int val = 0;
 
     for (int row = 0; row < 4; row++) {
@@ -312,10 +362,12 @@ public class FencedRFileTest extends AbstractRFileTest {
               Value v = newValue("" + val);
               trf.writer.append(k, v);
               final Key finalK = k;
-              if (expected.stream().anyMatch(range -> range.contains(finalK))) {
-                expectedKeys.add(k);
-                expectedValues.add(v);
-              }
+              Optional.ofNullable(expectedRange).ifPresent(expected -> {
+                if (expected.stream().anyMatch(range -> range.contains(finalK))) {
+                  expectedKeys.add(k);
+                  expectedValues.add(v);
+                }
+              });
               val++;
             }
           }

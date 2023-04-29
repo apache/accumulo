@@ -32,6 +32,10 @@ public interface CompactableFile {
 
   public String getFileName();
 
+  /**
+   * @return The fenced range for this file
+   * @since 3.1.0
+   */
   public Range getFence();
 
   public URI getUri();
