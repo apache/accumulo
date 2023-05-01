@@ -18,27 +18,14 @@
  */
 package org.apache.accumulo.core.iterators;
 
-import java.io.IOException;
-
 import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 
 public interface IteratorEnvironment {
-
-  /**
-   * @deprecated since 2.0.0. This is a legacy method used for internal backwards compatibility.
-   */
-  @Deprecated(since = "2.0.0")
-  default SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
-      throws IOException {
-    throw new UnsupportedOperationException();
-  }
 
   /**
    * Return the executed scope of the Iterator. Value will be one of the following:

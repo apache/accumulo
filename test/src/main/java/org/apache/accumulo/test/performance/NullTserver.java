@@ -54,7 +54,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
@@ -114,12 +114,6 @@ public class NullTserver {
     @Override
     public UpdateErrors closeUpdate(TInfo tinfo, long updateID) {
       return new UpdateErrors(new HashMap<>(), new ArrayList<>(), new HashMap<>());
-    }
-
-    @Override
-    public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, long tid,
-        Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime) {
-      return null;
     }
 
     @Override

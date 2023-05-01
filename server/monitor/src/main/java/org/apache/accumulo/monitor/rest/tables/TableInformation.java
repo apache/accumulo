@@ -21,7 +21,7 @@ package org.apache.accumulo.monitor.rest.tables;
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.monitor.util.JaxbAbstractIdSerializer;
 
 /**
