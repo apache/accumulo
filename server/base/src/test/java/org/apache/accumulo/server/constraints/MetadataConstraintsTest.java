@@ -258,4 +258,23 @@ public class MetadataConstraintsTest {
 
   }
 
+  @Test
+  public void testOperationId() {
+    MetadataConstraints mc = new TestMetadataConstraints();
+    Mutation m;
+    List<Short> violations;
+
+    m = new Mutation(new Text("0;foo"));
+    ServerColumnFamily.OPID_COLUMN.put(m, new Value("bad id"));
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 9), violations.get(0));
+
+    m = new Mutation(new Text("0;foo"));
+    ServerColumnFamily.OPID_COLUMN.put(m, new Value("MERGING:FATE[123abc]"));
+    violations = mc.check(createEnv(), m);
+    assertNull(violations);
+  }
+
 }

@@ -37,7 +37,6 @@ import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -321,7 +320,7 @@ public interface Ample {
 
     T deleteHostingRequested();
 
-    T putOperation(TabletOperation operation, TabletOperationId opId);
+    T putOperation(TabletOperationId opId);
 
     T deleteOperation();
 
@@ -347,7 +346,9 @@ public interface Ample {
    * A tablet operation is a mutually exclusive action that is running against a tablet. Its very
    * important that every conditional mutation specifies requirements about operations in order to
    * satisfy the mutual exclusion goal. This interface forces those requirements to specified by
-   * making it the only choice avialable before specifying other tablet requirements or mutations.
+   * making it the only choice available before specifying other tablet requirements or mutations.
+   *
+   * @see MetadataSchema.TabletsSection.ServerColumnFamily#OPID_COLUMN
    */
   interface OperationRequirements {
 
@@ -355,8 +356,7 @@ public interface Ample {
      * Require a specific operation with a unique id is present. This would be normally be called by
      * the code executing that operation.
      */
-    ConditionalTabletMutator requireOperation(TabletOperation operation,
-        TabletOperationId operationId);
+    ConditionalTabletMutator requireOperation(TabletOperationId operationId);
 
     /**
      * Require that no mutually exclusive operations are runnnig against this tablet.

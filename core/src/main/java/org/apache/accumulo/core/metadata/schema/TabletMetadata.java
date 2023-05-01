@@ -61,7 +61,6 @@ import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.TabletLocationState;
-import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -119,7 +118,6 @@ public class TabletMetadata {
   private boolean chopped = false;
   private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
   private boolean onDemandHostingRequested = false;
-  private TabletOperation operation;
   private TabletOperationId operationId;
 
   public enum LocationType {
@@ -404,11 +402,10 @@ public class TabletMetadata {
     return extCompactions;
   }
 
-  public TabletOperation getOperation() {
-    ensureFetched(ColumnType.OPID);
-    return operation;
-  }
-
+  /**
+   * @return the operation id if it exist, null otherwise
+   * @see MetadataSchema.TabletsSection.ServerColumnFamily#OPID_COLUMN
+   */
   public TabletOperationId getOperationId() {
     ensureFetched(ColumnType.OPID);
     return operationId;
@@ -485,9 +482,7 @@ public class TabletMetadata {
               te.compact = OptionalLong.of(Long.parseLong(val));
               break;
             case OPID_QUAL:
-              String[] tokens = val.split(":", 2);
-              te.operation = TabletOperation.valueOf(tokens[0]);
-              te.operationId = new TabletOperationId(tokens[1]);
+              te.operationId = TabletOperationId.from(val);
               break;
           }
           break;
