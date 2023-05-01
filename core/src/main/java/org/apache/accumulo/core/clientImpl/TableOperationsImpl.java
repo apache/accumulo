@@ -62,6 +62,7 @@ import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -1928,9 +1929,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ClientTabletCache locator = ClientTabletCache.getInstance(context, tableId);
     locator.invalidateCache();
 
-Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
-            .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
-            .logInterval(3, MINUTES).createRetry();
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
+        .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
+        .logInterval(3, MINUTES).createRetry();
 
     ArrayList<KeyExtent> locationLess = new ArrayList<>();
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
