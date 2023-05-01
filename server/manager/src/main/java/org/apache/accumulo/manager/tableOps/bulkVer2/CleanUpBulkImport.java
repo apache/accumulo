@@ -20,7 +20,6 @@ package org.apache.accumulo.manager.tableOps.bulkVer2;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Optional;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.FateTxId;
@@ -29,6 +28,7 @@ import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.util.Nulls;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -53,7 +53,8 @@ public class CleanUpBulkImport extends ManagerRepo {
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
     manager.updateBulkImportStatus(info.sourceDir, BulkImportState.CLEANUP);
-    log.debug("removing the bulkDir processing flag file in " + info.bulkDir);
+    log.debug("{} removing the bulkDir processing flag file in {}", FateTxId.formatTid(tid),
+        info.bulkDir);
     Ample ample = manager.getContext().getAmple();
     Path bulkDir = new Path(info.bulkDir);
     ample.removeBulkLoadInProgressFlag(
@@ -61,10 +62,14 @@ public class CleanUpBulkImport extends ManagerRepo {
     ample.putGcFileAndDirCandidates(info.tableId,
         Collections.singleton(new ReferenceFile(info.tableId, bulkDir.toString())));
     if (info.tableState == TableState.ONLINE) {
-      log.debug("removing the metadata table markers for loaded files");
-      ample.removeBulkLoadEntries(info.tableId, tid,
-          Optional.ofNullable(info.firstSplit).map(Text::new).orElse(null),
-          Optional.ofNullable(info.lastSplit).map(Text::new).orElse(null));
+
+      Text firstSplit = Nulls.map(info.firstSplit, Text::new);
+      Text lastSplit = Nulls.map(info.lastSplit, Text::new);
+
+      log.debug("{} removing the metadata table markers for loaded files in range {} {}",
+          FateTxId.formatTid(tid), firstSplit, lastSplit);
+
+      ample.removeBulkLoadEntries(info.tableId, tid, firstSplit, lastSplit);
     }
     Utils.unreserveHdfsDirectory(manager, info.sourceDir, tid);
     Utils.getReadLock(manager, info.tableId, tid).unlock();
@@ -75,7 +80,7 @@ public class CleanUpBulkImport extends ManagerRepo {
       manager.getVolumeManager().delete(renamingFile);
       manager.getVolumeManager().delete(mappingFile);
     } catch (IOException ioe) {
-      log.debug("Failed to delete renames and/or loadmap", ioe);
+      log.debug("{} Failed to delete renames and/or loadmap", FateTxId.formatTid(tid), ioe);
     }
 
     log.debug("completing bulkDir import transaction " + FateTxId.formatTid(tid));
