@@ -56,7 +56,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   private final Consumer<ConditionalMutation> mutationConsumer;
   private final Ample.ConditionalTabletsMutator parent;
 
-  private final BiConsumer<KeyExtent,Ample.UknownValidator> unknownValidators;
+  private final BiConsumer<KeyExtent,Ample.UnknownValidator> unknownValidators;
 
   private final KeyExtent extent;
 
@@ -64,7 +64,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
 
   protected ConditionalTabletMutatorImpl(Ample.ConditionalTabletsMutator parent,
       ServerContext context, KeyExtent extent, Consumer<ConditionalMutation> mutationConsumer,
-      BiConsumer<KeyExtent,Ample.UknownValidator> unknownValidators) {
+      BiConsumer<KeyExtent,Ample.UnknownValidator> unknownValidators) {
     super(context, new ConditionalMutation(extent.toMetaRow()));
     this.mutation = (ConditionalMutation) super.mutation;
     this.mutationConsumer = mutationConsumer;
@@ -160,7 +160,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
-  public void submit(Ample.UknownValidator unknownCheck) {
+  public void submit(Ample.UnknownValidator unknownCheck) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Preconditions.checkState(sawOperationRequirement, "No operation requirements were seen");
     getMutation();

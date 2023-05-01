@@ -399,7 +399,7 @@ public interface Ample {
   /**
    * Convenience interface for handling conditional mutations with a status of UNKNOWN.
    */
-  interface UknownValidator extends Predicate<TabletMetadata> {}
+  interface UnknownValidator extends Predicate<TabletMetadata> {}
 
   interface ConditionalTabletMutator extends TabletUpdates<ConditionalTabletMutator> {
 
@@ -440,7 +440,7 @@ public interface Ample {
      *        {@link org.apache.accumulo.core.client.ConditionalWriter.Status#ACCEPTED} in the
      *        return of {@link ConditionalTabletsMutator#process()}
      */
-    void submit(UknownValidator unknownCheck);
+    void submit(UnknownValidator unknownCheck);
   }
 
   /**

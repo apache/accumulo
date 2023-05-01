@@ -51,7 +51,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
   private boolean active = true;
 
-  Map<KeyExtent,Ample.UknownValidator> unknownValidators = new HashMap<>();
+  Map<KeyExtent,Ample.UnknownValidator> unknownValidators = new HashMap<>();
 
   public ConditionalTabletsMutatorImpl(ServerContext context) {
     this.context = context;
