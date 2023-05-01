@@ -1928,14 +1928,56 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ClientTabletCache locator = ClientTabletCache.getInstance(context, tableId);
     locator.invalidateCache();
 
+Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
+            .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
+            .logInterval(3, MINUTES).createRetry();
+
+    ArrayList<KeyExtent> locationLess = new ArrayList<>();
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+
+    BiConsumer<CachedTablet,Range> rangeConsumer = (cachedTablet, range) -> {
+      if (cachedTablet.getTserverLocation().isPresent()) {
+        ClientTabletCacheImpl.addRange(binnedRanges, cachedTablet, range);
+      } else {
+        locationLess.add(cachedTablet.getExtent());
+      }
+    };
+
     try {
-      @SuppressWarnings("unused")
-      List<Range> failed = locator.findTablets(context, rangeList, ((cachedTablet, range) -> {
-        if (cachedTablet.getTserverLocation().isPresent()) {
-          ClientTabletCacheImpl.addRange(binnedRanges, cachedTablet, range);
+
+      List<Range> failed =
+          locator.findTablets(context, rangeList, rangeConsumer, LocationNeed.NOT_REQUIRED);
+
+      while (!failed.isEmpty() || !locationLess.isEmpty()) {
+        context.requireTableExists(tableId, tableName);
+        context.requireNotOffline(tableId, tableName);
+
+        boolean allAlwaysHosted = context.getAmple().readTablets().forTablets(locationLess)
+            .fetch(PREV_ROW, HOSTING_GOAL).build().stream()
+            .allMatch(tmeta -> tmeta.getHostingGoal() == TabletHostingGoal.ALWAYS);
+
+        if (!allAlwaysHosted) {
+          throw new AccumuloException(
+              "TableOperations.locate() only works with tablets that have a hosting goal of "
+                  + TabletHostingGoal.ALWAYS
+                  + ". Tablets with other hosting goals were seen.  table:" + tableName
+                  + " table id:" + tableId);
         }
-      }), LocationNeed.NOT_REQUIRED);
+
+        try {
+          retry.waitForNextAttempt(log,
+              String.format("locating tablets in table %s(%s) for %d ranges", tableName, tableId,
+                  rangeList.size()));
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+
+        locationLess.clear();
+        binnedRanges.clear();
+        locator.invalidateCache();
+        failed = locator.findTablets(context, rangeList, rangeConsumer, LocationNeed.NOT_REQUIRED);
+      }
+
     } catch (InvalidTabletHostingRequestException e) {
       throw new RuntimeException("findTablets requested tablet hosting when it should not have", e);
     }
