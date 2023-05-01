@@ -797,7 +797,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           for (var extent : missingTablets) {
             Tablet tablet = onlineTabletsSnapshot.get(extent);
             if (!tablet.isClosed()) {
-              log.error("Tablet {} is open but does not exists in metadata table.", extent);
+              log.error("Tablet {} is open but does not exist in metadata table.", extent);
             }
           }
         }
