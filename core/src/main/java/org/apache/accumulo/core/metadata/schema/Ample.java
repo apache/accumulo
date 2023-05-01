@@ -348,13 +348,6 @@ public interface Ample {
     T putOperation(TabletOperationId opId);
 
     T deleteOperation();
-
-    /**
-     * @see MetadataSchema.TabletsSection.RefreshIdColumnFamily
-     */
-    T putRefreshId(long tid, TServerInstance location);
-
-    T deleteRefreshId(long transactionId);
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {

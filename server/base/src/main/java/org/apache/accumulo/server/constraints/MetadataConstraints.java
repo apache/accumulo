@@ -47,7 +47,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.RefreshIdColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -100,8 +99,7 @@ public class MetadataConstraints implements Constraint {
           FutureLocationColumnFamily.NAME,
           ChoppedColumnFamily.NAME,
           ClonedColumnFamily.NAME,
-          ExternalCompactionColumnFamily.NAME,
-              RefreshIdColumnFamily.NAME);
+          ExternalCompactionColumnFamily.NAME);
   // @formatter:on
 
   private static boolean isValidColumn(ColumnUpdate cu) {

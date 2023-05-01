@@ -42,7 +42,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.RefreshIdColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
@@ -287,19 +286,6 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T deleteHostingRequested() {
     HostingColumnFamily.REQUESTED_COLUMN.putDelete(mutation);
-    return getThis();
-  }
-
-  @Override
-  public T putRefreshId(long tid, TServerInstance location) {
-    mutation.put(RefreshIdColumnFamily.STR_NAME, String.format("%016x", tid),
-        location.getHostPortSession());
-    return getThis();
-  }
-
-  @Override
-  public T deleteRefreshId(long transactionId) {
-    mutation.putDelete(RefreshIdColumnFamily.STR_NAME, String.format("%016x", transactionId));
     return getThis();
   }
 

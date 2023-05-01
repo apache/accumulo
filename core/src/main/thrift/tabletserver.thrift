@@ -277,11 +277,10 @@ service TabletServerClientService {
     4:data.TKeyExtent extent
   )
 
-  oneway void refreshTablet(
+  list<data.TKeyExtent> refreshTablets(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
-    3:data.TKeyExtent extent
-    4:i64 transactionId
+    3:list<data.TKeyExtent> extents
   )
 }
 

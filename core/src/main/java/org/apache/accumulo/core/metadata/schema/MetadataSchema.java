@@ -374,24 +374,6 @@ public class MetadataSchema {
       public static final String REQUESTED_QUAL = "requested";
       public static final ColumnFQ REQUESTED_COLUMN = new ColumnFQ(NAME, new Text(REQUESTED_QUAL));
     }
-
-    /**
-     * This column family is used to indicate that a hosted tablet needs to refresh its metadata
-     * from the metadata table. The column qualifier is expected to be a FATE transaction id. The
-     * value is expected to be a tserver instance identifier corresponding to the tablet location at
-     * the time the refresh column was set. A fate transaction can set this column and notify a
-     * tablet server to update. When the tablet server updates it will delete the refresh column.
-     * When the fate transaction no longer sees the refresh column it knows the remote update is
-     * complete. Also if the location stored in the value differs from the tablets current location,
-     * then the fate transaction knows it no longer needs to wait and can delete the refresh column
-     * itself. The reason the fate transaction id is stored in the column qualifier is so that fate
-     * transactions do not have to wait on each other.
-     */
-    public static class RefreshIdColumnFamily {
-      public static final String STR_NAME = "refresh";
-      public static final Text NAME = new Text(STR_NAME);
-    }
-
   }
 
   /**

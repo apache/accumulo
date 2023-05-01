@@ -132,19 +132,12 @@ class LoadFiles extends ManagerRepo {
               .requireAbsentOperation().requirePrevEndRow(tablet.getExtent().prevEndRow());
 
           filesToLoad.forEach((f, v) -> {
+            // ELASTICITY_TODO should not expect to see the bulk files there (as long there is only
+            // a single thread running this), not sure if the following require absent is needed
+            tabletMutator.requireAbsentBulkFile(f);
             tabletMutator.putBulkFile(f, tid);
             tabletMutator.putFile(f, v);
           });
-
-          if (tablet.getLocation() != null) {
-            // only set the refresh if the location is still set
-            tabletMutator.requireLocation(tablet.getLocation());
-            tabletMutator.putRefreshId(tid, tablet.getLocation().getServerInstance());
-          } else {
-            // ensure tablet does not concurrently load while we are adding files, if it did would
-            // need to ask it to refresh
-            tabletMutator.requireAbsentLocation();
-          }
 
           tabletMutator.submit();
         }
