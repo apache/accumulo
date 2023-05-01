@@ -1265,7 +1265,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         tl.invalidateCache();
       }
     } catch (InvalidTabletHostingRequestException e) {
-      throw new RuntimeException("findTablets requested tablet hosting when it should not have", e);
+      throw new AccumuloException("findTablets requested tablet hosting when it should not have",
+          e);
     }
 
     // the sort method is efficient for linked list
@@ -1980,7 +1981,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
 
     } catch (InvalidTabletHostingRequestException e) {
-      throw new RuntimeException("findTablets requested tablet hosting when it should not have", e);
+      throw new AccumuloException("findTablets requested tablet hosting when it should not have",
+          e);
     }
 
     return new LocationsImpl(binnedRanges);
