@@ -181,6 +181,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       } else if (cf.compareTo(LastLocationColumnFamily.NAME) == 0) {
         if (lastTimestamp < entry.getKey().getTimestamp()) {
           last = Location.last(new TServerInstance(entry.getValue(), cq));
+          lastTimestamp = entry.getKey().getTimestamp();
         }
       } else if (cf.compareTo(ChoppedColumnFamily.NAME) == 0) {
         chopped = true;
