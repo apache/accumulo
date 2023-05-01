@@ -249,6 +249,15 @@ public class MetadataSchema {
       public static final String LOCK_QUAL = "lock";
       public static final ColumnFQ LOCK_COLUMN = new ColumnFQ(NAME, new Text(LOCK_QUAL));
 
+      /**
+       * This column is used to indicate an operation is running that needs exclusive access to read
+       * and write to a tablet. The value uniquely identifies a FATE operation that is running and
+       * needs the exclusive access. All tablet updates must either ensure this column is absent or
+       * in the case of a FATE operation that set it ensure the value contains their FATE
+       * transaction id. When a FATE operation wants to set this column it must ensure its absent
+       * before setting it. Once a FATE operation has successfully set the column then no other
+       * tablet update should succeed.
+       */
       public static final String OPID_QUAL = "opid";
       public static final ColumnFQ OPID_COLUMN = new ColumnFQ(NAME, new Text(OPID_QUAL));
     }
