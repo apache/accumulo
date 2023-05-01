@@ -36,11 +36,7 @@ public class MaxRowCommand extends ScanCommand {
       throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
-    @SuppressWarnings("deprecation")
-    final org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter =
-        getInterpreter(cl, tableName, shellState);
-
-    final Range range = getRange(cl, interpeter);
+    final Range range = getRange(cl);
     final Authorizations auths = getAuths(cl, shellState);
     final Text startRow = range.getStartKey() == null ? null : range.getStartKey().getRow();
     final Text endRow = range.getEndKey() == null ? null : range.getEndKey().getRow();
