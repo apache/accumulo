@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.DoubleAdder;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -91,7 +90,7 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
           if (line.startsWith("accumulo")) {
             Metric metric = TestStatsDSink.parseStatsDMetric(line);
             if (MetricsProducer.METRICS_MINC_PAUSED.equals(metric.getName())) {
-              Double val = Double.parseDouble(metric.getValue());
+              double val = Double.parseDouble(metric.getValue());
               MINC_PAUSED.add(val);
             }
           }
@@ -112,7 +111,7 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
   }
 
   @BeforeEach
-  public void beforeEach() throws Exception {
+  public void beforeEach() {
     // Reset the client side counters
     MINC_PAUSED.reset();
   }
@@ -142,27 +141,25 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
 
       try (Scanner scanner = client.createScanner(table)) {
 
-        MemoryStarvedScanIT.consumeServerMemory(scanner, table);
+        MemoryStarvedScanIT.consumeServerMemory(scanner);
 
-        Double paused = MINC_PAUSED.doubleValue();
+        int paused = MINC_PAUSED.intValue();
         assertEquals(0, paused);
 
         ingestThread.start();
 
-        while (paused == 0) {
+        while (paused <= 0) {
           Thread.sleep(1000);
-          paused = MINC_PAUSED.doubleValue();
+          paused = MINC_PAUSED.intValue();
         }
-        assertTrue(paused > 0);
 
         MemoryStarvedScanIT.freeServerMemory(client, table);
         ingestThread.interrupt();
         ingestThread.join();
         assertNull(error.get());
         assertTrue(client.instanceOperations().getActiveCompactions().stream()
-            .filter(ac -> ac.getPausedCount() > 0).collect(Collectors.toList()).size() > 0);
+            .anyMatch(ac -> ac.getPausedCount() > 0));
       }
     }
   }
-
 }

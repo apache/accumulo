@@ -710,20 +710,21 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     try {
       MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
           clientAddress);
+
+      metrics = new TabletServerMetrics(this);
+      updateMetrics = new TabletServerUpdateMetrics();
+      scanMetrics = new TabletServerScanMetrics();
+      mincMetrics = new TabletServerMinCMetrics();
+      ceMetrics = new CompactionExecutorsMetrics();
+      pausedMetrics = new PausedCompactionMetrics();
+      MetricsUtil.initializeProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
+          ceMetrics, pausedMetrics);
+
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
         | SecurityException e1) {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
-
-    metrics = new TabletServerMetrics(this);
-    updateMetrics = new TabletServerUpdateMetrics();
-    scanMetrics = new TabletServerScanMetrics();
-    mincMetrics = new TabletServerMinCMetrics();
-    ceMetrics = new CompactionExecutorsMetrics();
-    pausedMetrics = new PausedCompactionMetrics();
-    MetricsUtil.initializeProducers(metrics, updateMetrics, scanMetrics, mincMetrics, ceMetrics,
-        pausedMetrics);
 
     this.compactionManager = new CompactionManager(() -> Iterators
         .transform(onlineTablets.snapshot().values().iterator(), Tablet::asCompactable),

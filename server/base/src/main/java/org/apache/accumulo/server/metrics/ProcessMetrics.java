@@ -16,31 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.metrics;
+package org.apache.accumulo.server.metrics;
 
-import static java.util.Objects.requireNonNull;
+import java.util.List;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.metrics.fate.FateMetrics;
+import org.apache.accumulo.server.ServerContext;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
-public class ManagerMetrics implements MetricsProducer {
+public class ProcessMetrics implements MetricsProducer {
 
-  private final FateMetrics fateMetrics;
+  private final ServerContext context;
 
-  public ManagerMetrics(final AccumuloConfiguration conf, final Manager manager) {
-    requireNonNull(conf, "AccumuloConfiguration must not be null");
-    requireNonNull(conf, "Manager must not be null");
-    fateMetrics = new FateMetrics(manager.getContext(),
-        conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL));
+  public ProcessMetrics(final ServerContext context) {
+    this.context = context;
   }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    fateMetrics.registerMetrics(registry);
+    registry.gauge(METRICS_LOW_MEMORY, List.of(), this, this::lowMemDetected);
+  }
+
+  private int lowMemDetected(ProcessMetrics processMetrics) {
+    return context.getLowMemoryDetector().isRunningLowOnMemory() ? 1 : 0;
   }
 }
