@@ -316,9 +316,9 @@ public class RowRange {
     }
 
     if (endRowInclusive) {
-      return row.compareTo(endRow) < 0;
+      return row.compareTo(endRow) > 0;
     }
-    return row.compareTo(endRow) <= 0;
+    return row.compareTo(endRow) >= 0;
   }
 
   /**
@@ -417,6 +417,13 @@ public class RowRange {
    * @return true if the row is contained in the row range, false otherwise
    */
   public boolean contains(Text row) {
-    return !beforeStartRowImpl(row) && !afterEndRow(row);
+    if (infiniteStartRow) {
+      return !afterEndRow(row);
+    } else if (infiniteEndRow) {
+      return !beforeStartRow(row);
+    } else {
+      return !beforeStartRow(row) && !afterEndRow(row);
+    }
   }
+
 }
