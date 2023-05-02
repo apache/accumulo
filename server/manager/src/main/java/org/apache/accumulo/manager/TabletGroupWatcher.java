@@ -44,6 +44,8 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -71,6 +73,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -726,6 +729,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     if (range.isMeta()) {
       targetSystemTable = RootTable.NAME;
     }
+    Set<TabletHostingGoal> goals = new HashSet<>();
 
     AccumuloClient client = manager.getContext();
 
@@ -737,6 +741,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       ServerColumnFamily.TIME_COLUMN.fetch(scanner);
       ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
+      HostingColumnFamily.GOAL_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       Mutation m = new Mutation(stopRow);
       MetadataTime maxLogicalTime = null;
@@ -756,6 +761,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         } else if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
           var allVolumesDir = new AllVolumesDirectory(range.tableId(), value.toString());
           bw.addMutation(manager.getContext().getAmple().createDeleteMutation(allVolumesDir));
+        } else if (HostingColumnFamily.GOAL_COLUMN.hasColumns(key)) {
+          TabletHostingGoal thisGoal = TabletHostingGoalUtil.fromValue(value);
+          goals.add(thisGoal);
         }
       }
 
@@ -764,6 +772,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(new Range(stopRow));
       ServerColumnFamily.TIME_COLUMN.fetch(scanner);
+      HostingColumnFamily.GOAL_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
       Set<String> extCompIds = new HashSet<>();
       for (Entry<Key,Value> entry : scanner) {
@@ -772,6 +781,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               MetadataTime.parse(entry.getValue().toString()));
         } else if (ExternalCompactionColumnFamily.NAME.equals(entry.getKey().getColumnFamily())) {
           extCompIds.add(entry.getKey().getColumnQualifierData().toString());
+        } else if (HostingColumnFamily.GOAL_COLUMN.hasColumns(entry.getKey())) {
+          TabletHostingGoal thisGoal = TabletHostingGoalUtil.fromValue(entry.getValue());
+          goals.add(thisGoal);
         }
       }
 
@@ -781,6 +793,16 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       // delete any entries for external compactions
       extCompIds.forEach(ecid -> m.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid));
+
+      // Set the TabletHostingGoal for this tablet based on the goals of the other tablets in
+      // the merge range. Always takes priority over never.
+      TabletHostingGoal mergeHostingGoal = TabletHostingGoal.ONDEMAND;
+      if (range.isMeta() || goals.contains(TabletHostingGoal.ALWAYS)) {
+        mergeHostingGoal = TabletHostingGoal.ALWAYS;
+      } else if (goals.contains(TabletHostingGoal.NEVER)) {
+        mergeHostingGoal = TabletHostingGoal.NEVER;
+      }
+      HostingColumnFamily.GOAL_COLUMN.put(m, TabletHostingGoalUtil.toValue(mergeHostingGoal));
 
       if (!m.getUpdates().isEmpty()) {
         bw.addMutation(m);
