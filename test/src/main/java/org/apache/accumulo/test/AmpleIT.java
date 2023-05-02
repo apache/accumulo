@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static java.util.stream.Collectors.*;
+import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
