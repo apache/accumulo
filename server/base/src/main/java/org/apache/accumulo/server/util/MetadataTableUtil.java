@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -151,9 +152,10 @@ public class MetadataTableUtil {
         return;
       } catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
         logUpdateFailure(m, extent, e);
-      } catch (ConstraintViolationException e) {
+      } catch (InvalidTabletHostingRequestException | ConstraintViolationException e) {
         logUpdateFailure(m, extent, e);
         // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
+        // No need to retry when a hosting exception occurs
         throw new RuntimeException(e);
       }
       sleepUninterruptibly(1, TimeUnit.SECONDS);

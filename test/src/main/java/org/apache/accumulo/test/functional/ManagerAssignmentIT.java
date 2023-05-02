@@ -107,8 +107,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       // wait for the tablet to exist in the metadata table. The tablet
       // will not be hosted so the current location will be empty.
-      Wait.waitFor(() -> getTabletLocationState(c, tableId).extent != null, 10000, 250);
-      TabletLocationState newTablet = getTabletLocationState(c, tableId);
+      Wait.waitFor(() -> getTabletLocationState(c, tableId, null).extent != null, 10000, 250);
+      TabletLocationState newTablet = getTabletLocationState(c, tableId, null);
       assertNotNull(newTablet.extent);
       assertNull(newTablet.current);
       assertNull(newTablet.last);
@@ -124,7 +124,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       // give it a last location
       c.tableOperations().flush(tableName, null, null, true);
 
-      TabletLocationState flushed = getTabletLocationState(c, tableId);
+      TabletLocationState flushed = getTabletLocationState(c, tableId, null);
       assertNotNull(flushed.current);
       assertEquals(flushed.getCurrentServer(), flushed.getLastServer());
       assertNull(newTablet.future);
@@ -132,7 +132,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       // take the tablet offline
       c.tableOperations().offline(tableName, true);
-      TabletLocationState offline = getTabletLocationState(c, tableId);
+      TabletLocationState offline = getTabletLocationState(c, tableId, null);
       assertNull(offline.future);
       assertNull(offline.current);
       assertEquals(flushed.getCurrentServer(), offline.getLastServer());
@@ -140,7 +140,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       // put it back online
       c.tableOperations().online(tableName, true);
-      TabletLocationState online = getTabletLocationState(c, tableId);
+      TabletLocationState online = getTabletLocationState(c, tableId, null);
       assertNull(online.future);
       assertNotNull(online.current);
       assertEquals(online.getCurrentServer(), online.getLastServer());
@@ -153,9 +153,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
           t -> (t.goal == TabletHostingGoal.ALWAYS) || (t.current != null);
 
       assertTrue(Wait.waitFor(
-          () -> alwaysHostedOrCurrentNotNull.test(getTabletLocationState(c, tableId)), 60000, 250));
+          () -> alwaysHostedOrCurrentNotNull.test(getTabletLocationState(c, tableId, null)), 60000,
+          250));
 
-      final TabletLocationState always = getTabletLocationState(c, tableId);
+      final TabletLocationState always = getTabletLocationState(c, tableId, null);
       assertTrue(alwaysHostedOrCurrentNotNull.test(always));
       assertNull(always.future);
       assertEquals(flushed.getCurrentServer(), always.getLastServer());
@@ -166,9 +167,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       Predicate<TabletLocationState> neverHostedOrCurrentNull =
           t -> (t.goal == TabletHostingGoal.NEVER) || (t.current == null);
       assertTrue(Wait.waitFor(
-          () -> neverHostedOrCurrentNull.test(getTabletLocationState(c, tableId)), 60000, 250));
+          () -> neverHostedOrCurrentNull.test(getTabletLocationState(c, tableId, null)), 60000,
+          250));
 
-      final TabletLocationState never = getTabletLocationState(c, tableId);
+      final TabletLocationState never = getTabletLocationState(c, tableId, null);
       assertTrue(neverHostedOrCurrentNull.test(never));
       assertNull(never.future);
       assertEquals(flushed.getCurrentServer(), never.getLastServer());
@@ -177,9 +179,9 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       // set the hosting goal to ondemand
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ONDEMAND);
       Predicate<TabletLocationState> ondemandHosted = t -> t.goal == TabletHostingGoal.ONDEMAND;
-      assertTrue(
-          Wait.waitFor(() -> ondemandHosted.test(getTabletLocationState(c, tableId)), 60000, 250));
-      final TabletLocationState ondemand = getTabletLocationState(c, tableId);
+      assertTrue(Wait.waitFor(() -> ondemandHosted.test(getTabletLocationState(c, tableId, null)),
+          60000, 250));
+      final TabletLocationState ondemand = getTabletLocationState(c, tableId, null);
       assertTrue(ondemandHosted.test(ondemand));
       assertNull(ondemand.future);
       assertEquals(flushed.getCurrentServer(), ondemand.getLastServer());
@@ -371,9 +373,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
         .getTabletStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds(), tableId));
   }
 
-  private TabletLocationState getTabletLocationState(AccumuloClient c, String tableId) {
+  public static TabletLocationState getTabletLocationState(AccumuloClient c, String tableId,
+      Text endRow) {
     try (MetaDataTableScanner s = new MetaDataTableScanner((ClientContext) c,
-        new Range(TabletsSection.encodeRow(TableId.of(tableId), null)), MetadataTable.NAME)) {
+        new Range(TabletsSection.encodeRow(TableId.of(tableId), endRow)), MetadataTable.NAME)) {
       return s.next();
     }
   }

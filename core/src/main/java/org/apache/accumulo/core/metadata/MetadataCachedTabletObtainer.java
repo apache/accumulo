@@ -36,6 +36,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache;
@@ -43,6 +44,7 @@ import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablets;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.CachedTabletObtainer;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.clientImpl.TabletServerBatchReaderIterator;
 import org.apache.accumulo.core.clientImpl.TabletServerBatchReaderIterator.ResultReceiver;
 import org.apache.accumulo.core.clientImpl.ThriftScanner;
@@ -56,6 +58,7 @@ import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.OpTimer;
@@ -75,6 +78,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
     locCols = new TreeSet<>();
     locCols.add(new Column(TextUtil.getBytes(CurrentLocationColumnFamily.NAME), null, null));
     locCols.add(TabletColumnFamily.PREV_ROW_COLUMN.toColumn());
+    locCols.add(HostingColumnFamily.GOAL_COLUMN.toColumn());
     columns = new ArrayList<>(locCols);
   }
 
@@ -216,6 +220,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
   public static CachedTablets getMetadataLocationEntries(SortedMap<Key,Value> entries) {
     Text location = null;
     Text session = null;
+    TabletHostingGoal goal = null;
 
     List<CachedTablet> results = new ArrayList<>();
 
@@ -232,6 +237,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
       if (key.compareRow(lastRowFromKey) != 0) {
         location = null;
         session = null;
+        goal = null;
         key.getRow(lastRowFromKey);
       }
 
@@ -246,12 +252,20 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
         }
         location = new Text(val.toString());
         session = new Text(colq);
+      } else if (HostingColumnFamily.GOAL_COLUMN.equals(colf, colq)) {
+        goal = TabletHostingGoalUtil.fromValue(val);
       } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
         KeyExtent ke = KeyExtent.fromMetaPrevRow(entry);
+        if (ke.isMeta()) {
+          goal = TabletHostingGoal.ALWAYS;
+        } else if (goal == null) {
+          log.debug("TabletHostingGoal not set for extent: {}, using ONDEMAND", ke);
+          goal = TabletHostingGoal.ONDEMAND;
+        }
         if (location != null) {
-          results.add(new CachedTablet(ke, location.toString(), session.toString()));
+          results.add(new CachedTablet(ke, location.toString(), session.toString(), goal));
         } else {
-          results.add(new CachedTablet(ke));
+          results.add(new CachedTablet(ke, goal));
         }
         location = null;
       }
