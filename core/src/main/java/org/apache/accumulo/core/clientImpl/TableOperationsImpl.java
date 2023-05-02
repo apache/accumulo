@@ -61,6 +61,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -1934,13 +1935,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
         .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
         .logInterval(3, MINUTES).createRetry();
 
-    ArrayList<KeyExtent> locationLess = new ArrayList<>();
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+    final ArrayList<KeyExtent> locationLess = new ArrayList<>();
+    final Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+    final AtomicBoolean foundOnDemandTabletInRange = new AtomicBoolean(false);
 
     BiConsumer<CachedTablet,Range> rangeConsumer = (cachedTablet, range) -> {
       // We want tablets that are currently hosted (location present) and
       // are where their tablet hosting goal is ALWAYS (not OnDemand)
-      if (cachedTablet.getTserverLocation().isPresent()
+      if (cachedTablet.getGoal() != TabletHostingGoal.ALWAYS) {
+        foundOnDemandTabletInRange.set(true);
+      } else if (cachedTablet.getTserverLocation().isPresent()
           && cachedTablet.getGoal() == TabletHostingGoal.ALWAYS) {
         ClientTabletCacheImpl.addRange(binnedRanges, cachedTablet, range);
       } else {
@@ -1953,18 +1957,19 @@ public class TableOperationsImpl extends TableOperationsHelper {
       List<Range> failed =
           locator.findTablets(context, rangeList, rangeConsumer, LocationNeed.NOT_REQUIRED);
 
+      if (foundOnDemandTabletInRange.get()) {
+        throw new AccumuloException(
+            "TableOperations.locate() only works with tablets that have a hosting goal of "
+                + TabletHostingGoal.ALWAYS + ". Tablets with other hosting goals were seen.  table:"
+                + tableName + " table id:" + tableId);
+      }
+
       while (!failed.isEmpty() || !locationLess.isEmpty()) {
 
-        log.warn("failures: {}", failed);
-        log.warn("w/out location: {}", locationLess);
         context.requireTableExists(tableId, tableName);
         context.requireNotOffline(tableId, tableName);
 
-        boolean allAlwaysHosted = context.getAmple().readTablets().forTablets(locationLess)
-            .fetch(PREV_ROW, HOSTING_GOAL).build().stream()
-            .allMatch(tmeta -> tmeta.getHostingGoal() == TabletHostingGoal.ALWAYS);
-
-        if (!allAlwaysHosted) {
+        if (foundOnDemandTabletInRange.get()) {
           throw new AccumuloException(
               "TableOperations.locate() only works with tablets that have a hosting goal of "
                   + TabletHostingGoal.ALWAYS
@@ -1982,6 +1987,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         locationLess.clear();
         binnedRanges.clear();
+        foundOnDemandTabletInRange.set(false);
         locator.invalidateCache();
         failed = locator.findTablets(context, rangeList, rangeConsumer, LocationNeed.NOT_REQUIRED);
       }

@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -276,6 +277,7 @@ public abstract class ClientTabletCache {
     private final String tserverLocation;
     private final String tserverSession;
     private final TabletHostingGoal goal;
+    private final Long creationTime = System.nanoTime();
 
     public CachedTablet(KeyExtent tablet_extent, String tablet_location, String session,
         TabletHostingGoal goal) {
@@ -339,8 +341,18 @@ public abstract class ClientTabletCache {
       return Optional.ofNullable(tserverSession);
     }
 
+    /**
+     * The ClientTabletCache will remove and replace a CachedTablet when the location is no longer
+     * valid. However, it will not do the same when the goal is no longer valid. The goal returned
+     * by this method may be out of date. If this information is needed to be fresh, then you may
+     * want to consider clearing the cache first.
+     */
     public TabletHostingGoal getGoal() {
       return this.goal;
+    }
+
+    public Duration getAge() {
+      return Duration.ofNanos(System.nanoTime() - creationTime);
     }
   }
 
