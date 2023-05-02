@@ -90,7 +90,8 @@ public class AmpleIT extends AccumuloClusterHarness {
           toFetch.addAll(existing);
           toFetch.addAll(nonexisting);
 
-          // run test to ensure when ample fetches multiple extents it handles one that do exist in the metadata table and those that do not
+          // run test to ensure when ample fetches multiple extents it handles one that do exist in
+          // the metadata table and those that do not
           runFetchTest(ample, toFetch, existing, nonexisting);
         }
       }
