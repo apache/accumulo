@@ -18,6 +18,12 @@
  */
 package org.apache.accumulo.core.data;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.Text;
 
@@ -26,7 +32,7 @@ import org.apache.hadoop.io.Text;
  *
  * @since 3.0.0
  */
-public class RowRange {
+public class RowRange implements Comparable<RowRange> {
   final private Text startRow;
   final private Text endRow;
   final private boolean startRowInclusive;
@@ -49,6 +55,8 @@ public class RowRange {
    * @throws IllegalArgumentException if end row is before start row
    */
   public static RowRange open(Text startRow, Text endRow) {
+    Objects.requireNonNull(startRow, "Did you mean to use RowRange.lessThan(row)?");
+    Objects.requireNonNull(endRow, "Did you mean to use RowRange.greaterThan(row)?");
     return range(startRow, false, endRow, false);
   }
 
@@ -60,6 +68,8 @@ public class RowRange {
    * @throws IllegalArgumentException if end row is before start row
    */
   public static RowRange open(CharSequence startRow, CharSequence endRow) {
+    Objects.requireNonNull(startRow, "Did you mean to use RowRange.lessThan(row)?");
+    Objects.requireNonNull(endRow, "Did you mean to use RowRange.greaterThan(row)?");
     return range(startRow, false, endRow, false);
   }
 
@@ -71,6 +81,8 @@ public class RowRange {
    * @throws IllegalArgumentException if end row is before start row
    */
   public static RowRange closed(Text startRow, Text endRow) {
+    Objects.requireNonNull(startRow, "Did you mean to use RowRange.atMost(row)?");
+    Objects.requireNonNull(endRow, "Did you mean to use RowRange.atLeast(row)?");
     return range(startRow, true, endRow, true);
   }
 
@@ -82,6 +94,8 @@ public class RowRange {
    * @throws IllegalArgumentException if end row is before start row
    */
   public static RowRange closed(CharSequence startRow, CharSequence endRow) {
+    Objects.requireNonNull(startRow, "Did you mean to use RowRange.atMost(row)?");
+    Objects.requireNonNull(endRow, "Did you mean to use RowRange.atLeast(row)?");
     return range(startRow, true, endRow, true);
   }
 
@@ -91,6 +105,7 @@ public class RowRange {
    * @param row row to cover; set to null to cover all rows
    */
   public static RowRange closed(Text row) {
+    Objects.requireNonNull(row, "Did you mean to use RowRange.all()?");
     return range(row, true, row, true);
   }
 
@@ -100,6 +115,7 @@ public class RowRange {
    * @param row row to cover; set to null to cover all rows
    */
   public static RowRange closed(CharSequence row) {
+    Objects.requireNonNull(row, "Did you mean to use RowRange.all()?");
     return range(row, true, row, true);
   }
 
@@ -111,6 +127,8 @@ public class RowRange {
    * @throws IllegalArgumentException if end row is before start row
    */
   public static RowRange openClosed(Text startRow, Text endRow) {
+    Objects.requireNonNull(startRow, "Did you mean to use RowRange.atMost(row)?");
+    Objects.requireNonNull(endRow, "Did you mean to use RowRange.atLeast(row)?");
     return range(startRow, false, endRow, true);
   }
 
@@ -122,6 +140,8 @@ public class RowRange {
    * @throws IllegalArgumentException if end row is before start row
    */
   public static RowRange openClosed(CharSequence startRow, CharSequence endRow) {
+    Objects.requireNonNull(startRow, "Did you mean to use RowRange.atMost(row)?");
+    Objects.requireNonNull(endRow, "Did you mean to use RowRange.atLeast(row)?");
     return range(startRow, false, endRow, true);
   }
 
@@ -133,6 +153,8 @@ public class RowRange {
    * @throws IllegalArgumentException if end row is before start row
    */
   public static RowRange closedOpen(Text startRow, Text endRow) {
+    Objects.requireNonNull(startRow, "Did you mean to use RowRange.lessThan(row)?");
+    Objects.requireNonNull(endRow, "Did you mean to use RowRange.moreThan(row)?");
     return range(startRow, true, endRow, false);
   }
 
@@ -144,6 +166,8 @@ public class RowRange {
    * @throws IllegalArgumentException if end row is before start row
    */
   public static RowRange closedOpen(CharSequence startRow, CharSequence endRow) {
+    Objects.requireNonNull(startRow, "Did you mean to use RowRange.lessThan(row)?");
+    Objects.requireNonNull(endRow, "Did you mean to use RowRange.moreThan(row)?");
     return range(startRow, true, endRow, false);
   }
 
@@ -153,6 +177,7 @@ public class RowRange {
    * @param startRow starting row; set to null for the smallest possible row (an empty one)
    */
   public static RowRange greaterThan(Text startRow) {
+    Objects.requireNonNull(startRow, "Did you mean to use RowRange.all()?");
     return range(startRow, false, null, true);
   }
 
@@ -162,6 +187,7 @@ public class RowRange {
    * @param startRow starting row; set to null for the smallest possible row (an empty one)
    */
   public static RowRange greaterThan(CharSequence startRow) {
+    Objects.requireNonNull(startRow, "Did you mean to use RowRange.all()?");
     return range(startRow, false, null, true);
   }
 
@@ -171,6 +197,7 @@ public class RowRange {
    * @param startRow starting row; set to null for the smallest possible row (an empty one)
    */
   public static RowRange atLeast(Text startRow) {
+    Objects.requireNonNull(startRow, "Did you mean to use RowRange.all()?");
     return range(startRow, true, null, true);
   }
 
@@ -180,6 +207,7 @@ public class RowRange {
    * @param startRow starting row; set to null for the smallest possible row (an empty one)
    */
   public static RowRange atLeast(CharSequence startRow) {
+    Objects.requireNonNull(startRow, "Did you mean to use RowRange.all()?");
     return range(startRow, true, null, true);
   }
 
@@ -189,6 +217,7 @@ public class RowRange {
    * @param endRow ending row; set to null for positive infinity
    */
   public static RowRange lessThan(Text endRow) {
+    Objects.requireNonNull(endRow, "Did you mean to use RowRange.all()?");
     return range(null, true, endRow, false);
   }
 
@@ -198,6 +227,7 @@ public class RowRange {
    * @param endRow ending row; set to null for positive infinity
    */
   public static RowRange lessThan(CharSequence endRow) {
+    Objects.requireNonNull(endRow, "Did you mean to use RowRange.all()?");
     return range(null, true, endRow, false);
   }
 
@@ -207,6 +237,7 @@ public class RowRange {
    * @param endRow ending row; set to null for positive infinity
    */
   public static RowRange atMost(Text endRow) {
+    Objects.requireNonNull(endRow, "Did you mean to use RowRange.all()?");
     return range(null, true, endRow, true);
   }
 
@@ -216,6 +247,7 @@ public class RowRange {
    * @param endRow ending row; set to null for positive infinity
    */
   public static RowRange atMost(CharSequence endRow) {
+    Objects.requireNonNull(endRow, "Did you mean to use RowRange.all()?");
     return range(null, true, endRow, true);
   }
 
@@ -380,6 +412,7 @@ public class RowRange {
    * @param o range row to compare
    * @return comparison result
    */
+  @Override
   public int compareTo(RowRange o) {
     // Compare infinite start rows
     int comp = Boolean.compare(infiniteStartRow, o.infiniteStartRow);
@@ -387,7 +420,15 @@ public class RowRange {
     if (comp == 0) {
       // Compare non-infinite start rows and start row inclusiveness
       if (!infiniteStartRow) {
-        comp = startRow.compareTo(o.startRow);
+        if (startRow == null && o.startRow == null) {
+          comp = 0;
+        } else if (startRow == null) {
+          comp = -1;
+        } else if (o.startRow == null) {
+          comp = 1;
+        } else {
+          comp = startRow.compareTo(o.startRow);
+        }
         if (comp == 0) {
           comp = Boolean.compare(o.startRowInclusive, startRowInclusive);
         }
@@ -400,7 +441,15 @@ public class RowRange {
 
       // Compare non-infinite end rows and end row inclusiveness
       if (comp == 0 && !infiniteEndRow) {
-        comp = endRow.compareTo(o.endRow);
+        if (endRow == null && o.endRow == null) {
+          comp = 0;
+        } else if (endRow == null) {
+          comp = 1;
+        } else if (o.endRow == null) {
+          comp = -1;
+        } else {
+          comp = endRow.compareTo(o.endRow);
+        }
         if (comp == 0) {
           comp = Boolean.compare(endRowInclusive, o.endRowInclusive);
         }
@@ -424,6 +473,94 @@ public class RowRange {
     } else {
       return !beforeStartRow(row) && !afterEndRow(row);
     }
+  }
+
+  /**
+   * Merges overlapping and adjacent row ranges. For example, given the following input:
+   *
+   * <pre>
+   * [a,c], (c, d], (g,m), (j,t]
+   * </pre>
+   *
+   * the following row ranges would be returned:
+   *
+   * <pre>
+   * [a,d], (g,t]
+   * </pre>
+   *
+   * @param rowRanges the collection of row ranges to merge
+   * @return a list of merged row ranges
+   */
+  public static List<RowRange> mergeOverlapping(Collection<RowRange> rowRanges) {
+    if (rowRanges.isEmpty()) {
+      return Collections.emptyList();
+    }
+    if (rowRanges.size() == 1) {
+      return Collections.singletonList(rowRanges.iterator().next());
+    }
+
+    List<RowRange> ral = new ArrayList<>(rowRanges);
+    ral.sort((r1, r2) -> {
+      if (r1.startRow == null && r2.startRow == null) {
+        return 0;
+      } else if (r1.startRow == null) {
+        return -1;
+      } else if (r2.startRow == null) {
+        return 1;
+      }
+      return r1.compareTo(r2);
+    });
+
+    ArrayList<RowRange> ret = new ArrayList<>(rowRanges.size());
+
+    RowRange currentRange = ral.get(0);
+    boolean currentStartRowInclusive = ral.get(0).startRowInclusive;
+
+    for (int i = 1; i < ral.size(); i++) {
+
+      if (currentRange.infiniteEndRow && currentRange.infiniteStartRow) {
+        // this row range has an infinite start and end row, so it will contain all other ranges
+        break;
+      }
+
+      RowRange rowRange = ral.get(i);
+
+      // If the current row range is all, it will cover all other ranges
+      if (rowRange.infiniteStartRow && rowRange.infiniteEndRow) {
+        currentRange = RowRange.all();
+        break;
+      }
+
+      boolean startRowsEqual = (currentRange.startRow == null && rowRange.startRow == null)
+          || (currentRange.startRow != null && currentRange.startRow.equals(rowRange.startRow));
+
+      int cmp;
+      if (startRowsEqual || currentRange.infiniteEndRow
+          || (rowRange.startRow != null && (currentRange.endRow == null
+              || currentRange.endRow.compareTo(rowRange.startRow) > 0
+              || (currentRange.endRow.equals(rowRange.startRow)
+                  && (!currentRange.endRowInclusive || rowRange.startRowInclusive))))) {
+        if (rowRange.infiniteEndRow) {
+          cmp = 1;
+        } else if (currentRange.endRow == null) {
+          cmp = -1;
+        } else {
+          cmp = rowRange.endRow.compareTo(currentRange.endRow);
+        }
+        if (cmp > 0 || (cmp == 0 && rowRange.endRowInclusive)) {
+          currentRange = RowRange.range(currentRange.startRow, currentStartRowInclusive,
+              rowRange.endRow, rowRange.endRowInclusive);
+        } /* else currentRange contains ral.get(i) */
+      } else {
+        ret.add(currentRange);
+        currentRange = rowRange;
+        currentStartRowInclusive = rowRange.startRowInclusive;
+      }
+    }
+
+    ret.add(currentRange);
+
+    return ret;
   }
 
 }

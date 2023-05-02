@@ -22,9 +22,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Stream;
+
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class RowRangeTest {
 
@@ -278,6 +286,137 @@ public class RowRangeTest {
       assertFalse(range.contains(new Text("r2")));
       assertTrue(range.contains(new Text("")));
     }
+  }
+
+  @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+  @Nested
+  class MergeOverlappingTests {
+
+    @ParameterizedTest
+    @MethodSource({"rowRangeProvider", "rowRangeProvider1"})
+    public void testMergeOverlapping(List<RowRange> rowRangesToMerge, List<RowRange> expected) {
+      List<RowRange> actual = RowRange.mergeOverlapping(rowRangesToMerge);
+      verifyMerge(expected, actual);
+    }
+
+    private void verifyMerge(List<RowRange> expectedList, List<RowRange> actualList) {
+      HashSet<RowRange> expectedSet = new HashSet<>(expectedList);
+      HashSet<RowRange> actualSet = new HashSet<>(actualList);
+      assertEquals(expectedSet, actualSet, "Expected: " + expectedSet + " Actual: " + actualSet);
+    }
+
+    Stream<Arguments> rowRangeProvider() {
+      return Stream.of(
+          // [a,c] [a,b] -> [a,c]
+          Arguments.of(List.of(RowRange.closed("a", "c"), RowRange.closed("a", "b")),
+              List.of(RowRange.closed("a", "c"))),
+          // [a,c] [d,f] -> [a,c] [d,f]
+          Arguments.of(List.of(RowRange.closed("a", "c"), RowRange.closed("d", "f")),
+              List.of(RowRange.closed("a", "c"), RowRange.closed("d", "f"))),
+          // [a,e] [b,f] [c,r] [g,j] [t,x] -> [a,r] [t,x]
+          Arguments.of(
+              List.of(RowRange.closed("a", "e"), RowRange.closed("b", "f"),
+                  RowRange.closed("c", "r"), RowRange.closed("g", "j"), RowRange.closed("t", "x")),
+              List.of(RowRange.closed("a", "r"), RowRange.closed("t", "x"))),
+          // [a,e] [b,f] [c,r] [g,j] -> [a,r]
+          Arguments.of(
+              List.of(RowRange.closed("a", "e"), RowRange.closed("b", "f"),
+                  RowRange.closed("c", "r"), RowRange.closed("g", "j")),
+              List.of(RowRange.closed("a", "r"))),
+          // [a,e] -> [a,e]
+          Arguments.of(List.of(RowRange.closed("a", "e")), List.of(RowRange.closed("a", "e"))),
+          // [] -> []
+          Arguments.of(List.of(), List.of()),
+          // [a,e] [g,q] [r,z] -> [a,e] [g,q] [r,z]
+          Arguments.of(
+              List.of(RowRange.closed("a", "e"), RowRange.closed("g", "q"),
+                  RowRange.closed("r", "z")),
+              List.of(RowRange.closed("a", "e"), RowRange.closed("g", "q"),
+                  RowRange.closed("r", "z"))),
+          // [a,c] [a,c] -> [a,c]
+          Arguments.of(List.of(RowRange.closed("a", "c"), RowRange.closed("a", "c")),
+              List.of(RowRange.closed("a", "c"))),
+          // [ALL] -> [ALL]
+          Arguments.of(List.of(RowRange.all()), List.of(RowRange.all())),
+          // [ALL] [a,c] -> [ALL]
+          Arguments.of(List.of(RowRange.all(), RowRange.closed("a", "c")), List.of(RowRange.all())),
+          // [a,c] [ALL] -> [ALL]
+          Arguments.of(List.of(RowRange.closed("a", "c"), RowRange.all()), List.of(RowRange.all())),
+          // [b,d] [c,+inf) -> [b,+inf)
+          Arguments.of(List.of(RowRange.closed("b", "d"), RowRange.atLeast("c")),
+              List.of(RowRange.atLeast("b"))),
+          // [b,d] [a,+inf) -> [a,+inf)
+          Arguments.of(List.of(RowRange.closed("b", "d"), RowRange.atLeast("a")),
+              List.of(RowRange.atLeast("a"))),
+          // [b,d] [e,+inf) -> [b,d] [e,+inf)
+          Arguments.of(List.of(RowRange.closed("b", "d"), RowRange.atLeast("e")),
+              List.of(RowRange.closed("b", "d"), RowRange.atLeast("e"))),
+          // [b,d] [e,+inf) [c,f] -> [b,+inf)
+          Arguments.of(
+              List.of(RowRange.closed("b", "d"), RowRange.atLeast("e"), RowRange.closed("c", "f")),
+              List.of(RowRange.atLeast("b"))),
+          // [b,d] [f,+inf) [c,e] -> [b,e] [f,+inf)
+          Arguments.of(
+              List.of(RowRange.closed("b", "d"), RowRange.atLeast("f"), RowRange.closed("c", "e")),
+              List.of(RowRange.closed("b", "e"), RowRange.atLeast("f"))),
+          // [b,d] [r,+inf) [c,e] [g,t] -> [b,e] [g,+inf)
+          Arguments.of(
+              List.of(RowRange.closed("b", "d"), RowRange.atLeast("r"), RowRange.closed("c", "e"),
+                  RowRange.closed("g", "t")),
+              List.of(RowRange.closed("b", "e"), RowRange.atLeast("g"))),
+          // (-inf,d] [r,+inf) [c,e] [g,t] -> (-inf,e] [g,+inf)
+          Arguments.of(List.of(RowRange.atMost("d"), RowRange.atLeast("r"),
+              RowRange.closed("c", "e"), RowRange.closed("g", "t")),
+              List.of(RowRange.atMost("e"), RowRange.atLeast("g"))),
+          // (-inf,d] [r,+inf) [c,e] [g,t] [d,h] -> (-inf,+inf)
+          Arguments.of(List.of(RowRange.atMost("d"), RowRange.atLeast("r"),
+              RowRange.closed("c", "e"), RowRange.closed("g", "t"), RowRange.closed("d", "h")),
+              List.of(RowRange.all())),
+          // [a,b) (b,c) -> [a,c)
+          Arguments.of(List.of(RowRange.closedOpen("a", "b"), RowRange.open("b", "c")),
+              List.of(RowRange.closedOpen("a", "c"))),
+          // [a,b) [b,c) -> [a,c)
+          Arguments.of(List.of(RowRange.closedOpen("a", "b"), RowRange.closedOpen("b", "c")),
+              List.of(RowRange.closedOpen("a", "c"))),
+          // [a,b] (b,c) -> [a,b], (b,c)
+          Arguments.of(List.of(RowRange.closed("a", "b"), RowRange.open("b", "c")),
+              List.of(RowRange.closed("a", "b"), RowRange.open("b", "c"))),
+          // [a,b] [b,c) -> [a,c)
+          Arguments.of(List.of(RowRange.closed("a", "b"), RowRange.closedOpen("b", "c")),
+              List.of(RowRange.closedOpen("a", "c"))));
+    }
+
+    Stream<Arguments> rowRangeProvider1() {
+      Stream.Builder<Arguments> builder = Stream.builder();
+
+      for (boolean b1 : new boolean[] {true, false}) {
+        for (boolean b2 : new boolean[] {true, false}) {
+          for (boolean b3 : new boolean[] {true, false}) {
+            for (boolean b4 : new boolean[] {true, false}) {
+              List<RowRange> rl =
+                  List.of(RowRange.range("a", b1, "m", b2), RowRange.range("b", b3, "n", b4));
+              List<RowRange> expected = List.of(RowRange.range("a", b1, "n", b4));
+              builder.add(Arguments.of(rl, expected));
+
+              rl = List.of(RowRange.range("a", b1, "m", b2), RowRange.range("a", b3, "n", b4));
+              expected = List.of(RowRange.range("a", b1 || b3, "n", b4));
+              builder.add(Arguments.of(rl, expected));
+
+              rl = List.of(RowRange.range("a", b1, "n", b2), RowRange.range("b", b3, "n", b4));
+              expected = List.of(RowRange.range("a", b1, "n", b2 || b4));
+              builder.add(Arguments.of(rl, expected));
+
+              rl = List.of(RowRange.range("a", b1, "n", b2), RowRange.range("a", b3, "n", b4));
+              expected = List.of(RowRange.range("a", b1 || b3, "n", b2 || b4));
+              builder.add(Arguments.of(rl, expected));
+            }
+          }
+        }
+      }
+
+      return builder.build();
+    }
+
   }
 
 }
