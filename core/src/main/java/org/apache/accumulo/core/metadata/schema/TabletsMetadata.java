@@ -194,7 +194,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             .filter(tabletMetadata -> extentsNotSeen.remove(tabletMetadata.getExtent()))
             .collect(Collectors.toList());
 
-        extentsNotSeen.forEach(notFoundHandler.get());
+        extentsNotSeen.forEach(notFoundHandler.orElseThrow());
 
         for (AutoCloseable closable : closables) {
           try {
