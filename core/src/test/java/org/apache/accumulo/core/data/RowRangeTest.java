@@ -484,11 +484,11 @@ public class RowRangeTest {
           // [a,c] [a,c] -> [a,c]
           Arguments.of(fenceClosed, RowRange.closed("a", "c"), RowRange.closed("a", "c")),
 
-          // (a,c) (-∞, +∞) -> (a,c)
+          // (a,c) (-inf, +inf) -> (a,c)
           Arguments.of(fenceOpen, RowRange.all(), fenceOpen),
-          // (a,c) [a, +∞) -> (a,c)
+          // (a,c) [a, +inf) -> (a,c)
           Arguments.of(fenceOpen, RowRange.atLeast("a"), fenceOpen),
-          // (a,c) (-∞, c] -> (a,c)
+          // (a,c) (-inf, c] -> (a,c)
           Arguments.of(fenceOpen, RowRange.atMost("c"), fenceOpen),
           // (a,c) [a,c] -> (a,c)
           Arguments.of(fenceOpen, RowRange.closed("a", "c"), fenceOpen),
