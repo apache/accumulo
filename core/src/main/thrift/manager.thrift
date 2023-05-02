@@ -72,6 +72,7 @@ enum FateOperation {
   NAMESPACE_DELETE
   NAMESPACE_RENAME
   TABLE_BULK_IMPORT2
+  TABLE_HOSTING_GOAL
 }
 
 enum ManagerState {

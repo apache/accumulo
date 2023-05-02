@@ -38,11 +38,11 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
-import org.apache.accumulo.core.metadata.schema.TabletOperation;
+import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
@@ -343,52 +343,46 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       var context = cluster.getServerContext();
 
-      var opid1 = new TabletOperationId("1234");
-      var opid2 = new TabletOperationId("5678");
+      var opid1 = TabletOperationId.from("SPLITTING:FATE[1234]");
+      var opid2 = TabletOperationId.from("MERGING:FATE[5678]");
 
       var ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireAbsentOperation().putOperation(TabletOperation.SPLITTING, opid1)
-          .submit();
-      ctmi.mutateTablet(e2).requireAbsentOperation().putOperation(TabletOperation.MERGING, opid2)
-          .submit();
-      ctmi.mutateTablet(e3).requireOperation(TabletOperation.SPLITTING, opid1).deleteOperation()
-          .submit();
+      ctmi.mutateTablet(e1).requireAbsentOperation().putOperation(opid1).submit();
+      ctmi.mutateTablet(e2).requireAbsentOperation().putOperation(opid2).submit();
+      ctmi.mutateTablet(e3).requireOperation(opid1).deleteOperation().submit();
       var results = ctmi.process();
 
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
       assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
       assertEquals(Status.REJECTED, results.get(e3).getStatus());
-      assertEquals(TabletOperation.SPLITTING, context.getAmple().readTablet(e1).getOperation());
+      assertEquals(TabletOperationType.SPLITTING,
+          context.getAmple().readTablet(e1).getOperationId().getType());
       assertEquals(opid1, context.getAmple().readTablet(e1).getOperationId());
-      assertEquals(TabletOperation.MERGING, context.getAmple().readTablet(e2).getOperation());
+      assertEquals(TabletOperationType.MERGING,
+          context.getAmple().readTablet(e2).getOperationId().getType());
       assertEquals(opid2, context.getAmple().readTablet(e2).getOperationId());
-      assertEquals(null, context.getAmple().readTablet(e3).getOperation());
       assertEquals(null, context.getAmple().readTablet(e3).getOperationId());
 
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireOperation(TabletOperation.MERGING, opid2).deleteOperation()
-          .submit();
-      ctmi.mutateTablet(e2).requireOperation(TabletOperation.SPLITTING, opid1).deleteOperation()
-          .submit();
+      ctmi.mutateTablet(e1).requireOperation(opid2).deleteOperation().submit();
+      ctmi.mutateTablet(e2).requireOperation(opid1).deleteOperation().submit();
       results = ctmi.process();
 
       assertEquals(Status.REJECTED, results.get(e1).getStatus());
       assertEquals(Status.REJECTED, results.get(e2).getStatus());
-      assertEquals(TabletOperation.SPLITTING, context.getAmple().readTablet(e1).getOperation());
-      assertEquals(TabletOperation.MERGING, context.getAmple().readTablet(e2).getOperation());
+      assertEquals(TabletOperationType.SPLITTING,
+          context.getAmple().readTablet(e1).getOperationId().getType());
+      assertEquals(TabletOperationType.MERGING,
+          context.getAmple().readTablet(e2).getOperationId().getType());
 
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireOperation(TabletOperation.SPLITTING, opid1).deleteOperation()
-          .submit();
-      ctmi.mutateTablet(e2).requireOperation(TabletOperation.MERGING, opid2).deleteOperation()
-          .submit();
+      ctmi.mutateTablet(e1).requireOperation(opid1).deleteOperation().submit();
+      ctmi.mutateTablet(e2).requireOperation(opid2).deleteOperation().submit();
       results = ctmi.process();
 
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
       assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
-      assertEquals(null, context.getAmple().readTablet(e1).getOperation());
       assertEquals(null, context.getAmple().readTablet(e1).getOperationId());
-      assertEquals(null, context.getAmple().readTablet(e2).getOperation());
       assertEquals(null, context.getAmple().readTablet(e2).getOperationId());
     }
   }

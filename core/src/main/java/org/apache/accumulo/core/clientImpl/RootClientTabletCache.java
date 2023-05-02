@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -130,7 +131,7 @@ public class RootClientTabletCache extends ClientTabletCache {
     String server = loc.getHostPort();
 
     if (lockChecker.isLockHeld(server, loc.getSession())) {
-      return new CachedTablet(RootTable.EXTENT, server, loc.getSession());
+      return new CachedTablet(RootTable.EXTENT, server, loc.getSession(), TabletHostingGoal.ALWAYS);
     } else {
       return null;
     }

@@ -45,6 +45,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableDeletedException;
@@ -235,7 +236,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private synchronized void lookup(List<Range> ranges, ResultReceiver receiver)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
     List<Column> columns = new ArrayList<>(options.fetchedColumns);
     ranges = Range.mergeOverlapping(ranges);
 
@@ -247,8 +249,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private ScanServerData binRanges(ClientTabletCache clientTabletCache, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
 
     int lastFailureSize = Integer.MAX_VALUE;
 
@@ -331,8 +333,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private void processFailures(Map<KeyExtent,List<Range>> failures, ResultReceiver receiver,
-      List<Column> columns, Duration scanServerSelectorDelay)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      List<Column> columns, Duration scanServerSelectorDelay) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
     if (log.isTraceEnabled()) {
       log.trace("Failed to execute multiscans against {} tablets, retrying...", failures.size());
     }
@@ -475,7 +477,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             // there were some failures
             try {
               processFailures(failures, receiver, columns, scanServerSelectorDelay);
-            } catch (TableNotFoundException | AccumuloException e) {
+            } catch (InvalidTabletHostingRequestException | TableNotFoundException
+                | AccumuloException e) {
               log.debug("{}", e.getMessage(), e);
               fatalException = e;
             } catch (AccumuloSecurityException e) {
@@ -643,7 +646,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private ScanServerData binRangesForScanServers(ClientTabletCache clientTabletCache,
       List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, long startTime)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
+      InvalidTabletHostingRequestException {
 
     ScanServerSelector ecsm = context.getScanServerSelector();
 

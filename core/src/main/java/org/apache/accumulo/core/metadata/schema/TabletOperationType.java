@@ -21,6 +21,6 @@ package org.apache.accumulo.core.metadata.schema;
 /**
  * Used to specify what kind of mutually exclusive operation is currently running against a tablet.
  */
-public enum TabletOperation {
+public enum TabletOperationType {
   SPLITTING, MERGING, DELETING
 }

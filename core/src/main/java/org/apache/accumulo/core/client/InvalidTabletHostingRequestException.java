@@ -16,19 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata;
+package org.apache.accumulo.core.client;
 
-import org.apache.accumulo.core.data.AbstractId;
-
-/**
- * Intended to contain a globally unique id that identifies an operation running against a tablet.
- * The purpose of this is to prevent race conditions.
- */
-public class TabletOperationId extends AbstractId<TabletOperationId> {
+public class InvalidTabletHostingRequestException extends Exception {
 
   private static final long serialVersionUID = 1L;
 
-  public TabletOperationId(String canonical) {
-    super(canonical);
+  public InvalidTabletHostingRequestException(String message) {
+    super(message);
   }
+
 }

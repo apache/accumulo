@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Durability;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -717,7 +718,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
       } catch (AccumuloSecurityException e) {
         updateAuthorizationFailures(Collections.singletonMap(new KeyExtent(tableId, null, null),
             SecurityErrorCode.valueOf(e.getSecurityErrorCode().name())));
-      } catch (TableDeletedException | TableNotFoundException | TableOfflineException e) {
+      } catch (InvalidTabletHostingRequestException | TableDeletedException | TableNotFoundException
+          | TableOfflineException e) {
         updateUnknownErrors(e.getMessage(), e);
       }
 

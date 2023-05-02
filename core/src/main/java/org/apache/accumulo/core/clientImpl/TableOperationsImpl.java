@@ -61,7 +61,9 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -72,6 +74,7 @@ import java.util.zip.ZipInputStream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
@@ -108,15 +111,12 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
-import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
@@ -157,6 +157,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -544,8 +545,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private void addSplits(SplitEnv env, SortedSet<Text> partitionKeys) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, AccumuloServerException {
+  private void addSplits(SplitEnv env, SortedSet<Text> partitionKeys)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      AccumuloServerException, InvalidTabletHostingRequestException {
 
     ClientTabletCache tabLocator = ClientTabletCache.getInstance(context, env.tableId);
     for (Text split : partitionKeys) {
@@ -1250,17 +1252,22 @@ public class TableOperationsImpl extends TableOperationsHelper {
     // group key extents to get <= maxSplits
     LinkedList<KeyExtent> unmergedExtents = new LinkedList<>();
 
-    while (!tl.findTablets(context, Collections.singletonList(range),
-        (cachedTablet, range1) -> unmergedExtents.add(cachedTablet.getExtent()),
-        LocationNeed.NOT_REQUIRED).isEmpty()) {
-      context.requireNotDeleted(tableId);
-      context.requireNotOffline(tableId, tableName);
+    try {
+      while (!tl.findTablets(context, Collections.singletonList(range),
+          (cachedTablet, range1) -> unmergedExtents.add(cachedTablet.getExtent()),
+          LocationNeed.NOT_REQUIRED).isEmpty()) {
+        context.requireNotDeleted(tableId);
+        context.requireNotOffline(tableId, tableName);
 
-      log.warn("Unable to locate bins for specified range. Retrying.");
-      // sleep randomly between 100 and 200ms
-      sleepUninterruptibly(100 + random.nextInt(100), MILLISECONDS);
-      unmergedExtents.clear();
-      tl.invalidateCache();
+        log.warn("Unable to locate bins for specified range. Retrying.");
+        // sleep randomly between 100 and 200ms
+        sleepUninterruptibly(100 + random.nextInt(100), MILLISECONDS);
+        unmergedExtents.clear();
+        tl.invalidateCache();
+      }
+    } catch (InvalidTabletHostingRequestException e) {
+      throw new AccumuloException("findTablets requested tablet hosting when it should not have",
+          e);
     }
 
     // the sort method is efficient for linked list
@@ -1910,7 +1917,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     requireNonNull(ranges, "ranges must be non null");
 
     TableId tableId = context.getTableId(tableName);
-    ClientTabletCache locator = ClientTabletCache.getInstance(context, tableId);
+
+    context.requireTableExists(tableId, tableName);
+    context.requireNotOffline(tableId, tableName);
 
     List<Range> rangeList = null;
     if (ranges instanceof List) {
@@ -1919,27 +1928,73 @@ public class TableOperationsImpl extends TableOperationsHelper {
       rangeList = new ArrayList<>(ranges);
     }
 
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
-
+    ClientTabletCache locator = ClientTabletCache.getInstance(context, tableId);
     locator.invalidateCache();
 
     Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
         .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
         .logInterval(3, MINUTES).createRetry();
 
-    // ELASTICITY_TODO this will cause tablets to be hosted, but that may not be desired
-    while (!locator.binRanges(context, rangeList, binnedRanges).isEmpty()) {
-      context.requireTableExists(tableId, tableName);
-      context.requireNotOffline(tableId, tableName);
-      binnedRanges.clear();
-      try {
-        retry.waitForNextAttempt(log,
-            String.format("locating tablets in table %s(%s) for %d ranges", tableName, tableId,
-                rangeList.size()));
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+    final ArrayList<KeyExtent> locationLess = new ArrayList<>();
+    final Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+    final AtomicBoolean foundOnDemandTabletInRange = new AtomicBoolean(false);
+
+    BiConsumer<CachedTablet,Range> rangeConsumer = (cachedTablet, range) -> {
+      // We want tablets that are currently hosted (location present) and
+      // are where their tablet hosting goal is ALWAYS (not OnDemand)
+      if (cachedTablet.getGoal() != TabletHostingGoal.ALWAYS) {
+        foundOnDemandTabletInRange.set(true);
+      } else if (cachedTablet.getTserverLocation().isPresent()
+          && cachedTablet.getGoal() == TabletHostingGoal.ALWAYS) {
+        ClientTabletCacheImpl.addRange(binnedRanges, cachedTablet, range);
+      } else {
+        locationLess.add(cachedTablet.getExtent());
       }
-      locator.invalidateCache();
+    };
+
+    try {
+
+      List<Range> failed =
+          locator.findTablets(context, rangeList, rangeConsumer, LocationNeed.NOT_REQUIRED);
+
+      if (foundOnDemandTabletInRange.get()) {
+        throw new AccumuloException(
+            "TableOperations.locate() only works with tablets that have a hosting goal of "
+                + TabletHostingGoal.ALWAYS + ". Tablets with other hosting goals were seen.  table:"
+                + tableName + " table id:" + tableId);
+      }
+
+      while (!failed.isEmpty() || !locationLess.isEmpty()) {
+
+        context.requireTableExists(tableId, tableName);
+        context.requireNotOffline(tableId, tableName);
+
+        if (foundOnDemandTabletInRange.get()) {
+          throw new AccumuloException(
+              "TableOperations.locate() only works with tablets that have a hosting goal of "
+                  + TabletHostingGoal.ALWAYS
+                  + ". Tablets with other hosting goals were seen.  table:" + tableName
+                  + " table id:" + tableId);
+        }
+
+        try {
+          retry.waitForNextAttempt(log,
+              String.format("locating tablets in table %s(%s) for %d ranges", tableName, tableId,
+                  rangeList.size()));
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+
+        locationLess.clear();
+        binnedRanges.clear();
+        foundOnDemandTabletInRange.set(false);
+        locator.invalidateCache();
+        failed = locator.findTablets(context, rangeList, rangeConsumer, LocationNeed.NOT_REQUIRED);
+      }
+
+    } catch (InvalidTabletHostingRequestException e) {
+      throw new AccumuloException("findTablets requested tablet hosting when it should not have",
+          e);
     }
 
     return new LocationsImpl(binnedRanges);
@@ -2129,77 +2184,35 @@ public class TableOperationsImpl extends TableOperationsHelper {
     });
   }
 
-  public static List<TKeyExtent> findExtentsForRange(ClientContext context, TableId tableId,
-      Range range, Set<TabletHostingGoal> disallowedStates, boolean excludeHostedTablets)
-      throws AccumuloException {
-
-    // For all practical purposes the the start row is always inclusive, even if the key in the
-    // range is exclusive. For example the exclusive key row="a",family="b",qualifier="c" may
-    // exclude the column b:c but its still falls somewhere in the row "a". The only case where this
-    // would not be true is if the start key in a range is the last possible key in a row. The last
-    // possible key in a row would contain 2GB column fields of all 0xff, which is why we assume the
-    // row is always inclusive.
-    final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
-
-    List<TKeyExtent> extents = new ArrayList<>();
-
-    TabletsMetadata m = context.getAmple().readTablets().forTable(tableId)
-        .overlapping(scanRangeStart, true, null).build();
-    for (TabletMetadata tm : m) {
-      if (disallowedStates.contains(tm.getHostingGoal())) {
-        throw new AccumuloException("Range: " + range + " includes tablet: " + tm.getExtent()
-            + " that is not in an allowable state for hosting");
-      }
-      final KeyExtent tabletExtent = tm.getExtent();
-      log.trace("Evaluating tablet {} against range {}", tabletExtent, range);
-      if (scanRangeStart != null && tm.getEndRow() != null
-          && tm.getEndRow().compareTo(scanRangeStart) < 0) {
-        // the end row of this tablet is before the start row, skip it
-        log.trace("tablet {} is before scan start range: {}", tabletExtent, scanRangeStart);
-        throw new RuntimeException("Bug in ample or this code.");
-      }
-
-      // Obtaining the end row from a range and knowing if the obtained row is inclusive or
-      // exclusive is really tricky depending on how the Range was created (using row or key
-      // constructors). So avoid trying to obtain an end row from the range and instead use
-      // range.afterKey below.
-      if (tm.getPrevEndRow() != null
-          && range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW))) {
-        // the start row of this tablet is after the scan range, skip it
-        log.trace("tablet {} is after scan end range: {}", tabletExtent, range);
-        break;
-      }
-
-      // tablet must overlap the range
-      Location loc = tm.getLocation();
-      if (loc != null) {
-        log.debug("tablet {} has location of: {}:{}", tabletExtent, loc.getType(),
-            loc.getHostPort());
-      }
-      if (!(excludeHostedTablets && loc != null)) {
-        extents.add(tabletExtent.toThrift());
-      }
-
-    }
-    return extents;
-  }
-
   @Override
   public void setTabletHostingGoal(String tableName, Range range, TabletHostingGoal goal)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+      throws AccumuloSecurityException, AccumuloException {
     EXISTING_TABLE_NAME.validate(tableName);
     NOT_BUILTIN_TABLE.validate(tableName);
     checkArgument(range != null, "range is null");
     checkArgument(goal != null, "goal is null");
 
-    TableId tableId = context.getTableId(tableName);
+    byte[] bRange;
+    try {
+      bRange = new TSerializer().serialize(range.toThrift());
+    } catch (TException e) {
+      throw new RuntimeException("Error serializing range object", e);
+    }
 
-    List<TKeyExtent> extents = findExtentsForRange(context, tableId, range, Set.of(), false);
+    List<ByteBuffer> args = new ArrayList<>();
+    args.add(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
+    args.add(ByteBuffer.wrap(bRange));
+    args.add(ByteBuffer.wrap(goal.name().getBytes(UTF_8)));
 
-    log.debug("Setting tablet hosting goal to {} for extents: {}", goal, extents);
-    ThriftClientTypes.TABLET_MGMT.executeVoid(context,
-        client -> client.setTabletHostingGoal(TraceUtil.traceInfo(), context.rpcCreds(),
-            tableId.canonical(), extents, TabletHostingGoalUtil.toThrift(goal)));
+    Map<String,String> opts = Collections.emptyMap();
+
+    try {
+      doTableFateOperation(tableName, AccumuloException.class, FateOperation.TABLE_HOSTING_GOAL,
+          args, opts);
+    } catch (TableNotFoundException | TableExistsException e) {
+      // should not happen
+      throw new AssertionError(e);
+    }
   }
 
 }
