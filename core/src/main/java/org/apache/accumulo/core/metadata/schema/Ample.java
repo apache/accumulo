@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
@@ -246,6 +247,30 @@ public interface Ample {
     void close();
   }
 
+  public interface ConditionalResult {
+
+    /**
+     * Returns the status of the conditional mutation. If the status was
+     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#UNKNOWN} and
+     * Ample#UknownValidator indicates things are ok then this will return
+     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#ACCEPTED}
+     */
+    ConditionalWriter.Status getStatus();
+
+    KeyExtent getExtent();
+
+    /**
+     * This can only be called when {@link #getStatus()} returns something other than
+     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#ACCEPTED}. It reads that
+     * tablets metadata for a failed conditional mutation. This can used used to see why it failed.
+     * In the case where {@link #getStatus()} returns
+     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#UNKNOWN} it can be used to
+     * see if the mutation actually succeeded or not.
+     *
+     */
+    TabletMetadata readMetadata();
+  }
+
   public interface ConditionalTabletsMutator extends AutoCloseable {
 
     /**
@@ -260,7 +285,7 @@ public interface Ample {
      *
      * @return The result from the {@link ConditionalWriter} of processing each tablet.
      */
-    Map<KeyExtent,ConditionalWriter.Result> process();
+    Map<KeyExtent,ConditionalResult> process();
 
     @Override
     void close();
@@ -371,6 +396,11 @@ public interface Ample {
     ConditionalTabletMutator requireAbsentTablet();
   }
 
+  /**
+   * Convenience interface for handling conditional mutations with a status of UNKNOWN.
+   */
+  interface UnknownValidator extends Predicate<TabletMetadata> {}
+
   interface ConditionalTabletMutator extends TabletUpdates<ConditionalTabletMutator> {
 
     /**
@@ -401,7 +431,16 @@ public interface Ample {
     /**
      * Submits or queues a conditional mutation for processing.
      */
-    ConditionalTabletsMutator submit();
+    void submit();
+
+    /**
+     * @param unknownCheck if the conditional mutation comes back with a status of
+     *        {@link org.apache.accumulo.core.client.ConditionalWriter.Status#UNKNOWN} then read the
+     *        tablets metadata and apply this check to see if it should be considered as
+     *        {@link org.apache.accumulo.core.client.ConditionalWriter.Status#ACCEPTED} in the
+     *        return of {@link ConditionalTabletsMutator#process()}
+     */
+    void submit(UnknownValidator unknownCheck);
   }
 
   /**
