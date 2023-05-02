@@ -46,6 +46,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -779,7 +780,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         List<KeyExtent> missingTablets = new ArrayList<>();
         // gather metadata for all tablets readTablets()
         try (TabletsMetadata tabletsMetadata = getContext().getAmple().readTablets()
-            .forTablets(onlineTabletsSnapshot.keySet(), missingTablets::add)
+            .forTablets(onlineTabletsSnapshot.keySet(), Optional.of(missingTablets::add))
             .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
           mdScanSpan.end();
           duration = Duration.between(start, Instant.now());

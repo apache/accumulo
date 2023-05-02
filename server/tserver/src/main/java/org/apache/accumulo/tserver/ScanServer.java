@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -149,8 +150,8 @@ public class ScanServer extends AbstractServer
         loadAll(Set<? extends KeyExtent> keys) {
       long t1 = System.currentTimeMillis();
       @SuppressWarnings("unchecked")
-      var tms = ample.readTablets().forTablets((Collection<KeyExtent>) keys, e -> {}).build()
-          .stream().collect(Collectors.toMap(tm -> tm.getExtent(), tm -> tm));
+      var tms = ample.readTablets().forTablets((Collection<KeyExtent>) keys, Optional.empty())
+          .build().stream().collect(Collectors.toMap(tm -> tm.getExtent(), tm -> tm));
       long t2 = System.currentTimeMillis();
       LOG.trace("Read metadata for {} tablets in {} ms", keys.size(), t2 - t1);
       return tms;
