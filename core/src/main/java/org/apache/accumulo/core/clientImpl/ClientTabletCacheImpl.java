@@ -689,7 +689,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
         if ((lastEndRow != null) && (ke.prevEndRow() != null)
             && ke.prevEndRow().equals(lastEndRow)) {
           locToCache = new CachedTablet(new KeyExtent(ke.tableId(), ke.endRow(), lastEndRow),
-              cachedTablet.getTserverLocation(), cachedTablet.getTserverSession());
+              cachedTablet.getTserverLocation(), cachedTablet.getTserverSession(),
+              cachedTablet.getGoal());
         } else {
           locToCache = cachedTablet;
         }

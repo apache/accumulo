@@ -1938,7 +1938,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
     BiConsumer<CachedTablet,Range> rangeConsumer = (cachedTablet, range) -> {
-      if (cachedTablet.getTserverLocation().isPresent()) {
+      // We want tablets that are currently hosted (location present) and
+      // are where their tablet hosting goal is ALWAYS (not OnDemand)
+      if (cachedTablet.getTserverLocation().isPresent()
+          && cachedTablet.getGoal() == TabletHostingGoal.ALWAYS) {
         ClientTabletCacheImpl.addRange(binnedRanges, cachedTablet, range);
       } else {
         locationLess.add(cachedTablet.getExtent());
@@ -1951,6 +1954,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
           locator.findTablets(context, rangeList, rangeConsumer, LocationNeed.NOT_REQUIRED);
 
       while (!failed.isEmpty() || !locationLess.isEmpty()) {
+
+        log.warn("failures: {}", failed);
+        log.warn("w/out location: {}", locationLess);
         context.requireTableExists(tableId, tableName);
         context.requireNotOffline(tableId, tableName);
 

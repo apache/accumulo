@@ -36,6 +36,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.Locations;
@@ -118,14 +119,10 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       // locate won't find any locations, tablets are not hosted
       ranges.add(r1);
-      Locations ret = tableOps.locate(tableName, ranges);
-      assertEquals(0, ret.groupByRange().size());
-      assertEquals(0, ret.groupByTablet().size());
+      assertThrows(AccumuloException.class, () -> tableOps.locate(tableName, ranges));
 
       ranges.add(r2);
-      ret = tableOps.locate(tableName, ranges);
-      assertEquals(0, ret.groupByRange().size());
-      assertEquals(0, ret.groupByTablet().size());
+      assertThrows(AccumuloException.class, () -> tableOps.locate(tableName, ranges));
 
       ranges.clear();
 
@@ -136,7 +133,7 @@ public class LocatorIT extends AccumuloClusterHarness {
           60000, 250));
 
       ranges.add(r1);
-      ret = tableOps.locate(tableName, ranges);
+      Locations ret = tableOps.locate(tableName, ranges);
       assertContains(ret, tservers, Map.of(r1, Set.of(t1)), Map.of(t1, Set.of(r1)));
 
       ranges.add(r2);
@@ -147,6 +144,14 @@ public class LocatorIT extends AccumuloClusterHarness {
       TreeSet<Text> splits = new TreeSet<>();
       splits.add(new Text("r"));
       tableOps.addSplits(tableName, splits);
+
+      // ELASTICITY_TODO split does not set hosting goal, so this throws exception
+      assertThrows(AccumuloException.class, () -> tableOps.locate(tableName, ranges));
+      tableOps.setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
+      assertTrue(Wait.waitFor(
+          () -> alwaysHostedAndCurrentNotNull
+              .test(ManagerAssignmentIT.getTabletLocationState(client, tableId, null)),
+          60000, 250));
 
       ret = tableOps.locate(tableName, ranges);
       assertContains(ret, tservers, Map.of(r1, Set.of(t2), r2, Set.of(t2, t3)),

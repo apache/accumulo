@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -274,29 +275,34 @@ public abstract class ClientTabletCache {
     private final KeyExtent tablet_extent;
     private final String tserverLocation;
     private final String tserverSession;
+    private final TabletHostingGoal goal;
 
-    public CachedTablet(KeyExtent tablet_extent, String tablet_location, String session) {
+    public CachedTablet(KeyExtent tablet_extent, String tablet_location, String session,
+        TabletHostingGoal goal) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       checkArgument(tablet_location != null, "tablet_location is null");
       checkArgument(session != null, "session is null");
       this.tablet_extent = tablet_extent;
       this.tserverLocation = interner.intern(tablet_location);
       this.tserverSession = interner.intern(session);
+      this.goal = goal;
     }
 
     public CachedTablet(KeyExtent tablet_extent, Optional<String> tablet_location,
-        Optional<String> session) {
+        Optional<String> session, TabletHostingGoal goal) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       this.tablet_extent = tablet_extent;
       this.tserverLocation = tablet_location.map(interner::intern).orElse(null);
       this.tserverSession = session.map(interner::intern).orElse(null);
+      this.goal = goal;
     }
 
-    public CachedTablet(KeyExtent tablet_extent) {
+    public CachedTablet(KeyExtent tablet_extent, TabletHostingGoal goal) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       this.tablet_extent = tablet_extent;
       this.tserverLocation = null;
       this.tserverSession = null;
+      this.goal = goal;
     }
 
     @Override
@@ -305,19 +311,20 @@ public abstract class ClientTabletCache {
         CachedTablet otl = (CachedTablet) o;
         return getExtent().equals(otl.getExtent())
             && getTserverLocation().equals(otl.getTserverLocation())
-            && getTserverSession().equals(otl.getTserverSession());
+            && getTserverSession().equals(otl.getTserverSession()) && getGoal() == otl.getGoal();
       }
       return false;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(getExtent(), tserverLocation, tserverSession);
+      return Objects.hash(getExtent(), tserverLocation, tserverSession, goal);
     }
 
     @Override
     public String toString() {
-      return "(" + getExtent() + "," + getTserverLocation() + "," + getTserverSession() + ")";
+      return "(" + getExtent() + "," + getTserverLocation() + "," + getTserverSession() + ","
+          + getGoal() + ")";
     }
 
     public KeyExtent getExtent() {
@@ -330,6 +337,10 @@ public abstract class ClientTabletCache {
 
     public Optional<String> getTserverSession() {
       return Optional.ofNullable(tserverSession);
+    }
+
+    public TabletHostingGoal getGoal() {
+      return this.goal;
     }
   }
 
