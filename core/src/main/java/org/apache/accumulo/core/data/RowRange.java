@@ -499,8 +499,8 @@ public class RowRange implements Comparable<RowRange> {
       return Collections.singletonList(rowRanges.iterator().next());
     }
 
-    List<RowRange> ral = new ArrayList<>(rowRanges);
-    ral.sort((r1, r2) -> {
+    List<RowRange> sortedRowRanges = new ArrayList<>(rowRanges);
+    sortedRowRanges.sort((r1, r2) -> {
       if (r1.startRow == null && r2.startRow == null) {
         return 0;
       } else if (r1.startRow == null) {
@@ -511,19 +511,19 @@ public class RowRange implements Comparable<RowRange> {
       return r1.compareTo(r2);
     });
 
-    ArrayList<RowRange> ret = new ArrayList<>(rowRanges.size());
+    ArrayList<RowRange> mergedRowRanges = new ArrayList<>(rowRanges.size());
 
-    RowRange currentRange = ral.get(0);
-    boolean currentStartRowInclusive = ral.get(0).startRowInclusive;
+    RowRange currentRange = sortedRowRanges.get(0);
+    boolean currentStartRowInclusive = sortedRowRanges.get(0).startRowInclusive;
 
-    for (int i = 1; i < ral.size(); i++) {
+    for (int i = 1; i < sortedRowRanges.size(); i++) {
 
       if (currentRange.infiniteEndRow && currentRange.infiniteStartRow) {
         // this row range has an infinite start and end row, so it will contain all other ranges
         break;
       }
 
-      RowRange rowRange = ral.get(i);
+      RowRange rowRange = sortedRowRanges.get(i);
 
       // If the current row range is all, it will cover all other ranges
       if (rowRange.infiniteStartRow && rowRange.infiniteEndRow) {
@@ -552,15 +552,90 @@ public class RowRange implements Comparable<RowRange> {
               rowRange.endRow, rowRange.endRowInclusive);
         } /* else currentRange contains ral.get(i) */
       } else {
-        ret.add(currentRange);
+        mergedRowRanges.add(currentRange);
         currentRange = rowRange;
         currentStartRowInclusive = rowRange.startRowInclusive;
       }
     }
 
-    ret.add(currentRange);
+    mergedRowRanges.add(currentRange);
 
-    return ret;
+    return mergedRowRanges;
+  }
+
+  /**
+   * Creates a row range which represents the intersection of this row range and the passed in row
+   * range. The following example will print true.
+   *
+   * <pre>
+   * RowRange rowRange1 = RowRange.closed(&quot;a&quot;, &quot;f&quot;);
+   * RowRange rowRange2 = RowRange.closed(&quot;c&quot;, &quot;n&quot;);
+   * RowRange rowRange3 = rowRange1.clip(rowRange2);
+   * System.out.println(rowRange3.equals(RowRange.closed(&quot;c&quot;, &quot;f&quot;)));
+   * </pre>
+   *
+   * @param rowRange row range to clip to
+   * @return the intersection of this row range and the given row range
+   * @throws IllegalArgumentException if row ranges do not overlap
+   */
+  public RowRange clip(RowRange rowRange) {
+    return clip(rowRange, false);
+  }
+
+  /**
+   * Creates a row range which represents the intersection of this row range and the passed in row
+   * range. Unlike {@link #clip(RowRange)}, this method can optionally return null if the row ranges
+   * do not overlap, instead of throwing an exception. The returnNullIfDisjoint parameter controls
+   * this behavior.
+   *
+   * @param rowRange row range to clip to
+   * @param returnNullIfDisjoint true to return null if row ranges are disjoint, false to throw an
+   *        exception
+   * @return the intersection of this row range and the given row range, or null if row ranges do
+   *         not overlap and returnNullIfDisjoint is true
+   * @throws IllegalArgumentException if row ranges do not overlap and returnNullIfDisjoint is false
+   * @see #clip(RowRange)
+   */
+  public RowRange clip(RowRange rowRange, boolean returnNullIfDisjoint) {
+    Text startRow = rowRange.startRow;
+    boolean startRowInclusive = rowRange.startRowInclusive;
+
+    Text endRow = rowRange.endRow;
+    boolean endRowInclusive = rowRange.endRowInclusive;
+
+    if (rowRange.startRow == null) {
+      if (this.startRow != null) {
+        startRow = this.startRow;
+        startRowInclusive = this.startRowInclusive;
+      }
+    } else if (afterEndRow(rowRange.startRow) || (rowRange.startRow.equals(this.endRow)
+        && !(rowRange.startRowInclusive && this.endRowInclusive))) {
+      if (returnNullIfDisjoint) {
+        return null;
+      }
+      throw new IllegalArgumentException("RowRange " + rowRange + " does not overlap " + this);
+    } else if (beforeStartRow(rowRange.startRow)) {
+      startRow = this.startRow;
+      startRowInclusive = this.startRowInclusive;
+    }
+
+    if (rowRange.endRow == null) {
+      if (this.endRow != null) {
+        endRow = this.endRow;
+        endRowInclusive = this.endRowInclusive;
+      }
+    } else if (beforeStartRow(rowRange.endRow) || (rowRange.endRow.equals(this.startRow)
+        && !(rowRange.endRowInclusive && this.startRowInclusive))) {
+      if (returnNullIfDisjoint) {
+        return null;
+      }
+      throw new IllegalArgumentException("RowRange " + rowRange + " does not overlap " + this);
+    } else if (afterEndRow(rowRange.endRow)) {
+      endRow = this.endRow;
+      endRowInclusive = this.endRowInclusive;
+    }
+
+    return RowRange.range(startRow, startRowInclusive, endRow, endRowInclusive);
   }
 
 }

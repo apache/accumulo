@@ -20,6 +20,7 @@ package org.apache.accumulo.core.data;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
@@ -417,6 +418,152 @@ public class RowRangeTest {
       return builder.build();
     }
 
+  }
+
+  @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+  @Nested
+  class ClipTests {
+
+    @ParameterizedTest
+    @MethodSource("clipTestArguments")
+    void testClip(RowRange fence, RowRange range, RowRange expected) {
+      if (expected != null) {
+        RowRange clipped = fence.clip(range);
+        assertEquals(expected, clipped);
+      } else {
+        assertThrows(IllegalArgumentException.class, () -> fence.clip(range));
+      }
+    }
+
+    private Stream<Arguments> clipTestArguments() {
+      RowRange fenceOpen = RowRange.open("a", "c");
+      RowRange fenceClosedOpen = RowRange.closedOpen("a", "c");
+      RowRange fenceOpenClosed = RowRange.openClosed("a", "c");
+      RowRange fenceClosed = RowRange.closed("a", "c");
+
+      RowRange fenceOpenCN = RowRange.open("c", "n");
+      RowRange fenceClosedCN = RowRange.closed("c", "n");
+      RowRange fenceClosedB = RowRange.closed("b");
+
+      return Stream.of(
+          // (a,c) (a,c) -> (a,c)
+          Arguments.of(fenceOpen, RowRange.open("a", "c"), RowRange.open("a", "c")),
+          // (a,c) [a,c) -> (a,c)
+          Arguments.of(fenceOpen, RowRange.closedOpen("a", "c"), RowRange.open("a", "c")),
+          // (a,c) (a,c] -> (a,c)
+          Arguments.of(fenceOpen, RowRange.openClosed("a", "c"), RowRange.open("a", "c")),
+          // (a,c) [a,c] -> (a,c)
+          Arguments.of(fenceOpen, RowRange.closed("a", "c"), RowRange.open("a", "c")),
+
+          // [a,c) (a,c) -> (a,c)
+          Arguments.of(fenceClosedOpen, RowRange.open("a", "c"), RowRange.open("a", "c")),
+          // [a,c) [a,c) -> [a,c)
+          Arguments.of(fenceClosedOpen, RowRange.closedOpen("a", "c"),
+              RowRange.closedOpen("a", "c")),
+          // [a,c) (a,c] -> (a,c)
+          Arguments.of(fenceClosedOpen, RowRange.openClosed("a", "c"), RowRange.open("a", "c")),
+          // [a,c) [a,c] -> [a,c)
+          Arguments.of(fenceClosedOpen, RowRange.closed("a", "c"), RowRange.closedOpen("a", "c")),
+
+          // (a,c] (a,c) -> (a,c)
+          Arguments.of(fenceOpenClosed, RowRange.open("a", "c"), RowRange.open("a", "c")),
+          // (a,c] [a,c) -> (a,c)
+          Arguments.of(fenceOpenClosed, RowRange.closedOpen("a", "c"), RowRange.open("a", "c")),
+          // (a,c] (a,c] -> (a,c]
+          Arguments.of(fenceOpenClosed, RowRange.openClosed("a", "c"),
+              RowRange.openClosed("a", "c")),
+          // (a,c] [a,c] -> (a,c]
+          Arguments.of(fenceOpenClosed, RowRange.closed("a", "c"), RowRange.openClosed("a", "c")),
+
+          // [a,c] (a,c) -> (a,c)
+          Arguments.of(fenceClosed, RowRange.open("a", "c"), RowRange.open("a", "c")),
+          // [a,c] [a,c) -> [a,c)
+          Arguments.of(fenceClosed, RowRange.closedOpen("a", "c"), RowRange.closedOpen("a", "c")),
+          // [a,c] (a,c] -> (a,c]
+          Arguments.of(fenceClosed, RowRange.openClosed("a", "c"), RowRange.openClosed("a", "c")),
+          // [a,c] [a,c] -> [a,c]
+          Arguments.of(fenceClosed, RowRange.closed("a", "c"), RowRange.closed("a", "c")),
+
+          // (a,c) (-∞, +∞) -> (a,c)
+          Arguments.of(fenceOpen, RowRange.all(), fenceOpen),
+          // (a,c) [a, +∞) -> (a,c)
+          Arguments.of(fenceOpen, RowRange.atLeast("a"), fenceOpen),
+          // (a,c) (-∞, c] -> (a,c)
+          Arguments.of(fenceOpen, RowRange.atMost("c"), fenceOpen),
+          // (a,c) [a,c] -> (a,c)
+          Arguments.of(fenceOpen, RowRange.closed("a", "c"), fenceOpen),
+
+          // (a,c) (0,z) -> (a,c)
+          Arguments.of(fenceOpen, RowRange.open("0", "z"), fenceOpen),
+          // (a,c) [0,z) -> (a,c)
+          Arguments.of(fenceOpen, RowRange.closedOpen("0", "z"), fenceOpen),
+          // (a,c) (0,z] -> (a,c)
+          Arguments.of(fenceOpen, RowRange.openClosed("0", "z"), fenceOpen),
+          // (a,c) [0,z] -> (a,c)
+          Arguments.of(fenceOpen, RowRange.closed("0", "z"), fenceOpen),
+
+          // (a,c) (0,b) -> (a,b)
+          Arguments.of(fenceOpen, RowRange.open("0", "b"), RowRange.open("a", "b")),
+          // (a,c) [0,b) -> (a,b)
+          Arguments.of(fenceOpen, RowRange.closedOpen("0", "b"), RowRange.open("a", "b")),
+          // (a,c) (0,b] -> (a,b]
+          Arguments.of(fenceOpen, RowRange.openClosed("0", "b"), RowRange.openClosed("a", "b")),
+          // (a,c) [0,b] -> (a,b]
+          Arguments.of(fenceOpen, RowRange.closed("0", "b"), RowRange.openClosed("a", "b")),
+
+          // (a,c) (a1,z) -> (a1,c)
+          Arguments.of(fenceOpen, RowRange.open("a1", "z"), RowRange.open("a1", "c")),
+          // (a,c) [a1,z) -> [a1,c)
+          Arguments.of(fenceOpen, RowRange.closedOpen("a1", "z"), RowRange.closedOpen("a1", "c")),
+          // (a,c) (a1,z] -> (a1,c)
+          Arguments.of(fenceOpen, RowRange.openClosed("a1", "z"), RowRange.open("a1", "c")),
+          // (a,c) [a1,z] -> [a1,c)
+          Arguments.of(fenceOpen, RowRange.closed("a1", "z"), RowRange.closedOpen("a1", "c")),
+
+          // (a,c) (a1,b) -> (a1,b)
+          Arguments.of(fenceOpen, RowRange.open("a1", "b"), RowRange.open("a1", "b")),
+          // (a,c) [a1,b) -> [a1,b)
+          Arguments.of(fenceOpen, RowRange.closedOpen("a1", "b"), RowRange.closedOpen("a1", "b")),
+          // (a,c) (a1,b] -> (a1,b]
+          Arguments.of(fenceOpen, RowRange.openClosed("a1", "b"), RowRange.openClosed("a1", "b")),
+          // (a,c) [a1,b] -> [a1,b]
+          Arguments.of(fenceOpen, RowRange.closed("a1", "b"), RowRange.closed("a1", "b")),
+
+          // (c,n) (a,c) -> empty
+          Arguments.of(fenceOpenCN, RowRange.open("a", "c"), null),
+          // (c,n) (a,c] -> empty
+          Arguments.of(fenceOpenCN, RowRange.closedOpen("a", "c"), null),
+          // (c,n) (n,r) -> empty
+          Arguments.of(fenceOpenCN, RowRange.open("n", "r"), null),
+          // (c,n) [n,r) -> empty
+          Arguments.of(fenceOpenCN, RowRange.closedOpen("n", "r"), null),
+          // (c,n) (a,b) -> empty
+          Arguments.of(fenceOpenCN, RowRange.open("a", "b"), null),
+          // (c,n) (a,b] -> empty
+          Arguments.of(fenceOpenCN, RowRange.closedOpen("a", "b"), null),
+
+          // [c,n] (a,c) -> empty
+          Arguments.of(fenceClosedCN, RowRange.open("a", "c"), null),
+          // [c,n] (a,c] -> (c,c)
+          Arguments.of(fenceClosedCN, RowRange.openClosed("a", "c"), RowRange.closed("c")),
+          // [c,n] (n,r) -> (n,n)
+          Arguments.of(fenceClosedCN, RowRange.open("n", "r"), null),
+          // [c,n] [n,r) -> (n,n)
+          Arguments.of(fenceClosedCN, RowRange.closedOpen("n", "r"), RowRange.closed("n")),
+          // [c,n] (q,r) -> empty
+          Arguments.of(fenceClosedCN, RowRange.open("q", "r"), null),
+          // [c,n] [q,r) -> empty
+          Arguments.of(fenceClosedCN, RowRange.closedOpen("q", "r"), null),
+
+          // [b] (b,c) -> empty
+          Arguments.of(fenceClosedB, RowRange.open("b", "c"), null),
+          // [b] [b,c) -> [b]
+          Arguments.of(fenceClosedB, RowRange.closedOpen("b", "c"), RowRange.closed("b")),
+          // [b] (a,b) -> empty
+          Arguments.of(fenceClosedB, RowRange.open("a", "b"), null),
+          // [b] (a,b] -> [b]
+          Arguments.of(fenceClosedB, RowRange.openClosed("a", "b"), RowRange.closed("b")));
+    }
   }
 
 }
