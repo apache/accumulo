@@ -188,13 +188,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    @Deprecated(since = "2.0.0")
-    public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) {}
-
-    @Override
-    public void offline(String tableName) {
-
-    }
+    public void offline(String tableName) {}
 
     @Override
     public boolean isOnline(String tableName) {

@@ -288,8 +288,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
           Optional<ServiceLockData> sld = ServiceLockData.parse(zk.getData(lockPath));
 
-          assertNotNull(sld.get());
-          HostAndPort hostAndPort = sld.get().getAddress(ThriftService.GC);
+          assertNotNull(sld.orElseThrow());
+          HostAndPort hostAndPort = sld.orElseThrow().getAddress(ThriftService.GC);
 
           // We shouldn't have the "bindall" address in zk
           assertNotEquals("0.0.0.0", hostAndPort.getHost());

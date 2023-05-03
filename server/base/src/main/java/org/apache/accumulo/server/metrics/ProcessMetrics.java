@@ -16,39 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util.interpret;
+package org.apache.accumulo.server.metrics;
 
-import org.apache.hadoop.io.Text;
+import java.util.List;
 
-/**
- * @deprecated since 2.1.0 This will be removed in a future version in favor of JShell
- */
-@Deprecated(since = "2.1.0")
-public class DefaultScanInterpreter implements ScanInterpreter {
+import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.server.ServerContext;
 
-  @Override
-  public Text interpretRow(Text row) {
-    return row;
+import io.micrometer.core.instrument.MeterRegistry;
+
+public class ProcessMetrics implements MetricsProducer {
+
+  private final ServerContext context;
+
+  public ProcessMetrics(final ServerContext context) {
+    this.context = context;
   }
 
   @Override
-  public Text interpretBeginRow(Text row) {
-    return row;
+  public void registerMetrics(MeterRegistry registry) {
+    registry.gauge(METRICS_LOW_MEMORY, List.of(), this, this::lowMemDetected);
   }
 
-  @Override
-  public Text interpretEndRow(Text row) {
-    return row;
+  private int lowMemDetected(ProcessMetrics processMetrics) {
+    return context.getLowMemoryDetector().isRunningLowOnMemory() ? 1 : 0;
   }
-
-  @Override
-  public Text interpretColumnFamily(Text cf) {
-    return cf;
-  }
-
-  @Override
-  public Text interpretColumnQualifier(Text cq) {
-    return cq;
-  }
-
 }

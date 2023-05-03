@@ -432,7 +432,7 @@ public class TabletMetadata {
           switch (qual) {
             case DIRECTORY_QUAL:
               Preconditions.checkArgument(ServerColumnFamily.isValidDirCol(val),
-                  "Saw invalid dir name {} {}", key, val);
+                  "Saw invalid dir name %s %s", key, val);
               te.dirName = val;
               break;
             case TIME_QUAL:
@@ -547,7 +547,7 @@ public class TabletMetadata {
 
     if (sld.isPresent()) {
       log.trace("Checking server at ZK path = " + lockPath);
-      HostAndPort client = sld.get().getAddress(ServiceLockData.ThriftService.TSERV);
+      HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
       if (client != null) {
         server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
       }
