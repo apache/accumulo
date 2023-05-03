@@ -781,7 +781,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         try (TabletsMetadata tabletsMetadata =
             getContext().getAmple().readTablets().forTablets(onlineTabletsSnapshot.keySet())
                 .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
-          mdScanSpan.end();
           duration = Duration.between(start, Instant.now());
           log.debug("Metadata scan took {}ms for {} tablets read.", duration.toMillis(),
               onlineTabletsSnapshot.keySet().size());
@@ -794,6 +793,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             tablet.compareTabletInfo(counter, tabletMetadata);
           }
         }
+      } catch (Exception e) {
+        log.error("Unable to complete verification of tablet metadata", e);
+        TraceUtil.setException(mdScanSpan, e, true);
+      } finally {
+        mdScanSpan.end();
       }
     });
 
