@@ -21,6 +21,7 @@ package org.apache.accumulo.core.data;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -33,6 +34,11 @@ import org.apache.hadoop.io.Text;
  * @since 3.0.0
  */
 public class RowRange implements Comparable<RowRange> {
+
+  private static final Comparator<Text> START_ROW_COMPARATOR =
+      Comparator.nullsFirst(Text::compareTo);
+  private static final Comparator<Text> END_ROW_COMPARATOR = Comparator.nullsLast(Text::compareTo);
+
   final private Text startRow;
   final private Text endRow;
   final private boolean startRowInclusive;
@@ -420,15 +426,7 @@ public class RowRange implements Comparable<RowRange> {
     if (comp == 0) {
       // Compare non-infinite start rows and start row inclusiveness
       if (!this.infiniteStartRow) {
-        if (this.startRow == null && other.startRow == null) {
-          comp = 0;
-        } else if (this.startRow == null) {
-          comp = -1;
-        } else if (other.startRow == null) {
-          comp = 1;
-        } else {
-          comp = this.startRow.compareTo(other.startRow);
-        }
+        comp = START_ROW_COMPARATOR.compare(this.startRow, other.startRow);
         if (comp == 0) {
           comp = Boolean.compare(other.startRowInclusive, this.startRowInclusive);
         }
@@ -441,15 +439,7 @@ public class RowRange implements Comparable<RowRange> {
 
       // Compare non-infinite end rows and end row inclusiveness
       if (comp == 0 && !this.infiniteEndRow) {
-        if (this.endRow == null && other.endRow == null) {
-          comp = 0;
-        } else if (this.endRow == null) {
-          comp = 1;
-        } else if (other.endRow == null) {
-          comp = -1;
-        } else {
-          comp = this.endRow.compareTo(other.endRow);
-        }
+        comp = END_ROW_COMPARATOR.compare(this.endRow, other.endRow);
         if (comp == 0) {
           comp = Boolean.compare(this.endRowInclusive, other.endRowInclusive);
         }
