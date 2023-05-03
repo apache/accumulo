@@ -28,7 +28,6 @@ import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.util.Nulls;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -63,8 +62,8 @@ public class CleanUpBulkImport extends ManagerRepo {
         Collections.singleton(new ReferenceFile(info.tableId, bulkDir.toString())));
     if (info.tableState == TableState.ONLINE) {
 
-      Text firstSplit = Nulls.map(info.firstSplit, Text::new);
-      Text lastSplit = Nulls.map(info.lastSplit, Text::new);
+      Text firstSplit = info.firstSplit == null ? null : new Text(info.firstSplit);
+      Text lastSplit = info.lastSplit == null ? null : new Text(info.lastSplit);
 
       log.debug("{} removing the metadata table markers for loaded files in range {} {}",
           FateTxId.formatTid(tid), firstSplit, lastSplit);
