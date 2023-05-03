@@ -24,7 +24,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
-import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalFixedDelay;
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalScheduledTask;
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchNonCriticalScheduledTask;
 
@@ -823,7 +822,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
     long tabletCheckFrequency = aconf.getTimeInMillis(Property.TSERV_HEALTH_CHECK_FREQ);
     // Periodically check that metadata of tablets matches what is held in memory
-    watchCriticalFixedDelay(aconf, tabletCheckFrequency, () -> {
+    watchNonCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
       final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
 
       Map<KeyExtent,MetadataUpdateCount> updateCounts = new HashMap<>();
@@ -859,7 +858,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       } finally {
         mdScanSpan.end();
       }
-    });
+    }, tabletCheckFrequency, tabletCheckFrequency, TimeUnit.SECONDS));
 
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = TimeUnit.MINUTES.toMillis(15);
     watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
