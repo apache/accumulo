@@ -391,7 +391,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
                 } catch (InterruptedException e) {
                   throw new RuntimeException(e);
                 }
-
+                unhostedRanges.get("").clear();
                 tl.invalidateCache();
                 failures = tl.findTablets(context, ranges, consumer, LocationNeed.NOT_REQUIRED);
               }
