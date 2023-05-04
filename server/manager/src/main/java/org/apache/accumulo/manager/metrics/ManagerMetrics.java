@@ -22,21 +22,25 @@ import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class ManagerMetrics {
+import io.micrometer.core.instrument.MeterRegistry;
 
-  private final static Logger log = LoggerFactory.getLogger(ManagerMetrics.class);
+public class ManagerMetrics implements MetricsProducer {
 
-  public static void init(AccumuloConfiguration conf, Manager m) {
+  private final FateMetrics fateMetrics;
+
+  public ManagerMetrics(final AccumuloConfiguration conf, final Manager manager) {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
-    MetricsUtil.initializeProducers(new FateMetrics(m.getContext(),
-        conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
-    log.info("Registered FATE metrics module");
+    requireNonNull(conf, "Manager must not be null");
+    fateMetrics = new FateMetrics(manager.getContext(),
+        conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL));
   }
 
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    fateMetrics.registerMetrics(registry);
+  }
 }

@@ -204,7 +204,7 @@ public class ManagerMetadataUtil {
     scanFiles.forEach(tablet::putScan);
 
     if (path.isPresent()) {
-      tablet.putFile(path.get(), size);
+      tablet.putFile(path.orElseThrow(), size);
     }
 
     if (compactionId != null) {
@@ -214,7 +214,7 @@ public class ManagerMetadataUtil {
     updateLastForCompactionMode(context, tablet, lastLocation, address, zooLock);
 
     if (ecid.isPresent()) {
-      tablet.deleteExternalCompaction(ecid.get());
+      tablet.deleteExternalCompaction(ecid.orElseThrow());
     }
 
     tablet.putZooLock(zooLock);

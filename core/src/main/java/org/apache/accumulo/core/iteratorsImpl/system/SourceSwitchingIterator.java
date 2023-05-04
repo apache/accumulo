@@ -154,7 +154,7 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
 
     // we need to check here if we were yielded in case the source was switched out and re-seeked by
     // someone else (minor compaction/InMemoryMap)
-    boolean yielded = (yield.isPresent() && yield.get().hasYielded());
+    boolean yielded = (yield.isPresent() && yield.orElseThrow().hasYielded());
 
     // check of initialSeek second is intentional so that it does not short
     // circuit the call to switchSource
@@ -164,7 +164,7 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
       if (initialSeek) {
         iter.seek(range, columnFamilies, inclusive);
       } else if (yielded) {
-        Key yieldPosition = yield.get().getPositionAndReset();
+        Key yieldPosition = yield.orElseThrow().getPositionAndReset();
         if (!range.contains(yieldPosition)) {
           throw new IOException("Underlying iterator yielded to a position outside of its range: "
               + yieldPosition + " not in " + range);
@@ -186,9 +186,9 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
     }
 
     if (iter.hasTop()) {
-      if (yield.isPresent() && yield.get().hasYielded()) {
+      if (yield.isPresent() && yield.orElseThrow().hasYielded()) {
         throw new IOException("Coding error: hasTop returned true but has yielded at "
-            + yield.get().getPositionAndReset());
+            + yield.orElseThrow().getPositionAndReset());
       }
 
       Key nextKey = iter.getTopKey();
@@ -211,7 +211,7 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
       source = source.getNewDataSource();
       iter = source.iterator();
       if (!onlySwitchAfterRow && yield.isPresent()) {
-        iter.enableYielding(yield.get());
+        iter.enableYielding(yield.orElseThrow());
       }
       return true;
     }
@@ -230,7 +230,7 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
       if (iter == null) {
         iter = source.iterator();
         if (!onlySwitchAfterRow && yield.isPresent()) {
-          iter.enableYielding(yield.get());
+          iter.enableYielding(yield.orElseThrow());
         }
       }
 

@@ -168,7 +168,7 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
       Set<String> options) {
     log.trace("Looking up property {} + for Table id: {}", TABLE_CUSTOM_SUFFIX, env.getTable());
 
-    String preferredVolumes = env.getServiceEnv().getConfiguration(env.getTable().get())
+    String preferredVolumes = env.getServiceEnv().getConfiguration(env.getTable().orElseThrow())
         .getTableCustom(TABLE_CUSTOM_SUFFIX);
 
     // fall back to global default scope, so setting only one default is necessary, rather than a

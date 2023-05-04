@@ -139,7 +139,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
     CompactionCoordinatorService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.get(), context);
+        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
     try {
       return client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
     } finally {

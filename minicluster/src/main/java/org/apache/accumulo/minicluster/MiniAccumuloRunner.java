@@ -53,7 +53,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * jdwpEnabled=true
  * zooKeeperMemory=128M
  * tserverMemory=256M
- * masterMemory=128M
+ * managerMemory=128M
  * defaultMemory=256M
  * shutdownPort=4446
  * site.instance.secret=HUSH
