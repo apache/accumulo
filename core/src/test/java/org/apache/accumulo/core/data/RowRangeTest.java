@@ -41,6 +41,39 @@ public class RowRangeTest {
   class StaticEntryPointTests {
 
     @Test
+    void testOpenEquality() {
+      RowRange range1 = RowRange.open("r1", "row5");
+      RowRange range2 = RowRange.open(new Text("r1"), new Text("row5"));
+      RowRange range3 = RowRange.range(new Text("r1"), false, new Text("row5"), false);
+
+      assertTrue(range1.equals(range2));
+      assertTrue(range1.equals(range3));
+      assertTrue(range2.equals(range3));
+    }
+
+    @Test
+    void testClosedEquality() {
+      RowRange range1 = RowRange.closed("r1", "row5");
+      RowRange range2 = RowRange.closed(new Text("r1"), new Text("row5"));
+      RowRange range3 = RowRange.range(new Text("r1"), true, new Text("row5"), true);
+
+      assertTrue(range1.equals(range2));
+      assertTrue(range1.equals(range3));
+      assertTrue(range2.equals(range3));
+    }
+
+    @Test
+    void testClosedSingleRowEquality() {
+      RowRange range1 = RowRange.closed("r1");
+      RowRange range2 = RowRange.closed(new Text("r1"));
+      RowRange range3 = RowRange.range(new Text("r1"), true, new Text("r1"), true);
+
+      assertTrue(range1.equals(range2));
+      assertTrue(range1.equals(range3));
+      assertTrue(range2.equals(range3));
+    }
+
+    @Test
     void testClosedOpenEquality() {
       RowRange range1 = RowRange.closedOpen("r1", "row5");
       RowRange range2 = RowRange.closedOpen(new Text("r1"), new Text("row5"));
@@ -56,6 +89,17 @@ public class RowRangeTest {
       RowRange range1 = RowRange.openClosed("r1", "row5");
       RowRange range2 = RowRange.openClosed(new Text("r1"), new Text("row5"));
       RowRange range3 = RowRange.range(new Text("r1"), false, new Text("row5"), true);
+
+      assertTrue(range1.equals(range2));
+      assertTrue(range1.equals(range3));
+      assertTrue(range2.equals(range3));
+    }
+
+    @Test
+    void testGreaterThanEquality() {
+      RowRange range1 = RowRange.greaterThan("r1");
+      RowRange range2 = RowRange.greaterThan(new Text("r1"));
+      RowRange range3 = RowRange.range(new Text("r1"), false, null, false);
 
       assertTrue(range1.equals(range2));
       assertTrue(range1.equals(range3));
@@ -176,49 +220,131 @@ public class RowRangeTest {
     void testCompareWithSameRange() {
       RowRange range1 = RowRange.open("r1", "r3");
       RowRange range2 = RowRange.open("r1", "r3");
+
       assertEquals(0, range1.compareTo(range2));
+      assertEquals(0, range2.compareTo(range1));
+
+      range1 = RowRange.closed("r1", "r3");
+      range2 = RowRange.closed("r1", "r3");
+
+      assertEquals(0, range1.compareTo(range2));
+      assertEquals(0, range2.compareTo(range1));
+
+      range1 = RowRange.closedOpen("r1", "r3");
+      range2 = RowRange.closedOpen("r1", "r3");
+
+      assertEquals(0, range1.compareTo(range2));
+      assertEquals(0, range2.compareTo(range1));
+
+      range1 = RowRange.closed("r1");
+      range2 = RowRange.closed("r1");
+
+      assertEquals(0, range1.compareTo(range2));
+      assertEquals(0, range2.compareTo(range1));
+
+      range1 = RowRange.openClosed("r1", "r3");
+      range2 = RowRange.openClosed("r1", "r3");
+
+      assertEquals(0, range1.compareTo(range2));
+      assertEquals(0, range2.compareTo(range1));
+
+      range1 = RowRange.greaterThan("r1");
+      range2 = RowRange.greaterThan("r1");
+
+      assertEquals(0, range1.compareTo(range2));
+      assertEquals(0, range2.compareTo(range1));
+
+      range1 = RowRange.atLeast("r1");
+      range2 = RowRange.atLeast("r1");
+
+      assertEquals(0, range1.compareTo(range2));
+      assertEquals(0, range2.compareTo(range1));
+
+      range1 = RowRange.lessThan("r1");
+      range2 = RowRange.lessThan("r1");
+
+      assertEquals(0, range1.compareTo(range2));
+      assertEquals(0, range2.compareTo(range1));
+
+      range1 = RowRange.atMost("r1");
+      range2 = RowRange.atMost("r1");
+
+      assertEquals(0, range1.compareTo(range2));
+      assertEquals(0, range2.compareTo(range1));
+
+      range1 = RowRange.all();
+      range2 = RowRange.all();
+
+      assertEquals(0, range1.compareTo(range2));
+      assertEquals(0, range2.compareTo(range1));
     }
 
     @Test
     void testCompareWithDifferentStartRow() {
-      RowRange range1 = RowRange.open("r1", "r3");
-      RowRange range2 = RowRange.open("r2", "r3");
-      assertTrue(range1.compareTo(range2) < 0);
+      RowRange open_r1_r3 = RowRange.open("r1", "r3");
+      RowRange open_r2_r3 = RowRange.open("r2", "r3");
+
+      assertTrue(open_r1_r3.compareTo(open_r2_r3) < 0);
+      assertTrue(open_r2_r3.compareTo(open_r1_r3) > 0);
     }
 
     @Test
     void testCompareWithDifferentEndRow() {
-      RowRange range1 = RowRange.open("r1", "r3");
-      RowRange range2 = RowRange.open("r1", "r4");
-      assertTrue(range1.compareTo(range2) < 0);
+      RowRange open_r1_r3 = RowRange.open("r1", "r3");
+      RowRange open_r1_r4 = RowRange.open("r1", "r4");
+
+      assertTrue(open_r1_r3.compareTo(open_r1_r4) < 0);
+      assertTrue(open_r1_r4.compareTo(open_r1_r3) > 0);
     }
 
     @Test
     void testCompareWithDifferentStartRowInclusiveness() {
-      RowRange range1 = RowRange.open("r1", "r3");
-      RowRange range2 = RowRange.closedOpen("r1", "r3");
-      assertTrue(range1.compareTo(range2) > 0);
+      RowRange open = RowRange.open("r1", "r3");
+      RowRange closedOpen = RowRange.closedOpen("r1", "r3");
+
+      assertTrue(open.compareTo(closedOpen) > 0);
+      assertTrue(closedOpen.compareTo(open) < 0);
     }
 
     @Test
     void testCompareWithDifferentEndRowInclusiveness() {
-      RowRange range1 = RowRange.open("r1", "r3");
-      RowRange range2 = RowRange.openClosed("r1", "r3");
-      assertTrue(range1.compareTo(range2) < 0);
-    }
+      RowRange open = RowRange.open("r1", "r3");
+      RowRange openClosed = RowRange.openClosed("r1", "r3");
 
-    @Test
-    void testCompareWithInfiniteStartRow() {
-      RowRange range1 = RowRange.atLeast("r1");
-      RowRange range2 = RowRange.all();
-      assertTrue(range1.compareTo(range2) < 0);
+      assertTrue(open.compareTo(openClosed) < 0);
+      assertTrue(openClosed.compareTo(open) > 0);
     }
 
     @Test
     void testCompareWithInfiniteEndRow() {
-      RowRange range1 = RowRange.all();
-      RowRange range2 = RowRange.atLeast("r1");
-      assertTrue(range1.compareTo(range2) > 0);
+      RowRange atLeast_r1 = RowRange.atLeast("r1");
+      RowRange greaterThan_r1 = RowRange.greaterThan("r1");
+      RowRange all = RowRange.all();
+
+      assertTrue(atLeast_r1.compareTo(all) < 0);
+      assertTrue(all.compareTo(atLeast_r1) > 0);
+
+      assertTrue(greaterThan_r1.compareTo(all) < 0);
+      assertTrue(all.compareTo(greaterThan_r1) > 0);
+
+      assertTrue(atLeast_r1.compareTo(greaterThan_r1) < 0);
+      assertTrue(greaterThan_r1.compareTo(atLeast_r1) > 0);
+    }
+
+    @Test
+    void testCompareWithInfiniteStartRow() {
+      RowRange atMost_r1 = RowRange.atMost("r1");
+      RowRange lessThan_r1 = RowRange.lessThan("r1");
+      RowRange all = RowRange.all();
+
+      assertTrue(atMost_r1.compareTo(all) < 0);
+      assertTrue(all.compareTo(atMost_r1) > 0);
+
+      assertTrue(lessThan_r1.compareTo(all) < 0);
+      assertTrue(all.compareTo(lessThan_r1) > 0);
+
+      assertTrue(atMost_r1.compareTo(lessThan_r1) > 0);
+      assertTrue(lessThan_r1.compareTo(atMost_r1) < 0);
     }
   }
 
@@ -228,6 +354,7 @@ public class RowRangeTest {
     @Test
     void testContainsWithAllRange() {
       RowRange range = RowRange.all();
+      assertTrue(range.contains(new Text(new byte[] {})));
       assertTrue(range.contains(new Text("r1")));
       assertTrue(range.contains(new Text("r2")));
       assertTrue(range.contains(new Text("row3")));
@@ -236,14 +363,20 @@ public class RowRangeTest {
     @Test
     void testContainsWithOpenRange() {
       RowRange range = RowRange.open("r1", "r3");
+      assertFalse(range.contains(new Text(new byte[] {})));
+      assertFalse(range.contains(new Text("r0")));
       assertFalse(range.contains(new Text("r1")));
+      assertTrue(range.contains(new Text(new byte[] {'r', '1', 0})));
+      assertTrue(range.contains(new Text("r11")));
       assertTrue(range.contains(new Text("r2")));
+      assertFalse(range.contains(new Text(new byte[] {'r', '3', 0})));
       assertFalse(range.contains(new Text("r3")));
     }
 
     @Test
     void testContainsWithClosedRange() {
       RowRange range = RowRange.closed("r1", "r3");
+      assertFalse(range.contains(new Text("r0")));
       assertTrue(range.contains(new Text("r1")));
       assertTrue(range.contains(new Text("r2")));
       assertTrue(range.contains(new Text("r3")));
@@ -252,14 +385,17 @@ public class RowRangeTest {
     @Test
     void testContainsWithOpenClosedRange() {
       RowRange range = RowRange.openClosed("r1", "r3");
+      assertFalse(range.contains(new Text("r0")));
       assertFalse(range.contains(new Text("r1")));
       assertTrue(range.contains(new Text("r2")));
       assertTrue(range.contains(new Text("r3")));
+      assertFalse(range.contains(new Text("r30")));
     }
 
     @Test
     void testContainsWithClosedOpenRange() {
       RowRange range = RowRange.closedOpen("r1", "r3");
+      assertFalse(range.contains(new Text("r0")));
       assertTrue(range.contains(new Text("r1")));
       assertTrue(range.contains(new Text("r2")));
       assertFalse(range.contains(new Text("r3")));
@@ -283,7 +419,9 @@ public class RowRangeTest {
     @Test
     void testContainsWithAtMostRange() {
       RowRange range = RowRange.atMost("r1");
+      assertTrue(range.contains(new Text(new byte[] {})));
       assertTrue(range.contains(new Text("r1")));
+      assertFalse(range.contains(new Text("r10")));
       assertFalse(range.contains(new Text("r2")));
       assertTrue(range.contains(new Text("")));
     }
@@ -384,7 +522,31 @@ public class RowRangeTest {
               List.of(RowRange.closed("a", "b"), RowRange.open("b", "c"))),
           // [a,b] [b,c) -> [a,c)
           Arguments.of(List.of(RowRange.closed("a", "b"), RowRange.closedOpen("b", "c")),
-              List.of(RowRange.closedOpen("a", "c"))));
+              List.of(RowRange.closedOpen("a", "c"))),
+          // (-inf,b] (-inf,c] -> (-inf,c]
+          Arguments.of(List.of(RowRange.atMost("b"), RowRange.atMost("c")),
+              List.of(RowRange.atMost("c"))),
+          // (-inf,b] (-inf,c] [a,d] -> (-inf,d]
+          Arguments.of(
+              List.of(RowRange.atMost("b"), RowRange.atMost("c"), RowRange.closed("a", "d")),
+              List.of(RowRange.atMost("d"))),
+          // (-inf,b] (-inf,c] [a,d] [e,f] -> (-inf,d] [e,f]
+          Arguments.of(
+              List.of(RowRange.atMost("b"), RowRange.atMost("c"), RowRange.closed("a", "d"),
+                  RowRange.closed("e", "f")),
+              List.of(RowRange.atMost("d"), RowRange.closed("e", "f"))),
+          // [a] [b] -> [a] [b]
+          Arguments.of(List.of(RowRange.closed("a"), RowRange.closed("b")),
+              List.of(RowRange.closed("a"), RowRange.closed("b"))),
+          // (a,b] [b,c] -> (a,c]
+          Arguments.of(List.of(RowRange.openClosed("a", "b"), RowRange.closed("b", "c")),
+              List.of(RowRange.openClosed("a", "c"))),
+          // (a,b] (b,+inf) -> (a,+inf)
+          Arguments.of(List.of(RowRange.openClosed("a", "b"), RowRange.atLeast("b")),
+              List.of(RowRange.greaterThan("a"))),
+          // (-inf,b) (-inf,c) -> (-inf,c)
+          Arguments.of(List.of(RowRange.lessThan("b"), RowRange.lessThan("c")),
+              List.of(RowRange.lessThan("c"))));
     }
 
     Stream<Arguments> rowRangeProvider1() {
@@ -474,6 +636,10 @@ public class RowRangeTest {
               RowRange.openClosed("a", "c")),
           // (a,c] [a,c] -> (a,c]
           Arguments.of(fenceOpenClosed, RowRange.closed("a", "c"), RowRange.openClosed("a", "c")),
+          // (a,c] (-inf, c) -> (a,c)
+          Arguments.of(fenceOpenClosed, RowRange.lessThan("c"), RowRange.open("a", "c")),
+          // (a,c] (-inf, a) -> empty
+          Arguments.of(fenceOpenClosed, RowRange.lessThan("a"), null),
 
           // [a,c] (a,c) -> (a,c)
           Arguments.of(fenceClosed, RowRange.open("a", "c"), RowRange.open("a", "c")),
@@ -528,6 +694,10 @@ public class RowRangeTest {
           Arguments.of(fenceOpen, RowRange.openClosed("a1", "b"), RowRange.openClosed("a1", "b")),
           // (a,c) [a1,b] -> [a1,b]
           Arguments.of(fenceOpen, RowRange.closed("a1", "b"), RowRange.closed("a1", "b")),
+          // (a,c) (a,+inf) -> (a,c)
+          Arguments.of(fenceOpen, RowRange.greaterThan("a"), RowRange.open("a", "c")),
+          // (a,c) (1,+inf) -> (a,c)
+          Arguments.of(fenceOpen, RowRange.greaterThan("1"), RowRange.open("a", "c")),
 
           // (c,n) (a,c) -> empty
           Arguments.of(fenceOpenCN, RowRange.open("a", "c"), null),
