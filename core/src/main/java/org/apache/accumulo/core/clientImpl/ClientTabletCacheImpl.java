@@ -154,7 +154,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       }
 
       Pair<String,String> lock =
-          new Pair<>(tl.getTserverLocation().get(), tl.getTserverSession().get());
+          new Pair<>(tl.getTserverLocation().orElseThrow(), tl.getTserverSession().orElseThrow());
 
       if (okLocks.contains(lock)) {
         return tl;
@@ -164,7 +164,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
         return null;
       }
 
-      if (lockChecker.isLockHeld(tl.getTserverLocation().get(), tl.getTserverSession().get())) {
+      if (lockChecker.isLockHeld(tl.getTserverLocation().orElseThrow(),
+          tl.getTserverSession().orElseThrow())) {
         okLocks.add(lock);
         return tl;
       }
@@ -279,21 +280,21 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       return false;
     }
 
-    TabletServerMutations<T> tsm = binnedMutations.get(tl.getTserverLocation().get());
+    TabletServerMutations<T> tsm = binnedMutations.get(tl.getTserverLocation().orElseThrow());
 
     if (tsm == null) {
       // do lock check once per tserver here to make binning faster
       boolean lockHeld = lcSession.checkLock(tl) != null;
       if (lockHeld) {
-        tsm = new TabletServerMutations<>(tl.getTserverSession().get());
-        binnedMutations.put(tl.getTserverLocation().get(), tsm);
+        tsm = new TabletServerMutations<>(tl.getTserverSession().orElseThrow());
+        binnedMutations.put(tl.getTserverLocation().orElseThrow(), tsm);
       } else {
         return false;
       }
     }
 
     // its possible the same tserver could be listed with different sessions
-    if (tsm.getSession().equals(tl.getTserverSession().get())) {
+    if (tsm.getSession().equals(tl.getTserverSession().orElseThrow())) {
       tsm.addMutation(tl.getExtent(), mutation);
       return true;
     }
@@ -506,7 +507,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     try {
       for (CachedTablet cacheEntry : metaCache.values()) {
         var loc = cacheEntry.getTserverLocation();
-        if (loc.isPresent() && loc.get().equals(server)) {
+        if (loc.isPresent() && loc.orElseThrow().equals(server)) {
           badExtents.add(cacheEntry.getExtent());
           invalidatedCount++;
         }
@@ -897,7 +898,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
   static void addRange(Map<String,Map<KeyExtent,List<Range>>> binnedRanges, CachedTablet ct,
       Range range) {
-    binnedRanges.computeIfAbsent(ct.getTserverLocation().get(), k -> new HashMap<>())
+    binnedRanges.computeIfAbsent(ct.getTserverLocation().orElseThrow(), k -> new HashMap<>())
         .computeIfAbsent(ct.getExtent(), k -> new ArrayList<>()).add(range);
   }
 }

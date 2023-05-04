@@ -189,8 +189,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
           ClientTabletCache.CachedTablet tab = tl.findTablet(ctx, tls.extent.toMetaRow(), false,
               ClientTabletCache.LocationNeed.REQUIRED);
           // add it to the set of servers with metadata
-          metadataServerSet.add(new TServerInstance(tab.getTserverLocation().get(),
-              Long.valueOf(tab.getTserverSession().get(), 16)));
+          metadataServerSet.add(new TServerInstance(tab.getTserverLocation().orElseThrow(),
+              Long.valueOf(tab.getTserverSession().orElseThrow(), 16)));
         }
       }
 

@@ -571,7 +571,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           continue;
         }
 
-        HostAndPort address = HostAndPort.fromString(tl.getTserverLocation().get());
+        HostAndPort address = HostAndPort.fromString(tl.getTserverLocation().orElseThrow());
 
         try {
           TabletManagementClientService.Client client =
@@ -618,7 +618,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           tabLocator.invalidateCache(tl.getExtent());
           continue;
         } catch (TException e) {
-          tabLocator.invalidateCache(context, tl.getTserverLocation().get());
+          tabLocator.invalidateCache(context, tl.getTserverLocation().orElseThrow());
           continue;
         }
 

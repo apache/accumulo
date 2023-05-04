@@ -431,7 +431,7 @@ public class ThriftScanner {
         Optional<String> tserverLoc = loc.getTserverLocation();
 
         if (tserverLoc.isPresent()) {
-          addr = new ScanAddress(loc.getTserverLocation().get(), ServerType.TSERVER, loc);
+          addr = new ScanAddress(loc.getTserverLocation().orElseThrow(), ServerType.TSERVER, loc);
           delay = actions.getDelay();
           scanState.busyTimeout = Duration.ZERO;
           log.trace("For tablet {} scan server selector chose tablet_server: {}", loc.getExtent(),
@@ -545,7 +545,7 @@ public class ThriftScanner {
             hostingNeed = ClientTabletCache.LocationNeed.REQUIRED;
           }
         } else {
-          addr = new ScanAddress(loc.getTserverLocation().get(), ServerType.TSERVER, loc);
+          addr = new ScanAddress(loc.getTserverLocation().orElseThrow(), ServerType.TSERVER, loc);
         }
       }
     }
