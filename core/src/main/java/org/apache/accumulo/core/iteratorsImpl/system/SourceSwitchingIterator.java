@@ -146,7 +146,13 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
   @Override
   public void next() throws IOException {
     synchronized (copies) {
-      readNext(false);
+      // transform scan Errors into Exception to prevent killing server process on potential user
+      // errors.
+      try {
+        readNext(false);
+      } catch (Error err) {
+        throw new RuntimeException(err);
+      }
     }
   }
 
@@ -226,15 +232,19 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
       this.range = range;
       this.inclusive = inclusive;
       this.columnFamilies = columnFamilies;
-
-      if (iter == null) {
-        iter = source.iterator();
-        if (!onlySwitchAfterRow && yield.isPresent()) {
-          iter.enableYielding(yield.orElseThrow());
+      // transform scan Errors into Exception to prevent killing server process on potential user
+      // errors.
+      try {
+        if (iter == null) {
+          iter = source.iterator();
+          if (!onlySwitchAfterRow && yield.isPresent()) {
+            iter.enableYielding(yield.orElseThrow());
+          }
         }
+        readNext(true);
+      } catch (Error err) {
+        throw new RuntimeException(err);
       }
-
-      readNext(true);
     }
   }
 
