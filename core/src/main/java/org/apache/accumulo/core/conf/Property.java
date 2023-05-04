@@ -297,6 +297,10 @@ public enum Property {
   GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
       "The local IP address to which this server should bind for sending and receiving network traffic",
       "3.0.0"),
+  GENERAL_UPGRADE_VERSION_CHECK_ENABLED("general.upgrade.version.check.enabled", "true",
+      PropertyType.BOOLEAN,
+      "Abort upgrade if manager cannot communicate with available tservers to protect root and metadata tables",
+      "3.0.0"),
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),

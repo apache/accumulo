@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,11 +35,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.server.AccumuloDataVersion;
@@ -157,28 +161,15 @@ public class PreUpgradeValidation {
     ThreadPoolExecutor lockCheckPool = ThreadPools.getServerThreadPools().createThreadPool(8,
         numCheckThreads, 10, MINUTES, "update-lock-check", false);
 
-    final Map<String,String> deletedLocks = new ConcurrentHashMap<>(hostsWithLocks.size());
-    final Map<String,String> pathErrors = new ConcurrentHashMap<>(hostsWithLocks.size());
+    final Map<String,String> invalidLocks = new ConcurrentHashMap<>(hostsWithLocks.size());
     // try a thrift call to the hosts - hosts running previous versions will fail the call
-    hostsWithLocks.forEach(h -> lockCheckPool.execute(() -> {
-      HostAndPort host = h.getFirst();
-      ServiceLock.ServiceLockPath lockPath = h.getSecond();
-      try (TTransport transport = ThriftUtil.createTransport(host, context)) {
-        log.trace("found valid lock at: {}", lockPath);
-      } catch (TException ex) {
-        log.debug("Could not establish a connection for to service holding lock. Deleting node: {}",
-            lockPath, ex);
-        try {
-          zk.delete(lockPath.toString(), -1);
-          deletedLocks.put(lockPath.toString(), "");
-        } catch (KeeperException.NoNodeException e) {
-          // ignore - node already gone.
-        } catch (InterruptedException | KeeperException e) {
-          // task will be terminated - ignore interrupt.
-          pathErrors.put(lockPath.toString(), "");
-        }
+    hostsWithLocks.forEach(hostLockPair -> lockCheckPool.execute(() -> {
+      tryThriftCall(context, invalidLocks, hostLockPair.getFirst(), hostLockPair.getSecond());
+      if (Thread.currentThread().isInterrupted()) {
+        throw new IllegalStateException("Interrupted try to make thrift call to check locks");
       }
     }));
+
     lockCheckPool.shutdown();
     boolean lockCheckTimeout = false;
     final long blockTimeMinutes = 60;
@@ -194,34 +185,62 @@ public class PreUpgradeValidation {
       }
     } catch (InterruptedException ex) {
       var remaining = lockCheckPool.shutdownNow();
-      log.warn(
-          "Interrupted waiting for lock check to finish. {} tasks were remaining.  Continuing, by tservers running prior versions may be present",
+      log.warn("Interrupted waiting for lock check to finish. {} tasks were remaining.",
           remaining.size());
+      lockCheckTimeout = true;
     }
     log.info("tserver lock completed in {} minutes",
         NANOSECONDS.toMinutes(System.nanoTime() - lockCheckStart));
-    if (deletedLocks.size() == 0) {
-      log.info("All tserver locks found and processed are valid.");
+    if (invalidLocks.size() == 0) {
+      log.info("All tserver locks found were processed and are valid.");
     } else {
-      log.warn("Completed lock check with {} lock(s) removed.", deletedLocks.size());
-      Map<String,String> sorted = new TreeMap<>(pathErrors);
+      log.warn("Lock check completed with {} inlaid lock(s) found", invalidLocks.size());
+      Map<String,String> sorted = new TreeMap<>(invalidLocks);
       sorted.forEach((p, v) -> {
-        log.warn("Deleted tserver lock: {}", p);
+        log.warn("Invalid tserver lock: {}", p);
       });
     }
-    if (pathErrors.size() == 0) {
-      log.info("Completed lock check with no lock path delete errors");
-    } else {
-      log.warn("Completed tserver lock check with error count of: {}.", pathErrors.size());
-      Map<String,String> sorted = new TreeMap<>(pathErrors);
-      sorted.forEach((p, v) -> {
-        log.warn("failed to delete tserver lock: {}", p);
-      });
+
+    if (context.getConfiguration().getBoolean(Property.GENERAL_UPGRADE_VERSION_CHECK_ENABLED)) {
+      if (lockCheckTimeout || !invalidLocks.isEmpty()) {
+        throw new IllegalStateException(
+            "Failed to complete tserver lock check - cannot validate that all tservers running current version");
+      }
     }
-    if (lockCheckTimeout) {
-      throw new IllegalStateException(
-          "Failed to complete tserver lock check - cannot validate that all tservers running current version");
+  }
+
+  private static void tryThriftCall(ServerContext context, Map<String,String> invalidLocks,
+      HostAndPort host, ServiceLock.ServiceLockPath lockPath) {
+
+    Retry retry = Retry.builder().maxRetries(10).retryAfter(100, MILLISECONDS)
+        .incrementBy(250, MILLISECONDS).maxWait(10, SECONDS).backOffFactor(1.07)
+        .logInterval(1, SECONDS).createFactory().createRetry();
+
+    while (retry.canRetry()) {
+      try (TTransport transport = ThriftUtil.createTransport(host, context)) {
+        log.trace("found valid lock at: {}", lockPath);
+        return;
+      } catch (TException ex) {
+        log.trace("Could not establish a thrift connection, service lock path: {}", lockPath, ex);
+      }
+      // pause for next rty
+      try {
+        retry.useRetry();
+        retry.waitForNextAttempt(log,
+            "retrying thrift call to host: " + host + " lock path: " + lockPath);
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        invalidLocks.put(lockPath.toString(), "");
+        return;
+      } catch (Exception ex) {
+        log.debug("Failed to establish a connection for to service holding lock. {}", lockPath, ex);
+        invalidLocks.put(lockPath.toString(), "");
+        return;
+      }
     }
+    log.debug("Failed to establish a connection for to service holding lock. {}. no retires left.",
+        lockPath);
+    invalidLocks.put(lockPath.toString(), "");
   }
 
   private List<Pair<HostAndPort,ServiceLock.ServiceLockPath>> gatherLocks(final ZooKeeper zk,
@@ -271,7 +290,7 @@ public class PreUpgradeValidation {
     try {
       Optional<ServiceLockData> sld = ServiceLockData.parse(lockData);
       if (sld.isPresent()) {
-        HostAndPort hostAndPort = sld.get().getAddress(ServiceLockData.ThriftService.TSERV);
+        HostAndPort hostAndPort = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
         hosts.add(new Pair<>(hostAndPort, zLockPath));
       }
       return true;
