@@ -38,6 +38,16 @@ public class RowRange implements Comparable<RowRange> {
   private static final Comparator<Text> START_ROW_COMPARATOR =
       Comparator.nullsFirst(Text::compareTo);
   private static final Comparator<Text> END_ROW_COMPARATOR = Comparator.nullsLast(Text::compareTo);
+  public static final Comparator<RowRange> ROW_RANGE_COMPARATOR = (r1, r2) -> {
+    if (r1.startRow == null && r2.startRow == null) {
+      return 0;
+    } else if (r1.startRow == null) {
+      return -1;
+    } else if (r2.startRow == null) {
+      return 1;
+    }
+    return r1.compareTo(r2);
+  };
 
   final private Text startRow;
   final private Text endRow;
@@ -491,16 +501,7 @@ public class RowRange implements Comparable<RowRange> {
 
     List<RowRange> sortedRowRanges = new ArrayList<>(rowRanges);
     // Sort row ranges by their startRow values
-    sortedRowRanges.sort((r1, r2) -> {
-      if (r1.startRow == null && r2.startRow == null) {
-        return 0;
-      } else if (r1.startRow == null) {
-        return -1;
-      } else if (r2.startRow == null) {
-        return 1;
-      }
-      return r1.compareTo(r2);
-    });
+    sortedRowRanges.sort(ROW_RANGE_COMPARATOR);
 
     ArrayList<RowRange> mergedRowRanges = new ArrayList<>(rowRanges.size());
 
