@@ -200,7 +200,7 @@ public class ECAdmin implements KeywordExecutable {
     if (coordinatorHost.isEmpty()) {
       throw new IllegalStateException("Unable to find coordinator. Check that it is running.");
     }
-    HostAndPort address = coordinatorHost.get();
+    HostAndPort address = coordinatorHost.orElseThrow();
     CompactionCoordinatorService.Client coordinatorClient;
     try {
       coordinatorClient = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, context);

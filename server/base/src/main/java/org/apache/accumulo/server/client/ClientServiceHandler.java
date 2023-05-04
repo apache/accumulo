@@ -53,7 +53,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.master.thrift.BulkImportStatus;
+import org.apache.accumulo.core.manager.thrift.BulkImportStatus;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -370,7 +370,8 @@ public class ClientServiceHandler implements ClientService.Iface {
       throws ThriftSecurityException {
     checkSystemPermission(credentials);
     return Optional.of(context.getPropStore().get(SystemPropKey.of(context)))
-        .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
+        .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
+        .orElseThrow();
   }
 
   @Override
@@ -397,7 +398,8 @@ public class ClientServiceHandler implements ClientService.Iface {
     final TableId tableId = checkTableId(context, tableName, null);
     checkTablePermission(credentials, tableId, TablePermission.ALTER_TABLE);
     return Optional.of(context.getPropStore().get(TablePropKey.of(context, tableId)))
-        .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
+        .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
+        .orElseThrow();
   }
 
   @Override
@@ -543,7 +545,8 @@ public class ClientServiceHandler implements ClientService.Iface {
       namespaceId = Namespaces.getNamespaceId(context, ns);
       checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
       return Optional.of(context.getPropStore().get(NamespacePropKey.of(context, namespaceId)))
-          .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap())).get();
+          .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
+          .orElseThrow();
     } catch (NamespaceNotFoundException e) {
       String why = "Could not find namespace while getting configuration.";
       throw new ThriftTableOperationException(null, ns, null,

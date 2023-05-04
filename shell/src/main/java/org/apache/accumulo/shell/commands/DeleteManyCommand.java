@@ -41,10 +41,6 @@ public class DeleteManyCommand extends ScanCommand {
       throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
-    @SuppressWarnings("deprecation")
-    final org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter =
-        getInterpreter(cl, tableName, shellState);
-
     // handle first argument, if present, the authorizations list to
     // scan with
     final Authorizations auths = getAuths(cl, shellState);
@@ -57,12 +53,12 @@ public class DeleteManyCommand extends ScanCommand {
     addScanIterators(shellState, cl, scanner, tableName);
 
     // handle remaining optional arguments
-    scanner.setRange(getRange(cl, interpeter));
+    scanner.setRange(getRange(cl));
 
     scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
 
     // handle columns
-    fetchColumns(cl, scanner, interpeter);
+    fetchColumns(cl, scanner);
 
     // output / delete the records
     final BatchWriter writer = shellState.getAccumuloClient().createBatchWriter(tableName,

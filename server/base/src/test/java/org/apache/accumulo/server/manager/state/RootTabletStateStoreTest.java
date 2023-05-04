@@ -27,10 +27,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
+import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
-import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -45,11 +48,12 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.metadata.TabletMutatorBase;
+import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
 import com.google.common.net.HostAndPort;
 
 public class RootTabletStateStoreTest {
@@ -71,25 +75,32 @@ public class RootTabletStateStoreTest {
       throw new UnsupportedOperationException("This method should be implemented in subclasses");
     }
 
-    private class TestTabletMutator extends TabletMutatorBase<TabletMutator>
-        implements TabletMutator {
-      public TestTabletMutator(ServerContext context, KeyExtent extent) {
-        super(context, extent);
-      }
+    public ConditionalTabletsMutator conditionallyMutateTablets() {
+      return new ConditionalTabletsMutatorImpl(null) {
+        protected ConditionalWriter createConditionalWriter(Ample.DataLevel dataLevel)
+            throws TableNotFoundException {
+          Preconditions.checkArgument(dataLevel == DataLevel.ROOT);
+          return new ConditionalWriter() {
+            @Override
+            public Iterator<Result> write(Iterator<ConditionalMutation> mutations) {
+              return Iterators.transform(mutations, this::write);
+            }
 
-      public void mutate() {
-        Mutation m = getMutation();
+            @Override
+            public Result write(ConditionalMutation mutation) {
+              var rtm = new RootTabletMetadata(json);
+              rtm.update(mutation);
+              json = rtm.toJson();
+              return new Result(Status.ACCEPTED, mutation, "server");
+            }
 
-        var rtm = new RootTabletMetadata(json);
-        rtm.update(m);
-        json = rtm.toJson();
-      }
-    }
+            @Override
+            public void close() {
 
-    @Override
-    public TabletMutator mutateTablet(KeyExtent extent) {
-      Preconditions.checkArgument(extent.equals(RootTable.EXTENT));
-      return new TestTabletMutator(null, RootTable.EXTENT);
+            }
+          };
+        }
+      };
     }
 
   }
@@ -125,7 +136,7 @@ public class RootTabletStateStoreTest {
     assertEquals(count, 1);
     TabletLocationState assigned = null;
     try {
-      assigned = new TabletLocationState(root, Location.future(server), null, null, null, null,
+      assigned = new TabletLocationState(root, null, Location.current(server), null, null, null,
           false, TabletHostingGoal.ALWAYS, false);
     } catch (BadLocationStateException e) {
       fail("Unexpected error " + e);

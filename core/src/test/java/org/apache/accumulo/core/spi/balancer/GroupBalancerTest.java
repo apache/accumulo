@@ -118,7 +118,7 @@ public class GroupBalancerTest {
 
         for (TabletServerId tsi : tservers) {
           current.put(tsi, new TServerStatusImpl(
-              new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+              new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
         }
 
         balancer.balance(new BalanceParamsImpl(current, migrations, migrationsOut));

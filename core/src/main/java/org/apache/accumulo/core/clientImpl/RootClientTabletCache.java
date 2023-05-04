@@ -60,11 +60,11 @@ public class RootClientTabletCache extends ClientTabletCache {
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures) {
     CachedTablet rootCachedTablet = getRootTabletLocation(context);
     if (rootCachedTablet != null) {
-      var tsm = new TabletServerMutations<T>(rootCachedTablet.getTserverSession().get());
+      var tsm = new TabletServerMutations<T>(rootCachedTablet.getTserverSession().orElseThrow());
       for (T mutation : mutations) {
         tsm.addMutation(RootTable.EXTENT, mutation);
       }
-      binnedMutations.put(rootCachedTablet.getTserverLocation().get(), tsm);
+      binnedMutations.put(rootCachedTablet.getTserverLocation().orElseThrow(), tsm);
     } else {
       failures.addAll(mutations);
     }

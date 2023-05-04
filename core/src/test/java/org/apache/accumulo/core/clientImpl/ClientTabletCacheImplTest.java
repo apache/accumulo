@@ -179,7 +179,7 @@ public class ClientTabletCacheImplTest {
 
     for (Entry<KeyExtent,CachedTablet> entry : mcke.entrySet()) {
       setLocation(tservers, metaTabLoc, METADATA_TABLE_EXTENT, entry.getKey(),
-          entry.getValue().getTserverLocation().get());
+          entry.getValue().getTserverLocation().orElseThrow());
     }
 
     return tab1TabletCache;
@@ -507,10 +507,11 @@ public class ClientTabletCacheImplTest {
     public CachedTablets lookupTablet(ClientContext context, CachedTablet src, Text row,
         Text stopRow, ClientTabletCache parent) {
 
-      Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.get(src.getTserverLocation().get());
+      Map<KeyExtent,SortedMap<Key,Value>> tablets =
+          tservers.get(src.getTserverLocation().orElseThrow());
 
       if (tablets == null) {
-        parent.invalidateCache(context, src.getTserverLocation().get());
+        parent.invalidateCache(context, src.getTserverLocation().orElseThrow());
         return null;
       }
 
@@ -703,7 +704,7 @@ public class ClientTabletCacheImplTest {
         assertTrue(tl.getTserverLocation().isEmpty());
         assertTrue(tl.getTserverSession().isEmpty());
       } else {
-        assertEquals(server, tl.getTserverLocation().get());
+        assertEquals(server, tl.getTserverLocation().orElseThrow());
       }
       assertEquals(expected, tl.getExtent());
     }

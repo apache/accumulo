@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
@@ -50,6 +51,9 @@ import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.Test;
 
 public class ZKAuthenticatorTest {
+
+  // test password
+  private byte[] rawPass = "myPassword".getBytes(UTF_8);
 
   @Test
   public void testPermissionIdConversions() {
@@ -106,28 +110,25 @@ public class ZKAuthenticatorTest {
 
   @Test
   public void testEncryption() throws AccumuloException {
-    byte[] rawPass = "myPassword".getBytes(UTF_8);
     byte[] storedBytes;
 
     storedBytes = ZKSecurityTool.createPass(rawPass.clone());
     assertTrue(ZKSecurityTool.checkCryptPass(rawPass.clone(), storedBytes));
   }
 
-  @Deprecated
   @Test
-  public void testOutdatedEncryption() throws AccumuloException {
-    byte[] rawPass = "myPassword".getBytes();
-    byte[] storedBytes;
+  public void testOutdatedPassword() throws AccumuloException {
+    // hard-coded test password was created using Accumulo's old password SHA-256 hashing,
+    // using "myPassword".getBytes(UTF_8) for the password bytes, and
+    // using the 8 byte salt array = new byte[] {0, 1, 2, 3, 4, 5, 6, 7};
+    byte[] storedBytes =
+        Base64.getDecoder().decode("AAECAwQFBgeD69bFtHx6yzb4j70qBzgNmhR8kTRyJbX3cdzL15jihQ==");
 
-    storedBytes = ZKSecurityTool.createOutdatedPass(rawPass);
-    assertTrue(ZKSecurityTool.checkPass(rawPass, storedBytes));
-  }
-
-  @Test
-  public void testEncryptionDifference() throws AccumuloException {
-    byte[] rawPass = "myPassword".getBytes();
-    @SuppressWarnings("deprecation")
-    byte[] storedBytes = ZKSecurityTool.createOutdatedPass(rawPass);
+    // this test is only checking one typical outdated password; as such, we can't infer much from
+    // the fact that it fails to validate. So, this is mostly checking that it fails with a return
+    // value of "false" rather than throwing an exception; as long as the password check fails
+    // with the return value and doesn't blow things up, the root user can change the user's
+    // password to update it to the new format
     assertFalse(ZKSecurityTool.checkCryptPass(rawPass, storedBytes));
   }
 
@@ -135,7 +136,6 @@ public class ZKAuthenticatorTest {
   public void testUserAuthentication() throws Exception {
     // testing the usecase when trying to authenticate with the new hash type
     String principal = "myTestUser";
-    byte[] rawPass = "myPassword".getBytes(UTF_8);
     // creating hash with up to date algorithm
     byte[] newHash = ZKSecurityTool.createPass(rawPass.clone());
 
@@ -158,42 +158,6 @@ public class ZKAuthenticatorTest {
 
     PasswordToken token = new PasswordToken(rawPass.clone());
     // verifying that if the new type of hash is stored in zk authentication works as expected
-    assertTrue(auth.authenticateUser(principal, token));
-    verify(context, zr, zk);
-  }
-
-  @Test
-  public void testUserAuthenticationUpdate() throws Exception {
-    // testing the usecase when trying to authenticate with the outdated hash type
-    String principal = "myTestUser";
-    byte[] rawPass = "myPassword".getBytes(UTF_8);
-    // creating hash with outdated algorithm
-    @SuppressWarnings("deprecation")
-    byte[] outdatedHash = ZKSecurityTool.createOutdatedPass(rawPass);
-
-    // mocking zk interaction
-    ServerContext context = MockServerContext.getWithZK(InstanceId.of("example"), "", 30_000);
-    ZooReaderWriter zr = createMock(ZooReaderWriter.class);
-    expect(context.getZooReader()).andReturn(zr).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zr).anyTimes();
-    ZooKeeper zk = createMock(ZooKeeper.class);
-    expect(zk.getChildren(anyObject(), anyObject())).andReturn(Arrays.asList(principal)).anyTimes();
-    expect(zk.exists(matches("/accumulo/example/users/" + principal), anyObject(Watcher.class)))
-        .andReturn(new Stat()).anyTimes();
-    expect(zr.getZooKeeper()).andReturn(zk).anyTimes();
-    expect(zk.getData(matches("/accumulo/example/users/" + principal), anyObject(), anyObject()))
-        .andReturn(outdatedHash).once();
-    // expecting that the new hash is pushed to zk
-    expect(zr.putPrivatePersistentData(matches("/accumulo/example/users/" + principal), anyObject(),
-        anyObject())).andReturn(true).once();
-    replay(context, zr, zk);
-
-    // creating authenticator
-    ZKAuthenticator auth = new ZKAuthenticator();
-    auth.initialize(context);
-
-    PasswordToken token = new PasswordToken(rawPass.clone());
-    // verifying that if the outdated type of hash is stored in zk authentication works as expected
     assertTrue(auth.authenticateUser(principal, token));
     verify(context, zr, zk);
   }
