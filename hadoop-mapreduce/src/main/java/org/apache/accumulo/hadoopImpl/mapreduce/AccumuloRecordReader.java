@@ -415,6 +415,8 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
 
               while (!failures.isEmpty()) {
 
+                clientContext.requireNotDeleted(tableId);
+
                 try {
                   retry.waitForNextAttempt(log,
                       String.format("locating tablets in table %s(%s) for %d ranges", tableName,

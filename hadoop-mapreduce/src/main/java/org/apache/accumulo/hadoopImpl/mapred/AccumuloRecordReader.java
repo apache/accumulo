@@ -382,6 +382,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
 
               while (!failures.isEmpty()) {
 
+                context.requireNotDeleted(tableId);
+
                 try {
                   retry.waitForNextAttempt(log,
                       String.format("locating tablets in table %s(%s) for %d ranges", tableName,
