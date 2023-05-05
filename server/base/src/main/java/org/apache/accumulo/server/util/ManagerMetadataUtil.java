@@ -64,6 +64,8 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class ManagerMetadataUtil {
 
   private static final Logger log = LoggerFactory.getLogger(ManagerMetadataUtil.class);
@@ -253,18 +255,18 @@ public class ManagerMetadataUtil {
    * last location if needed and set the new last location
    *
    * @param context The server context
-   * @param ample The metadata persistence layer
    * @param tabletMutator The mutator being built
-   * @param extent The tablet extent
    * @param location The new location
+   * @param lastLocation The previous last location, which may be null
    */
-  public static void updateLastForAssignmentMode(ClientContext context, Ample ample,
-      Ample.TabletMutator tabletMutator, KeyExtent extent, TServerInstance location) {
+  public static void updateLastForAssignmentMode(ClientContext context,
+      Ample.TabletMutator tabletMutator, TServerInstance location, Location lastLocation) {
+    Preconditions.checkArgument(
+        lastLocation == null || lastLocation.getType() == TabletMetadata.LocationType.LAST);
+
     // if the location mode is assignment, then preserve the current location in the last
     // location value
     if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-      TabletMetadata lastMetadata = ample.readTablet(extent, TabletMetadata.ColumnType.LAST);
-      Location lastLocation = (lastMetadata == null ? null : lastMetadata.getLast());
       ManagerMetadataUtil.updateLocation(tabletMutator, lastLocation, Location.last(location));
     }
   }

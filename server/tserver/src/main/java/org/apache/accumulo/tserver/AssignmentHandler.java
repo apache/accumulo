@@ -181,7 +181,8 @@ class AssignmentHandler implements Runnable {
           && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
         throw new RuntimeException("Minor compaction after recovery fails for " + extent);
       }
-      Assignment assignment = new Assignment(extent, server.getTabletSession());
+      Assignment assignment =
+          new Assignment(extent, server.getTabletSession(), tabletMetadata.getLast());
       TabletStateStore.setLocation(server.getContext(), assignment);
 
       synchronized (server.openingTablets) {
