@@ -208,7 +208,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
     MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio, context, zl, Set.of());
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());
-    Assignment assignment = new Assignment(high, instance);
+    Assignment assignment = new Assignment(high, instance, null);
 
     TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
     tabletMutator.putLocation(Location.future(assignment.server));

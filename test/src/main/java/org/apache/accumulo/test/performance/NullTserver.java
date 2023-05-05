@@ -355,7 +355,7 @@ public class NullTserver {
 
       while (s.hasNext()) {
         TabletLocationState next = s.next();
-        assignments.add(new Assignment(next.extent, instance));
+        assignments.add(new Assignment(next.extent, instance, next.last));
       }
     }
     // point them to this server
