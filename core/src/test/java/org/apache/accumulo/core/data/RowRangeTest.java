@@ -20,6 +20,8 @@ package org.apache.accumulo.core.data;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -36,6 +38,130 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class RowRangeTest {
+
+  @Nested
+  class TestBasic {
+
+    @Test
+    void testGetters() {
+      Text startRow = new Text("r1");
+      Text endRow = new Text("r1");
+      boolean isStartInclusive = true;
+      boolean isEndInclusive = false;
+
+      RowRange range = RowRange.range(startRow, isStartInclusive, endRow, isEndInclusive);
+
+      assertEquals(startRow, range.getStartRow());
+      assertEquals(isStartInclusive, range.isStartRowInclusive());
+      assertEquals(endRow, range.getEndRow());
+      assertEquals(isEndInclusive, range.isEndRowInclusive());
+
+      startRow = new Text("r11");
+      endRow = new Text("r22");
+      isStartInclusive = false;
+      isEndInclusive = true;
+
+      range = RowRange.range(startRow, isStartInclusive, endRow, isEndInclusive);
+
+      assertEquals(startRow, range.getStartRow());
+      assertEquals(isStartInclusive, range.isStartRowInclusive());
+      assertEquals(endRow, range.getEndRow());
+      assertEquals(isEndInclusive, range.isEndRowInclusive());
+    }
+
+    @Test
+    void testEndRowBeforeStartRow() {
+      final Text startRow = new Text("r1");
+      final Text endRow = new Text("r0");
+
+      assertTrue(startRow.compareTo(endRow) > 0);
+
+      assertThrows(IllegalArgumentException.class,
+          () -> RowRange.range(startRow, true, endRow, false));
+    }
+
+    @Test
+    void testBeforeStartRowWithInfiniteStartRow() {
+      RowRange lessThanR1 = RowRange.lessThan("r1");
+
+      assertFalse(lessThanR1.beforeStartRow(new Text("r0")));
+      assertFalse(lessThanR1.beforeStartRow(new Text("r1")));
+      assertFalse(lessThanR1.beforeStartRow(new Text("r2")));
+
+      RowRange rowRangeR1 = RowRange.closed("r1");
+
+      assertTrue(rowRangeR1.beforeStartRow(new Text("r")));
+      assertTrue(rowRangeR1.beforeStartRow(new Text("r0")));
+      assertFalse(rowRangeR1.beforeStartRow(new Text("r1")));
+      assertFalse(rowRangeR1.beforeStartRow(new Text("r2")));
+    }
+
+    @Test
+    public void testAfterEndRowWithEndRowInclusive() {
+      RowRange range = RowRange.closed(new Text("a"), new Text("c"));
+      assertFalse(range.afterEndRow(new Text("c")));
+      assertFalse(range.afterEndRow(new Text("b")));
+      assertFalse(range.afterEndRow(new Text("a")));
+      assertTrue(range.afterEndRow(new Text("d")));
+    }
+
+    @Test
+    public void testAfterEndRowWithEndRowExclusive() {
+      RowRange range = RowRange.open(new Text("a"), new Text("c"));
+      assertTrue(range.afterEndRow(new Text("c")));
+      assertFalse(range.afterEndRow(new Text("b")));
+      assertFalse(range.afterEndRow(new Text("a")));
+    }
+
+    @Test
+    public void testAfterEndRowWithInfiniteEndRow() {
+      RowRange range = RowRange.greaterThan(new Text("a"));
+      assertFalse(range.afterEndRow(new Text("a")));
+      assertFalse(range.afterEndRow(new Text("b")));
+    }
+
+    @Test
+    public void testToRange() {
+      // Closed range
+      RowRange closedRange = RowRange.closed(new Text("a"), new Text("c"));
+      Range expectedClosedRange = new Range(new Text("a"), true, new Text("c"), true);
+      assertEquals(expectedClosedRange, closedRange.toRange());
+
+      // Open range
+      RowRange openRange = RowRange.open(new Text("a"), new Text("c"));
+      Range expectedOpenRange = new Range(new Text("a"), false, new Text("c"), false);
+      assertEquals(expectedOpenRange, openRange.toRange());
+
+      // Range with infinite start
+      RowRange infiniteStartRange = RowRange.greaterThan(new Text("a"));
+      Range expectedInfiniteStartRange = new Range(new Text("a"), false, null, true);
+      assertEquals(expectedInfiniteStartRange, infiniteStartRange.toRange());
+
+      // Range with infinite end
+      RowRange infiniteEndRange = RowRange.lessThan(new Text("c"));
+      Range expectedInfiniteEndRange = new Range(null, true, new Text("c"), false);
+      assertEquals(expectedInfiniteEndRange, infiniteEndRange.toRange());
+
+      // All rows range
+      RowRange allRange = RowRange.all();
+      Range expectedAllRange = new Range();
+      assertEquals(expectedAllRange, allRange.toRange());
+    }
+
+    @Test
+    public void testStaticMethodsThrowExceptionOnNullArgument() {
+      Stream<Runnable> methods = Stream.of(() -> RowRange.open(null, ""),
+          () -> RowRange.open("", null), () -> RowRange.closed(null, ""),
+          () -> RowRange.closed("", null), () -> RowRange.closed((Text) null),
+          () -> RowRange.openClosed(null, ""), () -> RowRange.openClosed("", null),
+          () -> RowRange.closedOpen(null, ""), () -> RowRange.closedOpen("", null),
+          () -> RowRange.greaterThan((Text) null), () -> RowRange.atLeast((Text) null),
+          () -> RowRange.lessThan((Text) null), () -> RowRange.atMost((Text) null));
+
+      methods.forEach(method -> assertThrows(NullPointerException.class, method::run));
+    }
+
+  }
 
   @Nested
   class StaticEntryPointTests {
@@ -150,6 +276,19 @@ public class RowRangeTest {
 
   @Nested
   class EqualsTests {
+
+    @Test
+    void testEqualsWithObject() {
+      Object rowRange = RowRange.closedOpen("r1", "row5");
+      Object rowRange1 = RowRange.closedOpen("r1", "row5");
+      RowRange rowRange2 = RowRange.closedOpen("r1", "row5");
+
+      assertEquals(rowRange, rowRange1);
+      assertEquals(rowRange, rowRange2);
+
+      String badRange = "r1";
+      assertNotEquals(rowRange, badRange);
+    }
 
     @Test
     void testEqualsWithDifferentRanges() {
@@ -733,6 +872,19 @@ public class RowRangeTest {
           Arguments.of(fenceClosedB, RowRange.open("a", "b"), null),
           // [b] (a,b] -> [b]
           Arguments.of(fenceClosedB, RowRange.openClosed("a", "b"), RowRange.closed("b")));
+    }
+
+    @Test
+    public void clipReturnsNull() {
+      RowRange range = RowRange.open("a", "b");
+      RowRange afterRange = RowRange.closed("c");
+      RowRange beforeRange = RowRange.closed("a");
+
+      RowRange clipped = range.clip(afterRange, true);
+      assertNull(clipped);
+
+      clipped = range.clip(beforeRange, true);
+      assertNull(clipped);
     }
   }
 
