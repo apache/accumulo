@@ -72,6 +72,7 @@ public class NewTableConfiguration {
   private Map<String,String> localityProps = Collections.emptyMap();
   private final Map<String,String> iteratorProps = new HashMap<>();
   private SortedSet<Text> splitProps = Collections.emptySortedSet();
+  private TabletHostingGoal initialHostingGoal = TabletHostingGoal.ONDEMAND;
 
   private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps,
       String kind) {
@@ -307,6 +308,15 @@ public class NewTableConfiguration {
       checkDisjoint(properties, iteratorProps, "iterator");
     }
     return this;
+  }
+
+  public NewTableConfiguration withInitialHostingGoal(final TabletHostingGoal goal) {
+    this.initialHostingGoal = goal;
+    return this;
+  }
+
+  public TabletHostingGoal getInitialHostingGoal() {
+    return this.initialHostingGoal;
   }
 
   /**

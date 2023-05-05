@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -40,11 +41,11 @@ public class CreateTable extends ManagerRepo {
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(CreateTable.class);
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props,
       Path splitPath, int splitCount, Path splitDirsPath, InitialTableState initialTableState,
-      NamespaceId namespaceId) {
+      TabletHostingGoal initialHostingGoal, NamespaceId namespaceId) {
     tableInfo = new TableInfo();
     tableInfo.setTableName(tableName);
     tableInfo.setTimeType(timeType);
@@ -55,6 +56,7 @@ public class CreateTable extends ManagerRepo {
     tableInfo.setInitialSplitSize(splitCount);
     tableInfo.setInitialTableState(initialTableState);
     tableInfo.setSplitDirsPath(splitDirsPath);
+    tableInfo.setInitialHostingGoal(initialHostingGoal);
   }
 
   @Override
