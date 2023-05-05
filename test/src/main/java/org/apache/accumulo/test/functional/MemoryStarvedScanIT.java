@@ -49,6 +49,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
 import org.apache.accumulo.test.metrics.TestStatsDSink;
 import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -272,7 +273,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         Thread.sleep(1500);
         assertEquals(currentCount, fetched.get());
 
-        assertEquals(1, LOW_MEM_DETECTED.get());
+        assertTrue(Wait.waitFor(() -> (LOW_MEM_DETECTED.get() == 1), 20_000L, 1000L));
 
         // Free the memory which will allow the pausing scanner to continue
         freeServerMemory(client, table);
@@ -307,13 +308,16 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         consumeServerMemory(scanner);
 
         // Wait for longer than the memory check interval
-        Thread.sleep(6000);
+        Thread.sleep(3000);
 
         // The metric that indicates a scan was returned early due to low memory should
         // have been incremented.
-        assertTrue(SCAN_RETURNED_EARLY.doubleValue() > returned);
-        assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
-        assertEquals(1, LOW_MEM_DETECTED.get());
+        assertTrue(
+            Wait.waitFor(() -> (SCAN_RETURNED_EARLY.doubleValue() > returned), 20_000L, 1000L));
+        assertTrue(
+            Wait.waitFor(() -> (SCAN_START_DELAYED.doubleValue() >= paused), 20_000L, 1000L));
+        assertTrue(Wait.waitFor(() -> (LOW_MEM_DETECTED.get() == 1), 20_000L, 1000L));
+
         freeServerMemory(client, table);
       } finally {
         to.delete(table);
@@ -331,7 +335,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
       to.create(table);
 
       // check memory okay before starting
-      assertEquals(0, LOW_MEM_DETECTED.get());
+      assertTrue(Wait.waitFor(() -> (LOW_MEM_DETECTED.get() == 0), 20_000L, 1000L));
 
       ReadWriteIT.ingest(client, 10, 3, 10, 0, table);
 
@@ -377,22 +381,28 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         // Grab the current paused count, wait two seconds and then confirm that
         // the number of rows fetched by the memoryConsumingScanner has not increased
         // and that the scan delay counter has increased.
-        double returned = SCAN_RETURNED_EARLY.doubleValue();
-        double paused = SCAN_START_DELAYED.doubleValue();
+        final double returned = SCAN_RETURNED_EARLY.doubleValue();
+        final double paused = SCAN_START_DELAYED.doubleValue();
         Thread.sleep(1500);
         assertEquals(currentCount, fetched.get());
-        assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
-        assertTrue(SCAN_RETURNED_EARLY.doubleValue() >= returned);
-        assertEquals(1, LOW_MEM_DETECTED.get());
+
+        assertTrue(
+            Wait.waitFor(() -> (SCAN_START_DELAYED.doubleValue() >= paused), 20_000L, 1000L));
+        assertTrue(
+            Wait.waitFor(() -> (SCAN_RETURNED_EARLY.doubleValue() >= returned), 20_000L, 1000L));
+        assertTrue(Wait.waitFor(() -> (LOW_MEM_DETECTED.get() == 1), 20_000L, 1000L));
 
         // Perform the check again
-        paused = SCAN_START_DELAYED.doubleValue();
-        returned = SCAN_RETURNED_EARLY.doubleValue();
+        final double paused2 = SCAN_START_DELAYED.doubleValue();
+        final double returned2 = SCAN_RETURNED_EARLY.doubleValue();
         Thread.sleep(1500);
         assertEquals(currentCount, fetched.get());
-        assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
-        assertEquals(returned, SCAN_RETURNED_EARLY.doubleValue());
-        assertEquals(1, LOW_MEM_DETECTED.get());
+
+        assertTrue(
+            Wait.waitFor(() -> (SCAN_START_DELAYED.doubleValue() >= paused2), 20_000L, 1000L));
+        assertTrue(
+            Wait.waitFor(() -> (SCAN_RETURNED_EARLY.doubleValue() == returned2), 20_000L, 1000L));
+        assertTrue(Wait.waitFor(() -> (LOW_MEM_DETECTED.get() == 1), 20_000L, 1000L));
 
         // Free the memory which will allow the pausing scanner to continue
         freeServerMemory(client, table);
@@ -400,8 +410,8 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         t.join();
         assertEquals(30, fetched.get());
         // allow metic collection to cycle.
-        Thread.sleep(6_000);
-        assertEquals(0, LOW_MEM_DETECTED.get());
+        Thread.sleep(3_000);
+        assertTrue(Wait.waitFor(() -> (LOW_MEM_DETECTED.get() == 0), 20_000L, 1000L));
 
       } finally {
         to.delete(table);
