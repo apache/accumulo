@@ -22,30 +22,19 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
-import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.io.Text;
 
@@ -68,55 +57,47 @@ class PopulateMetadata extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager env) throws Exception {
-    KeyExtent extent = new KeyExtent(tableInfo.getTableId(), null, null);
-    MetadataTableUtil.addTablet(extent, ServerColumnFamily.DEFAULT_TABLET_DIR_NAME,
-        env.getContext(), tableInfo.getTimeType(), env.getManagerLock());
+    SortedSet<Text> splits;
+    Map<Text,Text> splitDirMap;
 
     if (tableInfo.getInitialSplitSize() > 0) {
-      SortedSet<Text> splits = Utils.getSortedSetFromFile(env, tableInfo.getSplitPath(), true);
+      splits = Utils.getSortedSetFromFile(env, tableInfo.getSplitPath(), true);
       SortedSet<Text> dirs = Utils.getSortedSetFromFile(env, tableInfo.getSplitDirsPath(), false);
-      Map<Text,Text> splitDirMap = createSplitDirectoryMap(splits, dirs);
-      try (BatchWriter bw = env.getContext().createBatchWriter(MetadataTable.NAME)) {
-        writeSplitsToMetadataTable(env.getContext(), tableInfo.getTableId(), splits, splitDirMap,
-            tableInfo.getTimeType(), env.getManagerLock(), bw);
-      }
+      splitDirMap = createSplitDirectoryMap(splits, dirs);
+    } else {
+      splits = new TreeSet<>();
+      splitDirMap = Map.of();
     }
 
-    setInitialHostingGoal(env.getContext(), tableInfo.getTableId(),
-        tableInfo.getInitialHostingGoal());
+    writeSplitsToMetadataTable(env.getContext().getAmple(), splits, splitDirMap,
+        env.getManagerLock());
 
     return new FinishCreateTable(tableInfo);
   }
 
-  private void setInitialHostingGoal(ServerContext context, TableId tableId,
-      TabletHostingGoal goal) {
-    try (TabletsMetadata m = context.getAmple().readTablets().forTable(tableId)
-        .overlapping((byte[]) null, null).build()) {
-      try (Ample.TabletsMutator mutator = context.getAmple().mutateTablets()) {
-        for (TabletMetadata tm : m) {
-          final KeyExtent tabletExtent = tm.getExtent();
-          mutator.mutateTablet(tabletExtent).setHostingGoal(goal).mutate();
-        }
-      }
-    }
-  }
+  private void writeSplitsToMetadataTable(Ample ample, SortedSet<Text> splits, Map<Text,Text> data,
+      ServiceLock lock) {
 
-  private void writeSplitsToMetadataTable(ServerContext context, TableId tableId,
-      SortedSet<Text> splits, Map<Text,Text> data, TimeType timeType, ServiceLock lock,
-      BatchWriter bw) throws MutationsRejectedException {
-    Text prevSplit = null;
-    Value dirValue;
-    Iterable<Text> iter = () -> Stream.concat(splits.stream(), Stream.of((Text) null)).iterator();
-    for (Text split : iter) {
-      Mutation mut =
-          TabletColumnFamily.createPrevRowMutation(new KeyExtent(tableId, split, prevSplit));
-      dirValue = (split == null) ? new Value(ServerColumnFamily.DEFAULT_TABLET_DIR_NAME)
-          : new Value(data.get(split));
-      ServerColumnFamily.DIRECTORY_COLUMN.put(mut, dirValue);
-      ServerColumnFamily.TIME_COLUMN.put(mut, new Value(new MetadataTime(0, timeType).encode()));
-      MetadataTableUtil.putLockID(context, lock, mut);
-      prevSplit = split;
-      bw.addMutation(mut);
+    try (var tabletsMutator = ample.mutateTablets()) {
+      Text prevSplit = null;
+      Iterable<Text> iter = () -> Stream.concat(splits.stream(), Stream.of((Text) null)).iterator();
+      for (Text split : iter) {
+        var extent = new KeyExtent(tableInfo.getTableId(), split, prevSplit);
+
+        var tabletMutator = tabletsMutator.mutateTablet(extent);
+
+        String dirName = (split == null) ? ServerColumnFamily.DEFAULT_TABLET_DIR_NAME
+            : data.get(split).toString();
+
+        tabletMutator.putPrevEndRow(extent.prevEndRow());
+        tabletMutator.putDirName(dirName);
+        tabletMutator.putTime(new MetadataTime(0, tableInfo.getTimeType()));
+        tabletMutator.putZooLock(lock);
+        tabletMutator.setHostingGoal(tableInfo.getInitialHostingGoal());
+        tabletMutator.mutate();
+
+        prevSplit = split;
+      }
     }
   }
 

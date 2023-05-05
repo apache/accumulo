@@ -310,11 +310,20 @@ public class NewTableConfiguration {
     return this;
   }
 
+  /**
+   * Sets the initial tablet hosting goal for all tablets. If not set, the default is
+   * {@link TabletHostingGoal#ONDEMAND}
+   *
+   * @since 4.0.0
+   */
   public NewTableConfiguration withInitialHostingGoal(final TabletHostingGoal goal) {
     this.initialHostingGoal = goal;
     return this;
   }
 
+  /**
+   * @since 4.0.0
+   */
   public TabletHostingGoal getInitialHostingGoal() {
     return this.initialHostingGoal;
   }
