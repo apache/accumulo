@@ -252,7 +252,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     int lastFailureSize = Integer.MAX_VALUE;
 
     Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
-        .incrementBy(100, MILLISECONDS).maxWait(1, SECONDS).backOffFactor(1.07)
+        .incrementBy(100, MILLISECONDS).maxWait(10, SECONDS).backOffFactor(1.07)
         .logInterval(1, MINUTES).createFactory().createRetry();
 
     while (true) {
@@ -281,11 +281,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               failures.size());
         }
 
-        retry.useRetry();
         try {
           retry.waitForNextAttempt(log, "binRanges retry failures");
-        } catch (InterruptedException e1) {
-          log.debug("Retry interrupted", e1);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
         }
 
       }
