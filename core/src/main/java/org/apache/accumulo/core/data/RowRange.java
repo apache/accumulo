@@ -518,12 +518,6 @@ public class RowRange implements Comparable<RowRange> {
 
       RowRange nextRange = sortedRowRanges.get(i);
 
-      if (nextRange.infiniteStartRow && nextRange.infiniteEndRow) {
-        // The next range covers all possible rows, set the current range to cover all rows
-        currentRange = RowRange.all();
-        break;
-      }
-
       boolean startRowsEqual = (currentRange.startRow == null && nextRange.startRow == null)
           || (currentRange.startRow != null && currentRange.startRow.equals(nextRange.startRow));
 
