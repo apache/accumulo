@@ -119,7 +119,6 @@ public class TabletMetadata {
   private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
   private boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
-  private Map<Long,TServerInstance> refreshIds;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -553,7 +552,6 @@ public class TabletMetadata {
     te.scans = scansBuilder.build();
     te.logs = logsBuilder.build();
     te.extCompactions = extCompBuilder.build();
-    te.refreshIds = requestIdsBuilder.build();
     if (buildKeyValueMap) {
       te.keyValues = kvBuilder.build();
     }

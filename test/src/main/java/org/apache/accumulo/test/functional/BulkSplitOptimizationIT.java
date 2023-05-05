@@ -24,9 +24,7 @@ import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -106,8 +104,6 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
       // initiate splits
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "100K");
-
-      c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
 
       Thread.sleep(SECONDS.toMillis(2));
 
