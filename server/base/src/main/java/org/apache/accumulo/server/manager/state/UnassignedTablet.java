@@ -69,17 +69,16 @@ public class UnassignedTablet {
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("UnassignedTablet [");
-    sb.append(location.getType());
-    sb.append("=");
-    sb.append(location.getServerInstance());
-    sb.append(", ");
-    sb.append(lastLocation.getType());
-    sb.append("=");
-    sb.append(lastLocation.getServerInstance());
+    StringBuilder sb = new StringBuilder(128);
+    sb.append("UnassignedTablet [").append("location:");
+    if (location != null) {
+      sb.append(location.getType()).append("=").append(location.getServerInstance());
+    }
+    sb.append(", lastLocation:");
+    if (lastLocation != null) {
+      sb.append(lastLocation.getType()).append("=").append(lastLocation.getServerInstance());
+    }
     sb.append("]");
     return sb.toString();
-
   }
 }
