@@ -110,7 +110,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
       serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI"));
       Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
       boolean more = ThriftScanner.getBatchFromServer(context, range, src.getExtent(),
-          src.getTserverLocation().get(), encodedResults, locCols, serverSideIteratorList,
+          src.getTserverLocation().orElseThrow(), encodedResults, locCols, serverSideIteratorList,
           serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
 
       decodeRows(encodedResults, results);
@@ -120,7 +120,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
             true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
         ThriftScanner.getBatchFromServer(context, range, src.getExtent(),
-            src.getTserverLocation().get(), encodedResults, locCols, serverSideIteratorList,
+            src.getTserverLocation().orElseThrow(), encodedResults, locCols, serverSideIteratorList,
             serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
 
         decodeRows(encodedResults, results);
@@ -146,7 +146,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
       if (log.isTraceEnabled()) {
         log.trace("{} lookup failed", src.getExtent().tableId(), e);
       }
-      parent.invalidateCache(context, src.getTserverLocation().get());
+      parent.invalidateCache(context, src.getTserverLocation().orElseThrow());
     }
 
     return null;

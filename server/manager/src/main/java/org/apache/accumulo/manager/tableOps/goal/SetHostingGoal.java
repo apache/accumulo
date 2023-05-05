@@ -69,9 +69,10 @@ public class SetHostingGoal extends ManagerRepo {
     final Range range = new Range(tRange);
     LOG.debug("Finding tablets in Range: {} for table:{}", range, tableId);
 
-    // For all practical purposes the the start row is always inclusive, even if the key in the
+    // For all practical purposes the start row is always inclusive, even if the key in the
     // range is exclusive. For example the exclusive key row="a",family="b",qualifier="c" may
-    // exclude the column b:c but its still falls somewhere in the row "a". The only case where this
+    // exclude the column b:c, but it's still falls somewhere in the row "a". The only case where
+    // this
     // would not be true is if the start key in a range is the last possible key in a row. The last
     // possible key in a row would contain 2GB column fields of all 0xff, which is why we assume the
     // row is always inclusive.

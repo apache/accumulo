@@ -71,7 +71,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
+import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
@@ -1210,7 +1210,7 @@ public class Tablet extends TabletBase {
       return null;
     }
 
-    SortedMap<Double,Key> keys = splitComputations.get().midPoint;
+    SortedMap<Double,Key> keys = splitComputations.orElseThrow().midPoint;
 
     if (keys.isEmpty()) {
       log.info("Cannot split tablet " + extent + ", files contain no data for tablet.");
@@ -1221,7 +1221,7 @@ public class Tablet extends TabletBase {
     // check to see if one row takes up most of the tablet, in which case we can not split
     Text lastRow;
     if (extent.endRow() == null) {
-      lastRow = splitComputations.get().lastRowForDefaultTablet;
+      lastRow = splitComputations.orElseThrow().lastRowForDefaultTablet;
     } else {
       lastRow = extent.endRow();
     }

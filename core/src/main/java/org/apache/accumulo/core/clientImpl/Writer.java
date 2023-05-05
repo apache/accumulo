@@ -100,7 +100,8 @@ public class Writer {
         continue;
       }
 
-      final HostAndPort parsedLocation = HostAndPort.fromString(tabLoc.getTserverLocation().get());
+      final HostAndPort parsedLocation =
+          HostAndPort.fromString(tabLoc.getTserverLocation().orElseThrow());
       try {
         updateServer(context, m, tabLoc.getExtent(), parsedLocation);
         return;

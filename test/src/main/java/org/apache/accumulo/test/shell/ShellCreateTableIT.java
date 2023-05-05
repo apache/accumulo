@@ -32,6 +32,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -53,6 +54,7 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -625,6 +627,64 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  // Verify that createtable handles initial hosting goal parameters.
+  // Argument should handle upper/lower/mixed case as value.
+  // If splits are supplied, each created tablet should contain the hosting:goal value in the
+  // metadata table.
+  @Test
+  public void testCreateTableWithInitialHostingGoal() throws Exception {
+    final String[] tables = getUniqueNames(5);
+
+    // createtable with no goal argument supplied
+    String createCmd = "createtable " + tables[0];
+    verifyTableWithGoal(createCmd, tables[0], "ONDEMAND", 1);
+
+    // createtable with '-g' argument supplied
+    createCmd = "createtable " + tables[1] + " -g always";
+    verifyTableWithGoal(createCmd, tables[1], "ALWAYS", 1);
+
+    // using --goal
+    createCmd = "createtable " + tables[2] + " --goal NEVER";
+    verifyTableWithGoal(createCmd, tables[2], "NEVER", 1);
+
+    String splitsFile = System.getProperty("user.dir") + "/target/splitsFile";
+    Path splitFilePath = Paths.get(splitsFile);
+    try {
+      generateSplitsFile(splitsFile, 10, 12, false, false, true, false, false);
+      createCmd = "createtable " + tables[3] + " -g Always -sf " + splitsFile;
+      verifyTableWithGoal(createCmd, tables[3], "ALWAYS", 11);
+    } finally {
+      Files.delete(splitFilePath);
+    }
+
+    try {
+      generateSplitsFile(splitsFile, 5, 5, true, true, true, false, false);
+      createCmd = "createtable " + tables[4] + " -g NeVeR -sf " + splitsFile;
+      verifyTableWithGoal(createCmd, tables[4], "NEVER", 6);
+    } finally {
+      Files.delete(splitFilePath);
+    }
+  }
+
+  private void verifyTableWithGoal(String cmd, String tableName, String goal, int expectedTabletCnt)
+      throws Exception {
+    ts.exec(cmd);
+    String tableId = getTableId(tableName);
+    String result =
+        ts.exec("scan -t accumulo.metadata -b " + tableId + " -e " + tableId + "< -c hosting:goal");
+    // the hosting:goal entry should be created at table creation
+    assertTrue(result.contains("hosting:goal"));
+    // There should be a corresponding goal value for each expected tablet
+    assertEquals(expectedTabletCnt, StringUtils.countMatches(result, goal));
+  }
+
+  private String getTableId(String tableName) throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      Map<String,String> idMap = client.tableOperations().tableIdMap();
+      return idMap.get(tableName);
     }
   }
 

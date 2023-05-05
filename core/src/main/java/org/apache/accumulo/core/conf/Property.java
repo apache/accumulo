@@ -299,9 +299,7 @@ public enum Property {
       "3.0.0"),
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
-      "Properties in this category affect the behavior of the manager server. "
-          + "Since 2.1.0, all properties in this category replace the old `master.*` names.",
-      "2.1.0"),
+      "Properties in this category affect the behavior of the manager server.", "2.1.0"),
   MANAGER_CLIENTPORT("manager.port.client", "9999", PropertyType.PORT,
       "The port used for handling client connections on the manager", "1.3.5"),
   MANAGER_TABLET_BALANCER("manager.tablet.balancer",
@@ -1028,13 +1026,6 @@ public enum Property {
       "1.3.5"),
   TABLE_FORMATTER_CLASS("table.formatter", DefaultFormatter.class.getName(), PropertyType.STRING,
       "The Formatter class to apply on results in the shell", "1.4.0"),
-  @Deprecated(since = "2.1.0")
-  TABLE_INTERPRETER_CLASS("table.interepreter",
-      org.apache.accumulo.core.util.interpret.DefaultScanInterpreter.class.getName(),
-      PropertyType.STRING,
-      "The ScanInterpreter class to apply on scan arguments in the shell. "
-          + "Note that this property is deprecated and will be removed in a future version.",
-      "1.5.0"),
   TABLE_CLASSLOADER_CONTEXT("table.class.loader.context", "", PropertyType.STRING,
       "The context to use for loading per-table resources, such as iterators"
           + " from the configured factory in `general.context.class.loader.factory`.",

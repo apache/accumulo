@@ -337,10 +337,7 @@ public class ShellIT extends SharedMiniClusterBase {
 
     // delete will show the timestamp
     exec("deletemany -r 1 -f -st", true, "[DELETED] 1 1:1 [] 1");
-
-    // DeleteManyCommand has its own Formatter (DeleterFormatter), so it does not honor the -fm flag
-    exec("deletemany -r 2 -f -st -fm org.apache.accumulo.core.util.format.DateStringFormatter",
-        true, "[DELETED] 2 2:2 [] 2");
+    exec("deletemany -r 2 -f -st", true, "[DELETED] 2 2:2 [] 2");
 
     exec("setauths -c ", true);
     exec("deletetable test -f", true, "Table: [test] has been deleted");
@@ -419,10 +416,6 @@ public class ShellIT extends SharedMiniClusterBase {
     String expectedFew = "1 123:12345 [12345678] 123456789\t12345";
     exec("scan -st", true, expected);
     exec("scan -st -f 5", true, expectedFew);
-    // also prove that BinaryFormatter behaves same as the default
-    exec("scan -st -fm org.apache.accumulo.core.util.format.BinaryFormatter", true, expected);
-    exec("scan -st -f 5 -fm org.apache.accumulo.core.util.format.BinaryFormatter", true,
-        expectedFew);
     exec("setauths -c", true);
     exec("deletetable test -f", true, "Table: [test] has been deleted");
   }
@@ -644,7 +637,7 @@ public class ShellIT extends SharedMiniClusterBase {
 
   private String getTableNameFromId(Map<String,String> map, String value) {
     return map.entrySet().stream().filter(entry -> value.equals(entry.getValue()))
-        .map(Map.Entry::getKey).findFirst().get();
+        .map(Map.Entry::getKey).findFirst().orElseThrow();
   }
 
   private void createTables(final int limit, final int modifier) throws IOException {

@@ -405,6 +405,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     /**
      * Checks that the metadata table forms a linked list and automatically backs up until it does.
+     * May cause {@link TabletDeletedException} to be thrown while reading tablets metadata in the
+     * case where a table is deleted or merge runs concurrently with scan.
      */
     Options checkConsistency();
 

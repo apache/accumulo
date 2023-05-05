@@ -65,10 +65,10 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.FastFormat;
@@ -179,7 +179,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_CREATE: {
         TableOperation tableOp = TableOperation.CREATE;
-        int SPLIT_OFFSET = 4; // offset where split data begins in arguments list
+        int SPLIT_OFFSET = 5; // offset where split data begins in arguments list
         if (arguments.size() < SPLIT_OFFSET) {
           throw new ThriftTableOperationException(null, null, tableOp,
               TableOperationExceptionType.OTHER,
@@ -190,7 +190,9 @@ class FateServiceHandler implements FateService.Iface {
         TimeType timeType = TimeType.valueOf(ByteBufferUtil.toString(arguments.get(1)));
         InitialTableState initialTableState =
             InitialTableState.valueOf(ByteBufferUtil.toString(arguments.get(2)));
-        int splitCount = Integer.parseInt(ByteBufferUtil.toString(arguments.get(3)));
+        TabletHostingGoal initialHostingGoal =
+            TabletHostingGoal.valueOf(ByteBufferUtil.toString(arguments.get(3)));
+        int splitCount = Integer.parseInt(ByteBufferUtil.toString(arguments.get(4)));
         validateArgumentCount(arguments, tableOp, SPLIT_OFFSET + splitCount);
         Path splitsPath = null;
         Path splitsDirsPath = null;
@@ -232,11 +234,12 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Create table " + tableName + " " + initialTableState + " with " + splitCount
-            + " splits.";
+            + " splits and initial hosting goal of " + initialHostingGoal;
 
         manager.fate().seedTransaction(op.toString(), opid,
             new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType, options,
-                splitsPath, splitCount, splitsDirsPath, initialTableState, namespaceId)),
+                splitsPath, splitCount, splitsDirsPath, initialTableState, initialHostingGoal,
+                namespaceId)),
             autoCleanup, goalMessage);
 
         break;

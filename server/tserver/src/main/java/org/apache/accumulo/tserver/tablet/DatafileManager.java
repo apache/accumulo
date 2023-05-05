@@ -365,7 +365,7 @@ class DatafileManager {
         t1 = System.currentTimeMillis();
 
         if (dfv.getNumEntries() > 0 && newFile.isPresent()) {
-          StoredTabletFile newFileStored = newFile.get();
+          StoredTabletFile newFileStored = newFile.orElseThrow();
           if (datafileSizes.containsKey(newFileStored)) {
             log.error("Adding file that is already in set {}", newFileStored);
           }
@@ -441,7 +441,7 @@ class DatafileManager {
             "Compacted files %s are not a subset of tablet files %s", oldDatafiles,
             datafileSizes.keySet());
         if (newFile.isPresent()) {
-          Preconditions.checkState(!datafileSizes.containsKey(newFile.get()),
+          Preconditions.checkState(!datafileSizes.containsKey(newFile.orElseThrow()),
               "New compaction file %s already exist in tablet files %s", newFile,
               datafileSizes.keySet());
         }
@@ -451,7 +451,7 @@ class DatafileManager {
         datafileSizes.keySet().removeAll(oldDatafiles);
 
         if (newFile.isPresent()) {
-          datafileSizes.put(newFile.get(), dfv);
+          datafileSizes.put(newFile.orElseThrow(), dfv);
           // could be used by a follow on compaction in a multipass compaction
         }
 

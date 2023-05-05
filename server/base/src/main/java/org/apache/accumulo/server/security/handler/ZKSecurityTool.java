@@ -27,8 +27,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
@@ -56,64 +54,6 @@ import com.github.benmanes.caffeine.cache.Scheduler;
  */
 class ZKSecurityTool {
   private static final Logger log = LoggerFactory.getLogger(ZKSecurityTool.class);
-  private static final int SALT_LENGTH = 8;
-  private static final SecureRandom random = new SecureRandom();
-
-  // Generates a byte array salt of length SALT_LENGTH
-  private static byte[] generateSalt() {
-    byte[] salt = new byte[SALT_LENGTH];
-    random.nextBytes(salt);
-    return salt;
-  }
-
-  // only present for testing DO NOT USE!
-  @Deprecated(since = "2.1.0")
-  static byte[] createOutdatedPass(byte[] password) throws AccumuloException {
-    byte[] salt = generateSalt();
-    try {
-      return convertPass(password, salt);
-    } catch (NoSuchAlgorithmException e) {
-      log.error("Count not create hashed password", e);
-      throw new AccumuloException("Count not create hashed password", e);
-    }
-  }
-
-  private static final String PW_HASH_ALGORITHM_OUTDATED = "SHA-256";
-
-  private static byte[] hash(byte[] raw) throws NoSuchAlgorithmException {
-    MessageDigest md = MessageDigest.getInstance(PW_HASH_ALGORITHM_OUTDATED);
-    md.update(raw);
-    return md.digest();
-  }
-
-  @Deprecated(since = "2.1.0")
-  static boolean checkPass(byte[] password, byte[] zkData) {
-    if (zkData == null) {
-      return false;
-    }
-
-    byte[] salt = new byte[SALT_LENGTH];
-    System.arraycopy(zkData, 0, salt, 0, SALT_LENGTH);
-    byte[] passwordToCheck;
-    try {
-      passwordToCheck = convertPass(password, salt);
-    } catch (NoSuchAlgorithmException e) {
-      log.error("Count not create hashed password", e);
-      return false;
-    }
-    return MessageDigest.isEqual(passwordToCheck, zkData);
-  }
-
-  private static byte[] convertPass(byte[] password, byte[] salt) throws NoSuchAlgorithmException {
-    byte[] plainSalt = new byte[password.length + SALT_LENGTH];
-    System.arraycopy(password, 0, plainSalt, 0, password.length);
-    System.arraycopy(salt, 0, plainSalt, password.length, SALT_LENGTH);
-    byte[] hashed = hash(plainSalt);
-    byte[] saltedHash = new byte[SALT_LENGTH + hashed.length];
-    System.arraycopy(salt, 0, saltedHash, 0, SALT_LENGTH);
-    System.arraycopy(hashed, 0, saltedHash, SALT_LENGTH, hashed.length);
-    return saltedHash; // contains salt+hash(password+salt)
-  }
 
   public static byte[] createPass(byte[] password) throws AccumuloException {
     // we rely on default algorithm and salt length (SHA-512 and 8 bytes)
@@ -240,9 +180,5 @@ class ZKSecurityTool {
 
   public static String getInstancePath(InstanceId instanceId) {
     return Constants.ZROOT + "/" + instanceId;
-  }
-
-  public static boolean isOutdatedPass(byte[] zkData) {
-    return zkData.length == 40;
   }
 }

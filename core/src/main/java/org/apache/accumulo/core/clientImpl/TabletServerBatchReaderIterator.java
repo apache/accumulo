@@ -658,7 +658,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     List<Range> failures = clientTabletCache.findTablets(context, ranges, (cachedTablet, range) -> {
       if (cachedTablet.getTserverLocation().isPresent()) {
-        extentToTserverMap.put(cachedTablet.getExtent(), cachedTablet.getTserverLocation().get());
+        extentToTserverMap.put(cachedTablet.getExtent(),
+            cachedTablet.getTserverLocation().orElseThrow());
       }
       extentToRangesMap.computeIfAbsent(cachedTablet.getExtent(), k -> new ArrayList<>())
           .add(range);
