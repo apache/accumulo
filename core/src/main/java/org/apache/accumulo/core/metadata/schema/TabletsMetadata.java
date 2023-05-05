@@ -469,7 +469,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
      *
      * @param notFoundConsumer if a consumer is present, the extents that do not exists in the
      *        metadata store are passed to the consumer. If the missing extents are not needed, then
-     *        pass Optional.empty() and it will be more efficient.
+     *        pass Optional.empty() and it will be more efficient. Computing the missing extents
+     *        requires buffering all tablet metadata in memory before returning anything, when
+     *        Optional.empty() is passed this buffering is not done.
      */
     Options forTablets(Collection<KeyExtent> extents,
         Optional<Consumer<KeyExtent>> notFoundConsumer);
