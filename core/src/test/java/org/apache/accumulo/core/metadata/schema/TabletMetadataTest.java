@@ -79,21 +79,25 @@ public class TabletMetadataTest {
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
 
-    String bf1 = "hdfs://nn1/acc/tables/1/t-0001/bf1";
-    String bf2 = "hdfs://nn1/acc/tables/1/t-0001/bf2";
-    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf1).put(FateTxId.formatTid(56));
-    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf2).put(FateTxId.formatTid(59));
+    TabletFileMetadataEntry bf1 = TabletFileMetadataEntry.of("hdfs://nn1/acc/tables/1/t-0001/bf1");
+    TabletFileMetadataEntry bf2 = TabletFileMetadataEntry.of("hdfs://nn1/acc/tables/1/t-0001/bf2");
+    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf1.getMetaString())
+        .put(FateTxId.formatTid(56));
+    mutation.at().family(BulkFileColumnFamily.NAME).qualifier(bf2.getMetaString())
+        .put(FateTxId.formatTid(59));
 
     mutation.at().family(ClonedColumnFamily.NAME).qualifier("").put("OK");
 
     DataFileValue dfv1 = new DataFileValue(555, 23);
-    StoredTabletFile tf1 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/df1.rf");
-    StoredTabletFile tf2 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/df2.rf");
-    mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf1.getMetaUpdateDelete())
-        .put(dfv1.encode());
+    StoredTabletFile tf1 =
+        new StoredTabletFile(TabletFileMetadataEntry.of("hdfs://nn1/acc/tables/1/t-0001/df1.rf"));
+    StoredTabletFile tf2 =
+        new StoredTabletFile(TabletFileMetadataEntry.of("hdfs://nn1/acc/tables/1/t-0001/df2.rf"));
+    mutation.at().family(DataFileColumnFamily.NAME)
+        .qualifier(tf1.getMetaUpdateDelete().getMetaString()).put(dfv1.encode());
     DataFileValue dfv2 = new DataFileValue(234, 13);
-    mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf2.getMetaUpdateDelete())
-        .put(dfv2.encode());
+    mutation.at().family(DataFileColumnFamily.NAME)
+        .qualifier(tf2.getMetaUpdateDelete().getMetaString()).put(dfv2.encode());
 
     mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
 
@@ -106,10 +110,14 @@ public class TabletMetadataTest {
     mutation.at().family(le2.getColumnFamily()).qualifier(le2.getColumnQualifier())
         .timestamp(le2.timestamp).put(le2.getValue());
 
-    StoredTabletFile sf1 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/sf1.rf");
-    StoredTabletFile sf2 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/sf2.rf");
-    mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf1.getMetaUpdateDelete()).put("");
-    mutation.at().family(ScanFileColumnFamily.NAME).qualifier(sf2.getMetaUpdateDelete()).put("");
+    StoredTabletFile sf1 =
+        new StoredTabletFile(TabletFileMetadataEntry.of("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
+    StoredTabletFile sf2 =
+        new StoredTabletFile(TabletFileMetadataEntry.of("hdfs://nn1/acc/tables/1/t-0001/sf2.rf"));
+    mutation.at().family(ScanFileColumnFamily.NAME)
+        .qualifier(sf1.getMetaUpdateDelete().getMetaString()).put("");
+    mutation.at().family(ScanFileColumnFamily.NAME)
+        .qualifier(sf2.getMetaUpdateDelete().getMetaString()).put("");
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 

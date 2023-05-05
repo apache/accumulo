@@ -44,6 +44,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.TabletFileMetadataEntry;
 import org.junit.jupiter.api.Test;
 
 public class GarbageCollectionTest {
@@ -111,7 +112,8 @@ public class GarbageCollectionTest {
 
     public void addFileReference(String tableId, String endRow, String file) {
       TableId tid = TableId.of(tableId);
-      references.put(tableId + ":" + endRow + ":" + file, new ReferenceFile(tid, file));
+      references.put(tableId + ":" + endRow + ":" + file,
+          new ReferenceFile(tid, TabletFileMetadataEntry.of(file)));
       tableIds.add(tid);
     }
 

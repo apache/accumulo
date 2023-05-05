@@ -156,7 +156,7 @@ public class GarbageCollectionAlgorithm {
           log.debug("Candidate was still in use: {}", dir);
         }
       } else {
-        String reference = ref.getMetadataEntry();
+        String reference = ref.getMetadataEntry().getFilePathString();
         if (reference.startsWith("/")) {
           log.debug("Candidate {} has a relative path, prepend tableId {}", reference,
               ref.getTableId());

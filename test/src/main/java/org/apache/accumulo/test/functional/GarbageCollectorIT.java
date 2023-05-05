@@ -53,6 +53,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
+import org.apache.accumulo.core.metadata.schema.TabletFileMetadataEntry;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
@@ -319,7 +320,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
         var path = String.format("file:/%020d/%s", i, longpath);
-        Mutation delFlag = ample.createDeleteMutation(new ReferenceFile(TableId.of("1"), path));
+        Mutation delFlag = ample.createDeleteMutation(
+            new ReferenceFile(TableId.of("1"), TabletFileMetadataEntry.of(path)));
         bw.addMutation(delFlag);
       }
     }

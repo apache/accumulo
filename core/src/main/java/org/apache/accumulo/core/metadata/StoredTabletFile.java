@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import org.apache.hadoop.fs.Path;
+import java.util.Objects;
+
+import org.apache.accumulo.core.metadata.schema.TabletFileMetadataEntry;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -33,23 +35,31 @@ import org.apache.hadoop.io.Text;
  * in Upgrader9to10.upgradeRelativePaths()
  */
 public class StoredTabletFile extends TabletFile {
-  private final String metadataEntry;
+  private final TabletFileMetadataEntry metadataEntry;
+
+  /**
+   * Construct a tablet file using the {@link TabletFileMetadataEntry} from the metadata. Preserve
+   * the exact string so the entry can be deleted.
+   */
+  public StoredTabletFile(final TabletFileMetadataEntry metadataEntry) {
+    super(Objects.requireNonNull(metadataEntry).getFilePath());
+    this.metadataEntry = metadataEntry;
+  }
 
   /**
    * Construct a tablet file using the string read from the metadata. Preserve the exact string so
    * the entry can be deleted.
    */
-  public StoredTabletFile(String metadataEntry) {
-    super(new Path(metadataEntry));
-    this.metadataEntry = metadataEntry;
+  public StoredTabletFile(final String metadataEntry) {
+    this(TabletFileMetadataEntry.of(metadataEntry));
   }
 
   /**
-   * Return the exact string that is stored in the metadata table. This is important for updating
-   * and deleting metadata entries. If the exact string is not used, erroneous entries can pollute
-   * the metadata table.
+   * Return the {@link TabletFileMetadataEntry} which contains the exact string that is stored in
+   * the metadata table. This is important for updating and deleting metadata entries. If the exact
+   * string is not used, erroneous entries can pollute the metadata table.
    */
-  public String getMetaUpdateDelete() {
+  public TabletFileMetadataEntry getMetaUpdateDelete() {
     return metadataEntry;
   }
 
@@ -57,7 +67,7 @@ public class StoredTabletFile extends TabletFile {
    * Return a new Text object of {@link #getMetaUpdateDelete()}
    */
   public Text getMetaUpdateDeleteText() {
-    return new Text(getMetaUpdateDelete());
+    return getMetaUpdateDelete().getMetaText();
   }
 
   /**
@@ -65,7 +75,7 @@ public class StoredTabletFile extends TabletFile {
    *
    * @param reference the relative path to check against
    */
-  public void validate(String reference) {
+  public void validate(TabletFileMetadataEntry reference) {
     if (!metadataEntry.equals(reference)) {
       throw new IllegalStateException("The reference " + reference
           + " does not match what was in the metadata: " + metadataEntry);

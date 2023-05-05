@@ -28,6 +28,7 @@ import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.TabletFileMetadataEntry;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -56,8 +57,8 @@ public class CleanUpBulkImport extends ManagerRepo {
     Path bulkDir = new Path(info.bulkDir);
     ample.removeBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
-    ample.putGcFileAndDirCandidates(info.tableId,
-        Collections.singleton(new ReferenceFile(info.tableId, bulkDir.toString())));
+    ample.putGcFileAndDirCandidates(info.tableId, Collections.singleton(
+        new ReferenceFile(info.tableId, TabletFileMetadataEntry.of(bulkDir.toString()))));
     if (info.tableState == TableState.ONLINE) {
       log.debug("removing the metadata table markers for loaded files");
       ample.removeBulkLoadEntries(info.tableId, tid);

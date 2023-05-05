@@ -33,7 +33,7 @@ public class TabletFileTest {
     StoredTabletFile tabletFile = new StoredTabletFile(metadataEntry);
 
     assertEquals(volume, tabletFile.getVolume());
-    assertEquals(metadataEntry, tabletFile.getMetaUpdateDelete());
+    assertEquals(TabletFileMetadataEntry.of(metadataEntry), tabletFile.getMetaUpdateDelete());
     assertEquals(TableId.of(tableId), tabletFile.getTableId());
     assertEquals(tabletDir, tabletFile.getTabletDir());
     assertEquals(fileName, tabletFile.getFileName());
@@ -101,8 +101,8 @@ public class TabletFileTest {
     String metadataEntry = uglyVolume + "/tables/" + id + "/" + dir + "/" + filename;
     TabletFile uglyFile =
         test(metadataEntry, "hdfs://nn.somewhere.com:86753/accumulo", id, dir, filename);
-    TabletFile niceFile = new StoredTabletFile(
-        "hdfs://nn.somewhere.com:86753/accumulo/tables/" + id + "/" + dir + "/" + filename);
+    TabletFile niceFile = new StoredTabletFile(TabletFileMetadataEntry
+        .of("hdfs://nn.somewhere.com:86753/accumulo/tables/" + id + "/" + dir + "/" + filename));
     assertEquals(niceFile, uglyFile);
     assertEquals(niceFile.hashCode(), uglyFile.hashCode());
   }

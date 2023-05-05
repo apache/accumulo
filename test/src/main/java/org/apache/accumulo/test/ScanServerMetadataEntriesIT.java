@@ -52,6 +52,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
+import org.apache.accumulo.core.metadata.schema.TabletFileMetadataEntry;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.gc.GCRun;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -112,7 +113,8 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
     UUID serverLockUUID = UUID.randomUUID();
 
     Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf")
-        .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
+        .map(f -> TabletFileMetadataEntry
+            .of("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f))
         .map(f -> new ScanServerRefTabletFile(f, server.toString(), serverLockUUID))
         .collect(Collectors.toSet());
 
@@ -241,12 +243,12 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         assertEquals(fileCount, metadataEntries.size());
         metadataEntries.forEach(e -> log.info("{}", e.getKey()));
 
-        Set<String> metadataScanFileRefs = new HashSet<>();
+        Set<TabletFileMetadataEntry> metadataScanFileRefs = new HashSet<>();
         metadataEntries.forEach(m -> {
           String row = m.getKey().getRow().toString();
           assertTrue(row.startsWith("~sserv"));
           String file = row.substring(ScanServerFileReferenceSection.getRowPrefix().length());
-          metadataScanFileRefs.add(file);
+          metadataScanFileRefs.add(TabletFileMetadataEntry.of(file));
         });
         assertEquals(fileCount, metadataScanFileRefs.size());
 
@@ -263,7 +265,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         // server references
         assertEquals(fileCount * 2, tableRefs.size());
 
-        Set<String> deduplicatedReferences =
+        Set<TabletFileMetadataEntry> deduplicatedReferences =
             tableRefs.stream().map(Reference::getMetadataEntry).collect(Collectors.toSet());
 
         assertEquals(fileCount, deduplicatedReferences.size());

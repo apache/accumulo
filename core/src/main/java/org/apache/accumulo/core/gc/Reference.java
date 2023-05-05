@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.gc;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.TabletFileMetadataEntry;
 
 /**
  * A GC reference used for collecting files and directories into a single stream. The GC deals with
@@ -37,11 +38,11 @@ public interface Reference {
   TableId getTableId();
 
   /**
-   * Get the exact string stored in the metadata table for this file or directory. A file will be
-   * read from the Tablet "file" column family:
+   * Get the {@link TabletFileMetadataEntry} which contains the exact string stored in the metadata
+   * table for this file or directory. A file will be read from the Tablet "file" column family:
    * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily}
    * A directory will be read from the "srv:dir" column family:
    * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily}
    */
-  String getMetadataEntry();
+  TabletFileMetadataEntry getMetadataEntry();
 }

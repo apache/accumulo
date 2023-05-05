@@ -29,6 +29,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.TabletFileMetadataEntry;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
@@ -162,8 +163,8 @@ public class VolumeUtil {
     }
 
     for (Entry<StoredTabletFile,DataFileValue> entry : tabletFiles.datafiles.entrySet()) {
-      String metaPath = entry.getKey().getMetaUpdateDelete();
-      Path switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
+      TabletFileMetadataEntry metaPath = entry.getKey().getMetaUpdateDelete();
+      Path switchedPath = switchVolume(metaPath.getFilePathString(), FileType.TABLE, replacements);
       if (switchedPath != null) {
         filesToRemove.add(entry.getKey());
         TabletFile switchedFile = new TabletFile(switchedPath);

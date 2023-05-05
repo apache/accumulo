@@ -449,7 +449,7 @@ public class CompactableUtils {
   }
 
   public static TabletFile computeCompactionFileDest(TabletFile tmpFile) {
-    String newFilePath = tmpFile.getMetaInsert();
+    String newFilePath = tmpFile.getMetaInsert().getFilePathString();
     int idx = newFilePath.indexOf("_tmp");
     if (idx > 0) {
       newFilePath = newFilePath.substring(0, idx);

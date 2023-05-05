@@ -89,7 +89,7 @@ class MinorCompactionTask implements Runnable {
                * for the minor compaction
                */
               tablet.getTabletServer().minorCompactionStarted(commitSession,
-                  commitSession.getWALogSeq() + 1, newFile.getMetaInsert());
+                  commitSession.getWALogSeq() + 1, newFile.getMetaInsert().getFilePathString());
               break;
             } catch (IOException e) {
               // An IOException could have occurred while creating the new file

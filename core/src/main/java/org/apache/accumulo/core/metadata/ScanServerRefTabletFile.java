@@ -22,7 +22,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.Value;
-import org.apache.hadoop.fs.Path;
+import org.apache.accumulo.core.metadata.schema.TabletFileMetadataEntry;
 import org.apache.hadoop.io.Text;
 
 public class ScanServerRefTabletFile extends TabletFile {
@@ -31,20 +31,21 @@ public class ScanServerRefTabletFile extends TabletFile {
   private final Text colf;
   private final Text colq;
 
-  public ScanServerRefTabletFile(String file, String serverAddress, UUID serverLockUUID) {
-    super(new Path(file));
+  public ScanServerRefTabletFile(TabletFileMetadataEntry metadataEntry, String serverAddress,
+      UUID serverLockUUID) {
+    super(Objects.requireNonNull(metadataEntry.getFilePath()));
     this.colf = new Text(serverAddress);
     this.colq = new Text(serverLockUUID.toString());
   }
 
-  public ScanServerRefTabletFile(String file, Text colf, Text colq) {
-    super(new Path(file));
+  public ScanServerRefTabletFile(TabletFileMetadataEntry metadataEntry, Text colf, Text colq) {
+    super(Objects.requireNonNull(metadataEntry.getFilePath()));
     this.colf = colf;
     this.colq = colq;
   }
 
-  public String getRowSuffix() {
-    return this.getPathStr();
+  public TabletFileMetadataEntry getRowSuffix() {
+    return this.getMetaInsert();
   }
 
   public Text getServerAddress() {

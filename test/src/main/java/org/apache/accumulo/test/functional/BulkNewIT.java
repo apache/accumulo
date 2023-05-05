@@ -555,8 +555,9 @@ public class BulkNewIT extends SharedMiniClusterBase {
       for (TabletMetadata tablet : tablets) {
         assertTrue(tablet.getLoaded().isEmpty());
 
-        Set<String> fileHashes = tablet.getFiles().stream().map(f -> hash(f.getMetaUpdateDelete()))
-            .collect(Collectors.toSet());
+        Set<String> fileHashes =
+            tablet.getFiles().stream().map(f -> hash(f.getMetaUpdateDelete().getFilePathString()))
+                .collect(Collectors.toSet());
 
         String endRow = tablet.getEndRow() == null ? "null" : tablet.getEndRow().toString();
 

@@ -129,10 +129,11 @@ public class ExternalCompactionMetadata {
   public String toJson() {
     GSonData jData = new GSonData();
 
-    jData.inputs = jobFiles.stream().map(StoredTabletFile::getMetaUpdateDelete).collect(toList());
-    jData.nextFiles =
-        nextFiles.stream().map(StoredTabletFile::getMetaUpdateDelete).collect(toList());
-    jData.tmp = compactTmpName.getMetaInsert();
+    jData.inputs = jobFiles.stream()
+        .map(tabletFile -> tabletFile.getMetaUpdateDelete().getMetaString()).collect(toList());
+    jData.nextFiles = nextFiles.stream()
+        .map(tabletFile -> tabletFile.getMetaUpdateDelete().getMetaString()).collect(toList());
+    jData.tmp = compactTmpName.getMetaInsert().getMetaString();
     jData.compactor = compactorId;
     jData.kind = kind.name();
     jData.executorId = ((CompactionExecutorIdImpl) ceid).getExternalName();

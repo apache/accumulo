@@ -21,6 +21,7 @@ package org.apache.accumulo.core.gc;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.TabletFileMetadataEntry;
 
 /**
  * A GC reference used for streaming and delete markers. This type is a file. Subclass is a
@@ -31,9 +32,9 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   public final TableId tableId; // 2a
 
   // the exact string that is stored in the metadata
-  protected final String metadataEntry;
+  protected final TabletFileMetadataEntry metadataEntry;
 
-  public ReferenceFile(TableId tableId, String metadataEntry) {
+  public ReferenceFile(TableId tableId, TabletFileMetadataEntry metadataEntry) {
     this.tableId = Objects.requireNonNull(tableId);
     this.metadataEntry = Objects.requireNonNull(metadataEntry);
   }
@@ -49,7 +50,7 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   }
 
   @Override
-  public String getMetadataEntry() {
+  public TabletFileMetadataEntry getMetadataEntry() {
     return metadataEntry;
   }
 

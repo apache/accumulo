@@ -61,6 +61,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.Sk
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactionSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletFileMetadataEntry;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
@@ -266,8 +267,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     return createDelMutation(pathToRemove.getMetaUpdateDelete());
   }
 
-  private Mutation createDelMutation(String path) {
-    Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(path)));
+  private Mutation createDelMutation(TabletFileMetadataEntry metadataEntry) {
+    Mutation delFlag =
+        new Mutation(new Text(DeletesSection.encodeRow(metadataEntry.getMetaString())));
     delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.SkewedKeyValue.NAME);
     return delFlag;
   }
@@ -343,7 +345,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       scanner.setRange(ScanServerFileReferenceSection.getRange());
       int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
       return StreamSupport.stream(scanner.spliterator(), false)
-          .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
+          .map(e -> new ScanServerRefTabletFile(
+              TabletFileMetadataEntry.of(e.getKey().getRowData().toString().substring(pLen)),
               e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()));
     } catch (TableNotFoundException e) {
       throw new IllegalStateException(DataLevel.USER.metaTable() + " not found!", e);
@@ -361,7 +364,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
       int pLen = ScanServerFileReferenceSection.getRowPrefix().length();
       Set<ScanServerRefTabletFile> refsToDelete = StreamSupport.stream(scanner.spliterator(), false)
-          .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString().substring(pLen),
+          .map(e -> new ScanServerRefTabletFile(
+              TabletFileMetadataEntry.of(e.getKey().getRowData().toString().substring(pLen)),
               e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()))
           .collect(Collectors.toSet());
 

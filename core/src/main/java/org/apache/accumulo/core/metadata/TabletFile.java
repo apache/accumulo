@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.TabletFileMetadataEntry;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -45,7 +46,7 @@ public class TabletFile implements Comparable<TabletFile> {
   private final TabletDirectory tabletDir; // hdfs://1.2.3.4/accumulo/tables/2a/t-0003
   private final String fileName; // C0004.rf
   protected final Path metaPath;
-  private final String normalizedPath;
+  private final TabletFileMetadataEntry normalizedPath;
 
   private static final Logger log = LoggerFactory.getLogger(TabletFile.class);
 
@@ -76,7 +77,8 @@ public class TabletFile implements Comparable<TabletFile> {
     var volume = volumePath.toString();
 
     this.tabletDir = new TabletDirectory(volume, TableId.of(id), tabletDirPath.getName());
-    this.normalizedPath = tabletDir.getNormalizedPath() + "/" + fileName;
+    this.normalizedPath =
+        TabletFileMetadataEntry.of(tabletDir.getNormalizedPath() + "/" + fileName);
   }
 
   public String getVolume() {
@@ -100,28 +102,28 @@ public class TabletFile implements Comparable<TabletFile> {
    * metadata.
    */
   public String getPathStr() {
-    return normalizedPath;
+    return normalizedPath.getFilePathString();
   }
 
   /**
-   * Return a string for inserting a new tablet file.
+   * Return a {@link TabletFileMetadataEntry} for inserting a new tablet file.
    */
-  public String getMetaInsert() {
+  public TabletFileMetadataEntry getMetaInsert() {
     return normalizedPath;
   }
 
   /**
-   * Return a new Text object of {@link #getMetaInsert()}
+   * Return a new Text object of {@link #getMetaInsert()} for inserting into a table file
    */
   public Text getMetaInsertText() {
-    return new Text(getMetaInsert());
+    return getMetaInsert().getMetaText();
   }
 
   /**
    * New file was written to metadata so return a StoredTabletFile
    */
   public StoredTabletFile insert() {
-    return new StoredTabletFile(normalizedPath);
+    return new StoredTabletFile(getMetaInsert());
   }
 
   public Path getPath() {
@@ -153,6 +155,6 @@ public class TabletFile implements Comparable<TabletFile> {
 
   @Override
   public String toString() {
-    return normalizedPath;
+    return normalizedPath.toString();
   }
 }

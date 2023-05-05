@@ -167,7 +167,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     });
 
     var scanServerRefs = context.getAmple().getScanServerFileReferences()
-        .map(sfr -> new ReferenceFile(sfr.getTableId(), sfr.getPathStr()));
+        .map(sfr -> new ReferenceFile(sfr.getTableId(), sfr.getRowSuffix()));
 
     return Stream.concat(tabletReferences, scanServerRefs);
   }

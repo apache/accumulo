@@ -24,6 +24,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.TabletFileMetadataEntry;
 import org.apache.hadoop.fs.Path;
 
 /**
@@ -32,7 +33,7 @@ import org.apache.hadoop.fs.Path;
 public class AllVolumesDirectory extends ReferenceFile {
 
   public AllVolumesDirectory(TableId tableId, String dirName) {
-    super(tableId, getDeleteTabletOnAllVolumesUri(tableId, dirName));
+    super(tableId, TabletFileMetadataEntry.of(getDeleteTabletOnAllVolumesUri(tableId, dirName)));
   }
 
   private static String getDeleteTabletOnAllVolumesUri(TableId tableId, String dirName) {
@@ -42,7 +43,7 @@ public class AllVolumesDirectory extends ReferenceFile {
   }
 
   @Override
-  public String getMetadataEntry() {
+  public TabletFileMetadataEntry getMetadataEntry() {
     return metadataEntry;
   }
 

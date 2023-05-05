@@ -172,12 +172,12 @@ public class SimpleGarbageCollectorTest {
     confirmed.put("5a/t-0001/F0002.rf", "hdfs://nn1/accumulo/tables/5a/t-0001/F0002.rf");
     confirmed.put("5a/t-0002/F0001.rf", "hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf");
     var allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0003");
-    confirmed.put("5b/t-0003", allVolumesDirectory.getMetadataEntry());
+    confirmed.put("5b/t-0003", allVolumesDirectory.getMetadataEntry().getFilePathString());
     confirmed.put("5b/t-0003/F0001.rf", "hdfs://nn1/accumulo/tables/5b/t-0003/F0001.rf");
     confirmed.put("5b/t-0003/F0002.rf", "hdfs://nn2/accumulo/tables/5b/t-0003/F0002.rf");
     confirmed.put("5b/t-0003/F0003.rf", "hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf");
     allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0004");
-    confirmed.put("5b/t-0004", allVolumesDirectory.getMetadataEntry());
+    confirmed.put("5b/t-0004", allVolumesDirectory.getMetadataEntry().getFilePathString());
     confirmed.put("5b/t-0004/F0001.rf", "hdfs://nn1/accumulo/tables/5b/t-0004/F0001.rf");
 
     List<String> processedDeletes = new ArrayList<>();
@@ -188,10 +188,10 @@ public class SimpleGarbageCollectorTest {
     expected.put("5a/t-0001", "hdfs://nn1/accumulo/tables/5a/t-0001");
     expected.put("5a/t-0002/F0001.rf", "hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf");
     allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0003");
-    expected.put("5b/t-0003", allVolumesDirectory.getMetadataEntry());
+    expected.put("5b/t-0003", allVolumesDirectory.getMetadataEntry().getFilePathString());
     expected.put("5b/t-0003/F0003.rf", "hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf");
     allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0004");
-    expected.put("5b/t-0004", allVolumesDirectory.getMetadataEntry());
+    expected.put("5b/t-0004", allVolumesDirectory.getMetadataEntry().getFilePathString());
 
     assertEquals(expected, confirmed);
     assertEquals(Arrays.asList("hdfs://nn1/accumulo/tables/5a/t-0001/F0001.rf",

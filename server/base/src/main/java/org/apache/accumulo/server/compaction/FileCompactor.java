@@ -232,7 +232,7 @@ public class FileCompactor implements Callable<CompactionStats> {
               || (!isMinC && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE)));
 
       WriterBuilder outBuilder = fileFactory.newWriterBuilder()
-          .forFile(outputFile.getMetaInsert(), ns, ns.getConf(), cryptoService)
+          .forFile(outputFile.getMetaInsert().getFilePathString(), ns, ns.getConf(), cryptoService)
           .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter());
       if (dropCacheBehindOutput) {
         outBuilder.dropCachesBehind();
@@ -345,7 +345,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         readers.add(reader);
 
         InterruptibleIterator iter = new ProblemReportingIterator(context, extent.tableId(),
-            mapFile.getPathStr(), false, reader);
+            mapFile.getPathStr().toString(), false, reader);
 
         iter = filesToCompact.get(mapFile).wrapFileIterator(iter);
 
@@ -353,8 +353,8 @@ public class FileCompactor implements Callable<CompactionStats> {
 
       } catch (Exception e) {
 
-        ProblemReports.getInstance(context).report(
-            new ProblemReport(extent.tableId(), ProblemType.FILE_READ, mapFile.getPathStr(), e));
+        ProblemReports.getInstance(context).report(new ProblemReport(extent.tableId(),
+            ProblemType.FILE_READ, mapFile.getPathStr().toString(), e));
 
         log.warn("Some problem opening map file {} {}", mapFile, e.getMessage(), e);
         // failed to open some map file... close the ones that were opened

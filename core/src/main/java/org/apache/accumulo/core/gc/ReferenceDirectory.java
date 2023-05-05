@@ -20,6 +20,7 @@ package org.apache.accumulo.core.gc;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.TabletFileMetadataEntry;
 
 /**
  * A GC reference to a Tablet directory, like t-0003.
@@ -28,7 +29,7 @@ public class ReferenceDirectory extends ReferenceFile {
   private final String tabletDir; // t-0003
 
   public ReferenceDirectory(TableId tableId, String dirName) {
-    super(tableId, dirName);
+    super(tableId, TabletFileMetadataEntry.of(dirName));
     MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(dirName);
     this.tabletDir = dirName;
   }
@@ -46,8 +47,8 @@ public class ReferenceDirectory extends ReferenceFile {
    * A Tablet directory should have a metadata entry equal to the dirName.
    */
   @Override
-  public String getMetadataEntry() {
-    if (!tabletDir.equals(metadataEntry)) {
+  public TabletFileMetadataEntry getMetadataEntry() {
+    if (!tabletDir.equals(metadataEntry.getFilePathString())) {
       throw new IllegalStateException(
           "Tablet dir " + tabletDir + " is not equal to metadataEntry: " + metadataEntry);
     }
