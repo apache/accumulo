@@ -72,6 +72,7 @@ public class RefreshTablets extends ManagerRepo {
     this.bulkInfo = bulkInfo;
   }
 
+  @Override
   public long isReady(long tid, Manager manager) throws Exception {
     return 0;
   }
