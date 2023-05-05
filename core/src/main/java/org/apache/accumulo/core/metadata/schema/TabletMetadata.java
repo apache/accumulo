@@ -191,6 +191,16 @@ public class TabletMetadata {
       return Objects.hash(tServerInstance, lt);
     }
 
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder(32);
+      sb.append("Location [");
+      sb.append("server=").append(tServerInstance);
+      sb.append(", type=").append(lt);
+      sb.append("]");
+      return sb.toString();
+    }
+
     public static Location last(TServerInstance instance) {
       return new Location(instance, LocationType.LAST);
     }
@@ -547,7 +557,7 @@ public class TabletMetadata {
 
     if (sld.isPresent()) {
       log.trace("Checking server at ZK path = " + lockPath);
-      HostAndPort client = sld.get().getAddress(ServiceLockData.ThriftService.TSERV);
+      HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
       if (client != null) {
         server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
       }

@@ -91,7 +91,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
           if (line.startsWith("accumulo")) {
             Metric metric = TestStatsDSink.parseStatsDMetric(line);
             if (MetricsProducer.METRICS_MAJC_PAUSED.equals(metric.getName())) {
-              Double val = Double.parseDouble(metric.getValue());
+              double val = Double.parseDouble(metric.getValue());
               MAJC_PAUSED.add(val);
             }
           }
@@ -112,7 +112,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
   }
 
   @BeforeEach
-  public void beforeEach() throws Exception {
+  public void beforeEach() {
     // Reset the client side counters
     MAJC_PAUSED.reset();
   }
@@ -140,26 +140,25 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
 
       try (Scanner scanner = client.createScanner(table)) {
 
-        MemoryStarvedScanIT.consumeServerMemory(scanner, table);
+        MemoryStarvedScanIT.consumeServerMemory(scanner);
 
-        Double paused = MAJC_PAUSED.doubleValue();
+        int paused = MAJC_PAUSED.intValue();
         assertEquals(0, paused);
 
         ReadWriteIT.ingest(client, 100, 100, 100, 0, table);
         compactionThread.start();
 
-        while (paused == 0) {
+        while (paused <= 0) {
           Thread.sleep(1000);
-          paused = MAJC_PAUSED.doubleValue();
+          paused = MAJC_PAUSED.intValue();
         }
-        assertTrue(paused > 0);
 
         MemoryStarvedScanIT.freeServerMemory(client, table);
         compactionThread.interrupt();
         compactionThread.join();
         assertNull(error.get());
         assertTrue(client.instanceOperations().getActiveCompactions().stream()
-            .filter(ac -> ac.getPausedCount() > 0).findAny().isPresent());
+            .anyMatch(ac -> ac.getPausedCount() > 0));
       }
     }
 

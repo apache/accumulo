@@ -18,9 +18,7 @@
  */
 package org.apache.accumulo.server.iterators;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.PluginEnvironment;
@@ -43,7 +41,6 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.fs.FileManager.ScanFileManager;
-import org.apache.hadoop.fs.Path;
 
 public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
 
@@ -147,14 +144,6 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
           "Asked about user initiated compaction type when scope is " + scope);
     }
     return userCompaction;
-  }
-
-  @Deprecated(since = "2.0.0")
-  @Override
-  public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
-      throws IOException {
-    TabletFile ref = new TabletFile(new Path(mapFileName));
-    return trm.openFiles(Collections.singletonMap(ref, files.get(ref)), false, null).get(0);
   }
 
   @Override

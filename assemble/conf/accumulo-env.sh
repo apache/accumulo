@@ -90,7 +90,7 @@ JAVA_OPTS=(
 # cmd is set by calling script that sources this env file
 #shellcheck disable=SC2154
 case "$cmd" in
-  manager | master) JAVA_OPTS=('-Xmx512m' '-Xms512m' "${JAVA_OPTS[@]}") ;;
+  manager) JAVA_OPTS=('-Xmx512m' '-Xms512m' "${JAVA_OPTS[@]}") ;;
   monitor) JAVA_OPTS=('-Xmx256m' '-Xms256m' "${JAVA_OPTS[@]}") ;;
   gc) JAVA_OPTS=('-Xmx256m' '-Xms256m' "${JAVA_OPTS[@]}") ;;
   tserver) JAVA_OPTS=('-Xmx768m' '-Xms768m' "${JAVA_OPTS[@]}") ;;
@@ -118,7 +118,7 @@ JAVA_OPTS=("-Daccumulo.log.dir=${ACCUMULO_LOG_DIR}"
 #JAVA_OPTS=('-javaagent:path/to/opentelemetry-javaagent-all.jar' "${JAVA_OPTS[@]}")
 
 case "$cmd" in
-  monitor | gc | manager | master | tserver | compaction-coordinator | compactor | sserver)
+  monitor | gc | manager | tserver | compaction-coordinator | compactor | sserver)
     JAVA_OPTS=('-Dlog4j.configurationFile=log4j2-service.properties' "${JAVA_OPTS[@]}")
     ;;
   *)

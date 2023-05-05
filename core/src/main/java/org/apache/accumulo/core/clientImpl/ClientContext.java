@@ -407,8 +407,8 @@ public class ClientContext implements AccumuloClient {
         ZcStat stat = new ZcStat();
         Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
         if (sld.isPresent()) {
-          UUID uuid = sld.get().getServerUUID(ThriftService.TABLET_SCAN);
-          String group = sld.get().getGroup(ThriftService.TABLET_SCAN);
+          UUID uuid = sld.orElseThrow().getServerUUID(ThriftService.TABLET_SCAN);
+          String group = sld.orElseThrow().getGroup(ThriftService.TABLET_SCAN);
           liveScanServers.put(addr, new Pair<>(uuid, group));
         }
       } catch (IllegalArgumentException e) {
@@ -522,7 +522,7 @@ public class ClientContext implements AccumuloClient {
     Optional<ServiceLockData> sld = zooCache.getLockData(zLockManagerPath);
     String location = null;
     if (sld.isPresent()) {
-      location = sld.get().getAddressString(ThriftService.MANAGER);
+      location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
     }
 
     if (timer != null) {

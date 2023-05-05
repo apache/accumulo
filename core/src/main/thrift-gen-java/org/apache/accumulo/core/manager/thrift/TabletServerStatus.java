@@ -22,7 +22,7 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.master.thrift;
+package org.apache.accumulo.core.manager.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
 public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerStatus, TabletServerStatus._Fields>, java.io.Serializable, Cloneable, Comparable<TabletServerStatus> {
@@ -1557,16 +1557,16 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
           case 1: // TABLE_MAP
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map0 = iprot.readMapBegin();
-                struct.tableMap = new java.util.HashMap<java.lang.String,TableInfo>(2*_map0.size);
-                @org.apache.thrift.annotation.Nullable java.lang.String _key1;
-                @org.apache.thrift.annotation.Nullable TableInfo _val2;
-                for (int _i3 = 0; _i3 < _map0.size; ++_i3)
+                org.apache.thrift.protocol.TMap _map8 = iprot.readMapBegin();
+                struct.tableMap = new java.util.HashMap<java.lang.String,TableInfo>(2*_map8.size);
+                @org.apache.thrift.annotation.Nullable java.lang.String _key9;
+                @org.apache.thrift.annotation.Nullable TableInfo _val10;
+                for (int _i11 = 0; _i11 < _map8.size; ++_i11)
                 {
-                  _key1 = iprot.readString();
-                  _val2 = new TableInfo();
-                  _val2.read(iprot);
-                  struct.tableMap.put(_key1, _val2);
+                  _key9 = iprot.readString();
+                  _val10 = new TableInfo();
+                  _val10.read(iprot);
+                  struct.tableMap.put(_key9, _val10);
                 }
                 iprot.readMapEnd();
               }
@@ -1650,14 +1650,14 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
           case 14: // LOG_SORTS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list4 = iprot.readListBegin();
-                struct.logSorts = new java.util.ArrayList<RecoveryStatus>(_list4.size);
-                @org.apache.thrift.annotation.Nullable RecoveryStatus _elem5;
-                for (int _i6 = 0; _i6 < _list4.size; ++_i6)
+                org.apache.thrift.protocol.TList _list12 = iprot.readListBegin();
+                struct.logSorts = new java.util.ArrayList<RecoveryStatus>(_list12.size);
+                @org.apache.thrift.annotation.Nullable RecoveryStatus _elem13;
+                for (int _i14 = 0; _i14 < _list12.size; ++_i14)
                 {
-                  _elem5 = new RecoveryStatus();
-                  _elem5.read(iprot);
-                  struct.logSorts.add(_elem5);
+                  _elem13 = new RecoveryStatus();
+                  _elem13.read(iprot);
+                  struct.logSorts.add(_elem13);
                 }
                 iprot.readListEnd();
               }
@@ -1685,14 +1685,14 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
           case 17: // BULK_IMPORTS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list7 = iprot.readListBegin();
-                struct.bulkImports = new java.util.ArrayList<BulkImportStatus>(_list7.size);
-                @org.apache.thrift.annotation.Nullable BulkImportStatus _elem8;
-                for (int _i9 = 0; _i9 < _list7.size; ++_i9)
+                org.apache.thrift.protocol.TList _list15 = iprot.readListBegin();
+                struct.bulkImports = new java.util.ArrayList<BulkImportStatus>(_list15.size);
+                @org.apache.thrift.annotation.Nullable BulkImportStatus _elem16;
+                for (int _i17 = 0; _i17 < _list15.size; ++_i17)
                 {
-                  _elem8 = new BulkImportStatus();
-                  _elem8.read(iprot);
-                  struct.bulkImports.add(_elem8);
+                  _elem16 = new BulkImportStatus();
+                  _elem16.read(iprot);
+                  struct.bulkImports.add(_elem16);
                 }
                 iprot.readListEnd();
               }
@@ -1737,10 +1737,10 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
         oprot.writeFieldBegin(TABLE_MAP_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, struct.tableMap.size()));
-          for (java.util.Map.Entry<java.lang.String, TableInfo> _iter10 : struct.tableMap.entrySet())
+          for (java.util.Map.Entry<java.lang.String, TableInfo> _iter18 : struct.tableMap.entrySet())
           {
-            oprot.writeString(_iter10.getKey());
-            _iter10.getValue().write(oprot);
+            oprot.writeString(_iter18.getKey());
+            _iter18.getValue().write(oprot);
           }
           oprot.writeMapEnd();
         }
@@ -1779,9 +1779,9 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
         oprot.writeFieldBegin(LOG_SORTS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.logSorts.size()));
-          for (RecoveryStatus _iter11 : struct.logSorts)
+          for (RecoveryStatus _iter19 : struct.logSorts)
           {
-            _iter11.write(oprot);
+            _iter19.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1797,9 +1797,9 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
         oprot.writeFieldBegin(BULK_IMPORTS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.bulkImports.size()));
-          for (BulkImportStatus _iter12 : struct.bulkImports)
+          for (BulkImportStatus _iter20 : struct.bulkImports)
           {
-            _iter12.write(oprot);
+            _iter20.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1884,10 +1884,10 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       if (struct.isSetTableMap()) {
         {
           oprot.writeI32(struct.tableMap.size());
-          for (java.util.Map.Entry<java.lang.String, TableInfo> _iter13 : struct.tableMap.entrySet())
+          for (java.util.Map.Entry<java.lang.String, TableInfo> _iter21 : struct.tableMap.entrySet())
           {
-            oprot.writeString(_iter13.getKey());
-            _iter13.getValue().write(oprot);
+            oprot.writeString(_iter21.getKey());
+            _iter21.getValue().write(oprot);
           }
         }
       }
@@ -1921,9 +1921,9 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       if (struct.isSetLogSorts()) {
         {
           oprot.writeI32(struct.logSorts.size());
-          for (RecoveryStatus _iter14 : struct.logSorts)
+          for (RecoveryStatus _iter22 : struct.logSorts)
           {
-            _iter14.write(oprot);
+            _iter22.write(oprot);
           }
         }
       }
@@ -1936,9 +1936,9 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       if (struct.isSetBulkImports()) {
         {
           oprot.writeI32(struct.bulkImports.size());
-          for (BulkImportStatus _iter15 : struct.bulkImports)
+          for (BulkImportStatus _iter23 : struct.bulkImports)
           {
-            _iter15.write(oprot);
+            _iter23.write(oprot);
           }
         }
       }
@@ -1956,16 +1956,16 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       java.util.BitSet incoming = iprot.readBitSet(16);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map16 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT); 
-          struct.tableMap = new java.util.HashMap<java.lang.String,TableInfo>(2*_map16.size);
-          @org.apache.thrift.annotation.Nullable java.lang.String _key17;
-          @org.apache.thrift.annotation.Nullable TableInfo _val18;
-          for (int _i19 = 0; _i19 < _map16.size; ++_i19)
+          org.apache.thrift.protocol.TMap _map24 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT); 
+          struct.tableMap = new java.util.HashMap<java.lang.String,TableInfo>(2*_map24.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _key25;
+          @org.apache.thrift.annotation.Nullable TableInfo _val26;
+          for (int _i27 = 0; _i27 < _map24.size; ++_i27)
           {
-            _key17 = iprot.readString();
-            _val18 = new TableInfo();
-            _val18.read(iprot);
-            struct.tableMap.put(_key17, _val18);
+            _key25 = iprot.readString();
+            _val26 = new TableInfo();
+            _val26.read(iprot);
+            struct.tableMap.put(_key25, _val26);
           }
         }
         struct.setTableMapIsSet(true);
@@ -2008,14 +2008,14 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       }
       if (incoming.get(10)) {
         {
-          org.apache.thrift.protocol.TList _list20 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.logSorts = new java.util.ArrayList<RecoveryStatus>(_list20.size);
-          @org.apache.thrift.annotation.Nullable RecoveryStatus _elem21;
-          for (int _i22 = 0; _i22 < _list20.size; ++_i22)
+          org.apache.thrift.protocol.TList _list28 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.logSorts = new java.util.ArrayList<RecoveryStatus>(_list28.size);
+          @org.apache.thrift.annotation.Nullable RecoveryStatus _elem29;
+          for (int _i30 = 0; _i30 < _list28.size; ++_i30)
           {
-            _elem21 = new RecoveryStatus();
-            _elem21.read(iprot);
-            struct.logSorts.add(_elem21);
+            _elem29 = new RecoveryStatus();
+            _elem29.read(iprot);
+            struct.logSorts.add(_elem29);
           }
         }
         struct.setLogSortsIsSet(true);
@@ -2030,14 +2030,14 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
       }
       if (incoming.get(13)) {
         {
-          org.apache.thrift.protocol.TList _list23 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.bulkImports = new java.util.ArrayList<BulkImportStatus>(_list23.size);
-          @org.apache.thrift.annotation.Nullable BulkImportStatus _elem24;
-          for (int _i25 = 0; _i25 < _list23.size; ++_i25)
+          org.apache.thrift.protocol.TList _list31 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.bulkImports = new java.util.ArrayList<BulkImportStatus>(_list31.size);
+          @org.apache.thrift.annotation.Nullable BulkImportStatus _elem32;
+          for (int _i33 = 0; _i33 < _list31.size; ++_i33)
           {
-            _elem24 = new BulkImportStatus();
-            _elem24.read(iprot);
-            struct.bulkImports.add(_elem24);
+            _elem32 = new BulkImportStatus();
+            _elem32.read(iprot);
+            struct.bulkImports.add(_elem32);
           }
         }
         struct.setBulkImportsIsSet(true);

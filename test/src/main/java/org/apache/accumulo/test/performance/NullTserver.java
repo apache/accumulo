@@ -54,7 +54,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
@@ -357,7 +357,7 @@ public class NullTserver {
 
       while (s.hasNext()) {
         TabletLocationState next = s.next();
-        assignments.add(new Assignment(next.extent, instance));
+        assignments.add(new Assignment(next.extent, instance, next.last));
       }
     }
     // point them to this server

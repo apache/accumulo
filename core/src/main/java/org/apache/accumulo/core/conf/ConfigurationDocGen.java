@@ -100,8 +100,8 @@ public class ConfigurationDocGen {
     description += "**Available since:** ";
     if (prop.getKey().startsWith("manager.")
         && (prop.availableSince().startsWith("1.") || prop.availableSince().startsWith("2.0"))) {
-      description += "2.1.0 (since " + prop.availableSince() + " as *master."
-          + prop.getKey().substring(8) + "*)<br>";
+      description += "2.1.0 (formerly *master." + prop.getKey().substring(8) + "* since "
+          + prop.availableSince() + ")<br>";
     } else {
       description += prop.availableSince() + "<br>";
     }

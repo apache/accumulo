@@ -85,11 +85,11 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.manager.thrift.BulkImportState;
+import org.apache.accumulo.core.manager.thrift.Compacting;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
-import org.apache.accumulo.core.master.thrift.Compacting;
-import org.apache.accumulo.core.master.thrift.TableInfo;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -711,20 +711,21 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     try {
       MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
           clientAddress);
+
+      metrics = new TabletServerMetrics(this);
+      updateMetrics = new TabletServerUpdateMetrics();
+      scanMetrics = new TabletServerScanMetrics();
+      mincMetrics = new TabletServerMinCMetrics();
+      ceMetrics = new CompactionExecutorsMetrics();
+      pausedMetrics = new PausedCompactionMetrics();
+      MetricsUtil.initializeProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
+          ceMetrics, pausedMetrics);
+
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
         | SecurityException e1) {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
-
-    metrics = new TabletServerMetrics(this);
-    updateMetrics = new TabletServerUpdateMetrics();
-    scanMetrics = new TabletServerScanMetrics();
-    mincMetrics = new TabletServerMinCMetrics();
-    ceMetrics = new CompactionExecutorsMetrics();
-    pausedMetrics = new PausedCompactionMetrics();
-    MetricsUtil.initializeProducers(metrics, updateMetrics, scanMetrics, mincMetrics, ceMetrics,
-        pausedMetrics);
 
     this.compactionManager = new CompactionManager(() -> Iterators
         .transform(onlineTablets.snapshot().values().iterator(), Tablet::asCompactable),
@@ -782,7 +783,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         try (TabletsMetadata tabletsMetadata = getContext().getAmple().readTablets()
             .forTablets(onlineTabletsSnapshot.keySet(), Optional.of(missingTablets::add))
             .fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
-          mdScanSpan.end();
           duration = Duration.between(start, Instant.now());
           log.debug("Metadata scan took {}ms for {} tablets read.", duration.toMillis(),
               onlineTabletsSnapshot.keySet().size());
@@ -802,6 +802,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             }
           }
         }
+      } catch (Exception e) {
+        log.error("Unable to complete verification of tablet metadata", e);
+        TraceUtil.setException(mdScanSpan, e, true);
+      } finally {
+        mdScanSpan.end();
       }
     });
 
