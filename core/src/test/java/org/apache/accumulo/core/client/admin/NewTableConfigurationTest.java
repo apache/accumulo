@@ -103,6 +103,25 @@ public class NewTableConfigurationTest {
 
   }
 
+  @Test
+  public void testWithAndGetInitialHostingGoals() {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    TabletHostingGoal initialHostingGoal = ntc.getInitialHostingGoal();
+    assertEquals(TabletHostingGoal.ONDEMAND, initialHostingGoal);
+
+    ntc = new NewTableConfiguration().withInitialHostingGoal(TabletHostingGoal.ONDEMAND);
+    initialHostingGoal = ntc.getInitialHostingGoal();
+    assertEquals(TabletHostingGoal.ONDEMAND, initialHostingGoal);
+
+    ntc = new NewTableConfiguration().withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+    initialHostingGoal = ntc.getInitialHostingGoal();
+    assertEquals(TabletHostingGoal.ALWAYS, initialHostingGoal);
+
+    ntc = new NewTableConfiguration().withInitialHostingGoal(TabletHostingGoal.NEVER);
+    initialHostingGoal = ntc.getInitialHostingGoal();
+    assertEquals(TabletHostingGoal.NEVER, initialHostingGoal);
+  }
+
   /**
    * Verify that createOffline option
    */

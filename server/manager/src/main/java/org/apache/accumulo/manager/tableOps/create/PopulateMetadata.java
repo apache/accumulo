@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -34,9 +35,12 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
@@ -77,7 +81,24 @@ class PopulateMetadata extends ManagerRepo {
             tableInfo.getTimeType(), env.getManagerLock(), bw);
       }
     }
+
+    setInitialHostingGoal(env.getContext(), tableInfo.getTableId(),
+        tableInfo.getInitialHostingGoal());
+
     return new FinishCreateTable(tableInfo);
+  }
+
+  private void setInitialHostingGoal(ServerContext context, TableId tableId,
+      TabletHostingGoal goal) {
+    try (TabletsMetadata m = context.getAmple().readTablets().forTable(tableId)
+        .overlapping((byte[]) null, null).build()) {
+      try (Ample.TabletsMutator mutator = context.getAmple().mutateTablets()) {
+        for (TabletMetadata tm : m) {
+          final KeyExtent tabletExtent = tm.getExtent();
+          mutator.mutateTablet(tabletExtent).setHostingGoal(goal).mutate();
+        }
+      }
+    }
   }
 
   private void writeSplitsToMetadataTable(ServerContext context, TableId tableId,
