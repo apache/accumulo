@@ -192,6 +192,11 @@ public class TabletMetadata {
       return Objects.hash(tServerInstance, lt);
     }
 
+    @Override
+    public String toString() {
+      return "Location [" + "server=" + tServerInstance + ", type=" + lt + ']';
+    }
+
     public static Location last(TServerInstance instance) {
       return new Location(instance, LocationType.LAST);
     }

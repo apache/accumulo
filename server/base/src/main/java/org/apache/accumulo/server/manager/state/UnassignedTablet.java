@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import java.util.Objects;
+
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -45,5 +47,39 @@ public class UnassignedTablet {
 
   public TServerInstance getServerInstance() {
     return location != null ? location.getServerInstance() : null;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    UnassignedTablet that = (UnassignedTablet) o;
+    return Objects.equals(location, that.location)
+        && Objects.equals(lastLocation, that.lastLocation);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(location, lastLocation);
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("UnassignedTablet [");
+    sb.append(location.getType());
+    sb.append("=");
+    sb.append(location.getServerInstance());
+    sb.append(", ");
+    sb.append(lastLocation.getType());
+    sb.append("=");
+    sb.append(lastLocation.getServerInstance());
+    sb.append("]");
+    return sb.toString();
+
   }
 }
