@@ -330,39 +330,39 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(filesToCompact.size());
 
-    for (TabletFile mapFile : filesToCompact.keySet()) {
+    for (TabletFile dataFile : filesToCompact.keySet()) {
       try {
 
         FileOperations fileFactory = FileOperations.getInstance();
-        FileSystem fs = this.fs.getFileSystemByPath(mapFile.getPath());
+        FileSystem fs = this.fs.getFileSystemByPath(dataFile.getPath());
         FileSKVIterator reader;
 
         reader = fileFactory.newReaderBuilder()
-            .forFile(mapFile.getPathStr(), fs, fs.getConf(), cryptoService)
+            .forFile(dataFile.getPathStr(), fs, fs.getConf(), cryptoService)
             .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter())
             .dropCachesBehind().build();
 
         readers.add(reader);
 
         InterruptibleIterator iter = new ProblemReportingIterator(context, extent.tableId(),
-            mapFile.getPathStr(), false, reader);
+            dataFile.getPathStr(), false, reader);
 
-        iter = filesToCompact.get(mapFile).wrapFileIterator(iter);
+        iter = filesToCompact.get(dataFile).wrapFileIterator(iter);
 
         iters.add(iter);
 
       } catch (Exception e) {
 
         ProblemReports.getInstance(context).report(
-            new ProblemReport(extent.tableId(), ProblemType.FILE_READ, mapFile.getPathStr(), e));
+            new ProblemReport(extent.tableId(), ProblemType.FILE_READ, dataFile.getPathStr(), e));
 
-        log.warn("Some problem opening map file {} {}", mapFile, e.getMessage(), e);
-        // failed to open some map file... close the ones that were opened
+        log.warn("Some problem opening data file {} {}", dataFile, e.getMessage(), e);
+        // failed to open some data file... close the ones that were opened
         for (FileSKVIterator reader : readers) {
           try {
             reader.close();
           } catch (Exception e2) {
-            log.warn("Failed to close map file", e2);
+            log.warn("Failed to close data file", e2);
           }
         }
 
@@ -371,7 +371,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         if (e instanceof IOException) {
           throw (IOException) e;
         }
-        throw new IOException("Failed to open map data files", e);
+        throw new IOException("Failed to open data files", e);
       }
     }
 
@@ -477,7 +477,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         try {
           reader.close();
         } catch (Exception e) {
-          log.warn("Failed to close map file", e);
+          log.warn("Failed to close data file", e);
         }
       }
       compactSpan.end();

@@ -59,7 +59,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -68,6 +67,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -79,7 +79,6 @@ import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.MapFile;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
@@ -147,7 +146,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);
 
     Path dirPath = new Path(dir);
-    FileStatus[] mapFiles = fs.listStatus(dirPath);
+    FileStatus[] dataFiles = fs.listStatus(dirPath);
 
     final UniqueNameAllocator namer = manager.getUniqueNameAllocator();
 
@@ -157,7 +156,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
         ThreadPools.getServerThreadPools().createFixedThreadPool(numThreads, "bulk rename", false);
     List<Future<Exception>> results = new ArrayList<>();
 
-    for (FileStatus file : mapFiles) {
+    for (FileStatus file : dataFiles) {
       final FileStatus fileStatus = file;
       results.add(workers.submit(() -> {
         try {
@@ -171,32 +170,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
               return null;
             }
           } else {
-            // assume it is a map file
-            extension = Constants.MAPFILE_EXTENSION;
-          }
-
-          if (extension.equals(Constants.MAPFILE_EXTENSION)) {
-            if (!fileStatus.isDirectory()) {
-              LOG.warn("{} is not a map file, ignoring", fileStatus.getPath());
-              return null;
-            }
-
-            if (fileStatus.getPath().getName().equals("_logs")) {
-              LOG.info("{} is probably a log directory from a map/reduce task, skipping",
-                  fileStatus.getPath());
-              return null;
-            }
-            try {
-              FileStatus dataStatus =
-                  fs.getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
-              if (dataStatus.isDirectory()) {
-                LOG.warn("{} is not a map file, ignoring", fileStatus.getPath());
-                return null;
-              }
-            } catch (FileNotFoundException fnfe) {
-              LOG.warn("{} is not a map file, ignoring", fileStatus.getPath());
-              return null;
-            }
+            LOG.warn("{} does not have any extension, ignoring", fileStatus.getPath());
+            return null;
           }
 
           String newName = "I" + namer.getNextName() + "." + extension;
@@ -385,8 +360,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     TabletIngestClientService.Iface client = getClient(context, extent);
     try {
 
-      Map<String,MapFileInfo> val = Map.of(path.getName(), new MapFileInfo(size));
-      Map<KeyExtent,Map<String,MapFileInfo>> files = Map.of(extent, val);
+      Map<String,DataFileInfo> val = Map.of(path.getName(), new DataFileInfo(size));
+      Map<KeyExtent,Map<String,DataFileInfo>> files = Map.of(extent, val);
 
       client.loadFiles(TraceUtil.traceInfo(), context.rpcCreds(), txid, path.getParent().toString(),
           files.entrySet().stream().collect(

@@ -63,7 +63,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -86,6 +85,7 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatch;
+import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -214,7 +214,7 @@ public class Tablet extends TabletBase {
   private final Rate scannedRate = new Rate(0.95);
 
   private long lastMinorCompactionFinishTime = 0;
-  private long lastMapFileImportTime = 0;
+  private long lastDataFileImportTime = 0;
 
   private volatile long numEntries = 0;
   private volatile long numEntriesInMemory = 0;
@@ -252,14 +252,14 @@ public class Tablet extends TabletBase {
     return dirUri;
   }
 
-  TabletFile getNextMapFilename(FilePrefix prefix) throws IOException {
+  TabletFile getNextDataFilename(FilePrefix prefix) throws IOException {
     String extension = FileOperations.getNewFileExtension(tableConfiguration);
     return new TabletFile(new Path(chooseTabletDir() + "/" + prefix.toPrefix()
         + context.getUniqueNameAllocator().getNextName() + "." + extension));
   }
 
-  TabletFile getNextMapFilenameForMajc(boolean propagateDeletes) throws IOException {
-    String tmpFileName = getNextMapFilename(
+  TabletFile getNextDataFilenameForMajc(boolean propagateDeletes) throws IOException {
+    String tmpFileName = getNextDataFilename(
         !propagateDeletes ? FilePrefix.MAJOR_COMPACTION_ALL_FILES : FilePrefix.MAJOR_COMPACTION)
         .getMetaInsert() + "_tmp";
     return new TabletFile(new Path(tmpFileName));
@@ -444,7 +444,7 @@ public class Tablet extends TabletBase {
       throw ioe;
     } finally {
       // code in finally block because always want
-      // to return mapfiles, even when exception is thrown
+      // to return data files, even when exception is thrown
       dataSource.close(false);
     }
   }
@@ -871,7 +871,7 @@ public class Tablet extends TabletBase {
   }
 
   /**
-   * Closes the mapfiles associated with a Tablet. If saveState is true, a minor compaction is
+   * Closes the data files associated with a Tablet. If saveState is true, a minor compaction is
    * performed.
    */
   @Override
@@ -1011,7 +1011,7 @@ public class Tablet extends TabletBase {
 
     getTabletMemory().close();
 
-    // close map files
+    // close data files
     getTabletResources().close();
 
     if (completeClose) {
@@ -1290,8 +1290,8 @@ public class Tablet extends TabletBase {
   private boolean isFindSplitsSuppressed() {
     if (supressFindSplits) {
       if (timeOfLastMinCWhenFindSplitsWasSupressed != lastMinorCompactionFinishTime
-          || timeOfLastImportWhenFindSplitsWasSupressed != lastMapFileImportTime) {
-        // a minor compaction or map file import has occurred... check again
+          || timeOfLastImportWhenFindSplitsWasSupressed != lastDataFileImportTime) {
+        // a minor compaction or data file import has occurred... check again
         supressFindSplits = false;
       } else {
         // nothing changed, do not split
@@ -1308,7 +1308,7 @@ public class Tablet extends TabletBase {
   private void suppressFindSplits() {
     supressFindSplits = true;
     timeOfLastMinCWhenFindSplitsWasSupressed = lastMinorCompactionFinishTime;
-    timeOfLastImportWhenFindSplitsWasSupressed = lastMapFileImportTime;
+    timeOfLastImportWhenFindSplitsWasSupressed = lastDataFileImportTime;
   }
 
   private static int longestCommonLength(Text text, Text beforeMid) {
@@ -1510,10 +1510,10 @@ public class Tablet extends TabletBase {
     }
 
     // obtain this info outside of synch block since it will involve opening
-    // the map files... it is ok if the set of map files changes, because
-    // this info is used for optimization... it is ok if map files are missing
+    // the data files... it is ok if the set of data files changes, because
+    // this info is used for optimization... it is ok if data files are missing
     // from the set... can still query and insert into the tablet while this
-    // map file operation is happening
+    // data file operation is happening
     Map<TabletFile,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(context,
         tableConfiguration, getDatafileManager().getFiles());
 
@@ -1659,12 +1659,12 @@ public class Tablet extends TabletBase {
     return splitCreationTime;
   }
 
-  public void importMapFiles(long tid, Map<TabletFile,MapFileInfo> fileMap, boolean setTime)
+  public void importDataFiles(long tid, Map<TabletFile,DataFileInfo> fileMap, boolean setTime)
       throws IOException {
     Map<TabletFile,DataFileValue> entries = new HashMap<>(fileMap.size());
     List<String> files = new ArrayList<>();
 
-    for (Entry<TabletFile,MapFileInfo> entry : fileMap.entrySet()) {
+    for (Entry<TabletFile,DataFileInfo> entry : fileMap.entrySet()) {
       entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0L));
       files.add(entry.getKey().getPathStr());
     }
@@ -1714,8 +1714,8 @@ public class Tablet extends TabletBase {
     try {
       tabletServer.updateBulkImportState(files, BulkImportState.LOADING);
 
-      var storedTabletFile = getDatafileManager().importMapFiles(tid, entries, setTime);
-      lastMapFileImportTime = System.currentTimeMillis();
+      var storedTabletFile = getDatafileManager().importDataFiles(tid, entries, setTime);
+      lastDataFileImportTime = System.currentTimeMillis();
 
       if (isSplitPossible()) {
         getTabletServer().executeSplit(this);
