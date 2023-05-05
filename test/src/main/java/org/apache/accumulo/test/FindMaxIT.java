@@ -91,10 +91,6 @@ public class FindMaxIT extends AccumuloClusterHarness {
           max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, rows.get(i - 1),
               true, rows.get(i), false);
           assertEquals(rows.get(i - 1), max);
-          // max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, rows.get(i -
-          // 1),
-          // false, rows.get(i), false);
-          // assertNull(max);
 
           max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, null, true,
               rows.get(i), true);
@@ -164,10 +160,6 @@ public class FindMaxIT extends AccumuloClusterHarness {
           range = RowRange.closed(rows.get(i - 1), rows.get(i));
           max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
           assertEquals(rows.get(i), max);
-
-          // range = RowRange.open(rows.get(i - 1), rows.get(i));
-          // max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
-          // assertNull(max);
 
           range = RowRange.atMost(rows.get(i));
           max = client.tableOperations().getMaxRow(tableName, Authorizations.EMPTY, range);
