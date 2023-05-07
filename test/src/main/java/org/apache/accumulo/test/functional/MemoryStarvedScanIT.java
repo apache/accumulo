@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.metrics.MetricsProducer.METRICS_LOW_MEMORY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -80,10 +81,11 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     }
   }
 
-  public static final Double FREE_MEMORY_THRESHOLD = 0.20D;
+  public static final double FREE_MEMORY_THRESHOLD = 0.20D;
 
   private static final DoubleAdder SCAN_START_DELAYED = new DoubleAdder();
   private static final DoubleAdder SCAN_RETURNED_EARLY = new DoubleAdder();
+  private static final AtomicInteger LOW_MEM_DETECTED = new AtomicInteger(0);
   private static TestStatsDSink sink;
   private static Thread metricConsumer;
 
@@ -100,11 +102,17 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
           if (line.startsWith("accumulo")) {
             Metric metric = TestStatsDSink.parseStatsDMetric(line);
             if (MetricsProducer.METRICS_SCAN_PAUSED_FOR_MEM.equals(metric.getName())) {
-              Double val = Double.parseDouble(metric.getValue());
+              double val = Double.parseDouble(metric.getValue());
               SCAN_START_DELAYED.add(val);
             } else if (MetricsProducer.METRICS_SCAN_RETURN_FOR_MEM.equals(metric.getName())) {
-              Double val = Double.parseDouble(metric.getValue());
+              double val = Double.parseDouble(metric.getValue());
               SCAN_RETURNED_EARLY.add(val);
+            } else if (metric.getName().equals(METRICS_LOW_MEMORY)) {
+              String process = metric.getTags().get("process.name");
+              if (process != null && process.contains("tserver")) {
+                int val = Integer.parseInt(metric.getValue());
+                LOW_MEM_DETECTED.set(val);
+              }
             }
           }
         }
@@ -124,13 +132,14 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
   }
 
   @BeforeEach
-  public void beforeEach() throws Exception {
+  public void beforeEach() {
     // Reset the client side counters
     SCAN_START_DELAYED.reset();
     SCAN_START_DELAYED.reset();
+    LOW_MEM_DETECTED.set(0);
   }
 
-  static void consumeServerMemory(Scanner scanner, String table) throws Exception {
+  static void consumeServerMemory(Scanner scanner) {
     // This iterator will attempt to consume all free memory in the TabletServer
     scanner.addScanIterator(new IteratorSetting(11, MemoryConsumingIterator.class, Map.of()));
     scanner.setBatchSize(1);
@@ -143,7 +152,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     assertTrue(iter.hasNext());
   }
 
-  private void consumeServerMemory(BatchScanner scanner, String table) throws Exception {
+  private void consumeServerMemory(BatchScanner scanner) {
     // This iterator will attempt to consume all free memory in the TabletServer
     scanner.addScanIterator(new IteratorSetting(11, MemoryConsumingIterator.class, Map.of()));
     scanner.setRanges(Collections.singletonList(new Range()));
@@ -174,13 +183,13 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
       ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
 
       try (Scanner scanner = client.createScanner(table)) {
-        Double returned = SCAN_RETURNED_EARLY.doubleValue();
-        Double paused = SCAN_START_DELAYED.doubleValue();
+        double returned = SCAN_RETURNED_EARLY.doubleValue();
+        double paused = SCAN_START_DELAYED.doubleValue();
 
-        consumeServerMemory(scanner, table);
+        consumeServerMemory(scanner);
 
         // Wait for longer than the memory check interval
-        Thread.sleep(6000);
+        Thread.sleep(6_000);
 
         // The metric that indicates a scan was returned early due to low memory should
         // have been incremented.
@@ -245,8 +254,8 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         assertTrue(currentCount > 0 && currentCount < 100);
 
         // Grab the current metric counts, wait
-        Double returned = SCAN_RETURNED_EARLY.doubleValue();
-        Double paused = SCAN_START_DELAYED.doubleValue();
+        double returned = SCAN_RETURNED_EARLY.doubleValue();
+        double paused = SCAN_START_DELAYED.doubleValue();
         Thread.sleep(1500);
         // One of two conditions could exist here:
         // The number of fetched rows equals the current count before the wait above
@@ -262,6 +271,8 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         returned = SCAN_RETURNED_EARLY.doubleValue();
         Thread.sleep(1500);
         assertEquals(currentCount, fetched.get());
+
+        assertEquals(1, LOW_MEM_DETECTED.get());
 
         // Free the memory which will allow the pausing scanner to continue
         freeServerMemory(client, table);
@@ -283,14 +294,17 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
       TableOperations to = client.tableOperations();
       to.create(table);
 
+      // check memory okay before starting
+      assertEquals(0, LOW_MEM_DETECTED.get());
+
       ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
 
       try (BatchScanner scanner = client.createBatchScanner(table,
           client.securityOperations().getUserAuthorizations(client.whoami()), 1)) {
-        Double returned = SCAN_RETURNED_EARLY.doubleValue();
-        Double paused = SCAN_START_DELAYED.doubleValue();
+        double returned = SCAN_RETURNED_EARLY.doubleValue();
+        double paused = SCAN_START_DELAYED.doubleValue();
 
-        consumeServerMemory(scanner, table);
+        consumeServerMemory(scanner);
 
         // Wait for longer than the memory check interval
         Thread.sleep(6000);
@@ -299,6 +313,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         // have been incremented.
         assertTrue(SCAN_RETURNED_EARLY.doubleValue() > returned);
         assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
+        assertEquals(1, LOW_MEM_DETECTED.get());
         freeServerMemory(client, table);
       } finally {
         to.delete(table);
@@ -314,6 +329,9 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
 
       TableOperations to = client.tableOperations();
       to.create(table);
+
+      // check memory okay before starting
+      assertEquals(0, LOW_MEM_DETECTED.get());
 
       ReadWriteIT.ingest(client, 10, 3, 10, 0, table);
 
@@ -359,12 +377,13 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         // Grab the current paused count, wait two seconds and then confirm that
         // the number of rows fetched by the memoryConsumingScanner has not increased
         // and that the scan delay counter has increased.
-        Double returned = SCAN_RETURNED_EARLY.doubleValue();
-        Double paused = SCAN_START_DELAYED.doubleValue();
+        double returned = SCAN_RETURNED_EARLY.doubleValue();
+        double paused = SCAN_START_DELAYED.doubleValue();
         Thread.sleep(1500);
         assertEquals(currentCount, fetched.get());
         assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
         assertTrue(SCAN_RETURNED_EARLY.doubleValue() >= returned);
+        assertEquals(1, LOW_MEM_DETECTED.get());
 
         // Perform the check again
         paused = SCAN_START_DELAYED.doubleValue();
@@ -372,13 +391,18 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         Thread.sleep(1500);
         assertEquals(currentCount, fetched.get());
         assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
-        assertTrue(SCAN_RETURNED_EARLY.doubleValue() == returned);
+        assertEquals(returned, SCAN_RETURNED_EARLY.doubleValue());
+        assertEquals(1, LOW_MEM_DETECTED.get());
 
         // Free the memory which will allow the pausing scanner to continue
         freeServerMemory(client, table);
 
         t.join();
         assertEquals(30, fetched.get());
+        // allow metic collection to cycle.
+        Thread.sleep(6_000);
+        assertEquals(0, LOW_MEM_DETECTED.get());
+
       } finally {
         to.delete(table);
       }
