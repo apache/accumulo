@@ -25,21 +25,44 @@
 
 var managerStatusTable, recoveryListTable;
 
-function refreshManagerBanner() {
+function refreshManagerBanners() {
   getStatus().then(function () {
-    var managerStatus = JSON.parse(sessionStorage.status).managerStatus;
+    const managerStatus = JSON.parse(sessionStorage.status).managerStatus;
 
     // If manager status is error
     if (managerStatus === 'ERROR') {
-      // show banner and hide table
-      $('#managerBanner').show();
+      // show the manager error banner and hide table
+      $('#managerRunningBanner').show();
       $('#managerStatus_wrapper').hide();
     } else {
-      // otherwise, hide banner and show table
-      $('#managerBanner').hide();
+      // otherwise, hide the error banner and show manager table
+      $('#managerRunningBanner').hide();
       $('#managerStatus_wrapper').show();
     }
   });
+
+  getManager().then(function () {
+    const managerData = JSON.parse(sessionStorage.manager);
+    const managerState = managerData.managerState;
+    const managerGoalState = managerData.managerGoalState;
+
+    const isStateGoalDifferent = managerState !== managerGoalState;
+
+    // if the manager state is normal and the goal is the same as the state or manager is not running, return early
+    if ((managerState === 'NORMAL' && !isStateGoalDifferent) || managerState === null) {
+      $('#managerStateBanner').hide();
+      return;
+    }
+
+    // update the manager state banner message and show it
+    let bannerMessage = 'Manager state: ' + managerState;
+    if (isStateGoalDifferent) {
+      bannerMessage += '. Manager goal state: ' + managerGoalState;
+    }
+    $('#managerStateBanner .alert.alert-warning').text(bannerMessage);
+    $('#managerStateBanner').show();
+  });
+
 }
 
 /**
@@ -47,7 +70,7 @@ function refreshManagerBanner() {
  */
 function refreshManagerTables() {
   ajaxReloadTable(managerStatusTable);
-  refreshManagerBanner();
+  refreshManagerBanners();
   ajaxReloadTable(recoveryListTable);
 }
 
