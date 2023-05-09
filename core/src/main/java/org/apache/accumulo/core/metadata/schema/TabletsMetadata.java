@@ -34,13 +34,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -95,6 +99,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private final List<Text> families = new ArrayList<>();
     private final List<ColumnFQ> qualifiers = new ArrayList<>();
     private Set<KeyExtent> extentsToFetch = null;
+    private boolean fetchTablets = false;
+    private Optional<Consumer<KeyExtent>> notFoundHandler;
     private Ample.DataLevel level;
     private String table;
     private Range range;
@@ -105,7 +111,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private TableId tableId;
     private ReadConsistency readConsistency = ReadConsistency.IMMEDIATE;
     private final AccumuloClient _client;
-    private Collection<KeyExtent> extents = null;
 
     Builder(AccumuloClient client) {
       this._client = client;
@@ -113,7 +118,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public TabletsMetadata build() {
-      if (extents != null) {
+      if (fetchTablets) {
         // setting multiple extents with forTablets(extents) is mutually exclusive with these
         // single-tablet options
         checkState(range == null && table == null && level == null && !checkConsistency);
@@ -121,7 +126,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       }
 
       checkState((level == null) != (table == null),
-          "scanTable() cannot be used in conjunction with forLevel(), forTable() or forTablet()");
+          "scanTable() cannot be used in conjunction with forLevel(), forTable() or forTablet() %s %s",
+          level, table);
       if (level == DataLevel.ROOT) {
         ClientContext ctx = ((ClientContext) _client);
         return new TabletsMetadata(getRootMetadata(ctx, readConsistency));
@@ -133,7 +139,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private TabletsMetadata buildExtents(AccumuloClient client) {
 
       Map<DataLevel,List<KeyExtent>> groupedExtents =
-          extents.stream().collect(groupingBy(ke -> DataLevel.of(ke.tableId())));
+          extentsToFetch.stream().collect(groupingBy(ke -> DataLevel.of(ke.tableId())));
 
       List<Iterable<TabletMetadata>> iterables = new ArrayList<>();
 
@@ -182,13 +188,33 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         }
       }
 
-      return new TabletsMetadata(() -> {
+      if (notFoundHandler.isPresent()) {
+        HashSet<KeyExtent> extentsNotSeen = new HashSet<>(extentsToFetch);
+
+        var tablets = iterables.stream().flatMap(i -> StreamSupport.stream(i.spliterator(), false))
+            .filter(tabletMetadata -> extentsNotSeen.remove(tabletMetadata.getExtent()))
+            .collect(Collectors.toList());
+
+        extentsNotSeen.forEach(notFoundHandler.orElseThrow());
+
         for (AutoCloseable closable : closables) {
-          closable.close();
+          try {
+            closable.close();
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
         }
-      }, () -> iterables.stream().flatMap(i -> StreamSupport.stream(i.spliterator(), false))
-          .filter(tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()))
-          .iterator());
+
+        return new TabletsMetadata(() -> {}, tablets);
+      } else {
+        return new TabletsMetadata(() -> {
+          for (AutoCloseable closable : closables) {
+            closable.close();
+          }
+        }, () -> iterables.stream().flatMap(i -> StreamSupport.stream(i.spliterator(), false))
+            .filter(tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()))
+            .iterator());
+      }
 
     }
 
@@ -254,7 +280,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public Options checkConsistency() {
-      checkState(extents == null, "Unable to check consistency of non-contiguous tablets");
+      checkState(!fetchTablets, "Unable to check consistency of non-contiguous tablets");
       this.checkConsistency = true;
       return this;
     }
@@ -349,10 +375,12 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     @Override
-    public Options forTablets(Collection<KeyExtent> extents) {
+    public Options forTablets(Collection<KeyExtent> extents,
+        Optional<Consumer<KeyExtent>> notFoundHandler) {
       this.level = null;
-      this.extents = extents;
       this.extentsToFetch = Set.copyOf(extents);
+      this.notFoundHandler = Objects.requireNonNull(notFoundHandler);
+      this.fetchTablets = true;
       return this;
     }
 
@@ -444,8 +472,15 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     /**
      * Get the tablet metadata for the given extents. This will only return tablets where the end
      * row and prev end row exactly match the given extents.
+     *
+     * @param notFoundConsumer if a consumer is present, the extents that do not exists in the
+     *        metadata store are passed to the consumer. If the missing extents are not needed, then
+     *        pass Optional.empty() and it will be more efficient. Computing the missing extents
+     *        requires buffering all tablet metadata in memory before returning anything, when
+     *        Optional.empty() is passed this buffering is not done.
      */
-    Options forTablets(Collection<KeyExtent> extents);
+    Options forTablets(Collection<KeyExtent> extents,
+        Optional<Consumer<KeyExtent>> notFoundConsumer);
 
     /**
      * This method automatically determines where the metadata for the passed in table ID resides.

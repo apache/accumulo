@@ -115,7 +115,7 @@ public class RootTabletStateStoreTest {
     String sessionId = "this is my unique session data";
     TServerInstance server =
         new TServerInstance(HostAndPort.fromParts("127.0.0.1", 10000), sessionId);
-    List<Assignment> assignments = Collections.singletonList(new Assignment(root, server));
+    List<Assignment> assignments = Collections.singletonList(new Assignment(root, server, null));
     tstore.setFutureLocations(assignments);
     int count = 0;
     for (TabletLocationState location : tstore) {
@@ -152,7 +152,7 @@ public class RootTabletStateStoreTest {
     assertEquals(count, 1);
 
     KeyExtent notRoot = new KeyExtent(TableId.of("0"), null, null);
-    final var assignmentList = List.of(new Assignment(notRoot, server));
+    final var assignmentList = List.of(new Assignment(notRoot, server, null));
 
     assertThrows(IllegalArgumentException.class, () -> tstore.setLocations(assignmentList));
     assertThrows(IllegalArgumentException.class, () -> tstore.setFutureLocations(assignmentList));

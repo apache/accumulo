@@ -206,6 +206,16 @@ public class TabletMetadata {
       return Objects.hash(tServerInstance, lt);
     }
 
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder(32);
+      sb.append("Location [");
+      sb.append("server=").append(tServerInstance);
+      sb.append(", type=").append(lt);
+      sb.append("]");
+      return sb.toString();
+    }
+
     public static Location last(TServerInstance instance) {
       return new Location(instance, LocationType.LAST);
     }

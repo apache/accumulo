@@ -82,10 +82,9 @@ public class RefreshTablets extends ManagerRepo {
 
     Map<Location,List<KeyExtent>> refreshesNeeded;
 
-    // ELASTICITY_TODO limit tablets scanned to range of bulk import extents (after #3336 is merged)
-    try (var tablets =
-        manager.getContext().getAmple().readTablets().forTable(bulkInfo.tableId).checkConsistency()
-            .fetch(ColumnType.LOADED, ColumnType.LOCATION, ColumnType.PREV_ROW).build()) {
+    try (var tablets = manager.getContext().getAmple().readTablets().forTable(bulkInfo.tableId)
+        .overlapping(bulkInfo.firstSplit, bulkInfo.lastSplit).checkConsistency()
+        .fetch(ColumnType.LOADED, ColumnType.LOCATION, ColumnType.PREV_ROW).build()) {
 
       // Find all tablets that have a location and load markers for this bulk load operation and
       // therefore need to refresh their metadata. There may be some tablets in the map that were

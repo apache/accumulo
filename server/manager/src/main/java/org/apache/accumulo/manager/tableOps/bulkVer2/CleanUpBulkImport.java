@@ -40,6 +40,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +59,8 @@ public class CleanUpBulkImport extends ManagerRepo {
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
     manager.updateBulkImportStatus(info.sourceDir, BulkImportState.CLEANUP);
-    log.debug("removing the bulkDir processing flag file in " + info.bulkDir);
+    log.debug("{} removing the bulkDir processing flag file in {}", FateTxId.formatTid(tid),
+        info.bulkDir);
     Ample ample = manager.getContext().getAmple();
     Path bulkDir = new Path(info.bulkDir);
     ample.removeBulkLoadInProgressFlag(
@@ -66,8 +68,12 @@ public class CleanUpBulkImport extends ManagerRepo {
     ample.putGcFileAndDirCandidates(info.tableId,
         Collections.singleton(new ReferenceFile(info.tableId, bulkDir.toString())));
 
-    log.debug("removing the metadata table markers for loaded files");
-    removeBulkLoadEntries(ample, info.tableId, tid);
+    Text firstSplit = info.firstSplit == null ? null : new Text(info.firstSplit);
+    Text lastSplit = info.lastSplit == null ? null : new Text(info.lastSplit);
+
+    log.debug("{} removing the metadata table markers for loaded files in range {} {}",
+        FateTxId.formatTid(tid), firstSplit, lastSplit);
+    removeBulkLoadEntries(ample, info.tableId, tid, firstSplit, lastSplit);
 
     Utils.unreserveHdfsDirectory(manager, info.sourceDir, tid);
     Utils.getReadLock(manager, info.tableId, tid).unlock();
@@ -78,7 +84,7 @@ public class CleanUpBulkImport extends ManagerRepo {
       manager.getVolumeManager().delete(renamingFile);
       manager.getVolumeManager().delete(mappingFile);
     } catch (IOException ioe) {
-      log.debug("Failed to delete renames and/or loadmap", ioe);
+      log.debug("{} Failed to delete renames and/or loadmap", FateTxId.formatTid(tid), ioe);
     }
 
     log.debug("completing bulkDir import transaction " + FateTxId.formatTid(tid));
@@ -86,7 +92,8 @@ public class CleanUpBulkImport extends ManagerRepo {
     return null;
   }
 
-  private static void removeBulkLoadEntries(Ample ample, TableId tableId, long tid) {
+  private static void removeBulkLoadEntries(Ample ample, TableId tableId, long tid, Text firstSplit,
+      Text lastSplit) {
 
     Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
         .incrementBy(100, MILLISECONDS).maxWait(1, SECONDS).backOffFactor(1.5)
@@ -94,8 +101,8 @@ public class CleanUpBulkImport extends ManagerRepo {
 
     while (true) {
       try (
-          var tablets = ample.readTablets().forTable(tableId).checkConsistency()
-              .fetch(ColumnType.PREV_ROW, ColumnType.LOADED).build();
+          var tablets = ample.readTablets().forTable(tableId).overlapping(firstSplit, lastSplit)
+              .checkConsistency().fetch(ColumnType.PREV_ROW, ColumnType.LOADED).build();
           var tabletsMutator = ample.conditionallyMutateTablets()) {
 
         for (var tablet : tablets) {
