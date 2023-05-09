@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
@@ -80,6 +82,7 @@ import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -254,6 +257,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     int lastFailureSize = Integer.MAX_VALUE;
 
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
+        .incrementBy(100, MILLISECONDS).maxWait(10, SECONDS).backOffFactor(1.07)
+        .logInterval(1, MINUTES).createFactory().createRetry();
+
     ScanServerData ssd;
 
     long startTime = System.currentTimeMillis();
@@ -302,10 +309,11 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
 
         try {
-          Thread.sleep(100);
+          retry.waitForNextAttempt(log, "binRanges retry failures");
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
+
       }
 
     }
