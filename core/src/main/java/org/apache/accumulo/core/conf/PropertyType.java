@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.lang.math.IntRange;
 import org.apache.hadoop.fs.Path;
@@ -119,7 +120,11 @@ public enum PropertyType {
   BOOLEAN("boolean", in(false, null, "true", "false"),
       "Has a value of either 'true' or 'false' (case-insensitive)"),
 
-  URI("uri", x -> true, "A valid URI");
+  URI("uri", x -> true, "A valid URI"),
+
+  FILENAME_EXT("file name extension", in(true, RFile.EXTENSION),
+      "One of the currently supported filename extensions for storing table data files. "
+          + "Currently, only " + RFile.EXTENSION + " is supported.");
 
   private String shortname, format;
   // Field is transient because enums are Serializable, but Predicates aren't necessarily,

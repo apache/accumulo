@@ -690,7 +690,7 @@ public enum Property {
   TABLE_SCAN_MAXMEM("table.scan.max.memory", "512K", PropertyType.MEMORY,
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client."),
-  TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.STRING,
+  TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.FILENAME_EXT,
       "Change the type of file a table writes"),
   TABLE_LOAD_BALANCER("table.balancer",
       "org.apache.accumulo.server.master.balancer.DefaultLoadBalancer", PropertyType.STRING,
