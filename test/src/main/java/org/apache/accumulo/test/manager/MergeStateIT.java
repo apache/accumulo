@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -39,20 +40,22 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.manager.state.MergeStats;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.CurrentState;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MergeState;
+import org.apache.accumulo.server.manager.state.TabletMetadataImposter;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
@@ -151,7 +154,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       TabletStateStore metaDataStateStore =
           TabletStateStore.getStoreForLevel(DataLevel.USER, context, state);
       int count = 0;
-      for (TabletLocationState tss : metaDataStateStore) {
+      for (TabletMetadata tss : metaDataStateStore) {
         if (tss != null) {
           count++;
         }
@@ -206,10 +209,10 @@ public class MergeStateIT extends ConfigurableMacBase {
 
       // take it offline
       m = TabletColumnFamily.createPrevRowMutation(tablet);
-      Collection<Collection<String>> walogs = Collections.emptyList();
-      metaDataStateStore.unassign(Collections
-          .singletonList(new TabletLocationState(tablet, null, Location.current(state.someTServer),
-              null, null, walogs, false, TabletHostingGoal.ALWAYS, false)),
+      List<LogEntry> walogs = Collections.emptyList();
+      metaDataStateStore.unassign(Collections.singletonList(
+          new TabletMetadataImposter(tablet, null, Location.current(state.someTServer), null, null,
+              walogs, false, TabletHostingGoal.ALWAYS, false)),
           null);
 
       // now we can split
@@ -221,8 +224,9 @@ public class MergeStateIT extends ConfigurableMacBase {
   private MergeStats scan(MockCurrentState state, TabletStateStore metaDataStateStore) {
     MergeStats stats = new MergeStats(state.mergeInfo);
     stats.getMergeInfo().setState(MergeState.WAITING_FOR_OFFLINE);
-    for (TabletLocationState tss : metaDataStateStore) {
-      stats.update(tss.extent, tss.getState(state.onlineTabletServers()), tss.chopped, false);
+    for (TabletMetadata tm : metaDataStateStore) {
+      stats.update(tm.getExtent(), tm.getTabletState(state.onlineTabletServers()), tm.hasChopped(),
+          false);
     }
     return stats;
   }

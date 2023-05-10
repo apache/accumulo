@@ -94,10 +94,10 @@ import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
@@ -587,19 +587,19 @@ public class Manager extends AbstractServer
     }
   }
 
-  TabletGoalState getSystemGoalState(TabletLocationState tls) {
+  TabletGoalState getSystemGoalState(TabletMetadata tm) {
     switch (getManagerState()) {
       case NORMAL:
         return TabletGoalState.HOSTED;
       case HAVE_LOCK: // fall-through intended
       case INITIAL: // fall-through intended
       case SAFE_MODE:
-        if (tls.extent.isMeta()) {
+        if (tm.getExtent().isMeta()) {
           return TabletGoalState.HOSTED;
         }
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_METADATA_TABLETS:
-        if (tls.extent.isRootTablet()) {
+        if (tm.getExtent().isRootTablet()) {
           return TabletGoalState.HOSTED;
         }
         return TabletGoalState.UNASSIGNED;
@@ -612,8 +612,8 @@ public class Manager extends AbstractServer
     }
   }
 
-  TabletGoalState getTableGoalState(TabletLocationState tls) {
-    TableState tableState = getContext().getTableManager().getTableState(tls.extent.tableId());
+  TabletGoalState getTableGoalState(TabletMetadata tm) {
+    TableState tableState = getContext().getTableManager().getTableState(tm.getTableId());
     if (tableState == null) {
       return TabletGoalState.DELETED;
     }
@@ -624,27 +624,28 @@ public class Manager extends AbstractServer
       case NEW:
         return TabletGoalState.UNASSIGNED;
       default:
-        switch (tls.goal) {
+        switch (tm.getHostingGoal()) {
           case ALWAYS:
             return TabletGoalState.HOSTED;
           case NEVER:
             return TabletGoalState.UNASSIGNED;
           case ONDEMAND:
-            if (tls.onDemandHostingRequested) {
+            if (tm.getHostingRequested()) {
               return TabletGoalState.HOSTED;
             } else {
               return TabletGoalState.UNASSIGNED;
             }
           default:
-            throw new IllegalStateException("Tablet Hosting Goal is unhandled: " + tls.goal);
+            throw new IllegalStateException(
+                "Tablet Hosting Goal is unhandled: " + tm.getHostingGoal());
         }
     }
   }
 
-  TabletGoalState getGoalState(TabletLocationState tls, MergeInfo mergeInfo) {
-    KeyExtent extent = tls.extent;
+  TabletGoalState getGoalState(TabletMetadata tm, MergeInfo mergeInfo) {
+    KeyExtent extent = tm.getExtent();
     // Shutting down?
-    TabletGoalState state = getSystemGoalState(tls);
+    TabletGoalState state = getSystemGoalState(tm);
     if (state == TabletGoalState.HOSTED) {
       if (!upgradeCoordinator.getStatus().isParentLevelUpgraded(extent)) {
         // The place where this tablet stores its metadata was not upgraded, so do not assign this
@@ -652,7 +653,7 @@ public class Manager extends AbstractServer
         return TabletGoalState.UNASSIGNED;
       }
 
-      if (tls.current != null && serversToShutdown.contains(tls.current.getServerInstance())) {
+      if (tm.hasCurrent() && serversToShutdown.contains(tm.getLocation().getServerInstance())) {
         return TabletGoalState.SUSPENDED;
       }
       // Handle merge transitions
@@ -670,11 +671,11 @@ public class Manager extends AbstractServer
             case SPLITTING:
               return TabletGoalState.HOSTED;
             case WAITING_FOR_CHOPPED:
-              if (tls.getState(tserverSet.getCurrentServers()).equals(TabletState.HOSTED)) {
-                if (tls.chopped) {
+              if (tm.getTabletState(tserverSet.getCurrentServers()).equals(TabletState.HOSTED)) {
+                if (tm.hasChopped()) {
                   return TabletGoalState.UNASSIGNED;
                 }
-              } else if (tls.chopped && tls.walogs.isEmpty()) {
+              } else if (tm.hasChopped() && tm.getLogs().isEmpty()) {
                 return TabletGoalState.UNASSIGNED;
               }
 
@@ -689,11 +690,11 @@ public class Manager extends AbstractServer
       }
 
       // taking table offline?
-      state = getTableGoalState(tls);
+      state = getTableGoalState(tm);
       if (state == TabletGoalState.HOSTED) {
         // Maybe this tablet needs to be migrated
         TServerInstance dest = migrations.get(extent);
-        if (dest != null && tls.current != null && !dest.equals(tls.current.getServerInstance())) {
+        if (dest != null && tm.hasCurrent() && !dest.equals(tm.getLocation().getServerInstance())) {
           return TabletGoalState.UNASSIGNED;
         }
       }
@@ -888,12 +889,12 @@ public class Manager extends AbstractServer
       } else if (!serversToShutdown.isEmpty()) {
         log.debug("not balancing while shutting down servers {}", serversToShutdown);
       } else {
-        for (TabletGroupWatcher tgw : watchers) {
-          if (!tgw.isSameTserversAsLastScan(currentServers)) {
-            log.debug("not balancing just yet, as collection of live tservers is in flux");
-            return DEFAULT_WAIT_FOR_WATCHER;
-          }
-        }
+        // for (TabletGroupWatcher tgw : watchers) {
+        // if (!tgw.isSameTserversAsLastScan(currentServers)) {
+        // log.debug("not balancing just yet, as collection of live tservers is in flux");
+        // return DEFAULT_WAIT_FOR_WATCHER;
+        // }
+        // }
         return balanceTablets();
       }
       return DEFAULT_WAIT_FOR_WATCHER;

@@ -67,8 +67,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.state.CurrentState;
 import org.apache.accumulo.server.manager.state.MergeInfo;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
-import org.apache.accumulo.server.manager.state.TabletStateChangeIterator;
+import org.apache.accumulo.server.manager.state.TabletMetadataIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -241,7 +240,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     int results = 0;
     List<Key> resultList = new ArrayList<>();
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
-      MetaDataTableScanner.configureScanner(scanner, state);
+      TabletMetadataIterator.configureScanner(scanner, state);
       log.debug("Current state = {}", state);
       scanner.updateScanIteratorOption("tabletChange", "debug", "1");
       for (Entry<Key,Value> e : scanner) {

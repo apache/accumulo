@@ -44,8 +44,8 @@ import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 import org.apache.accumulo.monitor.rest.tservers.TabletServers;
@@ -153,10 +153,10 @@ public class TablesResource {
           systemTableName);
 
       while (scanner.hasNext()) {
-        TabletLocationState state = scanner.next();
-        if (state.current != null) {
+        final TabletMetadata tm = scanner.next();
+        if (tm.hasCurrent()) {
           try {
-            locs.add(state.current.getHostPort());
+            locs.add(tm.getLocation().getHostPort());
           } catch (Exception ex) {
             scanner.close();
             return tabletServers;

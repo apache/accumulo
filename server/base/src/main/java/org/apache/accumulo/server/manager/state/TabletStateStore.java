@@ -26,15 +26,15 @@ import java.util.Map;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 
 /**
  * Interface for storing information about tablet assignments. There are three implementations:
  */
-public interface TabletStateStore extends Iterable<TabletLocationState> {
+public interface TabletStateStore extends Iterable<TabletMetadata> {
 
   /**
    * Identifying name for this tablet state store.
@@ -45,7 +45,7 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
    * Scan the information about the tablets covered by this store
    */
   @Override
-  ClosableIterator<TabletLocationState> iterator();
+  ClosableIterator<TabletMetadata> iterator();
 
   /**
    * Store the assigned locations in the data store.
@@ -63,32 +63,32 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
    * @param tablets the tablets' current information
    * @param logsForDeadServers a cache of logs in use by servers when they died
    */
-  void unassign(Collection<TabletLocationState> tablets,
+  void unassign(Collection<TabletMetadata> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException;
 
   /**
    * Mark tablets as having no known or future location, but desiring to be returned to their
    * previous tserver.
    */
-  void suspend(Collection<TabletLocationState> tablets,
+  void suspend(Collection<TabletMetadata> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException;
 
   /**
    * Remove a suspension marker for a collection of tablets, moving them to being simply unassigned.
    */
-  void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException;
+  void unsuspend(Collection<TabletMetadata> tablets) throws DistributedStoreException;
 
-  public static void unassign(ServerContext context, TabletLocationState tls,
+  public static void unassign(ServerContext context, TabletMetadata tm,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
-    getStoreForTablet(tls.extent, context).unassign(Collections.singletonList(tls),
+    getStoreForTablet(tm.getExtent(), context).unassign(Collections.singletonList(tm),
         logsForDeadServers);
   }
 
-  public static void suspend(ServerContext context, TabletLocationState tls,
+  public static void suspend(ServerContext context, TabletMetadata tm,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
-    getStoreForTablet(tls.extent, context).suspend(Collections.singletonList(tls),
+    getStoreForTablet(tm.getExtent(), context).suspend(Collections.singletonList(tm),
         logsForDeadServers, suspensionTimestamp);
   }
 

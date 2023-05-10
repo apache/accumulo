@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.gc;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -29,14 +28,16 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.manager.LiveTServerSet;
+import org.apache.accumulo.server.manager.state.TabletMetadataImposter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
@@ -53,24 +54,24 @@ public class GarbageCollectWriteAheadLogsTest {
       Collections.singletonMap(server2, Collections.singletonList(id));
   private final Path path = new Path("hdfs://localhost:9000/accumulo/wal/localhost+1234/" + id);
   private final KeyExtent extent = KeyExtent.fromMetaRow(new Text("1<"));
-  private final Collection<Collection<String>> walogs = Collections.emptyList();
-  private final TabletLocationState tabletAssignedToServer1;
-  private final TabletLocationState tabletAssignedToServer2;
+  private final List<LogEntry> walogs = Collections.emptyList();
+  private final TabletMetadata tabletAssignedToServer1;
+  private final TabletMetadata tabletAssignedToServer2;
 
   {
     try {
-      tabletAssignedToServer1 = new TabletLocationState(extent, null, Location.current(server1),
+      tabletAssignedToServer1 = new TabletMetadataImposter(extent, null, Location.current(server1),
           null, null, walogs, false, TabletHostingGoal.ALWAYS, false);
-      tabletAssignedToServer2 = new TabletLocationState(extent, null, Location.current(server2),
+      tabletAssignedToServer2 = new TabletMetadataImposter(extent, null, Location.current(server2),
           null, null, walogs, false, TabletHostingGoal.NEVER, false);
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
   }
 
-  private final Iterable<TabletLocationState> tabletOnServer1List =
+  private final Iterable<TabletMetadata> tabletOnServer1List =
       Collections.singletonList(tabletAssignedToServer1);
-  private final Iterable<TabletLocationState> tabletOnServer2List =
+  private final Iterable<TabletMetadata> tabletOnServer2List =
       Collections.singletonList(tabletAssignedToServer2);
 
   @Test

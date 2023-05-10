@@ -172,7 +172,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
               try {
                 return TabletMetadata.convertRow(WholeRowIterator
                     .decodeRow(entry.getKey(), entry.getValue()).entrySet().iterator(), fetchedCols,
-                    saveKeyValues);
+                    saveKeyValues, false);
               } catch (IOException e) {
                 throw new UncheckedIOException(e);
               }
@@ -241,7 +241,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             scanner.setRange(r);
             RowIterator rowIter = new RowIterator(scanner);
             Iterator<TabletMetadata> iter = Iterators.transform(rowIter,
-                ri -> TabletMetadata.convertRow(ri, fetchedCols, saveKeyValues));
+                ri -> TabletMetadata.convertRow(ri, fetchedCols, saveKeyValues, false));
             if (extentsPresent) {
               return Iterators.filter(iter,
                   tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()));

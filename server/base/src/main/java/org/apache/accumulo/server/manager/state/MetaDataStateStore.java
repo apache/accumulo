@@ -23,9 +23,9 @@ import java.util.Collection;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
 class MetaDataStateStore extends AbstractTabletStateStore implements TabletStateStore {
 
@@ -47,20 +47,20 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
   }
 
   @Override
-  public ClosableIterator<TabletLocationState> iterator() {
+  public ClosableIterator<TabletMetadata> iterator() {
     return new MetaDataTableScanner(context, TabletsSection.getRange(), state, targetTableName);
   }
 
   @Override
-  public void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException {
+  public void unsuspend(Collection<TabletMetadata> tablets) throws DistributedStoreException {
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
-      for (TabletLocationState tls : tablets) {
-        if (tls.suspend != null) {
+      for (TabletMetadata tm : tablets) {
+        if (tm.getSuspend() != null) {
           continue;
         }
 
         // ELASTICITY_TODO pending #3314, add conditional mutation check that tls.suspend exists
-        tabletsMutator.mutateTablet(tls.extent).requireAbsentOperation().deleteSuspension()
+        tabletsMutator.mutateTablet(tm.getExtent()).requireAbsentOperation().deleteSuspension()
             .submit(tabletMetadata -> tabletMetadata.getSuspend() == null);
       }
 
@@ -80,15 +80,15 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
   }
 
   @Override
-  protected void processSuspension(Ample.ConditionalTabletMutator tabletMutator,
-      TabletLocationState tls, long suspensionTimestamp) {
-    if (tls.current != null) {
+  protected void processSuspension(Ample.ConditionalTabletMutator tabletMutator, TabletMetadata tm,
+      long suspensionTimestamp) {
+    if (tm.hasCurrent()) {
       if (suspensionTimestamp >= 0) {
-        tabletMutator.putSuspension(tls.current.getServerInstance(), suspensionTimestamp);
+        tabletMutator.putSuspension(tm.getLocation().getServerInstance(), suspensionTimestamp);
       }
     }
 
-    if (tls.suspend != null && suspensionTimestamp < 0) {
+    if (tm.getSuspend() != null && suspensionTimestamp < 0) {
       tabletMutator.deleteSuspension();
     }
   }

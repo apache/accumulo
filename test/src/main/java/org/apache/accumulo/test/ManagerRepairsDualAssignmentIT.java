@@ -35,7 +35,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -85,15 +84,15 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       c.tableOperations().create(table, ntc);
       // scan the metadata table and get the two table location states
       Set<TabletMetadata.Location> states = new HashSet<>();
-      Set<TabletLocationState> oldLocations = new HashSet<>();
+      Set<TabletMetadata> oldLocations = new HashSet<>();
       TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
       while (states.size() < 2) {
         UtilWaitThread.sleep(250);
         oldLocations.clear();
-        for (TabletLocationState tls : store) {
-          if (tls.current != null) {
-            states.add(tls.current);
-            oldLocations.add(tls);
+        for (TabletMetadata tm : store) {
+          if (tm.hasCurrent()) {
+            states.add(tm.getLocation());
+            oldLocations.add(tm);
           }
         }
       }
@@ -106,9 +105,9 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
         UtilWaitThread.sleep(1000);
         states.clear();
         boolean allAssigned = true;
-        for (TabletLocationState tls : store) {
-          if (tls != null && tls.current != null) {
-            states.add(tls.current);
+        for (TabletMetadata tm : store) {
+          if (tm.hasCurrent()) {
+            states.add(tm.getLocation());
           } else {
             allAssigned = false;
           }
@@ -120,23 +119,23 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       }
       assertEquals(1, states.size());
       // pick an assigned tablet and assign it to the old tablet
-      TabletLocationState moved = null;
-      for (TabletLocationState old : oldLocations) {
-        if (!states.contains(old.current)) {
+      TabletMetadata moved = null;
+      for (TabletMetadata old : oldLocations) {
+        if (!states.contains(old.getLocation())) {
           moved = old;
         }
       }
       assertNotEquals(null, moved);
       // throw a mutation in as if we were the dying tablet
-      TabletMutator tabletMutator = serverContext.getAmple().mutateTablet(moved.extent);
-      tabletMutator.putLocation(moved.current);
+      TabletMutator tabletMutator = serverContext.getAmple().mutateTablet(moved.getExtent());
+      tabletMutator.putLocation(moved.getLocation());
       tabletMutator.mutate();
       // wait for the manager to fix the problem
       waitForCleanStore(store);
       // now jam up the metadata table
       tabletMutator =
           serverContext.getAmple().mutateTablet(new KeyExtent(MetadataTable.ID, null, null));
-      tabletMutator.putLocation(moved.current);
+      tabletMutator.putLocation(moved.getLocation());
       tabletMutator.mutate();
       waitForCleanStore(TabletStateStore.getStoreForLevel(DataLevel.METADATA, context));
     }
@@ -144,7 +143,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
 
   private void waitForCleanStore(TabletStateStore store) {
     while (true) {
-      try (ClosableIterator<TabletLocationState> iter = store.iterator()) {
+      try (ClosableIterator<TabletMetadata> iter = store.iterator()) {
         iter.forEachRemaining(t -> {});
       } catch (Exception ex) {
         System.out.println(ex);

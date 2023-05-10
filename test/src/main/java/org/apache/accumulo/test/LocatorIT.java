@@ -47,7 +47,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
-import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.ManagerAssignmentIT;
 import org.apache.accumulo.test.util.Wait;
@@ -94,9 +94,9 @@ public class LocatorIT extends AccumuloClusterHarness {
   @Test
   public void testBasic() throws Exception {
 
-    final Predicate<TabletLocationState> alwaysHostedAndCurrentNotNull =
-        t -> t.goal == TabletHostingGoal.ALWAYS && t.current != null
-            && t.current.getHostAndPort() != null;
+    final Predicate<TabletMetadata> alwaysHostedAndCurrentNotNull =
+        t -> t.getHostingGoal() == TabletHostingGoal.ALWAYS && t.hasCurrent()
+            && t.getLocation().getHostAndPort() != null;
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];

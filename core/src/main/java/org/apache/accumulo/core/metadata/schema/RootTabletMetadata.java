@@ -27,6 +27,7 @@ import java.nio.charset.CharsetDecoder;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.EnumSet;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Predicate;
@@ -38,6 +39,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.VirtualMetadataColumns.MaintenanceRequired;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.VirtualMetadataColumns.MaintenanceRequired.Reasons;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -156,10 +159,11 @@ public class RootTabletMetadata {
    * Convert this class to a {@link TabletMetadata}
    */
   public TabletMetadata toTabletMetadata() {
-    // use a stream so we don't have to re-sort in a new TreeMap<Key,Value> structure
-    Stream<SimpleImmutableEntry<Key,Value>> entries = getKeyValues();
-    return TabletMetadata.convertRow(entries.iterator(),
-        EnumSet.allOf(TabletMetadata.ColumnType.class), false);
+    TreeMap<Key,Value> entries = new TreeMap<>();
+    getKeyValues().forEach(entry -> entries.put(entry.getKey(), entry.getValue()));
+    MaintenanceRequired.addReasons(entries, Set.of(Reasons.NEEDS_LOCATION_UPDATE));
+    return TabletMetadata.convertRow(entries.entrySet().iterator(),
+        EnumSet.allOf(TabletMetadata.ColumnType.class), false, false);
   }
 
   private Stream<SimpleImmutableEntry<Key,Value>> getKeyValues() {

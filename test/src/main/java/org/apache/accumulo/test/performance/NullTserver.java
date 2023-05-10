@@ -56,8 +56,8 @@ import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
@@ -359,8 +359,8 @@ public class NullTserver {
       TServerInstance instance = new TServerInstance(addr, randomSessionID);
 
       while (s.hasNext()) {
-        TabletLocationState next = s.next();
-        assignments.add(new Assignment(next.extent, instance, next.last));
+        TabletMetadata next = s.next();
+        assignments.add(new Assignment(next.getExtent(), instance, next.getLast()));
       }
     }
     // point them to this server

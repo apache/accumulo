@@ -37,16 +37,16 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
+import org.apache.accumulo.server.manager.state.TabletMetadataIterator;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
@@ -91,18 +91,17 @@ class CleanUp extends ManagerRepo {
     boolean done = true;
     Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
     Scanner scanner = manager.getContext().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    MetaDataTableScanner.configureScanner(scanner, manager);
+    TabletMetadataIterator.configureScanner(scanner, manager);
     scanner.setRange(tableRange);
 
     for (Entry<Key,Value> entry : scanner) {
-      TabletLocationState locationState =
-          MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
-      TabletState state = locationState.getState(manager.onlineTabletServers());
+      final TabletMetadata tm = TabletMetadataIterator.decode(entry);
+      TabletState state = tm.getTabletState(manager.onlineTabletServers());
       if (!state.equals(TabletState.UNASSIGNED)) {
         // This code will even wait on tablets that are assigned to dead tablets servers. This is
         // intentional because the manager may make metadata writes for these tablets. See #587
         log.debug("Still waiting for table({}) to be deleted; Target tablet state: UNASSIGNED, "
-            + "Current tablet state: {}, locationState: {}", tableId, state, locationState);
+            + "Current tablet state: {}, locationState: {}", tableId, state, tm);
         done = false;
         break;
       }

@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -51,8 +52,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
@@ -107,13 +109,13 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
       // wait for the tablet to exist in the metadata table. The tablet
       // will not be hosted so the current location will be empty.
-      Wait.waitFor(() -> getTabletLocationState(c, tableId, null).extent != null, 10000, 250);
-      TabletLocationState newTablet = getTabletLocationState(c, tableId, null);
-      assertNotNull(newTablet.extent);
-      assertNull(newTablet.current);
-      assertNull(newTablet.last);
-      assertNull(newTablet.future);
-      assertEquals(TabletHostingGoal.ONDEMAND, newTablet.goal);
+      Wait.waitFor(() -> getTabletLocationState(c, tableId, null).getExtent() != null, 10000, 250);
+      TabletMetadata newTablet = getTabletLocationState(c, tableId, null);
+      assertNotNull(newTablet.getExtent());
+      assertFalse(newTablet.hasCurrent());
+      assertNull(newTablet.getLast());
+      assertNull(newTablet.getLocation());
+      assertEquals(TabletHostingGoal.ONDEMAND, newTablet.getHostingGoal());
 
       // calling the batch writer will cause the tablet to be hosted
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
@@ -124,68 +126,70 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       // give it a last location
       c.tableOperations().flush(tableName, null, null, true);
 
-      TabletLocationState flushed = getTabletLocationState(c, tableId, null);
-      assertNotNull(flushed.current);
-      assertEquals(flushed.getCurrentServer(), flushed.getLastServer());
-      assertNull(newTablet.future);
-      assertEquals(TabletHostingGoal.ONDEMAND, flushed.goal);
+      TabletMetadata flushed = getTabletLocationState(c, tableId, null);
+      assertTrue(flushed.hasCurrent());
+      assertNotNull(flushed.getLocation());
+      assertEquals(flushed.getLocation(), flushed.getLast());
+      assertFalse(newTablet.getLocation().getType().equals(LocationType.FUTURE));
+      assertEquals(TabletHostingGoal.ONDEMAND, flushed.getHostingGoal());
 
       // take the tablet offline
       c.tableOperations().offline(tableName, true);
-      TabletLocationState offline = getTabletLocationState(c, tableId, null);
-      assertNull(offline.future);
-      assertNull(offline.current);
-      assertEquals(flushed.getCurrentServer(), offline.getLastServer());
-      assertEquals(TabletHostingGoal.ONDEMAND, offline.goal);
+      TabletMetadata offline = getTabletLocationState(c, tableId, null);
+      assertFalse(offline.hasCurrent());
+      assertNull(offline.getLocation());
+      assertEquals(flushed.getLocation(), offline.getLast());
+      assertEquals(TabletHostingGoal.ONDEMAND, offline.getHostingGoal());
 
       // put it back online
       c.tableOperations().online(tableName, true);
-      TabletLocationState online = getTabletLocationState(c, tableId, null);
-      assertNull(online.future);
-      assertNotNull(online.current);
-      assertEquals(online.getCurrentServer(), online.getLastServer());
-      assertEquals(TabletHostingGoal.ONDEMAND, online.goal);
+      TabletMetadata online = getTabletLocationState(c, tableId, null);
+      assertTrue(online.hasCurrent());
+      assertNotNull(online.getLocation());
+      assertEquals(online.getLocation(), online.getLast());
+      assertEquals(TabletHostingGoal.ONDEMAND, online.getHostingGoal());
 
       // set the hosting goal to always
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
 
-      Predicate<TabletLocationState> alwaysHostedOrCurrentNotNull =
-          t -> (t.goal == TabletHostingGoal.ALWAYS) || (t.current != null);
+      Predicate<TabletMetadata> alwaysHostedOrCurrentNotNull =
+          t -> (t.getHostingGoal() == TabletHostingGoal.ALWAYS) || (t.hasCurrent());
 
       assertTrue(Wait.waitFor(
           () -> alwaysHostedOrCurrentNotNull.test(getTabletLocationState(c, tableId, null)), 60000,
           250));
 
-      final TabletLocationState always = getTabletLocationState(c, tableId, null);
+      final TabletMetadata always = getTabletLocationState(c, tableId, null);
       assertTrue(alwaysHostedOrCurrentNotNull.test(always));
-      assertNull(always.future);
-      assertEquals(flushed.getCurrentServer(), always.getLastServer());
-      assertEquals(TabletHostingGoal.ALWAYS, always.goal);
+      assertTrue(always.hasCurrent());
+      assertEquals(flushed.getLocation(), always.getLast());
+      assertEquals(TabletHostingGoal.ALWAYS, always.getHostingGoal());
 
       // set the hosting goal to never
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.NEVER);
-      Predicate<TabletLocationState> neverHostedOrCurrentNull =
-          t -> (t.goal == TabletHostingGoal.NEVER) || (t.current == null);
+      Predicate<TabletMetadata> neverHostedOrCurrentNull =
+          t -> (t.getHostingGoal() == TabletHostingGoal.NEVER) || (!t.hasCurrent());
       assertTrue(Wait.waitFor(
           () -> neverHostedOrCurrentNull.test(getTabletLocationState(c, tableId, null)), 60000,
           250));
 
-      final TabletLocationState never = getTabletLocationState(c, tableId, null);
+      final TabletMetadata never = getTabletLocationState(c, tableId, null);
       assertTrue(neverHostedOrCurrentNull.test(never));
-      assertNull(never.future);
-      assertEquals(flushed.getCurrentServer(), never.getLastServer());
-      assertEquals(TabletHostingGoal.NEVER, never.goal);
+      assertNull(never.getLocation());
+      assertEquals(flushed.getLocation(), never.getLast());
+      assertEquals(TabletHostingGoal.NEVER, never.getHostingGoal());
 
       // set the hosting goal to ondemand
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ONDEMAND);
-      Predicate<TabletLocationState> ondemandHosted = t -> t.goal == TabletHostingGoal.ONDEMAND;
+      Predicate<TabletMetadata> ondemandHosted =
+          t -> t.getHostingGoal() == TabletHostingGoal.ONDEMAND;
       assertTrue(Wait.waitFor(() -> ondemandHosted.test(getTabletLocationState(c, tableId, null)),
           60000, 250));
-      final TabletLocationState ondemand = getTabletLocationState(c, tableId, null);
+      final TabletMetadata ondemand = getTabletLocationState(c, tableId, null);
       assertTrue(ondemandHosted.test(ondemand));
-      assertNull(ondemand.future);
-      assertEquals(flushed.getCurrentServer(), ondemand.getLastServer());
-      assertEquals(TabletHostingGoal.ONDEMAND, ondemand.goal);
+      assertNull(ondemand.getLocation());
+      assertEquals(flushed.getLocation(), ondemand.getLast());
+      assertEquals(TabletHostingGoal.ONDEMAND, ondemand.getHostingGoal());
 
     }
   }
@@ -373,7 +377,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
         .getTabletStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds(), tableId));
   }
 
-  public static TabletLocationState getTabletLocationState(AccumuloClient c, String tableId,
+  public static TabletMetadata getTabletLocationState(AccumuloClient c, String tableId,
       Text endRow) {
     try (MetaDataTableScanner s = new MetaDataTableScanner((ClientContext) c,
         new Range(TabletsSection.encodeRow(TableId.of(tableId), endRow)), MetadataTable.NAME)) {

@@ -19,25 +19,21 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.TabletLocationState;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
@@ -61,14 +57,13 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
       c.tableOperations().create(tableName);
       String tableId = c.tableOperations().tableIdMap().get(tableName);
       // wait for the table to be online
-      TabletLocationState newTablet;
+      TabletMetadata newTablet;
       do {
         UtilWaitThread.sleep(250);
-        newTablet = getTabletLocationState(c, tableId);
-      } while (newTablet.current == null);
+        newTablet = CompactLocationModeIT.getTabletLocationState(c, tableId);
+      } while (!newTablet.hasCurrent());
       // this would be null if the mode was not "assign"
-      assertEquals(newTablet.getCurrentServer(), newTablet.getLastServer());
-      assertNull(newTablet.future);
+      assertEquals(newTablet.getLocation(), newTablet.getLast());
 
       // put something in it
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
@@ -81,31 +76,25 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
           .get(Property.TSERV_LAST_LOCATION_MODE.getKey()));
 
       // last location should not be set yet
-      TabletLocationState unflushed = getTabletLocationState(c, tableId);
-      assertEquals(newTablet.current, unflushed.current);
-      assertEquals(newTablet.getCurrentServer(), unflushed.getLastServer());
-      assertNull(newTablet.future);
+      TabletMetadata unflushed = CompactLocationModeIT.getTabletLocationState(c, tableId);
+      assertEquals(newTablet.getLocation(), unflushed.getLocation());
+      assertEquals(newTablet.getLocation(), unflushed.getLast());
+      assertTrue(newTablet.hasCurrent());
 
       // take the tablet offline
       c.tableOperations().offline(tableName, true);
-      TabletLocationState offline = getTabletLocationState(c, tableId);
-      assertNull(offline.future);
-      assertNull(offline.current);
-      assertEquals(newTablet.getCurrentServer(), offline.getLastServer());
+      TabletMetadata offline = CompactLocationModeIT.getTabletLocationState(c, tableId);
+      assertNull(offline.getLocation());
+      assertFalse(offline.hasCurrent());
+      assertEquals(newTablet.getLocation(), offline.getLast());
 
       // put it back online, should have the same last location
       c.tableOperations().online(tableName, true);
-      TabletLocationState online = getTabletLocationState(c, tableId);
-      assertNull(online.future);
-      assertNotNull(online.current);
-      assertEquals(newTablet.last, online.last);
+      TabletMetadata online = CompactLocationModeIT.getTabletLocationState(c, tableId);
+      assertTrue(online.hasCurrent());
+      assertNotNull(online.getLocation());
+      assertEquals(newTablet.getLast(), online.getLast());
     }
   }
 
-  private TabletLocationState getTabletLocationState(AccumuloClient c, String tableId) {
-    try (MetaDataTableScanner s = new MetaDataTableScanner((ClientContext) c,
-        new Range(TabletsSection.encodeRow(TableId.of(tableId), null)), MetadataTable.NAME)) {
-      return s.next();
-    }
-  }
 }
