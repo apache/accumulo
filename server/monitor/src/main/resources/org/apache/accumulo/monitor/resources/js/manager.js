@@ -107,79 +107,79 @@ $(document).ready(function () {
     "paging": false,
     "info": false,
     "columnDefs": [{
-      "targets": "big-num",
-      "render": function (data, type) {
-        if (type === 'display') {
-          data = bigNumberForQuantity(data);
+        "targets": "big-num",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = bigNumberForQuantity(data);
+          }
+          return data;
         }
-        return data;
-      }
-    },
-    {
-      "targets": "big-num-rounded",
-      "render": function (data, type) {
-        if (type === 'display') {
-          data = bigNumberForQuantity(Math.round(data));
+      },
+      {
+        "targets": "big-num-rounded",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = bigNumberForQuantity(Math.round(data));
+          }
+          return data;
         }
-        return data;
-      }
-    },
-    {
-      "targets": "duration",
-      "render": function (data, type) {
-        if (type === 'display') {
-          data = timeDuration(parseInt(data, 10));
+      },
+      {
+        "targets": "duration",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = timeDuration(parseInt(data, 10));
+          }
+          return data;
         }
-        return data;
       }
-    }
     ],
     "columns": [{
-      "data": "manager"
-    },
-    {
-      "data": "onlineTabletServers"
-    },
-    {
-      "data": "totalTabletServers"
-    },
-    {
-      "data": "lastGC",
-      "type": "html",
-      "render": function (data, type) {
-        if (type === 'display') {
-          if (data !== 'Waiting') {
-            data = dateFormat(parseInt(data, 10));
+        "data": "manager"
+      },
+      {
+        "data": "onlineTabletServers"
+      },
+      {
+        "data": "totalTabletServers"
+      },
+      {
+        "data": "lastGC",
+        "type": "html",
+        "render": function (data, type) {
+          if (type === 'display') {
+            if (data !== 'Waiting') {
+              data = dateFormat(parseInt(data, 10));
+            }
+            data = '<a href="/gc">' + data + '</a>';
           }
-          data = '<a href="/gc">' + data + '</a>';
+          return data;
         }
-        return data;
-      }
-    },
-    {
-      "data": "tablets"
-    },
-    {
-      "data": "unassignedTablets"
-    },
-    {
-      "data": "numentries"
-    },
-    {
-      "data": "ingestrate"
-    },
-    {
-      "data": "entriesRead"
-    },
-    {
-      "data": "queryrate"
-    },
-    {
-      "data": "holdTime"
-    },
-    {
-      "data": "osload"
-    },
+      },
+      {
+        "data": "tablets"
+      },
+      {
+        "data": "unassignedTablets"
+      },
+      {
+        "data": "numentries"
+      },
+      {
+        "data": "ingestrate"
+      },
+      {
+        "data": "entriesRead"
+      },
+      {
+        "data": "queryrate"
+      },
+      {
+        "data": "holdTime"
+      },
+      {
+        "data": "osload"
+      },
     ]
   });
 
@@ -199,37 +199,37 @@ $(document).ready(function () {
       }
     },
     "columnDefs": [{
-      "targets": "duration",
-      "render": function (data, type) {
-        if (type === 'display') {
-          data = timeDuration(parseInt(data, 10));
+        "targets": "duration",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = timeDuration(parseInt(data, 10));
+          }
+          return data;
         }
-        return data;
-      }
-    },
-    {
-      "targets": "percent",
-      "render": function (data, type) {
-        if (type === 'display') {
-          data = (data * 100).toFixed(2) + '%';
+      },
+      {
+        "targets": "percent",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = (data * 100).toFixed(2) + '%';
+          }
+          return data;
         }
-        return data;
       }
-    }
     ],
     "stateSave": true,
     "columns": [{
-      "data": "server"
-    },
-    {
-      "data": "log"
-    },
-    {
-      "data": "time"
-    },
-    {
-      "data": "progress"
-    }
+        "data": "server"
+      },
+      {
+        "data": "log"
+      },
+      {
+        "data": "time"
+      },
+      {
+        "data": "progress"
+      }
     ]
   });
 
