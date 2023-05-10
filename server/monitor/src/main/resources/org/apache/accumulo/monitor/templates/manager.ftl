@@ -27,7 +27,7 @@
         <div class="alert alert-danger" role="alert">Manager Server Not Running</div>
     </div>
     <div id="managerStateBanner" style="display: none;">
-        <div class="alert alert-warning" role="alert"></div>
+        <div class="alert alert-warning manager-banner-message" role="alert"></div>
     </div>
     <table id="managerStatus" class="table caption-top table-bordered table-striped table-condensed">
         <caption><span class="table-caption">${title}</span><br /></caption>

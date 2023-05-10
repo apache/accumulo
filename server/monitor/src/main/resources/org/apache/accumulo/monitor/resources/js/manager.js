@@ -46,20 +46,22 @@ function refreshManagerBanners() {
     const managerState = managerData.managerState;
     const managerGoalState = managerData.managerGoalState;
 
-    const isStateGoalDifferent = managerState !== managerGoalState;
+    const isStateGoalSame = managerState === managerGoalState;
 
-    // if the manager state is normal and the goal is the same as the state or manager is not running, return early
-    if ((managerState === 'NORMAL' && !isStateGoalDifferent) || managerState === null) {
+    // if the manager state is normal and the goal state is the same as the current state,
+    // or of the manager is not running, hide the state banner and return early
+    if ((managerState === 'NORMAL' && isStateGoalSame) || managerState === null) {
       $('#managerStateBanner').hide();
       return;
     }
 
     // update the manager state banner message and show it
     let bannerMessage = 'Manager state: ' + managerState;
-    if (isStateGoalDifferent) {
+    if (!isStateGoalSame) {
+      // only show the goal state if it differs from the manager's current state
       bannerMessage += '. Manager goal state: ' + managerGoalState;
     }
-    $('#managerStateBanner .alert.alert-warning').text(bannerMessage);
+    $('.manager-banner-message').text(bannerMessage);
     $('#managerStateBanner').show();
   });
 
@@ -105,79 +107,79 @@ $(document).ready(function () {
     "paging": false,
     "info": false,
     "columnDefs": [{
-        "targets": "big-num",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = bigNumberForQuantity(data);
-          }
-          return data;
+      "targets": "big-num",
+      "render": function (data, type) {
+        if (type === 'display') {
+          data = bigNumberForQuantity(data);
         }
-      },
-      {
-        "targets": "big-num-rounded",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = bigNumberForQuantity(Math.round(data));
-          }
-          return data;
-        }
-      },
-      {
-        "targets": "duration",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = timeDuration(parseInt(data, 10));
-          }
-          return data;
-        }
+        return data;
       }
+    },
+    {
+      "targets": "big-num-rounded",
+      "render": function (data, type) {
+        if (type === 'display') {
+          data = bigNumberForQuantity(Math.round(data));
+        }
+        return data;
+      }
+    },
+    {
+      "targets": "duration",
+      "render": function (data, type) {
+        if (type === 'display') {
+          data = timeDuration(parseInt(data, 10));
+        }
+        return data;
+      }
+    }
     ],
     "columns": [{
-        "data": "manager"
-      },
-      {
-        "data": "onlineTabletServers"
-      },
-      {
-        "data": "totalTabletServers"
-      },
-      {
-        "data": "lastGC",
-        "type": "html",
-        "render": function (data, type) {
-          if (type === 'display') {
-            if (data !== 'Waiting') {
-              data = dateFormat(parseInt(data, 10));
-            }
-            data = '<a href="/gc">' + data + '</a>';
+      "data": "manager"
+    },
+    {
+      "data": "onlineTabletServers"
+    },
+    {
+      "data": "totalTabletServers"
+    },
+    {
+      "data": "lastGC",
+      "type": "html",
+      "render": function (data, type) {
+        if (type === 'display') {
+          if (data !== 'Waiting') {
+            data = dateFormat(parseInt(data, 10));
           }
-          return data;
+          data = '<a href="/gc">' + data + '</a>';
         }
-      },
-      {
-        "data": "tablets"
-      },
-      {
-        "data": "unassignedTablets"
-      },
-      {
-        "data": "numentries"
-      },
-      {
-        "data": "ingestrate"
-      },
-      {
-        "data": "entriesRead"
-      },
-      {
-        "data": "queryrate"
-      },
-      {
-        "data": "holdTime"
-      },
-      {
-        "data": "osload"
-      },
+        return data;
+      }
+    },
+    {
+      "data": "tablets"
+    },
+    {
+      "data": "unassignedTablets"
+    },
+    {
+      "data": "numentries"
+    },
+    {
+      "data": "ingestrate"
+    },
+    {
+      "data": "entriesRead"
+    },
+    {
+      "data": "queryrate"
+    },
+    {
+      "data": "holdTime"
+    },
+    {
+      "data": "osload"
+    },
     ]
   });
 
@@ -197,37 +199,37 @@ $(document).ready(function () {
       }
     },
     "columnDefs": [{
-        "targets": "duration",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = timeDuration(parseInt(data, 10));
-          }
-          return data;
+      "targets": "duration",
+      "render": function (data, type) {
+        if (type === 'display') {
+          data = timeDuration(parseInt(data, 10));
         }
-      },
-      {
-        "targets": "percent",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = (data * 100).toFixed(2) + '%';
-          }
-          return data;
-        }
+        return data;
       }
+    },
+    {
+      "targets": "percent",
+      "render": function (data, type) {
+        if (type === 'display') {
+          data = (data * 100).toFixed(2) + '%';
+        }
+        return data;
+      }
+    }
     ],
     "stateSave": true,
     "columns": [{
-        "data": "server"
-      },
-      {
-        "data": "log"
-      },
-      {
-        "data": "time"
-      },
-      {
-        "data": "progress"
-      }
+      "data": "server"
+    },
+    {
+      "data": "log"
+    },
+    {
+      "data": "time"
+    },
+    {
+      "data": "progress"
+    }
     ]
   });
 
