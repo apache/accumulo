@@ -45,7 +45,7 @@ public class TabletIngestClientService {
 
     public void closeConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException;
 
-    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.thrift.TException;
+    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files, boolean setTime) throws org.apache.thrift.TException;
 
   }
 
@@ -67,7 +67,7 @@ public class TabletIngestClientService {
 
     public void closeConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -299,12 +299,12 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.thrift.TException
+    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files, boolean setTime) throws org.apache.thrift.TException
     {
       send_loadFiles(tinfo, credentials, tid, dir, files, setTime);
     }
 
-    public void send_loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime) throws org.apache.thrift.TException
+    public void send_loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files, boolean setTime) throws org.apache.thrift.TException
     {
       loadFiles_args args = new loadFiles_args();
       args.setTinfo(tinfo);
@@ -678,7 +678,7 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       loadFiles_call method_call = new loadFiles_call(tinfo, credentials, tid, dir, files, setTime, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -690,9 +690,9 @@ public class TabletIngestClientService {
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private long tid;
       private java.lang.String dir;
-      private java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files;
+      private java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files;
       private boolean setTime;
-      public loadFiles_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public loadFiles_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, true);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -9951,7 +9951,7 @@ public class TabletIngestClientService {
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField TID_FIELD_DESC = new org.apache.thrift.protocol.TField("tid", org.apache.thrift.protocol.TType.I64, (short)3);
     private static final org.apache.thrift.protocol.TField DIR_FIELD_DESC = new org.apache.thrift.protocol.TField("dir", org.apache.thrift.protocol.TType.STRING, (short)4);
-    private static final org.apache.thrift.protocol.TField FILES_FIELD_DESC = new org.apache.thrift.protocol.TField("files", org.apache.thrift.protocol.TType.MAP, (short)5);
+    private static final org.apache.thrift.protocol.TField FILES_FIELD_DESC = new org.apache.thrift.protocol.TField("files", org.apache.thrift.protocol.TType.MAP, (short)7);
     private static final org.apache.thrift.protocol.TField SET_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("setTime", org.apache.thrift.protocol.TType.BOOL, (short)6);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new loadFiles_argsStandardSchemeFactory();
@@ -9961,7 +9961,7 @@ public class TabletIngestClientService {
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public long tid; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String dir; // required
-    public @org.apache.thrift.annotation.Nullable java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files; // required
+    public @org.apache.thrift.annotation.Nullable java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files; // required
     public boolean setTime; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -9970,7 +9970,7 @@ public class TabletIngestClientService {
       CREDENTIALS((short)2, "credentials"),
       TID((short)3, "tid"),
       DIR((short)4, "dir"),
-      FILES((short)5, "files"),
+      FILES((short)7, "files"),
       SET_TIME((short)6, "setTime");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
@@ -9995,7 +9995,7 @@ public class TabletIngestClientService {
             return TID;
           case 4: // DIR
             return DIR;
-          case 5: // FILES
+          case 7: // FILES
             return FILES;
           case 6: // SET_TIME
             return SET_TIME;
@@ -10061,7 +10061,7 @@ public class TabletIngestClientService {
               new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class), 
               new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
                   new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
-                  new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.MapFileInfo.class)))));
+                  new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, DataFileInfo.class)))));
       tmpMap.put(_Fields.SET_TIME, new org.apache.thrift.meta_data.FieldMetaData("setTime", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -10076,7 +10076,7 @@ public class TabletIngestClientService {
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       long tid,
       java.lang.String dir,
-      java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files,
+      java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files,
       boolean setTime)
     {
       this();
@@ -10106,23 +10106,23 @@ public class TabletIngestClientService {
         this.dir = other.dir;
       }
       if (other.isSetFiles()) {
-        java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> __this__files = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>>(other.files.size());
-        for (java.util.Map.Entry<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent, java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> other_element : other.files.entrySet()) {
+        java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> __this__files = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>>(other.files.size());
+        for (java.util.Map.Entry<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent, java.util.Map<java.lang.String,DataFileInfo>> other_element : other.files.entrySet()) {
 
           org.apache.accumulo.core.dataImpl.thrift.TKeyExtent other_element_key = other_element.getKey();
-          java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo> other_element_value = other_element.getValue();
+          java.util.Map<java.lang.String,DataFileInfo> other_element_value = other_element.getValue();
 
           org.apache.accumulo.core.dataImpl.thrift.TKeyExtent __this__files_copy_key = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other_element_key);
 
-          java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo> __this__files_copy_value = new java.util.HashMap<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>(other_element_value.size());
-          for (java.util.Map.Entry<java.lang.String, org.apache.accumulo.core.dataImpl.thrift.MapFileInfo> other_element_value_element : other_element_value.entrySet()) {
+          java.util.Map<java.lang.String,DataFileInfo> __this__files_copy_value = new java.util.HashMap<java.lang.String,DataFileInfo>(other_element_value.size());
+          for (java.util.Map.Entry<java.lang.String, DataFileInfo> other_element_value_element : other_element_value.entrySet()) {
 
             java.lang.String other_element_value_element_key = other_element_value_element.getKey();
-            org.apache.accumulo.core.dataImpl.thrift.MapFileInfo other_element_value_element_value = other_element_value_element.getValue();
+            DataFileInfo other_element_value_element_value = other_element_value_element.getValue();
 
             java.lang.String __this__files_copy_value_copy_key = other_element_value_element_key;
 
-            org.apache.accumulo.core.dataImpl.thrift.MapFileInfo __this__files_copy_value_copy_value = new org.apache.accumulo.core.dataImpl.thrift.MapFileInfo(other_element_value_element_value);
+            DataFileInfo __this__files_copy_value_copy_value = new DataFileInfo(other_element_value_element_value);
 
             __this__files_copy_value.put(__this__files_copy_value_copy_key, __this__files_copy_value_copy_value);
           }
@@ -10253,19 +10253,19 @@ public class TabletIngestClientService {
       return (this.files == null) ? 0 : this.files.size();
     }
 
-    public void putToFiles(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent key, java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo> val) {
+    public void putToFiles(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent key, java.util.Map<java.lang.String,DataFileInfo> val) {
       if (this.files == null) {
-        this.files = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>>();
+        this.files = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>>();
       }
       this.files.put(key, val);
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> getFiles() {
+    public java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> getFiles() {
       return this.files;
     }
 
-    public loadFiles_args setFiles(@org.apache.thrift.annotation.Nullable java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files) {
+    public loadFiles_args setFiles(@org.apache.thrift.annotation.Nullable java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files) {
       this.files = files;
       return this;
     }
@@ -10347,7 +10347,7 @@ public class TabletIngestClientService {
         if (value == null) {
           unsetFiles();
         } else {
-          setFiles((java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>>)value);
+          setFiles((java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>>)value);
         }
         break;
 
@@ -10727,26 +10727,26 @@ public class TabletIngestClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 5: // FILES
+            case 7: // FILES
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
                   org.apache.thrift.protocol.TMap _map58 = iprot.readMapBegin();
-                  struct.files = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>>(2*_map58.size);
+                  struct.files = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>>(2*_map58.size);
                   @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _key59;
-                  @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo> _val60;
+                  @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,DataFileInfo> _val60;
                   for (int _i61 = 0; _i61 < _map58.size; ++_i61)
                   {
                     _key59 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
                     _key59.read(iprot);
                     {
                       org.apache.thrift.protocol.TMap _map62 = iprot.readMapBegin();
-                      _val60 = new java.util.HashMap<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>(2*_map62.size);
+                      _val60 = new java.util.HashMap<java.lang.String,DataFileInfo>(2*_map62.size);
                       @org.apache.thrift.annotation.Nullable java.lang.String _key63;
-                      @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.MapFileInfo _val64;
+                      @org.apache.thrift.annotation.Nullable DataFileInfo _val64;
                       for (int _i65 = 0; _i65 < _map62.size; ++_i65)
                       {
                         _key63 = iprot.readString();
-                        _val64 = new org.apache.accumulo.core.dataImpl.thrift.MapFileInfo();
+                        _val64 = new DataFileInfo();
                         _val64.read(iprot);
                         _val60.put(_key63, _val64);
                       }
@@ -10803,16 +10803,19 @@ public class TabletIngestClientService {
           oprot.writeString(struct.dir);
           oprot.writeFieldEnd();
         }
+        oprot.writeFieldBegin(SET_TIME_FIELD_DESC);
+        oprot.writeBool(struct.setTime);
+        oprot.writeFieldEnd();
         if (struct.files != null) {
           oprot.writeFieldBegin(FILES_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.MAP, struct.files.size()));
-            for (java.util.Map.Entry<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent, java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> _iter66 : struct.files.entrySet())
+            for (java.util.Map.Entry<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent, java.util.Map<java.lang.String,DataFileInfo>> _iter66 : struct.files.entrySet())
             {
               _iter66.getKey().write(oprot);
               {
                 oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, _iter66.getValue().size()));
-                for (java.util.Map.Entry<java.lang.String, org.apache.accumulo.core.dataImpl.thrift.MapFileInfo> _iter67 : _iter66.getValue().entrySet())
+                for (java.util.Map.Entry<java.lang.String, DataFileInfo> _iter67 : _iter66.getValue().entrySet())
                 {
                   oprot.writeString(_iter67.getKey());
                   _iter67.getValue().write(oprot);
@@ -10824,9 +10827,6 @@ public class TabletIngestClientService {
           }
           oprot.writeFieldEnd();
         }
-        oprot.writeFieldBegin(SET_TIME_FIELD_DESC);
-        oprot.writeBool(struct.setTime);
-        oprot.writeFieldEnd();
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -10880,12 +10880,12 @@ public class TabletIngestClientService {
         if (struct.isSetFiles()) {
           {
             oprot.writeI32(struct.files.size());
-            for (java.util.Map.Entry<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent, java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> _iter68 : struct.files.entrySet())
+            for (java.util.Map.Entry<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent, java.util.Map<java.lang.String,DataFileInfo>> _iter68 : struct.files.entrySet())
             {
               _iter68.getKey().write(oprot);
               {
                 oprot.writeI32(_iter68.getValue().size());
-                for (java.util.Map.Entry<java.lang.String, org.apache.accumulo.core.dataImpl.thrift.MapFileInfo> _iter69 : _iter68.getValue().entrySet())
+                for (java.util.Map.Entry<java.lang.String, DataFileInfo> _iter69 : _iter68.getValue().entrySet())
                 {
                   oprot.writeString(_iter69.getKey());
                   _iter69.getValue().write(oprot);
@@ -10924,22 +10924,22 @@ public class TabletIngestClientService {
         if (incoming.get(4)) {
           {
             org.apache.thrift.protocol.TMap _map70 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.MAP); 
-            struct.files = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>>(2*_map70.size);
+            struct.files = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>>(2*_map70.size);
             @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _key71;
-            @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo> _val72;
+            @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,DataFileInfo> _val72;
             for (int _i73 = 0; _i73 < _map70.size; ++_i73)
             {
               _key71 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
               _key71.read(iprot);
               {
                 org.apache.thrift.protocol.TMap _map74 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT); 
-                _val72 = new java.util.HashMap<java.lang.String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>(2*_map74.size);
+                _val72 = new java.util.HashMap<java.lang.String,DataFileInfo>(2*_map74.size);
                 @org.apache.thrift.annotation.Nullable java.lang.String _key75;
-                @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.MapFileInfo _val76;
+                @org.apache.thrift.annotation.Nullable DataFileInfo _val76;
                 for (int _i77 = 0; _i77 < _map74.size; ++_i77)
                 {
                   _key75 = iprot.readString();
-                  _val76 = new org.apache.accumulo.core.dataImpl.thrift.MapFileInfo();
+                  _val76 = new DataFileInfo();
                   _val76.read(iprot);
                   _val72.put(_key75, _val76);
                 }

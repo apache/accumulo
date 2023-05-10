@@ -426,7 +426,7 @@ public class DefaultCompactionPlannerTest {
 
   private static void testFFtC(Set<CompactableFile> expected, Set<CompactableFile> files,
       double ratio, int maxFiles, long maxSize) {
-    var result = DefaultCompactionPlanner.findMapFilesToCompact(files, ratio, maxFiles, maxSize);
+    var result = DefaultCompactionPlanner.findDataFilesToCompact(files, ratio, maxFiles, maxSize);
     var expectedNames = expected.stream().map(CompactableFile::getUri).map(URI::getPath)
         .map(path -> path.split("/")).map(t -> t[t.length - 1]).collect(Collectors.toSet());
     var resultNames = result.stream().map(CompactableFile::getUri).map(URI::getPath)

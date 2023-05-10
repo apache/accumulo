@@ -155,7 +155,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
     Text midRow = new Text(mr);
 
-    SortedMap<StoredTabletFile,DataFileValue> splitMapFiles = null;
+    SortedMap<StoredTabletFile,DataFileValue> splitDataFiles = null;
 
     for (int i = 0; i < extents.length; i++) {
       KeyExtent extent = extents[i];
@@ -164,17 +164,17 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       String tdir =
           context.getTablesDirs().iterator().next() + "/" + extent.tableId() + "/" + dirName;
       MetadataTableUtil.addTablet(extent, dirName, context, TimeType.LOGICAL, zl);
-      SortedMap<TabletFile,DataFileValue> mapFiles = new TreeMap<>();
-      mapFiles.put(new TabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
+      SortedMap<TabletFile,DataFileValue> dataFiles = new TreeMap<>();
+      dataFiles.put(new TabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
           new DataFileValue(1000017 + i, 10000 + i));
 
       int tid = 0;
       TransactionWatcher.ZooArbitrator.start(context, Constants.BULK_ARBITRATOR_TYPE, tid);
       SortedMap<StoredTabletFile,DataFileValue> storedFiles =
-          new TreeMap<>(MetadataTableUtil.updateTabletDataFile(tid, extent, mapFiles,
+          new TreeMap<>(MetadataTableUtil.updateTabletDataFile(tid, extent, dataFiles,
               new MetadataTime(0, TimeType.LOGICAL), context, zl));
       if (i == extentToSplit) {
-        splitMapFiles = storedFiles;
+        splitDataFiles = storedFiles;
       }
     }
 
@@ -183,7 +183,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
     KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
 
-    splitPartiallyAndRecover(context, extent, high, low, .4, splitMapFiles, midRow,
+    splitPartiallyAndRecover(context, extent, high, low, .4, splitDataFiles, midRow,
         "localhost:1234", failPoint, zl);
   }
 
@@ -198,19 +198,19 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   private void splitPartiallyAndRecover(ServerContext context, KeyExtent extent, KeyExtent high,
-      KeyExtent low, double splitRatio, SortedMap<StoredTabletFile,DataFileValue> mapFiles,
+      KeyExtent low, double splitRatio, SortedMap<StoredTabletFile,DataFileValue> dataFiles,
       Text midRow, String location, int steps, ServiceLock zl) throws Exception {
 
     SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
     SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
     List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
 
-    MetadataTableUtil.splitDatafiles(midRow, splitRatio, new HashMap<>(), mapFiles,
+    MetadataTableUtil.splitDatafiles(midRow, splitRatio, new HashMap<>(), dataFiles,
         lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
 
     MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio, context, zl, Set.of());
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());
-    Assignment assignment = new Assignment(high, instance);
+    Assignment assignment = new Assignment(high, instance, null);
 
     TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
     tabletMutator.putLocation(Location.future(assignment.server));
@@ -250,12 +250,12 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       }
     } else {
       assertEquals(extent, fixedExtent);
-      ensureTabletHasNoUnexpectedMetadataEntries(context, extent, mapFiles);
+      ensureTabletHasNoUnexpectedMetadataEntries(context, extent, dataFiles);
     }
   }
 
   private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context, KeyExtent extent,
-      SortedMap<StoredTabletFile,DataFileValue> expectedMapFiles) throws Exception {
+      SortedMap<StoredTabletFile,DataFileValue> expectedDataFiles) throws Exception {
     try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       scanner.setRange(extent.toMetaRange());
 
@@ -310,9 +310,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
       assertTrue(sawPer);
 
-      SortedMap<StoredTabletFile,DataFileValue> fixedMapFiles =
+      SortedMap<StoredTabletFile,DataFileValue> fixedDataFiles =
           MetadataTableUtil.getFileAndLogEntries(context, extent).getSecond();
-      verifySame(expectedMapFiles, fixedMapFiles);
+      verifySame(expectedDataFiles, fixedDataFiles);
     }
   }
 

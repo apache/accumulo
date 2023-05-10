@@ -217,7 +217,7 @@ public class BloomFilterLayer {
       final String context = ClassLoaderUtil.tableContext(acuconf);
 
       loadTask = () -> {
-        // no need to load the bloom filter if the map file is closed
+        // no need to load the bloom filter if the data file is closed
         if (closed) {
           return;
         }

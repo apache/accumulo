@@ -209,7 +209,7 @@ class DatafileManager {
     return inUse;
   }
 
-  public Collection<StoredTabletFile> importMapFiles(long tid, Map<TabletFile,DataFileValue> paths,
+  public Collection<StoredTabletFile> importDataFiles(long tid, Map<TabletFile,DataFileValue> paths,
       boolean setTime) throws IOException {
 
     String bulkDir = null;
@@ -273,7 +273,7 @@ class DatafileManager {
           datafileSizes.put(tpath.getKey(), tpath.getValue());
         }
 
-        tablet.getTabletResources().importedMapFiles();
+        tablet.getTabletResources().importedDataFiles();
 
         tablet.computeNumEntries();
       }
@@ -308,7 +308,7 @@ class DatafileManager {
           vm.deleteRecursively(tmpDatafile.getPath());
         } else {
           if (!attemptedRename && vm.exists(newDatafile.getPath())) {
-            log.warn("Target map file already exist {}", newDatafile);
+            log.warn("Target data file already exist {}", newDatafile);
             throw new RuntimeException("File unexpectedly exists " + newDatafile.getPath());
           }
           // the following checks for spurious rename failures that succeeded but gave an IoE
@@ -406,8 +406,8 @@ class DatafileManager {
     TabletFile newDatafile = CompactableUtils.computeCompactionFileDest(tmpDatafile);
 
     if (vm.exists(newDatafile.getPath())) {
-      log.error("Target map file already exist " + newDatafile, new Exception());
-      throw new IllegalStateException("Target map file already exist " + newDatafile);
+      log.error("Target data file already exist " + newDatafile, new Exception());
+      throw new IllegalStateException("Target data file already exist " + newDatafile);
     }
 
     if (dfv.getNumEntries() == 0) {

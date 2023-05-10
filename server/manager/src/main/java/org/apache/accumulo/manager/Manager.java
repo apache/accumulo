@@ -131,6 +131,7 @@ import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MergeState;
 import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
+import org.apache.accumulo.server.manager.state.UnassignedTablet;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -1107,7 +1108,8 @@ public class Manager extends AbstractServer
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
           sa.getAddress());
-      ManagerMetrics.init(getConfiguration(), this);
+      ManagerMetrics mm = new ManagerMetrics(getConfiguration(), this);
+      MetricsUtil.initializeProducers(this, mm);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
         | SecurityException e1) {
@@ -1752,9 +1754,11 @@ public class Manager extends AbstractServer
   }
 
   void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,
-      Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignedOut) {
-    AssignmentParamsImpl params =
-        AssignmentParamsImpl.fromThrift(currentStatus, unassigned, assignedOut);
+      Map<KeyExtent,UnassignedTablet> unassigned, Map<KeyExtent,TServerInstance> assignedOut) {
+    AssignmentParamsImpl params = AssignmentParamsImpl.fromThrift(currentStatus,
+        unassigned.entrySet().stream().collect(HashMap::new,
+            (m, e) -> m.put(e.getKey(), e.getValue().getServerInstance()), Map::putAll),
+        assignedOut);
     tabletBalancer.getAssignments(params);
   }
 }

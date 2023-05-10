@@ -46,9 +46,9 @@ public class LoadMappingIterator
   private static final Gson gson = ByteArrayToBase64TypeAdapter.createBase64Gson();
   private Map<String,String> renameMap;
 
-  LoadMappingIterator(TableId tableId, InputStream loadMapFile) throws IOException {
+  LoadMappingIterator(TableId tableId, InputStream loadMappingFile) throws IOException {
     this.tableId = tableId;
-    this.reader = new JsonReader(new BufferedReader(new InputStreamReader(loadMapFile, UTF_8)));
+    this.reader = new JsonReader(new BufferedReader(new InputStreamReader(loadMappingFile, UTF_8)));
     this.reader.beginArray();
   }
 

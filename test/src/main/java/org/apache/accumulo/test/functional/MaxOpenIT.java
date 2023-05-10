@@ -96,7 +96,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
           .withSplits(TestIngest.getSplitPoints(0, NUM_TO_INGEST, NUM_TABLETS));
       c.tableOperations().create(tableName, ntc);
 
-      // the following loop should create three tablets in each map file
+      // the following loop should create three tablets in each data file
       for (int i = 0; i < 3; i++) {
         IngestParams params = new IngestParams(getClientProps(), tableName, NUM_TO_INGEST);
         params.timestamp = i;

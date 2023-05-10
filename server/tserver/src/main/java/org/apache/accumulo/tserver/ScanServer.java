@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -149,8 +150,8 @@ public class ScanServer extends AbstractServer
         loadAll(Set<? extends KeyExtent> keys) {
       long t1 = System.currentTimeMillis();
       @SuppressWarnings("unchecked")
-      var tms = ample.readTablets().forTablets((Collection<KeyExtent>) keys).build().stream()
-          .collect(Collectors.toMap(tm -> tm.getExtent(), tm -> tm));
+      var tms = ample.readTablets().forTablets((Collection<KeyExtent>) keys, Optional.empty())
+          .build().stream().collect(Collectors.toMap(tm -> tm.getExtent(), tm -> tm));
       long t2 = System.currentTimeMillis();
       LOG.trace("Read metadata for {} tablets in {} ms", keys.size(), t2 - t1);
       return tms;
@@ -357,13 +358,13 @@ public class ScanServer extends AbstractServer
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
           clientAddress);
+      scanMetrics = new TabletServerScanMetrics();
+      MetricsUtil.initializeProducers(this, scanMetrics);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
         | SecurityException e1) {
       LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
-    scanMetrics = new TabletServerScanMetrics();
-    MetricsUtil.initializeProducers(scanMetrics);
 
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 

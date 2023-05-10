@@ -164,15 +164,15 @@ class ScanDataSource implements DataSource {
       files = reservation.getSecond();
     }
 
-    Collection<InterruptibleIterator> mapfiles =
+    Collection<InterruptibleIterator> datafiles =
         fileManager.openFiles(files, scanParams.isIsolated(), samplerConfig);
 
-    List.of(mapfiles, memIters).forEach(c -> c.forEach(ii -> ii.setInterruptFlag(interruptFlag)));
+    List.of(datafiles, memIters).forEach(c -> c.forEach(ii -> ii.setInterruptFlag(interruptFlag)));
 
     List<SortedKeyValueIterator<Key,Value>> iters =
-        new ArrayList<>(mapfiles.size() + memIters.size());
+        new ArrayList<>(datafiles.size() + memIters.size());
 
-    iters.addAll(mapfiles);
+    iters.addAll(datafiles);
     iters.addAll(memIters);
 
     MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());

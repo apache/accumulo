@@ -27,29 +27,34 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
+import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractServer implements AutoCloseable, Runnable {
+import io.micrometer.core.instrument.MeterRegistry;
+
+public abstract class AbstractServer implements AutoCloseable, MetricsProducer, Runnable {
 
   private final ServerContext context;
   protected final String applicationName;
   private final String hostname;
-  private final Logger log;
+
+  private final ProcessMetrics processMetrics;
 
   protected AbstractServer(String appName, ConfigOpts opts, String[] args) {
-    this.log = LoggerFactory.getLogger(getClass().getName());
     this.applicationName = appName;
     opts.parseArgs(appName, args);
     var siteConfig = opts.getSiteConfiguration();
     this.hostname = siteConfig.get(Property.GENERAL_PROCESS_BIND_ADDRESS);
     SecurityUtil.serverLogin(siteConfig);
     context = new ServerContext(siteConfig);
+    Logger log = LoggerFactory.getLogger(getClass());
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
     context.init(appName);
@@ -64,6 +69,7 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
         () -> lmd.logGCInfo(context.getConfiguration()), 0,
         lmd.getIntervalMillis(context.getConfiguration()), TimeUnit.MILLISECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
+    processMetrics = new ProcessMetrics(context);
   }
 
   /**
@@ -84,6 +90,17 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
         throw (Exception) thrown;
       }
       throw new RuntimeException("Weird throwable type thrown", thrown);
+    }
+  }
+
+  /**
+   * Called
+   */
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    // makes mocking subclasses easier
+    if (processMetrics != null) {
+      processMetrics.registerMetrics(registry);
     }
   }
 

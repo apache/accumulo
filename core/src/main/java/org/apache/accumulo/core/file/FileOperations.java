@@ -45,8 +45,7 @@ public abstract class FileOperations {
   private static final String HADOOP_JOBHISTORY_LOCATION = "_logs"; // dir related to
                                                                     // hadoop.job.history.user.location
 
-  private static final Set<String> validExtensions =
-      Set.of(Constants.MAPFILE_EXTENSION, RFile.EXTENSION);
+  private static final Set<String> validExtensions = Set.of(RFile.EXTENSION);
 
   // Sometimes we want to know what files accumulo bulk processing creates
   private static final Set<String> bulkWorkingFiles =
