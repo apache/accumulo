@@ -1087,9 +1087,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   public void minorCompactionStarted(CommitSession tablet, long lastUpdateSequence,
-      String newMapfileLocation) throws IOException {
+      String newDataFileLocation) throws IOException {
     Durability durability = getMincEventDurability(tablet.getExtent());
-    logger.minorCompactionStarted(tablet, lastUpdateSequence, newMapfileLocation, durability);
+    logger.minorCompactionStarted(tablet, lastUpdateSequence, newDataFileLocation, durability);
   }
 
   public void recover(VolumeManager fs, KeyExtent extent, List<LogEntry> logEntries,
