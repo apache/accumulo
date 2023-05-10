@@ -115,7 +115,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
   private static final Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
 
-  public static class ExecutorConfig {
+  private static class ExecutorConfig {
     String type;
     String name;
     String maxSize;
@@ -238,7 +238,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
       Collection<CompactableFile> group;
       if (params.getRunningCompactions().isEmpty()) {
-        group = findMapFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
+        group = findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
             maxSizeToCompact);
 
         if (!group.isEmpty() && group.size() < params.getCandidates().size()
@@ -253,7 +253,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
           filesCopy.removeAll(group);
           filesCopy.add(getExpected(group, 0));
 
-          if (findMapFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
+          if (findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
               maxSizeToCompact).isEmpty()) {
             // The next possible compaction does not meet the compaction ratio, so compact
             // everything.
@@ -276,7 +276,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
         filesCopy.addAll(expectedFiles);
 
-        group = findMapFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
+        group = findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
             maxSizeToCompact);
 
         if (!Collections.disjoint(group, expectedFiles)) {
@@ -354,7 +354,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     return expected;
   }
 
-  public static Collection<CompactableFile>
+  private static Collection<CompactableFile>
       findMaximalRequiredSetToCompact(Collection<CompactableFile> files, int maxFilesToCompact) {
 
     if (files.size() <= maxFilesToCompact) {
@@ -373,7 +373,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     return sortedFiles.subList(0, numToCompact);
   }
 
-  public static Collection<CompactableFile> findMapFilesToCompact(Set<CompactableFile> files,
+  static Collection<CompactableFile> findDataFilesToCompact(Set<CompactableFile> files,
       double ratio, int maxFilesToCompact, long maxSizeToCompact) {
     if (files.size() <= 1) {
       return Collections.emptySet();
@@ -401,7 +401,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
     var loops = Math.max(1, sortedFiles.size() - maxFilesToCompact + 1);
     for (int i = 0; i < loops; i++) {
-      var filesToCompact = findMapFilesToCompact(
+      var filesToCompact = findDataFilesToCompact(
           sortedFiles.subList(i, Math.min(sortedFiles.size(), maxFilesToCompact) + i), ratio);
       if (!filesToCompact.isEmpty()) {
         return filesToCompact;
@@ -441,7 +441,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
    * smaller set because of it would prevent the future compaction.
    */
   private static Collection<CompactableFile>
-      findMapFilesToCompact(List<CompactableFile> sortedFiles, double ratio) {
+      findDataFilesToCompact(List<CompactableFile> sortedFiles, double ratio) {
 
     int larsmaIndex = -1;
     long larsmaSum = Long.MIN_VALUE;
@@ -500,7 +500,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     return executors.get(executors.size() - 1).ceid;
   }
 
-  public static List<CompactableFile> sortByFileSize(Collection<CompactableFile> files) {
+  private static List<CompactableFile> sortByFileSize(Collection<CompactableFile> files) {
     ArrayList<CompactableFile> sortedFiles = new ArrayList<>(files);
 
     // sort from smallest file to largest
