@@ -350,41 +350,43 @@ class DatafileManager {
         logFileOnly.add(unusedWalLog);
       }
     }
-    try {
-      // the order of writing to metadata and walog is important in the face of machine/process
-      // failures need to write to metadata before writing to walog, when things are done in the
-      // reverse order data could be lost... the minor compaction start even should be written
-      // before the following metadata write is made
-      newFile = tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
-          unusedWalLogs, flushId);
-
-      // Mark that we have data we want to replicate
-      // This WAL could still be in use by other Tablets *from the same table*, so we can only mark
-      // that there is data to replicate,
-      // but it is *not* closed. We know it is not closed by the fact that this MinC triggered. A
-      // MinC cannot happen unless the
-      // tablet is online and thus these WALs are referenced by that tablet. Therefore, the WAL
-      // replication status cannot be 'closed'.
-      if (replicate) {
-        if (log.isDebugEnabled()) {
-          log.debug("Recording that data has been ingested into {} using {}", tablet.getExtent(),
-              logFileOnly);
-        }
-        for (String logFile : logFileOnly) {
-          @SuppressWarnings("deprecation")
-          Status status = org.apache.accumulo.server.replication.StatusUtil.openWithUnknownLength();
-          ReplicationTableUtil.updateFiles(tablet.getContext(), tablet.getExtent(), logFile,
-              status);
-        }
-      }
-    } finally {
-      tablet.finishClearingUnusedLogs();
-    }
 
     // increment start count before metadata update AND updating in memory map of files
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and try{}finally
     try {
+      try {
+        // the order of writing to metadata and walog is important in the face of machine/process
+        // failures need to write to metadata before writing to walog, when things are done in the
+        // reverse order data could be lost... the minor compaction start even should be written
+        // before the following metadata write is made
+        newFile = tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
+            unusedWalLogs, flushId);
+
+        // Mark that we have data we want to replicate
+        // This WAL could still be in use by other Tablets *from the same table*, so we can only
+        // mark
+        // that there is data to replicate,
+        // but it is *not* closed. We know it is not closed by the fact that this MinC triggered. A
+        // MinC cannot happen unless the
+        // tablet is online and thus these WALs are referenced by that tablet. Therefore, the WAL
+        // replication status cannot be 'closed'.
+        if (replicate) {
+          if (log.isDebugEnabled()) {
+            log.debug("Recording that data has been ingested into {} using {}", tablet.getExtent(),
+                logFileOnly);
+          }
+          for (String logFile : logFileOnly) {
+            @SuppressWarnings("deprecation")
+            Status status =
+                org.apache.accumulo.server.replication.StatusUtil.openWithUnknownLength();
+            ReplicationTableUtil.updateFiles(tablet.getContext(), tablet.getExtent(), logFile,
+                status);
+          }
+        }
+      } finally {
+        tablet.finishClearingUnusedLogs();
+      }
 
       do {
         try {
@@ -403,7 +405,7 @@ class DatafileManager {
       synchronized (tablet) {
         t1 = System.currentTimeMillis();
 
-        if (dfv.getNumEntries() > 0 && newFile.isPresent()) {
+        if (newFile.isPresent()) {
           StoredTabletFile newFileStored = newFile.orElseThrow();
           if (datafileSizes.containsKey(newFileStored)) {
             log.error("Adding file that is already in set {}", newFileStored);
