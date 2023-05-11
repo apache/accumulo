@@ -90,13 +90,6 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    @Deprecated(since = "3.0.0")
-    public Text getMaxRow(String tableName, Authorizations auths, Text startRow,
-        boolean startInclusive, Text endRow, boolean endInclusive) {
-      return null;
-    }
-
-    @Override
     public Text getMaxRow(String tableName, Authorizations auths, RowRange range) {
       return null;
     }

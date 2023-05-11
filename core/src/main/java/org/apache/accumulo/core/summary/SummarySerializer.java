@@ -100,7 +100,7 @@ class SummarySerializer {
     boolean er = false;
     for (LgSummaries lgs : allSummaries) {
       for (RowRange ke : ranges) {
-        er |= lgs.exceedsRange(ke.getStartRow(), ke.getEndRow());
+        er |= lgs.exceedsRange(ke.getLowerBound(), ke.getUpperBound());
         if (er) {
           return er;
         }
@@ -464,8 +464,8 @@ class SummarySerializer {
       boolean[] summariesThatOverlap = new boolean[summaries.length];
 
       for (RowRange keyExtent : ranges) {
-        Text startRow = keyExtent.getStartRow();
-        Text endRow = keyExtent.getEndRow();
+        Text startRow = keyExtent.getLowerBound();
+        Text endRow = keyExtent.getUpperBound();
 
         if (endRow != null && endRow.compareTo(firstRow) < 0) {
           continue;

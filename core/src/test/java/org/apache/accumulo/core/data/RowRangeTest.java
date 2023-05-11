@@ -51,10 +51,10 @@ public class RowRangeTest {
 
       RowRange range = RowRange.range(startRow, isStartInclusive, endRow, isEndInclusive);
 
-      assertEquals(startRow, range.getStartRow());
-      assertEquals(isStartInclusive, range.isStartRowInclusive());
-      assertEquals(endRow, range.getEndRow());
-      assertEquals(isEndInclusive, range.isEndRowInclusive());
+      assertEquals(startRow, range.getLowerBound());
+      assertEquals(isStartInclusive, range.isLowerBoundInclusive());
+      assertEquals(endRow, range.getUpperBound());
+      assertEquals(isEndInclusive, range.isUpperBoundInclusive());
 
       startRow = new Text("r11");
       endRow = new Text("r22");
@@ -63,10 +63,10 @@ public class RowRangeTest {
 
       range = RowRange.range(startRow, isStartInclusive, endRow, isEndInclusive);
 
-      assertEquals(startRow, range.getStartRow());
-      assertEquals(isStartInclusive, range.isStartRowInclusive());
-      assertEquals(endRow, range.getEndRow());
-      assertEquals(isEndInclusive, range.isEndRowInclusive());
+      assertEquals(startRow, range.getLowerBound());
+      assertEquals(isStartInclusive, range.isLowerBoundInclusive());
+      assertEquals(endRow, range.getUpperBound());
+      assertEquals(isEndInclusive, range.isUpperBoundInclusive());
     }
 
     @Test
@@ -84,40 +84,40 @@ public class RowRangeTest {
     void testBeforeStartRowWithInfiniteStartRow() {
       RowRange lessThanR1 = RowRange.lessThan("r1");
 
-      assertFalse(lessThanR1.beforeStartRow(new Text("r0")));
-      assertFalse(lessThanR1.beforeStartRow(new Text("r1")));
-      assertFalse(lessThanR1.beforeStartRow(new Text("r2")));
+      assertFalse(lessThanR1.isAfter(new Text("r0")));
+      assertFalse(lessThanR1.isAfter(new Text("r1")));
+      assertFalse(lessThanR1.isAfter(new Text("r2")));
 
       RowRange rowRangeR1 = RowRange.closed("r1");
 
-      assertTrue(rowRangeR1.beforeStartRow(new Text("r")));
-      assertTrue(rowRangeR1.beforeStartRow(new Text("r0")));
-      assertFalse(rowRangeR1.beforeStartRow(new Text("r1")));
-      assertFalse(rowRangeR1.beforeStartRow(new Text("r2")));
+      assertTrue(rowRangeR1.isAfter(new Text("r")));
+      assertTrue(rowRangeR1.isAfter(new Text("r0")));
+      assertFalse(rowRangeR1.isAfter(new Text("r1")));
+      assertFalse(rowRangeR1.isAfter(new Text("r2")));
     }
 
     @Test
     public void testAfterEndRowWithEndRowInclusive() {
       RowRange range = RowRange.closed(new Text("a"), new Text("c"));
-      assertFalse(range.afterEndRow(new Text("c")));
-      assertFalse(range.afterEndRow(new Text("b")));
-      assertFalse(range.afterEndRow(new Text("a")));
-      assertTrue(range.afterEndRow(new Text("d")));
+      assertFalse(range.isBefore(new Text("c")));
+      assertFalse(range.isBefore(new Text("b")));
+      assertFalse(range.isBefore(new Text("a")));
+      assertTrue(range.isBefore(new Text("d")));
     }
 
     @Test
     public void testAfterEndRowWithEndRowExclusive() {
       RowRange range = RowRange.open(new Text("a"), new Text("c"));
-      assertTrue(range.afterEndRow(new Text("c")));
-      assertFalse(range.afterEndRow(new Text("b")));
-      assertFalse(range.afterEndRow(new Text("a")));
+      assertTrue(range.isBefore(new Text("c")));
+      assertFalse(range.isBefore(new Text("b")));
+      assertFalse(range.isBefore(new Text("a")));
     }
 
     @Test
     public void testAfterEndRowWithInfiniteEndRow() {
       RowRange range = RowRange.greaterThan(new Text("a"));
-      assertFalse(range.afterEndRow(new Text("a")));
-      assertFalse(range.afterEndRow(new Text("b")));
+      assertFalse(range.isBefore(new Text("a")));
+      assertFalse(range.isBefore(new Text("b")));
     }
 
     @Test
@@ -125,27 +125,27 @@ public class RowRangeTest {
       // Closed range
       RowRange closedRange = RowRange.closed(new Text("a"), new Text("c"));
       Range expectedClosedRange = new Range(new Text("a"), true, new Text("c"), true);
-      assertEquals(expectedClosedRange, closedRange.toRange());
+      assertEquals(expectedClosedRange, closedRange.asRange());
 
       // Open range
       RowRange openRange = RowRange.open(new Text("a"), new Text("c"));
       Range expectedOpenRange = new Range(new Text("a"), false, new Text("c"), false);
-      assertEquals(expectedOpenRange, openRange.toRange());
+      assertEquals(expectedOpenRange, openRange.asRange());
 
       // Range with infinite start
       RowRange infiniteStartRange = RowRange.greaterThan(new Text("a"));
       Range expectedInfiniteStartRange = new Range(new Text("a"), false, null, true);
-      assertEquals(expectedInfiniteStartRange, infiniteStartRange.toRange());
+      assertEquals(expectedInfiniteStartRange, infiniteStartRange.asRange());
 
       // Range with infinite end
       RowRange infiniteEndRange = RowRange.lessThan(new Text("c"));
       Range expectedInfiniteEndRange = new Range(null, true, new Text("c"), false);
-      assertEquals(expectedInfiniteEndRange, infiniteEndRange.toRange());
+      assertEquals(expectedInfiniteEndRange, infiniteEndRange.asRange());
 
       // All rows range
       RowRange allRange = RowRange.all();
       Range expectedAllRange = new Range();
-      assertEquals(expectedAllRange, allRange.toRange());
+      assertEquals(expectedAllRange, allRange.asRange());
     }
 
     @Test

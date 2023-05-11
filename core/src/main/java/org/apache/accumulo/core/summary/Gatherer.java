@@ -216,8 +216,8 @@ public class Gatherer {
       }
 
       Function<RowRange,TRowRange> toTRowRange =
-          r -> new TRowRange(TextUtil.getByteBuffer(r.getStartRow()),
-              TextUtil.getByteBuffer(r.getEndRow()));
+          r -> new TRowRange(TextUtil.getByteBuffer(r.getLowerBound()),
+              TextUtil.getByteBuffer(r.getUpperBound()));
 
       // merge contiguous ranges
       List<Range> merged = Range.mergeOverlapping(entry.getValue().stream()
@@ -435,7 +435,7 @@ public class Gatherer {
       Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
       Cache<String,Long> fileLenCache, ExecutorService srp) {
     Function<TRowRange,RowRange> fromThrift =
-        tRowRange -> RowRange.closedOpen(ByteBufferUtil.toText(tRowRange.startRow),
+        tRowRange -> RowRange.openClosed(ByteBufferUtil.toText(tRowRange.startRow),
             ByteBufferUtil.toText(tRowRange.endRow));
     List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {

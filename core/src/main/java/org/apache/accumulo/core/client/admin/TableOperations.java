@@ -235,9 +235,12 @@ public interface TableOperations {
    * @deprecated since 3.0.0, use {@link #getMaxRow(String, Authorizations, RowRange)} instead
    */
   @Deprecated(since = "3.0.0")
-  Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive,
-      Text endRow, boolean endInclusive)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+  default Text getMaxRow(String tableName, Authorizations auths, Text startRow,
+      boolean startInclusive, Text endRow, boolean endInclusive)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    return getMaxRow(tableName, auths,
+        RowRange.range(startRow, startInclusive, endRow, endInclusive));
+  }
 
   /**
    * Finds the max row within a given range. To find the max row in a table, pass null for start and

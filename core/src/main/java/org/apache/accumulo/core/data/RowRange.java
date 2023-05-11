@@ -18,12 +18,13 @@
  */
 package org.apache.accumulo.core.data;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 
 import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.Text;
@@ -35,26 +36,27 @@ import org.apache.hadoop.io.Text;
  */
 public class RowRange implements Comparable<RowRange> {
 
-  private static final Comparator<Text> START_ROW_COMPARATOR =
+  private static final Comparator<Text> LOWER_BOUND_COMPARATOR =
       Comparator.nullsFirst(Text::compareTo);
-  private static final Comparator<Text> END_ROW_COMPARATOR = Comparator.nullsLast(Text::compareTo);
-  public static final Comparator<RowRange> ROW_RANGE_COMPARATOR = (r1, r2) -> {
-    if (r1.startRow == null && r2.startRow == null) {
+  private static final Comparator<Text> UPPER_BOUND_COMPARATOR =
+      Comparator.nullsLast(Text::compareTo);
+  private static final Comparator<RowRange> ROW_RANGE_COMPARATOR = (r1, r2) -> {
+    if (r1.lowerBound == null && r2.lowerBound == null) {
       return 0;
-    } else if (r1.startRow == null) {
+    } else if (r1.lowerBound == null) {
       return -1;
-    } else if (r2.startRow == null) {
+    } else if (r2.lowerBound == null) {
       return 1;
     }
     return r1.compareTo(r2);
   };
 
-  final private Text startRow;
-  final private Text endRow;
-  final private boolean startRowInclusive;
-  final private boolean endRowInclusive;
-  final private boolean infiniteStartRow;
-  final private boolean infiniteEndRow;
+  final private Text lowerBound;
+  final private Text upperBound;
+  final private boolean lowerBoundInclusive;
+  final private boolean upperBoundInclusive;
+  final private boolean infiniteLowerBound;
+  final private boolean infiniteUpperBound;
 
   /**
    * Creates a range that includes all possible rows.
@@ -64,341 +66,345 @@ public class RowRange implements Comparable<RowRange> {
   }
 
   /**
-   * Creates a range of rows from startRow exclusive to endRow exclusive.
+   * Creates a range of rows from lowerBound exclusive to upperBound exclusive.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
-   * @param endRow ending row; set to null for positive infinity
-   * @throws IllegalArgumentException if end row is before start row
+   * @param lowerBound starting row
+   * @param upperBound ending row
+   * @throws IllegalArgumentException if upper bound is before lower bound
    */
-  public static RowRange open(Text startRow, Text endRow) {
-    Objects.requireNonNull(startRow, "Did you mean to use RowRange.lessThan(row)?");
-    Objects.requireNonNull(endRow, "Did you mean to use RowRange.greaterThan(row)?");
-    return range(startRow, false, endRow, false);
+  public static RowRange open(Text lowerBound, Text upperBound) {
+    requireNonNull(lowerBound, "Did you mean to use RowRange.lessThan(row)?");
+    requireNonNull(upperBound, "Did you mean to use RowRange.greaterThan(row)?");
+    return range(lowerBound, false, upperBound, false);
   }
 
   /**
-   * Creates a range of rows from startRow exclusive to endRow exclusive.
+   * Creates a range of rows from lowerBound exclusive to upperBound exclusive.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
-   * @param endRow ending row; set to null for positive infinity
-   * @throws IllegalArgumentException if end row is before start row
+   * @param lowerBound starting row
+   * @param upperBound ending row
+   * @throws IllegalArgumentException if upper bound is before lower bound
    */
-  public static RowRange open(CharSequence startRow, CharSequence endRow) {
-    Objects.requireNonNull(startRow, "Did you mean to use RowRange.lessThan(row)?");
-    Objects.requireNonNull(endRow, "Did you mean to use RowRange.greaterThan(row)?");
-    return range(startRow, false, endRow, false);
+  public static RowRange open(CharSequence lowerBound, CharSequence upperBound) {
+    requireNonNull(lowerBound, "Did you mean to use RowRange.lessThan(row)?");
+    requireNonNull(upperBound, "Did you mean to use RowRange.greaterThan(row)?");
+    return range(lowerBound, false, upperBound, false);
   }
 
   /**
-   * Creates a range of rows from startRow inclusive to endRow inclusive.
+   * Creates a range of rows from lowerBound inclusive to upperBound inclusive.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
-   * @param endRow ending row; set to null for positive infinity
-   * @throws IllegalArgumentException if end row is before start row
+   * @param lowerBound starting row
+   * @param upperBound ending row
+   * @throws IllegalArgumentException if upper bound is before lower bound
    */
-  public static RowRange closed(Text startRow, Text endRow) {
-    Objects.requireNonNull(startRow, "Did you mean to use RowRange.atMost(row)?");
-    Objects.requireNonNull(endRow, "Did you mean to use RowRange.atLeast(row)?");
-    return range(startRow, true, endRow, true);
+  public static RowRange closed(Text lowerBound, Text upperBound) {
+    requireNonNull(lowerBound, "Did you mean to use RowRange.atMost(row)?");
+    requireNonNull(upperBound, "Did you mean to use RowRange.atLeast(row)?");
+    return range(lowerBound, true, upperBound, true);
   }
 
   /**
-   * Creates a range of rows from startRow inclusive to endRow inclusive.
+   * Creates a range of rows from lowerBound inclusive to upperBound inclusive.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
-   * @param endRow ending row; set to null for positive infinity
-   * @throws IllegalArgumentException if end row is before start row
+   * @param lowerBound starting row
+   * @param upperBound ending row
+   * @throws IllegalArgumentException if upper bound is before lower bound
    */
-  public static RowRange closed(CharSequence startRow, CharSequence endRow) {
-    Objects.requireNonNull(startRow, "Did you mean to use RowRange.atMost(row)?");
-    Objects.requireNonNull(endRow, "Did you mean to use RowRange.atLeast(row)?");
-    return range(startRow, true, endRow, true);
+  public static RowRange closed(CharSequence lowerBound, CharSequence upperBound) {
+    requireNonNull(lowerBound, "Did you mean to use RowRange.atMost(row)?");
+    requireNonNull(upperBound, "Did you mean to use RowRange.atLeast(row)?");
+    return range(lowerBound, true, upperBound, true);
   }
 
   /**
    * Creates a range that covers an entire row.
    *
-   * @param row row to cover; set to null to cover all rows
+   * @param row row to cover
    */
   public static RowRange closed(Text row) {
-    Objects.requireNonNull(row, "Did you mean to use RowRange.all()?");
+    requireNonNull(row, "Did you mean to use RowRange.all()?");
     return range(row, true, row, true);
   }
 
   /**
    * Creates a range that covers an entire row.
    *
-   * @param row row to cover; set to null to cover all rows
+   * @param row row to cover
    */
   public static RowRange closed(CharSequence row) {
-    Objects.requireNonNull(row, "Did you mean to use RowRange.all()?");
+    requireNonNull(row, "Did you mean to use RowRange.all()?");
     return range(row, true, row, true);
   }
 
   /**
-   * Creates a range of rows from startRow exclusive to endRow inclusive.
+   * Creates a range of rows from lowerBound exclusive to upperBound inclusive.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
-   * @param endRow ending row; set to null for positive infinity
-   * @throws IllegalArgumentException if end row is before start row
+   * @param lowerBound starting row
+   * @param upperBound ending row
+   * @throws IllegalArgumentException if upper bound is before lower bound
    */
-  public static RowRange openClosed(Text startRow, Text endRow) {
-    Objects.requireNonNull(startRow, "Did you mean to use RowRange.atMost(row)?");
-    Objects.requireNonNull(endRow, "Did you mean to use RowRange.atLeast(row)?");
-    return range(startRow, false, endRow, true);
+  public static RowRange openClosed(Text lowerBound, Text upperBound) {
+    requireNonNull(lowerBound, "Did you mean to use RowRange.atMost(row)?");
+    requireNonNull(upperBound, "Did you mean to use RowRange.greaterThan(row)?");
+    return range(lowerBound, false, upperBound, true);
   }
 
   /**
-   * Creates a range of rows from startRow exclusive to endRow inclusive.
+   * Creates a range of rows from lowerBound exclusive to upperBound inclusive.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
-   * @param endRow ending row; set to null for positive infinity
-   * @throws IllegalArgumentException if end row is before start row
+   * @param lowerBound starting row
+   * @param upperBound ending row
+   * @throws IllegalArgumentException if upper bound is before lower bound
    */
-  public static RowRange openClosed(CharSequence startRow, CharSequence endRow) {
-    Objects.requireNonNull(startRow, "Did you mean to use RowRange.atMost(row)?");
-    Objects.requireNonNull(endRow, "Did you mean to use RowRange.atLeast(row)?");
-    return range(startRow, false, endRow, true);
+  public static RowRange openClosed(CharSequence lowerBound, CharSequence upperBound) {
+    requireNonNull(lowerBound, "Did you mean to use RowRange.atMost(row)?");
+    requireNonNull(upperBound, "Did you mean to use RowRange.greaterThan(row)?");
+    return range(lowerBound, false, upperBound, true);
   }
 
   /**
-   * Creates a range of rows from startRow inclusive to endRow exclusive.
+   * Creates a range of rows from lowerBound inclusive to upperBound exclusive.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
-   * @param endRow ending row; set to null for positive infinity
-   * @throws IllegalArgumentException if end row is before start row
+   * @param lowerBound starting row
+   * @param upperBound ending row
+   * @throws IllegalArgumentException if upper bound is before lower bound
    */
-  public static RowRange closedOpen(Text startRow, Text endRow) {
-    Objects.requireNonNull(startRow, "Did you mean to use RowRange.lessThan(row)?");
-    Objects.requireNonNull(endRow, "Did you mean to use RowRange.moreThan(row)?");
-    return range(startRow, true, endRow, false);
+  public static RowRange closedOpen(Text lowerBound, Text upperBound) {
+    requireNonNull(lowerBound, "Did you mean to use RowRange.lessThan(row)?");
+    requireNonNull(upperBound, "Did you mean to use RowRange.atLeast(row)?");
+    return range(lowerBound, true, upperBound, false);
   }
 
   /**
-   * Creates a range of rows from startRow inclusive to endRow exclusive.
+   * Creates a range of rows from lowerBound inclusive to upperBound exclusive.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
-   * @param endRow ending row; set to null for positive infinity
-   * @throws IllegalArgumentException if end row is before start row
+   * @param lowerBound starting row
+   * @param upperBound ending row
+   * @throws IllegalArgumentException if upper bound is before lower bound
    */
-  public static RowRange closedOpen(CharSequence startRow, CharSequence endRow) {
-    Objects.requireNonNull(startRow, "Did you mean to use RowRange.lessThan(row)?");
-    Objects.requireNonNull(endRow, "Did you mean to use RowRange.moreThan(row)?");
-    return range(startRow, true, endRow, false);
+  public static RowRange closedOpen(CharSequence lowerBound, CharSequence upperBound) {
+    requireNonNull(lowerBound, "Did you mean to use RowRange.lessThan(row)?");
+    requireNonNull(upperBound, "Did you mean to use RowRange.atLeast(row)?");
+    return range(lowerBound, true, upperBound, false);
   }
 
   /**
-   * Creates a range of rows strictly greater than startRow.
+   * Creates a range of rows strictly greater than the given row.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
+   * @param lowerBound starting row
    */
-  public static RowRange greaterThan(Text startRow) {
-    Objects.requireNonNull(startRow, "Did you mean to use RowRange.all()?");
-    return range(startRow, false, null, true);
+  public static RowRange greaterThan(Text lowerBound) {
+    requireNonNull(lowerBound, "Did you mean to use RowRange.all()?");
+    return range(lowerBound, false, null, true);
   }
 
   /**
-   * Creates a range of rows strictly greater than startRow.
+   * Creates a range of rows strictly greater than the given row.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
+   * @param lowerBound starting row
    */
-  public static RowRange greaterThan(CharSequence startRow) {
-    Objects.requireNonNull(startRow, "Did you mean to use RowRange.all()?");
-    return range(startRow, false, null, true);
+  public static RowRange greaterThan(CharSequence lowerBound) {
+    requireNonNull(lowerBound, "Did you mean to use RowRange.all()?");
+    return range(lowerBound, false, null, true);
   }
 
   /**
-   * Creates a range of rows greater than or equal to startRow.
+   * Creates a range of rows greater than or equal to the given row.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
+   * @param lowerBound starting row
    */
-  public static RowRange atLeast(Text startRow) {
-    Objects.requireNonNull(startRow, "Did you mean to use RowRange.all()?");
-    return range(startRow, true, null, true);
+  public static RowRange atLeast(Text lowerBound) {
+    requireNonNull(lowerBound, "Did you mean to use RowRange.all()?");
+    return range(lowerBound, true, null, true);
   }
 
   /**
-   * Creates a range of rows greater than or equal to startRow.
+   * Creates a range of rows greater than or equal to the given row.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
+   * @param lowerBound starting row
    */
-  public static RowRange atLeast(CharSequence startRow) {
-    Objects.requireNonNull(startRow, "Did you mean to use RowRange.all()?");
-    return range(startRow, true, null, true);
+  public static RowRange atLeast(CharSequence lowerBound) {
+    requireNonNull(lowerBound, "Did you mean to use RowRange.all()?");
+    return range(lowerBound, true, null, true);
   }
 
   /**
-   * Creates a range of rows strictly less than endRow.
+   * Creates a range of rows strictly less than the given row.
    *
-   * @param endRow ending row; set to null for positive infinity
+   * @param upperBound ending row
    */
-  public static RowRange lessThan(Text endRow) {
-    Objects.requireNonNull(endRow, "Did you mean to use RowRange.all()?");
-    return range(null, true, endRow, false);
+  public static RowRange lessThan(Text upperBound) {
+    requireNonNull(upperBound, "Did you mean to use RowRange.all()?");
+    return range(null, true, upperBound, false);
   }
 
   /**
-   * Creates a range of rows strictly less than endRow.
+   * Creates a range of rows strictly less than the given row.
    *
-   * @param endRow ending row; set to null for positive infinity
+   * @param upperBound ending row
    */
-  public static RowRange lessThan(CharSequence endRow) {
-    Objects.requireNonNull(endRow, "Did you mean to use RowRange.all()?");
-    return range(null, true, endRow, false);
+  public static RowRange lessThan(CharSequence upperBound) {
+    requireNonNull(upperBound, "Did you mean to use RowRange.all()?");
+    return range(null, true, upperBound, false);
   }
 
   /**
-   * Creates a range of rows less than or equal to endRow.
+   * Creates a range of rows less than or equal to the given row.
    *
-   * @param endRow ending row; set to null for positive infinity
+   * @param upperBound ending row
    */
-  public static RowRange atMost(Text endRow) {
-    Objects.requireNonNull(endRow, "Did you mean to use RowRange.all()?");
-    return range(null, true, endRow, true);
+  public static RowRange atMost(Text upperBound) {
+    requireNonNull(upperBound, "Did you mean to use RowRange.all()?");
+    return range(null, true, upperBound, true);
   }
 
   /**
-   * Creates a range of rows less than or equal to endRow.
+   * Creates a range of rows less than or equal to the given row.
    *
-   * @param endRow ending row; set to null for positive infinity
+   * @param upperBound ending row
    */
-  public static RowRange atMost(CharSequence endRow) {
-    Objects.requireNonNull(endRow, "Did you mean to use RowRange.all()?");
-    return range(null, true, endRow, true);
+  public static RowRange atMost(CharSequence upperBound) {
+    requireNonNull(upperBound, "Did you mean to use RowRange.all()?");
+    return range(null, true, upperBound, true);
   }
 
   /**
-   * Creates a range of rows from startRow to endRow.
+   * Creates a range of rows from the given lowerBound to the given upperBound.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
-   * @param startInclusive true to include start row, false to skip
-   * @param endRow ending row; set to null for positive infinity
-   * @param endInclusive true to include end row, false to skip
-   * @throws IllegalArgumentException if end row is before start row
+   * @param lowerBound starting row; set to null for the smallest possible row (an empty one)
+   * @param lowerBoundInclusive set to true to include lower bound, false to skip
+   * @param upperBound ending row; set to null for positive infinity
+   * @param upperBoundInclusive set to true to include upper bound, false to skip
+   * @throws IllegalArgumentException if upper bound is before lower bound
    */
-  public static RowRange range(Text startRow, boolean startInclusive, Text endRow,
-      boolean endInclusive) {
-    return new RowRange(startRow, startInclusive, endRow, endInclusive);
+  public static RowRange range(Text lowerBound, boolean lowerBoundInclusive, Text upperBound,
+      boolean upperBoundInclusive) {
+    return new RowRange(lowerBound, lowerBoundInclusive, upperBound, upperBoundInclusive);
   }
 
   /**
-   * Creates a range of rows from startRow to endRow.
+   * Creates a range of rows from the given lowerBound to the given upperBound.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
-   * @param startInclusive true to include start row, false to skip
-   * @param endRow ending row; set to null for positive infinity
-   * @param endInclusive true to include end row, false to skip
-   * @throws IllegalArgumentException if end row is before start row
+   * @param lowerBound starting row; set to null for the smallest possible row (an empty one)
+   * @param lowerBoundInclusive set to true to include lower bound, false to skip
+   * @param upperBound ending row; set to null for positive infinity
+   * @param upperBoundInclusive set to true to include upper bound, false to skip
+   * @throws IllegalArgumentException if upper bound is before lower bound
    */
-  public static RowRange range(CharSequence startRow, boolean startInclusive, CharSequence endRow,
-      boolean endInclusive) {
-    return new RowRange(startRow == null ? null : new Text(startRow.toString()), startInclusive,
-        endRow == null ? null : new Text(endRow.toString()), endInclusive);
+  public static RowRange range(CharSequence lowerBound, boolean lowerBoundInclusive,
+      CharSequence upperBound, boolean upperBoundInclusive) {
+    return new RowRange(lowerBound == null ? null : new Text(lowerBound.toString()),
+        lowerBoundInclusive, upperBound == null ? null : new Text(upperBound.toString()),
+        upperBoundInclusive);
   }
 
   /**
-   * Creates a range of rows from startRow to endRow.
+   * Creates a range of rows from the given lowerBound to the given upperBound.
    *
-   * @param startRow starting row; set to null for the smallest possible row (an empty one)
-   * @param startInclusive true to include start row, false to skip
-   * @param endRow ending row; set to null for positive infinity
-   * @param endInclusive true to include end row, false to skip
-   * @throws IllegalArgumentException if end row is before start row
+   * @param lowerBound starting row; set to null for the smallest possible row (an empty one)
+   * @param lowerBoundInclusive set to true to include lower bound, false to skip
+   * @param upperBound ending row; set to null for positive infinity
+   * @param upperBoundInclusive set to true to include upper bound, false to skip
+   * @throws IllegalArgumentException if upper bound is before lower bound
    */
-  private RowRange(Text startRow, boolean startInclusive, Text endRow, boolean endInclusive) {
-    this.startRow = startRow;
-    this.startRowInclusive = startInclusive;
-    this.infiniteStartRow = startRow == null;
-    this.endRow = endRow;
-    this.endRowInclusive = endInclusive;
-    this.infiniteEndRow = endRow == null;
+  private RowRange(Text lowerBound, boolean lowerBoundInclusive, Text upperBound,
+      boolean upperBoundInclusive) {
+    this.lowerBound = lowerBound;
+    this.lowerBoundInclusive = lowerBoundInclusive;
+    this.infiniteLowerBound = lowerBound == null;
+    this.upperBound = upperBound;
+    this.upperBoundInclusive = upperBoundInclusive;
+    this.infiniteUpperBound = upperBound == null;
 
-    if (!infiniteStartRow && !infiniteEndRow && beforeStartRowImpl(endRow)) {
+    if (!infiniteLowerBound && !infiniteUpperBound && isAfterImpl(upperBound)) {
       throw new IllegalArgumentException(
-          "Start row must be less than end row in row range (" + startRow + ", " + endRow + ")");
+          "Lower bound must be less than upper bound in row range " + this);
     }
   }
 
-  public Text getStartRow() {
-    return startRow;
+  public Text getLowerBound() {
+    return lowerBound;
   }
 
-  public boolean isStartRowInclusive() {
-    return startRowInclusive;
+  /**
+   * @return true if the lower bound is inclusive or null, otherwise false
+   */
+  public boolean isLowerBoundInclusive() {
+    return lowerBoundInclusive || lowerBound == null;
   }
 
-  public Text getEndRow() {
-    return endRow;
+  public Text getUpperBound() {
+    return upperBound;
   }
 
-  public boolean isEndRowInclusive() {
-    return endRowInclusive;
+  /**
+   * @return true if the upper bound is inclusive or null, otherwise false
+   */
+  public boolean isUpperBoundInclusive() {
+    return upperBoundInclusive || upperBound == null;
   }
 
   /**
    * Converts this row range to a {@link Range} object.
    */
-  public Range toRange() {
-    return new Range(startRow, startRowInclusive, endRow, endRowInclusive);
+  public Range asRange() {
+    return new Range(lowerBound, lowerBoundInclusive, upperBound, upperBoundInclusive);
   }
 
   /**
-   * Determines if the given row is before the start row of this row range.
-   *
-   * @param row row to check
-   * @return true if the given row is before the row range, otherwise false
+   * @param that row to check
+   * @return true if this row range's lower bound is greater than the given row, otherwise false
    */
-  public boolean beforeStartRow(Text row) {
-    return beforeStartRowImpl(row);
+  public boolean isAfter(Text that) {
+    return isAfterImpl(that);
   }
 
   /**
-   * Determines if the given row is after the end row of this row range.
-   *
-   * @param row row to check
-   * @return true if the given row is after the row range, otherwise false
+   * @param that row to check
+   * @return true if this row range's upper bound is less than the given row, otherwise false
    */
-  public boolean afterEndRow(Text row) {
-    if (infiniteEndRow) {
+  public boolean isBefore(Text that) {
+    if (infiniteUpperBound) {
       return false;
     }
 
-    if (endRowInclusive) {
-      return row.compareTo(endRow) > 0;
+    if (upperBoundInclusive) {
+      return that.compareTo(upperBound) > 0;
     }
-    return row.compareTo(endRow) >= 0;
+    return that.compareTo(upperBound) >= 0;
   }
 
   /**
-   * Implements logic of {@link #beforeStartRow(Text)}, but in a private method, so that it can be
-   * safely used by constructors if a subclass overrides that {@link #beforeStartRow(Text)}
+   * Implements logic of {@link #isAfter(Text)}, but in a private method, so that it can be safely
+   * used by constructors if a subclass overrides that {@link #isAfter(Text)}
    */
-  private boolean beforeStartRowImpl(Text row) {
-    if (this.infiniteStartRow) {
+  private boolean isAfterImpl(Text row) {
+    if (this.infiniteLowerBound) {
       return false;
     }
 
-    if (startRowInclusive) {
-      return row.compareTo(startRow) < 0;
+    if (lowerBoundInclusive) {
+      return row.compareTo(lowerBound) < 0;
     }
-    return row.compareTo(startRow) <= 0;
+    return row.compareTo(lowerBound) <= 0;
   }
 
   @Override
   public String toString() {
-    final String startRangeSymbol = (startRowInclusive && startRow != null) ? "[" : "(";
-    final String startRow = this.startRow == null ? "-inf" : this.startRow.toString();
-    final String endRow = this.endRow == null ? "+inf" : this.endRow.toString();
-    final String endRangeSymbol = (endRowInclusive && this.endRow != null) ? "]" : ")";
-    return startRangeSymbol + startRow + "," + endRow + endRangeSymbol;
+    final String startRangeSymbol = (lowerBoundInclusive && lowerBound != null) ? "[" : "(";
+    final String lowerBound = this.lowerBound == null ? "-inf" : this.lowerBound.toString();
+    final String upperBound = this.upperBound == null ? "+inf" : this.upperBound.toString();
+    final String endRangeSymbol = (upperBoundInclusive && this.upperBound != null) ? "]" : ")";
+    return startRangeSymbol + lowerBound + "," + upperBound + endRangeSymbol;
   }
 
   @Override
   public int hashCode() {
-    int startHash = infiniteStartRow ? 0 : startRow.hashCode() + (startRowInclusive ? 1 : 0);
-    int stopHash = infiniteEndRow ? 0 : endRow.hashCode() + (endRowInclusive ? 1 : 0);
+    int lowerHash = infiniteLowerBound ? 0 : lowerBound.hashCode() + (lowerBoundInclusive ? 1 : 0);
+    int upperHash = infiniteUpperBound ? 0 : upperBound.hashCode() + (upperBoundInclusive ? 1 : 0);
 
-    return startHash + stopHash;
+    return lowerHash + upperHash;
   }
 
   @Override
@@ -413,45 +419,45 @@ public class RowRange implements Comparable<RowRange> {
    * Determines if this row range equals another.
    *
    * @param other range to compare
-   * @return true if row ranges are equals, false otherwise
+   * @return true if row ranges are equal, otherwise false
    */
   public boolean equals(RowRange other) {
     return compareTo(other) == 0;
   }
 
   /**
-   * Compares this row range to another row range. Compares in order: start row, inclusiveness of
-   * start row, end row, inclusiveness of end row. Infinite rows sort first, and non-infinite rows
-   * are compared with {@link Text#compareTo(BinaryComparable)}. Inclusive sorts before
-   * non-inclusive.
+   * Compares this row range to another row range. Compares in order: lower bound, inclusiveness of
+   * lower bound, upper bound, inclusiveness of upper bound. Infinite rows sort first, and
+   * non-infinite rows are compared with {@link Text#compareTo(BinaryComparable)}. Inclusive sorts
+   * before non-inclusive.
    *
-   * @param other range row to compare
+   * @param other row range to compare
    * @return comparison result
    */
   @Override
   public int compareTo(RowRange other) {
-    // Compare infinite start rows
-    int comp = Boolean.compare(this.infiniteStartRow, other.infiniteStartRow);
+    // Compare infinite lower bounds
+    int comp = Boolean.compare(this.infiniteLowerBound, other.infiniteLowerBound);
 
     if (comp == 0) {
-      // Compare non-infinite start rows and start row inclusiveness
-      if (!this.infiniteStartRow) {
-        comp = START_ROW_COMPARATOR.compare(this.startRow, other.startRow);
+      // Compare non-infinite lower bounds and lower bound inclusiveness
+      if (!this.infiniteLowerBound) {
+        comp = LOWER_BOUND_COMPARATOR.compare(this.lowerBound, other.lowerBound);
         if (comp == 0) {
-          comp = Boolean.compare(other.startRowInclusive, this.startRowInclusive);
+          comp = Boolean.compare(other.lowerBoundInclusive, this.lowerBoundInclusive);
         }
       }
     }
 
     if (comp == 0) {
-      // Compare infinite end rows
-      comp = Boolean.compare(this.infiniteEndRow, other.infiniteEndRow);
+      // Compare infinite upper bounds
+      comp = Boolean.compare(this.infiniteUpperBound, other.infiniteUpperBound);
 
-      // Compare non-infinite end rows and end row inclusiveness
-      if (comp == 0 && !this.infiniteEndRow) {
-        comp = END_ROW_COMPARATOR.compare(this.endRow, other.endRow);
+      // Compare non-infinite upper bounds and upper bound inclusiveness
+      if (comp == 0 && !this.infiniteUpperBound) {
+        comp = UPPER_BOUND_COMPARATOR.compare(this.upperBound, other.upperBound);
         if (comp == 0) {
-          comp = Boolean.compare(this.endRowInclusive, other.endRowInclusive);
+          comp = Boolean.compare(this.upperBoundInclusive, other.upperBoundInclusive);
         }
       }
     }
@@ -463,15 +469,15 @@ public class RowRange implements Comparable<RowRange> {
    * Determines if this row range contains the given row.
    *
    * @param row row to check
-   * @return true if the row is contained in the row range, false otherwise
+   * @return true if the row is contained in the row range, otherwise false
    */
   public boolean contains(Text row) {
-    if (infiniteStartRow) {
-      return !afterEndRow(row);
-    } else if (infiniteEndRow) {
-      return !beforeStartRow(row);
+    if (infiniteLowerBound) {
+      return !isBefore(row);
+    } else if (infiniteUpperBound) {
+      return !isAfter(row);
     } else {
-      return !beforeStartRow(row) && !afterEndRow(row);
+      return !isAfter(row) && !isBefore(row);
     }
   }
 
@@ -500,50 +506,51 @@ public class RowRange implements Comparable<RowRange> {
     }
 
     List<RowRange> sortedRowRanges = new ArrayList<>(rowRanges);
-    // Sort row ranges by their startRow values
+    // Sort row ranges by their lowerBound values
     sortedRowRanges.sort(ROW_RANGE_COMPARATOR);
 
     ArrayList<RowRange> mergedRowRanges = new ArrayList<>(rowRanges.size());
 
     // Initialize the current range for merging
     RowRange currentRange = sortedRowRanges.get(0);
-    boolean currentStartRowInclusive = sortedRowRanges.get(0).startRowInclusive;
+    boolean currentLowerBoundInclusive = sortedRowRanges.get(0).lowerBoundInclusive;
 
     // Iterate through the sorted row ranges, merging overlapping and adjacent ranges
     for (int i = 1; i < sortedRowRanges.size(); i++) {
-      if (currentRange.infiniteStartRow && currentRange.infiniteEndRow) {
+      if (currentRange.infiniteLowerBound && currentRange.infiniteUpperBound) {
         // The current range covers all possible rows, no further merging needed
         break;
       }
 
       RowRange nextRange = sortedRowRanges.get(i);
 
-      boolean startRowsEqual = (currentRange.startRow == null && nextRange.startRow == null)
-          || (currentRange.startRow != null && currentRange.startRow.equals(nextRange.startRow));
+      boolean lowerBoundsEqual = (currentRange.lowerBound == null && nextRange.lowerBound == null)
+          || (currentRange.lowerBound != null
+              && currentRange.lowerBound.equals(nextRange.lowerBound));
 
       int comparison;
-      if (startRowsEqual || currentRange.infiniteEndRow
-          || (nextRange.startRow != null && (currentRange.endRow == null
-              || currentRange.endRow.compareTo(nextRange.startRow) > 0
-              || (currentRange.endRow.equals(nextRange.startRow)
-                  && (!currentRange.endRowInclusive || nextRange.startRowInclusive))))) {
-        if (nextRange.infiniteEndRow) {
+      if (lowerBoundsEqual || currentRange.infiniteUpperBound
+          || (nextRange.lowerBound != null && (currentRange.upperBound == null
+              || currentRange.upperBound.compareTo(nextRange.lowerBound) > 0
+              || (currentRange.upperBound.equals(nextRange.lowerBound)
+                  && (!currentRange.upperBoundInclusive || nextRange.lowerBoundInclusive))))) {
+        if (nextRange.infiniteUpperBound) {
           comparison = 1;
-        } else if (currentRange.endRow == null) {
+        } else if (currentRange.upperBound == null) {
           comparison = -1;
         } else {
-          comparison = nextRange.endRow.compareTo(currentRange.endRow);
+          comparison = nextRange.upperBound.compareTo(currentRange.upperBound);
         }
-        if (comparison > 0 || (comparison == 0 && nextRange.endRowInclusive)) {
-          currentRange = RowRange.range(currentRange.startRow, currentStartRowInclusive,
-              nextRange.endRow, nextRange.endRowInclusive);
+        if (comparison > 0 || (comparison == 0 && nextRange.upperBoundInclusive)) {
+          currentRange = RowRange.range(currentRange.lowerBound, currentLowerBoundInclusive,
+              nextRange.upperBound, nextRange.upperBoundInclusive);
         } // else current range contains the next range
       } else {
-        // No overlap or adjacency, add the current range to the merged list and update the current
-        // range
+        // No overlap or adjacency
+        // add the current range to the merged list and update the current range
         mergedRowRanges.add(currentRange);
         currentRange = nextRange;
-        currentStartRowInclusive = nextRange.startRowInclusive;
+        currentLowerBoundInclusive = nextRange.lowerBoundInclusive;
       }
     }
 
@@ -554,7 +561,7 @@ public class RowRange implements Comparable<RowRange> {
   }
 
   /**
-   * Creates a row range which represents the intersection of this row range and the passed in row
+   * Creates a row range which represents the intersection of this row range and the given row
    * range. The following example will print true.
    *
    * <pre>
@@ -573,7 +580,7 @@ public class RowRange implements Comparable<RowRange> {
   }
 
   /**
-   * Creates a row range which represents the intersection of this row range and the passed in row
+   * Creates a row range which represents the intersection of this row range and the given row
    * range. Unlike {@link #clip(RowRange)}, this method can optionally return null if the row ranges
    * do not overlap, instead of throwing an exception. The returnNullIfDisjoint parameter controls
    * this behavior.
@@ -587,49 +594,52 @@ public class RowRange implements Comparable<RowRange> {
    * @see #clip(RowRange)
    */
   public RowRange clip(RowRange rowRange, boolean returnNullIfDisjoint) {
-    // Initialize start and end row values with the current instance's values
-    Text startRow = this.startRow;
-    boolean startRowInclusive = this.startRowInclusive;
-    Text endRow = this.endRow;
-    boolean endRowInclusive = this.endRowInclusive;
+    // Initialize lower bound and upper bound values with the current instance's values
+    Text lowerBound = this.lowerBound;
+    boolean lowerBoundInclusive = this.lowerBoundInclusive;
+    Text upperBound = this.upperBound;
+    boolean upperBoundInclusive = this.upperBoundInclusive;
 
-    // If the input rowRange has a defined startRow, update startRow and startRowInclusive if needed
-    if (rowRange.startRow != null) {
-      // If the input rowRange's startRow is after this instance's endRow or equal but not
+    // If the input rowRange has a defined lowerBound, update lowerBound and lowerBoundInclusive if
+    // needed
+    if (rowRange.lowerBound != null) {
+      // If the input rowRange's lowerBound is after this instance's upperBound or equal but not
       // inclusive, they do not overlap
-      if (afterEndRow(rowRange.startRow) || (rowRange.startRow.equals(this.endRow)
-          && !(rowRange.startRowInclusive && this.endRowInclusive))) {
+      if (isBefore(rowRange.lowerBound) || (rowRange.lowerBound.equals(this.upperBound)
+          && !(rowRange.lowerBoundInclusive && this.upperBoundInclusive))) {
         if (returnNullIfDisjoint) {
           return null;
         }
         throw new IllegalArgumentException("RowRange " + rowRange + " does not overlap " + this);
-      } else if (!beforeStartRow(rowRange.startRow)) {
-        // If the input rowRange's startRow is within this instance's range, use it as the new
-        // startRow
-        startRow = rowRange.startRow;
-        startRowInclusive = rowRange.startRowInclusive;
+      } else if (!isAfter(rowRange.lowerBound)) {
+        // If the input rowRange's lowerBound is within this instance's range, use it as the new
+        // lowerBound
+        lowerBound = rowRange.lowerBound;
+        lowerBoundInclusive = rowRange.lowerBoundInclusive;
       }
     }
 
-    // If the input rowRange has a defined endRow, update endRow and endRowInclusive if needed
-    if (rowRange.endRow != null) {
-      // If the input rowRange's endRow is before this instance's startRow or equal but not
+    // If the input rowRange has a defined upperBound, update upperBound and upperBoundInclusive if
+    // needed
+    if (rowRange.upperBound != null) {
+      // If the input rowRange's upperBound is before this instance's lowerBound or equal but not
       // inclusive, they do not overlap
-      if (beforeStartRow(rowRange.endRow) || (rowRange.endRow.equals(this.startRow)
-          && !(rowRange.endRowInclusive && this.startRowInclusive))) {
+      if (isAfter(rowRange.upperBound) || (rowRange.upperBound.equals(this.lowerBound)
+          && !(rowRange.upperBoundInclusive && this.lowerBoundInclusive))) {
         if (returnNullIfDisjoint) {
           return null;
         }
         throw new IllegalArgumentException("RowRange " + rowRange + " does not overlap " + this);
-      } else if (!afterEndRow(rowRange.endRow)) {
-        // If the input rowRange's endRow is within this instance's range, use it as the new endRow
-        endRow = rowRange.endRow;
-        endRowInclusive = rowRange.endRowInclusive;
+      } else if (!isBefore(rowRange.upperBound)) {
+        // If the input rowRange's upperBound is within this instance's range, use it as the new
+        // upperBound
+        upperBound = rowRange.upperBound;
+        upperBoundInclusive = rowRange.upperBoundInclusive;
       }
     }
 
     // Return a new RowRange instance representing the intersection of the two ranges
-    return RowRange.range(startRow, startRowInclusive, endRow, endRowInclusive);
+    return RowRange.range(lowerBound, lowerBoundInclusive, upperBound, upperBoundInclusive);
   }
 
 }

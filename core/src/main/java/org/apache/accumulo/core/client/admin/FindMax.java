@@ -94,10 +94,10 @@ public class FindMax {
   }
 
   private static Text _findMax(Scanner scanner, RowRange rowRange) {
-    final Text start = rowRange.getStartRow();
-    final Text end = rowRange.getEndRow();
-    final boolean inclStart = rowRange.isStartRowInclusive();
-    final boolean inclEnd = rowRange.isEndRowInclusive();
+    final Text start = rowRange.getLowerBound();
+    final Text end = rowRange.getUpperBound();
+    final boolean inclStart = rowRange.isLowerBoundInclusive();
+    final boolean inclEnd = rowRange.isUpperBoundInclusive();
 
     // System.out.printf("findMax(%s, %s, %s, %s)%n", Key.toPrintableString(start.getBytes(), 0,
     // start.getLength(), 1000), inclStart,
@@ -148,7 +148,7 @@ public class FindMax {
     } else {
 
       return _findMax(scanner,
-          RowRange.range(start, inclStart, mid, mid.equals(start) && inclStart));
+          RowRange.range(start, inclStart, mid, mid.equals(start) ? inclStart : false));
     }
   }
 
@@ -174,18 +174,18 @@ public class FindMax {
     IteratorSetting cfg = new IteratorSetting(Integer.MAX_VALUE, SortedKeyIterator.class);
     scanner.addScanIterator(cfg);
 
-    Text start = rowRange.getStartRow();
-    boolean is = rowRange.isStartRowInclusive();
+    Text start = rowRange.getLowerBound();
+    boolean is = rowRange.isLowerBoundInclusive();
     if (start == null) {
       start = new Text();
       is = true;
     }
 
-    Text end = rowRange.getEndRow();
+    Text end = rowRange.getUpperBound();
     if (end == null) {
       end = findInitialEnd(scanner);
     }
 
-    return _findMax(scanner, RowRange.range(start, is, end, rowRange.isEndRowInclusive()));
+    return _findMax(scanner, RowRange.range(start, is, end, rowRange.isUpperBoundInclusive()));
   }
 }

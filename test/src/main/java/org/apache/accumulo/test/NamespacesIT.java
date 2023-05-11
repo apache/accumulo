@@ -1107,7 +1107,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
     assertNoTableNoNamespace(() -> ops.getIteratorSetting(tableName, "a", IteratorScope.scan));
     assertNoTableNoNamespace(() -> ops.getLocalityGroups(tableName));
     assertNoTableNoNamespace(
-        () -> ops.getMaxRow(tableName, Authorizations.EMPTY, RowRange.open(a, z)));
+        () -> ops.getMaxRow(tableName, Authorizations.EMPTY, RowRange.closed(a, z)));
     assertNoTableNoNamespace(() -> ops.getConfiguration(tableName));
     assertNoTableNoNamespace(() -> ops.importDirectory("").to(tableName).load());
     assertNoTableNoNamespace(() -> ops.testClassLoad(tableName, VersioningIterator.class.getName(),
