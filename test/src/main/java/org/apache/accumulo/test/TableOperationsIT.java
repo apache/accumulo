@@ -52,11 +52,13 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -163,6 +165,11 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(1, diskUsages.size());
     assertEquals(2, diskUsages.get(0).getTables().size());
     assertTrue(diskUsages.get(0).getUsage() > 0);
+
+    accumuloClient.tableOperations().setTabletHostingGoal(tableName, new Range(),
+        TabletHostingGoal.ALWAYS);
+    accumuloClient.tableOperations().setTabletHostingGoal(newTable, new Range(),
+        TabletHostingGoal.ALWAYS);
 
     accumuloClient.tableOperations().compact(tableName, new Text("A"), new Text("z"), true, true);
     accumuloClient.tableOperations().compact(newTable, new Text("A"), new Text("z"), true, true);
