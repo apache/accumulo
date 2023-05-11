@@ -82,7 +82,7 @@ public class MinorCompactor extends FileCompactor {
     final String outputFileName = getOutputFile();
     log.trace("Begin minor compaction {} {}", outputFileName, getExtent());
 
-    // output to new MapFile with a temporary name
+    // output to new data file with a temporary name
     int sleepTime = 100;
     double growthFactor = 4;
     int maxSleepTime = 1000 * 60 * 3; // 3 minutes
