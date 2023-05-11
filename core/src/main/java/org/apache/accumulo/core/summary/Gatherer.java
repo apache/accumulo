@@ -537,10 +537,10 @@ public class Gatherer {
   private RowRange toClippedExtent(Range r) {
     r = clipRange.clip(r);
 
-    Text startRow = removeTrailingZeroFromRow(r.getStartKey());
-    Text endRow = removeTrailingZeroFromRow(r.getEndKey());
+    final Text lowerBound = removeTrailingZeroFromRow(r.getStartKey());
+    final Text upperBound = removeTrailingZeroFromRow(r.getEndKey());
 
-    return RowRange.openClosed(startRow, endRow);
+    return RowRange.openClosed(lowerBound, upperBound);
   }
 
   private SummaryCollection getSummaries(FileSystemResolver volMgr, String file,

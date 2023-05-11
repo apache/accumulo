@@ -44,44 +44,45 @@ public class RowRangeTest {
 
     @Test
     void testGetters() {
-      Text startRow = new Text("r1");
-      Text endRow = new Text("r1");
-      boolean isStartInclusive = true;
-      boolean isEndInclusive = false;
+      Text lowerBound = new Text("r1");
+      Text upperBound = new Text("r1");
+      boolean isLowerBoundInclusive = true;
+      boolean isUpperBoundInclusive = false;
 
-      RowRange range = RowRange.range(startRow, isStartInclusive, endRow, isEndInclusive);
+      RowRange range =
+          RowRange.range(lowerBound, isLowerBoundInclusive, upperBound, isUpperBoundInclusive);
 
-      assertEquals(startRow, range.getLowerBound());
-      assertEquals(isStartInclusive, range.isLowerBoundInclusive());
-      assertEquals(endRow, range.getUpperBound());
-      assertEquals(isEndInclusive, range.isUpperBoundInclusive());
+      assertEquals(lowerBound, range.getLowerBound());
+      assertEquals(isLowerBoundInclusive, range.isLowerBoundInclusive());
+      assertEquals(upperBound, range.getUpperBound());
+      assertEquals(isUpperBoundInclusive, range.isUpperBoundInclusive());
 
-      startRow = new Text("r11");
-      endRow = new Text("r22");
-      isStartInclusive = false;
-      isEndInclusive = true;
+      lowerBound = new Text("r11");
+      upperBound = new Text("r22");
+      isLowerBoundInclusive = false;
+      isUpperBoundInclusive = true;
 
-      range = RowRange.range(startRow, isStartInclusive, endRow, isEndInclusive);
+      range = RowRange.range(lowerBound, isLowerBoundInclusive, upperBound, isUpperBoundInclusive);
 
-      assertEquals(startRow, range.getLowerBound());
-      assertEquals(isStartInclusive, range.isLowerBoundInclusive());
-      assertEquals(endRow, range.getUpperBound());
-      assertEquals(isEndInclusive, range.isUpperBoundInclusive());
+      assertEquals(lowerBound, range.getLowerBound());
+      assertEquals(isLowerBoundInclusive, range.isLowerBoundInclusive());
+      assertEquals(upperBound, range.getUpperBound());
+      assertEquals(isUpperBoundInclusive, range.isUpperBoundInclusive());
     }
 
     @Test
-    void testEndRowBeforeStartRow() {
-      final Text startRow = new Text("r1");
-      final Text endRow = new Text("r0");
+    void testupperBoundBeforelowerBound() {
+      final Text lowerBound = new Text("r1");
+      final Text upperBound = new Text("r0");
 
-      assertTrue(startRow.compareTo(endRow) > 0);
+      assertTrue(lowerBound.compareTo(upperBound) > 0);
 
       assertThrows(IllegalArgumentException.class,
-          () -> RowRange.range(startRow, true, endRow, false));
+          () -> RowRange.range(lowerBound, true, upperBound, false));
     }
 
     @Test
-    void testBeforeStartRowWithInfiniteStartRow() {
+    void testBeforelowerBoundWithInfinitelowerBound() {
       RowRange lessThanR1 = RowRange.lessThan("r1");
 
       assertFalse(lessThanR1.isAfter(new Text("r0")));
@@ -97,7 +98,7 @@ public class RowRangeTest {
     }
 
     @Test
-    public void testAfterEndRowWithEndRowInclusive() {
+    public void testAfterupperBoundWithupperBoundInclusive() {
       RowRange range = RowRange.closed(new Text("a"), new Text("c"));
       assertFalse(range.isBefore(new Text("c")));
       assertFalse(range.isBefore(new Text("b")));
@@ -106,7 +107,7 @@ public class RowRangeTest {
     }
 
     @Test
-    public void testAfterEndRowWithEndRowExclusive() {
+    public void testAfterupperBoundWithupperBoundExclusive() {
       RowRange range = RowRange.open(new Text("a"), new Text("c"));
       assertTrue(range.isBefore(new Text("c")));
       assertFalse(range.isBefore(new Text("b")));
@@ -114,7 +115,7 @@ public class RowRangeTest {
     }
 
     @Test
-    public void testAfterEndRowWithInfiniteEndRow() {
+    public void testAfterupperBoundWithInfiniteupperBound() {
       RowRange range = RowRange.greaterThan(new Text("a"));
       assertFalse(range.isBefore(new Text("a")));
       assertFalse(range.isBefore(new Text("b")));
@@ -132,15 +133,15 @@ public class RowRangeTest {
       Range expectedOpenRange = new Range(new Text("a"), false, new Text("c"), false);
       assertEquals(expectedOpenRange, openRange.asRange());
 
-      // Range with infinite start
-      RowRange infiniteStartRange = RowRange.greaterThan(new Text("a"));
-      Range expectedInfiniteStartRange = new Range(new Text("a"), false, null, true);
-      assertEquals(expectedInfiniteStartRange, infiniteStartRange.asRange());
+      // Range with infinite upper bound
+      RowRange infiniteUpperBound = RowRange.greaterThan(new Text("a"));
+      Range expectedInfiniteUpperBound = new Range(new Text("a"), false, null, true);
+      assertEquals(expectedInfiniteUpperBound, infiniteUpperBound.asRange());
 
-      // Range with infinite end
-      RowRange infiniteEndRange = RowRange.lessThan(new Text("c"));
-      Range expectedInfiniteEndRange = new Range(null, true, new Text("c"), false);
-      assertEquals(expectedInfiniteEndRange, infiniteEndRange.asRange());
+      // Range with no lower bound
+      RowRange infiniteLowerBound = RowRange.lessThan(new Text("c"));
+      Range expectedInfiniteLowerBound = new Range(null, true, new Text("c"), false);
+      assertEquals(expectedInfiniteLowerBound, infiniteLowerBound.asRange());
 
       // All rows range
       RowRange allRange = RowRange.all();
@@ -305,21 +306,21 @@ public class RowRangeTest {
     }
 
     @Test
-    void testEqualsWithDifferentStartRowInclusiveness() {
+    void testEqualsWithDifferentlowerBoundInclusiveness() {
       RowRange range1 = RowRange.closedOpen("r1", "row5");
       RowRange range2 = RowRange.openClosed("r1", "row5");
       assertFalse(range1.equals(range2));
     }
 
     @Test
-    void testEqualsWithDifferentEndRowInclusiveness() {
+    void testEqualsWithDifferentupperBoundInclusiveness() {
       RowRange range1 = RowRange.closedOpen("r1", "row5");
       RowRange range2 = RowRange.closedOpen("r1", "row4");
       assertFalse(range1.equals(range2));
     }
 
     @Test
-    void testEqualsWithDifferentStartRowAndEndRowInclusiveness() {
+    void testEqualsWithDifferentlowerBoundAndupperBoundInclusiveness() {
       RowRange range1 = RowRange.closedOpen("r1", "row5");
       RowRange range2 = RowRange.openClosed("r1", "row4");
       assertFalse(range1.equals(range2));
@@ -419,7 +420,7 @@ public class RowRangeTest {
     }
 
     @Test
-    void testCompareWithDifferentStartRow() {
+    void testCompareWithDifferentlowerBound() {
       RowRange open_r1_r3 = RowRange.open("r1", "r3");
       RowRange open_r2_r3 = RowRange.open("r2", "r3");
 
@@ -428,7 +429,7 @@ public class RowRangeTest {
     }
 
     @Test
-    void testCompareWithDifferentEndRow() {
+    void testCompareWithDifferentupperBound() {
       RowRange open_r1_r3 = RowRange.open("r1", "r3");
       RowRange open_r1_r4 = RowRange.open("r1", "r4");
 
@@ -437,7 +438,7 @@ public class RowRangeTest {
     }
 
     @Test
-    void testCompareWithDifferentStartRowInclusiveness() {
+    void testCompareWithDifferentlowerBoundInclusiveness() {
       RowRange open = RowRange.open("r1", "r3");
       RowRange closedOpen = RowRange.closedOpen("r1", "r3");
 
@@ -446,7 +447,7 @@ public class RowRangeTest {
     }
 
     @Test
-    void testCompareWithDifferentEndRowInclusiveness() {
+    void testCompareWithDifferentupperBoundInclusiveness() {
       RowRange open = RowRange.open("r1", "r3");
       RowRange openClosed = RowRange.openClosed("r1", "r3");
 
@@ -455,7 +456,7 @@ public class RowRangeTest {
     }
 
     @Test
-    void testCompareWithInfiniteEndRow() {
+    void testCompareWithInfiniteupperBound() {
       RowRange atLeast_r1 = RowRange.atLeast("r1");
       RowRange greaterThan_r1 = RowRange.greaterThan("r1");
       RowRange all = RowRange.all();
@@ -471,7 +472,7 @@ public class RowRangeTest {
     }
 
     @Test
-    void testCompareWithInfiniteStartRow() {
+    void testCompareWithInfinitelowerBound() {
       RowRange atMost_r1 = RowRange.atMost("r1");
       RowRange lessThan_r1 = RowRange.lessThan("r1");
       RowRange all = RowRange.all();

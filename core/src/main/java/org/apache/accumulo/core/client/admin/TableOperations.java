@@ -243,8 +243,8 @@ public interface TableOperations {
   }
 
   /**
-   * Finds the max row within a given range. To find the max row in a table, pass null for start and
-   * end row.
+   * Finds the max row within a given row range. To find the max row in the whole table, pass
+   * {@link RowRange#all()} as the row range.
    *
    * @param tableName the table to search
    * @param auths find the max row that can seen with these auths

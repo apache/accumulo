@@ -24,6 +24,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,17 +98,8 @@ class SummarySerializer {
   }
 
   public boolean exceedsRange(List<RowRange> ranges) {
-    boolean er = false;
-    for (LgSummaries lgs : allSummaries) {
-      for (RowRange ke : ranges) {
-        er |= lgs.exceedsRange(ke.getLowerBound(), ke.getUpperBound());
-        if (er) {
-          return er;
-        }
-      }
-    }
-
-    return er;
+    return Arrays.stream(allSummaries).anyMatch(lgs -> ranges.stream()
+        .anyMatch(range -> lgs.exceedsRange(range.getLowerBound(), range.getUpperBound())));
   }
 
   public boolean exceededMaxSize() {
@@ -463,22 +455,22 @@ class SummarySerializer {
     void getSummary(List<RowRange> ranges, Combiner combiner, Map<String,Long> summary) {
       boolean[] summariesThatOverlap = new boolean[summaries.length];
 
-      for (RowRange keyExtent : ranges) {
-        Text startRow = keyExtent.getLowerBound();
-        Text endRow = keyExtent.getUpperBound();
+      for (RowRange rowRange : ranges) {
+        Text lowerBound = rowRange.getLowerBound();
+        Text upperBound = rowRange.getUpperBound();
 
-        if (endRow != null && endRow.compareTo(firstRow) < 0) {
+        if (upperBound != null && upperBound.compareTo(firstRow) < 0) {
           continue;
         }
 
         int start = -1;
         int end = summaries.length - 1;
 
-        if (startRow == null) {
+        if (lowerBound == null) {
           start = 0;
         } else {
           for (int i = 0; i < summaries.length; i++) {
-            if (startRow.compareTo(summaries[i].getLastRow()) < 0) {
+            if (lowerBound.compareTo(summaries[i].getLastRow()) < 0) {
               start = i;
               break;
             }
@@ -489,11 +481,11 @@ class SummarySerializer {
           continue;
         }
 
-        if (endRow == null) {
+        if (upperBound == null) {
           end = summaries.length - 1;
         } else {
           for (int i = start; i < summaries.length; i++) {
-            if (endRow.compareTo(summaries[i].getLastRow()) < 0) {
+            if (upperBound.compareTo(summaries[i].getLastRow()) < 0) {
               end = i;
               break;
             }
