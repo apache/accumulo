@@ -36,8 +36,9 @@ class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
 
     if (depth > 32) {
       // This is a peculiar exception. No error has been found, but recursing too deep may cause a
-      // stack overflow so going to stop.
-      return false;
+      // stack overflow so going to stop. Err on the side of caution and assume there could be an
+      // error since not everything was checked.
+      return true;
     }
 
     while (t != null) {
@@ -63,9 +64,7 @@ class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
 
   @Override
   public void uncaughtException(Thread t, Throwable e) {
-    if (e instanceof Exception) {
-      LOG.error("Caught an Exception in {}. Thread is dead.", t, e);
-    } else if (isError(e)) {
+    if (isError(e)) {
       try {
         e.printStackTrace();
         System.err.println("Error thrown in thread: " + t + ", halting VM.");
@@ -75,6 +74,8 @@ class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
       } finally {
         Runtime.getRuntime().halt(-1);
       }
+    } else {
+      LOG.error("Caught an Exception in {}. Thread is dead.", t, e);
     }
   }
 }
