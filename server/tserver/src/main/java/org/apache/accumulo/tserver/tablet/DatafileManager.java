@@ -240,31 +240,30 @@ class DatafileManager {
     if (tablet.getExtent().isMeta()) {
       throw new IllegalArgumentException("Can not import files to a metadata tablet");
     }
-
-    synchronized (bulkFileImportLock) {
-
-      if (!paths.isEmpty()) {
-        long bulkTime = Long.MIN_VALUE;
-        if (setTime) {
-          for (DataFileValue dfv : paths.values()) {
-            long nextTime = tablet.getAndUpdateTime();
-            if (nextTime < bulkTime) {
-              throw new IllegalStateException(
-                  "Time went backwards unexpectedly " + nextTime + " " + bulkTime);
-            }
-            bulkTime = nextTime;
-            dfv.setTime(bulkTime);
-          }
-        }
-
-        newFiles = tablet.updatePersistedTime(bulkTime, paths, tid);
-      }
-    }
-
     // increment start count before metadata update AND updating in memory map of files
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and try{}finally
     try {
+      synchronized (bulkFileImportLock) {
+
+        if (!paths.isEmpty()) {
+          long bulkTime = Long.MIN_VALUE;
+          if (setTime) {
+            for (DataFileValue dfv : paths.values()) {
+              long nextTime = tablet.getAndUpdateTime();
+              if (nextTime < bulkTime) {
+                throw new IllegalStateException(
+                    "Time went backwards unexpectedly " + nextTime + " " + bulkTime);
+              }
+              bulkTime = nextTime;
+              dfv.setTime(bulkTime);
+            }
+          }
+
+          newFiles = tablet.updatePersistedTime(bulkTime, paths, tid);
+        }
+      }
+
       synchronized (tablet) {
         for (Entry<StoredTabletFile,DataFileValue> tpath : newFiles.entrySet()) {
           if (datafileSizes.containsKey(tpath.getKey())) {
@@ -330,22 +329,21 @@ class DatafileManager {
 
     long t1, t2;
 
-    Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
-    try {
-      // the order of writing to metadata and walog is important in the face of machine/process
-      // failures need to write to metadata before writing to walog, when things are done in the
-      // reverse order data could be lost... the minor compaction start even should be written
-      // before the following metadata write is made
-      newFile = tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
-          unusedWalLogs, flushId);
-    } finally {
-      tablet.finishClearingUnusedLogs();
-    }
-
     // increment start count before metadata update AND updating in memory map of files
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and try{}finally
     try {
+      Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
+      try {
+        // the order of writing to metadata and walog is important in the face of machine/process
+        // failures need to write to metadata before writing to walog, when things are done in the
+        // reverse order data could be lost... the minor compaction start even should be written
+        // before the following metadata write is made
+        newFile = tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
+            unusedWalLogs, flushId);
+      } finally {
+        tablet.finishClearingUnusedLogs();
+      }
 
       do {
         try {
@@ -364,7 +362,7 @@ class DatafileManager {
       synchronized (tablet) {
         t1 = System.currentTimeMillis();
 
-        if (dfv.getNumEntries() > 0 && newFile.isPresent()) {
+        if (newFile.isPresent()) {
           StoredTabletFile newFileStored = newFile.orElseThrow();
           if (datafileSizes.containsKey(newFileStored)) {
             log.error("Adding file that is already in set {}", newFileStored);
