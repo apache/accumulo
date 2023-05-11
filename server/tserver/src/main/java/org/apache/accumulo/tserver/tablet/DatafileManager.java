@@ -242,31 +242,30 @@ class DatafileManager {
     if (tablet.getExtent().isMeta()) {
       throw new IllegalArgumentException("Can not import files to a metadata tablet");
     }
-
-    synchronized (bulkFileImportLock) {
-
-      if (!paths.isEmpty()) {
-        long bulkTime = Long.MIN_VALUE;
-        if (setTime) {
-          for (DataFileValue dfv : paths.values()) {
-            long nextTime = tablet.getAndUpdateTime();
-            if (nextTime < bulkTime) {
-              throw new IllegalStateException(
-                  "Time went backwards unexpectedly " + nextTime + " " + bulkTime);
-            }
-            bulkTime = nextTime;
-            dfv.setTime(bulkTime);
-          }
-        }
-
-        newFiles = tablet.updatePersistedTime(bulkTime, paths, tid);
-      }
-    }
-
     // increment start count before metadata update AND updating in memory map of files
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and try{}finally
     try {
+      synchronized (bulkFileImportLock) {
+
+        if (!paths.isEmpty()) {
+          long bulkTime = Long.MIN_VALUE;
+          if (setTime) {
+            for (DataFileValue dfv : paths.values()) {
+              long nextTime = tablet.getAndUpdateTime();
+              if (nextTime < bulkTime) {
+                throw new IllegalStateException(
+                    "Time went backwards unexpectedly " + nextTime + " " + bulkTime);
+              }
+              bulkTime = nextTime;
+              dfv.setTime(bulkTime);
+            }
+          }
+
+          newFiles = tablet.updatePersistedTime(bulkTime, paths, tid);
+        }
+      }
+
       synchronized (tablet) {
         for (Entry<StoredTabletFile,DataFileValue> tpath : newFiles.entrySet()) {
           if (datafileSizes.containsKey(tpath.getKey())) {
