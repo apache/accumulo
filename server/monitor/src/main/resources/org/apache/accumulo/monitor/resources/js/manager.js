@@ -61,7 +61,7 @@ function refreshManagerBanners() {
       // only show the goal state if it differs from the manager's current state
       bannerMessage += '. Manager goal state: ' + managerGoalState;
     }
-    $('.manager-banner-message').text(bannerMessage);
+    $('#manager-banner-message').text(bannerMessage);
     $('#managerStateBanner').show();
   });
 
