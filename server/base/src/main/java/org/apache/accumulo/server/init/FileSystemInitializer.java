@@ -42,6 +42,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -164,12 +165,13 @@ class FileSystemInitializer {
     for (Tablet tablet : tablets) {
       createEntriesForTablet(sorted, tablet);
     }
-    FileSystem fs = volmanager.getFileSystemByPath(new Path(fileName));
+    TabletFile file = TabletFile.of(new Path(fileName));
+    FileSystem fs = volmanager.getFileSystemByPath(file.getPath());
 
     CryptoService cs = CryptoFactoryLoader.getServiceForServer(conf);
 
     FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fileName, fs, fs.getConf(), cs).withTableConfiguration(conf).build();
+        .forFile(file, fs, fs.getConf(), cs).withTableConfiguration(conf).build();
     tabletWriter.startDefaultLocalityGroup();
 
     for (Map.Entry<Key,Value> entry : sorted.entrySet()) {

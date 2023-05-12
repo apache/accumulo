@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.manager.thrift.RecoveryStatus;
+import org.apache.accumulo.core.metadata.UnassignedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.Pair;
@@ -278,7 +279,7 @@ public class LogSorter {
     }
 
     try (var writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fullPath.toString(), fs, fs.getConf(), cryptoService)
+        .forFile(UnassignedTabletFile.of(fs, fullPath), fs, fs.getConf(), cryptoService)
         .withTableConfiguration(sortedLogConf).build()) {
       writer.startDefaultLocalityGroup();
       for (var entry : keyListMap.entrySet()) {

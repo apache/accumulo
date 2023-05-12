@@ -49,11 +49,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.metadata.UnassignedTabletFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -269,8 +271,8 @@ public class TestIngest {
     if (params.outputFile != null) {
       ClientContext cc = (ClientContext) accumuloClient;
       writer = FileOperations.getInstance().newWriterBuilder()
-          .forFile(params.outputFile + "." + RFile.EXTENSION, fs, cc.getHadoopConf(),
-              NoCryptoServiceFactory.NONE)
+          .forFile(UnassignedTabletFile.of(fs, new Path(params.outputFile + "." + RFile.EXTENSION)),
+              fs, cc.getHadoopConf(), NoCryptoServiceFactory.NONE)
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
       writer.startDefaultLocalityGroup();
     } else {

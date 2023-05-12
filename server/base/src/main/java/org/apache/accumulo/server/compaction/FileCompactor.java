@@ -231,9 +231,9 @@ public class FileCompactor implements Callable<CompactionStats> {
           && ((isMinC && acuTableConf.getBoolean(Property.TABLE_MINC_OUTPUT_DROP_CACHE))
               || (!isMinC && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE)));
 
-      WriterBuilder outBuilder = fileFactory.newWriterBuilder()
-          .forFile(outputFile.getMetaInsert(), ns, ns.getConf(), cryptoService)
-          .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter());
+      WriterBuilder outBuilder =
+          fileFactory.newWriterBuilder().forFile(outputFile, ns, ns.getConf(), cryptoService)
+              .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter());
       if (dropCacheBehindOutput) {
         outBuilder.dropCachesBehind();
       }
@@ -337,8 +337,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         FileSystem fs = this.fs.getFileSystemByPath(dataFile.getPath());
         FileSKVIterator reader;
 
-        reader = fileFactory.newReaderBuilder()
-            .forFile(dataFile.getPathStr(), fs, fs.getConf(), cryptoService)
+        reader = fileFactory.newReaderBuilder().forFile(dataFile, fs, fs.getConf(), cryptoService)
             .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter())
             .dropCachesBehind().build();
 

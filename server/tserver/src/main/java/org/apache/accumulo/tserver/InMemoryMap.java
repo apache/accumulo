@@ -63,6 +63,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.Local
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
+import org.apache.accumulo.core.metadata.UnassignedTabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -602,7 +603,8 @@ public class InMemoryMap {
 
         TableConfiguration tableConf = context.getTableConfiguration(tableId);
         reader = new RFileOperations().newReaderBuilder()
-            .forFile(memDumpFile, fs, conf, tableConf.getCryptoService())
+            .forFile(UnassignedTabletFile.of(fs, new Path(memDumpFile)), fs, conf,
+                tableConf.getCryptoService())
             .withTableConfiguration(tableConf).seekToBeginning().build();
         if (iflag != null) {
           reader.setInterruptFlag(iflag);
@@ -783,7 +785,8 @@ public class InMemoryMap {
 
         TableConfiguration tableConf = context.getTableConfiguration(tableId);
         FileSKVWriter out = new RFileOperations().newWriterBuilder()
-            .forFile(tmpFile, fs, newConf, tableConf.getCryptoService())
+            .forFile(UnassignedTabletFile.of(fs, new Path(tmpFile)), fs, newConf,
+                tableConf.getCryptoService())
             .withTableConfiguration(aconf).build();
 
         InterruptibleIterator iter = map.skvIterator(null);
