@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.iterators.system;
 
 import java.io.DataInputStream;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -28,139 +27,89 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.file.NoSuchMetaStoreException;
-import org.apache.accumulo.core.file.map.MapFileUtil;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.MapFile.Reader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MapFileIterator implements FileSKVIterator {
-  private static final Logger log = LoggerFactory.getLogger(MapFileIterator.class);
 
-  private Reader reader;
-  private Value topValue;
-  private Key topKey;
-  private AtomicBoolean interruptFlag;
-  private int interruptCheckCount = 0;
-  private FileSystem fs;
-  private String dirName;
+  private static final String MSG = "Map files are not supported";
 
   public MapFileIterator(AccumuloConfiguration acuconf, FileSystem fs, String dir,
-      Configuration conf) throws IOException {
-    this.reader = MapFileUtil.openMapFile(acuconf, fs, dir, conf);
-    this.fs = fs;
-    this.dirName = dir;
+      Configuration conf) {
+    throw new UnsupportedOperationException(MSG);
   }
 
   @Override
   public void setInterruptFlag(AtomicBoolean flag) {
-    this.interruptFlag = flag;
+    throw new UnsupportedOperationException(MSG);
   }
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-      IteratorEnvironment env) throws IOException {
-    throw new UnsupportedOperationException();
+      IteratorEnvironment env) {
+    throw new UnsupportedOperationException(MSG);
   }
 
   @Override
   public boolean hasTop() {
-    return topKey != null;
+    throw new UnsupportedOperationException(MSG);
   }
 
   @Override
-  public void next() throws IOException {
-    if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get())
-      throw new IterationInterruptedException();
-
-    reader.next(topKey, topValue);
+  public void next() {
+    throw new UnsupportedOperationException(MSG);
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
-      throws IOException {
-    if (columnFamilies.size() != 0 || inclusive) {
-      throw new IllegalArgumentException("I do not know how to filter column families");
-    }
-
-    if (range == null)
-      throw new IllegalArgumentException("Cannot seek to null range");
-
-    if (interruptFlag != null && interruptFlag.get())
-      throw new IterationInterruptedException();
-
-    Key key = range.getStartKey();
-    if (key == null) {
-      key = new Key();
-    }
-
-    reader.seek(key);
-
-    while (hasTop() && range.beforeStartKey(getTopKey())) {
-      next();
-    }
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) {
+    throw new UnsupportedOperationException(MSG);
   }
 
   @Override
   public Key getTopKey() {
-    return topKey;
+    throw new UnsupportedOperationException(MSG);
   }
 
   @Override
   public Value getTopValue() {
-    return topValue;
+    throw new UnsupportedOperationException(MSG);
   }
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    try {
-      SortedKeyValueIterator<Key,Value> other = env.reserveMapFileReader(dirName);
-      ((InterruptibleIterator) other).setInterruptFlag(interruptFlag);
-      log.debug("deep copying MapFile: " + this + " -> " + other);
-      return other;
-    } catch (IOException e) {
-      log.error("failed to clone map file reader", e);
-      throw new RuntimeException(e);
-    }
+    throw new UnsupportedOperationException(MSG);
   }
 
   @Override
-  public Key getFirstKey() throws IOException {
-    throw new UnsupportedOperationException();
+  public Key getFirstKey() {
+    throw new UnsupportedOperationException(MSG);
   }
 
   @Override
-  public Key getLastKey() throws IOException {
-    throw new UnsupportedOperationException();
+  public Key getLastKey() {
+    throw new UnsupportedOperationException(MSG);
   }
 
   @Override
-  public DataInputStream getMetaStore(String name) throws IOException {
-    Path path = new Path(this.dirName, name);
-    if (!fs.exists(path))
-      throw new NoSuchMetaStoreException("name = " + name);
-    return fs.open(path);
+  public DataInputStream getMetaStore(String name) {
+    throw new UnsupportedOperationException(MSG);
   }
 
   @Override
-  public void closeDeepCopies() throws IOException {
-    // nothing to do, deep copies are externally managed/closed
+  public void closeDeepCopies() {
+    throw new UnsupportedOperationException(MSG);
   }
 
   @Override
-  public void close() throws IOException {
-    reader.close();
+  public void close() {
+    throw new UnsupportedOperationException(MSG);
   }
 
   @Override
   public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
-    return null;
+    throw new UnsupportedOperationException(MSG);
   }
 }

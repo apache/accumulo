@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.file.rfile.RFile;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -198,6 +199,12 @@ public class PropertyTypeTest {
   @Test
   public void testTypeURI() {
     valid(null, "", "hdfs://hostname", "file:///path/", "hdfs://example.com:port/path");
+  }
+
+  @Test
+  public void testTypeFILENAME_EXT() {
+    valid(RFile.EXTENSION, "rf");
+    invalid(null, "RF", "map", "", "MAP", "rF", "Rf", " rf ");
   }
 
 }
