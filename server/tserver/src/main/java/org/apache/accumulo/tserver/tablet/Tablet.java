@@ -985,7 +985,6 @@ public class Tablet extends TabletBase {
         this.wait(50);
       } catch (InterruptedException e) {
         log.error("{}", e, e);
-        ;
       }
     }
 
