@@ -27,9 +27,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.AccumuloConfigurationAdapter;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderEnvironment;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
@@ -52,15 +54,20 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
   private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
       Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
 
-  public DefaultContextClassLoaderFactory(final AccumuloConfiguration accConf) {
+  public DefaultContextClassLoaderFactory() {
     if (!isInstantiated.compareAndSet(false, true)) {
       throw new IllegalStateException("Can only instantiate " + className + " once");
     }
+  }
+
+  @Override
+  public void setEnvironment(ContextClassLoaderEnvironment env) {
+    ServiceEnvironment.Configuration conf = env.getConfiguration();
     Supplier<Map<String,String>> contextConfigSupplier =
-        () -> accConf.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
+        () -> conf.getWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey());
     setContextConfig(contextConfigSupplier);
     LOG.debug("ContextManager configuration set");
-    startCleanupThread(accConf, contextConfigSupplier);
+    startCleanupThread(conf, contextConfigSupplier);
   }
 
   @SuppressWarnings("deprecation")
@@ -69,11 +76,11 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
         .setContextConfig(contextConfigSupplier);
   }
 
-  private static void startCleanupThread(final AccumuloConfiguration conf,
+  private static void startCleanupThread(final ServiceEnvironment.Configuration conf,
       final Supplier<Map<String,String>> contextConfigSupplier) {
     ScheduledFuture<?> future = ThreadPools.getClientThreadPools((t, e) -> {
       LOG.error("context classloader cleanup thread has failed.", e);
-    }).createGeneralScheduledExecutorService(conf)
+    }).createGeneralScheduledExecutorService(new AccumuloConfigurationAdapter(conf))
         .scheduleWithFixedDelay(Threads.createNamedRunnable(className + "-cleanup", () -> {
           LOG.trace("{}-cleanup thread, properties: {}", className, conf);
           Set<String> contextsInUse = contextConfigSupplier.get().keySet().stream()
