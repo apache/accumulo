@@ -20,7 +20,10 @@ package org.apache.accumulo.core.classloader;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderEnvironment;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +39,7 @@ public class ClassLoaderUtil {
   /**
    * Initialize the ContextClassLoaderFactory
    */
-  public static synchronized void initContextFactory(AccumuloConfiguration conf) {
+  public static synchronized void initContextFactory(final AccumuloConfiguration conf) {
     if (FACTORY == null) {
       LOG.debug("Creating {}", ContextClassLoaderFactory.class.getName());
       String factoryName = conf.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY);
@@ -55,6 +58,14 @@ public class ClassLoaderUtil {
           throw new IllegalStateException("Unable to load and initialize class: " + factoryName, e);
         }
       }
+
+      FACTORY.setEnvironment(new ContextClassLoaderEnvironment() {
+        @Override
+        public ServiceEnvironment.Configuration getConfiguration() {
+          return new ConfigurationImpl(conf);
+        }
+      });
+
     } else {
       LOG.debug("{} already initialized with {}.", ContextClassLoaderFactory.class.getName(),
           FACTORY.getClass().getName());

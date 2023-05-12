@@ -57,4 +57,11 @@ public interface ContextClassLoaderFactory {
    */
   ClassLoader getClassLoader(String contextName);
 
+  /**
+   * Pass the service environment to allow for additional class loader configuration
+   *
+   * @param env the class loader environment
+   */
+  default void setEnvironment(ContextClassLoaderEnvironment env) {}
+
 }
