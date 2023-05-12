@@ -30,6 +30,8 @@ import java.util.Properties;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -55,6 +57,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -239,40 +242,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      SortedSet<Text> splits = new TreeSet<>();
-      splits.add(new Text("row_0000000001"));
-      splits.add(new Text("row_0000000002"));
-      splits.add(new Text("row_0000000003"));
-      splits.add(new Text("row_0000000004"));
-      splits.add(new Text("row_0000000005"));
-      splits.add(new Text("row_0000000006"));
-      splits.add(new Text("row_0000000007"));
-      splits.add(new Text("row_0000000008"));
-      splits.add(new Text("row_0000000009"));
-      NewTableConfiguration ntc = new NewTableConfiguration();
-      ntc.withSplits(splits);
-      ntc.withInitialHostingGoal(TabletHostingGoal.ALWAYS); // speed up ingest
-      final int ingestedEntryCount = createTableAndIngest(client, tableName, ntc, 10, 10, "colf");
-
-      String tableId = client.tableOperations().tableIdMap().get(tableName);
-
-      // row 1 -> 3 are always
-      client.tableOperations().setTabletHostingGoal(tableName,
-          new Range(null, true, "row_0000000003", true), TabletHostingGoal.ALWAYS);
-      // row 4 -> 7 are never
-      client.tableOperations().setTabletHostingGoal(tableName,
-          new Range("row_0000000004", true, "row_0000000007", true), TabletHostingGoal.NEVER);
-      // row 8 and 9 are ondemand
-      client.tableOperations().setTabletHostingGoal(tableName,
-          new Range("row_0000000008", true, null, true), TabletHostingGoal.ONDEMAND);
-
-      // Wait for the NEVER and ONDEMAND tablets to be unloaded
-      int hosted = getNumHostedTablets(client, tableId);
-      // Waiting for tablets to be unloaded due to inactivity
-      while (hosted != 3) {
-        Thread.sleep(1000);
-        hosted = getNumHostedTablets(client, tableId);
-      }
+      final int ingestedEntryCount = setupTableWithHostingMix(client, tableName);
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
@@ -291,40 +261,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      SortedSet<Text> splits = new TreeSet<>();
-      splits.add(new Text("row_0000000001"));
-      splits.add(new Text("row_0000000002"));
-      splits.add(new Text("row_0000000003"));
-      splits.add(new Text("row_0000000004"));
-      splits.add(new Text("row_0000000005"));
-      splits.add(new Text("row_0000000006"));
-      splits.add(new Text("row_0000000007"));
-      splits.add(new Text("row_0000000008"));
-      splits.add(new Text("row_0000000009"));
-      NewTableConfiguration ntc = new NewTableConfiguration();
-      ntc.withSplits(splits);
-      ntc.withInitialHostingGoal(TabletHostingGoal.ALWAYS); // speed up ingest
-      final int ingestedEntryCount = createTableAndIngest(client, tableName, ntc, 10, 10, "colf");
-
-      String tableId = client.tableOperations().tableIdMap().get(tableName);
-
-      // row 1 -> 3 are always
-      client.tableOperations().setTabletHostingGoal(tableName,
-          new Range(null, true, "row_0000000003", true), TabletHostingGoal.ALWAYS);
-      // row 4 -> 7 are never
-      client.tableOperations().setTabletHostingGoal(tableName,
-          new Range("row_0000000004", true, "row_0000000007", true), TabletHostingGoal.NEVER);
-      // row 8 and 9 are ondemand
-      client.tableOperations().setTabletHostingGoal(tableName,
-          new Range("row_0000000008", true, null, true), TabletHostingGoal.ONDEMAND);
-
-      // Wait for the NEVER and ONDEMAND tablets to be unloaded
-      int hosted = getNumHostedTablets(client, tableId);
-      // Waiting for tablets to be unloaded due to inactivity
-      while (hosted != 3) {
-        Thread.sleep(1000);
-        hosted = getNumHostedTablets(client, tableId);
-      }
+      final int ingestedEntryCount = setupTableWithHostingMix(client, tableName);
 
       try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRanges(Collections.singleton(new Range()));
@@ -336,6 +273,44 @@ public class ScanServerIT extends SharedMiniClusterBase {
         assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
       } // when the scanner is closed, all open sessions should be closed
     }
+  }
+
+  /**
+   * Sets up a table with a mix of tablet hosting goals. Specific ranges of rows are set to ALWAYS,
+   * NEVER, and ONDEMAND hosting goals. The method waits for the NEVER and ONDEMAND tablets to be
+   * unloaded due to inactivity before returning.
+   *
+   * @param client The AccumuloClient to use for the operation
+   * @param tableName The name of the table to be created and set up
+   * @return The count of ingested entries
+   */
+  protected static int setupTableWithHostingMix(AccumuloClient client, String tableName)
+      throws Exception {
+    SortedSet<Text> splits =
+        IntStream.rangeClosed(1, 9).mapToObj(i -> new Text("row_000000000" + i))
+            .collect(Collectors.toCollection(TreeSet::new));
+
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    ntc.withSplits(splits);
+    ntc.withInitialHostingGoal(TabletHostingGoal.ALWAYS); // speed up ingest
+    final int ingestedEntryCount = createTableAndIngest(client, tableName, ntc, 10, 10, "colf");
+
+    String tableId = client.tableOperations().tableIdMap().get(tableName);
+
+    // row 1 -> 3 are always
+    client.tableOperations().setTabletHostingGoal(tableName,
+        new Range(null, true, "row_0000000003", true), TabletHostingGoal.ALWAYS);
+    // row 4 -> 7 are never
+    client.tableOperations().setTabletHostingGoal(tableName,
+        new Range("row_0000000004", true, "row_0000000007", true), TabletHostingGoal.NEVER);
+    // row 8 and 9 are ondemand
+    client.tableOperations().setTabletHostingGoal(tableName,
+        new Range("row_0000000008", true, null, true), TabletHostingGoal.ONDEMAND);
+
+    // Wait for the NEVER and ONDEMAND tablets to be unloaded due to inactivity
+    Wait.waitFor(() -> ScanServerIT.getNumHostedTablets(client, tableId) == 3, 30_000, 1_000);
+
+    return ingestedEntryCount;
   }
 
   /**
