@@ -283,6 +283,9 @@ public class ThreadPools {
             "summary partition", emitThreadPoolMetrics);
       case GC_DELETE_THREADS:
         return createFixedThreadPool(conf.getCount(p), "deleting", emitThreadPoolMetrics);
+      case MANAGER_SPLIT_WORKER_THREADS:
+        return createFixedThreadPool(conf.getCount(p), "tablet split inspection",
+            emitThreadPoolMetrics);
       default:
         throw new RuntimeException("Unhandled thread pool property: " + p);
     }

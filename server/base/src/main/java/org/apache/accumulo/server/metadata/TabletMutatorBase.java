@@ -272,7 +272,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T setHostingGoal(TabletHostingGoal goal) {
+  public T putHostingGoal(TabletHostingGoal goal) {
     HostingColumnFamily.GOAL_COLUMN.put(mutation, TabletHostingGoalUtil.toValue(goal));
     return getThis();
   }

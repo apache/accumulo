@@ -62,6 +62,8 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Sets;
+
 public class MetaDataTableScanner implements ClosableIterator<TabletLocationState> {
   private static final Logger log = LoggerFactory.getLogger(MetaDataTableScanner.class);
 
@@ -100,7 +102,11 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       TabletStateChangeIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
       TabletStateChangeIterator.setOnlineTables(tabletChange, state.onlineTables());
       TabletStateChangeIterator.setMerges(tabletChange, state.merges());
-      TabletStateChangeIterator.setMigrations(tabletChange, state.migrationsSnapshot());
+      // ELASTICITY_TODO passing the unassignemnt request as part of the migrations is a hack. Was
+      // not sure of the entire unassignment request approach and did not want to push it further
+      // into the code.
+      TabletStateChangeIterator.setMigrations(tabletChange,
+          Sets.union(state.migrationsSnapshot(), state.getUnassignmentRequest()));
       TabletStateChangeIterator.setManagerState(tabletChange, state.getManagerState());
       TabletStateChangeIterator.setShuttingDown(tabletChange, state.shutdownServers());
     }

@@ -36,12 +36,17 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMutator {
+
+  private static final Logger log = LoggerFactory.getLogger(ConditionalTabletsMutatorImpl.class);
 
   private final ServerContext context;
   private Ample.DataLevel dataLevel = null;
@@ -131,7 +136,21 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
           resultsMap.put(extents.get(row), result);
         }
 
+        var extentsSet = Set.copyOf(extents.values());
         if (!resultsMap.keySet().equals(Set.copyOf(extents.values()))) {
+          // ELASTICITY_TODO this check can trigger if someone forgets to submit, could check for
+          // that
+
+          Sets.difference(resultsMap.keySet(), extentsSet)
+              .forEach(extent -> log.error("Unexpected extent seen in in result {}", extent));
+
+          Sets.difference(extentsSet, resultsMap.keySet())
+              .forEach(extent -> log.error("Expected extent not seen in result {}", extent));
+
+          resultsMap.forEach((keyExtent, result) -> {
+            log.error("result seen {} {}", keyExtent, new Text(result.getMutation().getRow()));
+          });
+
           throw new AssertionError("Not all extents were seen, this is unexpected");
         }
 

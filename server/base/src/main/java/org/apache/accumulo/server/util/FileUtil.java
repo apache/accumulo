@@ -60,20 +60,20 @@ public class FileUtil {
   private static final SecureRandom random = new SecureRandom();
 
   public static class FileInfo {
-    Key firstKey = new Key();
-    Key lastKey = new Key();
+    private final Text firstKey;
+    private final Text lastKey;
 
     public FileInfo(Key firstKey, Key lastKey) {
-      this.firstKey = firstKey;
-      this.lastKey = lastKey;
+      this.firstKey = firstKey.getRow();
+      this.lastKey = lastKey.getRow();
     }
 
     public Text getFirstRow() {
-      return firstKey.getRow();
+      return firstKey;
     }
 
     public Text getLastRow() {
-      return lastKey.getRow();
+      return lastKey;
     }
   }
 
@@ -518,8 +518,13 @@ public class FileUtil {
 
     long t2 = System.currentTimeMillis();
 
-    log.debug(String.format("Found first and last keys for %d data files in %6.2f secs",
-        dataFiles.size(), (t2 - t1) / 1000.0));
+    String message = String.format("Found first and last keys for %d data files in %6.2f secs",
+        dataFiles.size(), (t2 - t1) / 1000.0);
+    if (t2 - t1 > 500) {
+      log.debug(message);
+    } else {
+      log.trace(message);
+    }
 
     return dataFilesInfo;
   }
