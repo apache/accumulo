@@ -19,7 +19,7 @@
 package org.apache.accumulo.manager.split;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.SortedSet;
 
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.manager.Manager;

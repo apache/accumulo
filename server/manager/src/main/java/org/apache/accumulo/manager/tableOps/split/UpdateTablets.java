@@ -75,11 +75,16 @@ public class UpdateTablets extends ManagerRepo {
             "{} creating new tablet was rejected because it existed, operation probably failed before.",
             FateTxId.formatTid(tid));
         return new DeleteOperationIds(splitInfo);
+      } else {
+        throw new IllegalStateException("Tablet is in an unexpected condition "
+            + splitInfo.getOriginal() + " " + (newTabletMetadata == null) + " "
+            + (newTabletMetadata == null ? null : newTabletMetadata.getOperationId()));
       }
     }
 
-    Preconditions
-        .checkState(tabletMetadata != null && tabletMetadata.getOperationId().equals(opid));
+    Preconditions.checkState(tabletMetadata.getOperationId().equals(opid),
+        "Tablet %s does not have expected operation id %s it has %s", splitInfo.getOriginal(), opid,
+        tabletMetadata.getOperationId());
 
     var newTablets = splitInfo.getTablets();
 

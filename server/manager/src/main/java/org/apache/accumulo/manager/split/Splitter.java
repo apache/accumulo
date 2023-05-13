@@ -22,7 +22,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -36,7 +39,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.FileUtil.FileInfo;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,10 +80,12 @@ public class Splitter {
 
     @Override
     public boolean equals(Object o) {
-      if (this == o)
+      if (this == o) {
         return true;
-      if (o == null || getClass() != o.getClass())
+      }
+      if (o == null || getClass() != o.getClass()) {
         return false;
+      }
       CacheKey cacheKey = (CacheKey) o;
       return Objects.equals(tableId, cacheKey.tableId)
           && Objects.equals(tabletFile, cacheKey.tabletFile);
@@ -123,7 +127,7 @@ public class Splitter {
 
     CacheLoader<CacheKey,FileInfo> loader = new CacheLoader<>() {
       @Override
-      public @Nullable FileInfo load(CacheKey key) throws Exception {
+      public FileInfo load(CacheKey key) throws Exception {
         TableConfiguration tableConf = context.getTableConfiguration(key.tableId);
         return FileUtil.tryToGetFirstAndLastRows(context, tableConf, Set.of(key.tabletFile))
             .get(key.tabletFile);
@@ -163,7 +167,7 @@ public class Splitter {
 
   public FileInfo getCachedFileInfo(TableId tableId, TabletFile tabletFile) {
     return splitFileCache.get(new CacheKey(tableId, tabletFile));
-  };
+  }
 
   private HashCode caclulateFilesHash(TabletMetadata tabletMetadata) {
     var hasher = Hashing.goodFastHash(128).newHasher();

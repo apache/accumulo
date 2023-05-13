@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.split;
 
 import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -30,6 +31,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +40,13 @@ public class SplitterTest {
 
   @Test
   public void testShouldInspect() {
-    var splitter = new Splitter(null, null, null);
+    ThreadPools threadPools = createNiceMock(ThreadPools.class);
+    replay(threadPools);
+    ServerContext context = createNiceMock(ServerContext.class);
+    expect(context.threadPools()).andReturn(threadPools).anyTimes();
+    replay(context);
+
+    var splitter = new Splitter(context, null, null);
 
     KeyExtent ke1 = new KeyExtent(TableId.of("1"), new Text("m"), null);
     KeyExtent ke2 = new KeyExtent(TableId.of("1"), null, new Text("m"));

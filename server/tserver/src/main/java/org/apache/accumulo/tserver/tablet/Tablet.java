@@ -1408,13 +1408,18 @@ public class Tablet extends TabletBase {
     }
   }
 
+  // TODO remove this hack that disables splits
+  private boolean getTrue() {
+    return true;
+  }
+
   /**
    * Returns true if this tablet needs to be split
    *
    */
   public synchronized boolean needsSplit(Optional<SplitComputations> splitComputations) {
     // TODO remove this hack that disables splits
-    if (isClosing() || isClosed() || true) {
+    if (isClosing() || isClosed() || getTrue()) {
       return false;
     }
     return findSplitRow(splitComputations) != null;
