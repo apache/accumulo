@@ -19,14 +19,14 @@
 package org.apache.accumulo.core.spi.common;
 
 /**
- * The environment that can be use the context class loader factory
+ * The environment provided to the context class loader factory for its use
  *
  * @since 2.1.1
  */
 public interface ContextClassLoaderEnvironment {
 
   /**
-   * Get the configuration
+   * Get the service environment configuration
    *
    * @return The configuration
    * @since 2.1.1
