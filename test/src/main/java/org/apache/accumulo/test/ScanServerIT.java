@@ -24,6 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Properties;
@@ -263,6 +265,13 @@ public class ScanServerIT extends SharedMiniClusterBase {
         // Throws an exception because of the tablets with the NEVER hosting goal
         scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
         assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+
+        // Test that hosted ranges work
+        scanner.setRange(new Range(null, "row_0000000003"));
+        assertEquals(40, Iterables.size(scanner));
+
+        scanner.setRange(new Range("row_0000000008", null));
+        assertEquals(20, Iterables.size(scanner));
       } // when the scanner is closed, all open sessions should be closed
     }
   }
@@ -315,6 +324,13 @@ public class ScanServerIT extends SharedMiniClusterBase {
         // Throws an exception because of the tablets with the NEVER hosting goal
         scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
         assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+
+        // Test that hosted ranges work
+        Collection<Range> ranges = new ArrayList<>();
+        ranges.add(new Range(null, "row_0000000003"));
+        ranges.add(new Range("row_0000000008", null));
+        scanner.setRanges(ranges);
+        assertEquals(60, Iterables.size(scanner));
       } // when the scanner is closed, all open sessions should be closed
     }
   }
