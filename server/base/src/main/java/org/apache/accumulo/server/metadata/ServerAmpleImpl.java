@@ -189,13 +189,13 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void removeBulkLoadEntries(TableId tableId, long tid) {
+  public void removeBulkLoadEntries(TableId tableId, long tid, Text firstSplit, Text lastSplit) {
     Preconditions.checkArgument(DataLevel.of(tableId) == DataLevel.USER);
     try (
         Scanner mscanner =
             new IsolatedScanner(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
         BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
-      mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
+      mscanner.setRange(new KeyExtent(tableId, lastSplit, firstSplit).toMetaRange());
       mscanner.fetchColumnFamily(BulkFileColumnFamily.NAME);
 
       for (Map.Entry<Key,Value> entry : mscanner) {

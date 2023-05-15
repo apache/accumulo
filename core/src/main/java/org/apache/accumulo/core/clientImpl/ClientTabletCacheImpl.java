@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -620,8 +621,9 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
     List<TKeyExtent> extentsToBringOnline = new ArrayList<>();
 
-    try (TabletsMetadata tm = context.getAmple().readTablets().forTablets(extentsToLookup)
-        .fetch(HOSTING_REQUESTED, HOSTING_GOAL).build()) {
+    try (TabletsMetadata tm =
+        context.getAmple().readTablets().forTablets(extentsToLookup, Optional.empty())
+            .fetch(HOSTING_REQUESTED, HOSTING_GOAL).build()) {
 
       for (TabletMetadata tabletMetadata : tm) {
         if (tabletMetadata.getHostingGoal() == TabletHostingGoal.ONDEMAND

@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -88,7 +89,8 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   protected Map<KeyExtent,TabletMetadata> readTablets(List<KeyExtent> extents) {
     Map<KeyExtent,TabletMetadata> failedTablets = new HashMap<>();
 
-    try (var tabletsMeta = context.getAmple().readTablets().forTablets(extents).build()) {
+    try (var tabletsMeta =
+        context.getAmple().readTablets().forTablets(extents, Optional.empty()).build()) {
       tabletsMeta
           .forEach(tabletMetadata -> failedTablets.put(tabletMetadata.getExtent(), tabletMetadata));
     }

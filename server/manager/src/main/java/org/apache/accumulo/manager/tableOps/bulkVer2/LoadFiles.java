@@ -42,7 +42,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
@@ -57,6 +56,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
@@ -146,7 +146,7 @@ class LoadFiles extends ManagerRepo {
     // Each RPC to a tablet server needs to check in zookeeper to see if the transaction is still
     // active. The purpose of this map is to group load request by tablet servers inorder to do less
     // RPCs. Less RPCs will result in less calls to Zookeeper.
-    Map<HostAndPort,Map<TKeyExtent,Map<String,MapFileInfo>>> loadQueue;
+    Map<HostAndPort,Map<TKeyExtent,Map<String,DataFileInfo>>> loadQueue;
     private int queuedDataSize = 0;
 
     @Override
@@ -189,11 +189,11 @@ class LoadFiles extends ManagerRepo {
     }
 
     private void addToQueue(HostAndPort server, KeyExtent extent,
-        Map<String,MapFileInfo> thriftImports) {
+        Map<String,DataFileInfo> thriftImports) {
       if (!thriftImports.isEmpty()) {
         loadMsgs.increment(server, 1);
 
-        Map<String,MapFileInfo> prev = loadQueue.computeIfAbsent(server, k -> new HashMap<>())
+        Map<String,DataFileInfo> prev = loadQueue.computeIfAbsent(server, k -> new HashMap<>())
             .putIfAbsent(extent.toThrift(), thriftImports);
 
         Preconditions.checkState(prev == null, "Unexpectedly saw extent %s twice", extent);
@@ -222,14 +222,14 @@ class LoadFiles extends ManagerRepo {
 
         Set<TabletFile> loadedFiles = tablet.getLoaded().keySet();
 
-        Map<String,MapFileInfo> thriftImports = new HashMap<>();
+        Map<String,DataFileInfo> thriftImports = new HashMap<>();
 
         for (final Bulk.FileInfo fileInfo : files) {
           Path fullPath = new Path(bulkDir, fileInfo.getFileName());
           TabletFile bulkFile = new TabletFile(fullPath);
 
           if (!loadedFiles.contains(bulkFile)) {
-            thriftImports.put(fileInfo.getFileName(), new MapFileInfo(fileInfo.getEstFileSize()));
+            thriftImports.put(fileInfo.getFileName(), new DataFileInfo(fileInfo.getEstFileSize()));
           }
         }
 

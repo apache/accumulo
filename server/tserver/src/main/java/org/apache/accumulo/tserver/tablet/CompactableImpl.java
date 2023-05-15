@@ -1280,7 +1280,7 @@ public class CompactableImpl implements Compactable {
       TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg);
       tablet.incrementStatusMajor();
       var check = new CompactionCheck(service, kind, cInfo.checkCompactionId);
-      TabletFile tmpFileName = tablet.getNextMapFilenameForMajc(cInfo.propagateDeletes);
+      TabletFile tmpFileName = tablet.getNextDataFilenameForMajc(cInfo.propagateDeletes);
       var compactEnv = new MajCEnv(kind, check, readLimiter, writeLimiter, cInfo.propagateDeletes);
 
       SortedMap<StoredTabletFile,DataFileValue> allFiles = tablet.getDatafiles();
@@ -1323,7 +1323,7 @@ public class CompactableImpl implements Compactable {
       Map<String,String> overrides =
           CompactableUtils.getOverrides(job.getKind(), tablet, cInfo.localHelper, job.getFiles());
 
-      TabletFile compactTmpName = tablet.getNextMapFilenameForMajc(cInfo.propagateDeletes);
+      TabletFile compactTmpName = tablet.getNextDataFilenameForMajc(cInfo.propagateDeletes);
 
       ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
 

@@ -216,7 +216,7 @@ public abstract class TabletBase {
       throw ioe;
     } finally {
       // code in finally block because always want
-      // to return mapfiles, even when exception is thrown
+      // to return data files, even when exception is thrown
       dataSource.close(false);
 
       synchronized (this) {
