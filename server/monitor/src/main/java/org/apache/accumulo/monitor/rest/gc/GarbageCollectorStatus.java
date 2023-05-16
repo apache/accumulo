@@ -40,10 +40,10 @@ public class GarbageCollectorStatus {
    */
   public GarbageCollectorStatus(GCStatus status) {
     if (status != null) {
-      stats.add(new GarbageCollectorStats("Current GC", status.current));
-      stats.add(new GarbageCollectorStats("Last GC", status.last));
-      stats.add(new GarbageCollectorStats("Current WAL", status.currentLog));
-      stats.add(new GarbageCollectorStats("Last WAL", status.lastLog));
+      stats.add(new GarbageCollectorStats("Current GC", status.getCurrent()));
+      stats.add(new GarbageCollectorStats("Last GC", status.getLast()));
+      stats.add(new GarbageCollectorStats("Current WAL", status.getCurrentLog()));
+      stats.add(new GarbageCollectorStats("Last WAL", status.getLastLog()));
     }
   }
 }

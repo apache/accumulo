@@ -39,20 +39,21 @@ public class TabletStatsKeeper {
     try {
       ActionStats data = map[operation.ordinal()];
       if (failed) {
-        data.fail++;
-        data.status--;
+        data.setFail(data.getFail() + 1);
+        data.setStatus(data.getStatus() - 1);
       } else {
         double t = (System.currentTimeMillis() - start) / 1000.0;
         double q = (start - queued) / 1000.0;
 
-        data.status--;
-        data.count += count;
-        data.num++;
-        data.elapsed += t;
-        data.queueTime += q;
-        data.sumDev += t * t;
-        data.queueSumDev += q * q;
-        if (data.elapsed < 0 || data.sumDev < 0 || data.queueSumDev < 0 || data.queueTime < 0) {
+        data.setStatus(data.getStatus() - 1);
+        data.setCount(data.getCount() + count);
+        data.setNum(data.getNum() + 1);
+        data.setElapsed(data.getElapsed() + t);
+        data.setQueueTime(data.getQueueTime() + q);
+        data.setSumDev(data.getSumDev() + t * t);
+        data.setQueueSumDev(data.getQueueSumDev() + q * q);
+        if (data.getElapsed() < 0 || data.getSumDev() < 0 || data.getQueueSumDev() < 0
+            || data.getQueueTime() < 0) {
           resetTimes();
         }
       }
@@ -66,17 +67,18 @@ public class TabletStatsKeeper {
     try {
       ActionStats data = map[operation.ordinal()];
       if (failed) {
-        data.fail++;
-        data.status--;
+        data.setFail(data.getFail() + 1);
+        data.setStatus(data.getStatus() - 1);
       } else {
         double t = (System.currentTimeMillis() - start) / 1000.0;
 
-        data.status--;
-        data.num++;
-        data.elapsed += t;
-        data.sumDev += t * t;
+        data.setStatus(data.getStatus() - 1);
+        data.setNum(data.getNum() + 1);
+        data.setElapsed(data.getElapsed() + t);
+        data.setSumDev(data.getSumDev() + t * t);
 
-        if (data.elapsed < 0 || data.sumDev < 0 || data.queueSumDev < 0 || data.queueTime < 0) {
+        if (data.getElapsed() < 0 || data.getSumDev() < 0 || data.getQueueSumDev() < 0
+            || data.getQueueTime() < 0) {
           resetTimes();
         }
       }
@@ -87,8 +89,8 @@ public class TabletStatsKeeper {
   }
 
   public void saveMajorMinorTimes(TabletStats t) {
-    ActionStatsUpdator.update(minor, t.minors);
-    ActionStatsUpdator.update(major, t.majors);
+    ActionStatsUpdator.update(minor, t.getMinors());
+    ActionStatsUpdator.update(major, t.getMajors());
   }
 
   private void resetTimes() {
@@ -98,15 +100,15 @@ public class TabletStatsKeeper {
   }
 
   public void incrementStatusMinor() {
-    minor.status++;
+    minor.setStatus(minor.getStatus() + 1);
   }
 
   public void incrementStatusMajor() {
-    major.status++;
+    major.setStatus(major.getStatus() + 1);
   }
 
   void incrementStatusSplit() {
-    split.status++;
+    split.setStatus(split.getStatus() + 1);
   }
 
   public TabletStats getTabletStats() {
