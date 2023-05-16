@@ -31,8 +31,8 @@ public class FastFormat {
     String strNum = Long.toString(num, radix);
     byte[] ret = new byte[Math.max(strNum.length(), width) + prefix.length];
     if (toZeroPaddedString(ret, 0, strNum, width, prefix) != ret.length) {
-      throw new RuntimeException(" Did not format to expected width " + num + " " + width + " "
-          + radix + " " + new String(prefix, UTF_8));
+      throw new IllegalArgumentException(" Did not format to expected width " + num + " " + width
+          + " " + radix + " " + new String(prefix, UTF_8));
     }
     return ret;
   }

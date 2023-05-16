@@ -35,10 +35,10 @@ public class BlockCacheManagerFactory {
    *
    * @param conf accumulo configuration
    * @return block cache manager instance
-   * @throws Exception error loading block cache manager implementation class
+   * @throws ReflectiveOperationException error loading block cache manager implementation class
    */
   public static synchronized BlockCacheManager getInstance(AccumuloConfiguration conf)
-      throws Exception {
+      throws ReflectiveOperationException {
     String impl = conf.get(Property.TSERV_CACHE_MANAGER_IMPL);
     Class<? extends BlockCacheManager> clazz =
         ClassLoaderUtil.loadClass(impl, BlockCacheManager.class);
@@ -51,10 +51,10 @@ public class BlockCacheManagerFactory {
    *
    * @param conf accumulo configuration
    * @return block cache manager instance
-   * @throws Exception error loading block cache manager implementation class
+   * @throws ReflectiveOperationException error loading block cache manager implementation class
    */
   public static synchronized BlockCacheManager getClientInstance(AccumuloConfiguration conf)
-      throws Exception {
+      throws ReflectiveOperationException {
     String impl = conf.get(Property.TSERV_CACHE_MANAGER_IMPL);
     Class<? extends BlockCacheManager> clazz =
         Class.forName(impl).asSubclass(BlockCacheManager.class);
