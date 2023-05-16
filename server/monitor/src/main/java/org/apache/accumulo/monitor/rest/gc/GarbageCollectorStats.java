@@ -52,6 +52,6 @@ public class GarbageCollectorStats {
     this.inUse = thriftStats.inUse;
     this.deleted = thriftStats.deleted;
     this.errors = thriftStats.errors;
-    this.duration = this.finished - thriftStats.started;
+    this.duration = thriftStats.finished - thriftStats.started;
   }
 }
