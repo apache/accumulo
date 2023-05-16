@@ -34,8 +34,8 @@ public class TDelegationToken implements org.apache.thrift.TBase<TDelegationToke
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TDelegationTokenStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TDelegationTokenTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer password; // required
-  public @org.apache.thrift.annotation.Nullable TAuthenticationTokenIdentifier identifier; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer password; // required
+  private @org.apache.thrift.annotation.Nullable TAuthenticationTokenIdentifier identifier; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

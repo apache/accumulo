@@ -870,7 +870,7 @@ public class ThriftTest {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new success_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new success_resultTupleSchemeFactory();
 
-    public boolean success; // required
+    private boolean success; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -1511,7 +1511,7 @@ public class ThriftTest {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new fails_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new fails_resultTupleSchemeFactory();
 
-    public boolean success; // required
+    private boolean success; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -2153,8 +2153,8 @@ public class ThriftTest {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new throwsError_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new throwsError_resultTupleSchemeFactory();
 
-    public boolean success; // required
-    public @org.apache.thrift.annotation.Nullable ThriftSecurityException ex; // required
+    private boolean success; // required
+    private @org.apache.thrift.annotation.Nullable ThriftSecurityException ex; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {

@@ -36,10 +36,10 @@ public class GCStatus implements org.apache.thrift.TBase<GCStatus, GCStatus._Fie
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new GCStatusStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new GCStatusTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable GcCycleStats last; // required
-  public @org.apache.thrift.annotation.Nullable GcCycleStats lastLog; // required
-  public @org.apache.thrift.annotation.Nullable GcCycleStats current; // required
-  public @org.apache.thrift.annotation.Nullable GcCycleStats currentLog; // required
+  private @org.apache.thrift.annotation.Nullable GcCycleStats last; // required
+  private @org.apache.thrift.annotation.Nullable GcCycleStats lastLog; // required
+  private @org.apache.thrift.annotation.Nullable GcCycleStats current; // required
+  private @org.apache.thrift.annotation.Nullable GcCycleStats currentLog; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

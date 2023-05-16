@@ -1527,23 +1527,23 @@ public class TabletScanClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new startScan_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new startScan_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TRange range; // required
-    public @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns; // required
-    public int batchSize; // required
-    public @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList; // required
-    public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio; // required
-    public @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> authorizations; // required
-    public boolean waitForWrites; // required
-    public boolean isolated; // required
-    public long readaheadThreshold; // required
-    public @org.apache.thrift.annotation.Nullable TSamplerConfiguration samplerConfig; // required
-    public long batchTimeOut; // required
-    public @org.apache.thrift.annotation.Nullable java.lang.String classLoaderContext; // required
-    public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> executionHints; // required
-    public long busyTimeout; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TRange range; // required
+    private @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns; // required
+    private int batchSize; // required
+    private @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList; // required
+    private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio; // required
+    private @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> authorizations; // required
+    private boolean waitForWrites; // required
+    private boolean isolated; // required
+    private long readaheadThreshold; // required
+    private @org.apache.thrift.annotation.Nullable TSamplerConfiguration samplerConfig; // required
+    private long batchTimeOut; // required
+    private @org.apache.thrift.annotation.Nullable java.lang.String classLoaderContext; // required
+    private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> executionHints; // required
+    private long busyTimeout; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -3865,12 +3865,12 @@ public class TabletScanClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new startScan_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new startScan_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.InitialScan success; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException nste; // required
-    public @org.apache.thrift.annotation.Nullable TooManyFilesException tmfe; // required
-    public @org.apache.thrift.annotation.Nullable TSampleNotPresentException tsnpe; // required
-    public @org.apache.thrift.annotation.Nullable ScanServerBusyException ssbe; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.InitialScan success; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException nste; // required
+    private @org.apache.thrift.annotation.Nullable TooManyFilesException tmfe; // required
+    private @org.apache.thrift.annotation.Nullable TSampleNotPresentException tsnpe; // required
+    private @org.apache.thrift.annotation.Nullable ScanServerBusyException ssbe; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -4780,9 +4780,9 @@ public class TabletScanClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new continueScan_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new continueScan_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
-    public long scanID; // required
-    public long busyTimeout; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
+    private long scanID; // required
+    private long busyTimeout; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -5363,12 +5363,12 @@ public class TabletScanClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new continueScan_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new continueScan_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.ScanResult success; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException nssi; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException nste; // required
-    public @org.apache.thrift.annotation.Nullable TooManyFilesException tmfe; // required
-    public @org.apache.thrift.annotation.Nullable TSampleNotPresentException tsnpe; // required
-    public @org.apache.thrift.annotation.Nullable ScanServerBusyException ssbe; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.ScanResult success; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException nssi; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException nste; // required
+    private @org.apache.thrift.annotation.Nullable TooManyFilesException tmfe; // required
+    private @org.apache.thrift.annotation.Nullable TSampleNotPresentException tsnpe; // required
+    private @org.apache.thrift.annotation.Nullable ScanServerBusyException ssbe; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -6277,8 +6277,8 @@ public class TabletScanClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new closeScan_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new closeScan_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
-    public long scanID; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
+    private long scanID; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -6772,19 +6772,19 @@ public class TabletScanClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new startMultiScan_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new startMultiScan_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
-    public @org.apache.thrift.annotation.Nullable java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRange>> batch; // required
-    public @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns; // required
-    public @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList; // required
-    public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio; // required
-    public @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> authorizations; // required
-    public boolean waitForWrites; // required
-    public @org.apache.thrift.annotation.Nullable TSamplerConfiguration samplerConfig; // required
-    public long batchTimeOut; // required
-    public @org.apache.thrift.annotation.Nullable java.lang.String classLoaderContext; // required
-    public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> executionHints; // required
-    public long busyTimeout; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
+    private @org.apache.thrift.annotation.Nullable java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRange>> batch; // required
+    private @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns; // required
+    private @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList; // required
+    private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio; // required
+    private @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> authorizations; // required
+    private boolean waitForWrites; // required
+    private @org.apache.thrift.annotation.Nullable TSamplerConfiguration samplerConfig; // required
+    private long batchTimeOut; // required
+    private @org.apache.thrift.annotation.Nullable java.lang.String classLoaderContext; // required
+    private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> executionHints; // required
+    private long busyTimeout; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -8809,10 +8809,10 @@ public class TabletScanClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new startMultiScan_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new startMultiScan_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan success; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
-    public @org.apache.thrift.annotation.Nullable TSampleNotPresentException tsnpe; // required
-    public @org.apache.thrift.annotation.Nullable ScanServerBusyException ssbe; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan success; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
+    private @org.apache.thrift.annotation.Nullable TSampleNotPresentException tsnpe; // required
+    private @org.apache.thrift.annotation.Nullable ScanServerBusyException ssbe; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -9512,9 +9512,9 @@ public class TabletScanClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new continueMultiScan_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new continueMultiScan_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
-    public long scanID; // required
-    public long busyTimeout; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
+    private long scanID; // required
+    private long busyTimeout; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -10093,10 +10093,10 @@ public class TabletScanClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new continueMultiScan_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new continueMultiScan_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.MultiScanResult success; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException nssi; // required
-    public @org.apache.thrift.annotation.Nullable TSampleNotPresentException tsnpe; // required
-    public @org.apache.thrift.annotation.Nullable ScanServerBusyException ssbe; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.MultiScanResult success; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException nssi; // required
+    private @org.apache.thrift.annotation.Nullable TSampleNotPresentException tsnpe; // required
+    private @org.apache.thrift.annotation.Nullable ScanServerBusyException ssbe; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -10795,8 +10795,8 @@ public class TabletScanClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new closeMultiScan_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new closeMultiScan_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
-    public long scanID; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
+    private long scanID; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -11278,7 +11278,7 @@ public class TabletScanClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new closeMultiScan_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new closeMultiScan_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException nssi; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException nssi; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -11659,8 +11659,8 @@ public class TabletScanClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getActiveScans_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getActiveScans_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -12153,8 +12153,8 @@ public class TabletScanClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getActiveScans_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getActiveScans_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.util.List<ActiveScan> success; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
+    private @org.apache.thrift.annotation.Nullable java.util.List<ActiveScan> success; // required
+    private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {

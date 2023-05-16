@@ -35,9 +35,9 @@ public class RecoveryStatus implements org.apache.thrift.TBase<RecoveryStatus, R
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new RecoveryStatusStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new RecoveryStatusTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String name; // required
-  public int runtime; // required
-  public double progress; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String name; // required
+  private int runtime; // required
+  private double progress; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

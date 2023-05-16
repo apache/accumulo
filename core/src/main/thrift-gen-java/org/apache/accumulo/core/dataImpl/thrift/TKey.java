@@ -37,11 +37,11 @@ public class TKey implements org.apache.thrift.TBase<TKey, TKey._Fields>, java.i
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TKeyStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TKeyTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer row; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer colFamily; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer colQualifier; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer colVisibility; // required
-  public long timestamp; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer row; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer colFamily; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer colQualifier; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer colVisibility; // required
+  private long timestamp; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

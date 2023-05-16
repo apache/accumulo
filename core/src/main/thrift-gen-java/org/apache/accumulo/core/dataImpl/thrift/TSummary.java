@@ -37,11 +37,11 @@ public class TSummary implements org.apache.thrift.TBase<TSummary, TSummary._Fie
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TSummaryStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TSummaryTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.Long> summary; // required
-  public @org.apache.thrift.annotation.Nullable TSummarizerConfiguration config; // required
-  public long filesContaining; // required
-  public long filesExceeding; // required
-  public long filesLarge; // required
+  private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.Long> summary; // required
+  private @org.apache.thrift.annotation.Nullable TSummarizerConfiguration config; // required
+  private long filesContaining; // required
+  private long filesExceeding; // required
+  private long filesLarge; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

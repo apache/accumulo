@@ -34,8 +34,8 @@ public class InitialMultiScan implements org.apache.thrift.TBase<InitialMultiSca
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new InitialMultiScanStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new InitialMultiScanTupleSchemeFactory();
 
-  public long scanID; // required
-  public @org.apache.thrift.annotation.Nullable MultiScanResult result; // required
+  private long scanID; // required
+  private @org.apache.thrift.annotation.Nullable MultiScanResult result; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

@@ -37,11 +37,11 @@ public class TSummaries implements org.apache.thrift.TBase<TSummaries, TSummarie
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TSummariesStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TSummariesTupleSchemeFactory();
 
-  public boolean finished; // required
-  public long sessionId; // required
-  public long totalFiles; // required
-  public long deletedFiles; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<TSummary> summaries; // required
+  private boolean finished; // required
+  private long sessionId; // required
+  private long totalFiles; // required
+  private long deletedFiles; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<TSummary> summaries; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

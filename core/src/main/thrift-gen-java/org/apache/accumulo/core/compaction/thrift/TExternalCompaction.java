@@ -36,10 +36,10 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TExternalCompactionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TExternalCompactionTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String queueName; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String compactor; // required
-  public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.Long,TCompactionStatusUpdate> updates; // required
-  public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob job; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String queueName; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String compactor; // required
+  private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.Long,TCompactionStatusUpdate> updates; // required
+  private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob job; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

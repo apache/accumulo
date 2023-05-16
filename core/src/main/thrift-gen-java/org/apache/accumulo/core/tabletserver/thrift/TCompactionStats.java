@@ -35,9 +35,9 @@ public class TCompactionStats implements org.apache.thrift.TBase<TCompactionStat
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TCompactionStatsStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TCompactionStatsTupleSchemeFactory();
 
-  public long entriesRead; // required
-  public long entriesWritten; // required
-  public long fileSize; // required
+  private long entriesRead; // required
+  private long entriesWritten; // required
+  private long fileSize; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

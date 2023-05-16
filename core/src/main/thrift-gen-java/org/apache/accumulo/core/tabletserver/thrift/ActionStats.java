@@ -40,14 +40,14 @@ public class ActionStats implements org.apache.thrift.TBase<ActionStats, ActionS
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ActionStatsStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ActionStatsTupleSchemeFactory();
 
-  public int status; // required
-  public double elapsed; // required
-  public int num; // required
-  public long count; // required
-  public double sumDev; // required
-  public int fail; // required
-  public double queueTime; // required
-  public double queueSumDev; // required
+  private int status; // required
+  private double elapsed; // required
+  private int num; // required
+  private long count; // required
+  private double sumDev; // required
+  private int fail; // required
+  private double queueTime; // required
+  private double queueSumDev; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

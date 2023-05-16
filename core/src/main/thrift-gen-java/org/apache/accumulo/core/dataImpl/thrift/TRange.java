@@ -38,12 +38,12 @@ public class TRange implements org.apache.thrift.TBase<TRange, TRange._Fields>, 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TRangeStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TRangeTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable TKey start; // required
-  public @org.apache.thrift.annotation.Nullable TKey stop; // required
-  public boolean startKeyInclusive; // required
-  public boolean stopKeyInclusive; // required
-  public boolean infiniteStartKey; // required
-  public boolean infiniteStopKey; // required
+  private @org.apache.thrift.annotation.Nullable TKey start; // required
+  private @org.apache.thrift.annotation.Nullable TKey stop; // required
+  private boolean startKeyInclusive; // required
+  private boolean stopKeyInclusive; // required
+  private boolean infiniteStartKey; // required
+  private boolean infiniteStopKey; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

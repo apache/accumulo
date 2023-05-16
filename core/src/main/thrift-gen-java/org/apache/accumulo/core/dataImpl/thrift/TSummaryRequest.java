@@ -36,10 +36,10 @@ public class TSummaryRequest implements org.apache.thrift.TBase<TSummaryRequest,
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TSummaryRequestStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TSummaryRequestTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String tableId; // required
-  public @org.apache.thrift.annotation.Nullable TRowRange bounds; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<TSummarizerConfiguration> summarizers; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String summarizerPattern; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String tableId; // required
+  private @org.apache.thrift.annotation.Nullable TRowRange bounds; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<TSummarizerConfiguration> summarizers; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String summarizerPattern; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

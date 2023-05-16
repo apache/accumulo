@@ -48,22 +48,22 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TabletServerStatusStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TabletServerStatusTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,TableInfo> tableMap; // required
-  public long lastContact; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String name; // required
-  public double osLoad; // required
-  public long holdTime; // required
-  public long lookups; // required
-  public long indexCacheHits; // required
-  public long indexCacheRequest; // required
-  public long dataCacheHits; // required
-  public long dataCacheRequest; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<RecoveryStatus> logSorts; // required
-  public long flushs; // required
-  public long syncs; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<BulkImportStatus> bulkImports; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String version; // required
-  public long responseTime; // required
+  private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,TableInfo> tableMap; // required
+  private long lastContact; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String name; // required
+  private double osLoad; // required
+  private long holdTime; // required
+  private long lookups; // required
+  private long indexCacheHits; // required
+  private long indexCacheRequest; // required
+  private long dataCacheHits; // required
+  private long dataCacheRequest; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<RecoveryStatus> logSorts; // required
+  private long flushs; // required
+  private long syncs; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<BulkImportStatus> bulkImports; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String version; // required
+  private long responseTime; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

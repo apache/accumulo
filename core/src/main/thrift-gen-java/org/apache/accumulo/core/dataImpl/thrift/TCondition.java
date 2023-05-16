@@ -39,13 +39,13 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TConditionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TConditionTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cf; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cq; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cv; // required
-  public long ts; // required
-  public boolean hasTimestamp; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer val; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer iterators; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cf; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cq; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cv; // required
+  private long ts; // required
+  private boolean hasTimestamp; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer val; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer iterators; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

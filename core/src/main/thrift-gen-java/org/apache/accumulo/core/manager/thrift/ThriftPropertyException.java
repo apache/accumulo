@@ -35,9 +35,9 @@ public class ThriftPropertyException extends org.apache.thrift.TException implem
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ThriftPropertyExceptionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ThriftPropertyExceptionTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String property; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String value; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String description; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String property; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String value; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String description; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

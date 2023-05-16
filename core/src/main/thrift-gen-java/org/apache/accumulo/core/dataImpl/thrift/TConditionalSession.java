@@ -35,9 +35,9 @@ public class TConditionalSession implements org.apache.thrift.TBase<TConditional
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TConditionalSessionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TConditionalSessionTupleSchemeFactory();
 
-  public long sessionId; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String tserverLock; // required
-  public long ttl; // required
+  private long sessionId; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String tserverLock; // required
+  private long ttl; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

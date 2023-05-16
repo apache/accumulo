@@ -44,18 +44,18 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TableInfoStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TableInfoTupleSchemeFactory();
 
-  public long recs; // required
-  public long recsInMemory; // required
-  public int tablets; // required
-  public int onlineTablets; // required
-  public double ingestRate; // required
-  public double ingestByteRate; // required
-  public double queryRate; // required
-  public double queryByteRate; // required
-  public @org.apache.thrift.annotation.Nullable Compacting minors; // required
-  public @org.apache.thrift.annotation.Nullable Compacting majors; // required
-  public @org.apache.thrift.annotation.Nullable Compacting scans; // required
-  public double scanRate; // required
+  private long recs; // required
+  private long recsInMemory; // required
+  private int tablets; // required
+  private int onlineTablets; // required
+  private double ingestRate; // required
+  private double ingestByteRate; // required
+  private double queryRate; // required
+  private double queryByteRate; // required
+  private @org.apache.thrift.annotation.Nullable Compacting minors; // required
+  private @org.apache.thrift.annotation.Nullable Compacting majors; // required
+  private @org.apache.thrift.annotation.Nullable Compacting scans; // required
+  private double scanRate; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

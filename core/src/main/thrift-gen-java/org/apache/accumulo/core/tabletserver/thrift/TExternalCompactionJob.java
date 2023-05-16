@@ -41,15 +41,15 @@ public class TExternalCompactionJob implements org.apache.thrift.TBase<TExternal
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TExternalCompactionJobStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TExternalCompactionJobTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String externalCompactionId; // required
-  public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<InputFile> files; // required
-  public @org.apache.thrift.annotation.Nullable IteratorConfig iteratorSettings; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String outputFile; // required
-  public boolean propagateDeletes; // required
-  public @org.apache.thrift.annotation.Nullable TCompactionKind kind; // required
-  public long userCompactionId; // required
-  public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> overrides; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String externalCompactionId; // required
+  private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<InputFile> files; // required
+  private @org.apache.thrift.annotation.Nullable IteratorConfig iteratorSettings; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String outputFile; // required
+  private boolean propagateDeletes; // required
+  private @org.apache.thrift.annotation.Nullable TCompactionKind kind; // required
+  private long userCompactionId; // required
+  private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> overrides; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

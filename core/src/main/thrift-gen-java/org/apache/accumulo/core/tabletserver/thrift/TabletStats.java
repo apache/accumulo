@@ -40,14 +40,14 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TabletStatsStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TabletStatsTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
-  public @org.apache.thrift.annotation.Nullable ActionStats majors; // required
-  public @org.apache.thrift.annotation.Nullable ActionStats minors; // required
-  public @org.apache.thrift.annotation.Nullable ActionStats splits; // required
-  public long numEntries; // required
-  public double ingestRate; // required
-  public double queryRate; // required
-  public long splitCreationTime; // required
+  private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
+  private @org.apache.thrift.annotation.Nullable ActionStats majors; // required
+  private @org.apache.thrift.annotation.Nullable ActionStats minors; // required
+  private @org.apache.thrift.annotation.Nullable ActionStats splits; // required
+  private long numEntries; // required
+  private double ingestRate; // required
+  private double queryRate; // required
+  private long splitCreationTime; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

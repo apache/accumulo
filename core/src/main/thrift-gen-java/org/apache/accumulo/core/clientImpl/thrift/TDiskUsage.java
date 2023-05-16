@@ -34,8 +34,8 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TDiskUsageStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TDiskUsageTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> tables; // required
-  public long usage; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> tables; // required
+  private long usage; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

@@ -36,10 +36,10 @@ public class TConstraintViolationSummary implements org.apache.thrift.TBase<TCon
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TConstraintViolationSummaryStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TConstraintViolationSummaryTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String constrainClass; // required
-  public short violationCode; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String violationDescription; // required
-  public long numberOfViolatingMutations; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String constrainClass; // required
+  private short violationCode; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String violationDescription; // required
+  private long numberOfViolatingMutations; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

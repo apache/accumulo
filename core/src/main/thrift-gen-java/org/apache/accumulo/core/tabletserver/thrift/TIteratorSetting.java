@@ -36,10 +36,10 @@ public class TIteratorSetting implements org.apache.thrift.TBase<TIteratorSettin
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TIteratorSettingStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TIteratorSettingTupleSchemeFactory();
 
-  public int priority; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String name; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String iteratorClass; // required
-  public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> properties; // required
+  private int priority; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String name; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String iteratorClass; // required
+  private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> properties; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

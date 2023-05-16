@@ -33,7 +33,7 @@ public class ThriftConcurrentModificationException extends org.apache.thrift.TEx
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ThriftConcurrentModificationExceptionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ThriftConcurrentModificationExceptionTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String description; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String description; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
