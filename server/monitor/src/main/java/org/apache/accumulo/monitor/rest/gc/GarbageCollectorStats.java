@@ -32,6 +32,7 @@ public class GarbageCollectorStats {
 
   // Variable names become JSON key
   public final String type;
+  public final long started;
   public final long finished;
   public final long candidates;
   public final long inUse;
@@ -47,6 +48,7 @@ public class GarbageCollectorStats {
   public GarbageCollectorStats(String type, GcCycleStats thriftStats) {
     log.info("Creating {} stats using thriftStats = {}", type, thriftStats);
     this.type = type;
+    this.started = thriftStats.started;
     this.finished = thriftStats.finished;
     this.candidates = thriftStats.candidates;
     this.inUse = thriftStats.inUse;
