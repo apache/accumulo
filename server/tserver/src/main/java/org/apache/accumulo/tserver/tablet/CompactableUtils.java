@@ -198,8 +198,8 @@ public class CompactableUtils {
     String context = ClassLoaderUtil.tableContext(tableConfig);
     try {
       return ConfigurationTypeHelper.getClassInstance(context, className, baseClass);
-    } catch (IOException | ReflectiveOperationException e) {
-      throw new RuntimeException(e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalArgumentException(e);
     }
   }
 

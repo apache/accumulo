@@ -154,7 +154,7 @@ public class MetadataTableUtil {
       } catch (ConstraintViolationException e) {
         logUpdateFailure(m, extent, e);
         // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
@@ -406,7 +406,7 @@ public class MetadataTableUtil {
     TabletMetadata tablet = context.getAmple().readTablet(extent, FILES, LOGS, PREV_ROW, DIR);
 
     if (tablet == null) {
-      throw new RuntimeException("Tablet " + extent + " not found in metadata");
+      throw new IllegalStateException("Tablet " + extent + " not found in metadata");
     }
 
     result.addAll(tablet.getLogs());
@@ -478,7 +478,7 @@ public class MetadataTableUtil {
     Iterator<TabletMetadata> ti = createCloneScanner(testTableName, srcTableId, client).iterator();
 
     if (!ti.hasNext()) {
-      throw new RuntimeException(" table deleted during clone?  srcTableId = " + srcTableId);
+      throw new IllegalStateException(" table deleted during clone?  srcTableId = " + srcTableId);
     }
 
     while (ti.hasNext()) {
@@ -504,7 +504,7 @@ public class MetadataTableUtil {
         createCloneScanner(testTableName, tableId, client).iterator();
 
     if (!cloneIter.hasNext() || !srcIter.hasNext()) {
-      throw new RuntimeException(
+      throw new IllegalStateException(
           " table deleted during clone?  srcTableId = " + srcTableId + " tableId=" + tableId);
     }
 

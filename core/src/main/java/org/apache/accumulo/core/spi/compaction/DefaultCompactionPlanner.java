@@ -210,87 +210,81 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
   @Override
   public CompactionPlan makePlan(PlanningParameters params) {
-    try {
+    if (params.getCandidates().isEmpty()) {
+      return params.createPlanBuilder().build();
+    }
 
-      if (params.getCandidates().isEmpty()) {
-        return params.createPlanBuilder().build();
+    Set<CompactableFile> filesCopy = new HashSet<>(params.getCandidates());
+
+    long maxSizeToCompact = getMaxSizeToCompact(params.getKind());
+
+    Collection<CompactableFile> group;
+    if (params.getRunningCompactions().isEmpty()) {
+      group =
+          findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact, maxSizeToCompact);
+
+      if (!group.isEmpty() && group.size() < params.getCandidates().size()
+          && params.getCandidates().size() <= maxFilesToCompact
+          && (params.getKind() == CompactionKind.USER
+              || params.getKind() == CompactionKind.SELECTOR)) {
+        // USER and SELECTOR compactions must eventually compact all files. When a subset of files
+        // that meets the compaction ratio is selected, look ahead and see if the next compaction
+        // would also meet the compaction ratio. If not then compact everything to avoid doing
+        // more than logarithmic work across multiple comapctions.
+
+        filesCopy.removeAll(group);
+        filesCopy.add(getExpected(group, 0));
+
+        if (findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
+            maxSizeToCompact).isEmpty()) {
+          // The next possible compaction does not meet the compaction ratio, so compact
+          // everything.
+          group = Set.copyOf(params.getCandidates());
+        }
+
       }
 
-      Set<CompactableFile> filesCopy = new HashSet<>(params.getCandidates());
+    } else if (params.getKind() == CompactionKind.SYSTEM) {
+      // This code determines if once the files compacting finish would they be included in a
+      // compaction with the files smaller than them? If so, then wait for the running compaction
+      // to complete.
 
-      long maxSizeToCompact = getMaxSizeToCompact(params.getKind());
+      // The set of files running compactions may produce
+      var expectedFiles = getExpected(params.getRunningCompactions());
 
-      Collection<CompactableFile> group;
-      if (params.getRunningCompactions().isEmpty()) {
-        group = findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
-            maxSizeToCompact);
+      if (!Collections.disjoint(filesCopy, expectedFiles)) {
+        throw new AssertionError();
+      }
 
-        if (!group.isEmpty() && group.size() < params.getCandidates().size()
-            && params.getCandidates().size() <= maxFilesToCompact
-            && (params.getKind() == CompactionKind.USER
-                || params.getKind() == CompactionKind.SELECTOR)) {
-          // USER and SELECTOR compactions must eventually compact all files. When a subset of files
-          // that meets the compaction ratio is selected, look ahead and see if the next compaction
-          // would also meet the compaction ratio. If not then compact everything to avoid doing
-          // more than logarithmic work across multiple comapctions.
+      filesCopy.addAll(expectedFiles);
 
-          filesCopy.removeAll(group);
-          filesCopy.add(getExpected(group, 0));
+      group =
+          findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact, maxSizeToCompact);
 
-          if (findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
-              maxSizeToCompact).isEmpty()) {
-            // The next possible compaction does not meet the compaction ratio, so compact
-            // everything.
-            group = Set.copyOf(params.getCandidates());
-          }
-
-        }
-
-      } else if (params.getKind() == CompactionKind.SYSTEM) {
-        // This code determines if once the files compacting finish would they be included in a
-        // compaction with the files smaller than them? If so, then wait for the running compaction
-        // to complete.
-
-        // The set of files running compactions may produce
-        var expectedFiles = getExpected(params.getRunningCompactions());
-
-        if (!Collections.disjoint(filesCopy, expectedFiles)) {
-          throw new AssertionError();
-        }
-
-        filesCopy.addAll(expectedFiles);
-
-        group = findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
-            maxSizeToCompact);
-
-        if (!Collections.disjoint(group, expectedFiles)) {
-          // file produced by running compaction will eventually compact with existing files, so
-          // wait.
-          group = Set.of();
-        }
-      } else {
+      if (!Collections.disjoint(group, expectedFiles)) {
+        // file produced by running compaction will eventually compact with existing files, so
+        // wait.
         group = Set.of();
       }
+    } else {
+      group = Set.of();
+    }
 
-      if (group.isEmpty()
-          && (params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR
-              || params.getKind() == CompactionKind.CHOP)
-          && params.getRunningCompactions().stream()
-              .noneMatch(job -> job.getKind() == params.getKind())) {
-        group = findMaximalRequiredSetToCompact(params.getCandidates(), maxFilesToCompact);
-      }
+    if (group.isEmpty()
+        && (params.getKind() == CompactionKind.USER || params.getKind() == CompactionKind.SELECTOR
+            || params.getKind() == CompactionKind.CHOP)
+        && params.getRunningCompactions().stream()
+            .noneMatch(job -> job.getKind() == params.getKind())) {
+      group = findMaximalRequiredSetToCompact(params.getCandidates(), maxFilesToCompact);
+    }
 
-      if (group.isEmpty()) {
-        return params.createPlanBuilder().build();
-      } else {
-        // determine which executor to use based on the size of the files
-        var ceid = getExecutor(group);
+    if (group.isEmpty()) {
+      return params.createPlanBuilder().build();
+    } else {
+      // determine which executor to use based on the size of the files
+      var ceid = getExecutor(group);
 
-        return params.createPlanBuilder().addJob(createPriority(params, group), ceid, group)
-            .build();
-      }
-    } catch (RuntimeException e) {
-      throw e;
+      return params.createPlanBuilder().addJob(createPriority(params, group), ceid, group).build();
     }
   }
 
@@ -317,7 +311,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
           new URI("hdfs://fake/accumulo/tables/adef/t-zzFAKEzz/FAKE-0000" + count + ".rf"), size,
           0);
     } catch (URISyntaxException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
