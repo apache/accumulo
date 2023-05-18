@@ -2154,4 +2154,35 @@ public class Tablet extends TabletBase {
   public boolean isOnDemand() {
     return goal == TabletHostingGoal.ONDEMAND;
   }
+
+  public void refresh() {
+    if (isClosing() || isClosed()) {
+      // TODO this is just a best effort could close after this check, its a race condition.
+      // Intentionally not being handled ATM.
+      return;
+    }
+
+    log.debug("Refreshing metadata for : {}", getExtent());
+
+    // ELASTICITY_TODO this entire method is a hack at the moment with race conditions. Want to
+    // move towards the tablet just using a cached TabletMetadata object and have a central orderly
+    // thread safe way to update it within the tablet in response to external refresh request and
+    // internal events like minor compactions. Would probably be easiest to implement this after
+    // removing bulk import, split, and compactions from the tablet server. For now just leave it
+    // as a hack instead of trying to make it work correctly with the current tablet code.
+    TabletMetadata tabletMetadata =
+        getContext().getAmple().readTablet(getExtent(), ColumnType.FILES);
+
+    Map<StoredTabletFile,DataFileValue> metadataFiles = tabletMetadata.getFilesMap();
+
+    Map<StoredTabletFile,DataFileValue> currentFiles = getDatafileManager().getDatafileSizes();
+
+    // TODO this is racy, it could add files that were just deleted by a compaction. Intentionally
+    // not being handled ATM.
+    metadataFiles.forEach((f, v) -> {
+      if (!currentFiles.containsKey(f)) {
+        getDatafileManager().addFilesHack(f, v);
+      }
+    });
+  }
 }

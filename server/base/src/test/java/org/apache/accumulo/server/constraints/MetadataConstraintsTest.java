@@ -34,33 +34,11 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
 public class MetadataConstraintsTest {
-
-  static class TestMetadataConstraints extends MetadataConstraints {
-    @Override
-    protected Arbitrator getArbitrator(ServerContext context) {
-      return new Arbitrator() {
-
-        @Override
-        public boolean transactionAlive(String type, long tid) {
-          if (tid == 9) {
-            throw new RuntimeException("txid 9 reserved for future use");
-          }
-          return tid == 5 || tid == 7;
-        }
-
-        @Override
-        public boolean transactionComplete(String type, long tid) {
-          return tid != 5 && tid != 7;
-        }
-      };
-    }
-  }
 
   private SystemEnvironment createEnv() {
     SystemEnvironment env = EasyMock.createMock(SystemEnvironment.class);
@@ -147,23 +125,13 @@ public class MetadataConstraintsTest {
 
   @Test
   public void testBulkFileCheck() {
-    MetadataConstraints mc = new TestMetadataConstraints();
+    MetadataConstraints mc = new MetadataConstraints();
     Mutation m;
     List<Short> violations;
 
-    // inactive txid
-    m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("12345"));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile"),
-        new DataFileValue(1, 1).encodeAsValue());
-    violations = mc.check(createEnv(), m);
-    assertNotNull(violations);
-    assertEquals(1, violations.size());
-    assertEquals(Short.valueOf((short) 8), violations.get(0));
-
     // txid that throws exception
     m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("9"));
+    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("bad value"));
     m.put(DataFileColumnFamily.NAME, new Text("/someFile"),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
@@ -260,7 +228,7 @@ public class MetadataConstraintsTest {
 
   @Test
   public void testOperationId() {
-    MetadataConstraints mc = new TestMetadataConstraints();
+    MetadataConstraints mc = new MetadataConstraints();
     Mutation m;
     List<Short> violations;
 
@@ -276,5 +244,4 @@ public class MetadataConstraintsTest {
     violations = mc.check(createEnv(), m);
     assertNull(violations);
   }
-
 }

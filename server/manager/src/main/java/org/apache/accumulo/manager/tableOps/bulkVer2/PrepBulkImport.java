@@ -228,8 +228,6 @@ public class PrepBulkImport extends ManagerRepo {
     log.trace("{} first split:{} last split:{}", FateTxId.formatTid(tid), tabletsRange.prevEndRow(),
         tabletsRange.endRow());
 
-    bulkInfo.tableState = manager.getContext().getTableState(bulkInfo.tableId);
-
     VolumeManager fs = manager.getVolumeManager();
     final UniqueNameAllocator namer = manager.getContext().getUniqueNameAllocator();
     Path sourceDir = new Path(bulkInfo.sourceDir);

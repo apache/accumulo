@@ -21,6 +21,7 @@ package org.apache.accumulo.server.manager.state;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -95,11 +96,14 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
             });
       }
 
-      if (tabletsMutator.process().values().stream()
+      var results = tabletsMutator.process();
+
+      if (results.values().stream()
           .anyMatch(result -> result.getStatus() != ConditionalWriter.Status.ACCEPTED)) {
-        // TODO should this look at why?
+        var statuses = results.values().stream().map(Ample.ConditionalResult::getStatus)
+            .collect(Collectors.toSet());
         throw new DistributedStoreException(
-            "failed to set tablet location, conditional mutation failed");
+            "failed to set tablet location, conditional mutation failed. " + statuses);
       }
 
     } catch (RuntimeException ex) {

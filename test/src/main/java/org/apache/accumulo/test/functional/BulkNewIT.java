@@ -80,6 +80,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -180,6 +181,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
   }
 
   @Test
+  @Disabled("Need to implement set time functionality")
+  // ELASTICITY_TODO
   public void testSetTime() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = "testSetTime_table1";

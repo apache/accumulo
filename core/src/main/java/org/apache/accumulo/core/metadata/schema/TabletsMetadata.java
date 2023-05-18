@@ -349,7 +349,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             break;
           default:
             throw new IllegalArgumentException("Unknown col type " + colToFetch);
-
         }
       }
 

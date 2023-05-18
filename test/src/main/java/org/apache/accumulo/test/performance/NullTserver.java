@@ -297,6 +297,12 @@ public class NullTserver {
         String externalCompactionId, TKeyExtent extent) throws TException {}
 
     @Override
+    public List<TKeyExtent> refreshTablets(TInfo tinfo, TCredentials credentials,
+        List<TKeyExtent> extents) throws TException {
+      return List.of();
+    }
+
+    @Override
     public void requestTabletHosting(TInfo tinfo, TCredentials credentials, String tableId,
         List<TKeyExtent> extents) throws ThriftSecurityException, TException {}
   }

@@ -35,6 +35,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+//ELASTICITY_TODO remove this class
 public class TransactionWatcher {
 
   private static final Logger log = LoggerFactory.getLogger(TransactionWatcher.class);

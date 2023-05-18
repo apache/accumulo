@@ -98,6 +98,7 @@ public class RootConditionalWriter implements ConditionalWriter {
     try {
       context.getZooReaderWriter().mutateExisting(zpath, currVal -> {
         String currJson = new String(currVal, UTF_8);
+
         var rtm = new RootTabletMetadata(currJson);
 
         var iter = new ColumnFamilySkippingIterator(new SortedMapIterator(rtm.toKeyValues()));
