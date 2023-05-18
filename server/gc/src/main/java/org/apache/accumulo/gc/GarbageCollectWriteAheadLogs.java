@@ -217,12 +217,12 @@ public class GarbageCollectWriteAheadLogs {
         span5.end();
       }
 
-      status.currentLog.finished = removeStop;
-      status.lastLog = status.currentLog;
-      status.currentLog = new GcCycleStats();
-
     } catch (Exception e) {
       log.error("exception occurred while garbage collecting write ahead logs", e);
+    } finally {
+      status.currentLog.finished = System.currentTimeMillis();
+      status.lastLog = status.currentLog;
+      status.currentLog = new GcCycleStats();
     }
   }
 
