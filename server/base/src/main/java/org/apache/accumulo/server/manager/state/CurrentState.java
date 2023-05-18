@@ -42,5 +42,10 @@ public interface CurrentState {
    */
   Set<KeyExtent> migrationsSnapshot();
 
+  // ELASTICITY_TODO this approach to requesting unassignments was a quick hack
+  default Set<KeyExtent> getUnassignmentRequest() {
+    throw new UnsupportedOperationException();
+  }
+
   ManagerState getManagerState();
 }

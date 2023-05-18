@@ -77,7 +77,6 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -92,7 +91,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
@@ -1410,12 +1408,18 @@ public class Tablet extends TabletBase {
     }
   }
 
+  // TODO remove this hack that disables splits
+  private boolean getTrue() {
+    return true;
+  }
+
   /**
    * Returns true if this tablet needs to be split
    *
    */
   public synchronized boolean needsSplit(Optional<SplitComputations> splitComputations) {
-    if (isClosing() || isClosed()) {
+    // TODO remove this hack that disables splits
+    if (isClosing() || isClosed() || getTrue()) {
       return false;
     }
     return findSplitRow(splitComputations) != null;
@@ -1554,7 +1558,7 @@ public class Tablet extends TabletBase {
       KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
       KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
 
-      String lowDirectoryName = createTabletDirectoryName(context, midRow);
+      String lowDirectoryName = UniqueNameAllocator.createTabletDirectoryName(context, midRow);
 
       // write new tablet information to MetadataTable
       SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
@@ -2129,15 +2133,6 @@ public class Tablet extends TabletBase {
 
   public TabletStats getTabletStats() {
     return timer.getTabletStats();
-  }
-
-  private static String createTabletDirectoryName(ServerContext context, Text endRow) {
-    if (endRow == null) {
-      return ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
-    } else {
-      UniqueNameAllocator namer = context.getUniqueNameAllocator();
-      return Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
-    }
   }
 
   public Set<Long> getBulkIngestedTxIds() {

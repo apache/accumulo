@@ -339,7 +339,7 @@ public interface Ample {
 
     T deleteExternalCompaction(ExternalCompactionId ecid);
 
-    T setHostingGoal(TabletHostingGoal goal);
+    T putHostingGoal(TabletHostingGoal goal);
 
     T setHostingRequested();
 
