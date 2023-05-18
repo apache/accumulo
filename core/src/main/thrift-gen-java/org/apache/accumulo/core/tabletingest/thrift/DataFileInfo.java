@@ -22,16 +22,16 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.dataImpl.thrift;
+package org.apache.accumulo.core.tabletingest.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-public class MapFileInfo implements org.apache.thrift.TBase<MapFileInfo, MapFileInfo._Fields>, java.io.Serializable, Cloneable, Comparable<MapFileInfo> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("MapFileInfo");
+public class DataFileInfo implements org.apache.thrift.TBase<DataFileInfo, DataFileInfo._Fields>, java.io.Serializable, Cloneable, Comparable<DataFileInfo> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("DataFileInfo");
 
   private static final org.apache.thrift.protocol.TField ESTIMATED_SIZE_FIELD_DESC = new org.apache.thrift.protocol.TField("estimatedSize", org.apache.thrift.protocol.TType.I64, (short)1);
 
-  private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new MapFileInfoStandardSchemeFactory();
-  private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new MapFileInfoTupleSchemeFactory();
+  private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new DataFileInfoStandardSchemeFactory();
+  private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new DataFileInfoTupleSchemeFactory();
 
   public long estimatedSize; // required
 
@@ -106,13 +106,13 @@ public class MapFileInfo implements org.apache.thrift.TBase<MapFileInfo, MapFile
     tmpMap.put(_Fields.ESTIMATED_SIZE, new org.apache.thrift.meta_data.FieldMetaData("estimatedSize", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(MapFileInfo.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(DataFileInfo.class, metaDataMap);
   }
 
-  public MapFileInfo() {
+  public DataFileInfo() {
   }
 
-  public MapFileInfo(
+  public DataFileInfo(
     long estimatedSize)
   {
     this();
@@ -123,14 +123,14 @@ public class MapFileInfo implements org.apache.thrift.TBase<MapFileInfo, MapFile
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public MapFileInfo(MapFileInfo other) {
+  public DataFileInfo(DataFileInfo other) {
     __isset_bitfield = other.__isset_bitfield;
     this.estimatedSize = other.estimatedSize;
   }
 
   @Override
-  public MapFileInfo deepCopy() {
-    return new MapFileInfo(this);
+  public DataFileInfo deepCopy() {
+    return new DataFileInfo(this);
   }
 
   @Override
@@ -143,7 +143,7 @@ public class MapFileInfo implements org.apache.thrift.TBase<MapFileInfo, MapFile
     return this.estimatedSize;
   }
 
-  public MapFileInfo setEstimatedSize(long estimatedSize) {
+  public DataFileInfo setEstimatedSize(long estimatedSize) {
     this.estimatedSize = estimatedSize;
     setEstimatedSizeIsSet(true);
     return this;
@@ -203,12 +203,12 @@ public class MapFileInfo implements org.apache.thrift.TBase<MapFileInfo, MapFile
 
   @Override
   public boolean equals(java.lang.Object that) {
-    if (that instanceof MapFileInfo)
-      return this.equals((MapFileInfo)that);
+    if (that instanceof DataFileInfo)
+      return this.equals((DataFileInfo)that);
     return false;
   }
 
-  public boolean equals(MapFileInfo that) {
+  public boolean equals(DataFileInfo that) {
     if (that == null)
       return false;
     if (this == that)
@@ -236,7 +236,7 @@ public class MapFileInfo implements org.apache.thrift.TBase<MapFileInfo, MapFile
   }
 
   @Override
-  public int compareTo(MapFileInfo other) {
+  public int compareTo(DataFileInfo other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
@@ -274,7 +274,7 @@ public class MapFileInfo implements org.apache.thrift.TBase<MapFileInfo, MapFile
 
   @Override
   public java.lang.String toString() {
-    java.lang.StringBuilder sb = new java.lang.StringBuilder("MapFileInfo(");
+    java.lang.StringBuilder sb = new java.lang.StringBuilder("DataFileInfo(");
     boolean first = true;
 
     sb.append("estimatedSize:");
@@ -307,17 +307,17 @@ public class MapFileInfo implements org.apache.thrift.TBase<MapFileInfo, MapFile
     }
   }
 
-  private static class MapFileInfoStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+  private static class DataFileInfoStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
     @Override
-    public MapFileInfoStandardScheme getScheme() {
-      return new MapFileInfoStandardScheme();
+    public DataFileInfoStandardScheme getScheme() {
+      return new DataFileInfoStandardScheme();
     }
   }
 
-  private static class MapFileInfoStandardScheme extends org.apache.thrift.scheme.StandardScheme<MapFileInfo> {
+  private static class DataFileInfoStandardScheme extends org.apache.thrift.scheme.StandardScheme<DataFileInfo> {
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol iprot, MapFileInfo struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, DataFileInfo struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -347,7 +347,7 @@ public class MapFileInfo implements org.apache.thrift.TBase<MapFileInfo, MapFile
     }
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol oprot, MapFileInfo struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, DataFileInfo struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
@@ -360,17 +360,17 @@ public class MapFileInfo implements org.apache.thrift.TBase<MapFileInfo, MapFile
 
   }
 
-  private static class MapFileInfoTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+  private static class DataFileInfoTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
     @Override
-    public MapFileInfoTupleScheme getScheme() {
-      return new MapFileInfoTupleScheme();
+    public DataFileInfoTupleScheme getScheme() {
+      return new DataFileInfoTupleScheme();
     }
   }
 
-  private static class MapFileInfoTupleScheme extends org.apache.thrift.scheme.TupleScheme<MapFileInfo> {
+  private static class DataFileInfoTupleScheme extends org.apache.thrift.scheme.TupleScheme<DataFileInfo> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, MapFileInfo struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, DataFileInfo struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet optionals = new java.util.BitSet();
       if (struct.isSetEstimatedSize()) {
@@ -383,7 +383,7 @@ public class MapFileInfo implements org.apache.thrift.TBase<MapFileInfo, MapFile
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, MapFileInfo struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, DataFileInfo struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {

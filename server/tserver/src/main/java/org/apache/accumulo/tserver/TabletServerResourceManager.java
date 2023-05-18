@@ -657,9 +657,9 @@ public class TabletServerResourceManager {
       return tableConf;
     }
 
-    // BEGIN methods that Tablets call to manage their set of open map files
+    // BEGIN methods that Tablets call to manage their set of open data files
 
-    public void importedMapFiles() {
+    public void importedDataFiles() {
       lastReportedCommitTime = System.currentTimeMillis();
     }
 
@@ -672,7 +672,7 @@ public class TabletServerResourceManager {
           new ScanCacheProvider(tableConf, scanDispatch, _iCache, _dCache));
     }
 
-    // END methods that Tablets call to manage their set of open map files
+    // END methods that Tablets call to manage their set of open data files
 
     // BEGIN methods that Tablets call to manage memory
 

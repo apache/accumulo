@@ -37,6 +37,10 @@ enum TDurability {
   NONE = 4
 }
 
+struct DataFileInfo {
+  1:i64 estimatedSize
+}
+
 service TabletIngestClientService {
 
   //the following calls support a batch update to multiple tablets on a tablet server
@@ -110,7 +114,7 @@ service TabletIngestClientService {
     2:security.TCredentials credentials
     3:i64 tid
     4:string dir
-    5:map<data.TKeyExtent, map<string, data.MapFileInfo>> files
+    7:map<data.TKeyExtent, map<string, DataFileInfo>> files
     6:bool setTime
   )
 

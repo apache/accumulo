@@ -261,7 +261,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     long l;
   }
 
-  public static Map<KeyExtent,Long> estimateSizes(AccumuloConfiguration acuConf, Path mapFile,
+  public static Map<KeyExtent,Long> estimateSizes(AccumuloConfiguration acuConf, Path dataFile,
       long fileSize, Collection<KeyExtent> extents, FileSystem ns, Cache<String,Long> fileLenCache,
       CryptoService cs) throws IOException {
 
@@ -278,7 +278,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     Text row = new Text();
 
     FileSKVIterator index = FileOperations.getInstance().newIndexReaderBuilder()
-        .forFile(mapFile.toString(), ns, ns.getConf(), cs).withTableConfiguration(acuConf)
+        .forFile(dataFile.toString(), ns, ns.getConf(), cs).withTableConfiguration(acuConf)
         .withFileLenCache(fileLenCache).build();
 
     try {
@@ -302,7 +302,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
           index.close();
         }
       } catch (IOException e) {
-        log.debug("Failed to close " + mapFile, e);
+        log.debug("Failed to close " + dataFile, e);
       }
     }
 

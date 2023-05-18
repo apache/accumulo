@@ -149,7 +149,7 @@ public class IndexedDocIteratorTest {
   private SortedKeyValueIterator<Key,Value> createIteratorStack(float hitRatio, int numRows,
       int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies, HashSet<Text> docs,
       Text[] negatedColumns) throws IOException {
-    // write a map file
+    // write a data file
     trf.openWriter(false);
 
     TreeMap<Key,Value> inMemoryMap = createSortedMap(hitRatio, numRows, numDocsPerRow,

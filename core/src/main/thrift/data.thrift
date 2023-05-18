@@ -125,10 +125,6 @@ struct TCMResult {
   2:TCMStatus status
 }
 
-struct MapFileInfo {
-  1:i64 estimatedSize
-}
-
 struct TCondition {
   1:binary cf
   2:binary cq
