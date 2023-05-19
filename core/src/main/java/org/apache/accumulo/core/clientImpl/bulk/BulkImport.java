@@ -74,6 +74,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -261,9 +262,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     long l;
   }
 
-  public static Map<KeyExtent,Long> estimateSizes(AccumuloConfiguration acuConf, Path dataFile,
-      long fileSize, Collection<KeyExtent> extents, FileSystem ns, Cache<String,Long> fileLenCache,
-      CryptoService cs) throws IOException {
+  public static Map<KeyExtent,Long> estimateSizes(AccumuloConfiguration acuConf,
+      UnreferencedTabletFile dataFile, long fileSize, Collection<KeyExtent> extents, FileSystem ns,
+      Cache<String,Long> fileLenCache, CryptoService cs) throws IOException {
 
     if (extents.size() == 1) {
       return Collections.singletonMap(extents.iterator().next(), fileSize);
@@ -277,9 +278,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     Text row = new Text();
 
-    FileSKVIterator index = FileOperations.getInstance().newIndexReaderBuilder()
-        .forFile(dataFile.toString(), ns, ns.getConf(), cs).withTableConfiguration(acuConf)
-        .withFileLenCache(fileLenCache).build();
+    FileSKVIterator index =
+        FileOperations.getInstance().newIndexReaderBuilder().forFile(dataFile, ns, ns.getConf(), cs)
+            .withTableConfiguration(acuConf).withFileLenCache(fileLenCache).build();
 
     try {
       while (index.hasTop()) {
@@ -354,12 +355,11 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   public static List<KeyExtent> findOverlappingTablets(ClientContext context,
-      KeyExtentCache extentCache, Path file, FileSystem fs, Cache<String,Long> fileLenCache,
-      CryptoService cs) throws IOException {
+      KeyExtentCache extentCache, UnreferencedTabletFile file, FileSystem fs,
+      Cache<String,Long> fileLenCache, CryptoService cs) throws IOException {
     try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-        .forFile(file.toString(), fs, fs.getConf(), cs)
-        .withTableConfiguration(context.getConfiguration()).withFileLenCache(fileLenCache)
-        .seekToBeginning().build()) {
+        .forFile(file, fs, fs.getConf(), cs).withTableConfiguration(context.getConfiguration())
+        .withFileLenCache(fileLenCache).seekToBeginning().build()) {
       return findOverlappingTablets(extentCache, reader);
     }
   }
@@ -542,22 +542,22 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         context.instanceOperations().getSystemConfiguration(), tableProps, tableId);
 
     for (FileStatus fileStatus : files) {
-      Path filePath = fileStatus.getPath();
+      UnreferencedTabletFile file = UnreferencedTabletFile.of(fs, fileStatus.getPath());
       CompletableFuture<Map<KeyExtent,Bulk.FileInfo>> future = CompletableFuture.supplyAsync(() -> {
         try {
           long t1 = System.currentTimeMillis();
           List<KeyExtent> extents =
-              findOverlappingTablets(context, extentCache, filePath, fs, fileLensCache, cs);
+              findOverlappingTablets(context, extentCache, file, fs, fileLensCache, cs);
           // make sure file isn't going to too many tablets
-          checkTabletCount(maxTablets, extents.size(), filePath.toString());
-          Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(), filePath,
+          checkTabletCount(maxTablets, extents.size(), file.toString());
+          Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(), file,
               fileStatus.getLen(), extents, fs, fileLensCache, cs);
           Map<KeyExtent,Bulk.FileInfo> pathLocations = new HashMap<>();
           for (KeyExtent ke : extents) {
-            pathLocations.put(ke, new Bulk.FileInfo(filePath, estSizes.getOrDefault(ke, 0L)));
+            pathLocations.put(ke, new Bulk.FileInfo(file.getPath(), estSizes.getOrDefault(ke, 0L)));
           }
           long t2 = System.currentTimeMillis();
-          log.debug("Mapped {} to {} tablets in {}ms", filePath, pathLocations.size(), t2 - t1);
+          log.debug("Mapped {} to {} tablets in {}ms", file, pathLocations.size(), t2 - t1);
           return pathLocations;
         } catch (Exception e) {
           throw new CompletionException(e);

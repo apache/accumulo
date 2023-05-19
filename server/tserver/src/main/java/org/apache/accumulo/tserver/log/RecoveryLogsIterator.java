@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.IteratorAdapter;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.server.ServerContext;
@@ -80,7 +81,7 @@ public class RecoveryLogsIterator
 
     for (Path logDir : recoveryLogDirs) {
       LOG.debug("Opening recovery log dir {}", logDir.getName());
-      SortedSet<Path> logFiles = getFiles(vm, logDir);
+      SortedSet<UnreferencedTabletFile> logFiles = getFiles(vm, logDir);
       var fs = vm.getFileSystemByPath(logDir);
 
       // only check the first key once to prevent extra iterator creation and seeking
@@ -88,9 +89,9 @@ public class RecoveryLogsIterator
         validateFirstKey(context, cryptoService, fs, logFiles, logDir);
       }
 
-      for (Path log : logFiles) {
+      for (UnreferencedTabletFile log : logFiles) {
         FileSKVIterator fileIter = FileOperations.getInstance().newReaderBuilder()
-            .forFile(log.toString(), fs, fs.getConf(), cryptoService)
+            .forFile(log, fs, fs.getConf(), cryptoService)
             .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
         if (range != null) {
           fileIter.seek(range, Collections.emptySet(), false);
@@ -98,11 +99,13 @@ public class RecoveryLogsIterator
         Iterator<Entry<Key,Value>> scanIter = new IteratorAdapter(fileIter);
 
         if (scanIter.hasNext()) {
-          LOG.debug("Write ahead log {} has data in range {} {}", log.getName(), start, end);
+          LOG.debug("Write ahead log {} has data in range {} {}", log.getPath().getName(), start,
+              end);
           iterators.add(scanIter);
           fileIters.add(fileIter);
         } else {
-          LOG.debug("Write ahead log {} has no data in range {} {}", log.getName(), start, end);
+          LOG.debug("Write ahead log {} has no data in range {} {}", log.getPath().getName(), start,
+              end);
           fileIter.close();
         }
       }
@@ -137,12 +140,14 @@ public class RecoveryLogsIterator
   /**
    * Check for sorting signal files (finished/failed) and get the logs in the provided directory.
    */
-  private SortedSet<Path> getFiles(VolumeManager fs, Path directory) throws IOException {
+  private SortedSet<UnreferencedTabletFile> getFiles(VolumeManager fs, Path directory)
+      throws IOException {
     boolean foundFinish = false;
     // Path::getName compares the last component of each Path value. In this case, the last
     // component should
     // always have the format 'part-r-XXXXX.rf', where XXXXX are one-up values.
-    SortedSet<Path> logFiles = new TreeSet<>(Comparator.comparing(Path::getName));
+    SortedSet<UnreferencedTabletFile> logFiles =
+        new TreeSet<>(Comparator.comparing(tf -> tf.getPath().getName()));
     for (FileStatus child : fs.listStatus(directory)) {
       if (child.getPath().getName().startsWith("_")) {
         continue;
@@ -155,7 +160,8 @@ public class RecoveryLogsIterator
         continue;
       }
       FileSystem ns = fs.getFileSystemByPath(child.getPath());
-      Path fullLogPath = ns.makeQualified(child.getPath());
+      UnreferencedTabletFile fullLogPath =
+          UnreferencedTabletFile.of(ns, ns.makeQualified(child.getPath()));
       logFiles.add(fullLogPath);
     }
     if (!foundFinish) {
@@ -169,9 +175,9 @@ public class RecoveryLogsIterator
    * Check that the first entry in the WAL is OPEN. Only need to do this once.
    */
   private void validateFirstKey(ServerContext context, CryptoService cs, FileSystem fs,
-      SortedSet<Path> logFiles, Path fullLogPath) throws IOException {
+      SortedSet<UnreferencedTabletFile> logFiles, Path fullLogPath) throws IOException {
     try (FileSKVIterator fileIter = FileOperations.getInstance().newReaderBuilder()
-        .forFile(logFiles.first().toString(), fs, fs.getConf(), cs)
+        .forFile(logFiles.first(), fs, fs.getConf(), cs)
         .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {
       Iterator<Entry<Key,Value>> iterator = new IteratorAdapter(fileIter);
 
