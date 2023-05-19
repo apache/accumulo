@@ -37,7 +37,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
@@ -213,9 +213,10 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
       Configuration conf = cluster.getServerContext().getHadoopConf();
       DefaultConfiguration acuconf = DefaultConfiguration.getInstance();
+      FileSystem fs = FileSystem.getLocal(conf);
       FileSKVIterator sample = RFileOperations.getInstance().newReaderBuilder()
-          .forFile(TabletFile.of(new Path(files[0].toString())), FileSystem.getLocal(conf), conf,
-              NoCryptoServiceFactory.NONE)
+          .forFile(UnreferencedTabletFile.of(fs, new Path(files[0].toString())),
+              FileSystem.getLocal(conf), conf, NoCryptoServiceFactory.NONE)
           .withTableConfiguration(acuconf).build()
           .getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG));
       assertNotNull(sample);
