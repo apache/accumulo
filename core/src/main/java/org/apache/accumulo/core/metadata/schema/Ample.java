@@ -449,7 +449,7 @@ public interface Ample {
      * considered as accepted.</LI>
      * <LI>For status of
      * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#INVISIBLE_VISIBILITY} and
-     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#VIOLATED} ample with throw an
+     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#VIOLATED} ample will throw an
      * exception. This is done so that all code does not have to deal with these unexpected
      * statuses.</LI>
      * </UL>
