@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
-import org.apache.accumulo.core.metadata.UnassignedTabletFile;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
@@ -361,7 +361,7 @@ public abstract class FileOperations {
         FSDataOutputStream outputStream, Configuration fsConf, CryptoService cs)
         throws IOException {
       this.outputStream = outputStream;
-      file(UnassignedTabletFile.of(fsConf, new Path("foo/foo" + extension))).fsConf(fsConf)
+      file(UnreferencedTabletFile.of(fsConf, new Path("foo/foo" + extension))).fsConf(fsConf)
           .cryptoService(cs);
       return this;
     }

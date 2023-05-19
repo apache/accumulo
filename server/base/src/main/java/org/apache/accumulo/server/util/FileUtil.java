@@ -46,7 +46,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.UnassignedTabletFile;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -140,7 +140,7 @@ public class FileUtil {
       // temporary tablet file does not conform to typical path verified in TabletFile
       Path newPath = new Path(String.format("%s/%04d.%s", newDir, count++, RFile.EXTENSION));
       FileSystem ns = context.getVolumeManager().getFileSystemByPath(newPath);
-      UnassignedTabletFile newDataFile = UnassignedTabletFile.of(ns, newPath);
+      UnreferencedTabletFile newDataFile = UnreferencedTabletFile.of(ns, newPath);
 
       outFiles.add(newDataFile);
       FileSKVWriter writer = new RFileOperations().newWriterBuilder()

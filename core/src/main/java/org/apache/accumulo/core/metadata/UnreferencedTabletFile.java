@@ -26,14 +26,26 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-public class UnassignedTabletFile extends AbstractTabletFile<UnassignedTabletFile> {
+/**
+ * A file that is not intended to be added to a tablet as a reference, within the scope of the code
+ * using this class, but needs to be passed to code that processes tablet files. These files could
+ * be temp files or files directly created by a user for bulk import. The file may ultimately be
+ * added to a tablet later as a new file reference, but within a different scope (process, thread,
+ * code block, method, etc.) that uses a different class to represent the file in that scope.
+ *
+ * Unlike {@link TabletFile}, this class does not perform any validation or normalization on the
+ * provided path.
+ *
+ * @since 3.0.0
+ */
+public class UnreferencedTabletFile extends AbstractTabletFile<UnreferencedTabletFile> {
 
-  public UnassignedTabletFile(FileSystem fs, Path path) {
+  public UnreferencedTabletFile(FileSystem fs, Path path) {
     super(Objects.requireNonNull(fs).makeQualified(Objects.requireNonNull(path)));
   }
 
   @Override
-  public int compareTo(UnassignedTabletFile o) {
+  public int compareTo(UnreferencedTabletFile o) {
     if (equals(o)) {
       return 0;
     } else {
@@ -43,8 +55,8 @@ public class UnassignedTabletFile extends AbstractTabletFile<UnassignedTabletFil
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof UnassignedTabletFile) {
-      UnassignedTabletFile that = (UnassignedTabletFile) obj;
+    if (obj instanceof UnreferencedTabletFile) {
+      UnreferencedTabletFile that = (UnreferencedTabletFile) obj;
       return path.equals(that.path);
     }
     return false;
@@ -60,16 +72,16 @@ public class UnassignedTabletFile extends AbstractTabletFile<UnassignedTabletFil
     return path.toString();
   }
 
-  public static UnassignedTabletFile of(FileSystem fs, File file) {
-    return new UnassignedTabletFile(fs, new Path(Objects.requireNonNull(file).toString()));
+  public static UnreferencedTabletFile of(FileSystem fs, File file) {
+    return new UnreferencedTabletFile(fs, new Path(Objects.requireNonNull(file).toString()));
   }
 
-  public static UnassignedTabletFile of(FileSystem fs, Path path) {
-    return new UnassignedTabletFile(fs, path);
+  public static UnreferencedTabletFile of(FileSystem fs, Path path) {
+    return new UnreferencedTabletFile(fs, path);
   }
 
-  public static UnassignedTabletFile of(Configuration conf, Path path) throws IOException {
-    return new UnassignedTabletFile(Objects.requireNonNull(path).getFileSystem(conf), path);
+  public static UnreferencedTabletFile of(Configuration conf, Path path) throws IOException {
+    return new UnreferencedTabletFile(Objects.requireNonNull(path).getFileSystem(conf), path);
   }
 
 }

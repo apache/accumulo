@@ -68,7 +68,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.UnassignedTabletFile;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
@@ -1314,11 +1314,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String odd = new File(importDir, "odd.rf").toString();
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(UnassignedTabletFile.of(fs, new Path(even)), fs, conf, NoCryptoServiceFactory.NONE)
+        .forFile(UnreferencedTabletFile.of(fs, new Path(even)), fs, conf,
+            NoCryptoServiceFactory.NONE)
         .withTableConfiguration(aconf).build();
     evenWriter.startDefaultLocalityGroup();
     FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(UnassignedTabletFile.of(fs, new Path(odd)), fs, conf, NoCryptoServiceFactory.NONE)
+        .forFile(UnreferencedTabletFile.of(fs, new Path(odd)), fs, conf,
+            NoCryptoServiceFactory.NONE)
         .withTableConfiguration(aconf).build();
     oddWriter.startDefaultLocalityGroup();
     long timestamp = System.currentTimeMillis();

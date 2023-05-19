@@ -36,7 +36,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.IteratorAdapter;
-import org.apache.accumulo.core.metadata.UnassignedTabletFile;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.server.ServerContext;
@@ -81,7 +81,7 @@ public class RecoveryLogsIterator
 
     for (Path logDir : recoveryLogDirs) {
       LOG.debug("Opening recovery log dir {}", logDir.getName());
-      SortedSet<UnassignedTabletFile> logFiles = getFiles(vm, logDir);
+      SortedSet<UnreferencedTabletFile> logFiles = getFiles(vm, logDir);
       var fs = vm.getFileSystemByPath(logDir);
 
       // only check the first key once to prevent extra iterator creation and seeking
@@ -89,7 +89,7 @@ public class RecoveryLogsIterator
         validateFirstKey(context, cryptoService, fs, logFiles, logDir);
       }
 
-      for (UnassignedTabletFile log : logFiles) {
+      for (UnreferencedTabletFile log : logFiles) {
         FileSKVIterator fileIter = FileOperations.getInstance().newReaderBuilder()
             .forFile(log, fs, fs.getConf(), cryptoService)
             .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
@@ -140,13 +140,13 @@ public class RecoveryLogsIterator
   /**
    * Check for sorting signal files (finished/failed) and get the logs in the provided directory.
    */
-  private SortedSet<UnassignedTabletFile> getFiles(VolumeManager fs, Path directory)
+  private SortedSet<UnreferencedTabletFile> getFiles(VolumeManager fs, Path directory)
       throws IOException {
     boolean foundFinish = false;
     // Path::getName compares the last component of each Path value. In this case, the last
     // component should
     // always have the format 'part-r-XXXXX.rf', where XXXXX are one-up values.
-    SortedSet<UnassignedTabletFile> logFiles =
+    SortedSet<UnreferencedTabletFile> logFiles =
         new TreeSet<>(Comparator.comparing(tf -> tf.getPath().getName()));
     for (FileStatus child : fs.listStatus(directory)) {
       if (child.getPath().getName().startsWith("_")) {
@@ -160,8 +160,8 @@ public class RecoveryLogsIterator
         continue;
       }
       FileSystem ns = fs.getFileSystemByPath(child.getPath());
-      UnassignedTabletFile fullLogPath =
-          UnassignedTabletFile.of(ns, ns.makeQualified(child.getPath()));
+      UnreferencedTabletFile fullLogPath =
+          UnreferencedTabletFile.of(ns, ns.makeQualified(child.getPath()));
       logFiles.add(fullLogPath);
     }
     if (!foundFinish) {
@@ -175,7 +175,7 @@ public class RecoveryLogsIterator
    * Check that the first entry in the WAL is OPEN. Only need to do this once.
    */
   private void validateFirstKey(ServerContext context, CryptoService cs, FileSystem fs,
-      SortedSet<UnassignedTabletFile> logFiles, Path fullLogPath) throws IOException {
+      SortedSet<UnreferencedTabletFile> logFiles, Path fullLogPath) throws IOException {
     try (FileSKVIterator fileIter = FileOperations.getInstance().newReaderBuilder()
         .forFile(logFiles.first(), fs, fs.getConf(), cs)
         .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {

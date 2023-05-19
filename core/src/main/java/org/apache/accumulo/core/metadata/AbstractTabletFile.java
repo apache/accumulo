@@ -22,6 +22,12 @@ import java.util.Objects;
 
 import org.apache.hadoop.fs.Path;
 
+/**
+ * A base class used to represent file references that are handled by code that processes tablet
+ * files.
+ *
+ * @since 3.0.0
+ */
 public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>> implements Comparable<T> {
 
   private final String fileName; // C0004.rf
@@ -33,10 +39,16 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>> implem
     ValidationUtil.validateFileName(fileName);
   }
 
+  /**
+   * @return The file name of the TabletFile
+   */
   public String getFileName() {
     return fileName;
   }
 
+  /**
+   * @return The path of the TabletFile
+   */
   public Path getPath() {
     return path;
   }

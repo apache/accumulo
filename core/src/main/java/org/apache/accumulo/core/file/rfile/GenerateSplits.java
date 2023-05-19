@@ -46,7 +46,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
-import org.apache.accumulo.core.metadata.UnassignedTabletFile;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.TextUtil;
@@ -130,7 +130,7 @@ public class GenerateSplits implements KeywordExecutable {
     long splitSize = opts.splitSize;
 
     FileSystem fs = FileSystem.get(hadoopConf);
-    List<UnassignedTabletFile> files = new ArrayList<>();
+    List<UnreferencedTabletFile> files = new ArrayList<>();
     for (String file : opts.files) {
       Path path = new Path(file);
       fs = PrintInfo.resolveFS(log, hadoopConf, path);
@@ -182,8 +182,8 @@ public class GenerateSplits implements KeywordExecutable {
     }
   }
 
-  private List<UnassignedTabletFile> getFiles(FileSystem fs, Path path) throws IOException {
-    List<UnassignedTabletFile> files = new ArrayList<>();
+  private List<UnreferencedTabletFile> getFiles(FileSystem fs, Path path) throws IOException {
+    List<UnreferencedTabletFile> files = new ArrayList<>();
     if (fs.getFileStatus(path).isDirectory()) {
       var iter = fs.listFiles(path, true);
       while (iter.hasNext()) {
@@ -193,7 +193,7 @@ public class GenerateSplits implements KeywordExecutable {
       if (!path.toString().endsWith(".rf")) {
         throw new IllegalArgumentException("Provided file (" + path + ") does not end with '.rf'");
       }
-      files.add(UnassignedTabletFile.of(fs, path));
+      files.add(UnreferencedTabletFile.of(fs, path));
     }
     return files;
   }
@@ -267,13 +267,13 @@ public class GenerateSplits implements KeywordExecutable {
    * Scan the files for indexed keys first since it is more efficient than a full file scan.
    */
   private TreeSet<String> getIndexKeys(AccumuloConfiguration accumuloConf, Configuration hadoopConf,
-      FileSystem fs, List<UnassignedTabletFile> files, int requestedNumSplits, boolean base64encode,
-      CryptoService cs) throws IOException {
+      FileSystem fs, List<UnreferencedTabletFile> files, int requestedNumSplits,
+      boolean base64encode, CryptoService cs) throws IOException {
     Text[] splitArray;
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
     List<FileSKVIterator> fileReaders = new ArrayList<>(files.size());
     try {
-      for (UnassignedTabletFile file : files) {
+      for (UnreferencedTabletFile file : files) {
         FileSKVIterator reader = FileOperations.getInstance().newIndexReaderBuilder()
             .forFile(file, fs, hadoopConf, cs).withTableConfiguration(accumuloConf).build();
         readers.add(reader);
@@ -293,7 +293,7 @@ public class GenerateSplits implements KeywordExecutable {
   }
 
   private TreeSet<String> getSplitsFromFullScan(SiteConfiguration accumuloConf,
-      Configuration hadoopConf, List<UnassignedTabletFile> files, FileSystem fs, int numSplits,
+      Configuration hadoopConf, List<UnreferencedTabletFile> files, FileSystem fs, int numSplits,
       boolean base64encode, CryptoService cs) throws IOException {
     Text[] splitArray;
     List<FileSKVIterator> fileReaders = new ArrayList<>(files.size());
@@ -301,7 +301,7 @@ public class GenerateSplits implements KeywordExecutable {
     SortedKeyValueIterator<Key,Value> iterator;
 
     try {
-      for (UnassignedTabletFile file : files) {
+      for (UnreferencedTabletFile file : files) {
         FileSKVIterator reader = FileOperations.getInstance().newScanReaderBuilder()
             .forFile(file, fs, hadoopConf, cs).withTableConfiguration(accumuloConf)
             .overRange(new Range(), Set.of(), false).build();
@@ -326,7 +326,7 @@ public class GenerateSplits implements KeywordExecutable {
    * Get number of splits based on requested size of split.
    */
   private TreeSet<String> getSplitsBySize(AccumuloConfiguration accumuloConf,
-      Configuration hadoopConf, List<UnassignedTabletFile> files, FileSystem fs, long splitSize,
+      Configuration hadoopConf, List<UnreferencedTabletFile> files, FileSystem fs, long splitSize,
       boolean base64encode, CryptoService cs) throws IOException {
     long currentSplitSize = 0;
     long totalSize = 0;
@@ -335,7 +335,7 @@ public class GenerateSplits implements KeywordExecutable {
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
     SortedKeyValueIterator<Key,Value> iterator;
     try {
-      for (UnassignedTabletFile file : files) {
+      for (UnreferencedTabletFile file : files) {
         FileSKVIterator reader = FileOperations.getInstance().newScanReaderBuilder()
             .forFile(file, fs, hadoopConf, cs).withTableConfiguration(accumuloConf)
             .overRange(new Range(), Set.of(), false).build();
