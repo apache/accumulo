@@ -20,11 +20,11 @@ package org.apache.accumulo.server.manager.state;
 
 import java.util.Collection;
 
-import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 
 class MetaDataStateStore extends AbstractTabletStateStore implements TabletStateStore {
@@ -64,8 +64,8 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
             .submit(tabletMetadata -> tabletMetadata.getSuspend() == null);
       }
 
-      boolean unacceptedConditions = tabletsMutator.process().values().stream().anyMatch(
-          conditionalResult -> conditionalResult.getStatus() != ConditionalWriter.Status.ACCEPTED);
+      boolean unacceptedConditions = tabletsMutator.process().values().stream()
+          .anyMatch(conditionalResult -> conditionalResult.getStatus() != Status.ACCEPTED);
       if (unacceptedConditions) {
         throw new DistributedStoreException("Some mutations failed to satisfy conditions");
       }

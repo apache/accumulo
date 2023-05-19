@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
@@ -42,6 +41,7 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -139,7 +139,7 @@ class LoadFiles extends ManagerRepo {
             tabletMutator.putFile(f, v);
           });
 
-          tabletMutator.submit();
+          tabletMutator.submit(tm -> false);
         }
       }
     }
@@ -147,15 +147,15 @@ class LoadFiles extends ManagerRepo {
     long finish() {
       var results = conditionalMutator.process();
 
-      boolean allDone = results.values().stream()
-          .allMatch(result -> result.getStatus() == ConditionalWriter.Status.ACCEPTED);
+      boolean allDone =
+          results.values().stream().allMatch(result -> result.getStatus() == Status.ACCEPTED);
 
       long sleepTime = 0;
       if (!allDone) {
         sleepTime = 1000;
 
         results.forEach((extent, condResult) -> {
-          if (condResult.getStatus() != ConditionalWriter.Status.ACCEPTED) {
+          if (condResult.getStatus() != Status.ACCEPTED) {
             var metadata = condResult.readMetadata();
             log.debug("Tablet update failed {} {} {} {} {} {}", FateTxId.formatTid(tid), extent,
                 condResult.getStatus(), metadata.getOperationId(), metadata.getLocation(),

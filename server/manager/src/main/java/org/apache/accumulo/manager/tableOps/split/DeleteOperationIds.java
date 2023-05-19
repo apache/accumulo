@@ -20,9 +20,9 @@ package org.apache.accumulo.manager.tableOps.split;
 
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.manager.Manager;
@@ -44,25 +44,22 @@ public class DeleteOperationIds extends ManagerRepo {
     try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
 
       // As long as the operation is not our operation id, then this step can be considered
-      // successful in the case of unknown. If this repo is running for a second time and has
+      // successful in the case of rejection. If this repo is running for a second time and has
       // already deleted the operation id, then it could be absent or set by another fate operation.
-      Ample.UnknownValidator unknownValidator =
-          tabletMetadata -> tabletMetadata.getOperationId() == null
-              || !tabletMetadata.getOperationId().equals(opid);
+      Ample.RejectionHandler rejectionHandler =
+          tabletMetadata -> !opid.equals(tabletMetadata.getOperationId());
 
       splitInfo.getTablets().forEach(extent -> {
         tabletsMutator.mutateTablet(extent).requireOperation(opid).deleteOperation()
-            .submit(unknownValidator);
+            .submit(rejectionHandler);
       });
 
       var results = tabletsMutator.process();
 
-      boolean allAccepted = results.values().stream()
-          .allMatch(result -> result.getStatus() == ConditionalWriter.Status.ACCEPTED);
+      boolean allAccepted =
+          results.values().stream().allMatch(result -> result.getStatus() == Status.ACCEPTED);
 
       if (!allAccepted) {
-        // ELASTICITY_TODO not handling the case where running a 2nd time in the case of failures.
-        // Fix this when improving unknown handling.
         throw new IllegalStateException(
             "Failed to delete operation ids " + splitInfo.getOriginal() + " " + results.values()
                 .stream().map(Ample.ConditionalResult::getStatus).collect(Collectors.toSet()));

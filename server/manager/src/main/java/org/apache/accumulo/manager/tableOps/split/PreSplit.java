@@ -25,11 +25,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedSet;
 
-import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -77,12 +77,11 @@ public class PreSplit extends ManagerRepo {
 
       tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireAbsentOperation()
           .requireAbsentLocation().requirePrevEndRow(splitInfo.getOriginal().prevEndRow())
-          .putOperation(opid)
-          .submit(tmeta -> tmeta.getOperationId() != null && tmeta.getOperationId().equals(opid));
+          .putOperation(opid).submit(tmeta -> opid.equals(tmeta.getOperationId()));
 
       Map<KeyExtent,Ample.ConditionalResult> results = tabletsMutator.process();
 
-      if (results.get(splitInfo.getOriginal()).getStatus() == ConditionalWriter.Status.ACCEPTED) {
+      if (results.get(splitInfo.getOriginal()).getStatus() == Status.ACCEPTED) {
         log.trace("{} reserved {} for split", FateTxId.formatTid(tid), splitInfo.getOriginal());
         return 0;
       } else {
@@ -91,7 +90,7 @@ public class PreSplit extends ManagerRepo {
         // its possible the tablet no longer exists
         var optMeta = Optional.ofNullable(tabletMetadata);
 
-        log.trace("{} Failed to set operation id. extent:{} location:{} opid:{}",
+        log.debug("{} Failed to set operation id. extent:{} location:{} opid:{}",
             FateTxId.formatTid(tid), splitInfo.getOriginal(),
             optMeta.map(TabletMetadata::getLocation).orElse(null),
             optMeta.map(TabletMetadata::getOperationId).orElse(null));
