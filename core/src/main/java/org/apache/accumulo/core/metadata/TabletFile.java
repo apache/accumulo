@@ -20,8 +20,10 @@ package org.apache.accumulo.core.metadata;
 
 import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
 
+import java.util.Comparator;
 import java.util.Objects;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -47,12 +49,19 @@ public class TabletFile extends AbstractTabletFile<TabletFile> {
 
   private static final Logger log = LoggerFactory.getLogger(TabletFile.class);
 
+  private static final Comparator<TabletFile> comparator =
+      Comparator.comparing(TabletFile::getPathStr).thenComparing(TabletFile::getRange);
+
+  public TabletFile(Path metaPath) {
+    this(metaPath, new Range());
+  }
+
   /**
    * Construct new tablet file using a Path. Used in the case where we had to use Path object to
    * qualify an absolute path or create a new file.
    */
-  public TabletFile(Path metaPath) {
-    super(Objects.requireNonNull(metaPath));
+  public TabletFile(Path metaPath, Range range) {
+    super(Objects.requireNonNull(metaPath), range);
     String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
     log.trace("Parsing TabletFile from {}", metaPath);
 
@@ -120,7 +129,7 @@ public class TabletFile extends AbstractTabletFile<TabletFile> {
     if (equals(o)) {
       return 0;
     } else {
-      return normalizedPath.compareTo(o.normalizedPath);
+      return comparator.compare(this, o);
     }
   }
 
@@ -128,14 +137,14 @@ public class TabletFile extends AbstractTabletFile<TabletFile> {
   public boolean equals(Object obj) {
     if (obj instanceof TabletFile) {
       TabletFile that = (TabletFile) obj;
-      return normalizedPath.equals(that.normalizedPath);
+      return normalizedPath.equals(that.normalizedPath) && range.equals(that.range);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return normalizedPath.hashCode();
+    return Objects.hash(normalizedPath, range);
   }
 
   @Override

@@ -20,6 +20,7 @@ package org.apache.accumulo.core.metadata;
 
 import java.util.Objects;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.fs.Path;
 
 /**
@@ -32,10 +33,12 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>> implem
 
   private final String fileName; // C0004.rf
   protected final Path path;
+  protected final Range range;
 
-  protected AbstractTabletFile(Path path) {
+  protected AbstractTabletFile(Path path, Range range) {
     this.path = Objects.requireNonNull(path);
     this.fileName = path.getName();
+    this.range = Objects.requireNonNull(range);
     ValidationUtil.validateFileName(fileName);
   }
 
@@ -53,4 +56,21 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>> implem
     return path;
   }
 
+  /**
+   * @return The range of the TabletFile
+   *
+   * @since 3.1.0
+   */
+  public Range getRange() {
+    return range;
+  }
+
+  /**
+   * @return True if this file is fenced by a range
+   *
+   * @since 3.1.0
+   */
+  public boolean hasRange() {
+    return !range.isInfiniteStartKey() || !range.isInfiniteStopKey();
+  }
 }

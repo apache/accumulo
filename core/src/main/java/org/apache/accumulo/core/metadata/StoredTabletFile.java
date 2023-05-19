@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
@@ -40,7 +41,9 @@ public class StoredTabletFile extends TabletFile {
    * the entry can be deleted.
    */
   public StoredTabletFile(String metadataEntry) {
-    super(new Path(metadataEntry));
+    // TODO: Future version of metadataEntry will contains the path
+    // and the range so we will need to parse the string here
+    super(new Path(metadataEntry), new Range());
     this.metadataEntry = metadataEntry;
   }
 

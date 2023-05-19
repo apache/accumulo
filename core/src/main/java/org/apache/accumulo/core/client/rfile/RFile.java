@@ -27,6 +27,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.FencedRfile;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
@@ -76,6 +77,15 @@ public class RFile {
      * @return this
      */
     ScannerFSOptions from(String... files);
+
+    /**
+     * Specify RFiles to read from. When multiple are specified the {@link Scanner} constructed will
+     * present a merged view.
+     *
+     * @param files one or more RFiles to read.
+     * @return this
+     */
+    ScannerFSOptions from(FencedRfile... files);
   }
 
   /**

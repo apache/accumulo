@@ -44,6 +44,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.FencedRfile;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.CounterSummary;
@@ -60,6 +61,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.rfile.RFile.RFileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
@@ -68,16 +70,17 @@ import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path is set by test, not user")
 public class RFileClientTest {
 
   private static final SecureRandom random = new SecureRandom();
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path is set by test, not user")
   private String createTmpTestFile() throws IOException {
     File dir = new File(System.getProperty("user.dir") + "/target/rfile-test");
     assertTrue(dir.mkdirs() || dir.isDirectory());
@@ -189,6 +192,16 @@ public class RFileClientTest {
     return map;
   }
 
+  SortedMap<Key,Value> toMap(FileSKVIterator iterator) throws IOException {
+    TreeMap<Key,Value> map = new TreeMap<>();
+    while (iterator.hasTop()) {
+      // Need to copy Value as the reference gets reused
+      map.put(iterator.getTopKey(), new Value(iterator.getTopValue()));
+      iterator.next();
+    }
+    return map;
+  }
+
   @Test
   public void testMultipleSources() throws Exception {
     SortedMap<Key,Value> testData1 = createTestData(10, 10, 10);
@@ -213,6 +226,49 @@ public class RFileClientTest {
   }
 
   @Test
+  public void testFencingScanner() throws Exception {
+    SortedMap<Key,Value> testData = createTestData(10, 10, 10);
+
+    String testFile = createRFile(testData);
+
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    Range range = new Range(rowStr(3), true, rowStr(14), true);
+    Scanner scanner =
+        RFile.newScanner().from(new FencedRfile(new Path(new File(testFile).toURI()), range))
+            .withFileSystem(localFs).build();
+
+    TreeMap<Key,Value> expected = new TreeMap<>(testData);
+
+    // Range is set on the RFile iterator itself and not the scanner
+    assertEquals(expected.subMap(range.getStartKey(), range.getEndKey()), toMap(scanner));
+
+    scanner.close();
+  }
+
+  @Test
+  public void testFencingReader() throws Exception {
+    SortedMap<Key,Value> testData = createTestData(10, 10, 10);
+
+    String testFile = createRFile(testData);
+
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    Range range = new Range(rowStr(3), true, rowStr(14), true);
+
+    RFileSKVIterator reader =
+        getReader(localFs, UnreferencedTabletFile.ofRanged(localFs, new File(testFile), range));
+    reader.seek(new Range(), List.of(), false);
+
+    TreeMap<Key,Value> expected = new TreeMap<>(testData);
+
+    // Range is set on the RFile iterator itself and not the scanner
+    assertEquals(expected.subMap(range.getStartKey(), range.getEndKey()), toMap(reader));
+
+    reader.close();
+  }
+
+  @Test
   public void testWriterTableProperties() throws Exception {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
 
@@ -228,7 +284,8 @@ public class RFileClientTest {
     writer.append(testData1.entrySet());
     writer.close();
 
-    Reader reader = getReader(localFs, testFile);
+    RFileSKVIterator reader =
+        getReader(localFs, UnreferencedTabletFile.of(localFs, new File(testFile)));
     FileSKVIterator iiter = reader.getIndex();
 
     int count = 0;
@@ -290,7 +347,8 @@ public class RFileClientTest {
 
     scanner.close();
 
-    Reader reader = getReader(localFs, testFile);
+    Reader reader =
+        (Reader) getReader(localFs, UnreferencedTabletFile.of(localFs, new File(testFile)));
     Map<String,ArrayList<ByteSequence>> lGroups = reader.getLocalityGroupCF();
     assertTrue(lGroups.containsKey("z"));
     assertEquals(2, lGroups.get("z").size());
@@ -811,11 +869,10 @@ public class RFileClientTest {
     }
   }
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path is set by test, not user")
-  private Reader getReader(LocalFileSystem localFs, String testFile) throws IOException {
-    return (Reader) FileOperations.getInstance().newReaderBuilder()
-        .forFile(UnreferencedTabletFile.of(localFs, new File(testFile)), localFs, localFs.getConf(),
-            NoCryptoServiceFactory.NONE)
+  private RFileSKVIterator getReader(LocalFileSystem localFs, UnreferencedTabletFile testFile)
+      throws IOException {
+    return (RFileSKVIterator) FileOperations.getInstance().newReaderBuilder()
+        .forFile(testFile, localFs, localFs.getConf(), NoCryptoServiceFactory.NONE)
         .withTableConfiguration(DefaultConfiguration.getInstance()).build();
   }
 

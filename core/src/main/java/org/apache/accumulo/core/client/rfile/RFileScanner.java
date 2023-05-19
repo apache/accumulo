@@ -351,7 +351,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
         CachableBuilder cb =
             new CachableBuilder().input(inputStream, "source-" + i).length(sources[i].getLength())
                 .conf(opts.in.getConf()).cacheProvider(cacheProvider).cryptoService(cryptoService);
-        readers.add(new RFile.Reader(cb));
+        readers.add(RFile.getReader(cb, sources[i].getRange()));
       }
 
       if (getSamplerConfiguration() != null) {

@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -41,7 +42,11 @@ import org.apache.hadoop.fs.Path;
 public class UnreferencedTabletFile extends AbstractTabletFile<UnreferencedTabletFile> {
 
   public UnreferencedTabletFile(FileSystem fs, Path path) {
-    super(Objects.requireNonNull(fs).makeQualified(Objects.requireNonNull(path)));
+    this(fs, path, new Range());
+  }
+
+  public UnreferencedTabletFile(FileSystem fs, Path path, Range range) {
+    super(Objects.requireNonNull(fs).makeQualified(Objects.requireNonNull(path)), range);
   }
 
   @Override
@@ -76,8 +81,16 @@ public class UnreferencedTabletFile extends AbstractTabletFile<UnreferencedTable
     return new UnreferencedTabletFile(fs, new Path(Objects.requireNonNull(file).toString()));
   }
 
+  public static UnreferencedTabletFile ofRanged(FileSystem fs, File file, Range range) {
+    return new UnreferencedTabletFile(fs, new Path(Objects.requireNonNull(file).toString()), range);
+  }
+
   public static UnreferencedTabletFile of(FileSystem fs, Path path) {
     return new UnreferencedTabletFile(fs, path);
+  }
+
+  public static UnreferencedTabletFile ofRanged(FileSystem fs, Path path, Range range) {
+    return new UnreferencedTabletFile(fs, path, range);
   }
 
   public static UnreferencedTabletFile of(Configuration conf, Path path) throws IOException {
