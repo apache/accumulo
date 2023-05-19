@@ -19,14 +19,25 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.test.VerifyIngest.verifyIngest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -42,6 +53,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -49,7 +61,9 @@ import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -203,6 +217,81 @@ public class SplitIT extends AccumuloClusterHarness {
       }
       assertTrue(c.tableOperations().listSplits(tableName).size() > 20);
     }
+  }
+
+  @Test
+  public void concurrentSplit() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      final String tableName = getUniqueNames(1)[0];
+
+      log.debug("Creating table {}", tableName);
+      c.tableOperations().create(tableName);
+
+      final int numRows = 100_000;
+      log.debug("Ingesting {} rows into {}", numRows, tableName);
+      VerifyParams params = new VerifyParams(getClientProps(), tableName, numRows);
+      TestIngest.ingest(c, params);
+
+      log.debug("Verifying {} rows ingested into {}", numRows, tableName);
+      VerifyIngest.verifyIngest(c, params);
+
+      log.debug("Creating futures that add random splits to the table");
+      ExecutorService es = Executors.newFixedThreadPool(10);
+      final int totalFutures = 100;
+      final int splitsPerFuture = 4;
+      final Set<Text> totalSplits = new HashSet<>();
+      List<Callable<Void>> tasks = new ArrayList<>(totalFutures);
+      for (int i = 0; i < totalFutures; i++) {
+        final Pair<Integer,Integer> splitBounds = getRandomSplitBounds(numRows);
+        final TreeSet<Text> splits = TestIngest.getSplitPoints(splitBounds.getFirst().longValue(),
+            splitBounds.getSecond().longValue(), splitsPerFuture);
+        totalSplits.addAll(splits);
+        tasks.add(() -> {
+          c.tableOperations().addSplits(tableName, splits);
+          return null;
+        });
+      }
+
+      log.debug("Submitting futures");
+      List<Future<Void>> futures =
+          tasks.parallelStream().map(es::submit).collect(Collectors.toList());
+
+      log.debug("Waiting for futures to complete");
+      for (Future<?> f : futures) {
+        f.get();
+      }
+      es.shutdown();
+
+      final int expectedSplitCount = totalSplits.size();
+      boolean allSplitsHaveBeenSeen = Wait.waitFor(() -> {
+        final int actualSplitCount = c.tableOperations().listSplits(tableName).size();
+        log.debug("Waiting for {} splits to happen. Total splits: {}", expectedSplitCount,
+            actualSplitCount);
+        return actualSplitCount == expectedSplitCount;
+      });
+
+      assertTrue(allSplitsHaveBeenSeen, "Did not see expected number of splits");
+    }
+  }
+
+  /**
+   * Generates a pair of integers that represent the start and end of a range of splits. The start
+   * and end are randomly generated between 0 and upperBound. The start is guaranteed to be less
+   * than the end.
+   *
+   * @param upperBound the upper bound of the range of splits
+   * @return a pair of integers that represent the start and end of a range of splits
+   */
+  private Pair<Integer,Integer> getRandomSplitBounds(int upperBound) {
+    int start = random.nextInt(upperBound);
+    int end = random.nextInt(upperBound);
+    if (start > end) {
+      int tmp = start;
+      start = end;
+      end = tmp;
+    }
+    return new Pair<>(start, end);
   }
 
 }

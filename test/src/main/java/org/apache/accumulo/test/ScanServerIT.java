@@ -359,7 +359,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
     return ingestedEntriesCount;
   }
 
-  protected static int getNumHostedTablets(AccumuloClient client, String tableId) throws Exception {
+  public static int getNumHostedTablets(AccumuloClient client, String tableId) throws Exception {
     try (Scanner scanner = client.createScanner(MetadataTable.NAME)) {
       scanner.setRange(new Range(tableId, tableId + "<"));
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
