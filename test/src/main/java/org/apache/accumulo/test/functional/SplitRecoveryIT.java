@@ -191,8 +191,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       KeyExtent extent) {
     Map<Long,List<TabletFile>> bulkFiles = new HashMap<>();
 
-    context.getAmple().readTablet(extent).getLoaded()
-        .forEach((path, txid) -> bulkFiles.computeIfAbsent(txid, k -> new ArrayList<>()).add(path));
+    context.getAmple().readTablet(extent).getLoaded().forEach((path, txid) -> bulkFiles
+        .computeIfAbsent(txid, k -> new ArrayList<>()).add(path.getTabletFile()));
 
     return bulkFiles;
   }

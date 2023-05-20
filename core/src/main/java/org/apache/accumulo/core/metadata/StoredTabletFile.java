@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import java.util.Objects;
+
+import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
@@ -32,8 +35,9 @@ import org.apache.hadoop.io.Text;
  * As of 2.1, Tablet file paths should now be only absolute URIs with the removal of relative paths
  * in Upgrader9to10.upgradeRelativePaths()
  */
-public class StoredTabletFile extends TabletFile {
+public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   private final String metadataEntry;
+  private final TabletFile tabletFile;
 
   /**
    * Construct a tablet file using the string read from the metadata. Preserve the exact string so
@@ -42,6 +46,7 @@ public class StoredTabletFile extends TabletFile {
   public StoredTabletFile(String metadataEntry) {
     super(new Path(metadataEntry));
     this.metadataEntry = metadataEntry;
+    this.tabletFile = TabletFile.of(getPath());
   }
 
   /**
@@ -60,6 +65,22 @@ public class StoredTabletFile extends TabletFile {
     return new Text(getMetaUpdateDelete());
   }
 
+  public TabletFile getTabletFile() {
+    return tabletFile;
+  }
+
+  public TableId getTableId() {
+    return tabletFile.getTableId();
+  }
+
+  public String getPathStr() {
+    return tabletFile.getPathStr();
+  }
+
+  public Text getMetaInsertText() {
+    return tabletFile.getMetaInsertText();
+  }
+
   /**
    * Validate that the provided reference matches what is in the metadata table.
    *
@@ -71,4 +92,40 @@ public class StoredTabletFile extends TabletFile {
           + " does not match what was in the metadata: " + metadataEntry);
     }
   }
+
+  @Override
+  public int compareTo(StoredTabletFile o) {
+    if (equals(o)) {
+      return 0;
+    } else {
+      return metadataEntry.compareTo(o.metadataEntry);
+    }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    StoredTabletFile that = (StoredTabletFile) o;
+    return Objects.equals(metadataEntry, that.metadataEntry);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(metadataEntry);
+  }
+
+  @Override
+  public String toString() {
+    return metadataEntry;
+  }
+
+  public static StoredTabletFile of(final String metadataEntry) {
+    return new StoredTabletFile(metadataEntry);
+  }
+
 }

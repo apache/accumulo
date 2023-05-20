@@ -112,12 +112,12 @@ public class FileUtil {
     return result;
   }
 
-  public static Collection<AbstractTabletFile<?>> reduceFiles(ServerContext context,
+  public static Collection<? extends AbstractTabletFile<?>> reduceFiles(ServerContext context,
       TableConfiguration tableConf, Text prevEndRow, Text endRow,
       Collection<? extends AbstractTabletFile<?>> dataFiles, int maxFiles, Path tmpDir, int pass)
       throws IOException {
 
-    ArrayList<AbstractTabletFile<?>> files = new ArrayList<>(dataFiles);
+    ArrayList<? extends AbstractTabletFile<?>> files = new ArrayList<>(dataFiles);
 
     if (files.size() <= maxFiles) {
       return files;
@@ -127,13 +127,13 @@ public class FileUtil {
 
     int start = 0;
 
-    ArrayList<AbstractTabletFile<?>> outFiles = new ArrayList<>();
+    ArrayList<UnreferencedTabletFile> outFiles = new ArrayList<>();
 
     int count = 0;
 
     while (start < files.size()) {
       int end = Math.min(maxFiles + start, files.size());
-      List<AbstractTabletFile<?>> inFiles = files.subList(start, end);
+      List<? extends AbstractTabletFile<?>> inFiles = files.subList(start, end);
 
       start = end;
 
@@ -485,14 +485,14 @@ public class FileUtil {
     return numKeys;
   }
 
-  public static Map<TabletFile,FileInfo> tryToGetFirstAndLastRows(ServerContext context,
-      TableConfiguration tableConf, Set<TabletFile> dataFiles) {
+  public static <T extends AbstractTabletFile<T>> Map<T,FileInfo> tryToGetFirstAndLastRows(
+      ServerContext context, TableConfiguration tableConf, Set<T> dataFiles) {
 
-    HashMap<TabletFile,FileInfo> dataFilesInfo = new HashMap<>();
+    HashMap<T,FileInfo> dataFilesInfo = new HashMap<>();
 
     long t1 = System.currentTimeMillis();
 
-    for (TabletFile dataFile : dataFiles) {
+    for (T dataFile : dataFiles) {
 
       FileSKVIterator reader = null;
       FileSystem ns = context.getVolumeManager().getFileSystemByPath(dataFile.getPath());
@@ -528,12 +528,13 @@ public class FileUtil {
     return dataFilesInfo;
   }
 
-  public static WritableComparable<Key> findLastKey(ServerContext context,
-      TableConfiguration tableConf, Collection<TabletFile> dataFiles) throws IOException {
+  public static <T extends AbstractTabletFile<T>> WritableComparable<Key>
+      findLastKey(ServerContext context, TableConfiguration tableConf, Collection<T> dataFiles)
+          throws IOException {
 
     Key lastKey = null;
 
-    for (TabletFile file : dataFiles) {
+    for (T file : dataFiles) {
       FileSystem ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(file, ns, ns.getConf(), tableConf.getCryptoService())

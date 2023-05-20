@@ -28,9 +28,9 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -122,9 +122,9 @@ public class TabletLogger {
   }
 
   public static void selected(KeyExtent extent, CompactionKind kind,
-      Collection<? extends TabletFile> inputs) {
+      Collection<StoredTabletFile> inputs) {
     fileLog.trace("{} changed compaction selection set for {} new set {}", extent, kind,
-        Collections2.transform(inputs, TabletFile::getFileName));
+        Collections2.transform(inputs, StoredTabletFile::getFileName));
   }
 
   public static void compacting(KeyExtent extent, CompactionJob job, CompactionConfig config) {
@@ -140,7 +140,7 @@ public class TabletLogger {
     }
   }
 
-  public static void compacted(KeyExtent extent, CompactionJob job, TabletFile output) {
+  public static void compacted(KeyExtent extent, CompactionJob job, AbstractTabletFile<?> output) {
     fileLog.debug("Compacted {} for {} created {} from {}", extent, job.getKind(), output,
         asFileNames(job.getFiles()));
   }
@@ -153,7 +153,7 @@ public class TabletLogger {
     }
   }
 
-  public static void bulkImported(KeyExtent extent, TabletFile file) {
+  public static void bulkImported(KeyExtent extent, AbstractTabletFile<?> file) {
     fileLog.debug("Imported {} {}  ", extent, file);
   }
 

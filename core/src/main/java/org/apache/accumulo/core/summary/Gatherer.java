@@ -61,7 +61,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -163,17 +163,17 @@ public class Gatherer {
    * @return A map of the form : {@code map<tserver location, map<path, list<range>>} . The ranges
    *         associated with a file represent the tablets that use the file.
    */
-  private Map<String,Map<TabletFile,List<TRowRange>>>
-      getFilesGroupedByLocation(Predicate<TabletFile> fileSelector) {
+  private Map<String,Map<StoredTabletFile,List<TRowRange>>>
+      getFilesGroupedByLocation(Predicate<StoredTabletFile> fileSelector) {
 
     Iterable<TabletMetadata> tmi = TabletsMetadata.builder(ctx).forTable(tableId)
         .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build();
 
     // get a subset of files
-    Map<TabletFile,List<TabletMetadata>> files = new HashMap<>();
+    Map<StoredTabletFile,List<TabletMetadata>> files = new HashMap<>();
 
     for (TabletMetadata tm : tmi) {
-      for (TabletFile file : tm.getFiles()) {
+      for (StoredTabletFile file : tm.getFiles()) {
         if (fileSelector.test(file)) {
           // TODO push this filtering to server side and possibly use batch scanner
           files.computeIfAbsent(file, s -> new ArrayList<>()).add(tm);
@@ -183,11 +183,11 @@ public class Gatherer {
 
     // group by location, then file
 
-    Map<String,Map<TabletFile,List<TRowRange>>> locations = new HashMap<>();
+    Map<String,Map<StoredTabletFile,List<TRowRange>>> locations = new HashMap<>();
 
     List<String> tservers = null;
 
-    for (Entry<TabletFile,List<TabletMetadata>> entry : files.entrySet()) {
+    for (Entry<StoredTabletFile,List<TabletMetadata>> entry : files.entrySet()) {
 
       String location = entry.getValue().stream().filter(tm -> tm.getLocation() != null) // filter
                                                                                          // tablets
@@ -261,7 +261,7 @@ public class Gatherer {
 
   private static class ProcessedFiles {
     final SummaryCollection summaries;
-    final Set<TabletFile> failedFiles;
+    final Set<StoredTabletFile> failedFiles;
 
     public ProcessedFiles() {
       this.summaries = new SummaryCollection();
@@ -286,12 +286,12 @@ public class Gatherer {
   private class FilesProcessor implements Supplier<ProcessedFiles> {
 
     HostAndPort location;
-    Map<TabletFile,List<TRowRange>> allFiles;
+    Map<StoredTabletFile,List<TRowRange>> allFiles;
     private TInfo tinfo;
     private AtomicBoolean cancelFlag;
 
     public FilesProcessor(TInfo tinfo, HostAndPort location,
-        Map<TabletFile,List<TRowRange>> allFiles, AtomicBoolean cancelFlag) {
+        Map<StoredTabletFile,List<TRowRange>> allFiles, AtomicBoolean cancelFlag) {
       this.location = location;
       this.allFiles = allFiles;
       this.tinfo = tinfo;
@@ -306,7 +306,7 @@ public class Gatherer {
       try {
         client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, ctx);
         // partition files into smaller chunks so that not too many are sent to a tserver at once
-        for (Map<TabletFile,List<TRowRange>> files : partition(allFiles, 500)) {
+        for (Map<StoredTabletFile,List<TRowRange>> files : partition(allFiles, 500)) {
           if (!pfiles.failedFiles.isEmpty()) {
             // there was a previous failure on this tserver, so just fail the rest of the files
             pfiles.failedFiles.addAll(files.keySet());
@@ -350,13 +350,13 @@ public class Gatherer {
 
     PartitionFuture(TInfo tinfo, ExecutorService execSrv, int modulus, int remainder) {
       Function<ProcessedFiles,CompletableFuture<ProcessedFiles>> go = previousWork -> {
-        Predicate<TabletFile> fileSelector = file -> Math
+        Predicate<StoredTabletFile> fileSelector = file -> Math
             .abs(Hashing.murmur3_32_fixed().hashString(file.getPathStr(), UTF_8).asInt()) % modulus
             == remainder;
         if (previousWork != null) {
           fileSelector = fileSelector.and(previousWork.failedFiles::contains);
         }
-        Map<String,Map<TabletFile,List<TRowRange>>> filesGBL;
+        Map<String,Map<StoredTabletFile,List<TRowRange>>> filesGBL;
         filesGBL = getFilesGroupedByLocation(fileSelector);
 
         List<CompletableFuture<ProcessedFiles>> futures = new ArrayList<>();
@@ -365,9 +365,9 @@ public class Gatherer {
               .completedFuture(new ProcessedFiles(previousWork.summaries, factory)));
         }
 
-        for (Entry<String,Map<TabletFile,List<TRowRange>>> entry : filesGBL.entrySet()) {
+        for (Entry<String,Map<StoredTabletFile,List<TRowRange>>> entry : filesGBL.entrySet()) {
           HostAndPort location = HostAndPort.fromString(entry.getKey());
-          Map<TabletFile,List<TRowRange>> allFiles = entry.getValue();
+          Map<StoredTabletFile,List<TRowRange>> allFiles = entry.getValue();
 
           futures.add(CompletableFuture
               .supplyAsync(new FilesProcessor(tinfo, location, allFiles, cancelFlag), execSrv));

@@ -284,7 +284,7 @@ public class MetadataTableUtil {
   }
 
   public static void splitDatafiles(Text midRow, double splitRatio,
-      Map<TabletFile,FileUtil.FileInfo> firstAndLastRows,
+      Map<StoredTabletFile,FileUtil.FileInfo> firstAndLastRows,
       SortedMap<StoredTabletFile,DataFileValue> datafiles,
       SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes,
       SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes,
@@ -513,7 +513,7 @@ public class MetadataTableUtil {
     while (cloneIter.hasNext()) {
       TabletMetadata cloneTablet = cloneIter.next();
       Text cloneEndRow = cloneTablet.getEndRow();
-      HashSet<TabletFile> cloneFiles = new HashSet<>();
+      HashSet<StoredTabletFile> cloneFiles = new HashSet<>();
 
       boolean cloneSuccessful = cloneTablet.getCloned() != null;
 
@@ -532,7 +532,7 @@ public class MetadataTableUtil {
             "Tablets deleted from src during clone : " + cloneEndRow + " " + srcEndRow);
       }
 
-      HashSet<TabletFile> srcFiles = new HashSet<>();
+      HashSet<StoredTabletFile> srcFiles = new HashSet<>();
       if (!cloneSuccessful) {
         srcFiles.addAll(srcTablet.getFiles());
       }

@@ -94,7 +94,7 @@ public class ManagerMetadataUtil {
       tablet.deleteLocation(Location.future(tServerInstance));
     }
 
-    datafileSizes.forEach(tablet::putFile);
+    datafileSizes.forEach((key, value) -> tablet.putFile(key.getTabletFile(), value));
 
     for (Entry<Long,? extends Collection<TabletFile>> entry : bulkLoadedFiles.entrySet()) {
       for (TabletFile ref : entry.getValue()) {
@@ -199,10 +199,10 @@ public class ManagerMetadataUtil {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
 
     datafilesToDelete.forEach(tablet::deleteFile);
-    scanFiles.forEach(tablet::putScan);
+    scanFiles.stream().map(StoredTabletFile::getTabletFile).forEach(tablet::putScan);
 
     if (path.isPresent()) {
-      tablet.putFile(path.orElseThrow(), size);
+      tablet.putFile(path.orElseThrow().getTabletFile(), size);
     }
 
     if (compactionId != null) {
