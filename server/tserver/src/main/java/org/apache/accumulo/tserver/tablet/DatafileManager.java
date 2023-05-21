@@ -95,7 +95,7 @@ class DatafileManager {
     }
   }
 
-  Pair<Long,Map<TabletFile,DataFileValue>> reserveFilesForScan() {
+  Pair<Long,Map<StoredTabletFile,DataFileValue>> reserveFilesForScan() {
     synchronized (tablet) {
 
       Set<StoredTabletFile> absFilePaths = new HashSet<>(datafileSizes.keySet());
@@ -104,11 +104,11 @@ class DatafileManager {
 
       scanFileReservations.put(rid, absFilePaths);
 
-      Map<TabletFile,DataFileValue> ret = new HashMap<>();
+      Map<StoredTabletFile,DataFileValue> ret = new HashMap<>();
 
       for (StoredTabletFile path : absFilePaths) {
         fileScanReferenceCounts.increment(path, 1);
-        ret.put(path.getTabletFile(), datafileSizes.get(path));
+        ret.put(path, datafileSizes.get(path));
       }
 
       return new Pair<>(rid, ret);

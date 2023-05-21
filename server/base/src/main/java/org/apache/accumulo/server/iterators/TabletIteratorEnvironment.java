@@ -32,7 +32,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
@@ -53,7 +53,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   private final AccumuloConfiguration tableConfig;
   private final TableId tableId;
   private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators;
-  private Map<TabletFile,DataFileValue> files;
+  private Map<StoredTabletFile,DataFileValue> files;
 
   private final Authorizations authorizations; // these will only be supplied during scan scope
   private SamplerConfiguration samplerConfig;
@@ -79,7 +79,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
       AccumuloConfiguration tableConfig, TableId tableId, ScanFileManager trm,
-      Map<TabletFile,DataFileValue> files, Authorizations authorizations,
+      Map<StoredTabletFile,DataFileValue> files, Authorizations authorizations,
       SamplerConfigurationImpl samplerConfig,
       ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators) {
     if (scope == IteratorScope.majc) {
