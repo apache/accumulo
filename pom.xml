@@ -120,7 +120,7 @@
     <bouncycastle.version>1.70</bouncycastle.version>
     <!-- Curator version -->
     <curator.version>5.5.0</curator.version>
-    <errorprone.version>2.19.1</errorprone.version>
+    <errorprone.version>2.18.0</errorprone.version>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
     <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
     <extraTestArgs />
