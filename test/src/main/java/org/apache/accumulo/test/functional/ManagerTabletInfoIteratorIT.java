@@ -79,7 +79,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
- * Test to ensure that the {@link TabletStateChangeIterator} properly skips over tablet information
+ * Test to ensure that the {@link ManagerTabletInfoIterator} properly skips over tablet information
  * in the metadata table when there is no work to be done on the tablet (see ACCUMULO-3580)
  */
 public class ManagerTabletInfoIteratorIT extends AccumuloClusterHarness {
