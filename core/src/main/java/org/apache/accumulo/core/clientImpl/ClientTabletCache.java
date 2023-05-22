@@ -105,7 +105,6 @@ public abstract class ClientTabletCache {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       InvalidTabletHostingRequestException;
 
-  // ELASTICITY_TODO rename to findTablets
   /**
    * <p>
    * This method finds what tablets overlap a given set of ranges, passing each range and its
