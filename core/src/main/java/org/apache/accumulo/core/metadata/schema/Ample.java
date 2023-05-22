@@ -473,7 +473,7 @@ public interface Ample {
      * but it actually succeeded. This could be caused by the mutation succeeding and the tablet
      * server dying just before it reports back.</li>
      * <li>Ample sees the UNKNOWN status and resubmits CM1 for a second time. Because the future
-     * locations was set, the mutation is returned to ample with a status of rejected by the
+     * location was set, the mutation is returned to ample with a status of rejected by the
      * conditional writer.</li>
      * <li>Because the mutation was rejected, ample reads the tablet metadata and calls the
      * rejectionHandler. The rejectionHandler sees the future location was set and reports that
@@ -500,7 +500,7 @@ public interface Ample {
      *
      * <ul>
      * <li>Conditional mutation CM3 with a condition requiring an absent operation that sets the
-     * operation id to a fate transaction id is submitted. When its submitted to ample a
+     * operation id to a fate transaction id is submitted. When it's submitted to ample a
      * rejectionHandler is set that checks if the operation id equals the fate transaction id.</li>
      * <li>The thread running the fate operation dies after submitting the mutation but before
      * seeing it was actually accepted.</li>
@@ -518,7 +518,7 @@ public interface Ample {
      *        the tablets metadata and apply this check to see if it should be considered as
      *        {@link org.apache.accumulo.core.client.ConditionalWriter.Status#ACCEPTED} in the
      *        return of {@link ConditionalTabletsMutator#process()}. The rejection handler is only
-     *        called when a tablets metadata exists. If ample reads a tablets metadata and the
+     *        called when a tablets metadata exists. If ample reads a tablet's metadata and the
      *        tablet no longer exists, then ample will not call the rejectionHandler with null. It
      *        will let the rejected status carry forward in this case.
      */
