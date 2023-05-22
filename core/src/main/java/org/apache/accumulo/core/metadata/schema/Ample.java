@@ -440,21 +440,19 @@ public interface Ample {
      * <p>
      * Ample provides the following features on top of the conditional writer to help automate
      * handling of edges cases that arise when using the conditional writer.
-     * <UL>
-     * <LI>Automatically resubmit conditional mutations with a status of
-     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#UNKNOWN}.</LI>
-     * <LI>When a mutation is rejected (status of
+     * <ul>
+     * <li>Automatically resubmit conditional mutations with a status of
+     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#UNKNOWN}.</li>
+     * <li>When a mutation is rejected (status of
      * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#REJECTED}) it will read the
      * tablets metadata and call the passed rejectionHandler to determine if the mutation should be
-     * considered as accepted.</LI>
-     * <LI>For status of
+     * considered as accepted.</li>
+     * <li>For status of
      * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#INVISIBLE_VISIBILITY} and
      * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#VIOLATED} ample will throw an
      * exception. This is done so that all code does not have to deal with these unexpected
-     * statuses.</LI>
-     * </UL>
-     *
-     * </p>
+     * statuses.</li>
+     * </ul>
      *
      * <p>
      * The motivation behind the rejectionHandler is to help sort things out when conditional
@@ -464,62 +462,56 @@ public interface Ample {
      * Later FATE will run the code again for a second time, submitting a second mutation. The
      * second cause is ample resubmitting on unknown as mentioned above. Below are a few examples
      * that go over how Ample will handle these different situations.
-     * </p>
      *
-     * <p>
-     * <H3>Example 1</H3>
+     * <h3>Example 1</h3>
      *
-     * <UL>
-     * <LI>Conditional mutation CM1 with a condition requiring an absent location that sets a future
+     * <ul>
+     * <li>Conditional mutation CM1 with a condition requiring an absent location that sets a future
      * location is submitted. When its submitted to ample a rejectionHandler is set that checks the
-     * future location.</LI>
-     * <LI>Inside Ample CM1 is submitted to a conditional writer and returns a status of UNKNOWN,
+     * future location.</li>
+     * <li>Inside Ample CM1 is submitted to a conditional writer and returns a status of UNKNOWN,
      * but it actually succeeded. This could be caused by the mutation succeeding and the tablet
-     * server dying just before it reports back.</LI>
-     * <LI>Ample sees the UNKNOWN status and resubmits CM1 for a second time. Because the future
+     * server dying just before it reports back.</li>
+     * <li>Ample sees the UNKNOWN status and resubmits CM1 for a second time. Because the future
      * locations was set, the mutation is returned to ample with a status of rejected by the
-     * conditional writer.</LI>
-     * <LI>Because the mutation was rejected, ample reads the tablet metadata and calls the
+     * conditional writer.</li>
+     * <li>Because the mutation was rejected, ample reads the tablet metadata and calls the
      * rejectionHandler. The rejectionHandler sees the future location was set and reports that
-     * everything is ok, therefore ample reports the status as ACCEPTED.</LI>
-     * </UL>
-     * </p>
+     * everything is ok, therefore ample reports the status as ACCEPTED.</li>
+     * </ul>
      *
-     * <p>
-     * <H3>Example 2</H3>
+     * <h3>Example 2</h3>
      *
-     * <UL>
-     * <LI>Conditional mutation CM2 with a condition requiring an absent location that sets a future
+     * <ul>
+     * <li>Conditional mutation CM2 with a condition requiring an absent location that sets a future
      * location is submitted. When its submitted to ample a rejectionHandler is set that checks the
-     * future location.</LI>
-     * <LI>Inside Ample CM2 is submitted to a conditional writer and returns a status of UNKNOWN,
+     * future location.</li>
+     * <li>Inside Ample CM2 is submitted to a conditional writer and returns a status of UNKNOWN,
      * but it actually never made it to the tserver. This could be caused by the tablet server dying
-     * just after a network connection was established to send the mutation.</LI>
-     * <LI>Ample sees the UNKNOWN status and resubmits CM2 for a second time. There is no future
+     * just after a network connection was established to send the mutation.</li>
+     * <li>Ample sees the UNKNOWN status and resubmits CM2 for a second time. There is no future
      * location set so the mutation is returned to ample with a status of accepted by the
-     * conditional writer.</LI>
-     * <LI>Because the mutation was accepted, ample never calls the rejectionHandler and returns it
-     * as accepted.</LI>
-     * </UL>
-     * </p>
-     * <p>
-     * <H3>Example 3</H3>
+     * conditional writer.</li>
+     * <li>Because the mutation was accepted, ample never calls the rejectionHandler and returns it
+     * as accepted.</li>
+     * </ul>
      *
-     * <UL>
-     * <LI>Conditional mutation CM3 with a condition requiring an absent operation that sets the
+     * <h3>Example 3</h3>
+     *
+     * <ul>
+     * <li>Conditional mutation CM3 with a condition requiring an absent operation that sets the
      * operation id to a fate transaction id is submitted. When its submitted to ample a
-     * rejectionHandler is set that checks if the operation id equals the fate transaction id.</LI>
-     * <LI>The thread running the fate operation dies after submitting the mutation but before
-     * seeing it was actually accepted.</LI>
-     * <LI>Later fate creates an identical mutation to CM3, lets call it CM3.2, and resubmits it
-     * with the same rejection handler.</lI>
-     * <LI>CM3.2 is rejected because the operation id is not absent.</LI>
-     * <LI>Because the mutation was rejected, ample calls the rejectionHandler. The rejectionHandler
+     * rejectionHandler is set that checks if the operation id equals the fate transaction id.</li>
+     * <li>The thread running the fate operation dies after submitting the mutation but before
+     * seeing it was actually accepted.</li>
+     * <li>Later fate creates an identical mutation to CM3, lets call it CM3.2, and resubmits it
+     * with the same rejection handler.</li>
+     * <li>CM3.2 is rejected because the operation id is not absent.</li>
+     * <li>Because the mutation was rejected, ample calls the rejectionHandler. The rejectionHandler
      * sees in the tablet metadata that the operation id is its fate transaction id and reports back
-     * true</LI>
-     * <LI>When rejectionHandler reports true, ample reports the mutation as accepted.</LI>
-     * </UL>
-     * </p>
+     * true</li>
+     * <li>When rejectionHandler reports true, ample reports the mutation as accepted.</li>
+     * </ul>
      *
      * @param rejectionHandler if the conditional mutation comes back with a status of
      *        {@link org.apache.accumulo.core.client.ConditionalWriter.Status#REJECTED} then read
