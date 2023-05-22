@@ -22,6 +22,7 @@ import java.util.Collection;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -47,7 +48,7 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
   }
 
   @Override
-  public ClosableIterator<TabletMetadata> iterator() {
+  public ClosableIterator<ManagerTabletInfo> iterator() {
     return new MetaDataTableScanner(context, TabletsSection.getRange(), state, targetTableName);
   }
 

@@ -19,9 +19,9 @@
 package org.apache.accumulo.server.manager.state;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
 class RootTabletStateStore extends MetaDataStateStore {
 
@@ -30,7 +30,7 @@ class RootTabletStateStore extends MetaDataStateStore {
   }
 
   @Override
-  public ClosableIterator<TabletMetadata> iterator() {
+  public ClosableIterator<ManagerTabletInfo> iterator() {
     return new MetaDataTableScanner(context, TabletsSection.getRange(), state, RootTable.NAME);
   }
 

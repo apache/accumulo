@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.hadoop.fs.Path;
@@ -47,7 +48,7 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public ClosableIterator<TabletMetadata> iterator() {
+  public ClosableIterator<ManagerTabletInfo> iterator() {
     return wrapped.iterator();
   }
 

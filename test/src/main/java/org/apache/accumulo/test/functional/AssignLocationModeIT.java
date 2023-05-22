@@ -60,7 +60,7 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
       TabletMetadata newTablet;
       do {
         UtilWaitThread.sleep(250);
-        newTablet = CompactLocationModeIT.getTabletLocationState(c, tableId);
+        newTablet = ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       } while (!newTablet.hasCurrent());
       // this would be null if the mode was not "assign"
       assertEquals(newTablet.getLocation(), newTablet.getLast());
@@ -76,21 +76,24 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
           .get(Property.TSERV_LAST_LOCATION_MODE.getKey()));
 
       // last location should not be set yet
-      TabletMetadata unflushed = CompactLocationModeIT.getTabletLocationState(c, tableId);
+      TabletMetadata unflushed =
+          ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertEquals(newTablet.getLocation(), unflushed.getLocation());
       assertEquals(newTablet.getLocation(), unflushed.getLast());
       assertTrue(newTablet.hasCurrent());
 
       // take the tablet offline
       c.tableOperations().offline(tableName, true);
-      TabletMetadata offline = CompactLocationModeIT.getTabletLocationState(c, tableId);
+      TabletMetadata offline =
+          ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertNull(offline.getLocation());
       assertFalse(offline.hasCurrent());
       assertEquals(newTablet.getLocation(), offline.getLast());
 
       // put it back online, should have the same last location
       c.tableOperations().online(tableName, true);
-      TabletMetadata online = CompactLocationModeIT.getTabletLocationState(c, tableId);
+      TabletMetadata online =
+          ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(online.hasCurrent());
       assertNotNull(online.getLocation());
       assertEquals(newTablet.getLast(), online.getLast());

@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -49,6 +48,8 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo.ManagementAction;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
@@ -62,11 +63,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.VirtualMetadataColumns.MaintenanceRequired;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.VirtualMetadataColumns.MaintenanceRequired.Reasons;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -75,9 +73,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 
-public class TabletMetadataIterator extends SkippingIterator {
+public class ManagerTabletInfoIterator extends SkippingIterator {
 
-  private static final Logger LOG = LoggerFactory.getLogger(TabletMetadataIterator.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ManagerTabletInfoIterator.class);
 
   private static final String SERVERS_OPTION = "servers";
   private static final String TABLES_OPTION = "tables";
@@ -86,9 +84,6 @@ public class TabletMetadataIterator extends SkippingIterator {
   private static final String MIGRATIONS_OPTION = "migrations";
   private static final String MANAGER_STATE_OPTION = "managerState";
   private static final String SHUTTING_DOWN_OPTION = "shuttingDown";
-  private static final EnumSet<ColumnType> CONFIGURED_COLUMNS = EnumSet.of(ColumnType.PREV_ROW,
-      ColumnType.LOCATION, ColumnType.SUSPEND, ColumnType.LOGS, ColumnType.CHOPPED,
-      ColumnType.HOSTING_GOAL, ColumnType.HOSTING_REQUESTED, ColumnType.FILES, ColumnType.LAST);
 
   private static void setCurrentServers(final IteratorSetting cfg,
       final Set<TServerInstance> goodServers) {
@@ -293,22 +288,20 @@ public class TabletMetadataIterator extends SkippingIterator {
     scanner.fetchColumnFamily(HostingColumnFamily.NAME);
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
     IteratorSetting tabletChange =
-        new IteratorSetting(1001, "tabletMetadataIterator", TabletMetadataIterator.class);
+        new IteratorSetting(1001, "ManagerTabletInfoIterator", ManagerTabletInfoIterator.class);
     if (state != null) {
-      TabletMetadataIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
-      TabletMetadataIterator.setOnlineTables(tabletChange, state.onlineTables());
-      TabletMetadataIterator.setMerges(tabletChange, state.merges());
-      TabletMetadataIterator.setMigrations(tabletChange, state.migrationsSnapshot());
-      TabletMetadataIterator.setManagerState(tabletChange, state.getManagerState());
-      TabletMetadataIterator.setShuttingDown(tabletChange, state.shutdownServers());
+      ManagerTabletInfoIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
+      ManagerTabletInfoIterator.setOnlineTables(tabletChange, state.onlineTables());
+      ManagerTabletInfoIterator.setMerges(tabletChange, state.merges());
+      ManagerTabletInfoIterator.setMigrations(tabletChange, state.migrationsSnapshot());
+      ManagerTabletInfoIterator.setManagerState(tabletChange, state.getManagerState());
+      ManagerTabletInfoIterator.setShuttingDown(tabletChange, state.shutdownServers());
     }
     scanner.addScanIterator(tabletChange);
   }
 
-  public static TabletMetadata decode(Entry<Key,Value> e) throws IOException {
-    final SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(e.getKey(), e.getValue());
-    return TabletMetadata.convertRow(decodedRow.entrySet().iterator(), CONFIGURED_COLUMNS, false,
-        true);
+  public static ManagerTabletInfo decode(Entry<Key,Value> e) throws IOException {
+    return new ManagerTabletInfo(e.getKey(), e.getValue());
   }
 
   private Set<TServerInstance> current;
@@ -377,21 +370,21 @@ public class TabletMetadataIterator extends SkippingIterator {
   @Override
   protected void consume() throws IOException {
 
-    final Set<Reasons> reasonsToReturnThisTablet = new HashSet<>();
+    final Set<ManagementAction> reasonsToReturnThisTablet = new HashSet<>();
     while (getSource().hasTop()) {
       final Key k = getSource().getTopKey();
       final Value v = getSource().getTopValue();
       final SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(k, v);
       final TabletMetadata tm = TabletMetadata.convertRow(decodedRow.entrySet().iterator(),
-          CONFIGURED_COLUMNS, false, false);
+          ManagerTabletInfo.CONFIGURED_COLUMNS, false, true);
 
-      LOG.debug("Evaluating extent: {}", tm.getExtent());
+      LOG.debug("Evaluating extent: {}", tm);
       if (sendTabletToManager(tm, reasonsToReturnThisTablet)) {
         // If we simply returned here, then the client would get the encoded K,V
         // from the WholeRowIterator. However, it would not know the reason(s) why
         // it was returned. Insert a K,V pair to represent the reasons. The client
         // can pull this K,V pair from the results by looking at the colf.
-        MaintenanceRequired.addReasons(decodedRow, reasonsToReturnThisTablet);
+        ManagerTabletInfo.addActions(decodedRow, reasonsToReturnThisTablet);
         topKey = decodedRow.firstKey();
         topValue = WholeRowIterator.encodeRow(new ArrayList<>(decodedRow.keySet()),
             new ArrayList<>(decodedRow.values()));
@@ -409,35 +402,38 @@ public class TabletMetadataIterator extends SkippingIterator {
    * Manager
    */
   private boolean sendTabletToManager(final TabletMetadata tm,
-      final Set<Reasons> reasonsToReturnThisTablet) {
+      final Set<ManagementAction> reasonsToReturnThisTablet) {
 
     reasonsToReturnThisTablet.clear();
 
-    if (onlineTables == null || current == null || managerState != ManagerState.NORMAL) {
-      reasonsToReturnThisTablet.add(Reasons.BAD_STATE);
+    if (onlineTables == null || current == null || managerState != ManagerState.NORMAL
+        || tm.isFutureAndCurrentLocationSet()) {
+      // no need to check everything, we are in a known state where we want to return everything.
+      reasonsToReturnThisTablet.add(ManagementAction.BAD_STATE);
+      return true;
     }
 
     // we always want data about merges
     final MergeInfo merge = merges.get(tm.getTableId());
     if (merge != null) {
       // could make this smarter by only returning if the tablet is involved in the merge
-      reasonsToReturnThisTablet.add(Reasons.IS_MERGING);
+      reasonsToReturnThisTablet.add(ManagementAction.IS_MERGING);
     }
 
     // always return the information for migrating tablets
     if (migrations.contains(tm.getExtent())) {
-      reasonsToReturnThisTablet.add(Reasons.IS_MIGRATING);
+      reasonsToReturnThisTablet.add(ManagementAction.IS_MIGRATING);
     }
 
     if (shouldReturnDueToLocation(tm, onlineTables, current, debug)) {
-      reasonsToReturnThisTablet.add(Reasons.NEEDS_LOCATION_UPDATE);
+      reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LOCATION_UPDATE);
     }
 
     final long splitThreshold =
         ConfigurationTypeHelper.getFixedMemoryAsBytes(this.env.getPluginEnv()
             .getConfiguration(tm.getTableId()).get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
     if (shouldReturnDueToSplit(tm, splitThreshold)) {
-      reasonsToReturnThisTablet.add(Reasons.NEEDS_SPLITTING);
+      reasonsToReturnThisTablet.add(ManagementAction.NEEDS_SPLITTING);
     }
 
     // TODO: Add compaction logic

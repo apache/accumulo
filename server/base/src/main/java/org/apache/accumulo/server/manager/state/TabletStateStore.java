@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -34,7 +35,7 @@ import org.apache.hadoop.fs.Path;
 /**
  * Interface for storing information about tablet assignments. There are three implementations:
  */
-public interface TabletStateStore extends Iterable<TabletMetadata> {
+public interface TabletStateStore extends Iterable<ManagerTabletInfo> {
 
   /**
    * Identifying name for this tablet state store.
@@ -45,7 +46,7 @@ public interface TabletStateStore extends Iterable<TabletMetadata> {
    * Scan the information about the tablets covered by this store
    */
   @Override
-  ClosableIterator<TabletMetadata> iterator();
+  ClosableIterator<ManagerTabletInfo> iterator();
 
   /**
    * Store the assigned locations in the data store.

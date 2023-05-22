@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -44,7 +45,6 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
@@ -154,8 +154,8 @@ public class MergeStateIT extends ConfigurableMacBase {
       TabletStateStore metaDataStateStore =
           TabletStateStore.getStoreForLevel(DataLevel.USER, context, state);
       int count = 0;
-      for (TabletMetadata tss : metaDataStateStore) {
-        if (tss != null) {
+      for (ManagerTabletInfo mti : metaDataStateStore) {
+        if (mti != null) {
           count++;
         }
       }
@@ -224,9 +224,10 @@ public class MergeStateIT extends ConfigurableMacBase {
   private MergeStats scan(MockCurrentState state, TabletStateStore metaDataStateStore) {
     MergeStats stats = new MergeStats(state.mergeInfo);
     stats.getMergeInfo().setState(MergeState.WAITING_FOR_OFFLINE);
-    for (TabletMetadata tm : metaDataStateStore) {
-      stats.update(tm.getExtent(), tm.getTabletState(state.onlineTabletServers()), tm.hasChopped(),
-          false);
+    for (ManagerTabletInfo tm : metaDataStateStore) {
+      stats.update(tm.getTabletMetadata().getExtent(),
+          tm.getTabletMetadata().getTabletState(state.onlineTabletServers()),
+          tm.getTabletMetadata().hasChopped(), false);
     }
     return stats;
   }

@@ -44,6 +44,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
@@ -271,31 +272,31 @@ public class RootTabletStateStoreTest {
     List<Assignment> assignments = Collections.singletonList(new Assignment(root, server, null));
     tstore.setFutureLocations(assignments);
     int count = 0;
-    for (TabletMetadata tm : tstore) {
-      assertEquals(tm.getExtent(), root);
-      assertTrue(tm.getLocation().getType().equals(LocationType.FUTURE));
-      assertEquals(tm.getLocation().getServerInstance(), server);
-      assertFalse(tm.hasCurrent());
+    for (ManagerTabletInfo mti : tstore) {
+      assertEquals(mti.getTabletMetadata().getExtent(), root);
+      assertTrue(mti.getTabletMetadata().getLocation().getType().equals(LocationType.FUTURE));
+      assertEquals(mti.getTabletMetadata().getLocation().getServerInstance(), server);
+      assertFalse(mti.getTabletMetadata().hasCurrent());
       count++;
     }
     assertEquals(count, 1);
     tstore.setLocations(assignments);
     count = 0;
-    for (TabletMetadata tm : tstore) {
-      assertEquals(tm.getExtent(), root);
-      assertFalse(tm.getLocation().getType().equals(LocationType.FUTURE));
-      assertTrue(tm.hasCurrent());
-      assertEquals(tm.getLocation().getServerInstance(), server);
+    for (ManagerTabletInfo mti : tstore) {
+      assertEquals(mti.getTabletMetadata().getExtent(), root);
+      assertFalse(mti.getTabletMetadata().getLocation().getType().equals(LocationType.FUTURE));
+      assertTrue(mti.getTabletMetadata().hasCurrent());
+      assertEquals(mti.getTabletMetadata().getLocation().getServerInstance(), server);
       count++;
     }
     assertEquals(count, 1);
-    TabletMetadata rootTabletMetadata = tstore.iterator().next();
-    tstore.unassign(Collections.singletonList(rootTabletMetadata), null);
+    ManagerTabletInfo rootTabletMetadataInfo = tstore.iterator().next();
+    tstore.unassign(Collections.singletonList(rootTabletMetadataInfo.getTabletMetadata()), null);
     count = 0;
-    for (TabletMetadata tm : tstore) {
-      assertEquals(tm.getExtent(), root);
-      assertFalse(tm.hasCurrent());
-      assertNull(tm.getLocation());
+    for (ManagerTabletInfo mti : tstore) {
+      assertEquals(mti.getTabletMetadata().getExtent(), root);
+      assertFalse(mti.getTabletMetadata().hasCurrent());
+      assertNull(mti.getTabletMetadata().getLocation());
       count++;
     }
     assertEquals(count, 1);
@@ -305,7 +306,7 @@ public class RootTabletStateStoreTest {
     assertThrows(IllegalArgumentException.class, () -> tstore.setLocations(assignmentList));
     assertThrows(IllegalArgumentException.class, () -> tstore.setFutureLocations(assignmentList));
     final List<TabletMetadata> assignmentList1 =
-        List.of(new BrokenTabletMetadata(rootTabletMetadata));
+        List.of(new BrokenTabletMetadata(rootTabletMetadataInfo.getTabletMetadata()));
     assertThrows(IllegalArgumentException.class, () -> tstore.unassign(assignmentList1, null));
   }
 }

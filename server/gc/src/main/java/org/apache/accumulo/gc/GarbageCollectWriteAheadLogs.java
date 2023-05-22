@@ -31,10 +31,10 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
@@ -64,7 +64,7 @@ public class GarbageCollectWriteAheadLogs {
   private final boolean useTrash;
   private final LiveTServerSet liveServers;
   private final WalStateManager walMarker;
-  private final Iterable<TabletMetadata> store;
+  private final Iterable<ManagerTabletInfo> store;
 
   /**
    * Creates a new GC WAL object.
@@ -96,7 +96,7 @@ public class GarbageCollectWriteAheadLogs {
    */
   @VisibleForTesting
   GarbageCollectWriteAheadLogs(ServerContext context, VolumeManager fs, boolean useTrash,
-      LiveTServerSet liveTServerSet, WalStateManager walMarker, Iterable<TabletMetadata> store) {
+      LiveTServerSet liveTServerSet, WalStateManager walMarker, Iterable<ManagerTabletInfo> store) {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
@@ -279,11 +279,13 @@ public class GarbageCollectWriteAheadLogs {
     }
 
     // remove any entries if there's a log reference (recovery hasn't finished)
-    for (TabletMetadata tm : store) {
+    for (ManagerTabletInfo mti : store) {
       // Tablet is still assigned to a dead server. Manager has moved markers and reassigned it
       // Easiest to just ignore all the WALs for the dead server.
-      if (tm.getTabletState(liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {
-        Set<UUID> idsToIgnore = candidates.remove(tm.getLocation().getServerInstance());
+      if (mti.getTabletMetadata().getTabletState(liveServers)
+          == TabletState.ASSIGNED_TO_DEAD_SERVER) {
+        Set<UUID> idsToIgnore =
+            candidates.remove(mti.getTabletMetadata().getLocation().getServerInstance());
         if (idsToIgnore != null) {
           result.keySet().removeAll(idsToIgnore);
           recoveryLogs.keySet().removeAll(idsToIgnore);
@@ -291,7 +293,7 @@ public class GarbageCollectWriteAheadLogs {
       }
       // Tablet is being recovered and has WAL references, remove all the WALs for the dead server
       // that made the WALs.
-      for (LogEntry wals : tm.getLogs()) {
+      for (LogEntry wals : mti.getTabletMetadata().getLogs()) {
         String wal = wals.filename;
         UUID walUUID = path2uuid(new Path(wal));
         TServerInstance dead = result.get(walUUID);

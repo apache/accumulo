@@ -432,7 +432,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       String tableId = Objects.requireNonNull(idMap.get(tableName));
       try (var scanner = new MetaDataTableScanner(ctx, new Range(), metaName)) {
         while (scanner.hasNext()) {
-          final TabletMetadata tm = scanner.next();
+          final TabletMetadata tm = scanner.next().getTabletMetadata();
           final KeyExtent ke = tm.getExtent();
 
           if (!tm.getTableId().canonical().equals(tableId)) {

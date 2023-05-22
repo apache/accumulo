@@ -153,7 +153,7 @@ public class TablesResource {
           systemTableName);
 
       while (scanner.hasNext()) {
-        final TabletMetadata tm = scanner.next();
+        final TabletMetadata tm = scanner.next().getTabletMetadata();
         if (tm.hasCurrent()) {
           try {
             locs.add(tm.getLocation().getHostPort());

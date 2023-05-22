@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -66,8 +68,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.state.CurrentState;
+import org.apache.accumulo.server.manager.state.ManagerTabletInfoIterator;
 import org.apache.accumulo.server.manager.state.MergeInfo;
-import org.apache.accumulo.server.manager.state.TabletMetadataIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -80,8 +82,8 @@ import com.google.common.collect.Sets;
  * Test to ensure that the {@link TabletStateChangeIterator} properly skips over tablet information
  * in the metadata table when there is no work to be done on the tablet (see ACCUMULO-3580)
  */
-public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
-  private final static Logger log = LoggerFactory.getLogger(TabletStateChangeIteratorIT.class);
+public class ManagerTabletInfoIteratorIT extends AccumuloClusterHarness {
+  private final static Logger log = LoggerFactory.getLogger(ManagerTabletInfoIteratorIT.class);
 
   @Override
   protected Duration defaultTimeout() {
@@ -90,7 +92,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws AccumuloException, AccumuloSecurityException, TableExistsException,
-      TableNotFoundException {
+      TableNotFoundException, IOException {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
@@ -236,18 +238,19 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   }
 
   private int findTabletsNeedingAttention(AccumuloClient client, String table, State state)
-      throws TableNotFoundException {
+      throws TableNotFoundException, IOException {
     int results = 0;
-    List<Key> resultList = new ArrayList<>();
+    List<KeyExtent> resultList = new ArrayList<>();
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
-      TabletMetadataIterator.configureScanner(scanner, state);
+      ManagerTabletInfoIterator.configureScanner(scanner, state);
       log.debug("Current state = {}", state);
       scanner.updateScanIteratorOption("tabletChange", "debug", "1");
       for (Entry<Key,Value> e : scanner) {
         if (e != null) {
+          ManagerTabletInfo mti = ManagerTabletInfoIterator.decode(e);
           results++;
-          log.debug("Found tablets that changed state: {}", e.getKey());
-          resultList.add(e.getKey());
+          log.debug("Found tablets that changed state: {}", mti.getTabletMetadata().getExtent());
+          resultList.add(mti.getTabletMetadata().getExtent());
         }
       }
     }

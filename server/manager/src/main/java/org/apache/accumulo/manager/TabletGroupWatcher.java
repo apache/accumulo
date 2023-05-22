@@ -31,7 +31,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -58,6 +57,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo.ManagementAction;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -79,7 +80,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.VirtualMetadataColumns.MaintenanceRequired.Reasons;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.TextUtil;
@@ -207,7 +207,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       int totalUnloaded = 0;
       int unloaded = 0;
-      ClosableIterator<TabletMetadata> iter = null;
+      ClosableIterator<ManagerTabletInfo> iter = null;
       try {
         Map<TableId,MergeStats> mergeStatsCache = new HashMap<>();
         Map<TableId,MergeStats> currentMerges = new HashMap<>();
@@ -240,14 +240,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         // towards their goal
         iter = store.iterator();
         while (iter.hasNext()) {
-          final TabletMetadata tm = iter.next();
-          if (tm == null) {
-            LOG.debug("TabletMetadataIterator returned null TabletMetadata");
+          final ManagerTabletInfo mti = iter.next();
+          if (mti == null) {
+            LOG.debug("ManagerTabletInfoIterator returned null ManagerTabletInfo");
             continue;
           }
-          LOG.debug("TabletMetadata returned: {}", tm);
 
-          final Optional<Set<Reasons>> reasons = tm.getMaintenanceReasons();
+          final Set<ManagementAction> actions = mti.getActions();
+          final TabletMetadata tm = mti.getTabletMetadata();
 
           if (tm.isFutureAndCurrentLocationSet()) {
             throw new BadLocationStateException(
@@ -308,8 +308,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             }
           }
 
-          if (reasons.isPresent()
-              && reasons.orElseThrow().contains(Reasons.NEEDS_LOCATION_UPDATE)) {
+          if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)) {
             if (goal == TabletGoalState.HOSTED) {
               if ((state != TabletState.HOSTED && !tm.getLogs().isEmpty())
                   && manager.recoveryManager.recoverLogs(tm.getExtent(), tm.getLogs())) {
@@ -369,6 +368,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             counts[state.ordinal()]++;
           }
         }
+
+        // ELASTICITY_TODO: Add handling for other actions
 
         flushChanges(tLists, wals);
 

@@ -75,51 +75,20 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.VirtualMetadataColumns.MaintenanceRequired;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.VirtualMetadataColumns.MaintenanceRequired.Reasons;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.net.HostAndPort;
 
 public class TabletMetadata {
-
-  public static class VirtualMetadataColumns {
-
-    public static class MaintenanceRequired {
-      public static enum Reasons {
-        BAD_STATE,
-        NEEDS_COMPACTING,
-        NEEDS_LOCATION_UPDATE,
-        IS_MERGING,
-        IS_MIGRATING,
-        NEEDS_SPLITTING;
-      }
-
-      public static final String REASONS_COLUMN_NAME = "REASONS";
-      public static final ColumnFQ REASONS_COLUMN =
-          new ColumnFQ(new Text(REASONS_COLUMN_NAME), new Text(""));
-
-      public static void addReasons(final SortedMap<Key,Value> decodedRow,
-          final Set<Reasons> reasons) {
-        final Key reasonsKey = new Key(decodedRow.firstKey().getRow(),
-            REASONS_COLUMN.getColumnFamily(), REASONS_COLUMN.getColumnQualifier());
-        final Value reasonsValue = new Value(Joiner.on(',').join(reasons));
-        decodedRow.put(reasonsKey, reasonsValue);
-      }
-    }
-  }
 
   private static final Logger log = LoggerFactory.getLogger(TabletMetadata.class);
 
@@ -151,7 +120,6 @@ public class TabletMetadata {
   protected boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
   protected boolean futureAndCurrentLocationSet = false;
-  private Optional<Set<Reasons>> maintenanceReasons = Optional.empty();
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -427,8 +395,7 @@ public class TabletMetadata {
         + ", compact=" + compact + ", splitRatio=" + splitRatio + ", extCompactions="
         + extCompactions + ", chopped=" + chopped + ", goal=" + goal + ", onDemandHostingRequested="
         + onDemandHostingRequested + ", operationId=" + operationId
-        + ", futureAndCurrentLocationSet=" + futureAndCurrentLocationSet + ", maintenanceReasons="
-        + maintenanceReasons + "]";
+        + ", futureAndCurrentLocationSet=" + futureAndCurrentLocationSet + "]";
   }
 
   public SortedMap<Key,Value> getKeyValues() {
@@ -476,10 +443,6 @@ public class TabletMetadata {
 
   public boolean isFutureAndCurrentLocationSet() {
     return futureAndCurrentLocationSet;
-  }
-
-  public Optional<Set<Reasons>> getMaintenanceReasons() {
-    return maintenanceReasons;
   }
 
   @VisibleForTesting
@@ -621,11 +584,6 @@ public class TabletMetadata {
             default:
               throw new IllegalStateException("Unexpected family " + fam);
           }
-          break;
-        case MaintenanceRequired.REASONS_COLUMN_NAME:
-          te.maintenanceReasons = Optional.of(new HashSet<Reasons>());
-          Splitter.on(',').split(new String(val))
-              .forEach(r -> te.maintenanceReasons.orElseThrow().add(Reasons.valueOf(r)));
           break;
       }
     }

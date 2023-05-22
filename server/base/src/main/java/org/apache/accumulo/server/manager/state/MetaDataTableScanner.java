@@ -32,13 +32,13 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MetaDataTableScanner implements ClosableIterator<TabletMetadata> {
+public class MetaDataTableScanner implements ClosableIterator<ManagerTabletInfo> {
   private static final Logger log = LoggerFactory.getLogger(MetaDataTableScanner.class);
 
   private final Cleanable cleanable;
@@ -55,7 +55,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletMetadata> {
       throw new IllegalStateException("Metadata table " + tableName + " should exist", e);
     }
     cleanable = CleanerUtil.unclosed(this, MetaDataTableScanner.class, closed, log, mdScanner);
-    TabletMetadataIterator.configureScanner(mdScanner, state);
+    ManagerTabletInfoIterator.configureScanner(mdScanner, state);
     mdScanner.setRanges(Collections.singletonList(range));
     iter = mdScanner.iterator();
   }
@@ -87,16 +87,16 @@ public class MetaDataTableScanner implements ClosableIterator<TabletMetadata> {
   }
 
   @Override
-  public TabletMetadata next() {
+  public ManagerTabletInfo next() {
     if (closed.get()) {
       throw new NoSuchElementException(this.getClass().getSimpleName() + " is closed");
     }
     Entry<Key,Value> e = iter.next();
     try {
-      TabletMetadata tm = TabletMetadataIterator.decode(e);
-      log.debug("Returning metadata tablet, extent: {}, hostingGoal: {}", tm.getExtent(),
-          tm.getHostingGoal());
-      return tm;
+      ManagerTabletInfo tmi = ManagerTabletInfoIterator.decode(e);
+      log.debug("Returning metadata tablet, extent: {}, hostingGoal: {}",
+          tmi.getTabletMetadata().getExtent(), tmi.getTabletMetadata().getHostingGoal());
+      return tmi;
     } catch (IOException e1) {
       throw new RuntimeException("Error creating TabletMetadata object", e1);
     }

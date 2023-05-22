@@ -359,7 +359,7 @@ public class NullTserver {
       TServerInstance instance = new TServerInstance(addr, randomSessionID);
 
       while (s.hasNext()) {
-        TabletMetadata next = s.next();
+        TabletMetadata next = s.next().getTabletMetadata();
         assignments.add(new Assignment(next.getExtent(), instance, next.getLast()));
       }
     }

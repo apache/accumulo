@@ -25,7 +25,6 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -37,6 +36,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo.ManagementAction;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -46,9 +47,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.VirtualMetadataColumns.MaintenanceRequired;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.VirtualMetadataColumns.MaintenanceRequired.Reasons;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -114,17 +112,22 @@ public class TabletMetadataIteratorTest {
 
   @Test
   public void testEncodeDecodeWithReasons() throws Exception {
-    Set<Reasons> reasons = Set.of(Reasons.NEEDS_LOCATION_UPDATE, Reasons.NEEDS_SPLITTING);
-    SortedMap<Key,Value> entries = createMetadataEntryKV();
-    MaintenanceRequired.addReasons(entries, reasons);
+    final Set<ManagementAction> reasons =
+        Set.of(ManagementAction.NEEDS_LOCATION_UPDATE, ManagementAction.NEEDS_SPLITTING);
+    final SortedMap<Key,Value> entries = createMetadataEntryKV();
+
+    ManagerTabletInfo.addActions(entries, reasons);
     Key key = entries.firstKey();
     Value val = WholeRowIterator.encodeRow(new ArrayList<>(entries.keySet()),
         new ArrayList<>(entries.values()));
-    SortedMap<Key,Value> decode = WholeRowIterator.decodeRow(key, val);
-    assertEquals(entries, decode);
-    TabletMetadata tm =
-        TabletMetadataIterator.decode(Map.of(key, val).entrySet().iterator().next());
-    assertEquals(reasons, tm.getMaintenanceReasons().orElseThrow());
+
+    // Remove the REASONS column from the entries map for the comparison check
+    // below
+    entries.remove(new Key(key.getRow().toString(), "REASONS", ""));
+
+    ManagerTabletInfo tmi = new ManagerTabletInfo(key, val, true);
+    assertEquals(entries, tmi.getTabletMetadata().getKeyValues());
+    assertEquals(reasons, tmi.getActions());
   }
 
 }

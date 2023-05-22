@@ -36,11 +36,11 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo.ManagementAction;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.VirtualMetadataColumns.MaintenanceRequired;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.VirtualMetadataColumns.MaintenanceRequired.Reasons;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -161,7 +161,7 @@ public class RootTabletMetadata {
   public TabletMetadata toTabletMetadata() {
     TreeMap<Key,Value> entries = new TreeMap<>();
     getKeyValues().forEach(entry -> entries.put(entry.getKey(), entry.getValue()));
-    MaintenanceRequired.addReasons(entries, Set.of(Reasons.NEEDS_LOCATION_UPDATE));
+    ManagerTabletInfo.addActions(entries, Set.of(ManagementAction.NEEDS_LOCATION_UPDATE));
     return TabletMetadata.convertRow(entries.entrySet().iterator(),
         EnumSet.allOf(TabletMetadata.ColumnType.class), false, false);
   }

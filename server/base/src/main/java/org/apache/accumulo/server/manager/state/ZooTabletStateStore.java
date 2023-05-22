@@ -21,8 +21,11 @@ package org.apache.accumulo.server.manager.state;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo.ManagementAction;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -43,7 +46,7 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
   }
 
   @Override
-  public ClosableIterator<TabletMetadata> iterator() {
+  public ClosableIterator<ManagerTabletInfo> iterator() {
 
     return new ClosableIterator<>() {
       boolean finished = false;
@@ -54,9 +57,10 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
       }
 
       @Override
-      public TabletMetadata next() {
+      public ManagerTabletInfo next() {
         finished = true;
-        return ample.readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL);
+        TabletMetadata tm = ample.readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL);
+        return new ManagerTabletInfo(Set.of(ManagementAction.NEEDS_LOCATION_UPDATE), tm);
       }
 
       @Override

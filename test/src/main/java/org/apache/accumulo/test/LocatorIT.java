@@ -128,8 +128,8 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       tableOps.setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
       assertTrue(Wait.waitFor(
-          () -> alwaysHostedAndCurrentNotNull
-              .test(ManagerAssignmentIT.getTabletLocationState(client, tableId, null)),
+          () -> alwaysHostedAndCurrentNotNull.test(
+              ManagerAssignmentIT.getManagerTabletInfo(client, tableId, null).getTabletMetadata()),
           60000, 250));
 
       ranges.add(r1);
@@ -149,8 +149,8 @@ public class LocatorIT extends AccumuloClusterHarness {
       assertThrows(AccumuloException.class, () -> tableOps.locate(tableName, ranges));
       tableOps.setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
       assertTrue(Wait.waitFor(
-          () -> alwaysHostedAndCurrentNotNull
-              .test(ManagerAssignmentIT.getTabletLocationState(client, tableId, null)),
+          () -> alwaysHostedAndCurrentNotNull.test(
+              ManagerAssignmentIT.getManagerTabletInfo(client, tableId, null).getTabletMetadata()),
           60000, 250));
 
       ret = tableOps.locate(tableName, ranges);
@@ -170,8 +170,8 @@ public class LocatorIT extends AccumuloClusterHarness {
       Thread.sleep(7000);
 
       assertTrue(Wait.waitFor(
-          () -> alwaysHostedAndCurrentNotNull
-              .test(ManagerAssignmentIT.getTabletLocationState(client, tableId, new Text("r"))),
+          () -> alwaysHostedAndCurrentNotNull.test(ManagerAssignmentIT
+              .getManagerTabletInfo(client, tableId, new Text("r")).getTabletMetadata()),
           60000, 250));
 
       ArrayList<Range> ranges2 = new ArrayList<>();

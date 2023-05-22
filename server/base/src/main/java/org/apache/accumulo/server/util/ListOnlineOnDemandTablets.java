@@ -25,11 +25,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -86,15 +86,17 @@ public class ListOnlineOnDemandTablets {
     }
   }
 
-  private static int checkTablets(ServerContext context, Iterator<TabletMetadata> scanner,
+  private static int checkTablets(ServerContext context, Iterator<ManagerTabletInfo> scanner,
       LiveTServerSet tservers) {
     int online = 0;
 
     while (scanner.hasNext() && !System.out.checkError()) {
-      final TabletMetadata tm = scanner.next();
-      TabletState state = tm.getTabletState(tservers.getCurrentServers());
-      if (state == TabletState.HOSTED && tm.getHostingGoal() == TabletHostingGoal.ONDEMAND) {
-        System.out.println(tm + " is " + state + "  #walogs:" + tm.getLogs().size());
+      final ManagerTabletInfo mti = scanner.next();
+      TabletState state = mti.getTabletMetadata().getTabletState(tservers.getCurrentServers());
+      if (state == TabletState.HOSTED
+          && mti.getTabletMetadata().getHostingGoal() == TabletHostingGoal.ONDEMAND) {
+        System.out.println(
+            mti + " is " + state + "  #walogs:" + mti.getTabletMetadata().getLogs().size());
         online++;
       }
     }
