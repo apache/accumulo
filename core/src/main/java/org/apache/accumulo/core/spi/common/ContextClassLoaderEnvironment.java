@@ -29,7 +29,6 @@ public interface ContextClassLoaderEnvironment {
    * Get the service environment configuration
    *
    * @return The configuration
-   * @since 2.1.1
    */
   ServiceEnvironment.Configuration getConfiguration();
 }
