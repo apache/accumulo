@@ -205,7 +205,7 @@ public class RFileTest {
       Key lastKey = new Key(indexIter.getTopKey());
 
       if (reader.getFirstKey().compareTo(lastKey) > 0) {
-        throw new RuntimeException(
+        throw new IllegalStateException(
             "First key out of order " + reader.getFirstKey() + " " + lastKey);
       }
 
@@ -213,7 +213,7 @@ public class RFileTest {
 
       while (indexIter.hasTop()) {
         if (lastKey.compareTo(indexIter.getTopKey()) > 0) {
-          throw new RuntimeException(
+          throw new IllegalStateException(
               "Indext out of order " + lastKey + " " + indexIter.getTopKey());
         }
 
@@ -223,7 +223,8 @@ public class RFileTest {
       }
 
       if (!reader.getLastKey().equals(lastKey)) {
-        throw new RuntimeException("Last key out of order " + reader.getLastKey() + " " + lastKey);
+        throw new IllegalStateException(
+            "Last key out of order " + reader.getLastKey() + " " + lastKey);
       }
     }
   }
@@ -310,8 +311,8 @@ public class RFileTest {
       cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
       try {
         manager = BlockCacheManagerFactory.getInstance(cc);
-      } catch (Exception e) {
-        throw new RuntimeException("Error creating BlockCacheManager", e);
+      } catch (ReflectiveOperationException e) {
+        throw new IllegalStateException("Error creating BlockCacheManager", e);
       }
       cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(100000));
       cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(100000000));

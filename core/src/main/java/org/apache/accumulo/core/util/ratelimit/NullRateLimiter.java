@@ -32,6 +32,6 @@ public class NullRateLimiter implements RateLimiter {
   }
 
   @Override
-  public void acquire(long permits) {}
+  public void acquire(long numPermits) {}
 
 }

@@ -21,6 +21,7 @@ package org.apache.accumulo.core.metadata;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -184,7 +185,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
         try {
           results.putAll(WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()));
         } catch (IOException e) {
-          throw new RuntimeException(e);
+          throw new UncheckedIOException(e);
         }
       }
     };

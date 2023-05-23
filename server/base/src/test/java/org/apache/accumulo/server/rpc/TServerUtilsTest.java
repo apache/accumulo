@@ -277,7 +277,7 @@ public class TServerUtilsTest {
         // keep trying
       }
     }
-    throw new RuntimeException("Unable to find open port");
+    throw new IllegalStateException("Unable to find open port");
   }
 
   private ServerAddress startServer() throws Exception {

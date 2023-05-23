@@ -16,33 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.metadata;
+package org.apache.accumulo.core.metadata;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.server.ServerContext;
+import java.util.Objects;
 
-class TabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
-    implements Ample.TabletMutator {
+import org.apache.hadoop.fs.Path;
 
-  private BatchWriter writer;
+/**
+ * A base class used to represent file references that are handled by code that processes tablet
+ * files.
+ *
+ * @since 3.0.0
+ */
+public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>> implements Comparable<T> {
 
-  TabletMutatorImpl(ServerContext context, KeyExtent extent, BatchWriter batchWriter) {
-    super(context, extent);
-    this.writer = batchWriter;
+  private final String fileName; // C0004.rf
+  protected final Path path;
+
+  protected AbstractTabletFile(Path path) {
+    this.path = Objects.requireNonNull(path);
+    this.fileName = path.getName();
+    ValidationUtil.validateFileName(fileName);
   }
 
-  @Override
-  public void mutate() {
-    try {
-      writer.addMutation(getMutation());
-
-      if (closeAfterMutate != null) {
-        closeAfterMutate.close();
-      }
-    } catch (Exception e) {
-      throw new IllegalStateException(e);
-    }
+  /**
+   * @return The file name of the TabletFile
+   */
+  public String getFileName() {
+    return fileName;
   }
+
+  /**
+   * @return The path of the TabletFile
+   */
+  public Path getPath() {
+    return path;
+  }
+
 }

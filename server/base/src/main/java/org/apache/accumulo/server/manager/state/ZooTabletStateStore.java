@@ -29,6 +29,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -94,8 +95,8 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
 
           return new TabletLocationState(RootTable.EXTENT, futureSession, currentSession,
               lastSession, null, logs, false, TabletHostingGoal.ALWAYS, false);
-        } catch (Exception ex) {
-          throw new RuntimeException(ex);
+        } catch (BadLocationStateException ex) {
+          throw new IllegalStateException(ex);
         }
       }
 

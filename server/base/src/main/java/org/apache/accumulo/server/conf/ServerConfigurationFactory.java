@@ -118,7 +118,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     try {
       namespaceId = context.getNamespaceId(tableId);
     } catch (TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
     return tableParentConfigs.computeIfAbsent(tableId,
         key -> getNamespaceConfiguration(namespaceId));
