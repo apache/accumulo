@@ -55,7 +55,8 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
     try (AccumuloClient c =
         getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
       String tableName = super.getUniqueNames(1)[0];
-      NewTableConfiguration ntc = new NewTableConfiguration().withInitialHostingGoal(TabletHostingGoal.ALWAYS);      
+      NewTableConfiguration ntc =
+          new NewTableConfiguration().withInitialHostingGoal(TabletHostingGoal.ALWAYS);
       c.tableOperations().create(tableName, ntc);
       String tableId = c.tableOperations().tableIdMap().get(tableName);
       // wait for the table to be online

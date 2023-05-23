@@ -95,7 +95,7 @@ public class MetaDataTableScanner implements ClosableIterator<ManagerTabletInfo>
     Entry<Key,Value> e = iter.next();
     try {
       ManagerTabletInfo tmi = ManagerTabletInfoIterator.decode(e);
-      log.debug("Returning metadata tablet, extent: {}, hostingGoal: {}",
+      log.trace("Returning metadata tablet, extent: {}, hostingGoal: {}",
           tmi.getTabletMetadata().getExtent(), tmi.getTabletMetadata().getHostingGoal());
       return tmi;
     } catch (IOException e1) {

@@ -286,9 +286,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       } else {
         // tried to only do table state checks when failures.size() == ranges.size(), however this
         // did not work because nothing ever invalidated entries in the tabletLocator cache... so
-        // even
-        // though the table was deleted the tablet locator entries for the deleted table were not
-        // cleared. So need to always do the check when failures occur
+        // even though the table was deleted the tablet locator entries for the deleted table
+        // were not cleared. So need to always do the check when failures occur
         if (failures.size() >= lastFailureSize) {
           context.requireNotDeleted(tableId);
           context.requireNotOffline(tableId, tableName);

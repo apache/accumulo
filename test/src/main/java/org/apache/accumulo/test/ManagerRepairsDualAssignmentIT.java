@@ -82,7 +82,8 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       for (String part : "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")) {
         partitions.add(new Text(part));
       }
-      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions).withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions)
+          .withInitialHostingGoal(TabletHostingGoal.ALWAYS);
       c.tableOperations().create(table, ntc);
       // scan the metadata table and get the two table location states
       Set<TabletMetadata.Location> states = new HashSet<>();

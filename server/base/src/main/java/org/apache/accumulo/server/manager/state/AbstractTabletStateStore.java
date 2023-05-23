@@ -151,7 +151,8 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
           }
         }
 
-        if (tm.getLocation().getType().equals(LocationType.FUTURE)) {
+        if (tm.getLocation() != null && tm.getLocation().getType() != null
+            && tm.getLocation().getType().equals(LocationType.FUTURE)) {
           tabletMutator.requireLocation(tm.getLocation());
           tabletMutator.deleteLocation(tm.getLocation());
         }

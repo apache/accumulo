@@ -942,12 +942,12 @@ public class Manager extends AbstractServer
       } else if (!serversToShutdown.isEmpty()) {
         log.debug("not balancing while shutting down servers {}", serversToShutdown);
       } else {
-        // for (TabletGroupWatcher tgw : watchers) {
-        // if (!tgw.isSameTserversAsLastScan(currentServers)) {
-        // log.debug("not balancing just yet, as collection of live tservers is in flux");
-        // return DEFAULT_WAIT_FOR_WATCHER;
-        // }
-        // }
+        for (TabletGroupWatcher tgw : watchers) {
+          if (!tgw.isSameTserversAsLastScan(currentServers)) {
+            log.debug("not balancing just yet, as collection of live tservers is in flux");
+            return DEFAULT_WAIT_FOR_WATCHER;
+          }
+        }
         return balanceTablets();
       }
       return DEFAULT_WAIT_FOR_WATCHER;

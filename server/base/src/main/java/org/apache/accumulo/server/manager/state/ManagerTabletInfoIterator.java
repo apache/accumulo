@@ -38,9 +38,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -359,22 +357,9 @@ public class ManagerTabletInfoIterator extends SkippingIterator {
   }
 
   @Override
-  public void next() throws IOException {
-    topKey = null;
-    topValue = null;
-    super.next();
-  }
-
-  @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
-      throws IOException {
-    topKey = null;
-    topValue = null;
-    super.seek(range, columnFamilies, inclusive);
-  }
-
-  @Override
   protected void consume() throws IOException {
+    topKey = null;
+    topValue = null;
 
     final Set<ManagementAction> reasonsToReturnThisTablet = new HashSet<>();
     while (getSource().hasTop()) {
@@ -384,8 +369,10 @@ public class ManagerTabletInfoIterator extends SkippingIterator {
       final TabletMetadata tm = TabletMetadata.convertRow(decodedRow.entrySet().iterator(),
           ManagerTabletInfo.CONFIGURED_COLUMNS, false, true);
 
-      LOG.debug("Evaluating extent: {}", tm);
-      if (sendTabletToManager(tm, reasonsToReturnThisTablet)) {
+      LOG.trace("Evaluating extent: {}", tm);
+      reasonsToReturnThisTablet.clear();
+      computeTabletManagementActions(tm, reasonsToReturnThisTablet);
+      if (!reasonsToReturnThisTablet.isEmpty()) {
         // If we simply returned here, then the client would get the encoded K,V
         // from the WholeRowIterator. However, it would not know the reason(s) why
         // it was returned. Insert a K,V pair to represent the reasons. The client
@@ -394,11 +381,12 @@ public class ManagerTabletInfoIterator extends SkippingIterator {
         topKey = decodedRow.firstKey();
         topValue = WholeRowIterator.encodeRow(new ArrayList<>(decodedRow.keySet()),
             new ArrayList<>(decodedRow.values()));
-        LOG.debug("Returning extent with reasons: {}", reasonsToReturnThisTablet);
+        LOG.trace("Returning extent {} with reasons: {}", tm.getExtent(),
+            reasonsToReturnThisTablet);
         return;
       }
 
-      LOG.debug("No reason to return this extent, continuing");
+      LOG.trace("No reason to return extent {}, continuing", tm.getExtent());
       getSource().next();
     }
   }
@@ -407,16 +395,14 @@ public class ManagerTabletInfoIterator extends SkippingIterator {
    * Evaluates whether or not this Tablet should be returned so that it can be acted upon by the
    * Manager
    */
-  private boolean sendTabletToManager(final TabletMetadata tm,
+  private void computeTabletManagementActions(final TabletMetadata tm,
       final Set<ManagementAction> reasonsToReturnThisTablet) {
-
-    reasonsToReturnThisTablet.clear();
 
     if (onlineTables == null || current == null || managerState != ManagerState.NORMAL
         || tm.isFutureAndCurrentLocationSet()) {
       // no need to check everything, we are in a known state where we want to return everything.
       reasonsToReturnThisTablet.add(ManagementAction.BAD_STATE);
-      return true;
+      return;
     }
 
     // we always want data about merges
@@ -444,9 +430,5 @@ public class ManagerTabletInfoIterator extends SkippingIterator {
 
     // TODO: Add compaction logic
 
-    if (!reasonsToReturnThisTablet.isEmpty()) {
-      return true;
-    }
-    return false;
   }
 }
