@@ -39,11 +39,20 @@ package org.apache.accumulo.core.spi.common;
  * <p>
  * Because this factory is expected to be instantiated early in the application startup process,
  * configuration is expected to be provided within the environment (such as in Java system
- * properties or process environment variables), and is implementation-specific.
+ * properties or process environment variables), and is implementation-specific. However, some
+ * limited environment is also available so implementations can have access to Accumulo's own system
+ * configuration.
  *
  * @since 2.1.0
  */
 public interface ContextClassLoaderFactory {
+
+  /**
+   * Pass the service environment to allow for additional class loader configuration
+   *
+   * @param env the class loader environment
+   */
+  default void init(ContextClassLoaderEnvironment env) {}
 
   /**
    * Get the class loader for the given contextName. Callers should not cache the ClassLoader result
@@ -56,5 +65,4 @@ public interface ContextClassLoaderFactory {
    * @return the class loader for the given contextName
    */
   ClassLoader getClassLoader(String contextName);
-
 }
