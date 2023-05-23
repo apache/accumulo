@@ -21,14 +21,13 @@ package org.apache.accumulo.server.manager.state;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
@@ -61,16 +60,13 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
 
         conditionalMutator.submit(tabletMetadata -> {
           Preconditions.checkArgument(tabletMetadata.getExtent().equals(assignment.tablet));
-          // see if we are the current location, if so then the unknown mutation actually
-          // succeeded
           return tabletMetadata.getLocation() != null && tabletMetadata.getLocation()
               .equals(TabletMetadata.Location.current(assignment.server));
         });
       }
 
       if (tabletsMutator.process().values().stream()
-          .anyMatch(result -> result.getStatus() != ConditionalWriter.Status.ACCEPTED)) {
-        // TODO should this look at why?
+          .anyMatch(result -> result.getStatus() != Status.ACCEPTED)) {
         throw new DistributedStoreException(
             "failed to set tablet location, conditional mutation failed");
       }
@@ -89,8 +85,6 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
             .putLocation(TabletMetadata.Location.future(assignment.server))
             .submit(tabletMetadata -> {
               Preconditions.checkArgument(tabletMetadata.getExtent().equals(assignment.tablet));
-              // see if we are the future location, if so then the unknown mutation actually
-              // succeeded
               return tabletMetadata.getLocation() != null && tabletMetadata.getLocation()
                   .equals(TabletMetadata.Location.future(assignment.server));
             });
@@ -98,12 +92,9 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
 
       var results = tabletsMutator.process();
 
-      if (results.values().stream()
-          .anyMatch(result -> result.getStatus() != ConditionalWriter.Status.ACCEPTED)) {
-        var statuses = results.values().stream().map(Ample.ConditionalResult::getStatus)
-            .collect(Collectors.toSet());
+      if (results.values().stream().anyMatch(result -> result.getStatus() != Status.ACCEPTED)) {
         throw new DistributedStoreException(
-            "failed to set tablet location, conditional mutation failed. " + statuses);
+            "failed to set tablet location, conditional mutation failed. ");
       }
 
     } catch (RuntimeException ex) {
@@ -158,16 +149,13 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
 
         processSuspension(tabletMutator, tls, suspensionTimestamp);
 
-        tabletMutator.submit(tabletMetadata -> {
-          // The status of the conditional update is unknown, so check and see if things are ok
-          return tabletMetadata.getLocation() == null;
-        });
+        tabletMutator.submit(tabletMetadata -> tabletMetadata.getLocation() == null);
       }
 
       Map<KeyExtent,Ample.ConditionalResult> results = tabletsMutator.process();
 
-      if (results.values().stream().anyMatch(conditionalResult -> conditionalResult.getStatus()
-          != ConditionalWriter.Status.ACCEPTED)) {
+      if (results.values().stream()
+          .anyMatch(conditionalResult -> conditionalResult.getStatus() != Status.ACCEPTED)) {
         throw new DistributedStoreException("Some unassignments did not satisfy conditions.");
       }
 
