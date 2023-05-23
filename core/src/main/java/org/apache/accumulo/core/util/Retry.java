@@ -185,8 +185,10 @@ public class Retry {
     if (backOffFactor == 1) {
       currentWait = Math.min(maxWait, currentWait + waitIncrement);
     } else if (backOffFactor > 1.0) {
-      waitIncrement = (long) Math.ceil(waitFactor * this.initialWait);
-      currentWait = Math.min(maxWait, initialWait + waitIncrement);
+      if (currentWait < maxWait) {
+        waitIncrement = (long) Math.ceil(waitFactor * this.initialWait);
+        currentWait = Math.min(maxWait, initialWait + waitIncrement);
+      }
     }
   }
 
