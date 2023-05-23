@@ -339,7 +339,7 @@ public interface Ample {
 
     T deleteExternalCompaction(ExternalCompactionId ecid);
 
-    T setHostingGoal(TabletHostingGoal goal);
+    T putHostingGoal(TabletHostingGoal goal);
 
     T setHostingRequested();
 
@@ -348,7 +348,6 @@ public interface Ample {
     T putOperation(TabletOperationId opId);
 
     T deleteOperation();
-
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {
@@ -498,17 +497,4 @@ public interface Ample {
   default void removeBulkLoadInProgressFlag(String path) {
     throw new UnsupportedOperationException();
   }
-
-  /**
-   * Remove all the Bulk Load transaction ids from a given table's metadata
-   *
-   * @param tableId Table ID for transaction removals
-   * @param tid Transaction ID to remove
-   * @param firstSplit non-inclusive table split point at which to start looking for load markers
-   * @param lastSplit inclusive tablet split point at which to stop looking for load markers
-   */
-  default void removeBulkLoadEntries(TableId tableId, long tid, Text firstSplit, Text lastSplit) {
-    throw new UnsupportedOperationException();
-  }
-
 }

@@ -276,6 +276,11 @@ service TabletServerClientService {
     4:data.TKeyExtent extent
   )
 
+  list<data.TKeyExtent> refreshTablets(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:list<data.TKeyExtent> extents
+  )
 }
 
 typedef i32 TabletID

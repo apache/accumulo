@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MetaDataTableScanner implements ClosableIterator<ManagerTabletInfo> {
+
   private static final Logger log = LoggerFactory.getLogger(MetaDataTableScanner.class);
 
   private final Cleanable cleanable;

@@ -94,7 +94,7 @@ public class DataFileValue {
     if (o instanceof DataFileValue) {
       DataFileValue odfv = (DataFileValue) o;
 
-      return size == odfv.size && numEntries == odfv.numEntries;
+      return size == odfv.size && numEntries == odfv.numEntries && time == odfv.time;
     }
 
     return false;

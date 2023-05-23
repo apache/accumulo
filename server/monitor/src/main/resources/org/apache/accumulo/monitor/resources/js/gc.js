@@ -32,16 +32,34 @@ $(document).ready(function () {
     "stateSave": true,
     "dom": 't<"align-left"l>p',
     "columnDefs": [{
-        "targets": "date",
+        "targets": "dateStarted",
         "render": function (data, type, row) {
-          if (type === 'display' && data > 0) data = dateFormat(data);
+          if (type === 'display') {
+            if (data === 0) data = 'Waiting';
+            else if (data > 0) data = dateFormat(data);
+            else data = 'Error';
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "dateFinished",
+        "render": function (data, type, row) {
+          if (type === 'display') {
+            if (data === 0) data = '&mdash;';
+            else if (data > 0) data = dateFormat(data);
+            else data = 'Error';
+          }
           return data;
         }
       },
       {
         "targets": "duration",
         "render": function (data, type, row) {
-          if (type === 'display') data = timeDuration(data);
+          if (type === 'display') {
+            if (data < 0) data = "Running";
+            else data = timeDuration(data);
+          }
           return data;
         }
       },
@@ -55,6 +73,9 @@ $(document).ready(function () {
     ],
     "columns": [{
         "data": "type"
+      },
+      {
+        "data": "started"
       },
       {
         "data": "finished"

@@ -109,7 +109,7 @@ public class SetHostingGoal extends ManagerRepo {
         }
 
         LOG.debug("Setting tablet hosting goal to {} requested for: {} ", goal, tabletExtent);
-        mutator.mutateTablet(tabletExtent).setHostingGoal(goal).mutate();
+        mutator.mutateTablet(tabletExtent).putHostingGoal(goal).mutate();
       }
     }
     Utils.unreserveNamespace(manager, namespaceId, tid, false);

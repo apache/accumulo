@@ -23,8 +23,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.security.SecureRandom;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.hadoop.io.Text;
 
 /**
  * Allocates unique names for an accumulo instance. The names are unique for the lifetime of the
@@ -45,6 +47,15 @@ public class UniqueNameAllocator {
     nextNamePath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNEXT_FILE;
   }
 
+  public static String createTabletDirectoryName(ServerContext context, Text endRow) {
+    if (endRow == null) {
+      return MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
+    } else {
+      UniqueNameAllocator namer = context.getUniqueNameAllocator();
+      return Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
+    }
+  }
+
   public synchronized String getNextName() {
 
     while (next >= maxAllocated) {
@@ -60,7 +71,7 @@ public class UniqueNameAllocator {
         next = maxAllocated - allocate;
 
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
 

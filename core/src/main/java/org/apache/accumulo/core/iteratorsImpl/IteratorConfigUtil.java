@@ -228,7 +228,7 @@ public class IteratorConfigUtil {
       }
     } catch (ReflectiveOperationException e) {
       log.error(e.toString());
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
     return prev;
   }

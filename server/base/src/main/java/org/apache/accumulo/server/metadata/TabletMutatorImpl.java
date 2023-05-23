@@ -42,7 +42,7 @@ class TabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
         closeAfterMutate.close();
       }
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 }

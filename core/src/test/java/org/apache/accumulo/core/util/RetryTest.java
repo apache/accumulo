@@ -330,4 +330,18 @@ public class RetryTest {
     assertEquals(logInterval, retry.getLogInterval());
   }
 
+  @Test
+  public void testInfiniteRetryWithBackoff() throws InterruptedException {
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
+        .incrementBy(100, MILLISECONDS).maxWait(500, MILLISECONDS).backOffFactor(1.5)
+        .logInterval(3, MINUTES).createRetry();
+    for (int i = 0; i < 100; i++) {
+      try {
+        retry.waitForNextAttempt(log, i + "");
+      } catch (IllegalArgumentException e) {
+        log.error("Failed on iteration: {}", i);
+        throw e;
+      }
+    }
+  }
 }

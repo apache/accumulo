@@ -72,7 +72,7 @@ public final class ZKAuthenticator implements Authenticator {
       }
     } catch (KeeperException | AccumuloException | InterruptedException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -110,7 +110,7 @@ public final class ZKAuthenticator implements Authenticator {
       throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     } catch (AccumuloException e) {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
@@ -127,7 +127,7 @@ public final class ZKAuthenticator implements Authenticator {
       }
     } catch (InterruptedException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     } catch (KeeperException e) {
       if (e.code().equals(KeeperException.Code.NONODE)) {
         throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST, e);
@@ -156,7 +156,7 @@ public final class ZKAuthenticator implements Authenticator {
         throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
       } catch (InterruptedException e) {
         log.error("{}", e.getMessage(), e);
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       } catch (AccumuloException e) {
         log.error("{}", e.getMessage(), e);
         throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);

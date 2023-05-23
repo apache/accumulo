@@ -254,7 +254,7 @@ public class CompactionCoordinator extends AbstractServer
     try {
       coordinatorAddress = startCoordinatorClientService();
     } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the coordinator service", e1);
+      throw new IllegalStateException("Failed to start the coordinator service", e1);
     }
     final HostAndPort clientAddress = coordinatorAddress.address;
 
@@ -727,7 +727,7 @@ public class CompactionCoordinator extends AbstractServer
       LOG.warn("Failed to clean up compactors", e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

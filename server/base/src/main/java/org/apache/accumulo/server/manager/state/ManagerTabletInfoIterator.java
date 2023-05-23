@@ -72,6 +72,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
 
 public class ManagerTabletInfoIterator extends SkippingIterator {
 
@@ -293,7 +294,11 @@ public class ManagerTabletInfoIterator extends SkippingIterator {
       ManagerTabletInfoIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
       ManagerTabletInfoIterator.setOnlineTables(tabletChange, state.onlineTables());
       ManagerTabletInfoIterator.setMerges(tabletChange, state.merges());
-      ManagerTabletInfoIterator.setMigrations(tabletChange, state.migrationsSnapshot());
+      // ELASTICITY_TODO passing the unassignemnt request as part of the migrations is a hack. Was
+      // not sure of the entire unassignment request approach and did not want to push it further
+      // into the code.
+      ManagerTabletInfoIterator.setMigrations(tabletChange,
+          Sets.union(state.migrationsSnapshot(), state.getUnassignmentRequest()));
       ManagerTabletInfoIterator.setManagerState(tabletChange, state.getManagerState());
       ManagerTabletInfoIterator.setShuttingDown(tabletChange, state.shutdownServers());
     }
@@ -324,11 +329,12 @@ public class ManagerTabletInfoIterator extends SkippingIterator {
     merges = parseMerges(options.get(MERGES_OPTION));
     debug = options.containsKey(DEBUG_OPTION);
     migrations = parseMigrations(options.get(MIGRATIONS_OPTION));
+    String managerStateOptionValue = options.get(MANAGER_STATE_OPTION);
     try {
-      managerState = ManagerState.valueOf(options.get(MANAGER_STATE_OPTION));
-    } catch (Exception ex) {
-      if (options.get(MANAGER_STATE_OPTION) != null) {
-        LOG.error("Unable to decode managerState {}", options.get(MANAGER_STATE_OPTION));
+      managerState = ManagerState.valueOf(managerStateOptionValue);
+    } catch (RuntimeException ex) {
+      if (managerStateOptionValue != null) {
+        LOG.error("Unable to decode managerState {}", managerStateOptionValue);
       }
     }
     Set<TServerInstance> shuttingDown = parseServers(options.get(SHUTTING_DOWN_OPTION));

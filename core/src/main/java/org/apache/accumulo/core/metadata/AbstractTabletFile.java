@@ -16,10 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager;
+package org.apache.accumulo.core.metadata;
 
-import org.apache.accumulo.core.dataImpl.KeyExtent;
+import java.util.Objects;
 
-public interface TabletOperations {
-  AutoCloseable unassign(KeyExtent tablet);
+import org.apache.hadoop.fs.Path;
+
+/**
+ * A base class used to represent file references that are handled by code that processes tablet
+ * files.
+ *
+ * @since 3.0.0
+ */
+public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>> implements Comparable<T> {
+
+  private final String fileName; // C0004.rf
+  protected final Path path;
+
+  protected AbstractTabletFile(Path path) {
+    this.path = Objects.requireNonNull(path);
+    this.fileName = path.getName();
+    ValidationUtil.validateFileName(fileName);
+  }
+
+  /**
+   * @return The file name of the TabletFile
+   */
+  public String getFileName() {
+    return fileName;
+  }
+
+  /**
+   * @return The path of the TabletFile
+   */
+  public Path getPath() {
+    return path;
+  }
+
 }

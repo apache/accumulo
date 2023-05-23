@@ -374,7 +374,6 @@ public class MetadataSchema {
       public static final String REQUESTED_QUAL = "requested";
       public static final ColumnFQ REQUESTED_COLUMN = new ColumnFQ(NAME, new Text(REQUESTED_QUAL));
     }
-
   }
 
   /**

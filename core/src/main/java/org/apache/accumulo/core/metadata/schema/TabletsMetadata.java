@@ -25,6 +25,7 @@ import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 
@@ -182,7 +183,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             closables.add(scanner);
 
           } catch (TableNotFoundException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
           }
 
         }
@@ -266,7 +267,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           return new TabletsMetadata(scanner, tmi);
         }
       } catch (TableNotFoundException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
 
@@ -343,9 +344,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           case ECOMP:
             families.add(ExternalCompactionColumnFamily.NAME);
             break;
+          case OPID:
+            qualifiers.add(OPID_COLUMN);
+            break;
           default:
             throw new IllegalArgumentException("Unknown col type " + colToFetch);
-
         }
       }
 
@@ -584,7 +587,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           byte[] bytes = zooReader.getData(zkRoot + RootTable.ZROOT_TABLET);
           return new RootTabletMetadata(new String(bytes, UTF_8)).toTabletMetadata();
         } catch (InterruptedException | KeeperException e) {
-          throw new RuntimeException(e);
+          throw new IllegalStateException(e);
         }
       default:
         throw new IllegalArgumentException("Unknown consistency level " + readConsistency);
@@ -619,7 +622,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         // avoid wrapping runtime w/ runtime
         throw e;
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
   }

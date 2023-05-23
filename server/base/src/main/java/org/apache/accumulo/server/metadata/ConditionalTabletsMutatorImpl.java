@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.ConditionalWriter.Status;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -36,12 +37,17 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMutator {
+
+  private static final Logger log = LoggerFactory.getLogger(ConditionalTabletsMutatorImpl.class);
 
   private final ServerContext context;
   private Ample.DataLevel dataLevel = null;
@@ -89,8 +95,8 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   protected Map<KeyExtent,TabletMetadata> readTablets(List<KeyExtent> extents) {
     Map<KeyExtent,TabletMetadata> failedTablets = new HashMap<>();
 
-    try (var tabletsMeta =
-        context.getAmple().readTablets().forTablets(extents, Optional.empty()).build()) {
+    try (var tabletsMeta = context.getAmple().readTablets().forTablets(extents, Optional.empty())
+        .saveKeyValues().build()) {
       tabletsMeta
           .forEach(tabletMetadata -> failedTablets.put(tabletMetadata.getExtent(), tabletMetadata));
     }
@@ -103,7 +109,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
     var extents = results.entrySet().stream().filter(e -> {
       try {
-        return e.getValue().getStatus() != ConditionalWriter.Status.ACCEPTED;
+        return e.getValue().getStatus() != Status.ACCEPTED;
       } catch (AccumuloException | AccumuloSecurityException ex) {
         throw new RuntimeException(ex);
       }
@@ -131,7 +137,21 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
           resultsMap.put(extents.get(row), result);
         }
 
+        var extentsSet = Set.copyOf(extents.values());
         if (!resultsMap.keySet().equals(Set.copyOf(extents.values()))) {
+          // ELASTICITY_TODO this check can trigger if someone forgets to submit, could check for
+          // that
+
+          Sets.difference(resultsMap.keySet(), extentsSet)
+              .forEach(extent -> log.error("Unexpected extent seen in in result {}", extent));
+
+          Sets.difference(extentsSet, resultsMap.keySet())
+              .forEach(extent -> log.error("Expected extent not seen in result {}", extent));
+
+          resultsMap.forEach((keyExtent, result) -> {
+            log.error("result seen {} {}", keyExtent, new Text(result.getMutation().getRow()));
+          });
+
           throw new AssertionError("Not all extents were seen, this is unexpected");
         }
 
@@ -141,7 +161,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
         return Maps.transformEntries(resultsMap, (extent, result) -> new Ample.ConditionalResult() {
 
-          private ConditionalWriter.Status _getStatus() {
+          private Status _getStatus() {
             try {
               return result.getStatus();
             } catch (AccumuloException | AccumuloSecurityException e) {
@@ -150,13 +170,12 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
           }
 
           @Override
-          public ConditionalWriter.Status getStatus() {
+          public Status getStatus() {
             var status = _getStatus();
-            if (status == ConditionalWriter.Status.UNKNOWN
-                && unknownValidators.containsKey(extent)) {
+            if (status == Status.UNKNOWN && unknownValidators.containsKey(extent)) {
               var tabletMetadata = readMetadata();
               if (tabletMetadata != null && unknownValidators.get(extent).test(tabletMetadata)) {
-                return ConditionalWriter.Status.ACCEPTED;
+                return Status.ACCEPTED;
               }
             }
 
@@ -170,7 +189,8 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
           @Override
           public TabletMetadata readMetadata() {
-            Preconditions.checkState(_getStatus() != ConditionalWriter.Status.ACCEPTED);
+            Preconditions.checkState(_getStatus() != Status.ACCEPTED,
+                "Can not read metadata for mutations with a status of " + Status.ACCEPTED);
             return failedMetadata.get().get(getExtent());
           }
         });

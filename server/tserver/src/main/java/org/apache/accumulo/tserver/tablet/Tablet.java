@@ -77,7 +77,6 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -92,7 +91,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
@@ -973,7 +971,7 @@ public class Tablet extends TabletBase {
             activeScans.size());
         this.wait(50);
       } catch (InterruptedException e) {
-        log.error(e.toString());
+        log.error("Interrupted waiting to completeClose for extent {}", extent, e);
       }
     }
 
@@ -1381,9 +1379,8 @@ public class Tablet extends TabletBase {
     // Only want one thread doing this computation at time for a tablet.
     if (splitComputationLock.tryLock()) {
       try {
-        SortedMap<Double,Key> midpoint =
-            FileUtil.findMidPoint(context, tableConfiguration, chooseTabletDir(),
-                extent.prevEndRow(), extent.endRow(), FileUtil.toPathStrings(files), .25, true);
+        SortedMap<Double,Key> midpoint = FileUtil.findMidPoint(context, tableConfiguration,
+            chooseTabletDir(), extent.prevEndRow(), extent.endRow(), files, .25, true);
 
         Text lastRow = null;
 
@@ -1410,12 +1407,18 @@ public class Tablet extends TabletBase {
     }
   }
 
+  // TODO remove this hack that disables splits
+  private boolean getTrue() {
+    return true;
+  }
+
   /**
    * Returns true if this tablet needs to be split
    *
    */
   public synchronized boolean needsSplit(Optional<SplitComputations> splitComputations) {
-    if (isClosing() || isClosed()) {
+    // TODO remove this hack that disables splits
+    if (isClosing() || isClosed() || getTrue()) {
       return false;
     }
     return findSplitRow(splitComputations) != null;
@@ -1533,9 +1536,8 @@ public class Tablet extends TabletBase {
         splitPoint = findSplitRow(splitComputations);
       } else {
         Text tsp = new Text(sp);
-        var fileStrings = FileUtil.toPathStrings(getDatafileManager().getFiles());
         var ratio = FileUtil.estimatePercentageLTE(context, tableConfiguration, chooseTabletDir(),
-            extent.prevEndRow(), extent.endRow(), fileStrings, tsp);
+            extent.prevEndRow(), extent.endRow(), getDatafileManager().getFiles(), tsp);
         splitPoint = new SplitRowSpec(ratio, tsp);
       }
 
@@ -1554,7 +1556,7 @@ public class Tablet extends TabletBase {
       KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
       KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
 
-      String lowDirectoryName = createTabletDirectoryName(context, midRow);
+      String lowDirectoryName = UniqueNameAllocator.createTabletDirectoryName(context, midRow);
 
       // write new tablet information to MetadataTable
       SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
@@ -2131,15 +2133,6 @@ public class Tablet extends TabletBase {
     return timer.getTabletStats();
   }
 
-  private static String createTabletDirectoryName(ServerContext context, Text endRow) {
-    if (endRow == null) {
-      return ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
-    } else {
-      UniqueNameAllocator namer = context.getUniqueNameAllocator();
-      return Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
-    }
-  }
-
   public Set<Long> getBulkIngestedTxIds() {
     return bulkImported.keySet();
   }
@@ -2158,5 +2151,36 @@ public class Tablet extends TabletBase {
 
   public boolean isOnDemand() {
     return goal == TabletHostingGoal.ONDEMAND;
+  }
+
+  public void refresh() {
+    if (isClosing() || isClosed()) {
+      // TODO this is just a best effort could close after this check, its a race condition.
+      // Intentionally not being handled ATM.
+      return;
+    }
+
+    log.debug("Refreshing metadata for : {}", getExtent());
+
+    // ELASTICITY_TODO this entire method is a hack at the moment with race conditions. Want to
+    // move towards the tablet just using a cached TabletMetadata object and have a central orderly
+    // thread safe way to update it within the tablet in response to external refresh request and
+    // internal events like minor compactions. Would probably be easiest to implement this after
+    // removing bulk import, split, and compactions from the tablet server. For now just leave it
+    // as a hack instead of trying to make it work correctly with the current tablet code.
+    TabletMetadata tabletMetadata =
+        getContext().getAmple().readTablet(getExtent(), ColumnType.FILES);
+
+    Map<StoredTabletFile,DataFileValue> metadataFiles = tabletMetadata.getFilesMap();
+
+    Map<StoredTabletFile,DataFileValue> currentFiles = getDatafileManager().getDatafileSizes();
+
+    // TODO this is racy, it could add files that were just deleted by a compaction. Intentionally
+    // not being handled ATM.
+    metadataFiles.forEach((f, v) -> {
+      if (!currentFiles.containsKey(f)) {
+        getDatafileManager().addFilesHack(f, v);
+      }
+    });
   }
 }
