@@ -52,7 +52,7 @@ public class ClassLoaderUtil {
           var factoryClass = Class.forName(factoryName).asSubclass(ContextClassLoaderFactory.class);
           LOG.info("Creating {}: {}", ContextClassLoaderFactory.class.getName(), factoryName);
           FACTORY = factoryClass.getDeclaredConstructor().newInstance();
-          FACTORY.setEnvironment(() -> new ConfigurationImpl(conf));
+          FACTORY.init(() -> new ConfigurationImpl(conf));
         } catch (ReflectiveOperationException e) {
           throw new IllegalStateException("Unable to load and initialize class: " + factoryName, e);
         }

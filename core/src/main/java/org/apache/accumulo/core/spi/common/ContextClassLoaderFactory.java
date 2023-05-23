@@ -48,6 +48,13 @@ package org.apache.accumulo.core.spi.common;
 public interface ContextClassLoaderFactory {
 
   /**
+   * Pass the service environment to allow for additional class loader configuration
+   *
+   * @param env the class loader environment
+   */
+  default void init(ContextClassLoaderEnvironment env) {}
+
+  /**
    * Get the class loader for the given contextName. Callers should not cache the ClassLoader result
    * as it may change if/when the ClassLoader reloads. Implementations should throw a
    * RuntimeException of some type (such as IllegalArgumentException) if the provided contextName is
@@ -58,12 +65,4 @@ public interface ContextClassLoaderFactory {
    * @return the class loader for the given contextName
    */
   ClassLoader getClassLoader(String contextName);
-
-  /**
-   * Pass the service environment to allow for additional class loader configuration
-   *
-   * @param env the class loader environment
-   */
-  default void setEnvironment(ContextClassLoaderEnvironment env) {}
-
 }
