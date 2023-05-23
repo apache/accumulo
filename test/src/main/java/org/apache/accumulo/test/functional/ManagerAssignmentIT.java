@@ -132,8 +132,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       TabletMetadata flushed = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(flushed.hasCurrent());
       assertNotNull(flushed.getLocation());
-      assertEquals(flushed.getLocation(), flushed.getLast());
-      assertFalse(newTablet.getLocation().getType().equals(LocationType.FUTURE));
+      assertEquals(flushed.getLocation().getHostPort(), flushed.getLast().getHostPort());
+      assertFalse(flushed.getLocation().getType().equals(LocationType.FUTURE));
       assertEquals(TabletHostingGoal.ONDEMAND, flushed.getHostingGoal());
 
       // take the tablet offline
@@ -141,7 +141,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       TabletMetadata offline = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertFalse(offline.hasCurrent());
       assertNull(offline.getLocation());
-      assertEquals(flushed.getLocation(), offline.getLast());
+      assertEquals(flushed.getLocation().getHostPort(), offline.getLast().getHostPort());
       assertEquals(TabletHostingGoal.ONDEMAND, offline.getHostingGoal());
 
       // put it back online
@@ -149,14 +149,14 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       TabletMetadata online = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(online.hasCurrent());
       assertNotNull(online.getLocation());
-      assertEquals(online.getLocation(), online.getLast());
+      assertEquals(online.getLocation().getHostPort(), online.getLast().getHostPort());
       assertEquals(TabletHostingGoal.ONDEMAND, online.getHostingGoal());
 
       // set the hosting goal to always
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
 
       Predicate<TabletMetadata> alwaysHostedOrCurrentNotNull =
-          t -> (t.getHostingGoal() == TabletHostingGoal.ALWAYS) || (t.hasCurrent());
+          t -> (t.getHostingGoal() == TabletHostingGoal.ALWAYS && t.hasCurrent());
 
       assertTrue(Wait.waitFor(() -> alwaysHostedOrCurrentNotNull
           .test(getManagerTabletInfo(c, tableId, null).getTabletMetadata()), 60000, 250));
@@ -164,20 +164,20 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       final TabletMetadata always = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(alwaysHostedOrCurrentNotNull.test(always));
       assertTrue(always.hasCurrent());
-      assertEquals(flushed.getLocation(), always.getLast());
+      assertEquals(flushed.getLocation().getHostPort(), always.getLast().getHostPort());
       assertEquals(TabletHostingGoal.ALWAYS, always.getHostingGoal());
 
       // set the hosting goal to never
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.NEVER);
       Predicate<TabletMetadata> neverHostedOrCurrentNull =
-          t -> (t.getHostingGoal() == TabletHostingGoal.NEVER) || (!t.hasCurrent());
+          t -> (t.getHostingGoal() == TabletHostingGoal.NEVER && !t.hasCurrent());
       assertTrue(Wait.waitFor(() -> neverHostedOrCurrentNull
           .test(getManagerTabletInfo(c, tableId, null).getTabletMetadata()), 60000, 250));
 
       final TabletMetadata never = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(neverHostedOrCurrentNull.test(never));
       assertNull(never.getLocation());
-      assertEquals(flushed.getLocation(), never.getLast());
+      assertEquals(flushed.getLocation().getHostPort(), never.getLast().getHostPort());
       assertEquals(TabletHostingGoal.NEVER, never.getHostingGoal());
 
       // set the hosting goal to ondemand
@@ -190,7 +190,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       final TabletMetadata ondemand = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(ondemandHosted.test(ondemand));
       assertNull(ondemand.getLocation());
-      assertEquals(flushed.getLocation(), ondemand.getLast());
+      assertEquals(flushed.getLocation().getHostPort(), ondemand.getLast().getHostPort());
       assertEquals(TabletHostingGoal.ONDEMAND, ondemand.getHostingGoal());
 
     }

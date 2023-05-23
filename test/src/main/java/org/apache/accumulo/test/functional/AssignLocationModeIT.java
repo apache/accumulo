@@ -28,6 +28,8 @@ import java.time.Duration;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -54,7 +56,8 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
     try (AccumuloClient c =
         getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
       String tableName = super.getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
+      NewTableConfiguration ntc = new NewTableConfiguration().withInitialHostingGoal(TabletHostingGoal.ALWAYS);      
+      c.tableOperations().create(tableName, ntc);
       String tableId = c.tableOperations().tableIdMap().get(tableName);
       // wait for the table to be online
       TabletMetadata newTablet;
@@ -63,7 +66,7 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
         newTablet = ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       } while (!newTablet.hasCurrent());
       // this would be null if the mode was not "assign"
-      assertEquals(newTablet.getLocation(), newTablet.getLast());
+      assertEquals(newTablet.getLocation().getHostPort(), newTablet.getLast().getHostPort());
 
       // put something in it
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
@@ -78,8 +81,8 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
       // last location should not be set yet
       TabletMetadata unflushed =
           ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
-      assertEquals(newTablet.getLocation(), unflushed.getLocation());
-      assertEquals(newTablet.getLocation(), unflushed.getLast());
+      assertEquals(newTablet.getLocation().getHostPort(), unflushed.getLocation().getHostPort());
+      assertEquals(newTablet.getLocation().getHostPort(), unflushed.getLast().getHostPort());
       assertTrue(newTablet.hasCurrent());
 
       // take the tablet offline
@@ -88,7 +91,7 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
           ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertNull(offline.getLocation());
       assertFalse(offline.hasCurrent());
-      assertEquals(newTablet.getLocation(), offline.getLast());
+      assertEquals(newTablet.getLocation().getHostPort(), offline.getLast().getHostPort());
 
       // put it back online, should have the same last location
       c.tableOperations().online(tableName, true);
@@ -96,7 +99,7 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
           ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(online.hasCurrent());
       assertNotNull(online.getLocation());
-      assertEquals(newTablet.getLast(), online.getLast());
+      assertEquals(newTablet.getLast().getHostPort(), online.getLast().getHostPort());
     }
   }
 
