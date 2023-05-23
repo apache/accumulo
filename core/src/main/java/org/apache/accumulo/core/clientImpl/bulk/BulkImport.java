@@ -278,32 +278,33 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     Text row = new Text();
 
-    FileSKVIterator index =
-        FileOperations.getInstance().newIndexReaderBuilder().forFile(dataFile, ns, ns.getConf(), cs)
-            .withTableConfiguration(acuConf).withFileLenCache(fileLenCache).build();
+    List<KeyExtent> sortedKeyExtents = new ArrayList<>(counts.keySet());
 
-    try {
+    try (FileSKVIterator index =
+        FileOperations.getInstance().newIndexReaderBuilder().forFile(dataFile, ns, ns.getConf(), cs)
+            .withTableConfiguration(acuConf).withFileLenCache(fileLenCache).build()) {
       while (index.hasTop()) {
         Key key = index.getTopKey();
         totalIndexEntries++;
         key.getRow(row);
 
-        // TODO this could use a binary search
-        for (Entry<KeyExtent,MLong> entry : counts.entrySet()) {
-          if (entry.getKey().contains(row)) {
-            entry.getValue().l++;
+        int start = 0, end = sortedKeyExtents.size() - 1;
+        while (start <= end) {
+          int mid = start + (end - start) / 2;
+          KeyExtent midKeyExtent = sortedKeyExtents.get(mid);
+
+          if (midKeyExtent.contains(row)) {
+            counts.get(midKeyExtent).l++;
+            break;
+          } else if (midKeyExtent.prevEndRow() != null
+              && midKeyExtent.prevEndRow().compareTo(row) > 0) {
+            end = mid - 1;
+          } else {
+            start = mid + 1;
           }
         }
 
         index.next();
-      }
-    } finally {
-      try {
-        if (index != null) {
-          index.close();
-        }
-      } catch (IOException e) {
-        log.debug("Failed to close " + dataFile, e);
       }
     }
 
