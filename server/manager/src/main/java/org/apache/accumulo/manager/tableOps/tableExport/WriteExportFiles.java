@@ -192,16 +192,17 @@ class WriteExportFiles extends ManagerRepo {
 
       // make a set of unique volumes from the map
       for (String fileString : uniqueFiles.values()) {
-        String[] fileSegmentArray = fileString.split("/");
-        volumeSet.add(fileSegmentArray[2]);
+        String uniqueVolume = getVolumeFromString(fileString);
+        volumeSet.add(uniqueVolume);
       }
 
-      // for each unique volume: get every matching entry in the map and send to createDistcpFile
-      // method
+      // for each unique volume: get every matching entry in the map and send them to
+      // createDistcpFile method
       for (String volumeString : volumeSet) {
         Set<String> sortedVolumeSet = new TreeSet<>();
         for (String rFileString : uniqueFiles.values()) {
-          if (rFileString.contains(volumeString)) {
+          String currentVolume = getVolumeFromString(rFileString);
+          if (currentVolume.equals(volumeString)) {
             sortedVolumeSet.add(rFileString);
           }
         }
@@ -212,6 +213,11 @@ class WriteExportFiles extends ManagerRepo {
         dataOut.close();
       }
     }
+  }
+
+  private static String getVolumeFromString(String searchString) {
+    String[] segmentArray = searchString.split("/");
+    return segmentArray[2];
   }
 
   private static void createDistcpFile(VolumeManager fs, String exportDir, Path exportMetaFilePath,
