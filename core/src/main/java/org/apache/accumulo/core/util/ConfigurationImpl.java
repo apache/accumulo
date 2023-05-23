@@ -32,6 +32,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 
+/**
+ * The implementation class used for providing SPI configuration without exposing internal types.
+ */
 public class ConfigurationImpl implements Configuration {
 
   private final AccumuloConfiguration acfg;

@@ -21,6 +21,7 @@ package org.apache.accumulo.core.classloader;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,11 +47,12 @@ public class ClassLoaderUtil {
             ContextClassLoaderFactory.class.getName());
         FACTORY = new URLContextClassLoaderFactory();
       } else {
-        // load user's selected implementation
+        // load user's selected implementation and provide it with the service environment
         try {
           var factoryClass = Class.forName(factoryName).asSubclass(ContextClassLoaderFactory.class);
           LOG.info("Creating {}: {}", ContextClassLoaderFactory.class.getName(), factoryName);
           FACTORY = factoryClass.getDeclaredConstructor().newInstance();
+          FACTORY.init(() -> new ConfigurationImpl(conf));
         } catch (ReflectiveOperationException e) {
           throw new IllegalStateException("Unable to load and initialize class: " + factoryName, e);
         }
