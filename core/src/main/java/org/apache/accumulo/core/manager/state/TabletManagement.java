@@ -41,14 +41,15 @@ import com.google.common.base.Splitter;
  */
 public class TabletManagement {
 
-  public static final EnumSet<ColumnType> CONFIGURED_COLUMNS = EnumSet.of(ColumnType.PREV_ROW,
-      ColumnType.LOCATION, ColumnType.SUSPEND, ColumnType.LOGS, ColumnType.CHOPPED,
-      ColumnType.HOSTING_GOAL, ColumnType.HOSTING_REQUESTED, ColumnType.FILES, ColumnType.LAST);
+  public static final EnumSet<ColumnType> CONFIGURED_COLUMNS =
+      EnumSet.of(ColumnType.PREV_ROW, ColumnType.LOCATION, ColumnType.SUSPEND, ColumnType.LOGS,
+          ColumnType.CHOPPED, ColumnType.HOSTING_GOAL, ColumnType.HOSTING_REQUESTED,
+          ColumnType.FILES, ColumnType.LAST, ColumnType.OPID);
 
   private static final String REASONS_COLUMN_NAME = "REASONS";
 
   public static enum ManagementAction {
-    BAD_STATE, NEEDS_COMPACTING, NEEDS_LOCATION_UPDATE, IS_MERGING, IS_MIGRATING, NEEDS_SPLITTING;
+    BAD_STATE, NEEDS_COMPACTING, NEEDS_LOCATION_UPDATE, IS_MERGING, NEEDS_SPLITTING;
   }
 
   public static void addActions(final SortedMap<Key,Value> decodedRow,

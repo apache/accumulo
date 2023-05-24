@@ -706,6 +706,10 @@ public class Manager extends AbstractServer
         return TabletGoalState.UNASSIGNED;
       }
 
+      if (tm.getOperationId() != null) {
+        return TabletGoalState.UNASSIGNED;
+      }
+
       if (tm.hasCurrent() && serversToShutdown.contains(tm.getLocation().getServerInstance())) {
         return TabletGoalState.SUSPENDED;
       }

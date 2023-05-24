@@ -76,7 +76,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -559,11 +558,7 @@ public class TabletMetadata {
         case HostingColumnFamily.STR_NAME:
           switch (qual) {
             case GOAL_QUAL:
-              if (StringUtils.isEmpty(kv.getValue().toString())) {
-                te.goal = TabletHostingGoal.ONDEMAND;
-              } else {
-                te.goal = TabletHostingGoalUtil.fromValue(kv.getValue());
-              }
+              te.goal = TabletHostingGoalUtil.fromValue(kv.getValue());
               break;
             case REQUESTED_QUAL:
               te.onDemandHostingRequested = true;
