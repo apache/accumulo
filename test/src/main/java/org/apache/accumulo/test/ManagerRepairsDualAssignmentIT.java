@@ -34,7 +34,7 @@ import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
+import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -92,7 +92,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       while (states.size() < 2) {
         UtilWaitThread.sleep(250);
         oldLocations.clear();
-        for (ManagerTabletInfo mti : store) {
+        for (TabletManagement mti : store) {
           if (mti.getTabletMetadata().hasCurrent()) {
             states.add(mti.getTabletMetadata().getLocation());
             oldLocations.add(mti.getTabletMetadata());
@@ -108,7 +108,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
         UtilWaitThread.sleep(1000);
         states.clear();
         boolean allAssigned = true;
-        for (ManagerTabletInfo mti : store) {
+        for (TabletManagement mti : store) {
           if (mti.getTabletMetadata().hasCurrent()) {
             states.add(mti.getTabletMetadata().getLocation());
           } else {
@@ -146,7 +146,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
 
   private void waitForCleanStore(TabletStateStore store) {
     while (true) {
-      try (ClosableIterator<ManagerTabletInfo> iter = store.iterator()) {
+      try (ClosableIterator<TabletManagement> iter = store.iterator()) {
         iter.forEachRemaining(t -> {});
       } catch (Exception ex) {
         System.out.println(ex);

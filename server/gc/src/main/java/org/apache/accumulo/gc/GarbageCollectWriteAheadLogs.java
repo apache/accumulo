@@ -31,7 +31,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
+import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -64,7 +64,7 @@ public class GarbageCollectWriteAheadLogs {
   private final boolean useTrash;
   private final LiveTServerSet liveServers;
   private final WalStateManager walMarker;
-  private final Iterable<ManagerTabletInfo> store;
+  private final Iterable<TabletManagement> store;
 
   /**
    * Creates a new GC WAL object.
@@ -96,7 +96,7 @@ public class GarbageCollectWriteAheadLogs {
    */
   @VisibleForTesting
   GarbageCollectWriteAheadLogs(ServerContext context, VolumeManager fs, boolean useTrash,
-      LiveTServerSet liveTServerSet, WalStateManager walMarker, Iterable<ManagerTabletInfo> store) {
+      LiveTServerSet liveTServerSet, WalStateManager walMarker, Iterable<TabletManagement> store) {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
@@ -279,7 +279,7 @@ public class GarbageCollectWriteAheadLogs {
     }
 
     // remove any entries if there's a log reference (recovery hasn't finished)
-    for (ManagerTabletInfo mti : store) {
+    for (TabletManagement mti : store) {
       // Tablet is still assigned to a dead server. Manager has moved markers and reassigned it
       // Easiest to just ignore all the WALs for the dead server.
       if (mti.getTabletMetadata().getTabletState(liveServers)

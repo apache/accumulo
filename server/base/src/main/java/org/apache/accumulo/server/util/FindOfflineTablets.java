@@ -26,7 +26,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
+import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -39,7 +39,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.Listener;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
+import org.apache.accumulo.server.manager.state.TabletManagementScanner;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,7 +81,7 @@ public class FindOfflineTablets {
     tservers.startListeningForTabletServerChanges();
     scanning.set(true);
 
-    Iterator<ManagerTabletInfo> zooScanner =
+    Iterator<TabletManagement> zooScanner =
         TabletStateStore.getStoreForLevel(DataLevel.ROOT, context).iterator();
 
     int offline = 0;
@@ -96,8 +96,8 @@ public class FindOfflineTablets {
     }
 
     System.out.println("Scanning " + RootTable.NAME);
-    Iterator<ManagerTabletInfo> rootScanner =
-        new MetaDataTableScanner(context, TabletsSection.getRange(), RootTable.NAME);
+    Iterator<TabletManagement> rootScanner =
+        new TabletManagementScanner(context, TabletsSection.getRange(), RootTable.NAME);
     if ((offline = checkTablets(context, rootScanner, tservers)) > 0) {
       return offline;
     }
@@ -114,18 +114,18 @@ public class FindOfflineTablets {
       range = new KeyExtent(tableId, null, null).toMetaRange();
     }
 
-    try (MetaDataTableScanner metaScanner =
-        new MetaDataTableScanner(context, range, MetadataTable.NAME)) {
+    try (TabletManagementScanner metaScanner =
+        new TabletManagementScanner(context, range, MetadataTable.NAME)) {
       return checkTablets(context, metaScanner, tservers);
     }
   }
 
-  private static int checkTablets(ServerContext context, Iterator<ManagerTabletInfo> scanner,
+  private static int checkTablets(ServerContext context, Iterator<TabletManagement> scanner,
       LiveTServerSet tservers) {
     int offline = 0;
 
     while (scanner.hasNext() && !System.out.checkError()) {
-      ManagerTabletInfo mti = scanner.next();
+      TabletManagement mti = scanner.next();
       TabletState state = mti.getTabletMetadata().getTabletState(tservers.getCurrentServers());
       if (state != null && state != TabletState.HOSTED
           && context.getTableManager().getTableState(mti.getTabletMetadata().getTableId())

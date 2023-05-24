@@ -77,7 +77,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.state.Assignment;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
+import org.apache.accumulo.server.manager.state.TabletManagementScanner;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -360,7 +360,7 @@ public class NullTserver {
     // read the locations for the table
     Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
     List<Assignment> assignments = new ArrayList<>();
-    try (var s = new MetaDataTableScanner(context, tableRange, MetadataTable.NAME)) {
+    try (var s = new TabletManagementScanner(context, tableRange, MetadataTable.NAME)) {
       long randomSessionID = opts.port;
       TServerInstance instance = new TServerInstance(addr, randomSessionID);
 

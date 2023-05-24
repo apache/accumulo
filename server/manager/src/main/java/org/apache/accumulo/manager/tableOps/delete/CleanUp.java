@@ -36,7 +36,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
+import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -47,7 +47,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.manager.state.ManagerTabletInfoIterator;
+import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
@@ -92,11 +92,11 @@ class CleanUp extends ManagerRepo {
     boolean done = true;
     Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
     Scanner scanner = manager.getContext().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    ManagerTabletInfoIterator.configureScanner(scanner, manager);
+    TabletManagementIterator.configureScanner(scanner, manager);
     scanner.setRange(tableRange);
 
     for (Entry<Key,Value> entry : scanner) {
-      final ManagerTabletInfo mti = ManagerTabletInfoIterator.decode(entry);
+      final TabletManagement mti = TabletManagementIterator.decode(entry);
       final TabletMetadata tm = mti.getTabletMetadata();
       TabletState state = tm.getTabletState(manager.onlineTabletServers());
       if (!state.equals(TabletState.UNASSIGNED)) {

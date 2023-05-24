@@ -33,7 +33,13 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 
-public class ManagerTabletInfo {
+/**
+ * Object that represents a Tablets metadata and any actions that the Manager might need to take on
+ * the object. This object is created by the {@link TabletManagementIterator} iterator used by the
+ * {@link TabletGroupWatcher} threads in the {@link Manager}.
+ *
+ */
+public class TabletManagement {
 
   public static final EnumSet<ColumnType> CONFIGURED_COLUMNS = EnumSet.of(ColumnType.PREV_ROW,
       ColumnType.LOCATION, ColumnType.SUSPEND, ColumnType.LOGS, ColumnType.CHOPPED,
@@ -56,17 +62,16 @@ public class ManagerTabletInfo {
   public final Set<ManagementAction> actions;
   public final TabletMetadata tabletMetadata;
 
-  public ManagerTabletInfo(Set<ManagementAction> actions, TabletMetadata tm) {
+  public TabletManagement(Set<ManagementAction> actions, TabletMetadata tm) {
     this.actions = actions;
     this.tabletMetadata = tm;
   }
 
-  public ManagerTabletInfo(Key wholeRowKey, Value wholeRowValue) throws IOException {
+  public TabletManagement(Key wholeRowKey, Value wholeRowValue) throws IOException {
     this(wholeRowKey, wholeRowValue, false);
   }
 
-  public ManagerTabletInfo(Key wholeRowKey, Value wholeRowValue, boolean saveKV)
-      throws IOException {
+  public TabletManagement(Key wholeRowKey, Value wholeRowValue, boolean saveKV) throws IOException {
     final SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(wholeRowKey, wholeRowValue);
     String row = decodedRow.firstKey().getRow().toString();
     Value val = decodedRow.remove(new Key(row, REASONS_COLUMN_NAME, ""));

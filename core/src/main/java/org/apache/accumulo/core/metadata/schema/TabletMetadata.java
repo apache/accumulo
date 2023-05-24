@@ -529,24 +529,10 @@ public class TabletMetadata {
               BulkFileColumnFamily.getBulkLoadTid(val));
           break;
         case CurrentLocationColumnFamily.STR_NAME:
-          try {
-            te.setLocationOnce(val, qual, LocationType.CURRENT);
-          } catch (IllegalStateException e) {
-            te.futureAndCurrentLocationSet = true;
-            if (!suppressLocationError) {
-              throw e;
-            }
-          }
+          te.setLocationOnce(val, qual, LocationType.CURRENT, suppressLocationError);
           break;
         case FutureLocationColumnFamily.STR_NAME:
-          try {
-            te.setLocationOnce(val, qual, LocationType.FUTURE);
-          } catch (IllegalStateException e) {
-            te.futureAndCurrentLocationSet = true;
-            if (!suppressLocationError) {
-              throw e;
-            }
-          }
+          te.setLocationOnce(val, qual, LocationType.FUTURE, suppressLocationError);
           break;
         case LastLocationColumnFamily.STR_NAME:
           te.last = Location.last(val, qual);
@@ -606,10 +592,13 @@ public class TabletMetadata {
     return te;
   }
 
-  private void setLocationOnce(String val, String qual, LocationType lt) {
+  private void setLocationOnce(String val, String qual, LocationType lt, boolean suppressError) {
     if (location != null) {
-      throw new IllegalStateException("Attempted to set second location for tableId: " + tableId
-          + " endrow: " + endRow + " -- " + location + " " + qual + " " + val);
+      if (!suppressError) {
+        throw new IllegalStateException("Attempted to set second location for tableId: " + tableId
+            + " endrow: " + endRow + " -- " + location + " " + qual + " " + val);
+      }
+      futureAndCurrentLocationSet = true;
     }
     location = new Location(val, qual, lt);
   }

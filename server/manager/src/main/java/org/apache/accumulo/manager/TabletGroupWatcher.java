@@ -57,8 +57,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.logging.TabletLogger;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo.ManagementAction;
+import org.apache.accumulo.core.manager.state.TabletManagement;
+import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -207,7 +207,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       int totalUnloaded = 0;
       int unloaded = 0;
-      ClosableIterator<ManagerTabletInfo> iter = null;
+      ClosableIterator<TabletManagement> iter = null;
       try {
         Map<TableId,MergeStats> mergeStatsCache = new HashMap<>();
         Map<TableId,MergeStats> currentMerges = new HashMap<>();
@@ -240,10 +240,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         // towards their goal
         iter = store.iterator();
         while (iter.hasNext()) {
-          final ManagerTabletInfo mti = iter.next();
+          final TabletManagement mti = iter.next();
           if (mti == null) {
-            LOG.debug("ManagerTabletInfoIterator returned null ManagerTabletInfo");
-            continue;
+            throw new IllegalStateException("State store returned a null ManagerTabletInfo object");
           }
 
           final Set<ManagementAction> actions = mti.getActions();

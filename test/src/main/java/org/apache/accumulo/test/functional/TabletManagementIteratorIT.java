@@ -57,7 +57,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
+import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -68,8 +68,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.state.CurrentState;
-import org.apache.accumulo.server.manager.state.ManagerTabletInfoIterator;
 import org.apache.accumulo.server.manager.state.MergeInfo;
+import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -79,11 +79,11 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
- * Test to ensure that the {@link ManagerTabletInfoIterator} properly skips over tablet information
+ * Test to ensure that the {@link TabletManagementIterator} properly skips over tablet information
  * in the metadata table when there is no work to be done on the tablet (see ACCUMULO-3580)
  */
-public class ManagerTabletInfoIteratorIT extends AccumuloClusterHarness {
-  private final static Logger log = LoggerFactory.getLogger(ManagerTabletInfoIteratorIT.class);
+public class TabletManagementIteratorIT extends AccumuloClusterHarness {
+  private final static Logger log = LoggerFactory.getLogger(TabletManagementIteratorIT.class);
 
   @Override
   protected Duration defaultTimeout() {
@@ -242,12 +242,12 @@ public class ManagerTabletInfoIteratorIT extends AccumuloClusterHarness {
     int results = 0;
     List<KeyExtent> resultList = new ArrayList<>();
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
-      ManagerTabletInfoIterator.configureScanner(scanner, state);
+      TabletManagementIterator.configureScanner(scanner, state);
       log.debug("Current state = {}", state);
       scanner.updateScanIteratorOption("tabletChange", "debug", "1");
       for (Entry<Key,Value> e : scanner) {
         if (e != null) {
-          ManagerTabletInfo mti = ManagerTabletInfoIterator.decode(e);
+          TabletManagement mti = TabletManagementIterator.decode(e);
           results++;
           log.debug("Found tablets that changed state: {}", mti.getTabletMetadata().getExtent());
           resultList.add(mti.getTabletMetadata().getExtent());
@@ -378,6 +378,11 @@ public class ManagerTabletInfoIteratorIT extends AccumuloClusterHarness {
 
     @Override
     public Set<TServerInstance> shutdownServers() {
+      return Collections.emptySet();
+    }
+
+    @Override
+    public Set<KeyExtent> getUnassignmentRequest() {
       return Collections.emptySet();
     }
 

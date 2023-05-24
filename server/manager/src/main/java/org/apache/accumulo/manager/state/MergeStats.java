@@ -34,7 +34,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
+import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletState;
@@ -44,9 +44,9 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.manager.state.CurrentState;
-import org.apache.accumulo.server.manager.state.ManagerTabletInfoIterator;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MergeState;
+import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -205,7 +205,7 @@ public class MergeStats {
     KeyExtent extent = info.getExtent();
     Scanner scanner = accumuloClient
         .createScanner(extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY);
-    ManagerTabletInfoIterator.configureScanner(scanner, manager);
+    TabletManagementIterator.configureScanner(scanner, manager);
     Text start = extent.prevEndRow();
     if (start == null) {
       start = new Text();
@@ -218,7 +218,7 @@ public class MergeStats {
 
     log.debug("Scanning range {}", range);
     for (Entry<Key,Value> entry : scanner) {
-      final ManagerTabletInfo mti = ManagerTabletInfoIterator.decode(entry);
+      final TabletManagement mti = TabletManagementIterator.decode(entry);
       final TabletMetadata tm = mti.getTabletMetadata();
 
       log.debug("consistency check: {} walogs {}", tm, tm.getLogs().size());

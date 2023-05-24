@@ -64,7 +64,7 @@ import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
+import org.apache.accumulo.server.manager.state.TabletManagementScanner;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -430,7 +430,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     private void scan(ClientContext ctx, String tableName, String metaName) {
       Map<String,String> idMap = ctx.tableOperations().tableIdMap();
       String tableId = Objects.requireNonNull(idMap.get(tableName));
-      try (var scanner = new MetaDataTableScanner(ctx, new Range(), metaName)) {
+      try (var scanner = new TabletManagementScanner(ctx, new Range(), metaName)) {
         while (scanner.hasNext()) {
           final TabletMetadata tm = scanner.next().getTabletMetadata();
           final KeyExtent ke = tm.getExtent();
@@ -445,7 +445,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
           } else if (tm.hasCurrent()) {
             hosted.put(tm.getLocation().getHostAndPort(), ke);
             ++hostedCount;
-          } else if (tm.getLocation().getType().equals(LocationType.FUTURE)) {
+          } else if (tm.getLocation() != null
+              && tm.getLocation().getType().equals(LocationType.FUTURE)) {
             ++assignedCount;
           } else {
             // unassigned case

@@ -176,6 +176,10 @@ public class TabletMetadataTest {
 
     assertThrows(IllegalStateException.class, () -> TabletMetadata
         .convertRow(rowMap.entrySet().iterator(), EnumSet.allOf(ColumnType.class), false, false));
+
+    TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
+        EnumSet.allOf(ColumnType.class), false, true);
+    assertTrue(tm.isFutureAndCurrentLocationSet());
   }
 
   @Test

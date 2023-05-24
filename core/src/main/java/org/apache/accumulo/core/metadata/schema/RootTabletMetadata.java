@@ -27,7 +27,6 @@ import java.nio.charset.CharsetDecoder;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.EnumSet;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Predicate;
@@ -36,8 +35,6 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo.ManagementAction;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
@@ -159,10 +156,8 @@ public class RootTabletMetadata {
    * Convert this class to a {@link TabletMetadata}
    */
   public TabletMetadata toTabletMetadata() {
-    TreeMap<Key,Value> entries = new TreeMap<>();
-    getKeyValues().forEach(entry -> entries.put(entry.getKey(), entry.getValue()));
-    ManagerTabletInfo.addActions(entries, Set.of(ManagementAction.NEEDS_LOCATION_UPDATE));
-    return TabletMetadata.convertRow(entries.entrySet().iterator(),
+    Stream<SimpleImmutableEntry<Key,Value>> entries = getKeyValues();
+    return TabletMetadata.convertRow(entries.iterator(),
         EnumSet.allOf(TabletMetadata.ColumnType.class), false, false);
   }
 

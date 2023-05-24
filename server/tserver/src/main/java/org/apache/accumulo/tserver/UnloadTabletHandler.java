@@ -114,6 +114,8 @@ class UnloadTabletHandler implements Runnable {
     try {
       TServerInstance instance =
           new TServerInstance(server.clientAddress, server.getLock().getSessionId());
+      // ELASTICITY_TODO: Modify Tablet to keep a reference to TableMetadata so that we
+      // can get rid of TabletMetadataImposter
       TabletMetadata tm = new TabletMetadataImposter(extent, null, Location.current(instance), null,
           null, null, false, TabletHostingGoal.ONDEMAND, false);
       if (!goalState.equals(TUnloadTabletGoal.SUSPENDED) || extent.isRootTablet()

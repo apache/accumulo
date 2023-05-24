@@ -44,7 +44,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
+import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
@@ -272,7 +272,7 @@ public class RootTabletStateStoreTest {
     List<Assignment> assignments = Collections.singletonList(new Assignment(root, server, null));
     tstore.setFutureLocations(assignments);
     int count = 0;
-    for (ManagerTabletInfo mti : tstore) {
+    for (TabletManagement mti : tstore) {
       assertEquals(mti.getTabletMetadata().getExtent(), root);
       assertTrue(mti.getTabletMetadata().getLocation().getType().equals(LocationType.FUTURE));
       assertEquals(mti.getTabletMetadata().getLocation().getServerInstance(), server);
@@ -282,7 +282,7 @@ public class RootTabletStateStoreTest {
     assertEquals(count, 1);
     tstore.setLocations(assignments);
     count = 0;
-    for (ManagerTabletInfo mti : tstore) {
+    for (TabletManagement mti : tstore) {
       assertEquals(mti.getTabletMetadata().getExtent(), root);
       assertFalse(mti.getTabletMetadata().getLocation().getType().equals(LocationType.FUTURE));
       assertTrue(mti.getTabletMetadata().hasCurrent());
@@ -290,10 +290,10 @@ public class RootTabletStateStoreTest {
       count++;
     }
     assertEquals(count, 1);
-    ManagerTabletInfo rootTabletMetadataInfo = tstore.iterator().next();
+    TabletManagement rootTabletMetadataInfo = tstore.iterator().next();
     tstore.unassign(Collections.singletonList(rootTabletMetadataInfo.getTabletMetadata()), null);
     count = 0;
-    for (ManagerTabletInfo mti : tstore) {
+    for (TabletManagement mti : tstore) {
       assertEquals(mti.getTabletMetadata().getExtent(), root);
       assertFalse(mti.getTabletMetadata().hasCurrent());
       assertNull(mti.getTabletMetadata().getLocation());

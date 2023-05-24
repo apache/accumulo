@@ -36,8 +36,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo.ManagementAction;
+import org.apache.accumulo.core.manager.state.TabletManagement;
+import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -51,7 +51,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-public class TabletMetadataIteratorTest {
+public class TabletManagementTest {
 
   private SortedMap<Key,Value> toRowMap(Mutation mutation) {
     SortedMap<Key,Value> rowMap = new TreeMap<>();
@@ -112,11 +112,11 @@ public class TabletMetadataIteratorTest {
 
   @Test
   public void testEncodeDecodeWithReasons() throws Exception {
-    final Set<ManagementAction> reasons =
+    final Set<ManagementAction> actions =
         Set.of(ManagementAction.NEEDS_LOCATION_UPDATE, ManagementAction.NEEDS_SPLITTING);
     final SortedMap<Key,Value> entries = createMetadataEntryKV();
 
-    ManagerTabletInfo.addActions(entries, reasons);
+    TabletManagement.addActions(entries, actions);
     Key key = entries.firstKey();
     Value val = WholeRowIterator.encodeRow(new ArrayList<>(entries.keySet()),
         new ArrayList<>(entries.values()));
@@ -125,9 +125,9 @@ public class TabletMetadataIteratorTest {
     // below
     entries.remove(new Key(key.getRow().toString(), "REASONS", ""));
 
-    ManagerTabletInfo tmi = new ManagerTabletInfo(key, val, true);
+    TabletManagement tmi = new TabletManagement(key, val, true);
     assertEquals(entries, tmi.getTabletMetadata().getKeyValues());
-    assertEquals(reasons, tmi.getActions());
+    assertEquals(actions, tmi.getActions());
   }
 
 }

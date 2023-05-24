@@ -32,22 +32,23 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
+import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MetaDataTableScanner implements ClosableIterator<ManagerTabletInfo> {
+public class TabletManagementScanner implements ClosableIterator<TabletManagement> {
 
-  private static final Logger log = LoggerFactory.getLogger(MetaDataTableScanner.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletManagementScanner.class);
 
   private final Cleanable cleanable;
   private final BatchScanner mdScanner;
   private final Iterator<Entry<Key,Value>> iter;
   private final AtomicBoolean closed = new AtomicBoolean(false);
 
-  MetaDataTableScanner(ClientContext context, Range range, CurrentState state, String tableName) {
+  TabletManagementScanner(ClientContext context, Range range, CurrentState state,
+      String tableName) {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers
     // and online tables
     try {
@@ -55,13 +56,13 @@ public class MetaDataTableScanner implements ClosableIterator<ManagerTabletInfo>
     } catch (TableNotFoundException e) {
       throw new IllegalStateException("Metadata table " + tableName + " should exist", e);
     }
-    cleanable = CleanerUtil.unclosed(this, MetaDataTableScanner.class, closed, log, mdScanner);
-    ManagerTabletInfoIterator.configureScanner(mdScanner, state);
+    cleanable = CleanerUtil.unclosed(this, TabletManagementScanner.class, closed, log, mdScanner);
+    TabletManagementIterator.configureScanner(mdScanner, state);
     mdScanner.setRanges(Collections.singletonList(range));
     iter = mdScanner.iterator();
   }
 
-  public MetaDataTableScanner(ClientContext context, Range range, String tableName) {
+  public TabletManagementScanner(ClientContext context, Range range, String tableName) {
     this(context, range, null, tableName);
   }
 
@@ -88,13 +89,13 @@ public class MetaDataTableScanner implements ClosableIterator<ManagerTabletInfo>
   }
 
   @Override
-  public ManagerTabletInfo next() {
+  public TabletManagement next() {
     if (closed.get()) {
       throw new NoSuchElementException(this.getClass().getSimpleName() + " is closed");
     }
     Entry<Key,Value> e = iter.next();
     try {
-      ManagerTabletInfo tmi = ManagerTabletInfoIterator.decode(e);
+      TabletManagement tmi = TabletManagementIterator.decode(e);
       log.trace("Returning metadata tablet, extent: {}, hostingGoal: {}",
           tmi.getTabletMetadata().getExtent(), tmi.getTabletMetadata().getHostingGoal());
       return tmi;

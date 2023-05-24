@@ -294,9 +294,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
         lastFailureSize = failures.size();
 
-        log.debug(
-            "Failed to bin {} ranges for table {}, tablet locations were null, retrying in 100ms",
-            failures.size(), tableId);
         if (log.isTraceEnabled()) {
           log.trace(
               "Failed to bin {} ranges for table {}, tablet locations were null, retrying in 100ms",

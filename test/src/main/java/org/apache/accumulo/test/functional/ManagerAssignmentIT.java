@@ -50,7 +50,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.manager.state.ManagerTabletInfo;
+import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -61,7 +61,7 @@ import org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
+import org.apache.accumulo.server.manager.state.TabletManagementScanner;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
@@ -379,9 +379,9 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
         .getTabletStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds(), tableId));
   }
 
-  public static ManagerTabletInfo getManagerTabletInfo(AccumuloClient c, String tableId,
+  public static TabletManagement getManagerTabletInfo(AccumuloClient c, String tableId,
       Text endRow) {
-    try (MetaDataTableScanner s = new MetaDataTableScanner((ClientContext) c,
+    try (TabletManagementScanner s = new TabletManagementScanner((ClientContext) c,
         new Range(TabletsSection.encodeRow(TableId.of(tableId), endRow)), MetadataTable.NAME)) {
       return s.next();
     }
