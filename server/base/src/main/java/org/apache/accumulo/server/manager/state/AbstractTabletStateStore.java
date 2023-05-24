@@ -25,10 +25,10 @@ import java.util.Map;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.hadoop.fs.Path;
@@ -103,51 +103,52 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void unassign(Collection<TabletLocationState> tablets,
+  public void unassign(Collection<TabletMetadata> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
     unassign(tablets, logsForDeadServers, -1);
   }
 
   @Override
-  public void suspend(Collection<TabletLocationState> tablets,
+  public void suspend(Collection<TabletMetadata> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
     unassign(tablets, logsForDeadServers, suspensionTimestamp);
   }
 
   protected abstract void processSuspension(Ample.ConditionalTabletMutator tabletMutator,
-      TabletLocationState tls, long suspensionTimestamp);
+      TabletMetadata tm, long suspensionTimestamp);
 
-  private void unassign(Collection<TabletLocationState> tablets,
+  private void unassign(Collection<TabletMetadata> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
-      for (TabletLocationState tls : tablets) {
-        var tabletMutator = tabletsMutator.mutateTablet(tls.extent).requireAbsentOperation();
+      for (TabletMetadata tm : tablets) {
+        var tabletMutator = tabletsMutator.mutateTablet(tm.getExtent()).requireAbsentOperation();
 
-        if (tls.hasCurrent()) {
-          tabletMutator.requireLocation(tls.current);
+        if (tm.hasCurrent()) {
+          tabletMutator.requireLocation(tm.getLocation());
 
           ManagerMetadataUtil.updateLastForAssignmentMode(context, tabletMutator,
-              tls.current.getServerInstance(), tls.last);
-          tabletMutator.deleteLocation(tls.current);
+              tm.getLocation().getServerInstance(), tm.getLast());
+          tabletMutator.deleteLocation(tm.getLocation());
           if (logsForDeadServers != null) {
-            List<Path> logs = logsForDeadServers.get(tls.current.getServerInstance());
+            List<Path> logs = logsForDeadServers.get(tm.getLocation().getServerInstance());
             if (logs != null) {
               for (Path log : logs) {
-                LogEntry entry = new LogEntry(tls.extent, 0, log.toString());
+                LogEntry entry = new LogEntry(tm.getExtent(), 0, log.toString());
                 tabletMutator.putWal(entry);
               }
             }
           }
         }
 
-        if (tls.hasFuture()) {
-          tabletMutator.requireLocation(tls.future);
-          tabletMutator.deleteLocation(tls.future);
+        if (tm.getLocation() != null && tm.getLocation().getType() != null
+            && tm.getLocation().getType().equals(LocationType.FUTURE)) {
+          tabletMutator.requireLocation(tm.getLocation());
+          tabletMutator.deleteLocation(tm.getLocation());
         }
 
-        processSuspension(tabletMutator, tls, suspensionTimestamp);
+        processSuspension(tabletMutator, tm, suspensionTimestamp);
 
         tabletMutator.submit(tabletMetadata -> tabletMetadata.getLocation() == null);
       }

@@ -156,10 +156,9 @@ public class RootTabletMetadata {
    * Convert this class to a {@link TabletMetadata}
    */
   public TabletMetadata toTabletMetadata() {
-    // use a stream so we don't have to re-sort in a new TreeMap<Key,Value> structure
     Stream<SimpleImmutableEntry<Key,Value>> entries = getKeyValues();
     return TabletMetadata.convertRow(entries.iterator(),
-        EnumSet.allOf(TabletMetadata.ColumnType.class), false);
+        EnumSet.allOf(TabletMetadata.ColumnType.class), false, false);
   }
 
   private Stream<SimpleImmutableEntry<Key,Value>> getKeyValues() {

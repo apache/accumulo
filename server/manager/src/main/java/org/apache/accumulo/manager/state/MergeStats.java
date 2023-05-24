@@ -34,19 +34,19 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletLocationState;
-import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.manager.state.CurrentState;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MergeState;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
+import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -205,7 +205,7 @@ public class MergeStats {
     KeyExtent extent = info.getExtent();
     Scanner scanner = accumuloClient
         .createScanner(extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY);
-    MetaDataTableScanner.configureScanner(scanner, manager);
+    TabletManagementIterator.configureScanner(scanner, manager);
     Text start = extent.prevEndRow();
     if (start == null) {
       start = new Text();
@@ -218,49 +218,46 @@ public class MergeStats {
 
     log.debug("Scanning range {}", range);
     for (Entry<Key,Value> entry : scanner) {
-      TabletLocationState tls;
-      try {
-        tls = MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
-      } catch (BadLocationStateException e) {
-        log.error("{}", e.getMessage(), e);
-        return false;
-      }
-      log.debug("consistency check: {} walogs {}", tls, tls.walogs.size());
-      if (!tls.extent.tableId().equals(tableId)) {
+      final TabletManagement mti = TabletManagementIterator.decode(entry);
+      final TabletMetadata tm = mti.getTabletMetadata();
+
+      log.debug("consistency check: {} walogs {}", tm, tm.getLogs().size());
+      if (!tm.getTableId().equals(tableId)) {
         break;
       }
 
-      if (!tls.walogs.isEmpty() && verify.getMergeInfo().needsToBeChopped(tls.extent)) {
-        log.debug("failing consistency: needs to be chopped {}", tls.extent);
+      if (!tm.getLogs().isEmpty() && verify.getMergeInfo().needsToBeChopped(tm.getExtent())) {
+        log.debug("failing consistency: needs to be chopped {}", tm.getExtent());
         return false;
       }
 
       if (prevExtent == null) {
         // this is the first tablet observed, it must be offline and its prev row must be less than
         // the start of the merge range
-        if (tls.extent.prevEndRow() != null && tls.extent.prevEndRow().compareTo(start) > 0) {
+        if (tm.getExtent().prevEndRow() != null
+            && tm.getExtent().prevEndRow().compareTo(start) > 0) {
           log.debug("failing consistency: prev row is too high {}", start);
           return false;
         }
 
-        if (tls.getState(manager.onlineTabletServers()) != TabletState.UNASSIGNED
-            && tls.getState(manager.onlineTabletServers()) != TabletState.SUSPENDED) {
-          log.debug("failing consistency: assigned or hosted {}", tls);
+        if (tm.getTabletState(manager.onlineTabletServers()) != TabletState.UNASSIGNED
+            && tm.getTabletState(manager.onlineTabletServers()) != TabletState.SUSPENDED) {
+          log.debug("failing consistency: assigned or hosted {}", tm);
           return false;
         }
 
-      } else if (!tls.extent.isPreviousExtent(prevExtent)) {
+      } else if (!tm.getExtent().isPreviousExtent(prevExtent)) {
         log.debug("hole in {}", MetadataTable.NAME);
         return false;
       }
 
-      prevExtent = tls.extent;
+      prevExtent = tm.getExtent();
 
-      verify.update(tls.extent, tls.getState(manager.onlineTabletServers()), tls.chopped,
-          !tls.walogs.isEmpty());
+      verify.update(tm.getExtent(), tm.getTabletState(manager.onlineTabletServers()),
+          tm.hasChopped(), !tm.getLogs().isEmpty());
       // stop when we've seen the tablet just beyond our range
-      if (tls.extent.prevEndRow() != null && extent.endRow() != null
-          && tls.extent.prevEndRow().compareTo(extent.endRow()) > 0) {
+      if (tm.getExtent().prevEndRow() != null && extent.endRow() != null
+          && tm.getExtent().prevEndRow().compareTo(extent.endRow()) > 0) {
         break;
       }
     }
