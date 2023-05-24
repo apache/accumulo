@@ -68,6 +68,7 @@ enum FateOperation {
   NAMESPACE_RENAME
   TABLE_BULK_IMPORT2
   TABLE_HOSTING_GOAL
+  TABLE_SPLIT
 }
 
 enum ManagerState {

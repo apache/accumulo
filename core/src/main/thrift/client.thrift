@@ -40,6 +40,7 @@ enum TableOperation {
   EXPORT
   COMPACT_CANCEL
   SET_HOSTING_GOAL
+  SPLIT
 }
 
 enum TableOperationExceptionType {
