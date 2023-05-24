@@ -61,7 +61,6 @@ import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
-import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -69,6 +68,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 public class SplitIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(SplitIT.class);
@@ -264,33 +265,35 @@ public class SplitIT extends AccumuloClusterHarness {
       es.shutdown();
 
       final int expectedSplitCount = totalSplits.size();
-      boolean allSplitsHaveBeenSeen = Wait.waitFor(() -> {
-        final int actualSplitCount = c.tableOperations().listSplits(tableName).size();
-        log.debug("Waiting for {} splits to happen. Total splits: {}", expectedSplitCount,
-            actualSplitCount);
-        return actualSplitCount == expectedSplitCount;
-      });
+      final int actualSplitCount = c.tableOperations().listSplits(tableName).size();
 
-      assertTrue(allSplitsHaveBeenSeen, "Did not see expected number of splits");
+      assertEquals(expectedSplitCount, actualSplitCount, "Did not see expected number of splits");
     }
   }
 
   /**
    * Generates a pair of integers that represent the start and end of a range of splits. The start
    * and end are randomly generated between 0 and upperBound. The start is guaranteed to be less
-   * than the end.
+   * than the end and the two bounds are guaranteed to be different values.
    *
    * @param upperBound the upper bound of the range of splits
    * @return a pair of integers that represent the start and end of a range of splits
    */
   private Pair<Integer,Integer> getRandomSplitBounds(int upperBound) {
+    Preconditions.checkArgument(upperBound > 1, "upperBound must be greater than 1");
+
     int start = random.nextInt(upperBound);
-    int end = random.nextInt(upperBound);
-    if (start > end) {
+    int end = random.nextInt(upperBound - 1);
+
+    // ensure start is less than end and that end is not equal to start
+    if (end >= start) {
+      end += 1;
+    } else {
       int tmp = start;
       start = end;
       end = tmp;
     }
+
     return new Pair<>(start, end);
   }
 
