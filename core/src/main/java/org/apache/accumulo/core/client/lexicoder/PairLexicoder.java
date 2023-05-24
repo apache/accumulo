@@ -80,7 +80,7 @@ public class PairLexicoder<A extends Comparable<A>,B extends Comparable<B>>
 
     byte[][] fields = split(data, offset, len);
     if (fields.length != 2) {
-      throw new RuntimeException("Data does not have 2 fields, it has " + fields.length);
+      throw new IllegalArgumentException("Data does not have 2 fields, it has " + fields.length);
     }
 
     return new ComparablePair<>(firstLexicoder.decode(unescape(fields[0])),

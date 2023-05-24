@@ -20,25 +20,19 @@ package org.apache.accumulo.core.file;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.file.map.MapFileOperations;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
+import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.summary.SummaryWriter;
-import org.apache.hadoop.fs.Path;
 
 class DispatchingFileFactory extends FileOperations {
 
   private FileOperations findFileFactory(FileOptions options) {
-    String file = options.getFilename();
+    AbstractTabletFile<?> file = options.getFile();
 
-    Path p = new Path(file);
-    String name = p.getName();
+    String name = file.getPath().getName();
 
-    if (name.startsWith(Constants.MAPFILE_EXTENSION + "_")) {
-      return new MapFileOperations();
-    }
     String[] sp = name.split("\\.");
 
     if (sp.length < 2) {
@@ -47,10 +41,7 @@ class DispatchingFileFactory extends FileOperations {
 
     String extension = sp[sp.length - 1];
 
-    if (extension.equals(Constants.MAPFILE_EXTENSION)
-        || extension.equals(Constants.MAPFILE_EXTENSION + "_tmp")) {
-      return new MapFileOperations();
-    } else if (extension.equals(RFile.EXTENSION) || extension.equals(RFile.EXTENSION + "_tmp")) {
+    if (extension.equals(RFile.EXTENSION) || extension.equals(RFile.EXTENSION + "_tmp")) {
       return new RFileOperations();
     } else {
       throw new IllegalArgumentException("File type " + extension + " not supported");

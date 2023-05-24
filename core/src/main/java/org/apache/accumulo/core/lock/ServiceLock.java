@@ -118,9 +118,9 @@ public class ServiceLock implements Watcher {
       zooKeeper.exists(path.toString(), this);
       watchingParent = true;
       this.vmLockPrefix = new Prefix(ZLOCK_PREFIX + uuid.toString() + "#");
-    } catch (Exception ex) {
+    } catch (KeeperException | InterruptedException ex) {
       LOG.error("Error setting initial watch", ex);
-      throw new RuntimeException(ex);
+      throw new IllegalStateException(ex);
     }
   }
 
@@ -284,7 +284,7 @@ public class ServiceLock implements Watcher {
     if (null == children || !children.contains(createdEphemeralNode)) {
       LOG.error("Expected ephemeral node {} to be in the list of children {}", createdEphemeralNode,
           children);
-      throw new RuntimeException(
+      throw new IllegalStateException(
           "Lock attempt ephemeral node no longer exist " + createdEphemeralNode);
     }
 
@@ -413,7 +413,8 @@ public class ServiceLock implements Watcher {
           || !children.contains(createPath.substring(path.toString().length() + 1))) {
         LOG.error("Expected ephemeral node {} to be in the list of children {}", createPath,
             children);
-        throw new RuntimeException("Lock attempt ephemeral node no longer exist " + createPath);
+        throw new IllegalStateException(
+            "Lock attempt ephemeral node no longer exist " + createPath);
       }
 
       String lowestSequentialPath = null;
@@ -683,7 +684,7 @@ public class ServiceLock implements Watcher {
     String lockNode = children.get(0);
 
     if (!lockNode.startsWith(ZLOCK_PREFIX)) {
-      throw new RuntimeException("Node " + lockNode + " at " + path + " is not a lock node");
+      throw new IllegalStateException("Node " + lockNode + " at " + path + " is not a lock node");
     }
 
     byte[] data = zc.get(path + "/" + lockNode, stat);
@@ -736,7 +737,7 @@ public class ServiceLock implements Watcher {
     String lockNode = children.get(0);
 
     if (!lockNode.startsWith(ZLOCK_PREFIX)) {
-      throw new RuntimeException("Node " + lockNode + " at " + path + " is not a lock node");
+      throw new IllegalStateException("Node " + lockNode + " at " + path + " is not a lock node");
     }
 
     String pathToDelete = path + "/" + lockNode;
@@ -757,7 +758,7 @@ public class ServiceLock implements Watcher {
     String lockNode = children.get(0);
 
     if (!lockNode.startsWith(ZLOCK_PREFIX)) {
-      throw new RuntimeException("Node " + lockNode + " at " + path + " is not a lock node");
+      throw new IllegalStateException("Node " + lockNode + " at " + path + " is not a lock node");
     }
 
     byte[] data = zk.getData(path + "/" + lockNode);

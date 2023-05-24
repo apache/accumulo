@@ -25,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.time.Duration;
@@ -111,8 +112,8 @@ class ZKSecurityTool {
       }
     } catch (IOException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if
-                                     // this happens
+      // this is impossible with ByteArrayOutputStream; crash hard if this happens
+      throw new UncheckedIOException(e);
     }
     return bytes.toByteArray();
   }
@@ -141,8 +142,8 @@ class ZKSecurityTool {
       }
     } catch (IOException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if
-                                     // this happens
+      // this is impossible with ByteArrayOutputStream; crash hard if this happens
+      throw new UncheckedIOException(e);
     }
     return bytes.toByteArray();
   }
@@ -164,8 +165,8 @@ class ZKSecurityTool {
       }
     } catch (IOException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if
-                                     // this happens
+      // this is impossible with ByteArrayOutputStream; crash hard if this happens
+      throw new UncheckedIOException(e);
     }
     return bytes.toByteArray();
   }

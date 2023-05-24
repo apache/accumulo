@@ -275,7 +275,7 @@ public class Fate<T> {
             store.push(tid, repo);
           } catch (StackOverflowException e) {
             // this should not happen
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
           }
         }
 

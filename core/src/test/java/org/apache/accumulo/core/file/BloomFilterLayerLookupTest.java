@@ -37,9 +37,11 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -81,8 +83,9 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
     String suffix = FileOperations.getNewFileExtension(acuconf);
     String fname = new File(tempDir, testName() + "." + suffix).getAbsolutePath();
     FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fname, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(acuconf)
-        .build();
+        .forFile(UnreferencedTabletFile.of(fs, new Path(fname)), fs, conf,
+            NoCryptoServiceFactory.NONE)
+        .withTableConfiguration(acuconf).build();
 
     // write data to file
     long t1 = System.currentTimeMillis();
@@ -99,8 +102,9 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
 
     t1 = System.currentTimeMillis();
     FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder()
-        .forFile(fname, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(acuconf)
-        .build();
+        .forFile(UnreferencedTabletFile.of(fs, new Path(fname)), fs, conf,
+            NoCryptoServiceFactory.NONE)
+        .withTableConfiguration(acuconf).build();
     t2 = System.currentTimeMillis();
     log.debug("Opened {} in {}", fname, (t2 - t1));
 

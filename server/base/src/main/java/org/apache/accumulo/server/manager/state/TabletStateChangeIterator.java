@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.manager.state;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -77,11 +78,12 @@ public class TabletStateChangeIterator extends SkippingIterator {
     merges = parseMerges(options.get(MERGES_OPTION));
     debug = options.containsKey(DEBUG_OPTION);
     migrations = parseMigrations(options.get(MIGRATIONS_OPTION));
+    String managerStateOptionName = options.get(MANAGER_STATE_OPTION);
     try {
-      managerState = ManagerState.valueOf(options.get(MANAGER_STATE_OPTION));
-    } catch (Exception ex) {
-      if (options.get(MANAGER_STATE_OPTION) != null) {
-        log.error("Unable to decode managerState {}", options.get(MANAGER_STATE_OPTION));
+      managerState = ManagerState.valueOf(managerStateOptionName);
+    } catch (RuntimeException ex) {
+      if (managerStateOptionName != null) {
+        log.error("Unable to decode managerState {}", managerStateOptionName);
       }
     }
     Set<TServerInstance> shuttingDown = parseServers(options.get(SHUTTING_DOWN_OPTION));
@@ -103,8 +105,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
         result.add(KeyExtent.readFrom(buffer));
       }
       return result;
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
+    } catch (IOException ex) {
+      throw new UncheckedIOException(ex);
     }
   }
 
@@ -154,8 +156,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
         result.put(mergeInfo.extent.tableId(), mergeInfo);
       }
       return result;
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
+    } catch (IOException ex) {
+      throw new UncheckedIOException(ex);
     }
   }
 
@@ -253,8 +255,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
           info.write(buffer);
         }
       }
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
+    } catch (IOException ex) {
+      throw new UncheckedIOException(ex);
     }
     String encoded =
         Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
@@ -267,8 +269,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
       for (KeyExtent extent : migrations) {
         extent.writeTo(buffer);
       }
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
+    } catch (IOException ex) {
+      throw new UncheckedIOException(ex);
     }
     String encoded =
         Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
