@@ -70,9 +70,9 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 
 /**
- * Iterator used by the {@link TabletGroupWatcher} threads in the {@link Manager}. This iterator
- * returns {@link TabletManagement} objects for each Tablet that needs some type of action performed
- * on it by the Manager.
+ * Iterator used by the TabletGroupWatcher threads in the Manager. This iterator returns
+ * TabletManagement objects for each Tablet that needs some type of action performed on it by the
+ * Manager.
  */
 public class TabletManagementIterator extends SkippingIterator {
 

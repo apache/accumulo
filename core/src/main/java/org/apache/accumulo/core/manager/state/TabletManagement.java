@@ -35,8 +35,8 @@ import com.google.common.base.Splitter;
 
 /**
  * Object that represents a Tablets metadata and any actions that the Manager might need to take on
- * the object. This object is created by the {@link TabletManagementIterator} iterator used by the
- * {@link TabletGroupWatcher} threads in the {@link Manager}.
+ * the object. This object is created by the TabletManagementIterator iterator used by the
+ * TabletGroupWatcher threads in the Manager.
  *
  */
 public class TabletManagement {
