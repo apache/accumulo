@@ -62,8 +62,11 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -148,10 +151,16 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       assertEquals(2, findTabletsNeedingAttention(client, metaCopy1, state),
           "Should have two tablets without a loc");
 
+      // Test setting the operation id on one of the tablets in table t1. Table t1 has two tablets
+      // w/o a location. Only one should need attention because of the operation id.
+      setOperationId(client, metaCopy1, t1);
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy1, state),
+          "Should have not tablets needing attention because of operation id");
+
       // test the cases where the assignment is to a dead tserver
       reassignLocation(client, metaCopy2, t3);
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy2, state),
-          "Should have one tablet that needs to be unassigned");
+          "Only 1 of 2 tablets in table t1 should be returned");
 
       // test the cases where there is ongoing merges
       state = new State(client) {
@@ -219,6 +228,23 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
           entry.getKey().getTimestamp());
       m.put(entry.getKey().getColumnFamily(), new Text("1234567"),
           entry.getKey().getTimestamp() + 1, new Value("fake:9005"));
+      try (BatchWriter bw = client.createBatchWriter(table)) {
+        bw.addMutation(m);
+      }
+    }
+  }
+
+  private void setOperationId(AccumuloClient client, String table, String tableNameToModify)
+      throws TableNotFoundException, MutationsRejectedException {
+    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, 42L);
+    TableId tableIdToModify =
+        TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
+    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
+      scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetaRange());
+      Entry<Key,Value> entry = scanner.iterator().next();
+      Mutation m = new Mutation(entry.getKey().getRow());
+      MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN.put(m,
+          new Value(opid.canonical()));
       try (BatchWriter bw = client.createBatchWriter(table)) {
         bw.addMutation(m);
       }

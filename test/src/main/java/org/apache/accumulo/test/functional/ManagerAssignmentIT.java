@@ -28,8 +28,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -50,13 +52,19 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -192,7 +200,6 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       assertNull(ondemand.getLocation());
       assertEquals(flushed.getLocation().getHostPort(), ondemand.getLast().getHostPort());
       assertEquals(TabletHostingGoal.ONDEMAND, ondemand.getHostingGoal());
-
     }
   }
 
@@ -357,6 +364,49 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     }
   }
 
+  @Test
+  public void testOpidPreventsAssignment() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = super.getUniqueNames(1)[0];
+
+      var tableId = TableId.of(prepTableForScanTest(c, tableName));
+      assertEquals(0, countTabletsWithLocation(c, tableId));
+
+      assertEquals(Set.of("f", "m", "t"), c.tableOperations().listSplits(tableName).stream()
+          .map(Text::toString).collect(Collectors.toSet()));
+
+      c.securityOperations().grantTablePermission(getPrincipal(), MetadataTable.NAME,
+          TablePermission.WRITE);
+
+      try (var writer = c.createBatchWriter(MetadataTable.NAME)) {
+        var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
+        var opid = TabletOperationId.from(TabletOperationType.SPLITTING, 42L);
+        Mutation m = new Mutation(extent.toMetaRow());
+        TabletsSection.ServerColumnFamily.OPID_COLUMN.put(m, new Value(opid.canonical()));
+        writer.addMutation(m);
+      }
+
+      c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
+
+      Wait.waitFor(() -> countTabletsWithLocation(c, tableId) >= 3);
+
+      // there are four tablets, but one has an operation id set and should not be assigned
+      assertEquals(3, countTabletsWithLocation(c, tableId));
+
+      try (var writer = c.createBatchWriter(MetadataTable.NAME)) {
+        var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
+        Mutation m = new Mutation(extent.toMetaRow());
+        TabletsSection.ServerColumnFamily.OPID_COLUMN.putDelete(m);
+        writer.addMutation(m);
+      }
+
+      Wait.waitFor(() -> countTabletsWithLocation(c, tableId) >= 4);
+
+      // after the operation id is deleted the tablet should be assigned
+      assertEquals(4, countTabletsWithLocation(c, tableId));
+    }
+  }
+
   public static void loadDataForScan(AccumuloClient c, String tableName)
       throws MutationsRejectedException, TableNotFoundException {
     final byte[] empty = new byte[0];
@@ -371,6 +421,15 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
         }
       });
     }
+  }
+
+  public static Ample getAmple(AccumuloClient c) {
+    return ((ClientContext) c).getAmple();
+  }
+
+  public static long countTabletsWithLocation(AccumuloClient c, TableId tableId) {
+    return getAmple(c).readTablets().forTable(tableId).fetch(TabletMetadata.ColumnType.LOCATION)
+        .build().stream().filter(tabletMetadata -> tabletMetadata.getLocation() != null).count();
   }
 
   public static List<TabletStats> getTabletStats(AccumuloClient c, String tableId)
