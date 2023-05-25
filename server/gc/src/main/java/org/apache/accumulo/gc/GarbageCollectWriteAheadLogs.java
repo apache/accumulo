@@ -78,7 +78,7 @@ public class GarbageCollectWriteAheadLogs {
    *
    * @param context the collection server's context
    * @param fs volume manager to use
-   * @param useTrash true to move files to trash rather than delete them
+   * @param janitor FileJanitor instance
    */
   GarbageCollectWriteAheadLogs(final ServerContext context, final VolumeManager fs,
       final LiveTServerSet liveServers, FileJanitor janitor) {
@@ -98,7 +98,7 @@ public class GarbageCollectWriteAheadLogs {
    *
    * @param context the collection server's context
    * @param fs volume manager to use
-   * @param useTrash true to move files to trash rather than delete them
+   * @param janitor FileJanitor instance
    * @param liveTServerSet a started LiveTServerSet instance
    */
   @VisibleForTesting

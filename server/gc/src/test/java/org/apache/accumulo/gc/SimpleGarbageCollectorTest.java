@@ -65,7 +65,7 @@ public class SimpleGarbageCollectorTest {
   protected Credentials credentials;
   protected SimpleGarbageCollector gc;
   protected ConfigurationCopy systemConfig;
-  protected static SiteConfiguration siteConfig = SiteConfiguration.empty().build();
+  protected static final SiteConfiguration siteConfig = SiteConfiguration.empty().build();
 
   @BeforeEach
   public void setUp() {
