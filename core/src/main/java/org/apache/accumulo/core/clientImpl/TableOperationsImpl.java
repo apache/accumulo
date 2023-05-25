@@ -522,8 +522,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         var tablet = tabLocator.findTablet(context, split, false, LocationNeed.NOT_REQUIRED);
         if (tablet == null) {
           context.requireTableExists(tableId, tableName);
-          // TODO sleep... what else could cause this?
-          continue;
+          throw new IllegalStateException("Unable to find a tablet for split " + split
+              + " int table " + tableName + " " + tableId);
         }
 
         if (split.equals(tablet.getExtent().endRow())) {
