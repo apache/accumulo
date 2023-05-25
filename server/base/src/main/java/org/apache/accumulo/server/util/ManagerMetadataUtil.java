@@ -64,6 +64,8 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class ManagerMetadataUtil {
 
   private static final Logger log = LoggerFactory.getLogger(ManagerMetadataUtil.class);
@@ -72,6 +74,10 @@ public class ManagerMetadataUtil {
       TServerInstance tServerInstance, Map<StoredTabletFile,DataFileValue> datafileSizes,
       Map<Long,? extends Collection<TabletFile>> bulkLoadedFiles, MetadataTime time,
       long lastFlushID, long lastCompactID, ServiceLock zooLock) {
+
+    // ELASTICITY_TODO intentionally not using conditional mutations for this code because its only
+    // called when tablets split. Tablet splitting will drastically change, so there is no need to
+    // update this to use conditional mutations ATM.
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putPrevEndRow(extent.prevEndRow());
@@ -200,7 +206,7 @@ public class ManagerMetadataUtil {
     scanFiles.forEach(tablet::putScan);
 
     if (path.isPresent()) {
-      tablet.putFile(path.get(), size);
+      tablet.putFile(path.orElseThrow(), size);
     }
 
     if (compactionId != null) {
@@ -210,7 +216,7 @@ public class ManagerMetadataUtil {
     updateLastForCompactionMode(context, tablet, lastLocation, address, zooLock);
 
     if (ecid.isPresent()) {
-      tablet.deleteExternalCompaction(ecid.get());
+      tablet.deleteExternalCompaction(ecid.orElseThrow());
     }
 
     tablet.putZooLock(zooLock);
@@ -253,18 +259,18 @@ public class ManagerMetadataUtil {
    * last location if needed and set the new last location
    *
    * @param context The server context
-   * @param ample The metadata persistence layer
    * @param tabletMutator The mutator being built
-   * @param extent The tablet extent
    * @param location The new location
+   * @param lastLocation The previous last location, which may be null
    */
-  public static void updateLastForAssignmentMode(ClientContext context, Ample ample,
-      Ample.TabletMutator tabletMutator, KeyExtent extent, TServerInstance location) {
+  public static void updateLastForAssignmentMode(ClientContext context,
+      Ample.TabletUpdates<?> tabletMutator, TServerInstance location, Location lastLocation) {
+    Preconditions.checkArgument(
+        lastLocation == null || lastLocation.getType() == TabletMetadata.LocationType.LAST);
+
     // if the location mode is assignment, then preserve the current location in the last
     // location value
     if ("assignment".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-      TabletMetadata lastMetadata = ample.readTablet(extent, TabletMetadata.ColumnType.LAST);
-      Location lastLocation = (lastMetadata == null ? null : lastMetadata.getLast());
       ManagerMetadataUtil.updateLocation(tabletMutator, lastLocation, Location.last(location));
     }
   }
@@ -296,8 +302,9 @@ public class ManagerMetadataUtil {
    * @param previousLocation The location (may be null)
    * @param newLocation The new location
    */
-  private static void updateLocation(TabletMutator tabletMutator, Location previousLocation,
-      Location newLocation) {
+  private static void updateLocation(Ample.TabletUpdates<?> tabletMutator,
+      Location previousLocation, Location newLocation) {
+    // ELASTICITY_TODO pending #3301, update this code to use conditional mutations
     if (previousLocation != null) {
       if (!previousLocation.equals(newLocation)) {
         tabletMutator.deleteLocation(previousLocation);

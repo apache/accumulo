@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -31,13 +32,12 @@ import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.metadata.schema.TabletOperation;
+import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.iterators.LocationExistsIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
@@ -55,14 +55,21 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   private final Consumer<ConditionalMutation> mutationConsumer;
   private final Ample.ConditionalTabletsMutator parent;
 
+  private final BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer;
+
+  private final KeyExtent extent;
+
   private boolean sawOperationRequirement = false;
 
   protected ConditionalTabletMutatorImpl(Ample.ConditionalTabletsMutator parent,
-      ServerContext context, KeyExtent extent, Consumer<ConditionalMutation> mutationConsumer) {
+      ServerContext context, KeyExtent extent, Consumer<ConditionalMutation> mutationConsumer,
+      BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer) {
     super(context, new ConditionalMutation(extent.toMetaRow()));
     this.mutation = (ConditionalMutation) super.mutation;
     this.mutationConsumer = mutationConsumer;
     this.parent = parent;
+    this.rejectionHandlerConsumer = rejectionHandlerConsumer;
+    this.extent = extent;
   }
 
   @Override
@@ -133,22 +140,21 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
-  public Ample.ConditionalTabletMutator requireOperation(TabletOperation operation,
-      TabletOperationId opid) {
+  public Ample.ConditionalTabletMutator requireOperation(TabletOperationId opid) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition c = new Condition(OPID_COLUMN.getColumnFamily(), OPID_COLUMN.getColumnQualifier())
-        .setValue(operation.name() + ":" + opid.canonical());
+        .setValue(opid.canonical());
     mutation.addCondition(c);
     sawOperationRequirement = true;
     return this;
   }
 
   @Override
-  public Ample.ConditionalTabletsMutator submit() {
+  public void submit(Ample.RejectionHandler rejectionCheck) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Preconditions.checkState(sawOperationRequirement, "No operation requirements were seen");
     getMutation();
     mutationConsumer.accept(mutation);
-    return parent;
+    rejectionHandlerConsumer.accept(extent, rejectionCheck);
   }
 }

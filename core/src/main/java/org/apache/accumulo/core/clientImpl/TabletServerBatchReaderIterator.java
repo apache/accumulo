@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
@@ -45,6 +47,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableDeletedException;
@@ -79,6 +82,7 @@ import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -159,17 +163,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           log.warn("Failed to add Batch Scan result", e);
         }
         fatalException = e;
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
 
       }
     };
 
     try {
       lookup(ranges, rr);
-    } catch (RuntimeException re) {
-      throw re;
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to create iterator", e);
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
+        | InvalidTabletHostingRequestException e) {
+      throw new IllegalStateException("Failed to create iterator", e);
     }
   }
 
@@ -195,7 +198,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           if (fatalException instanceof RuntimeException) {
             throw (RuntimeException) fatalException;
           } else {
-            throw new RuntimeException(fatalException);
+            throw new IllegalStateException(fatalException);
           }
         }
 
@@ -206,13 +209,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               + " so that it can be closed when this Iterator is exhausted. Not"
               + " retaining a reference to the BatchScanner guarantees that you are"
               + " leaking threads in your client JVM.", shortMsg);
-          throw new RuntimeException(shortMsg + " Ensure proper handling of the BatchScanner.");
+          throw new IllegalStateException(
+              shortMsg + " Ensure proper handling of the BatchScanner.");
         }
 
         batchIterator = batch.iterator();
         return batch != LAST_BATCH;
       } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
   }
@@ -235,7 +239,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private synchronized void lookup(List<Range> ranges, ResultReceiver receiver)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
     List<Column> columns = new ArrayList<>(options.fetchedColumns);
     ranges = Range.mergeOverlapping(ranges);
 
@@ -247,10 +252,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private ScanServerData binRanges(ClientTabletCache clientTabletCache, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
 
     int lastFailureSize = Integer.MAX_VALUE;
+
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
+        .incrementBy(100, MILLISECONDS).maxWait(10, SECONDS).backOffFactor(1.07)
+        .logInterval(1, MINUTES).createFactory().createRetry();
 
     ScanServerData ssd;
 
@@ -276,12 +285,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         break;
       } else {
         // tried to only do table state checks when failures.size() == ranges.size(), however this
-        // did
-        // not work because nothing ever invalidated entries in the tabletLocator cache... so even
-        // though
-        // the table was deleted the tablet locator entries for the deleted table were not
-        // cleared... so
-        // need to always do the check when failures occur
+        // did not work because nothing ever invalidated entries in the tabletLocator cache... so
+        // even though the table was deleted the tablet locator entries for the deleted table
+        // were not cleared. So need to always do the check when failures occur
         if (failures.size() >= lastFailureSize) {
           context.requireNotDeleted(tableId);
           context.requireNotOffline(tableId, tableName);
@@ -289,8 +295,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         lastFailureSize = failures.size();
 
         if (log.isTraceEnabled()) {
-          log.trace("Failed to bin {} ranges, tablet locations were null, retrying in 100ms",
-              failures.size());
+          log.trace(
+              "Failed to bin {} ranges for table {}, tablet locations were null, retrying in 100ms",
+              failures.size(), tableId);
         }
 
         if (System.currentTimeMillis() - startTime > retryTimeout) {
@@ -300,10 +307,11 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
 
         try {
-          Thread.sleep(100);
+          retry.waitForNextAttempt(log, "binRanges retry failures");
         } catch (InterruptedException e) {
-          throw new RuntimeException(e);
+          throw new IllegalStateException(e);
         }
+
       }
 
     }
@@ -331,8 +339,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private void processFailures(Map<KeyExtent,List<Range>> failures, ResultReceiver receiver,
-      List<Column> columns, Duration scanServerSelectorDelay)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      List<Column> columns, Duration scanServerSelectorDelay) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
     if (log.isTraceEnabled()) {
       log.trace("Failed to execute multiscans against {} tablets, retrying...", failures.size());
     }
@@ -475,7 +483,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             // there were some failures
             try {
               processFailures(failures, receiver, columns, scanServerSelectorDelay);
-            } catch (TableNotFoundException | AccumuloException e) {
+            } catch (InvalidTabletHostingRequestException | TableNotFoundException
+                | AccumuloException e) {
               log.debug("{}", e.getMessage(), e);
               fatalException = e;
             } catch (AccumuloSecurityException e) {
@@ -643,7 +652,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private ScanServerData binRangesForScanServers(ClientTabletCache clientTabletCache,
       List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, long startTime)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
+      InvalidTabletHostingRequestException {
 
     ScanServerSelector ecsm = context.getScanServerSelector();
 
@@ -654,7 +664,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     List<Range> failures = clientTabletCache.findTablets(context, ranges, (cachedTablet, range) -> {
       if (cachedTablet.getTserverLocation().isPresent()) {
-        extentToTserverMap.put(cachedTablet.getExtent(), cachedTablet.getTserverLocation().get());
+        extentToTserverMap.put(cachedTablet.getExtent(),
+            cachedTablet.getTserverLocation().orElseThrow());
       }
       extentToRangesMap.computeIfAbsent(cachedTablet.getExtent(), k -> new ArrayList<>())
           .add(range);

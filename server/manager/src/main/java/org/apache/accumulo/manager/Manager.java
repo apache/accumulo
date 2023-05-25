@@ -86,20 +86,20 @@ import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
-import org.apache.accumulo.core.master.thrift.TableInfo;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
@@ -117,6 +117,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.compaction.CompactionCoordinator;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
+import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.upgrade.PreUpgradeValidation;
@@ -134,6 +135,7 @@ import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MergeState;
 import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
+import org.apache.accumulo.server.manager.state.UnassignedTablet;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -220,6 +222,7 @@ public class Manager extends AbstractServer
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
   volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
+  // ELASTICITY_TODO is this still needed?
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
@@ -248,7 +251,7 @@ public class Manager extends AbstractServer
    *
    * @return the Fate object, only after the fate components are running and ready
    */
-  Fate<Manager> fate() {
+  public Fate<Manager> fate() {
     try {
       // block up to 30 seconds until it's ready; if it's still not ready, introduce some logging
       if (!fateReadyLatch.await(30, SECONDS)) {
@@ -572,6 +575,52 @@ public class Manager extends AbstractServer
     }
   }
 
+  // ELASTICITY_TODO the following should probably be a cache w/ timeout so that things that are
+  // never removed will age off. Unsure about the approach, so want to hold on off on doing more
+  // work. It was a quick hack added so that splits could get the manager to unassign tablets.
+  private final Map<KeyExtent,Set<Long>> unassignmentRequest =
+      Collections.synchronizedMap(new HashMap<>());
+
+  @Override
+  public Set<KeyExtent> getUnassignmentRequest() {
+    synchronized (unassignmentRequest) {
+      return Set.copyOf(unassignmentRequest.keySet());
+    }
+  }
+
+  public void requestUnassignment(KeyExtent tablet, long fateTxId) {
+    unassignmentRequest.compute(tablet, (k, v) -> {
+      Set<Long> txids = v == null ? new HashSet<>() : v;
+      txids.add(fateTxId);
+      return txids;
+    });
+
+    nextEvent.event("Unassignment requested %s", tablet);
+  }
+
+  public void cancelUnassignmentRequest(KeyExtent tablet, long fateTxid) {
+    unassignmentRequest.computeIfPresent(tablet, (k, v) -> {
+      v.remove(fateTxid);
+      if (v.isEmpty()) {
+        return null;
+      }
+
+      return v;
+    });
+
+    nextEvent.event("Unassignment request canceled %s", tablet);
+  }
+
+  public boolean isUnassignmentRequested(KeyExtent extent) {
+    return unassignmentRequest.containsKey(extent);
+  }
+
+  private Splitter splitter;
+
+  public Splitter getSplitter() {
+    return splitter;
+  }
+
   enum TabletGoalState {
     HOSTED(TUnloadTabletGoal.UNKNOWN),
     UNASSIGNED(TUnloadTabletGoal.UNASSIGNED),
@@ -590,19 +639,19 @@ public class Manager extends AbstractServer
     }
   }
 
-  TabletGoalState getSystemGoalState(TabletLocationState tls) {
+  TabletGoalState getSystemGoalState(TabletMetadata tm) {
     switch (getManagerState()) {
       case NORMAL:
         return TabletGoalState.HOSTED;
       case HAVE_LOCK: // fall-through intended
       case INITIAL: // fall-through intended
       case SAFE_MODE:
-        if (tls.extent.isMeta()) {
+        if (tm.getExtent().isMeta()) {
           return TabletGoalState.HOSTED;
         }
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_METADATA_TABLETS:
-        if (tls.extent.isRootTablet()) {
+        if (tm.getExtent().isRootTablet()) {
           return TabletGoalState.HOSTED;
         }
         return TabletGoalState.UNASSIGNED;
@@ -615,8 +664,8 @@ public class Manager extends AbstractServer
     }
   }
 
-  TabletGoalState getTableGoalState(TabletLocationState tls) {
-    TableState tableState = getContext().getTableManager().getTableState(tls.extent.tableId());
+  TabletGoalState getTableGoalState(TabletMetadata tm) {
+    TableState tableState = getContext().getTableManager().getTableState(tm.getTableId());
     if (tableState == null) {
       return TabletGoalState.DELETED;
     }
@@ -627,27 +676,29 @@ public class Manager extends AbstractServer
       case NEW:
         return TabletGoalState.UNASSIGNED;
       default:
-        switch (tls.goal) {
+        switch (tm.getHostingGoal()) {
           case ALWAYS:
             return TabletGoalState.HOSTED;
           case NEVER:
             return TabletGoalState.UNASSIGNED;
           case ONDEMAND:
-            if (tls.onDemandHostingRequested) {
+            if (tm.getHostingRequested()) {
               return TabletGoalState.HOSTED;
             } else {
               return TabletGoalState.UNASSIGNED;
             }
           default:
-            throw new IllegalStateException("Tablet Hosting Goal is unhandled: " + tls.goal);
+            throw new IllegalStateException(
+                "Tablet Hosting Goal is unhandled: " + tm.getHostingGoal());
         }
     }
   }
 
-  TabletGoalState getGoalState(TabletLocationState tls, MergeInfo mergeInfo) {
-    KeyExtent extent = tls.extent;
+  TabletGoalState getGoalState(TabletMetadata tm, MergeInfo mergeInfo) {
+    KeyExtent extent = tm.getExtent();
     // Shutting down?
-    TabletGoalState state = getSystemGoalState(tls);
+    TabletGoalState state = getSystemGoalState(tm);
+
     if (state == TabletGoalState.HOSTED) {
       if (!upgradeCoordinator.getStatus().isParentLevelUpgraded(extent)) {
         // The place where this tablet stores its metadata was not upgraded, so do not assign this
@@ -655,7 +706,15 @@ public class Manager extends AbstractServer
         return TabletGoalState.UNASSIGNED;
       }
 
-      if (tls.current != null && serversToShutdown.contains(tls.current.getServerInstance())) {
+      if (unassignmentRequest.containsKey(extent)) {
+        return TabletGoalState.UNASSIGNED;
+      }
+
+      if (tm.getOperationId() != null) {
+        return TabletGoalState.UNASSIGNED;
+      }
+
+      if (tm.hasCurrent() && serversToShutdown.contains(tm.getLocation().getServerInstance())) {
         return TabletGoalState.SUSPENDED;
       }
       // Handle merge transitions
@@ -673,11 +732,11 @@ public class Manager extends AbstractServer
             case SPLITTING:
               return TabletGoalState.HOSTED;
             case WAITING_FOR_CHOPPED:
-              if (tls.getState(tserverSet.getCurrentServers()).equals(TabletState.HOSTED)) {
-                if (tls.chopped) {
+              if (tm.getTabletState(tserverSet.getCurrentServers()).equals(TabletState.HOSTED)) {
+                if (tm.hasChopped()) {
                   return TabletGoalState.UNASSIGNED;
                 }
-              } else if (tls.chopped && tls.walogs.isEmpty()) {
+              } else if (tm.hasChopped() && tm.getLogs().isEmpty()) {
                 return TabletGoalState.UNASSIGNED;
               }
 
@@ -692,11 +751,11 @@ public class Manager extends AbstractServer
       }
 
       // taking table offline?
-      state = getTableGoalState(tls);
+      state = getTableGoalState(tm);
       if (state == TabletGoalState.HOSTED) {
         // Maybe this tablet needs to be migrated
         TServerInstance dest = migrations.get(extent);
-        if (dest != null && tls.current != null && !dest.equals(tls.current.getServerInstance())) {
+        if (dest != null && tm.hasCurrent() && !dest.equals(tm.getLocation().getServerInstance())) {
           return TabletGoalState.UNASSIGNED;
         }
       }
@@ -1131,7 +1190,8 @@ public class Manager extends AbstractServer
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
           sa.getAddress());
-      ManagerMetrics.init(getConfiguration(), this);
+      ManagerMetrics mm = new ManagerMetrics(getConfiguration(), this);
+      MetricsUtil.initializeProducers(this, mm);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
         | SecurityException e1) {
@@ -1288,12 +1348,12 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Exception updating manager lock", e);
     }
 
+    this.splitter = new Splitter(context, DataLevel.USER, this);
+    this.splitter.start();
+
     while (!clientService.isServing()) {
       sleepUninterruptibly(100, MILLISECONDS);
     }
-
-    // checking stored user hashes if any of them uses an outdated algorithm
-    security.validateStoredUserCreditentials();
 
     // The manager is fully initialized. Clients are allowed to connect now.
     managerInitialized.set(true);
@@ -1303,6 +1363,8 @@ public class Manager extends AbstractServer
     }
     log.info("Shutting down fate.");
     fate().shutdown();
+
+    splitter.stop();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     try {
@@ -1806,9 +1868,11 @@ public class Manager extends AbstractServer
   }
 
   void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,
-      Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignedOut) {
-    AssignmentParamsImpl params =
-        AssignmentParamsImpl.fromThrift(currentStatus, unassigned, assignedOut);
+      Map<KeyExtent,UnassignedTablet> unassigned, Map<KeyExtent,TServerInstance> assignedOut) {
+    AssignmentParamsImpl params = AssignmentParamsImpl.fromThrift(currentStatus,
+        unassigned.entrySet().stream().collect(HashMap::new,
+            (m, e) -> m.put(e.getKey(), e.getValue().getServerInstance()), Map::putAll),
+        assignedOut);
     tabletBalancer.getAssignments(params);
   }
 

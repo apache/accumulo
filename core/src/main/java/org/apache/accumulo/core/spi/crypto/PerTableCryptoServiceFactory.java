@@ -57,7 +57,7 @@ public class PerTableCryptoServiceFactory implements CryptoServiceFactory {
         log.debug("No tableId present in crypto env: " + environment);
         return NoCryptoServiceFactory.NONE;
       }
-      TableId tableId = environment.getTableId().get();
+      TableId tableId = environment.getTableId().orElseThrow();
       if (props == null || props.isEmpty() || props.get(TABLE_SERVICE_NAME_PROP) == null) {
         return NoCryptoServiceFactory.NONE;
       }

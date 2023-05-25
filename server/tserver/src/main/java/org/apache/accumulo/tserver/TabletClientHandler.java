@@ -49,7 +49,6 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
-import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.clientImpl.TabletType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -62,7 +61,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TCMResult;
 import org.apache.accumulo.core.dataImpl.thrift.TCMStatus;
 import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
@@ -78,8 +76,8 @@ import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedExcepti
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.BulkImportState;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFile;
@@ -93,10 +91,10 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.Gatherer.FileSystemResolver;
 import org.apache.accumulo.core.summary.SummaryCollection;
-import org.apache.accumulo.core.tablet.thrift.THostingGoal;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletingest.thrift.TDurability;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
@@ -172,57 +170,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     log.debug("{} created", TabletClientHandler.class.getName());
   }
 
-  @Override
-  public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, final long tid,
-      final Map<TKeyExtent,Map<String,MapFileInfo>> files, final boolean setTime)
-      throws ThriftSecurityException {
-
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    try {
-      return watcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
-        List<TKeyExtent> failures = new ArrayList<>();
-
-        for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
-          TKeyExtent tke = entry.getKey();
-          Map<String,MapFileInfo> fileMap = entry.getValue();
-          Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
-          for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
-            Path path = new Path(mapping.getKey());
-            FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
-            path = ns.makeQualified(path);
-            fileRefMap.put(new TabletFile(path), mapping.getValue());
-          }
-
-          Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));
-
-          if (importTablet == null) {
-            failures.add(tke);
-          } else {
-            try {
-              importTablet.importMapFiles(tid, fileRefMap, setTime);
-            } catch (IOException ioe) {
-              log.info("files {} not imported to {}: {}", fileMap.keySet(),
-                  KeyExtent.fromThrift(tke), ioe.getMessage());
-              failures.add(tke);
-            }
-          }
-        }
-        return failures;
-      });
-    } catch (RuntimeException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
+  // ELASTICITY_TODO remove this and all the code it calls in Tablet and the thrift methods
   @Override
   public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
-      Map<TKeyExtent,Map<String,MapFileInfo>> tabletImports, boolean setTime)
+      Map<TKeyExtent,Map<String,DataFileInfo>> tabletImports, boolean setTime)
       throws ThriftSecurityException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -231,9 +182,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
       tabletImports.forEach((tke, fileMap) -> {
-        Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>();
+        Map<TabletFile,DataFileInfo> newFileMap = new HashMap<>();
 
-        for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
+        for (Entry<String,DataFileInfo> mapping : fileMap.entrySet()) {
           Path path = new Path(dir, mapping.getKey());
           FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
           path = ns.makeQualified(path);
@@ -247,7 +198,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         if (importTablet != null) {
           try {
             server.updateBulkImportState(files, BulkImportState.PROCESSING);
-            importTablet.importMapFiles(tid, newFileMap, setTime);
+            importTablet.importDataFiles(tid, newFileMap, setTime);
           } catch (IOException ioe) {
             log.debug("files {} not imported to {}: {}", fileMap.keySet(),
                 KeyExtent.fromThrift(tke), ioe.getMessage());
@@ -1425,6 +1376,94 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
+  public List<TKeyExtent> refreshTablets(TInfo tinfo, TCredentials credentials,
+      List<TKeyExtent> extents) throws TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    // get a snapshot of the current online tablets, may miss some that are loading but will only
+    // handle that more expensive case if needed.
+    var tabletsSnapshot = server.getOnlineTablets();
+
+    Set<KeyExtent> notFound = new HashSet<>();
+
+    for (var tExtent : extents) {
+      var extent = KeyExtent.fromThrift(tExtent);
+
+      var tablet = tabletsSnapshot.get(extent);
+      if (tablet != null) {
+        // ELASTICITY_TODO use a batch reader to read all tablets metadata at once instead of one by
+        // one. This may be a bit tricky from a synchronization perspective (with multiple tablets
+        // and multiple concurrent refresh request), so defer doing this until after removing
+        // functionality from the tablet. No need to make the change now and have to change it
+        // later.
+        tablet.refresh();
+      } else {
+        notFound.add(extent);
+      }
+    }
+
+    if (!notFound.isEmpty()) {
+      // Some tablets were not found, lets see if they are loading or moved to online while doing
+      // the refreshes above.
+      List<TKeyExtent> unableToRefresh = new ArrayList<>();
+      List<Tablet> foundTablets = new ArrayList<>();
+
+      synchronized (server.unopenedTablets) {
+        synchronized (server.openingTablets) {
+          synchronized (server.onlineTablets) {
+            // Get the snapshot again, however this time nothing will be changing while we iterate
+            // over the snapshot because all three locks are held.
+            tabletsSnapshot = server.getOnlineTablets();
+            for (var extent : notFound) {
+              // TODO investigate if its safe to ignore tablets in the unopened set because they
+              // have not yet read any metadata
+              if (server.unopenedTablets.contains(extent)
+                  || server.openingTablets.contains(extent)) {
+                // Can not refresh these tablets that are in the process of loading, but they may
+                // still need refreshing because we don't know when they read their metadata
+                // relative to the refresh event.
+                unableToRefresh.add(extent.toThrift());
+              } else {
+                var tablet = tabletsSnapshot.get(extent);
+                if (tablet != null) {
+                  // Intentionally not calling refresh on the tablet while holding these locks.
+                  foundTablets.add(tablet);
+                }
+              }
+            }
+
+            // If a tablet is not in any of the three sets then that is ok, it either means the
+            // tablet has not begun to load at all yet in which case it will see the metadata when
+            // it does load later OR it means the tablet has already completely unloaded. There is
+            // nothing to report back for either case.
+          }
+        }
+      }
+
+      for (var tablet : foundTablets) {
+        tablet.refresh();
+      }
+
+      if (log.isDebugEnabled()) {
+        for (var extent : unableToRefresh) {
+          // these tablet could hold up bulk import, lets logs the specific tablet in case it stays
+          // like this
+          log.debug("Unable to refresh tablet that is currently loading : {}",
+              KeyExtent.fromThrift(extent));
+        }
+      }
+
+      return unableToRefresh;
+    }
+
+    // no problematic extents to report
+    return List.of();
+  }
+
+  @Override
   public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
     String log = server.logger.getLogFile();
     // Might be null if there no active logger
@@ -1562,23 +1601,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       return tsums;
     } catch (TimeoutException e) {
       return handleTimeout(sessionId);
-    }
-  }
-
-  @Override
-  public void setTabletHostingGoal(TInfo tinfo, TCredentials credentials, String tableId,
-      List<TKeyExtent> extents, THostingGoal goal) throws ThriftSecurityException, TException {
-    final TableId tid = TableId.of(tableId);
-    NamespaceId namespaceId = getNamespaceId(credentials, tid);
-    if (!security.canAlterTable(credentials, tid, namespaceId)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-    final TabletHostingGoal g = TabletHostingGoalUtil.fromThrift(goal);
-    log.info("Tablet hosting goal {} requested for: {} ", g, extents);
-    try (TabletsMutator mutator = this.context.getAmple().mutateTablets()) {
-      extents
-          .forEach(e -> mutator.mutateTablet(KeyExtent.fromThrift(e)).setHostingGoal(g).mutate());
     }
   }
 

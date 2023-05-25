@@ -115,7 +115,7 @@ public class SecurityOperation {
     if (!authorizor.validSecurityHandlers(authenticator, pm)
         || !authenticator.validSecurityHandlers()
         || !permHandle.validSecurityHandlers(authent, author)) {
-      throw new RuntimeException(authorizor + ", " + authenticator + ", and " + pm
+      throw new IllegalStateException(authorizor + ", " + authenticator + ", and " + pm
           + " do not play nice with each other. Please choose authentication and"
           + " authorization mechanisms that are compatible with one another.");
     }
@@ -138,7 +138,7 @@ public class SecurityOperation {
           TablePermission.ALTER_TABLE);
     } catch (TableNotFoundException e) {
       // Shouldn't happen
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -951,12 +951,5 @@ public class SecurityOperation {
     authenticate(credentials);
     return hasTablePermission(credentials, tableId, namespaceId, TablePermission.GET_SUMMARIES,
         false);
-  }
-
-  public boolean validateStoredUserCreditentials() {
-    if (authenticator instanceof ZKAuthenticator) {
-      return !((ZKAuthenticator) authenticator).hasOutdatedHashes();
-    }
-    return true;
   }
 }

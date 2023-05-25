@@ -23,7 +23,6 @@ include "data.thrift"
 include "security.thrift"
 include "client.thrift"
 include "manager.thrift"
-include "master.thrift"
 include "tabletserver.thrift"
 
 exception ConstraintViolationException {
@@ -36,6 +35,10 @@ enum TDurability {
   FLUSH = 2
   LOG = 3
   NONE = 4
+}
+
+struct DataFileInfo {
+  1:i64 estimatedSize
 }
 
 service TabletIngestClientService {
@@ -106,23 +109,12 @@ service TabletIngestClientService {
     2:data.UpdateID sessID
   )
 
-  // on success, returns an empty list
-  list<data.TKeyExtent> bulkImport(
-    3:client.TInfo tinfo
-    1:security.TCredentials credentials
-    4:i64 tid
-    2:data.TabletFiles files
-    5:bool setTime
-  ) throws (
-    1:client.ThriftSecurityException sec
-  )
-
   oneway void loadFiles(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:i64 tid
     4:string dir
-    5:map<data.TKeyExtent, map<string, data.MapFileInfo>> files
+    7:map<data.TKeyExtent, map<string, DataFileInfo>> files
     6:bool setTime
   )
 

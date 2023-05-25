@@ -116,7 +116,7 @@ public class TabletMetadataTest {
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
-        EnumSet.allOf(ColumnType.class), true);
+        EnumSet.allOf(ColumnType.class), true, false);
 
     assertEquals("OK", tm.getCloned());
     assertEquals(5L, tm.getCompactId().getAsLong());
@@ -155,7 +155,7 @@ public class TabletMetadataTest {
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
-        EnumSet.allOf(ColumnType.class), false);
+        EnumSet.allOf(ColumnType.class), false, false);
 
     assertEquals(extent, tm.getExtent());
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
@@ -175,7 +175,11 @@ public class TabletMetadataTest {
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
     assertThrows(IllegalStateException.class, () -> TabletMetadata
-        .convertRow(rowMap.entrySet().iterator(), EnumSet.allOf(ColumnType.class), false));
+        .convertRow(rowMap.entrySet().iterator(), EnumSet.allOf(ColumnType.class), false, false));
+
+    TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
+        EnumSet.allOf(ColumnType.class), false, true);
+    assertTrue(tm.isFutureAndCurrentLocationSet());
   }
 
   @Test
@@ -196,7 +200,8 @@ public class TabletMetadataTest {
         .put(ser1.getHostPort());
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
-    TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
+    TabletMetadata tm =
+        TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false, false);
     TabletState state = tm.getTabletState(tservers);
 
     assertEquals(TabletState.ASSIGNED, state);
@@ -211,7 +216,7 @@ public class TabletMetadataTest {
         .put(ser2.getHostPort());
     rowMap = toRowMap(mutation);
 
-    tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
+    tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false, false);
 
     assertEquals(TabletState.HOSTED, tm.getTabletState(tservers));
     assertEquals(ser2, tm.getLocation().getServerInstance());
@@ -225,7 +230,7 @@ public class TabletMetadataTest {
         .put(deadSer.getHostPort());
     rowMap = toRowMap(mutation);
 
-    tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
+    tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false, false);
 
     assertEquals(TabletState.ASSIGNED_TO_DEAD_SERVER, tm.getTabletState(tservers));
     assertEquals(deadSer, tm.getLocation().getServerInstance());
@@ -237,7 +242,7 @@ public class TabletMetadataTest {
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
     rowMap = toRowMap(mutation);
 
-    tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
+    tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false, false);
 
     assertEquals(TabletState.UNASSIGNED, tm.getTabletState(tservers));
     assertNull(tm.getLocation());
@@ -250,7 +255,7 @@ public class TabletMetadataTest {
         .put(SuspendingTServer.toValue(ser2, 1000L));
     rowMap = toRowMap(mutation);
 
-    tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false);
+    tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false, false);
 
     assertEquals(TabletState.SUSPENDED, tm.getTabletState(tservers));
     assertEquals(1000L, tm.getSuspend().suspensionTime);

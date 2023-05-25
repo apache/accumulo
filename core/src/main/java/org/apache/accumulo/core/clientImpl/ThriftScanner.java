@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
@@ -430,7 +431,7 @@ public class ThriftScanner {
         Optional<String> tserverLoc = loc.getTserverLocation();
 
         if (tserverLoc.isPresent()) {
-          addr = new ScanAddress(loc.getTserverLocation().get(), ServerType.TSERVER, loc);
+          addr = new ScanAddress(loc.getTserverLocation().orElseThrow(), ServerType.TSERVER, loc);
           delay = actions.getDelay();
           scanState.busyTimeout = Duration.ZERO;
           log.trace("For tablet {} scan server selector chose tablet_server: {}", loc.getExtent(),
@@ -457,8 +458,9 @@ public class ThriftScanner {
   }
 
   static ScanAddress getNextScanAddress(ClientContext context, ScanState scanState, long timeOut,
-      long startTime, long maxSleepTime) throws TableNotFoundException, AccumuloSecurityException,
-      AccumuloServerException, InterruptedException, ScanTimedOutException {
+      long startTime, long maxSleepTime)
+      throws TableNotFoundException, AccumuloSecurityException, AccumuloServerException,
+      InterruptedException, ScanTimedOutException, InvalidTabletHostingRequestException {
 
     String lastError = null;
     String error = null;
@@ -511,7 +513,7 @@ public class ThriftScanner {
           } else if (scanState.range.getEndKey() != null
               && dataRange.beforeStartKey(scanState.range.getEndKey())) {
             // should not happen
-            throw new RuntimeException("Unexpected tablet, extent : " + loc.getExtent()
+            throw new IllegalStateException("Unexpected tablet, extent : " + loc.getExtent()
                 + "  range : " + scanState.range + " startRow : " + scanState.startRow);
           }
         }
@@ -543,7 +545,7 @@ public class ThriftScanner {
             hostingNeed = ClientTabletCache.LocationNeed.REQUIRED;
           }
         } else {
-          addr = new ScanAddress(loc.getTserverLocation().get(), ServerType.TSERVER, loc);
+          addr = new ScanAddress(loc.getTserverLocation().orElseThrow(), ServerType.TSERVER, loc);
         }
       }
     }
@@ -719,6 +721,9 @@ public class ThriftScanner {
     } catch (InterruptedException ex) {
       TraceUtil.setException(parent, ex, true);
       throw new AccumuloException(ex);
+    } catch (InvalidTabletHostingRequestException e) {
+      TraceUtil.setException(parent, e, true);
+      throw new AccumuloException(e);
     } finally {
       parent.end();
     }

@@ -61,6 +61,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
@@ -80,15 +81,11 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-/**
- * Tests new bulk import technique. For the old technique see {@link BulkOldIT}
- *
- * @since 2.0
- */
 public class BulkNewIT extends SharedMiniClusterBase {
 
   @Override
@@ -185,6 +182,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
   }
 
   @Test
+  @Disabled("Need to implement set time functionality")
+  // ELASTICITY_TODO
   public void testSetTime() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = "testSetTime_table1";
@@ -595,7 +594,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
     FileSystem fs = getCluster().getFileSystem();
     String filename = file + RFile.EXTENSION;
     try (FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(filename, fs, fs.getConf(), NoCryptoServiceFactory.NONE)
+        .forFile(UnreferencedTabletFile.of(fs, new Path(filename)), fs, fs.getConf(),
+            NoCryptoServiceFactory.NONE)
         .withTableConfiguration(aconf).build()) {
       writer.startDefaultLocalityGroup();
       for (int i = s; i <= e; i++) {

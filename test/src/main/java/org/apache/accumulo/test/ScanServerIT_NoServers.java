@@ -21,9 +21,12 @@ package org.apache.accumulo.test;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.test.ScanServerIT.createTableAndIngest;
 import static org.apache.accumulo.test.ScanServerIT.ingest;
+import static org.apache.accumulo.test.ScanServerIT.setupTableWithHostingMix;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -34,7 +37,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
-import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
@@ -69,6 +71,10 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
       // Configure the scan server to only have 1 scan executor thread. This means
       // that the scan server will run scans serially, not concurrently.
       cfg.setProperty(Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS, "1");
+
+      cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "5");
+      cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL, "10");
+      cfg.setProperty("table.custom.ondemand.unloader.inactivity.threshold.seconds", "15");
     }
   }
 
@@ -128,24 +134,6 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testScanOfflineTable() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0];
-
-      createTableAndIngest(client, tableName, null, 10, 10, "colf");
-      client.tableOperations().offline(tableName, true);
-
-      assertThrows(TableOfflineException.class, () -> {
-        try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-          scanner.setRange(new Range());
-          scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-          assertEquals(100, Iterables.size(scanner));
-        } // when the scanner is closed, all open sessions should be closed
-      });
-    }
-  }
-
-  @Test
   public void testScanWithNoTserverFallback() throws Exception {
 
     var clientProps = new Properties();
@@ -200,4 +188,60 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
       });
     }
   }
+
+  @Test
+  public void testScanWithTabletHostingMix() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+
+      setupTableWithHostingMix(client, tableName);
+
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new Range());
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        // Throws an exception because no scan servers and falls back to tablet server with tablets
+        // with the NEVER hosting goal
+        assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+        // Throws an exception because of the tablets with the NEVER hosting goal
+        scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
+        assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+
+        // Test that hosted ranges work
+        scanner.setRange(new Range(null, "row_0000000003"));
+        assertEquals(40, Iterables.size(scanner));
+
+        scanner.setRange(new Range("row_0000000008", null));
+        assertEquals(20, Iterables.size(scanner));
+
+      } // when the scanner is closed, all open sessions should be closed
+    }
+  }
+
+  @Test
+  public void testBatchScanWithTabletHostingMix() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      final String tableName = getUniqueNames(1)[0];
+
+      setupTableWithHostingMix(client, tableName);
+
+      try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRanges(Collections.singleton(new Range()));
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+        // Throws an exception because no scan servers and falls back to tablet server with tablets
+        // with the NEVER hosting goal
+        assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+        // Throws an exception because of the tablets with the NEVER hosting goal
+        scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
+        assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+
+        // Test that hosted ranges work
+        Collection<Range> ranges = new ArrayList<>();
+        ranges.add(new Range(null, "row_0000000003"));
+        ranges.add(new Range("row_0000000008", null));
+        scanner.setRanges(ranges);
+        assertEquals(60, Iterables.size(scanner));
+      } // when the scanner is closed, all open sessions should be closed
+    }
+  }
+
 }

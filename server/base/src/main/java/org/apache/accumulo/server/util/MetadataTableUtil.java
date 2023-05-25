@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -151,10 +152,10 @@ public class MetadataTableUtil {
         return;
       } catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
         logUpdateFailure(m, extent, e);
-      } catch (ConstraintViolationException e) {
+      } catch (InvalidTabletHostingRequestException | ConstraintViolationException e) {
         logUpdateFailure(m, extent, e);
         // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
@@ -406,7 +407,7 @@ public class MetadataTableUtil {
     TabletMetadata tablet = context.getAmple().readTablet(extent, FILES, LOGS, PREV_ROW, DIR);
 
     if (tablet == null) {
-      throw new RuntimeException("Tablet " + extent + " not found in metadata");
+      throw new IllegalStateException("Tablet " + extent + " not found in metadata");
     }
 
     result.addAll(tablet.getLogs());
@@ -478,7 +479,7 @@ public class MetadataTableUtil {
     Iterator<TabletMetadata> ti = createCloneScanner(testTableName, srcTableId, client).iterator();
 
     if (!ti.hasNext()) {
-      throw new RuntimeException(" table deleted during clone?  srcTableId = " + srcTableId);
+      throw new IllegalStateException(" table deleted during clone?  srcTableId = " + srcTableId);
     }
 
     while (ti.hasNext()) {
@@ -504,7 +505,7 @@ public class MetadataTableUtil {
         createCloneScanner(testTableName, tableId, client).iterator();
 
     if (!cloneIter.hasNext() || !srcIter.hasNext()) {
-      throw new RuntimeException(
+      throw new IllegalStateException(
           " table deleted during clone?  srcTableId = " + srcTableId + " tableId=" + tableId);
     }
 

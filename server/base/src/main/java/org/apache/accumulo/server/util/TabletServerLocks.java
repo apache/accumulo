@@ -49,7 +49,7 @@ public class TabletServerLocks {
         Optional<ServiceLockData> lockData = ServiceLock.getLockData(cache, zLockPath, null);
         final String holder;
         if (lockData.isPresent()) {
-          holder = lockData.get().getAddressString(ThriftService.TSERV);
+          holder = lockData.orElseThrow().getAddressString(ThriftService.TSERV);
         } else {
           holder = "<none>";
         }

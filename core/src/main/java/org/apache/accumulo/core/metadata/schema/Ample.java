@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
@@ -37,7 +38,6 @@ import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -186,6 +186,11 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * An entry point for updating tablets metadata using a conditional writer.
+   *
+   * @see ConditionalTabletMutator#submit(RejectionHandler)
+   */
   default ConditionalTabletsMutator conditionallyMutateTablets() {
     throw new UnsupportedOperationException();
   }
@@ -247,11 +252,39 @@ public interface Ample {
     void close();
   }
 
+  public interface ConditionalResult {
+
+    /**
+     * This enum was created instead of using {@link ConditionalWriter.Status} because Ample has
+     * automated handling for most of the statuses of the conditional writer and therefore only a
+     * subset are expected to be passed out of Ample. This enum represents the subset that Ample
+     * will actually return.
+     */
+    enum Status {
+      ACCEPTED, REJECTED
+    }
+
+    /**
+     * Returns the status of the conditional mutation or may return a computed status of ACCEPTED in
+     * some cases, see {@link ConditionalTabletMutator#submit(RejectionHandler)} for details.
+     */
+    Status getStatus();
+
+    KeyExtent getExtent();
+
+    /**
+     * This can only be called when {@link #getStatus()} returns something other than
+     * {@link Status#ACCEPTED}. It reads that tablets metadata for a failed conditional mutation.
+     * This can used used to see why it was rejected.
+     */
+    TabletMetadata readMetadata();
+  }
+
   public interface ConditionalTabletsMutator extends AutoCloseable {
 
     /**
      * @return A fluent interface to conditional mutating a tablet. Ensure you call
-     *         {@link ConditionalTabletMutator#submit()} when finished.
+     *         {@link ConditionalTabletMutator#submit(RejectionHandler)} when finished.
      */
     OperationRequirements mutateTablet(KeyExtent extent);
 
@@ -261,7 +294,7 @@ public interface Ample {
      *
      * @return The result from the {@link ConditionalWriter} of processing each tablet.
      */
-    Map<KeyExtent,ConditionalWriter.Result> process();
+    Map<KeyExtent,ConditionalResult> process();
 
     @Override
     void close();
@@ -315,16 +348,15 @@ public interface Ample {
 
     T deleteExternalCompaction(ExternalCompactionId ecid);
 
-    T setHostingGoal(TabletHostingGoal goal);
+    T putHostingGoal(TabletHostingGoal goal);
 
     T setHostingRequested();
 
     T deleteHostingRequested();
 
-    T putOperation(TabletOperation operation, TabletOperationId opId);
+    T putOperation(TabletOperationId opId);
 
     T deleteOperation();
-
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {
@@ -347,7 +379,9 @@ public interface Ample {
    * A tablet operation is a mutually exclusive action that is running against a tablet. Its very
    * important that every conditional mutation specifies requirements about operations in order to
    * satisfy the mutual exclusion goal. This interface forces those requirements to specified by
-   * making it the only choice avialable before specifying other tablet requirements or mutations.
+   * making it the only choice available before specifying other tablet requirements or mutations.
+   *
+   * @see MetadataSchema.TabletsSection.ServerColumnFamily#OPID_COLUMN
    */
   interface OperationRequirements {
 
@@ -355,8 +389,7 @@ public interface Ample {
      * Require a specific operation with a unique id is present. This would be normally be called by
      * the code executing that operation.
      */
-    ConditionalTabletMutator requireOperation(TabletOperation operation,
-        TabletOperationId operationId);
+    ConditionalTabletMutator requireOperation(TabletOperationId operationId);
 
     /**
      * Require that no mutually exclusive operations are runnnig against this tablet.
@@ -370,6 +403,11 @@ public interface Ample {
      */
     ConditionalTabletMutator requireAbsentTablet();
   }
+
+  /**
+   * Convenience interface for handling conditional mutations with a status of REJECTED.
+   */
+  interface RejectionHandler extends Predicate<TabletMetadata> {}
 
   interface ConditionalTabletMutator extends TabletUpdates<ConditionalTabletMutator> {
 
@@ -399,9 +437,92 @@ public interface Ample {
     ConditionalTabletMutator requirePrevEndRow(Text per);
 
     /**
-     * Submits or queues a conditional mutation for processing.
+     * <p>
+     * Ample provides the following features on top of the conditional writer to help automate
+     * handling of edges cases that arise when using the conditional writer.
+     * <ul>
+     * <li>Automatically resubmit conditional mutations with a status of
+     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#UNKNOWN}.</li>
+     * <li>When a mutation is rejected (status of
+     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#REJECTED}) it will read the
+     * tablets metadata and call the passed rejectionHandler to determine if the mutation should be
+     * considered as accepted.</li>
+     * <li>For status of
+     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#INVISIBLE_VISIBILITY} and
+     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status#VIOLATED} ample will throw an
+     * exception. This is done so that all code does not have to deal with these unexpected
+     * statuses.</li>
+     * </ul>
+     *
+     * <p>
+     * The motivation behind the rejectionHandler is to help sort things out when conditional
+     * mutations are submitted twice and the subsequent submission is rejected even though the first
+     * submission was accepted. There are two causes for this. First when a threads is running in
+     * something like FATE it may submit a mutation and the thread dies before it sees the response.
+     * Later FATE will run the code again for a second time, submitting a second mutation. The
+     * second cause is ample resubmitting on unknown as mentioned above. Below are a few examples
+     * that go over how Ample will handle these different situations.
+     *
+     * <h3>Example 1</h3>
+     *
+     * <ul>
+     * <li>Conditional mutation CM1 with a condition requiring an absent location that sets a future
+     * location is submitted. When its submitted to ample a rejectionHandler is set that checks the
+     * future location.</li>
+     * <li>Inside Ample CM1 is submitted to a conditional writer and returns a status of UNKNOWN,
+     * but it actually succeeded. This could be caused by the mutation succeeding and the tablet
+     * server dying just before it reports back.</li>
+     * <li>Ample sees the UNKNOWN status and resubmits CM1 for a second time. Because the future
+     * location was set, the mutation is returned to ample with a status of rejected by the
+     * conditional writer.</li>
+     * <li>Because the mutation was rejected, ample reads the tablet metadata and calls the
+     * rejectionHandler. The rejectionHandler sees the future location was set and reports that
+     * everything is ok, therefore ample reports the status as ACCEPTED.</li>
+     * </ul>
+     *
+     * <h3>Example 2</h3>
+     *
+     * <ul>
+     * <li>Conditional mutation CM2 with a condition requiring an absent location that sets a future
+     * location is submitted. When its submitted to ample a rejectionHandler is set that checks the
+     * future location.</li>
+     * <li>Inside Ample CM2 is submitted to a conditional writer and returns a status of UNKNOWN,
+     * but it actually never made it to the tserver. This could be caused by the tablet server dying
+     * just after a network connection was established to send the mutation.</li>
+     * <li>Ample sees the UNKNOWN status and resubmits CM2 for a second time. There is no future
+     * location set so the mutation is returned to ample with a status of accepted by the
+     * conditional writer.</li>
+     * <li>Because the mutation was accepted, ample never calls the rejectionHandler and returns it
+     * as accepted.</li>
+     * </ul>
+     *
+     * <h3>Example 3</h3>
+     *
+     * <ul>
+     * <li>Conditional mutation CM3 with a condition requiring an absent operation that sets the
+     * operation id to a fate transaction id is submitted. When it's submitted to ample a
+     * rejectionHandler is set that checks if the operation id equals the fate transaction id.</li>
+     * <li>The thread running the fate operation dies after submitting the mutation but before
+     * seeing it was actually accepted.</li>
+     * <li>Later fate creates an identical mutation to CM3, lets call it CM3.2, and resubmits it
+     * with the same rejection handler.</li>
+     * <li>CM3.2 is rejected because the operation id is not absent.</li>
+     * <li>Because the mutation was rejected, ample calls the rejectionHandler. The rejectionHandler
+     * sees in the tablet metadata that the operation id is its fate transaction id and reports back
+     * true</li>
+     * <li>When rejectionHandler reports true, ample reports the mutation as accepted.</li>
+     * </ul>
+     *
+     * @param rejectionHandler if the conditional mutation comes back with a status of
+     *        {@link org.apache.accumulo.core.client.ConditionalWriter.Status#REJECTED} then read
+     *        the tablets metadata and apply this check to see if it should be considered as
+     *        {@link org.apache.accumulo.core.client.ConditionalWriter.Status#ACCEPTED} in the
+     *        return of {@link ConditionalTabletsMutator#process()}. The rejection handler is only
+     *        called when a tablets metadata exists. If ample reads a tablet's metadata and the
+     *        tablet no longer exists, then ample will not call the rejectionHandler with null. It
+     *        will let the rejected status carry forward in this case.
      */
-    ConditionalTabletsMutator submit();
+    void submit(RejectionHandler rejectionHandler);
   }
 
   /**
@@ -459,15 +580,4 @@ public interface Ample {
   default void removeBulkLoadInProgressFlag(String path) {
     throw new UnsupportedOperationException();
   }
-
-  /**
-   * Remove all the Bulk Load transaction ids from a given table's metadata
-   *
-   * @param tableId Table ID for transaction removals
-   * @param tid Transaction ID to remove
-   */
-  default void removeBulkLoadEntries(TableId tableId, long tid) {
-    throw new UnsupportedOperationException();
-  }
-
 }

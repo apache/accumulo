@@ -40,6 +40,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablets;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
@@ -58,6 +59,7 @@ import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
@@ -136,7 +138,7 @@ public class ClientTabletCacheImplTest {
     for (int i = 0; i < data.length; i += 2) {
       KeyExtent ke = (KeyExtent) data[i];
       String loc = (String) data[i + 1];
-      mcke.put(ke, new CachedTablet(ke, loc, "1"));
+      mcke.put(ke, new CachedTablet(ke, loc, "1", TabletHostingGoal.ONDEMAND));
     }
 
     return mcke;
@@ -177,7 +179,7 @@ public class ClientTabletCacheImplTest {
 
     for (Entry<KeyExtent,CachedTablet> entry : mcke.entrySet()) {
       setLocation(tservers, metaTabLoc, METADATA_TABLE_EXTENT, entry.getKey(),
-          entry.getValue().getTserverLocation().get());
+          entry.getValue().getTserverLocation().orElseThrow());
     }
 
     return tab1TabletCache;
@@ -505,10 +507,11 @@ public class ClientTabletCacheImplTest {
     public CachedTablets lookupTablet(ClientContext context, CachedTablet src, Text row,
         Text stopRow, ClientTabletCache parent) {
 
-      Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.get(src.getTserverLocation().get());
+      Map<KeyExtent,SortedMap<Key,Value>> tablets =
+          tservers.get(src.getTserverLocation().orElseThrow());
 
       if (tablets == null) {
-        parent.invalidateCache(context, src.getTserverLocation().get());
+        parent.invalidateCache(context, src.getTserverLocation().orElseThrow());
         return null;
       }
 
@@ -603,7 +606,8 @@ public class ClientTabletCacheImplTest {
 
     @Override
     protected CachedTablet getRootTabletLocation(ClientContext context) {
-      return new CachedTablet(RootTable.EXTENT, context.getRootTabletLocation(), "1");
+      return new CachedTablet(RootTable.EXTENT, context.getRootTabletLocation(), "1",
+          TabletHostingGoal.ALWAYS);
     }
 
     @Override
@@ -616,7 +620,7 @@ public class ClientTabletCacheImplTest {
         tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
     SortedMap<Key,Value> tabletData = tablets.computeIfAbsent(tablet, k -> new TreeMap<>());
     if (!tabletData.isEmpty()) {
-      throw new RuntimeException("Asked for empty tablet, but non empty tablet exists");
+      throw new IllegalStateException("Asked for empty tablet, but non empty tablet exists");
     }
   }
 
@@ -654,6 +658,10 @@ public class ClientTabletCacheImplTest {
       Key lk = new Key(mr, CurrentLocationColumnFamily.NAME, new Text(instance));
       tabletData.put(lk, new Value(location));
     }
+
+    Key hk = new Key(mr, HostingColumnFamily.GOAL_COLUMN.getColumnFamily(),
+        HostingColumnFamily.GOAL_COLUMN.getColumnQualifier());
+    tabletData.put(hk, TabletHostingGoalUtil.toValue(TabletHostingGoal.ONDEMAND));
 
     Key pk = new Key(mr, TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
         TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier());
@@ -696,7 +704,7 @@ public class ClientTabletCacheImplTest {
         assertTrue(tl.getTserverLocation().isEmpty());
         assertTrue(tl.getTserverSession().isEmpty());
       } else {
-        assertEquals(server, tl.getTserverLocation().get());
+        assertEquals(server, tl.getTserverLocation().orElseThrow());
       }
       assertEquals(expected, tl.getExtent());
     }
@@ -1222,10 +1230,14 @@ public class ClientTabletCacheImplTest {
 
   @Test
   public void testIsContiguous() {
-    CachedTablet e1 = new CachedTablet(createNewKeyExtent("foo", "1", null), "l1", "1");
-    CachedTablet e2 = new CachedTablet(createNewKeyExtent("foo", "2", "1"), "l1", "1");
-    CachedTablet e3 = new CachedTablet(createNewKeyExtent("foo", "3", "2"), "l1", "1");
-    CachedTablet e4 = new CachedTablet(createNewKeyExtent("foo", null, "3"), "l1", "1");
+    CachedTablet e1 = new CachedTablet(createNewKeyExtent("foo", "1", null), "l1", "1",
+        TabletHostingGoal.ONDEMAND);
+    CachedTablet e2 = new CachedTablet(createNewKeyExtent("foo", "2", "1"), "l1", "1",
+        TabletHostingGoal.ONDEMAND);
+    CachedTablet e3 = new CachedTablet(createNewKeyExtent("foo", "3", "2"), "l1", "1",
+        TabletHostingGoal.ONDEMAND);
+    CachedTablet e4 = new CachedTablet(createNewKeyExtent("foo", null, "3"), "l1", "1",
+        TabletHostingGoal.ONDEMAND);
 
     assertTrue(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e3, e4)));
     assertTrue(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e3)));
@@ -1238,18 +1250,21 @@ public class ClientTabletCacheImplTest {
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e4)));
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e3, e4)));
 
-    CachedTablet e5 = new CachedTablet(createNewKeyExtent("foo", null, null), "l1", "1");
+    CachedTablet e5 = new CachedTablet(createNewKeyExtent("foo", null, null), "l1", "1",
+        TabletHostingGoal.ONDEMAND);
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e3, e4, e5)));
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e5, e1, e2, e3, e4)));
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e3, e5)));
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e5, e2, e3, e4)));
     assertTrue(ClientTabletCacheImpl.isContiguous(List.of(e5)));
 
-    CachedTablet e6 = new CachedTablet(createNewKeyExtent("foo", null, "1"), "l1", "1");
+    CachedTablet e6 = new CachedTablet(createNewKeyExtent("foo", null, "1"), "l1", "1",
+        TabletHostingGoal.ONDEMAND);
 
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e3, e6)));
 
-    CachedTablet e7 = new CachedTablet(createNewKeyExtent("foo", "33", "11"), "l1", "1");
+    CachedTablet e7 = new CachedTablet(createNewKeyExtent("foo", "33", "11"), "l1", "1",
+        TabletHostingGoal.ONDEMAND);
 
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e7, e4)));
   }
@@ -1742,9 +1757,9 @@ public class ClientTabletCacheImplTest {
     var failures = metaCache.findTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
         LocationNeed.NOT_REQUIRED);
     assertEquals(List.of(), failures);
-    var tl1 = new CachedTablet(ke1);
-    var tl2 = new CachedTablet(ke2);
-    var tl3 = new CachedTablet(ke3, "L2", "I2");
+    var tl1 = new CachedTablet(ke1, TabletHostingGoal.ONDEMAND);
+    var tl2 = new CachedTablet(ke2, TabletHostingGoal.ONDEMAND);
+    var tl3 = new CachedTablet(ke3, "L2", "I2", TabletHostingGoal.ONDEMAND);
     var expected =
         Set.of(new Pair<>(tl1, r1), new Pair<>(tl1, r2), new Pair<>(tl2, r2), new Pair<>(tl3, r2));
     assertEquals(expected, actual);
@@ -1771,7 +1786,7 @@ public class ClientTabletCacheImplTest {
     failures = metaCache.findTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
         LocationNeed.NOT_REQUIRED);
     assertEquals(List.of(), failures);
-    tl1 = new CachedTablet(ke1, "L3", "I3");
+    tl1 = new CachedTablet(ke1, "L3", "I3", TabletHostingGoal.ONDEMAND);
     expected =
         Set.of(new Pair<>(tl1, r1), new Pair<>(tl1, r2), new Pair<>(tl2, r2), new Pair<>(tl3, r2));
     assertEquals(expected, actual);
@@ -1780,7 +1795,7 @@ public class ClientTabletCacheImplTest {
     failures = metaCache.findTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
         LocationNeed.REQUIRED);
     assertEquals(List.of(), failures);
-    tl2 = new CachedTablet(ke2, "L4", "I4");
+    tl2 = new CachedTablet(ke2, "L4", "I4", TabletHostingGoal.ONDEMAND);
     expected =
         Set.of(new Pair<>(tl1, r1), new Pair<>(tl1, r2), new Pair<>(tl2, r2), new Pair<>(tl3, r2));
     assertEquals(expected, actual);

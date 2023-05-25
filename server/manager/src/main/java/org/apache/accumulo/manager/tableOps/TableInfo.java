@@ -22,6 +22,7 @@ import java.io.Serializable;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -47,6 +48,16 @@ public class TableInfo implements Serializable {
   private String splitDirsFile;
 
   public Map<String,String> props;
+
+  private TabletHostingGoal initialHostingGoal;
+
+  public TabletHostingGoal getInitialHostingGoal() {
+    return initialHostingGoal;
+  }
+
+  public void setInitialHostingGoal(TabletHostingGoal initialHostingGoal) {
+    this.initialHostingGoal = initialHostingGoal;
+  }
 
   public String getTableName() {
     return tableName;

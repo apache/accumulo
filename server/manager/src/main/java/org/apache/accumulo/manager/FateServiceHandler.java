@@ -41,6 +41,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -48,6 +50,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.InitialTableState;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
@@ -62,11 +65,13 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.FastFormat;
@@ -81,11 +86,13 @@ import org.apache.accumulo.manager.tableOps.compact.CompactRange;
 import org.apache.accumulo.manager.tableOps.compact.cancel.CancelCompactions;
 import org.apache.accumulo.manager.tableOps.create.CreateTable;
 import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
+import org.apache.accumulo.manager.tableOps.goal.SetHostingGoal;
 import org.apache.accumulo.manager.tableOps.merge.TableRangeOp;
 import org.apache.accumulo.manager.tableOps.namespace.create.CreateNamespace;
 import org.apache.accumulo.manager.tableOps.namespace.delete.DeleteNamespace;
 import org.apache.accumulo.manager.tableOps.namespace.rename.RenameNamespace;
 import org.apache.accumulo.manager.tableOps.rename.RenameTable;
+import org.apache.accumulo.manager.tableOps.split.PreSplit;
 import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
 import org.apache.accumulo.manager.tableOps.tableImport.ImportTable;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -95,6 +102,8 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 
 class FateServiceHandler implements FateService.Iface {
@@ -174,7 +183,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_CREATE: {
         TableOperation tableOp = TableOperation.CREATE;
-        int SPLIT_OFFSET = 4; // offset where split data begins in arguments list
+        int SPLIT_OFFSET = 5; // offset where split data begins in arguments list
         if (arguments.size() < SPLIT_OFFSET) {
           throw new ThriftTableOperationException(null, null, tableOp,
               TableOperationExceptionType.OTHER,
@@ -185,7 +194,9 @@ class FateServiceHandler implements FateService.Iface {
         TimeType timeType = TimeType.valueOf(ByteBufferUtil.toString(arguments.get(1)));
         InitialTableState initialTableState =
             InitialTableState.valueOf(ByteBufferUtil.toString(arguments.get(2)));
-        int splitCount = Integer.parseInt(ByteBufferUtil.toString(arguments.get(3)));
+        TabletHostingGoal initialHostingGoal =
+            TabletHostingGoal.valueOf(ByteBufferUtil.toString(arguments.get(3)));
+        int splitCount = Integer.parseInt(ByteBufferUtil.toString(arguments.get(4)));
         validateArgumentCount(arguments, tableOp, SPLIT_OFFSET + splitCount);
         Path splitsPath = null;
         Path splitsDirsPath = null;
@@ -227,11 +238,12 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Create table " + tableName + " " + initialTableState + " with " + splitCount
-            + " splits.";
+            + " splits and initial hosting goal of " + initialHostingGoal;
 
         manager.fate().seedTransaction(op.toString(), opid,
             new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType, options,
-                splitsPath, splitCount, splitsDirsPath, initialTableState, namespaceId)),
+                splitsPath, splitCount, splitsDirsPath, initialTableState, initialHostingGoal,
+                namespaceId)),
             autoCleanup, goalMessage);
 
         break;
@@ -485,41 +497,6 @@ class FateServiceHandler implements FateService.Iface {
             autoCleanup, goalMessage);
         break;
       }
-      case TABLE_BULK_IMPORT: {
-        TableOperation tableOp = TableOperation.BULK_IMPORT;
-        validateArgumentCount(arguments, tableOp, 4);
-        String tableName =
-            validateName(arguments.get(0), tableOp, EXISTING_TABLE_NAME.and(NOT_BUILTIN_TABLE));
-        String dir = ByteBufferUtil.toString(arguments.get(1));
-        String failDir = ByteBufferUtil.toString(arguments.get(2));
-        boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(3)));
-
-        final TableId tableId =
-            ClientServiceHandler.checkTableId(manager.getContext(), tableName, tableOp);
-        NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
-
-        final boolean canBulkImport;
-        try {
-          canBulkImport =
-              manager.security.canBulkImport(c, tableId, tableName, dir, failDir, namespaceId);
-        } catch (ThriftSecurityException e) {
-          throwIfTableMissingSecurityException(e, tableId, tableName, TableOperation.BULK_IMPORT);
-          throw e;
-        }
-
-        if (!canBulkImport) {
-          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-        }
-
-        manager.updateBulkImportStatus(dir, BulkImportState.INITIAL);
-        goalMessage +=
-            "Bulk import " + dir + " to " + tableName + "(" + tableId + ") failing to " + failDir;
-        manager.fate().seedTransaction(op.toString(), opid,
-            new TraceRepo<>(new org.apache.accumulo.manager.tableOps.bulkVer1.BulkImport(tableId,
-                dir, failDir, setTime)),
-            autoCleanup, goalMessage);
-        break;
-      }
       case TABLE_COMPACT: {
         TableOperation tableOp = TableOperation.COMPACT;
         validateArgumentCount(arguments, tableOp, 2);
@@ -642,7 +619,7 @@ class FateServiceHandler implements FateService.Iface {
             autoCleanup, goalMessage);
         break;
       }
-      case TABLE_BULK_IMPORT2:
+      case TABLE_BULK_IMPORT2: {
         TableOperation tableOp = TableOperation.BULK_IMPORT;
         validateArgumentCount(arguments, tableOp, 3);
         final var tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_TABLE_ID);
@@ -677,6 +654,99 @@ class FateServiceHandler implements FateService.Iface {
         manager.fate().seedTransaction(op.toString(), opid,
             new TraceRepo<>(new PrepBulkImport(tableId, dir, setTime)), autoCleanup, goalMessage);
         break;
+      }
+      case TABLE_HOSTING_GOAL: {
+        TableOperation tableOp = TableOperation.SET_HOSTING_GOAL;
+        validateArgumentCount(arguments, tableOp, 3);
+        String tableName = validateName(arguments.get(0), tableOp, NOT_METADATA_TABLE);
+        TableId tableId = null;
+        try {
+          tableId = manager.getContext().getTableId(tableName);
+        } catch (TableNotFoundException e) {
+          throw new ThriftTableOperationException(null, tableName, TableOperation.SET_HOSTING_GOAL,
+              TableOperationExceptionType.NOTFOUND, "Table no longer exists");
+        }
+        final NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+
+        final boolean canSetHostingGoal;
+        try {
+          canSetHostingGoal = manager.security.canAlterTable(c, tableId, namespaceId);
+        } catch (ThriftSecurityException e) {
+          throwIfTableMissingSecurityException(e, tableId, tableName,
+              TableOperation.SET_HOSTING_GOAL);
+          throw e;
+        }
+        if (!canSetHostingGoal) {
+          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
+
+        TRange tRange = new TRange();
+        try {
+          new TDeserializer().deserialize(tRange, ByteBufferUtil.toBytes(arguments.get(1)));
+        } catch (TException e) {
+          throw new ThriftTableOperationException(tableId.canonical(), tableName,
+              TableOperation.SET_HOSTING_GOAL, TableOperationExceptionType.BAD_RANGE,
+              e.getMessage());
+        }
+        TabletHostingGoal goal =
+            TabletHostingGoal.valueOf(ByteBufferUtil.toString(arguments.get(2)));
+
+        goalMessage += "Set Hosting Goal for table: " + tableName + "(" + tableId + ") range: "
+            + tRange + " to: " + goal.name();
+        manager.fate().seedTransaction(op.toString(), opid,
+            new TraceRepo<>(new SetHostingGoal(tableId, namespaceId, tRange, goal)), autoCleanup,
+            goalMessage);
+        break;
+      }
+      case TABLE_SPLIT: {
+        TableOperation tableOp = TableOperation.SPLIT;
+
+        // ELASTICITY_TODO this does not check if table is offline for now, that is usually done in
+        // FATE operation with a table lock. Deferring that check for now as its possible tablet
+        // locks may not be needed.
+
+        int SPLIT_OFFSET = 3; // offset where split data begins in arguments list
+        if (arguments.size() < (SPLIT_OFFSET + 1)) {
+          throw new ThriftTableOperationException(null, null, tableOp,
+              TableOperationExceptionType.OTHER,
+              "Expected at least " + (SPLIT_OFFSET + 1) + " arguments, saw :" + arguments.size());
+        }
+
+        var tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_TABLE_ID);
+        NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+
+        boolean canSplit;
+
+        try {
+          canSplit = manager.security.canSplitTablet(c, tableId, namespaceId);
+        } catch (ThriftSecurityException e) {
+          throwIfTableMissingSecurityException(e, tableId, null, TableOperation.SPLIT);
+          throw e;
+        }
+
+        if (!canSplit) {
+          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
+
+        var endRow = ByteBufferUtil.toText(arguments.get(1));
+        var prevEndRow = ByteBufferUtil.toText(arguments.get(2));
+
+        endRow = endRow.getLength() == 0 ? null : endRow;
+        prevEndRow = prevEndRow.getLength() == 0 ? null : prevEndRow;
+
+        // ELASTICITY_TODO create table stores splits in a file, maybe this operation should do the
+        // same
+        SortedSet<Text> splits = arguments.subList(SPLIT_OFFSET, arguments.size()).stream()
+            .map(ByteBufferUtil::toText).collect(Collectors.toCollection(TreeSet::new));
+
+        KeyExtent extent = new KeyExtent(tableId, endRow, prevEndRow);
+        manager.requestUnassignment(extent, opid);
+
+        goalMessage = "Splitting " + extent + " for user into " + (splits.size() + 1) + " tablets";
+        manager.fate().seedTransaction(op.toString(), opid, new PreSplit(extent, splits),
+            autoCleanup, goalMessage);
+        break;
+      }
       default:
         throw new UnsupportedOperationException();
     }

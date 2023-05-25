@@ -355,7 +355,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
                   () -> Optional
                       .ofNullable(orderedScanServersSupplier.get().get(finalProfile.group)),
                   Duration.ofMillis(Long.MAX_VALUE), "scan servers in group : " + profile.group)
-              .get();
+              .orElseThrow();
       // at this point the list should be non empty unless there is a bug
       Preconditions.checkState(!orderedScanServers.isEmpty());
     }

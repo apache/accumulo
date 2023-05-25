@@ -209,7 +209,7 @@ class DatafileManager {
     return inUse;
   }
 
-  public Collection<StoredTabletFile> importMapFiles(long tid, Map<TabletFile,DataFileValue> paths,
+  public Collection<StoredTabletFile> importDataFiles(long tid, Map<TabletFile,DataFileValue> paths,
       boolean setTime) throws IOException {
 
     String bulkDir = null;
@@ -240,31 +240,30 @@ class DatafileManager {
     if (tablet.getExtent().isMeta()) {
       throw new IllegalArgumentException("Can not import files to a metadata tablet");
     }
-
-    synchronized (bulkFileImportLock) {
-
-      if (!paths.isEmpty()) {
-        long bulkTime = Long.MIN_VALUE;
-        if (setTime) {
-          for (DataFileValue dfv : paths.values()) {
-            long nextTime = tablet.getAndUpdateTime();
-            if (nextTime < bulkTime) {
-              throw new IllegalStateException(
-                  "Time went backwards unexpectedly " + nextTime + " " + bulkTime);
-            }
-            bulkTime = nextTime;
-            dfv.setTime(bulkTime);
-          }
-        }
-
-        newFiles = tablet.updatePersistedTime(bulkTime, paths, tid);
-      }
-    }
-
     // increment start count before metadata update AND updating in memory map of files
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and try{}finally
     try {
+      synchronized (bulkFileImportLock) {
+
+        if (!paths.isEmpty()) {
+          long bulkTime = Long.MIN_VALUE;
+          if (setTime) {
+            for (DataFileValue dfv : paths.values()) {
+              long nextTime = tablet.getAndUpdateTime();
+              if (nextTime < bulkTime) {
+                throw new IllegalStateException(
+                    "Time went backwards unexpectedly " + nextTime + " " + bulkTime);
+              }
+              bulkTime = nextTime;
+              dfv.setTime(bulkTime);
+            }
+          }
+
+          newFiles = tablet.updatePersistedTime(bulkTime, paths, tid);
+        }
+      }
+
       synchronized (tablet) {
         for (Entry<StoredTabletFile,DataFileValue> tpath : newFiles.entrySet()) {
           if (datafileSizes.containsKey(tpath.getKey())) {
@@ -273,7 +272,7 @@ class DatafileManager {
           datafileSizes.put(tpath.getKey(), tpath.getValue());
         }
 
-        tablet.getTabletResources().importedMapFiles();
+        tablet.getTabletResources().importedDataFiles();
 
         tablet.computeNumEntries();
       }
@@ -308,7 +307,7 @@ class DatafileManager {
           vm.deleteRecursively(tmpDatafile.getPath());
         } else {
           if (!attemptedRename && vm.exists(newDatafile.getPath())) {
-            log.warn("Target map file already exist {}", newDatafile);
+            log.warn("Target data file already exist {}", newDatafile);
             throw new RuntimeException("File unexpectedly exists " + newDatafile.getPath());
           }
           // the following checks for spurious rename failures that succeeded but gave an IoE
@@ -330,22 +329,21 @@ class DatafileManager {
 
     long t1, t2;
 
-    Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
-    try {
-      // the order of writing to metadata and walog is important in the face of machine/process
-      // failures need to write to metadata before writing to walog, when things are done in the
-      // reverse order data could be lost... the minor compaction start even should be written
-      // before the following metadata write is made
-      newFile = tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
-          unusedWalLogs, flushId);
-    } finally {
-      tablet.finishClearingUnusedLogs();
-    }
-
     // increment start count before metadata update AND updating in memory map of files
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and try{}finally
     try {
+      Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
+      try {
+        // the order of writing to metadata and walog is important in the face of machine/process
+        // failures need to write to metadata before writing to walog, when things are done in the
+        // reverse order data could be lost... the minor compaction start even should be written
+        // before the following metadata write is made
+        newFile = tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
+            unusedWalLogs, flushId);
+      } finally {
+        tablet.finishClearingUnusedLogs();
+      }
 
       do {
         try {
@@ -364,8 +362,8 @@ class DatafileManager {
       synchronized (tablet) {
         t1 = System.currentTimeMillis();
 
-        if (dfv.getNumEntries() > 0 && newFile.isPresent()) {
-          StoredTabletFile newFileStored = newFile.get();
+        if (newFile.isPresent()) {
+          StoredTabletFile newFileStored = newFile.orElseThrow();
           if (datafileSizes.containsKey(newFileStored)) {
             log.error("Adding file that is already in set {}", newFileStored);
           }
@@ -406,8 +404,8 @@ class DatafileManager {
     TabletFile newDatafile = CompactableUtils.computeCompactionFileDest(tmpDatafile);
 
     if (vm.exists(newDatafile.getPath())) {
-      log.error("Target map file already exist " + newDatafile, new Exception());
-      throw new IllegalStateException("Target map file already exist " + newDatafile);
+      log.error("Target data file already exist " + newDatafile, new Exception());
+      throw new IllegalStateException("Target data file already exist " + newDatafile);
     }
 
     if (dfv.getNumEntries() == 0) {
@@ -441,7 +439,7 @@ class DatafileManager {
             "Compacted files %s are not a subset of tablet files %s", oldDatafiles,
             datafileSizes.keySet());
         if (newFile.isPresent()) {
-          Preconditions.checkState(!datafileSizes.containsKey(newFile.get()),
+          Preconditions.checkState(!datafileSizes.containsKey(newFile.orElseThrow()),
               "New compaction file %s already exist in tablet files %s", newFile,
               datafileSizes.keySet());
         }
@@ -451,7 +449,7 @@ class DatafileManager {
         datafileSizes.keySet().removeAll(oldDatafiles);
 
         if (newFile.isPresent()) {
-          datafileSizes.put(newFile.get(), dfv);
+          datafileSizes.put(newFile.orElseThrow(), dfv);
           // could be used by a follow on compaction in a multipass compaction
         }
 
@@ -512,4 +510,10 @@ class DatafileManager {
     return metadataUpdateCount.get();
   }
 
+  // ELASTICITY_TODO remove this method
+  public void addFilesHack(StoredTabletFile file, DataFileValue dfv) {
+    synchronized (tablet) {
+      datafileSizes.put(file, dfv);
+    }
+  }
 }

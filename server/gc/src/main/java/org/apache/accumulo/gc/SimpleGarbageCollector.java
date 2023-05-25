@@ -167,7 +167,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName, address);
-      MetricsUtil.initializeProducers(new GcMetrics(this));
+      MetricsUtil.initializeProducers(this, new GcMetrics(this));
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
         | SecurityException e1) {
@@ -224,14 +224,14 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             incrementStatsForRun(userGC);
             logStats();
 
+          } catch (Exception e) {
+            TraceUtil.setException(innerSpan, e, false);
+            log.error("{}", e.getMessage(), e);
+          } finally {
             status.current.finished = System.currentTimeMillis();
             status.last = status.current;
             gcCycleMetrics.setLastCollect(status.current);
             status.current = new GcCycleStats();
-
-          } catch (Exception e) {
-            TraceUtil.setException(innerSpan, e, false);
-            log.error("{}", e.getMessage(), e);
           }
 
           final long tStop = System.nanoTime();

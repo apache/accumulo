@@ -39,7 +39,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests Old and New Bulk import
+ * Tests Bulk import
  */
 @Tag(SUNNY_DAY)
 public class BulkIT extends AccumuloClusterHarness {
@@ -56,20 +56,12 @@ public class BulkIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       runTest(client, getCluster().getFileSystem(), getCluster().getTemporaryPath(),
-          getUniqueNames(1)[0], this.getClass().getName(), testName(), false);
-    }
-  }
-
-  @Test
-  public void testOld() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      runTest(client, getCluster().getFileSystem(), getCluster().getTemporaryPath(),
-          getUniqueNames(1)[0], this.getClass().getName(), testName(), true);
+          getUniqueNames(1)[0], this.getClass().getName(), testName());
     }
   }
 
   static void runTest(AccumuloClient c, FileSystem fs, Path basePath, String tableName,
-      String filePrefix, String dirSuffix, boolean useOld) throws Exception {
+      String filePrefix, String dirSuffix) throws Exception {
     c.tableOperations().create(tableName);
     Path base = new Path(basePath, "testBulkFail_" + dirSuffix);
     fs.delete(base, true);
@@ -98,7 +90,7 @@ public class BulkIT extends AccumuloClusterHarness {
     // create an rfile with one entry, there was a bug with this:
     TestIngest.ingest(c, fs, params);
 
-    bulkLoad(c, tableName, bulkFailures, files, useOld);
+    bulkLoad(c, tableName, bulkFailures, files);
     VerifyParams verifyParams = new VerifyParams(c.properties(), tableName, N);
     verifyParams.random = 56;
     for (int i = 0; i < COUNT; i++) {
@@ -110,34 +102,26 @@ public class BulkIT extends AccumuloClusterHarness {
     VerifyIngest.verifyIngest(c, verifyParams);
   }
 
-  @SuppressWarnings("deprecation")
-  private static void bulkLoad(AccumuloClient c, String tableName, Path bulkFailures, Path files,
-      boolean useOld)
+  private static void bulkLoad(AccumuloClient c, String tableName, Path bulkFailures, Path files)
       throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException {
     // Make sure the server can modify the files
-    if (useOld) {
-      c.tableOperations().importDirectory(tableName, files.toString(), bulkFailures.toString(),
-          false);
-    } else {
-      // not appending the 'ignoreEmptyDir' method defaults to not ignoring empty directories.
+    // not appending the 'ignoreEmptyDir' method defaults to not ignoring empty directories.
+    c.tableOperations().importDirectory(files.toString()).to(tableName).load();
+    try {
+      // if run again, the expected IllegalArgrumentException is thrown
       c.tableOperations().importDirectory(files.toString()).to(tableName).load();
-      try {
-        // if run again, the expected IllegalArgrumentException is thrown
-        c.tableOperations().importDirectory(files.toString()).to(tableName).load();
-      } catch (IllegalArgumentException ex) {
-        // expected exception to be thrown
-      }
-      // re-run using the ignoreEmptyDir option and no error should be thrown since empty
-      // directories will be ignored
-      c.tableOperations().importDirectory(files.toString()).to(tableName).ignoreEmptyDir(true)
+    } catch (IllegalArgumentException ex) {
+      // expected exception to be thrown
+    }
+    // re-run using the ignoreEmptyDir option and no error should be thrown since empty
+    // directories will be ignored
+    c.tableOperations().importDirectory(files.toString()).to(tableName).ignoreEmptyDir(true).load();
+    try {
+      // setting ignoreEmptyDir to false, explicitly, results in exception being thrown again.
+      c.tableOperations().importDirectory(files.toString()).to(tableName).ignoreEmptyDir(false)
           .load();
-      try {
-        // setting ignoreEmptyDir to false, explicitly, results in exception being thrown again.
-        c.tableOperations().importDirectory(files.toString()).to(tableName).ignoreEmptyDir(false)
-            .load();
-      } catch (IllegalArgumentException ex) {
-        // expected exception to be thrown
-      }
+    } catch (IllegalArgumentException ex) {
+      // expected exception to be thrown
     }
   }
 }

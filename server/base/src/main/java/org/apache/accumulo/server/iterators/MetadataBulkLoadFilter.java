@@ -19,26 +19,23 @@
 package org.apache.accumulo.server.iterators;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.Arbitrator;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * A special iterator for the metadata table that removes inactive bulk load flags
  */
+// ELASTICITY_TODO remove this class AND its config from metadata table AND handle metadata config
+// in upgrade
 public class MetadataBulkLoadFilter extends Filter {
   private static final Logger log = LoggerFactory.getLogger(MetadataBulkLoadFilter.class);
 
@@ -51,28 +48,7 @@ public class MetadataBulkLoadFilter extends Filter {
 
   @Override
   public boolean accept(Key k, Value v) {
-    if (!k.isDeleted() && k.compareColumnFamily(BulkFileColumnFamily.NAME) == 0) {
-      long txid = BulkFileColumnFamily.getBulkLoadTid(v);
-
-      Status status = bulkTxStatusCache.get(txid);
-      if (status == null) {
-        try {
-          if (arbitrator.transactionComplete(Constants.BULK_ARBITRATOR_TYPE, txid)) {
-            status = Status.INACTIVE;
-          } else {
-            status = Status.ACTIVE;
-          }
-        } catch (Exception e) {
-          status = Status.ACTIVE;
-          log.error("{}", e.getMessage(), e);
-        }
-
-        bulkTxStatusCache.put(txid, status);
-      }
-
-      return status == Status.ACTIVE;
-    }
-
+    // this class was turned into a no-op until its removed
     return true;
   }
 
@@ -84,12 +60,5 @@ public class MetadataBulkLoadFilter extends Filter {
     if (env.getIteratorScope() == IteratorScope.scan) {
       throw new IOException("This iterator not intended for use at scan time");
     }
-
-    bulkTxStatusCache = new HashMap<>();
-    arbitrator = getArbitrator(((SystemIteratorEnvironment) env).getServerContext());
-  }
-
-  protected Arbitrator getArbitrator(ServerContext context) {
-    return new ZooArbitrator(context);
   }
 }

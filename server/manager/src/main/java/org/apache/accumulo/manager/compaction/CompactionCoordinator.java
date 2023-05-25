@@ -623,7 +623,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
       LOG.warn("Failed to clean up compactors", e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

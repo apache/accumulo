@@ -23,7 +23,6 @@ include "data.thrift"
 include "security.thrift"
 include "client.thrift"
 include "manager.thrift"
-include "master.thrift"
 
 exception NotServingTabletException {
   1:data.TKeyExtent extent
@@ -154,7 +153,7 @@ service TabletServerClientService {
     6:binary endRow
   )
 
-  master.TabletServerStatus getTabletServerStatus(
+  manager.TabletServerStatus getTabletServerStatus(
     3:client.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (
@@ -277,6 +276,11 @@ service TabletServerClientService {
     4:data.TKeyExtent extent
   )
 
+  list<data.TKeyExtent> refreshTablets(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:list<data.TKeyExtent> extents
+  )
 }
 
 typedef i32 TabletID

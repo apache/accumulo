@@ -76,7 +76,6 @@ import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -405,8 +404,8 @@ public class CollectTabletStats {
       FileStatus status = fs.getFileStatus(file.getPath());
 
       if (status.isDirectory()) {
-        // assume it is a map file
-        status = fs.getFileStatus(new Path(file + "/data"));
+        log.warn("Saw unexpected directory at {} while getting block locations", file);
+        continue;
       }
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
       BlockLocation[] locs = ns.getFileBlockLocations(status, 0, status.getLen());
@@ -427,16 +426,16 @@ public class CollectTabletStats {
   }
 
   private static SortedKeyValueIterator<Key,Value> createScanIterator(KeyExtent ke,
-      Collection<SortedKeyValueIterator<Key,Value>> mapfiles, Authorizations authorizations,
+      Collection<SortedKeyValueIterator<Key,Value>> dataFiles, Authorizations authorizations,
       byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, boolean useTableIterators, TableConfiguration conf)
       throws IOException {
 
     SortedMapIterator smi = new SortedMapIterator(new TreeMap<>());
 
-    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(mapfiles.size() + 1);
+    List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(dataFiles.size() + 1);
 
-    iters.addAll(mapfiles);
+    iters.addAll(dataFiles);
     iters.add(smi);
 
     MultiIterator multiIter = new MultiIterator(iters, ke);
@@ -465,7 +464,7 @@ public class CollectTabletStats {
     for (TabletFile file : files) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), ns, ns.getConf(), NoCryptoServiceFactory.NONE)
+          .forFile(file, ns, ns.getConf(), NoCryptoServiceFactory.NONE)
           .withTableConfiguration(aconf).build();
       Range range = new Range(ke.prevEndRow(), false, ke.endRow(), true);
       reader.seek(range, columnSet, !columnSet.isEmpty());
@@ -498,7 +497,7 @@ public class CollectTabletStats {
     for (TabletFile file : files) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
       readers.add(FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), ns, ns.getConf(), NoCryptoServiceFactory.NONE)
+          .forFile(file, ns, ns.getConf(), NoCryptoServiceFactory.NONE)
           .withTableConfiguration(context.getConfiguration()).build());
     }
 

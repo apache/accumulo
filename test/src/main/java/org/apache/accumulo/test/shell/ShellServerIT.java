@@ -49,6 +49,7 @@ import java.util.regex.Pattern;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
@@ -71,6 +72,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -1309,23 +1311,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("history", true, "deletetable -f " + table, true);
   }
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
-  @Test
-  public void importDirectoryOld() throws Exception {
-    final String table = getUniqueNames(1)[0];
-    Configuration conf = new Configuration();
-    FileSystem fs = FileSystem.get(conf);
-    File errorsDir = new File(rootPath, "errors_" + table);
-    assertTrue(errorsDir.mkdir());
-    fs.mkdirs(new Path(errorsDir.toString()));
-    File importDir = createRFiles(conf, fs, table);
-    ts.exec("createtable " + table, true);
-    ts.exec("importdirectory " + importDir + " " + errorsDir + " true", true);
-    ts.exec("scan -r 00000000", true, "00000000", true);
-    ts.exec("scan -r 00000099", true, "00000099", true);
-    ts.exec("deletetable -f " + table);
-  }
-
   @Test
   public void importDirectory() throws Exception {
     final String table = getUniqueNames(1)[0];
@@ -1369,10 +1354,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String odd = new File(importDir, "odd.rf").toString();
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(even, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(aconf).build();
+        .forFile(UnreferencedTabletFile.of(fs, new Path(even)), fs, conf,
+            NoCryptoServiceFactory.NONE)
+        .withTableConfiguration(aconf).build();
     evenWriter.startDefaultLocalityGroup();
     FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(odd, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(aconf).build();
+        .forFile(UnreferencedTabletFile.of(fs, new Path(odd)), fs, conf,
+            NoCryptoServiceFactory.NONE)
+        .withTableConfiguration(aconf).build();
     oddWriter.startDefaultLocalityGroup();
     long timestamp = System.currentTimeMillis();
     Text cf = new Text("cf");
@@ -1739,6 +1728,29 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void scansWithNeverHostedTablets() throws Exception {
+    final String table = getUniqueNames(1)[0];
+    ts.exec("createtable " + table);
+    ts.exec("addsplits -t " + table + " a c e g m t");
+    ts.exec("goal -t " + table + " -b a -e a -g never");
+    ts.exec("goal -t " + table + " -b c -e e -ee -g always");
+
+    ts.exec("scan -t " + table + " -np -b a -e c", false);
+    ts.exec("scan -t " + table + " -np -b a -e e", false);
+    ts.exec("scan -t " + table + " -np -b d -e d", true);
+    ts.exec("scan -t " + table + " -np -b d -e z", true);
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
+        Scanner s = client.createScanner(table, Authorizations.EMPTY);
+        BatchScanner bs = client.createBatchScanner(table);) {
+      assertThrows(RuntimeException.class, () -> Iterables.size(s));
+      bs.setRanges(Collections.singleton(new Range()));
+      assertThrows(RuntimeException.class, () -> Iterables.size(bs));
+    }
+
+  }
+
+  @Test
   public void scansWithColon() throws Exception {
     ts.exec("createtable twithcolontest");
     ts.exec("insert row c:f cq value");
@@ -1890,12 +1902,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     ts.exec("createtable " + table, true);
 
-    // validate -t option is used.
-    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), true);
-
-    // validate -t option is used.
-    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), true);
-
     // validate -t and -i option is used with new bulk import.
     // This will fail as there are no files in the import directory
     ts.exec(String.format("importdirectory -t %s %s false", table, importDir), false);
@@ -1904,12 +1910,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // This should pass even if no files in import directory. Empty import dir is ignored.
     ts.exec(String.format("importdirectory -t %s %s false -i", table, importDir), true);
 
-    // validate original cmd format.
-    ts.exec(String.format("table %s", table), true);
-    ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), true);
-
     // expect fail - invalid command,
-    ts.exec("importdirectory false", false, "Expected 2 or 3 arguments. There was 1.");
+    ts.exec("importdirectory false", false, "Expected 2 arguments. There was 1.");
 
     // expect fail - original cmd without a table.
     ts.exec("notable", true);

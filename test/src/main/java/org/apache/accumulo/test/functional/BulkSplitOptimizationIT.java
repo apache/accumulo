@@ -40,7 +40,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * This test verifies that when a lot of files are bulk imported into a table with one tablet and
- * then splits that not all map files go to the children tablets.
+ * then splits that not all data files go to the children tablets.
  */
 public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
@@ -99,6 +99,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
       System.out.println("Number of generated files: " + stats.length);
       c.tableOperations().importDirectory(testDir.toString()).to(tableName).load();
+
       FunctionalTestUtils.checkSplits(c, tableName, 0, 0);
       FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 100, 100);
 
@@ -121,7 +122,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
       params.cols = 1;
       VerifyIngest.verifyIngest(c, params);
 
-      // ensure each tablet does not have all map files, should be ~2.5 files per tablet
+      // ensure each tablet does not have all data files, should be ~2.5 files per tablet
       FunctionalTestUtils.checkRFiles(c, tableName, 50, 100, 1, 4);
     }
   }

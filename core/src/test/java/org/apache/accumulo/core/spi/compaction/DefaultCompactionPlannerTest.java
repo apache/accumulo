@@ -51,7 +51,7 @@ public class DefaultCompactionPlannerTest {
   }
 
   @Test
-  public void testFindFilesToCompact() {
+  public void testFindFilesToCompact() throws Exception {
 
     testFFtC(createCFs("F4", "1M", "F5", "1M", "F6", "1M"),
         createCFs("F1", "100M", "F2", "100M", "F3", "100M", "F4", "1M", "F5", "1M", "F6", "1M"),
@@ -129,7 +129,7 @@ public class DefaultCompactionPlannerTest {
   }
 
   @Test
-  public void testRunningCompaction() {
+  public void testRunningCompaction() throws Exception {
     var planner = createPlanner(true);
     var all = createCFs("F1", "3M", "F2", "3M", "F3", "11M", "F4", "12M", "F5", "13M");
     var candidates = createCFs("F3", "11M", "F4", "12M", "F5", "13M");
@@ -156,7 +156,7 @@ public class DefaultCompactionPlannerTest {
   }
 
   @Test
-  public void testUserCompaction() {
+  public void testUserCompaction() throws Exception {
     var planner = createPlanner(true);
     var all = createCFs("F1", "3M", "F2", "3M", "F3", "11M", "F4", "12M", "F5", "13M");
     var candidates = createCFs("F3", "11M", "F4", "12M", "F5", "13M");
@@ -220,7 +220,7 @@ public class DefaultCompactionPlannerTest {
   }
 
   @Test
-  public void testMaxSize() {
+  public void testMaxSize() throws Exception {
     var planner = createPlanner(false);
     var all = createCFs("F1", "128M", "F2", "129M", "F3", "130M", "F4", "131M", "F5", "132M");
     var params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
@@ -393,18 +393,15 @@ public class DefaultCompactionPlannerTest {
         .getJobs().iterator().next();
   }
 
-  private static Set<CompactableFile> createCFs(String... namesSizePairs) {
+  private static Set<CompactableFile> createCFs(String... namesSizePairs)
+      throws URISyntaxException {
     Set<CompactableFile> files = new HashSet<>();
 
     for (int i = 0; i < namesSizePairs.length; i += 2) {
       String name = namesSizePairs[i];
       long size = ConfigurationTypeHelper.getFixedMemoryAsBytes(namesSizePairs[i + 1]);
-      try {
-        files.add(CompactableFile
-            .create(new URI("hdfs://fake/accumulo/tables/1/t-0000000z/" + name + ".rf"), size, 0));
-      } catch (URISyntaxException e) {
-        throw new RuntimeException(e);
-      }
+      files.add(CompactableFile
+          .create(new URI("hdfs://fake/accumulo/tables/1/t-0000000z/" + name + ".rf"), size, 0));
     }
 
     return files;
@@ -426,7 +423,7 @@ public class DefaultCompactionPlannerTest {
 
   private static void testFFtC(Set<CompactableFile> expected, Set<CompactableFile> files,
       double ratio, int maxFiles, long maxSize) {
-    var result = DefaultCompactionPlanner.findMapFilesToCompact(files, ratio, maxFiles, maxSize);
+    var result = DefaultCompactionPlanner.findDataFilesToCompact(files, ratio, maxFiles, maxSize);
     var expectedNames = expected.stream().map(CompactableFile::getUri).map(URI::getPath)
         .map(path -> path.split("/")).map(t -> t[t.length - 1]).collect(Collectors.toSet());
     var resultNames = result.stream().map(CompactableFile::getUri).map(URI::getPath)

@@ -57,7 +57,7 @@ public class Upgrader11to12 implements Upgrader {
         TabletsMetadata tm =
             context.getAmple().readTablets().forTable(tableId).fetch(ColumnType.PREV_ROW).build();
         TabletsMutator mut = context.getAmple().mutateTablets()) {
-      tm.forEach(t -> mut.mutateTablet(t.getExtent()).setHostingGoal(TabletHostingGoal.ALWAYS));
+      tm.forEach(t -> mut.mutateTablet(t.getExtent()).putHostingGoal(TabletHostingGoal.ALWAYS));
     }
   }
 
@@ -74,7 +74,7 @@ public class Upgrader11to12 implements Upgrader {
         TabletsMetadata tm = context.getAmple().readTablets().forLevel(DataLevel.USER)
             .fetch(ColumnType.PREV_ROW).build();
         TabletsMutator mut = context.getAmple().mutateTablets()) {
-      tm.forEach(t -> mut.mutateTablet(t.getExtent()).setHostingGoal(TabletHostingGoal.ONDEMAND));
+      tm.forEach(t -> mut.mutateTablet(t.getExtent()).putHostingGoal(TabletHostingGoal.ONDEMAND));
     }
   }
 

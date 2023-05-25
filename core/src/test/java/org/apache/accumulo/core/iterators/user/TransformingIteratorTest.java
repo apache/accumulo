@@ -90,7 +90,7 @@ public class TransformingIteratorTest {
     try {
       titer = clazz.getDeclaredConstructor().newInstance();
     } catch (ReflectiveOperationException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
 
     IteratorEnvironment iterEnv = EasyMock.createMock(IteratorEnvironment.class);

@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -45,6 +46,7 @@ import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.data.Key;
@@ -58,6 +60,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.OpTimer;
@@ -152,7 +155,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       }
 
       Pair<String,String> lock =
-          new Pair<>(tl.getTserverLocation().get(), tl.getTserverSession().get());
+          new Pair<>(tl.getTserverLocation().orElseThrow(), tl.getTserverSession().orElseThrow());
 
       if (okLocks.contains(lock)) {
         return tl;
@@ -162,7 +165,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
         return null;
       }
 
-      if (lockChecker.isLockHeld(tl.getTserverLocation().get(), tl.getTserverSession().get())) {
+      if (lockChecker.isLockHeld(tl.getTserverLocation().orElseThrow(),
+          tl.getTserverSession().orElseThrow())) {
         okLocks.add(lock);
         return tl;
       }
@@ -192,7 +196,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   @Override
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
 
     OpTimer timer = null;
 
@@ -276,21 +281,21 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       return false;
     }
 
-    TabletServerMutations<T> tsm = binnedMutations.get(tl.getTserverLocation().get());
+    TabletServerMutations<T> tsm = binnedMutations.get(tl.getTserverLocation().orElseThrow());
 
     if (tsm == null) {
       // do lock check once per tserver here to make binning faster
       boolean lockHeld = lcSession.checkLock(tl) != null;
       if (lockHeld) {
-        tsm = new TabletServerMutations<>(tl.getTserverSession().get());
-        binnedMutations.put(tl.getTserverLocation().get(), tsm);
+        tsm = new TabletServerMutations<>(tl.getTserverSession().orElseThrow());
+        binnedMutations.put(tl.getTserverLocation().orElseThrow(), tsm);
       } else {
         return false;
       }
     }
 
     // its possible the same tserver could be listed with different sessions
-    if (tsm.getSession().equals(tl.getTserverSession().get())) {
+    if (tsm.getSession().equals(tl.getTserverSession().orElseThrow())) {
       tsm.addMutation(tl.getExtent(), mutation);
       return true;
     }
@@ -318,8 +323,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
   private List<Range> findTablets(ClientContext context, List<Range> ranges,
       BiConsumer<CachedTablet,Range> rangeConsumer, boolean useCache, LockCheckerSession lcSession,
-      LocationNeed locationNeed, Consumer<KeyExtent> locationlessConsumer)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      LocationNeed locationNeed, Consumer<KeyExtent> locationlessConsumer) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
     List<Range> failures = new ArrayList<>();
     List<CachedTablet> cachedTablets = new ArrayList<>();
 
@@ -398,7 +403,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   @Override
   public List<Range> findTablets(ClientContext context, List<Range> ranges,
       BiConsumer<CachedTablet,Range> rangeConsumer, LocationNeed locationNeed)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
 
     /*
      * For this to be efficient, need to avoid fine grained synchronization and fine grained
@@ -502,7 +508,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     try {
       for (CachedTablet cacheEntry : metaCache.values()) {
         var loc = cacheEntry.getTserverLocation();
-        if (loc.isPresent() && loc.get().equals(server)) {
+        if (loc.isPresent() && loc.orElseThrow().equals(server)) {
           badExtents.add(cacheEntry.getExtent());
           invalidatedCount++;
         }
@@ -538,8 +544,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
   @Override
   public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
-      LocationNeed locationNeed)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      LocationNeed locationNeed) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, InvalidTabletHostingRequestException {
 
     OpTimer timer = null;
 
@@ -584,8 +590,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   }
 
   private void requestTabletHosting(ClientContext context,
-      Collection<KeyExtent> extentsWithNoLocation)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      Collection<KeyExtent> extentsWithNoLocation) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
 
     if (!HOSTING_ENABLED.get()) {
       return;
@@ -615,16 +621,20 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
     List<TKeyExtent> extentsToBringOnline = new ArrayList<>();
 
-    for (TabletMetadata tabletMetadata : context.getAmple().readTablets()
-        .forTablets(extentsToLookup).fetch(HOSTING_REQUESTED, HOSTING_GOAL).build()) {
-      if (tabletMetadata.getHostingGoal() == TabletHostingGoal.ONDEMAND
-          && !tabletMetadata.getHostingRequested()) {
-        extentsToBringOnline.add(tabletMetadata.getExtent().toThrift());
-      }
+    try (TabletsMetadata tm =
+        context.getAmple().readTablets().forTablets(extentsToLookup, Optional.empty())
+            .fetch(HOSTING_REQUESTED, HOSTING_GOAL).build()) {
 
-      if (tabletMetadata.getHostingGoal() == TabletHostingGoal.NEVER) {
-        throw new AccumuloException("Extent " + tabletMetadata.getExtent()
-            + " has a tablet hosting goal state " + TabletHostingGoal.NEVER);
+      for (TabletMetadata tabletMetadata : tm) {
+        if (tabletMetadata.getHostingGoal() == TabletHostingGoal.ONDEMAND
+            && !tabletMetadata.getHostingRequested()) {
+          extentsToBringOnline.add(tabletMetadata.getExtent().toThrift());
+        }
+
+        if (tabletMetadata.getHostingGoal() == TabletHostingGoal.NEVER) {
+          throw new InvalidTabletHostingRequestException("Extent " + tabletMetadata.getExtent()
+              + " has a tablet hosting goal state " + TabletHostingGoal.NEVER);
+        }
       }
     }
 
@@ -638,8 +648,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   }
 
   private void lookupTablet(ClientContext context, Text row, boolean retry,
-      LockCheckerSession lcSession)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      LockCheckerSession lcSession) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, InvalidTabletHostingRequestException {
     Text metadataRow = new Text(tableId.canonical());
     metadataRow.append(new byte[] {';'}, 0, 1);
     metadataRow.append(row.getBytes(), 0, row.getLength());
@@ -682,7 +692,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
         if ((lastEndRow != null) && (ke.prevEndRow() != null)
             && ke.prevEndRow().equals(lastEndRow)) {
           locToCache = new CachedTablet(new KeyExtent(ke.tableId(), ke.endRow(), lastEndRow),
-              cachedTablet.getTserverLocation(), cachedTablet.getTserverSession());
+              cachedTablet.getTserverLocation(), cachedTablet.getTserverSession(),
+              cachedTablet.getGoal());
         } else {
           locToCache = cachedTablet;
         }
@@ -779,7 +790,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
   protected CachedTablet _findTablet(ClientContext context, Text row, boolean skipRow,
       boolean retry, boolean lock, LockCheckerSession lcSession, LocationNeed locationNeed)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
 
     if (skipRow) {
       row = new Text(row);
@@ -818,15 +830,15 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   }
 
   private CachedTablet lookupTabletLocationAndCheckLock(ClientContext context, Text row,
-      boolean retry, LockCheckerSession lcSession)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      boolean retry, LockCheckerSession lcSession) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
     lookupTablet(context, row, retry, lcSession);
     return lcSession.checkLock(findTabletInCache(row));
   }
 
   private CachedTablet processInvalidatedAndCheckLock(ClientContext context,
-      LockCheckerSession lcSession, Text row)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+      LockCheckerSession lcSession, Text row) throws AccumuloSecurityException, AccumuloException,
+      TableNotFoundException, InvalidTabletHostingRequestException {
     processInvalidated(context, lcSession);
     return lcSession.checkLock(findTabletInCache(row));
   }
@@ -834,7 +846,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   @SuppressFBWarnings(value = {"UL_UNRELEASED_LOCK", "UL_UNRELEASED_LOCK_EXCEPTION_PATH"},
       justification = "locking is confusing, but probably correct")
   private void processInvalidated(ClientContext context, LockCheckerSession lcSession)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
 
     if (badExtents.isEmpty()) {
       return;
@@ -887,7 +900,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
   static void addRange(Map<String,Map<KeyExtent,List<Range>>> binnedRanges, CachedTablet ct,
       Range range) {
-    binnedRanges.computeIfAbsent(ct.getTserverLocation().get(), k -> new HashMap<>())
+    binnedRanges.computeIfAbsent(ct.getTserverLocation().orElseThrow(), k -> new HashMap<>())
         .computeIfAbsent(ct.getExtent(), k -> new ArrayList<>()).add(range);
   }
 }

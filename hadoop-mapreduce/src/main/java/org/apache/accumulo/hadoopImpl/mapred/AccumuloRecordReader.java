@@ -19,6 +19,9 @@
 package org.apache.accumulo.hadoopImpl.mapred;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -31,12 +34,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -47,6 +52,8 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.data.Key;
@@ -56,6 +63,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputTableConfig;
 import org.apache.accumulo.hadoopImpl.mapreduce.SplitUtils;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
@@ -347,18 +355,51 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
             // tablets... so clear it
             tl.invalidateCache();
 
-            while (!tl.binRanges(context, ranges, binnedRanges).isEmpty()) {
-              context.requireNotDeleted(tableId);
-              context.requireNotOffline(tableId, tableName);
-              binnedRanges.clear();
-              log.warn("Unable to locate bins for specified ranges. Retrying.");
-              // sleep randomly between 100 and 200 ms
-              sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
-              tl.invalidateCache();
+            if (InputConfigurator.getConsistencyLevel(callingClass, job)
+                == ConsistencyLevel.IMMEDIATE) {
+              while (!tl.binRanges(context, ranges, binnedRanges).isEmpty()) {
+                context.requireNotDeleted(tableId);
+                context.requireNotOffline(tableId, tableName);
+                binnedRanges.clear();
+                log.warn("Unable to locate bins for specified ranges. Retrying.");
+                // sleep randomly between 100 and 200 ms
+                sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
+                tl.invalidateCache();
+              }
+            } else {
+              Map<String,Map<KeyExtent,List<Range>>> unhostedRanges = new HashMap<>();
+              unhostedRanges.put("", new HashMap<>());
+              BiConsumer<CachedTablet,Range> consumer = (ct, r) -> {
+                unhostedRanges.get("").computeIfAbsent(ct.getExtent(), k -> new ArrayList<>())
+                    .add(r);
+              };
+              List<Range> failures =
+                  tl.findTablets(context, ranges, consumer, LocationNeed.NOT_REQUIRED);
+
+              Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
+                  .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
+                  .logInterval(3, MINUTES).createRetry();
+
+              while (!failures.isEmpty()) {
+
+                context.requireNotDeleted(tableId);
+
+                try {
+                  retry.waitForNextAttempt(log,
+                      String.format("locating tablets in table %s(%s) for %d ranges", tableName,
+                          tableId, ranges.size()));
+                } catch (InterruptedException e) {
+                  throw new RuntimeException(e);
+                }
+                unhostedRanges.get("").clear();
+                tl.invalidateCache();
+                failures = tl.findTablets(context, ranges, consumer, LocationNeed.NOT_REQUIRED);
+              }
+              binnedRanges = unhostedRanges;
             }
           }
-        } catch (TableOfflineException | TableNotFoundException | AccumuloException
-            | AccumuloSecurityException e) {
+        } catch (InvalidTabletHostingRequestException | TableOfflineException
+            | TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
           throw new IOException(e);
         }
 
