@@ -57,6 +57,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -217,10 +218,16 @@ public class TabletManagementIterator extends SkippingIterator {
         .collect(Collectors.summarizingLong(Long::longValue)).getSum() > splitThreshold;
   }
 
-  private static boolean shouldReturnDueToLocation(final TabletMetadata tm,
+  private boolean shouldReturnDueToLocation(final TabletMetadata tm,
       final Set<TableId> onlineTables, final Set<TServerInstance> current, final boolean debug) {
+
+    if (migrations.contains(tm.getExtent())) {
+      return true;
+    }
+
     // is the table supposed to be online or offline?
-    final boolean shouldBeOnline = onlineTables.contains(tm.getTableId());
+    final boolean shouldBeOnline =
+        onlineTables.contains(tm.getTableId()) && tm.getOperationId() == null;
 
     TabletState state = tm.getTabletState(current);
     if (debug) {
@@ -262,6 +269,7 @@ public class TabletManagementIterator extends SkippingIterator {
     scanner.fetchColumnFamily(LogColumnFamily.NAME);
     scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
     scanner.fetchColumnFamily(HostingColumnFamily.NAME);
+    ServerColumnFamily.OPID_COLUMN.fetch(scanner);
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
     IteratorSetting tabletChange =
         new IteratorSetting(1001, "ManagerTabletInfoIterator", TabletManagementIterator.class);
@@ -391,11 +399,6 @@ public class TabletManagementIterator extends SkippingIterator {
     if (merge != null) {
       // could make this smarter by only returning if the tablet is involved in the merge
       reasonsToReturnThisTablet.add(ManagementAction.IS_MERGING);
-    }
-
-    // always return the information for migrating tablets
-    if (migrations.contains(tm.getExtent())) {
-      reasonsToReturnThisTablet.add(ManagementAction.IS_MIGRATING);
     }
 
     if (shouldReturnDueToLocation(tm, onlineTables, current, debug)) {

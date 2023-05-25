@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.split;
 
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -67,5 +68,10 @@ public class DeleteOperationIds extends ManagerRepo {
     }
 
     return null;
+  }
+
+  @Override
+  public String getReturn() {
+    return TableOperationsImpl.SPLIT_SUCCESS_MSG;
   }
 }

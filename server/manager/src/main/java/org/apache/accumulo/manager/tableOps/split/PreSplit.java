@@ -121,7 +121,7 @@ public class PreSplit extends ManagerRepo {
 
     var opid = TabletOperationId.from(TabletOperationType.SPLITTING, tid);
 
-    if (tabletMetadata == null || !tabletMetadata.getOperationId().equals(opid)) {
+    if (tabletMetadata == null || !opid.equals(tabletMetadata.getOperationId())) {
       // the tablet no longer exists or we could not set the operation id, maybe another operation
       // was running, lets not proceed with the split.
       var optMeta = Optional.ofNullable(tabletMetadata);
