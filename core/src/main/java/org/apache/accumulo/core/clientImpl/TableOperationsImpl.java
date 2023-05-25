@@ -523,7 +523,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if (tablet == null) {
           context.requireTableExists(tableId, tableName);
           throw new IllegalStateException("Unable to find a tablet for split " + split
-              + " int table " + tableName + " " + tableId);
+              + " in table " + tableName + " " + tableId);
         }
 
         if (split.equals(tablet.getExtent().endRow())) {
