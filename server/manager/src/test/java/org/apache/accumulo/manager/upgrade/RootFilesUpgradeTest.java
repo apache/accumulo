@@ -78,6 +78,7 @@ public class RootFilesUpgradeTest extends WithTestNames {
       rename(fs, tmpDatafile, newDatafile);
     }
 
+    @SuppressWarnings("removal")
     public void finishReplacement(AccumuloConfiguration acuTableConf, VolumeManager fs,
         Path location, Set<Path> oldDatafiles, String compactName) throws IOException {
       // start deleting files, if we do not finish they will be cleaned

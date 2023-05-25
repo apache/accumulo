@@ -46,6 +46,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.gc.FileJanitor.SendFilesToTrash;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
@@ -59,12 +60,12 @@ import org.slf4j.LoggerFactory;
 public class SimpleGarbageCollectorTest {
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollectorTest.class);
 
-  private VolumeManager volMgr;
-  private ServerContext context;
-  private Credentials credentials;
-  private SimpleGarbageCollector gc;
-  private ConfigurationCopy systemConfig;
-  private static SiteConfiguration siteConfig = SiteConfiguration.empty().build();
+  protected VolumeManager volMgr;
+  protected ServerContext context;
+  protected Credentials credentials;
+  protected SimpleGarbageCollector gc;
+  protected ConfigurationCopy systemConfig;
+  protected static SiteConfiguration siteConfig = SiteConfiguration.empty().build();
 
   @BeforeEach
   public void setUp() {
@@ -86,12 +87,15 @@ public class SimpleGarbageCollectorTest {
     replay(context);
 
     gc = partialMockBuilder(SimpleGarbageCollector.class).addMockedMethod("getContext")
-        .createMock();
+        .addMockedMethod("getFileJanitor").createMock();
+    FileJanitor janitor = new FileJanitor(context);
     expect(gc.getContext()).andReturn(context).anyTimes();
+    expect(gc.getFileJanitor()).andReturn(janitor).anyTimes();
     replay(gc);
   }
 
-  private ConfigurationCopy createSystemConfig() {
+  @SuppressWarnings("removal")
+  protected ConfigurationCopy createSystemConfig() {
     Map<String,String> conf = new HashMap<>();
     conf.put(Property.INSTANCE_RPC_SASL_ENABLED.getKey(), "false");
     conf.put(Property.GC_CYCLE_START.getKey(), "1");
@@ -106,7 +110,7 @@ public class SimpleGarbageCollectorTest {
   public void testInit() {
     assertSame(volMgr, gc.getContext().getVolumeManager());
     assertEquals(credentials, gc.getContext().getCredentials());
-    assertTrue(gc.isUsingTrash());
+    assertEquals(SendFilesToTrash.TRUE, gc.getFileJanitor().isUsingTrash());
     assertEquals(1000L, gc.getStartDelay());
     assertEquals(2, gc.getNumDeleteThreads());
     assertFalse(gc.inSafeMode()); // false by default
@@ -117,7 +121,7 @@ public class SimpleGarbageCollectorTest {
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andReturn(true);
     replay(volMgr);
-    assertTrue(gc.moveToTrash(path));
+    assertTrue(gc.getFileJanitor().moveToTrash(path));
     verify(volMgr);
   }
 
@@ -126,15 +130,16 @@ public class SimpleGarbageCollectorTest {
     Path path = createMock(Path.class);
     expect(volMgr.moveToTrash(path)).andThrow(new FileNotFoundException());
     replay(volMgr);
-    assertFalse(gc.moveToTrash(path));
+    assertFalse(gc.getFileJanitor().moveToTrash(path));
     verify(volMgr);
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void testMoveToTrash_NotUsingTrash() throws Exception {
     systemConfig.set(Property.GC_TRASH_IGNORE.getKey(), "true");
     Path path = createMock(Path.class);
-    assertFalse(gc.moveToTrash(path));
+    assertFalse(gc.getFileJanitor().moveToTrash(path));
   }
 
   @Test

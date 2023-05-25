@@ -108,8 +108,10 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(fs.deleteRecursively(path)).andReturn(true).once();
     marker.removeWalMarker(server1, id);
     EasyMock.expectLastCall().once();
-    EasyMock.replay(context, fs, marker, tserverSet);
-    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
+    FileJanitor janitor = EasyMock.createMock(FileJanitor.class);
+    EasyMock.expect(janitor.moveToTrash(EasyMock.anyObject(Path.class))).andReturn(false);
+    EasyMock.replay(context, fs, marker, tserverSet, janitor);
+    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, janitor,
         tserverSet, marker, tabletOnServer1List) {
       @Override
       @Deprecated
@@ -141,8 +143,10 @@ public class GarbageCollectWriteAheadLogsTest {
 
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
     EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<>(WalState.CLOSED, path));
-    EasyMock.replay(context, marker, tserverSet, fs);
-    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
+    FileJanitor janitor = EasyMock.createMock(FileJanitor.class);
+    EasyMock.expect(janitor.moveToTrash(EasyMock.anyObject(Path.class))).andReturn(false);
+    EasyMock.replay(context, marker, tserverSet, fs, janitor);
+    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, janitor,
         tserverSet, marker, tabletOnServer1List) {
       @Override
       @Deprecated
@@ -195,8 +199,10 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expectLastCall().once();
     marker.forget(server2);
     EasyMock.expectLastCall().once();
-    EasyMock.replay(context, fs, marker, tserverSet, rscanner, mscanner);
-    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
+    FileJanitor janitor = EasyMock.createMock(FileJanitor.class);
+    EasyMock.expect(janitor.moveToTrash(EasyMock.anyObject(Path.class))).andReturn(false);
+    EasyMock.replay(context, fs, marker, tserverSet, rscanner, mscanner, janitor);
+    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, janitor,
         tserverSet, marker, tabletOnServer1List) {
       @Override
       protected Map<UUID,Path> getSortedWALogs() {
@@ -238,8 +244,10 @@ public class GarbageCollectWriteAheadLogsTest {
     mscanner.setRange(ReplicationSection.getRange());
     EasyMock.expectLastCall().once();
     EasyMock.expect(mscanner.iterator()).andReturn(emptyKV);
-    EasyMock.replay(context, fs, marker, tserverSet, rscanner, mscanner);
-    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
+    FileJanitor janitor = EasyMock.createMock(FileJanitor.class);
+    EasyMock.expect(janitor.moveToTrash(EasyMock.anyObject(Path.class))).andReturn(false);
+    EasyMock.replay(context, fs, marker, tserverSet, rscanner, mscanner, janitor);
+    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, janitor,
         tserverSet, marker, tabletOnServer2List) {
       @Override
       protected Map<UUID,Path> getSortedWALogs() {
@@ -286,8 +294,10 @@ public class GarbageCollectWriteAheadLogsTest {
     mscanner.setRange(ReplicationSection.getRange());
     EasyMock.expectLastCall().once();
     EasyMock.expect(mscanner.iterator()).andReturn(replicationWork.entrySet().iterator());
-    EasyMock.replay(context, fs, marker, tserverSet, rscanner, mscanner);
-    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
+    FileJanitor janitor = EasyMock.createMock(FileJanitor.class);
+    EasyMock.expect(janitor.moveToTrash(EasyMock.anyObject(Path.class))).andReturn(false);
+    EasyMock.replay(context, fs, marker, tserverSet, rscanner, mscanner, janitor);
+    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, janitor,
         tserverSet, marker, tabletOnServer1List) {
       @Override
       protected Map<UUID,Path> getSortedWALogs() {

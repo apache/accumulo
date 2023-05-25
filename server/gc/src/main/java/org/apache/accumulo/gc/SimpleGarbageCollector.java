@@ -20,8 +20,6 @@ package org.apache.accumulo.gc;
 
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -58,10 +56,11 @@ import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
-import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
@@ -78,6 +77,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
+  private final FileJanitor janitor;
 
   SimpleGarbageCollector(ServerOpts opts, String[] args) {
     super("gc", opts, args);
@@ -87,12 +87,15 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     final long gcDelay = conf.getTimeInMillis(Property.GC_CYCLE_DELAY);
     final String useFullCompaction = conf.get(Property.GC_USE_FULL_COMPACTION);
 
+    janitor = new FileJanitor(getContext());
+
     log.info("start delay: {} milliseconds", getStartDelay());
     log.info("time delay: {} milliseconds", gcDelay);
     log.info("safemode: {}", inSafeMode());
     log.info("candidate batch size: {} bytes", getCandidateBatchSize());
     log.info("delete threads: {}", getNumDeleteThreads());
     log.info("gc post metadata action: {}", useFullCompaction);
+    log.info("move files to trash: {}", janitor.isUsingTrash().name());
   }
 
   public static void main(String[] args) throws Exception {
@@ -108,15 +111,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
    */
   long getStartDelay() {
     return getConfiguration().getTimeInMillis(Property.GC_CYCLE_START);
-  }
-
-  /**
-   * Checks if the volume manager should move files to the trash rather than delete them.
-   *
-   * @return true if trash is used
-   */
-  boolean isUsingTrash() {
-    return !getConfiguration().getBoolean(Property.GC_TRASH_IGNORE);
   }
 
   /**
@@ -204,9 +198,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             System.gc(); // make room
 
             status.current.started = System.currentTimeMillis();
-            var rootGC = new GCRun(DataLevel.ROOT, getContext());
-            var mdGC = new GCRun(DataLevel.METADATA, getContext());
-            var userGC = new GCRun(DataLevel.USER, getContext());
+            var rootGC = new GCRun(DataLevel.ROOT, getContext(), janitor);
+            var mdGC = new GCRun(DataLevel.METADATA, getContext(), janitor);
+            var userGC = new GCRun(DataLevel.USER, getContext(), janitor);
 
             log.info("Starting Root table Garbage Collection.");
             status.current.bulks += new GarbageCollectionAlgorithm().collect(rootGC);
@@ -259,7 +253,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           Span walSpan = TraceUtil.startSpan(this.getClass(), "walogs");
           try (Scope walScope = walSpan.makeCurrent()) {
             GarbageCollectWriteAheadLogs walogCollector =
-                new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet, isUsingTrash());
+                new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet, janitor);
             log.info("Beginning garbage collection of write-ahead logs");
             walogCollector.collect(status);
             gcCycleMetrics.setLastWalCollect(status.lastLog);
@@ -343,26 +337,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     log.info("Number of bulk imports in progress: {}", status.current.bulks);
   }
 
-  /**
-   * Moves a file to trash. If this garbage collector is not using trash, this method returns false
-   * and leaves the file alone. If the file is missing, this method returns false as opposed to
-   * throwing an exception.
-   *
-   * @return true if the file was moved to trash
-   * @throws IOException if the volume manager encountered a problem
-   */
-  boolean moveToTrash(Path path) throws IOException {
-    final VolumeManager fs = getContext().getVolumeManager();
-    if (!isUsingTrash()) {
-      return false;
-    }
-    try {
-      return fs.moveToTrash(path);
-    } catch (FileNotFoundException ex) {
-      return false;
-    }
-  }
-
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
     var path = ServiceLock.path(getContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
 
@@ -434,6 +408,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   public GcCycleMetrics getGcCycleMetrics() {
     return gcCycleMetrics;
+  }
+
+  @VisibleForTesting
+  public FileJanitor getFileJanitor() {
+    return this.janitor;
   }
 
 }

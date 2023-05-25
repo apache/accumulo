@@ -90,16 +90,18 @@ public class GCRun implements GarbageCollectionEnvironment {
   private final Ample.DataLevel level;
   private final ServerContext context;
   private final AccumuloConfiguration config;
+  private final FileJanitor janitor;
   private long candidates = 0;
   private long inUse = 0;
   private long deleted = 0;
   private long errors = 0;
 
-  public GCRun(Ample.DataLevel level, ServerContext context) {
+  public GCRun(Ample.DataLevel level, ServerContext context, FileJanitor janitor) {
     this.log = LoggerFactory.getLogger(level.name() + GCRun.class);
     this.level = level;
     this.context = context;
     this.config = context.getConfiguration();
+    this.janitor = janitor;
   }
 
   @Override
@@ -274,7 +276,7 @@ public class GCRun implements GarbageCollectionEnvironment {
           for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
             log.debug("Deleting {}", pathToDel);
 
-            if (moveToTrash(pathToDel) || fs.deleteRecursively(pathToDel)) {
+            if (janitor.moveToTrash(pathToDel) || fs.deleteRecursively(pathToDel)) {
               // delete succeeded, still want to delete
               removeFlag = true;
               deleted++;
@@ -348,7 +350,7 @@ public class GCRun implements GarbageCollectionEnvironment {
       if (tabletDirs.length == 0) {
         Path p = new Path(dir + "/" + tableID);
         log.debug("Removing table dir {}", p);
-        if (!moveToTrash(p)) {
+        if (!janitor.moveToTrash(p)) {
           fs.delete(p);
         }
       }
@@ -450,35 +452,6 @@ public class GCRun implements GarbageCollectionEnvironment {
    */
   boolean inSafeMode() {
     return context.getConfiguration().getBoolean(Property.GC_SAFEMODE);
-  }
-
-  /**
-   * Moves a file to trash. If this garbage collector is not using trash, this method returns false
-   * and leaves the file alone. If the file is missing, this method returns false as opposed to
-   * throwing an exception.
-   *
-   * @return true if the file was moved to trash
-   * @throws IOException if the volume manager encountered a problem
-   */
-  boolean moveToTrash(Path path) throws IOException {
-    final VolumeManager fs = context.getVolumeManager();
-    if (!isUsingTrash()) {
-      return false;
-    }
-    try {
-      return fs.moveToTrash(path);
-    } catch (FileNotFoundException ex) {
-      return false;
-    }
-  }
-
-  /**
-   * Checks if the volume manager should move files to the trash rather than delete them.
-   *
-   * @return true if trash is used
-   */
-  boolean isUsingTrash() {
-    return !config.getBoolean(Property.GC_TRASH_IGNORE);
   }
 
   /**

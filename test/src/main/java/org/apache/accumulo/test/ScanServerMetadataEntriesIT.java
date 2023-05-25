@@ -53,6 +53,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.gc.FileJanitor;
 import org.apache.accumulo.gc.GCRun;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -209,7 +210,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
   public void testGcRunScanServerReferences() throws Exception {
 
     ServerContext ctx = getCluster().getServerContext();
-    GCRun gc = new GCRun(DataLevel.USER, ctx);
+    GCRun gc = new GCRun(DataLevel.USER, ctx, new FileJanitor(ctx));
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
 
