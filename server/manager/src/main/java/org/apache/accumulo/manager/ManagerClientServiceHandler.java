@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.DelegationTokenConfigSerializer;
@@ -67,6 +68,8 @@ import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -74,6 +77,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -89,13 +93,22 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Weigher;
+
 public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   private static final Logger log = Manager.log;
   private final Manager manager;
 
+  private final Cache<KeyExtent,Long> recentHostingRequest;
+
   protected ManagerClientServiceHandler(Manager manager) {
     this.manager = manager;
+    Weigher<KeyExtent,Long> weigher = (extent, t) -> Splitter.weigh(extent) + 8;
+    this.recentHostingRequest = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES)
+        .maximumWeight(10_000_000L).weigher(weigher).build();
   }
 
   @Override
@@ -617,6 +630,52 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     } catch (Exception e) {
       throw new TException(e.getMessage());
     }
+  }
+
+  @Override
+  public void requestTabletHosting(TInfo tinfo, TCredentials credentials, String tableIdStr,
+      List<TKeyExtent> extents) throws ThriftSecurityException, ThriftTableOperationException {
+
+    final TableId tableId = TableId.of(tableIdStr);
+    NamespaceId namespaceId = getNamespaceIdFromTableId(null, tableId);
+    if (!manager.security.canScan(credentials, tableId, namespaceId)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    manager.mustBeOnline(tableId);
+
+    log.info("Tablet hosting requested for: {} ", extents);
+    final Ample ample = manager.getContext().getAmple();
+    try (var mutator = ample.conditionallyMutateTablets()) {
+      extents.forEach(e -> {
+        KeyExtent ke = KeyExtent.fromThrift(e);
+        if (recentHostingRequest.getIfPresent(ke) == null) {
+          mutator.mutateTablet(ke).requireAbsentOperation()
+              .requireHostingGoal(TabletHostingGoal.ONDEMAND).requireAbsentLocation()
+              .requirePrevEndRow(ke.prevEndRow()).setHostingRequested()
+              .submit(TabletMetadata::getHostingRequested);
+        } else {
+          log.trace("Ignoring hosting request because it was recently requested {}", ke);
+        }
+      });
+
+      mutator.process().forEach((extent, result) -> {
+        if (result.getStatus() == Status.ACCEPTED) {
+          // cache this success for a bit
+          recentHostingRequest.put(extent, System.currentTimeMillis());
+        } else {
+          if (log.isTraceEnabled()) {
+            // only read the metdata if the logging is enabled
+            log.trace("Failed to set hosting request {}", result.readMetadata());
+          }
+        }
+      });
+    }
+
+    // this will kick the tablet group watcher into action
+    manager.getEventCoordinator().event("Tablet hosting requested tableId:%s extents:%d", tableId,
+        extents.size());
   }
 
   protected TableId getTableId(ClientContext context, String tableName)
