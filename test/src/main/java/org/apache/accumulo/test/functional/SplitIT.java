@@ -264,10 +264,17 @@ public class SplitIT extends AccumuloClusterHarness {
       }
       es.shutdown();
 
-      final int expectedSplitCount = totalSplits.size();
-      final int actualSplitCount = c.tableOperations().listSplits(tableName).size();
+      log.debug("Checking that {} splits were created ", totalSplits.size());
 
-      assertEquals(expectedSplitCount, actualSplitCount, "Did not see expected number of splits");
+      assertEquals(totalSplits, new HashSet<>(c.tableOperations().listSplits(tableName)),
+          "Did not see expected splits");
+
+      // ELASTICITY_TODO the following could be removed after #3309. Currently scanning an ondemand
+      // table with lots of tablets will cause the test to timeout.
+      c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
+
+      log.debug("Verifying {} rows ingested into {}", numRows, tableName);
+      VerifyIngest.verifyIngest(c, params);
     }
   }
 
