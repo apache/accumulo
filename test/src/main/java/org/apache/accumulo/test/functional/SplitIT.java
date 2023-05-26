@@ -20,16 +20,20 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -50,6 +54,7 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -154,7 +159,7 @@ public class SplitIT extends AccumuloClusterHarness {
         }
 
         assertTrue(shortened > 0, "Shortened should be greater than zero: " + shortened);
-        assertTrue(count > 10, "Count should be cgreater than 10: " + count);
+        assertTrue(count > 10, "Count should be greater than 10: " + count);
       }
 
       assertEquals(0, getCluster().getClusterControl().exec(CheckForMetadataProblems.class,
@@ -205,4 +210,36 @@ public class SplitIT extends AccumuloClusterHarness {
     }
   }
 
+  @Test
+  public void testLargeSplit() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName, new NewTableConfiguration()
+          .setProperties(Map.of(Property.TABLE_MAX_END_ROW_SIZE.getKey(), "10K")));
+
+      byte[] okSplit = new byte[4096];
+      for (int i = 0; i < okSplit.length; i++) {
+        okSplit[i] = (byte) (i % 256);
+      }
+
+      var splits1 = new TreeSet<Text>(List.of(new Text(okSplit)));
+
+      c.tableOperations().addSplits(tableName, splits1);
+
+      assertEquals(splits1, new TreeSet<>(c.tableOperations().listSplits(tableName)));
+
+      byte[] bigSplit = new byte[4096 * 4];
+      for (int i = 0; i < bigSplit.length; i++) {
+        bigSplit[i] = (byte) (i % 256);
+      }
+
+      var splits2 = new TreeSet<Text>(List.of(new Text(bigSplit)));
+      // split should fail because it exceeds the configured max split size
+      assertThrows(AccumuloException.class,
+          () -> c.tableOperations().addSplits(tableName, splits2));
+
+      // ensure the large split is not there
+      assertEquals(splits1, new TreeSet<>(c.tableOperations().listSplits(tableName)));
+    }
+  }
 }
