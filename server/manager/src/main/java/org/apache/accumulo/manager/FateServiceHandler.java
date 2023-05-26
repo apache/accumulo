@@ -740,6 +740,23 @@ class FateServiceHandler implements FateService.Iface {
             .map(ByteBufferUtil::toText).collect(Collectors.toCollection(TreeSet::new));
 
         KeyExtent extent = new KeyExtent(tableId, endRow, prevEndRow);
+
+        if (splits.stream()
+            .anyMatch(split -> !extent.contains(split) || split.equals(extent.endRow()))) {
+          throw new ThriftTableOperationException(tableId.canonical(), null, tableOp,
+              TableOperationExceptionType.OTHER,
+              "Split is outside bounds of tablet or equal to the tablets endrow");
+        }
+
+        var maxSplitSize = manager.getContext().getTableConfiguration(tableId)
+            .getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
+
+        if (splits.stream().anyMatch(split -> split.getLength() > maxSplitSize)) {
+          throw new ThriftTableOperationException(tableId.canonical(), null, tableOp,
+              TableOperationExceptionType.OTHER,
+              "Length of requested split exceeds tables configured max.");
+        }
+
         manager.requestUnassignment(extent, opid);
 
         goalMessage = "Splitting " + extent + " for user into " + (splits.size() + 1) + " tablets";
