@@ -43,6 +43,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -75,6 +76,7 @@ import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.core.volume.Volume;
@@ -741,20 +743,32 @@ class FateServiceHandler implements FateService.Iface {
 
         KeyExtent extent = new KeyExtent(tableId, endRow, prevEndRow);
 
-        if (splits.stream()
-            .anyMatch(split -> !extent.contains(split) || split.equals(extent.endRow()))) {
+        Predicate<Text> outOfBoundsTest =
+            split -> !extent.contains(split) || split.equals(extent.endRow());
+
+        if (splits.stream().anyMatch(outOfBoundsTest)) {
+          splits.stream().filter(outOfBoundsTest).forEach(split -> log
+              .warn("split for {} is out of bounds : {}", extent, TextUtil.truncate(split)));
+
           throw new ThriftTableOperationException(tableId.canonical(), null, tableOp,
               TableOperationExceptionType.OTHER,
-              "Split is outside bounds of tablet or equal to the tablets endrow");
+              "Split is outside bounds of tablet or equal to the tablets endrow, see warning in logs for more information.");
         }
 
         var maxSplitSize = manager.getContext().getTableConfiguration(tableId)
             .getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
 
-        if (splits.stream().anyMatch(split -> split.getLength() > maxSplitSize)) {
+        Predicate<Text> oversizedTest = split -> split.getLength() > maxSplitSize;
+
+        if (splits.stream().anyMatch(oversizedTest)) {
+          splits.stream().filter(oversizedTest)
+              .forEach(split -> log.warn(
+                  "split exceeds max configured split size len:{}  max:{} extent:{} split:{}",
+                  split.getLength(), maxSplitSize, extent, TextUtil.truncate(split)));
+
           throw new ThriftTableOperationException(tableId.canonical(), null, tableOp,
               TableOperationExceptionType.OTHER,
-              "Length of requested split exceeds tables configured max.");
+              "Length of requested split exceeds tables configured max, see warning in logs for more information.");
         }
 
         manager.requestUnassignment(extent, opid);
