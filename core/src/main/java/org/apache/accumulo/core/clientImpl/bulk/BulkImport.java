@@ -278,8 +278,6 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     Text row = new Text();
 
-    List<KeyExtent> sortedKeyExtents = new ArrayList<>(counts.keySet());
-
     try (FileSKVIterator index =
         FileOperations.getInstance().newIndexReaderBuilder().forFile(dataFile, ns, ns.getConf(), cs)
             .withTableConfiguration(acuConf).withFileLenCache(fileLenCache).build()) {
@@ -288,19 +286,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         totalIndexEntries++;
         key.getRow(row);
 
-        int start = 0, end = sortedKeyExtents.size() - 1;
-        while (start <= end) {
-          int mid = start + (end - start) / 2;
-          KeyExtent midKeyExtent = sortedKeyExtents.get(mid);
-
-          if (midKeyExtent.contains(row)) {
-            counts.get(midKeyExtent).l++;
-            break;
-          } else if (midKeyExtent.prevEndRow() != null
-              && midKeyExtent.prevEndRow().compareTo(row) > 0) {
-            end = mid - 1;
-          } else {
-            start = mid + 1;
+        for (Entry<KeyExtent,MLong> entry : counts.entrySet()) {
+          if (entry.getKey().contains(row)) {
+            entry.getValue().l++;
           }
         }
 
