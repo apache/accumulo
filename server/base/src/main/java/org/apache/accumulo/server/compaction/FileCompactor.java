@@ -192,7 +192,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   protected String getOutputFile() {
-    return outputFile.toString();
+    return outputFile.getMetaInsert();
   }
 
   protected Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuTableConf)

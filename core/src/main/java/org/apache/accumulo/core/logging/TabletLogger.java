@@ -140,7 +140,7 @@ public class TabletLogger {
     }
   }
 
-  public static void compacted(KeyExtent extent, CompactionJob job, AbstractTabletFile<?> output) {
+  public static void compacted(KeyExtent extent, CompactionJob job, StoredTabletFile output) {
     fileLog.debug("Compacted {} for {} created {} from {}", extent, job.getKind(), output,
         asFileNames(job.getFiles()));
   }
