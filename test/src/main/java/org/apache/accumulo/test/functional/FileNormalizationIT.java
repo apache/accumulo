@@ -92,8 +92,7 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
       HashSet<String> paths = new HashSet<>();
 
       // uncomment verify and test will hang here because tablet server dies w/ uncaught exception
-      // in
-      // AssignmentHandler
+      // in AssignmentHandler
       //
       // VerifyIngest.verifyIngest(client, params);
 
@@ -144,7 +143,7 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
 
         assertEquals(1, filenames.size());
 
-        System.out.println(filenames);
+        VerifyIngest.verifyIngest(client, params);
       }
     }
   }
@@ -198,6 +197,8 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
 
       assertEquals(0, client.tableOperations().listSplits(table).size());
       assertEquals(filesBeforeMerge, filesAfterMerge);
+
+      VerifyIngest.verifyIngest(client, params);
     }
   }
 
