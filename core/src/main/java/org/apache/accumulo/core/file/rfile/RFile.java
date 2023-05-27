@@ -1674,7 +1674,7 @@ public class RFile {
       // of the range
       if (fence.getStartKey() != null) {
 
-        while (source.hasTop() && source.getTopKey().compareTo(fence.getStartKey()) <= 0) {
+        while (source.hasTop() &&  fence.beforeStartKey(source.getTopKey())) {
           try {
             source.next();
           } catch (IOException e) {
@@ -1684,12 +1684,7 @@ public class RFile {
       }
 
       // If endKey is set then ensure that the current key is not passed the end of the range
-      if (fence.getEndKey() != null) {
-        return source.hasTop() && source.getTopKey().compareTo(fence.getEndKey()) <= 0;
-      }
-
-      // If neither start/end is set then just delegate to the normal hasTop() method
-      return source.hasTop();
+      return source.hasTop() && !fence.afterEndKey(source.getTopKey());
     }
 
     @Override
