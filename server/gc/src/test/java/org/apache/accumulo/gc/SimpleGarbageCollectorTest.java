@@ -65,6 +65,8 @@ public class SimpleGarbageCollectorTest {
   private SimpleGarbageCollector gc;
   private ConfigurationCopy systemConfig;
   private static SiteConfiguration siteConfig = SiteConfiguration.empty().build();
+  @SuppressWarnings("removal")
+  private final Property p = Property.GC_TRASH_IGNORE;
 
   @BeforeEach
   public void setUp() {
@@ -97,7 +99,7 @@ public class SimpleGarbageCollectorTest {
     conf.put(Property.GC_CYCLE_START.getKey(), "1");
     conf.put(Property.GC_CYCLE_DELAY.getKey(), "20");
     conf.put(Property.GC_DELETE_THREADS.getKey(), "2");
-    conf.put(Property.GC_TRASH_IGNORE.getKey(), "false");
+    conf.put(p.getKey(), "false");
 
     return new ConfigurationCopy(conf);
   }
@@ -132,7 +134,7 @@ public class SimpleGarbageCollectorTest {
 
   @Test
   public void testMoveToTrash_NotUsingTrash() throws Exception {
-    systemConfig.set(Property.GC_TRASH_IGNORE.getKey(), "true");
+    systemConfig.set(p.getKey(), "true");
     Path path = createMock(Path.class);
     assertFalse(gc.moveToTrash(path));
   }

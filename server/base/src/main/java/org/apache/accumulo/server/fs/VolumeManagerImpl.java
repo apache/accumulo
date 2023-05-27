@@ -49,6 +49,7 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -354,7 +355,10 @@ public class VolumeManagerImpl implements VolumeManager {
   @Override
   public boolean moveToTrash(Path path) throws IOException {
     FileSystem fs = getFileSystemByPath(path);
+    log.trace("fs.trash.interval: {}",
+        fs.getConf().get(CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY));
     Trash trash = new Trash(fs, fs.getConf());
+    log.trace("Hadoop Trash is enabled: {}", trash.isEnabled());
     return trash.moveToTrash(path);
   }
 
