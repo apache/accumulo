@@ -1674,7 +1674,7 @@ public class RFile {
       // of the range
       if (fence.getStartKey() != null) {
 
-        while (source.hasTop() &&  fence.beforeStartKey(source.getTopKey())) {
+        while (source.hasTop() && fence.beforeStartKey(source.getTopKey())) {
           try {
             source.next();
           } catch (IOException e) {
