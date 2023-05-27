@@ -442,6 +442,6 @@ service ManagerClientService {
     4:list<data.TKeyExtent> extents
   ) throws (
     1:client.ThriftSecurityException sec
-    1:client.ThriftTableOperationException toe
+    2:client.ThriftTableOperationException toe
   )
 }
