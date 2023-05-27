@@ -16,22 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util.ratelimit;
+package org.apache.accumulo.core.spi.common;
 
 /**
- * A rate limiter which doesn't actually limit rates at all.
+ * The environment provided to the context class loader factory for its use
+ *
+ * @since 2.1.1
  */
-public class NullRateLimiter implements RateLimiter {
-  public static final NullRateLimiter INSTANCE = new NullRateLimiter();
+public interface ContextClassLoaderEnvironment {
 
-  private NullRateLimiter() {}
-
-  @Override
-  public long getRate() {
-    return 0;
-  }
-
-  @Override
-  public void acquire(long numPermits) {}
-
+  /**
+   * Get the service environment configuration
+   *
+   * @return The configuration
+   */
+  ServiceEnvironment.Configuration getConfiguration();
 }

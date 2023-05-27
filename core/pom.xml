@@ -334,9 +334,8 @@
             </goals>
             <phase>prepare-package</phase>
             <configuration>
-              <executable>mkdir</executable>
+              <executable>${basedir}/src/main/scripts/mkdirs.sh</executable>
               <arguments>
-                <argument>-p</argument>
                 <argument>${project.build.directory}/generated-docs</argument>
               </arguments>
             </configuration>
