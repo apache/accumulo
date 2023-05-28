@@ -76,7 +76,7 @@ public class ExternalCompactionJob {
 
     List<InputFile> files = jobFiles.entrySet().stream().map(e -> {
       var dfv = e.getValue();
-      return new InputFile(e.getKey().getNormalizedPathStr(), dfv.getSize(), dfv.getNumEntries(),
+      return new InputFile(e.getKey().getMetadata(), dfv.getSize(), dfv.getNumEntries(),
           dfv.getTime());
     }).collect(Collectors.toList());
 

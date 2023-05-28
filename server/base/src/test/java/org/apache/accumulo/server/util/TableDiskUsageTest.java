@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -268,8 +269,8 @@ public class TableDiskUsageTest {
 
   private static Long getTotalUsage(Map<SortedSet<String>,Long> result, TableId tableId) {
     return result.entrySet().stream()
-        .filter(entry -> entry.getKey().contains(getTableName(tableId)))
-        .mapToLong(entry -> entry.getValue()).sum();
+        .filter(entry -> entry.getKey().contains(getTableName(tableId))).mapToLong(Entry::getValue)
+        .sum();
   }
 
   private static String getTableName(TableId tableId) {
@@ -280,7 +281,7 @@ public class TableDiskUsageTest {
       long size) {
     tableEntries.put(
         new Key(new Text(file.getTableId() + "<"),
-            MetadataSchema.TabletsSection.DataFileColumnFamily.NAME, file.getMetaInsertText()),
+            MetadataSchema.TabletsSection.DataFileColumnFamily.NAME, file.getMetadataText()),
         new DataFileValue(size, 1).encodeAsValue());
   }
 

@@ -40,7 +40,7 @@ public class ValidationUtil {
   }
 
   public static ReferenceFile validate(ReferenceFile reference) {
-    validate(new Path(reference.getMetadataEntry()));
+    validate(new Path(reference.getMetadataPath()));
     return reference;
   }
 

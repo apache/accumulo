@@ -26,6 +26,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 
 /**
  * A file that is not intended to be added to a tablet as a reference, within the scope of the code
@@ -75,6 +76,21 @@ public class UnreferencedTabletFile extends AbstractTabletFile<UnreferencedTable
   @Override
   public String toString() {
     return path.toString();
+  }
+
+  @Override
+  public String getMetadataPath() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public String getMetadata() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public Text getMetadataText() {
+    throw new UnsupportedOperationException();
   }
 
   public static UnreferencedTabletFile of(FileSystem fs, File file) {

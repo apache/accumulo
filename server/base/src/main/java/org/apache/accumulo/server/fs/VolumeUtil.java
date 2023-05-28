@@ -162,7 +162,7 @@ public class VolumeUtil {
     }
 
     for (Entry<StoredTabletFile,DataFileValue> entry : tabletFiles.datafiles.entrySet()) {
-      String metaPath = entry.getKey().getMetaUpdateDelete();
+      String metaPath = entry.getKey().getMetadata();
       Path switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
       if (switchedPath != null) {
         filesToRemove.add(entry.getKey());

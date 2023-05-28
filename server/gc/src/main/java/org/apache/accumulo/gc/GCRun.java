@@ -156,7 +156,7 @@ public class GCRun implements GarbageCollectionEnvironment {
       // combine all the entries read from file and scan columns in the metadata table
       var fileStream = Stream.concat(tm.getFiles().stream(), tm.getScans().stream());
       // map the files to Reference objects
-      var stream = fileStream.map(f -> new ReferenceFile(tm.getTableId(), f.getMetaUpdateDelete()));
+      var stream = fileStream.map(f -> new ReferenceFile(tm.getTableId(), f));
       // if dirName is populated then we have a tablet directory aka srv:dir
       if (tm.getDirName() != null) {
         // add the tablet directory to the stream
@@ -167,7 +167,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     });
 
     var scanServerRefs = context.getAmple().getScanServerFileReferences()
-        .map(sfr -> new ReferenceFile(sfr.getTableId(), sfr.getNormalizedPathStr()));
+        .map(sfr -> new ReferenceFile(sfr.getTableId(), sfr));
 
     return Stream.concat(tabletReferences, scanServerRefs);
   }

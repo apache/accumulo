@@ -107,22 +107,29 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
   /**
    * Return a string for inserting a new tablet file.
    */
-  public String getMetaInsert() {
-    return normalizedPath;
+  @Override
+  public String getMetadata() {
+    return insert().getMetadata();
+  }
+
+  @Override
+  public String getMetadataPath() {
+    return insert().getMetadataPath();
   }
 
   /**
-   * Return a new Text object of {@link #getMetaInsert()}
+   * Return a new Text object of {@link #getMetadata()}
    */
-  public Text getMetaInsertText() {
-    return new Text(getMetaInsert());
+  @Override
+  public Text getMetadataText() {
+    return insert().getMetadataText();
   }
 
   /**
    * New file was written to metadata so return a StoredTabletFile
    */
   public StoredTabletFile insert() {
-    return new StoredTabletFile(normalizedPath);
+    return new StoredTabletFile(new TabletFileCq(getPath().toString(), getRange()));
   }
 
   @Override

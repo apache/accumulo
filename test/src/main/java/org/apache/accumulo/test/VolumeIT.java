@@ -300,7 +300,7 @@ public class VolumeIT extends ConfigurableMacBase {
         String path = entry.getKey().getColumnQualifier().toString();
 
         for (int i = 0; i < paths.length; i++) {
-          if (path.startsWith(paths[i].toString())) {
+          if (path.contains(paths[i].toString())) {
             counts[i]++;
             continue outer;
           }
@@ -373,7 +373,7 @@ public class VolumeIT extends ConfigurableMacBase {
       int count = 0;
       for (StoredTabletFile file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
           .getFiles()) {
-        assertTrue(file.getMetaUpdateDelete().startsWith(v2.toString()));
+        assertTrue(file.getMetadataPath().startsWith(v2.toString()));
         count++;
       }
 
@@ -442,8 +442,8 @@ public class VolumeIT extends ConfigurableMacBase {
     int count = 0;
     for (StoredTabletFile file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
         .getFiles()) {
-      assertTrue(file.getMetaUpdateDelete().startsWith(v8.toString())
-          || file.getMetaUpdateDelete().startsWith(v9.toString()));
+      assertTrue(file.getMetadataPath().startsWith(v8.toString())
+          || file.getMetadataPath().startsWith(v9.toString()));
       count++;
     }
 

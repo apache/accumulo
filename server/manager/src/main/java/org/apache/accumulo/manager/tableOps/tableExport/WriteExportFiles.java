@@ -50,6 +50,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -237,7 +238,12 @@ class WriteExportFiles extends ManagerRepo {
       entry.getValue().write(dataOut);
 
       if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-        String path = ValidationUtil.validate(entry.getKey().getColumnQualifierData().toString());
+        // TODO: Need to fix this, using the path and not the full metadata causes imports to break
+        // and ShellServerIT#exporttableImporttable() to fail. We should use the full metadata but
+        // then
+        // there are other areas that need fixing to account for this
+        String path = ValidationUtil.validate(StoredTabletFile
+            .of(entry.getKey().getColumnQualifierData().toString()).getMetadataPath());
         String[] tokens = path.split("/");
         if (tokens.length < 1) {
           throw new RuntimeException("Illegal path " + path);

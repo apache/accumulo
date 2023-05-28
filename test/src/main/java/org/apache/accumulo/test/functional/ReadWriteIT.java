@@ -77,6 +77,7 @@ import org.apache.accumulo.core.file.rfile.PrintInfo;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.MonitorUtil;
@@ -391,7 +392,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         try (PrintStream newOut = new PrintStream(baos)) {
           System.setOut(newOut);
           List<String> args = new ArrayList<>();
-          args.add(entry.getKey().getColumnQualifier().toString());
+          args.add(StoredTabletFile.of(entry.getKey().getColumnQualifier().toString())
+              .getMetadataPath());
           args.add("--props");
           args.add(getCluster().getAccumuloPropertiesPath());
           if (getClusterType() == ClusterType.STANDALONE && saslEnabled()) {

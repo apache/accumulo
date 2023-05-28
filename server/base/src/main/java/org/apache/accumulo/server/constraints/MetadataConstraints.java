@@ -37,6 +37,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -241,7 +242,9 @@ public class MetadataConstraints implements Constraint {
                 .equals(CurrentLocationColumnFamily.NAME)) {
               isLocationMutation = true;
             } else if (new Text(update.getColumnFamily()).equals(DataFileColumnFamily.NAME)) {
-              dataFiles.add(new Text(update.getColumnQualifier()));
+              // Todo: should this be just the path or full metadata entry?
+              dataFiles.add(new Text(StoredTabletFile
+                  .of(new String(update.getColumnQualifier(), UTF_8)).getMetadataPath()));
             } else if (new Text(update.getColumnFamily()).equals(BulkFileColumnFamily.NAME)) {
               loadedFiles.add(new Text(update.getColumnQualifier()));
 

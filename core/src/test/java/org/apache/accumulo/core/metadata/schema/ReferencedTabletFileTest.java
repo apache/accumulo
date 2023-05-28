@@ -20,7 +20,11 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.URI;
+
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -28,13 +32,16 @@ import org.junit.jupiter.api.Test;
 
 public class ReferencedTabletFileTest {
 
-  private ReferencedTabletFile test(String metadataEntry, String volume, String tableId,
+  private ReferencedTabletFile test(String metadataFile, String volume, String tableId,
       String tabletDir, String fileName) {
-    StoredTabletFile storedTabletFile = new StoredTabletFile(metadataEntry);
+    String metadataPath = StoredTabletFile.serialize(metadataFile);
+    StoredTabletFile storedTabletFile = new StoredTabletFile(metadataPath);
     ReferencedTabletFile tabletFile = storedTabletFile.getTabletFile();
 
+    // Make sure original file name wasn't changed when serialized
+    assertTrue(metadataPath.contains(metadataFile));
     assertEquals(volume, tabletFile.getVolume());
-    assertEquals(metadataEntry, storedTabletFile.getMetaUpdateDelete());
+    assertEquals(metadataPath, storedTabletFile.getMetadata());
     assertEquals(TableId.of(tableId), tabletFile.getTableId());
     assertEquals(tabletDir, tabletFile.getTabletDir());
     assertEquals(fileName, tabletFile.getFileName());
@@ -102,9 +109,10 @@ public class ReferencedTabletFileTest {
     String metadataEntry = uglyVolume + "/tables/" + id + "/" + dir + "/" + filename;
     ReferencedTabletFile uglyFile =
         test(metadataEntry, "hdfs://nn.somewhere.com:86753/accumulo", id, dir, filename);
-    ReferencedTabletFile niceFile = StoredTabletFile
-        .of("hdfs://nn.somewhere.com:86753/accumulo/tables/" + id + "/" + dir + "/" + filename)
-        .getTabletFile();
+    ReferencedTabletFile niceFile = StoredTabletFile.of(
+        URI.create(
+            "hdfs://nn.somewhere.com:86753/accumulo/tables/" + id + "/" + dir + "/" + filename),
+        new Range()).getTabletFile();
     assertEquals(niceFile, uglyFile);
     assertEquals(niceFile.hashCode(), uglyFile.hashCode());
   }
