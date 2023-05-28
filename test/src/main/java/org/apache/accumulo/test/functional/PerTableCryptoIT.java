@@ -182,7 +182,7 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
           try (PrintStream newOut = new PrintStream(baos)) {
             System.setOut(newOut);
             List<String> args = new ArrayList<>();
-            args.add(f.getPathStr());
+            args.add(f.getNormalizedPathStr());
             args.add("--props");
             args.add(getCluster().getAccumuloPropertiesPath());
             if (getClusterType() == ClusterType.STANDALONE && saslEnabled()) {

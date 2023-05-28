@@ -571,6 +571,6 @@ public class FileUtil {
    * used will have irregular paths that don't conform to TabletFile verification.
    */
   public static Collection<String> toPathStrings(Collection<TabletFile> files) {
-    return files.stream().map(TabletFile::getPathStr).collect(Collectors.toList());
+    return files.stream().map(TabletFile::getNormalizedPathStr).collect(Collectors.toList());
   }
 }

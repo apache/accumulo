@@ -44,7 +44,7 @@ public class ScanServerRefTabletFile extends TabletFile {
   }
 
   public String getRowSuffix() {
-    return this.getPathStr();
+    return this.getNormalizedPathStr();
   }
 
   public Text getServerAddress() {

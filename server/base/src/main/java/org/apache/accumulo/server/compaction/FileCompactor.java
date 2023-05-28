@@ -344,7 +344,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         readers.add(reader);
 
         InterruptibleIterator iter = new ProblemReportingIterator(context, extent.tableId(),
-            dataFile.getPathStr(), false, reader);
+            dataFile.getNormalizedPathStr(), false, reader);
 
         iter = filesToCompact.get(dataFile).wrapFileIterator(iter);
 
@@ -352,8 +352,8 @@ public class FileCompactor implements Callable<CompactionStats> {
 
       } catch (Exception e) {
 
-        ProblemReports.getInstance(context).report(
-            new ProblemReport(extent.tableId(), ProblemType.FILE_READ, dataFile.getPathStr(), e));
+        ProblemReports.getInstance(context).report(new ProblemReport(extent.tableId(),
+            ProblemType.FILE_READ, dataFile.getNormalizedPathStr(), e));
 
         log.warn("Some problem opening data file {} {}", dataFile, e.getMessage(), e);
         // failed to open some data file... close the ones that were opened

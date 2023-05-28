@@ -182,7 +182,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           path = ns.makeQualified(path);
           newFileMap.put(new TabletFile(path), mapping.getValue());
         }
-        var files = newFileMap.keySet().stream().map(TabletFile::getPathStr).collect(toList());
+        var files =
+            newFileMap.keySet().stream().map(TabletFile::getNormalizedPathStr).collect(toList());
         server.updateBulkImportState(files, BulkImportState.INITIAL);
 
         Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));

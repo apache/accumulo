@@ -76,12 +76,12 @@ public class ExternalCompactionJob {
 
     List<InputFile> files = jobFiles.entrySet().stream().map(e -> {
       var dfv = e.getValue();
-      return new InputFile(e.getKey().getPathStr(), dfv.getSize(), dfv.getNumEntries(),
+      return new InputFile(e.getKey().getNormalizedPathStr(), dfv.getSize(), dfv.getNumEntries(),
           dfv.getTime());
     }).collect(Collectors.toList());
 
     return new TExternalCompactionJob(externalCompactionId.toString(), extent.toThrift(), files,
-        iteratorSettings, compactTmpName.getPathStr(), propagateDeletes,
+        iteratorSettings, compactTmpName.getNormalizedPathStr(), propagateDeletes,
         org.apache.accumulo.core.tabletserver.thrift.TCompactionKind.valueOf(kind.name()),
         userCompactionId, overrides);
   }

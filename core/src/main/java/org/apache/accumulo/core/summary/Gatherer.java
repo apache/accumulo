@@ -209,9 +209,8 @@ public class Gatherer {
 
         // When no location, the approach below will consistently choose the same tserver for the
         // same file (as long as the set of tservers is stable).
-        int idx = Math
-            .abs(Hashing.murmur3_32_fixed().hashString(entry.getKey().getPathStr(), UTF_8).asInt())
-            % tservers.size();
+        int idx = Math.abs(Hashing.murmur3_32_fixed()
+            .hashString(entry.getKey().getNormalizedPathStr(), UTF_8).asInt()) % tservers.size();
         location = tservers.get(idx);
       }
 
@@ -315,8 +314,8 @@ public class Gatherer {
 
           try {
             TSummaries tSums = client.startGetSummariesFromFiles(tinfo, ctx.rpcCreds(),
-                getRequest(), files.entrySet().stream().collect(
-                    Collectors.toMap(entry -> entry.getKey().getPathStr(), Entry::getValue)));
+                getRequest(), files.entrySet().stream().collect(Collectors
+                    .toMap(entry -> entry.getKey().getNormalizedPathStr(), Entry::getValue)));
             while (!tSums.finished && !cancelFlag.get()) {
               tSums = client.contiuneGetSummaries(tinfo, tSums.sessionId);
             }
@@ -351,8 +350,8 @@ public class Gatherer {
     PartitionFuture(TInfo tinfo, ExecutorService execSrv, int modulus, int remainder) {
       Function<ProcessedFiles,CompletableFuture<ProcessedFiles>> go = previousWork -> {
         Predicate<StoredTabletFile> fileSelector = file -> Math
-            .abs(Hashing.murmur3_32_fixed().hashString(file.getPathStr(), UTF_8).asInt()) % modulus
-            == remainder;
+            .abs(Hashing.murmur3_32_fixed().hashString(file.getNormalizedPathStr(), UTF_8).asInt())
+            % modulus == remainder;
         if (previousWork != null) {
           fileSelector = fileSelector.and(previousWork.failedFiles::contains);
         }

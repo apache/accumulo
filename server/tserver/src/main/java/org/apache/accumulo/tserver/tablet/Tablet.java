@@ -328,7 +328,7 @@ public class Tablet extends TabletBase {
       try {
         Set<String> absPaths = new HashSet<>();
         for (StoredTabletFile ref : datafiles.keySet()) {
-          absPaths.add(ref.getPathStr());
+          absPaths.add(ref.getNormalizedPathStr());
         }
 
         tabletServer.recover(this.getTabletServer().getVolumeManager(), extent, logEntries,
@@ -1664,7 +1664,7 @@ public class Tablet extends TabletBase {
 
     for (Entry<TabletFile,DataFileInfo> entry : fileMap.entrySet()) {
       entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0L));
-      files.add(entry.getKey().getPathStr());
+      files.add(entry.getKey().getNormalizedPathStr());
     }
 
     // Clients timeout and will think that this operation failed.

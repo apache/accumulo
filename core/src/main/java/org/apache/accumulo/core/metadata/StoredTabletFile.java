@@ -73,10 +73,12 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return tabletFile.getTableId();
   }
 
-  public String getPathStr() {
-    return tabletFile.getPathStr();
+  public String getNormalizedPathStr() {
+    return tabletFile.getNormalizedPathStr();
   }
 
+  // TODO: This will be deleted as soon as #3432 is merged in which
+  // removes the only call to this method
   public Text getMetaInsertText() {
     return tabletFile.getMetaInsertText();
   }
