@@ -91,10 +91,7 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
 
       HashSet<String> paths = new HashSet<>();
 
-      // uncomment verify and test will hang here because tablet server dies w/ uncaught exception
-      // in AssignmentHandler
-      //
-      // VerifyIngest.verifyIngest(client, params);
+      VerifyIngest.verifyIngest(client, params);
 
       try (var scanner = createMetadataFileScanner(client, table)) {
         scanner.forEach((k, v) -> {
