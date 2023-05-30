@@ -46,7 +46,7 @@ public class SplitterTest {
     expect(context.threadPools()).andReturn(threadPools).anyTimes();
     replay(context);
 
-    var splitter = new Splitter(context, null, null);
+    var splitter = new Splitter(context);
 
     KeyExtent ke1 = new KeyExtent(TableId.of("1"), new Text("m"), null);
     KeyExtent ke2 = new KeyExtent(TableId.of("1"), null, new Text("m"));
@@ -65,23 +65,23 @@ public class SplitterTest {
     expect(tabletMeta2.getExtent()).andReturn(ke2).anyTimes();
     replay(tabletMeta2);
 
-    assertTrue(splitter.shouldInspect(tabletMeta1));
-    assertTrue(splitter.shouldInspect(tabletMeta2));
+    assertTrue(splitter.isSplittable(tabletMeta1));
+    assertTrue(splitter.isSplittable(tabletMeta2));
 
     splitter.addSplitStarting(ke1);
 
-    assertFalse(splitter.shouldInspect(tabletMeta1));
-    assertTrue(splitter.shouldInspect(tabletMeta2));
+    assertFalse(splitter.isSplittable(tabletMeta1));
+    assertTrue(splitter.isSplittable(tabletMeta2));
 
     splitter.removeSplitStarting(ke1);
 
-    assertTrue(splitter.shouldInspect(tabletMeta1));
-    assertTrue(splitter.shouldInspect(tabletMeta2));
+    assertTrue(splitter.isSplittable(tabletMeta1));
+    assertTrue(splitter.isSplittable(tabletMeta2));
 
     splitter.rememberUnsplittable(tabletMeta1);
 
-    assertFalse(splitter.shouldInspect(tabletMeta1));
-    assertTrue(splitter.shouldInspect(tabletMeta2));
+    assertFalse(splitter.isSplittable(tabletMeta1));
+    assertTrue(splitter.isSplittable(tabletMeta2));
 
     // when a tablets files change it should become a candidate for inspection
     Set<StoredTabletFile> files2 = Set.of(
@@ -94,8 +94,8 @@ public class SplitterTest {
     expect(tabletMeta3.getFiles()).andReturn(files2).anyTimes();
     replay(tabletMeta3);
 
-    assertTrue(splitter.shouldInspect(tabletMeta3));
-    assertTrue(splitter.shouldInspect(tabletMeta2));
+    assertTrue(splitter.isSplittable(tabletMeta3));
+    assertTrue(splitter.isSplittable(tabletMeta2));
   }
 
 }

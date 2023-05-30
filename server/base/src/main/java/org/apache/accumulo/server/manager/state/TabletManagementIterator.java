@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -53,6 +52,7 @@ import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
@@ -214,8 +214,12 @@ public class TabletManagementIterator extends SkippingIterator {
 
   private static boolean shouldReturnDueToSplit(final TabletMetadata tm,
       final long splitThreshold) {
-    return tm.getFilesMap().values().stream().map(DataFileValue::getSize)
-        .collect(Collectors.summarizingLong(Long::longValue)).getSum() > splitThreshold;
+    final long sumOfFileSizes =
+        tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
+    final boolean shouldSplit = sumOfFileSizes > splitThreshold;
+    LOG.debug("{} should split? sum: {}, threshold: {}, result: {}", tm.getExtent(), sumOfFileSizes,
+        splitThreshold, shouldSplit);
+    return shouldSplit;
   }
 
   private boolean shouldReturnDueToLocation(final TabletMetadata tm,
@@ -269,6 +273,7 @@ public class TabletManagementIterator extends SkippingIterator {
     scanner.fetchColumnFamily(LogColumnFamily.NAME);
     scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
     scanner.fetchColumnFamily(HostingColumnFamily.NAME);
+    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     ServerColumnFamily.OPID_COLUMN.fetch(scanner);
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
     IteratorSetting tabletChange =

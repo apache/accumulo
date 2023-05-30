@@ -32,15 +32,11 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.FileUtil.FileInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.CacheLoader;
@@ -53,15 +49,9 @@ import com.google.common.hash.Hashing;
 
 public class Splitter {
 
-  private static final Logger log = LoggerFactory.getLogger(Splitter.class);
-
-  private final ServerContext context;
-  private final Ample.DataLevel level;
-
   private final ExecutorService splitExecutor;
 
   private final ScheduledExecutorService scanExecutor;
-  private final Manager manager;
   private ScheduledFuture<?> scanFuture;
 
   Cache<KeyExtent,KeyExtent> splitsStarting;
@@ -112,10 +102,7 @@ public class Splitter {
     return size;
   }
 
-  public Splitter(ServerContext context, Ample.DataLevel level, Manager manager) {
-    this.context = context;
-    this.level = level;
-    this.manager = manager;
+  public Splitter(ServerContext context) {
     this.splitExecutor = context.threadPools().createExecutorService(context.getConfiguration(),
         Property.MANAGER_SPLIT_WORKER_THREADS, true);
     this.scanExecutor =
@@ -154,9 +141,6 @@ public class Splitter {
   public synchronized void start() {
     Preconditions.checkState(scanFuture == null);
     Preconditions.checkState(!scanExecutor.isShutdown());
-    // ELASTICITY_TODO make this configurable if functionality is not moved elsewhere
-    scanFuture = scanExecutor.scheduleWithFixedDelay(new SplitScanner(context, level, manager), 1,
-        10, TimeUnit.SECONDS);
   }
 
   public synchronized void stop() {
@@ -185,9 +169,10 @@ public class Splitter {
   }
 
   /**
-   * Determines if further inspection should be done on a tablet that meets the criteria for splits.
+   * If tablet has not been marked as unsplittable, or file set has changed since being marked
+   * splittable, then return true. Else false.
    */
-  public boolean shouldInspect(TabletMetadata tablet) {
+  public boolean isSplittable(TabletMetadata tablet) {
     if (splitsStarting.getIfPresent(tablet.getExtent()) != null) {
       return false;
     }
@@ -197,6 +182,10 @@ public class Splitter {
     if (hashCode != null) {
       if (hashCode.equals(caclulateFilesHash(tablet))) {
         return false;
+      } else {
+        // We know that the list of files for this tablet have changed
+        // so we can remove it from the set of unsplittable tablets.
+        unsplittable.invalidate(tablet.getExtent());
       }
     }
 
@@ -205,7 +194,7 @@ public class Splitter {
 
   /**
    * Temporarily remember that the process of splitting is starting for this tablet making
-   * {@link #shouldInspect(TabletMetadata)} return false in the future.
+   * {@link #isSplittable(TabletMetadata)} return false in the future.
    */
   public boolean addSplitStarting(KeyExtent extent) {
     Objects.requireNonNull(extent);

@@ -47,6 +47,8 @@ import org.junit.jupiter.api.Test;
 
 public class SplitRecoveryIT extends AccumuloClusterHarness {
 
+  // ELASTICITY_TODO: Confirm still works as intended
+
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
