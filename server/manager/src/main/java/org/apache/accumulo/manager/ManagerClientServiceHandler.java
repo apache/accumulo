@@ -104,11 +104,13 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   private final Cache<KeyExtent,Long> recentHostingRequest;
 
+  private static final int TEN_MB = 10 * 1024 * 1024;
+
   protected ManagerClientServiceHandler(Manager manager) {
     this.manager = manager;
     Weigher<KeyExtent,Long> weigher = (extent, t) -> Splitter.weigh(extent) + 8;
     this.recentHostingRequest = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES)
-        .maximumWeight(10_000_000L).weigher(weigher).build();
+        .maximumWeight(TEN_MB).weigher(weigher).build();
   }
 
   @Override
