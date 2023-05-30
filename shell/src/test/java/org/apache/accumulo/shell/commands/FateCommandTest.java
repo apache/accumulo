@@ -36,6 +36,10 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.List;
 
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
@@ -130,6 +134,13 @@ public class FateCommandTest {
   public static void setup() {
     zk = createMock(ZooReaderWriter.class);
     managerLockPath = createMock(ServiceLockPath.class);
+    Shell.AUTHENTICATOR = new Shell.Authenticator() {
+      @Override
+      public boolean authenticateUser(AccumuloClient client, String principal,
+          AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+        return true;
+      }
+    };
   }
 
   @Test

@@ -239,7 +239,7 @@ public class ShellOptionsJC {
     return props;
   }
 
-  static class PositiveInteger implements IParameterValidator {
+  public static class PositiveInteger implements IParameterValidator {
     @Override
     public void validate(String name, String value) throws ParameterException {
       int n = -1;
