@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -64,8 +65,7 @@ public class TabletManagementTest {
     return rowMap;
   }
 
-  private SortedMap<Key,Value> createMetadataEntryKV() {
-    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
+  private SortedMap<Key,Value> createMetadataEntryKV(KeyExtent extent) {
 
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
 
@@ -112,9 +112,12 @@ public class TabletManagementTest {
 
   @Test
   public void testEncodeDecodeWithReasons() throws Exception {
+    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
+
     final Set<ManagementAction> actions =
         Set.of(ManagementAction.NEEDS_LOCATION_UPDATE, ManagementAction.NEEDS_SPLITTING);
-    final SortedMap<Key,Value> entries = createMetadataEntryKV();
+
+    final SortedMap<Key,Value> entries = createMetadataEntryKV(extent);
 
     TabletManagement.addActions(entries, actions);
     Key key = entries.firstKey();
@@ -130,4 +133,31 @@ public class TabletManagementTest {
     assertEquals(actions, tmi.getActions());
   }
 
+  @Test
+  public void testBinary() throws Exception {
+    // test end row with non ascii data
+    Text endRow = new Text(new byte[] {'m', (byte) 0xff});
+    KeyExtent extent = new KeyExtent(TableId.of("5"), endRow, new Text("da"));
+
+    final Set<ManagementAction> actions =
+        Set.of(ManagementAction.NEEDS_LOCATION_UPDATE, ManagementAction.NEEDS_SPLITTING);
+
+    final SortedMap<Key,Value> entries = createMetadataEntryKV(extent);
+
+    TabletManagement.addActions(entries, actions);
+    Key key = entries.firstKey();
+    Value val = WholeRowIterator.encodeRow(new ArrayList<>(entries.keySet()),
+        new ArrayList<>(entries.values()));
+
+    assertTrue(entries.keySet().stream().allMatch(k -> k.getRow().equals(extent.toMetaRow())));
+
+    // Remove the REASONS column from the entries map for the comparison check
+    // below
+    entries.remove(new Key(key.getRow(), new Text("REASONS"), new Text("")));
+
+    TabletManagement tmi = new TabletManagement(key, val, true);
+    assertEquals(entries, tmi.getTabletMetadata().getKeyValues());
+    assertEquals(actions, tmi.getActions());
+
+  }
 }
