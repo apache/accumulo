@@ -155,8 +155,8 @@ public abstract class RowFilter extends WrappingIterator {
     RowFilter newInstance;
     try {
       newInstance = getClass().getDeclaredConstructor().newInstance();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException(e);
     }
     newInstance.setSource(getSource().deepCopy(env));
     newInstance.decisionIterator = new RowIterator(getSource().deepCopy(env));

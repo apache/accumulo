@@ -40,11 +40,9 @@ import com.google.common.base.Preconditions;
  * As of 2.1, Tablet file paths should now be only absolute URIs with the removal of relative paths
  * in Upgrader9to10.upgradeRelativePaths()
  */
-public class TabletFile implements Comparable<TabletFile> {
+public class TabletFile extends AbstractTabletFile<TabletFile> {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"
   private final TabletDirectory tabletDir; // hdfs://1.2.3.4/accumulo/tables/2a/t-0003
-  private final String fileName; // C0004.rf
-  protected final Path metaPath;
   private final String normalizedPath;
 
   private static final Logger log = LoggerFactory.getLogger(TabletFile.class);
@@ -54,14 +52,11 @@ public class TabletFile implements Comparable<TabletFile> {
    * qualify an absolute path or create a new file.
    */
   public TabletFile(Path metaPath) {
-    this.metaPath = Objects.requireNonNull(metaPath);
+    super(Objects.requireNonNull(metaPath));
     String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
     log.trace("Parsing TabletFile from {}", metaPath);
 
     // use Path object to step backwards from the filename through all the parts
-    this.fileName = metaPath.getName();
-    ValidationUtil.validateFileName(fileName);
-
     Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), errorMsg);
 
     Path tableIdPath = Objects.requireNonNull(tabletDirPath.getParent(), errorMsg);
@@ -76,7 +71,7 @@ public class TabletFile implements Comparable<TabletFile> {
     var volume = volumePath.toString();
 
     this.tabletDir = new TabletDirectory(volume, TableId.of(id), tabletDirPath.getName());
-    this.normalizedPath = tabletDir.getNormalizedPath() + "/" + fileName;
+    this.normalizedPath = tabletDir.getNormalizedPath() + "/" + getFileName();
   }
 
   public String getVolume() {
@@ -89,10 +84,6 @@ public class TabletFile implements Comparable<TabletFile> {
 
   public String getTabletDir() {
     return tabletDir.getTabletDir();
-  }
-
-  public String getFileName() {
-    return fileName;
   }
 
   /**
@@ -124,10 +115,6 @@ public class TabletFile implements Comparable<TabletFile> {
     return new StoredTabletFile(normalizedPath);
   }
 
-  public Path getPath() {
-    return metaPath;
-  }
-
   @Override
   public int compareTo(TabletFile o) {
     if (equals(o)) {
@@ -155,4 +142,9 @@ public class TabletFile implements Comparable<TabletFile> {
   public String toString() {
     return normalizedPath;
   }
+
+  public static TabletFile of(final Path path) {
+    return new TabletFile(path);
+  }
+
 }

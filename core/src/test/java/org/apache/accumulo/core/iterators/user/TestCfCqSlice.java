@@ -71,7 +71,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testAllRowsFullSlice() {
+  public void testAllRowsFullSlice() throws Exception {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     loadKvs(foundKvs, EMPTY_OPTS, INFINITY);
     for (int i = 0; i < LR_DIM; i++) {
@@ -85,7 +85,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testSingleRowFullSlice() {
+  public void testSingleRowFullSlice() throws Exception {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     int rowId = LR_DIM / 2;
     loadKvs(foundKvs, EMPTY_OPTS, Range.exact(new Text(LONG_LEX.encode((long) rowId))));
@@ -105,7 +105,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testAllRowsSlice() {
+  public void testAllRowsSlice() throws Exception {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCf = 20;
     long sliceMinCq = 30;
@@ -137,7 +137,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testSingleColumnSlice() {
+  public void testSingleColumnSlice() throws Exception {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCf = 20;
     long sliceMinCq = 20;
@@ -165,7 +165,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testSingleColumnSliceByExclude() {
+  public void testSingleColumnSliceByExclude() throws Exception {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCf = 20;
     long sliceMinCq = 20;
@@ -195,7 +195,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testAllCfsCqSlice() {
+  public void testAllCfsCqSlice() throws Exception {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCq = 10;
     long sliceMaxCq = 30;
@@ -219,7 +219,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testSliceCfsAllCqs() {
+  public void testSliceCfsAllCqs() throws Exception {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCf = 10;
     long sliceMaxCf = 30;
@@ -243,7 +243,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testEmptySlice() {
+  public void testEmptySlice() throws Exception {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCf = LR_DIM + 1;
     long sliceMinCq = LR_DIM + 1;
@@ -304,7 +304,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testSeekMinExclusive() {
+  public void testSeekMinExclusive() throws Exception {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCf = 20;
     long sliceMinCq = 30;
@@ -360,37 +360,33 @@ public abstract class TestCfCqSlice {
     }
   }
 
-  private void loadKvs(boolean[][][] foundKvs, Map<String,String> options, Range range) {
+  private void loadKvs(boolean[][][] foundKvs, Map<String,String> options, Range range)
+      throws Exception {
     loadKvs(new SortedMapIterator(data), foundKvs, options, range);
   }
 
   private void loadKvs(SortedKeyValueIterator<Key,Value> parent, boolean[][][] foundKvs,
-      Map<String,String> options, Range range) {
-    try {
-      SortedKeyValueIterator<Key,Value> skvi =
-          getFilterClass().getDeclaredConstructor().newInstance();
-      skvi.init(parent, options, null);
-      skvi.seek(range, EMPTY_CF_SET, false);
+      Map<String,String> options, Range range) throws Exception {
+    SortedKeyValueIterator<Key,Value> skvi =
+        getFilterClass().getDeclaredConstructor().newInstance();
+    skvi.init(parent, options, null);
+    skvi.seek(range, EMPTY_CF_SET, false);
 
-      while (skvi.hasTop()) {
-        Key k = skvi.getTopKey();
-        int row = LONG_LEX.decode(k.getRow().copyBytes()).intValue();
-        int cf = LONG_LEX.decode(k.getColumnFamily().copyBytes()).intValue();
-        int cq = LONG_LEX.decode(k.getColumnQualifier().copyBytes()).intValue();
+    while (skvi.hasTop()) {
+      Key k = skvi.getTopKey();
+      int row = LONG_LEX.decode(k.getRow().copyBytes()).intValue();
+      int cf = LONG_LEX.decode(k.getColumnFamily().copyBytes()).intValue();
+      int cq = LONG_LEX.decode(k.getColumnQualifier().copyBytes()).intValue();
 
-        assertFalse(foundKvs[row][cf][cq], "Duplicate " + row + " " + cf + " " + cq);
-        foundKvs[row][cf][cq] = true;
+      assertFalse(foundKvs[row][cf][cq], "Duplicate " + row + " " + cf + " " + cq);
+      foundKvs[row][cf][cq] = true;
 
-        if (random.nextInt(100) == 0) {
-          skvi.seek(new Range(k, false, range.getEndKey(), range.isEndKeyInclusive()), EMPTY_CF_SET,
-              false);
-        } else {
-          skvi.next();
-        }
+      if (random.nextInt(100) == 0) {
+        skvi.seek(new Range(k, false, range.getEndKey(), range.isEndKeyInclusive()), EMPTY_CF_SET,
+            false);
+      } else {
+        skvi.next();
       }
-
-    } catch (Exception e) {
-      throw new RuntimeException(e);
     }
   }
 

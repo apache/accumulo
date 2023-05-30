@@ -55,7 +55,7 @@ public interface ManagerClient<C extends TServiceClient> {
       Throwable cause = tte.getCause();
       if (cause != null && cause instanceof UnknownHostException) {
         // do not expect to recover from this
-        throw new RuntimeException(tte);
+        throw new IllegalStateException(tte);
       }
       log.debug("Failed to connect to manager=" + manager + ", will retry... ", tte);
       return null;

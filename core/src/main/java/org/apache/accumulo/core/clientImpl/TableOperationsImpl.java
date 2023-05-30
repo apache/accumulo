@@ -531,7 +531,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
       }
     } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     } finally {
       executor.shutdown();
     }
@@ -1481,7 +1481,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public Map<String,String> tableIdMap() {
     return context.getTableNameToIdMap().entrySet().stream()
         .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().canonical(), (v1, v2) -> {
-          throw new RuntimeException(String.format("Duplicate key for values %s and %s", v1, v2));
+          throw new IllegalStateException(
+              String.format("Duplicate key for values %s and %s", v1, v2));
         }, TreeMap::new));
   }
 
@@ -1828,7 +1829,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           List<Range> prev =
               groupedByTablets.put(tabletId, Collections.unmodifiableList(entry2.getValue()));
           if (prev != null) {
-            throw new RuntimeException(
+            throw new IllegalStateException(
                 "Unexpected : tablet at multiple locations : " + location + " " + tabletId);
           }
         }
@@ -1900,7 +1901,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             String.format("locating tablets in table %s(%s) for %d ranges", tableName, tableId,
                 rangeList.size()));
       } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
       locator.invalidateCache();
     }

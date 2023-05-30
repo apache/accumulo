@@ -110,7 +110,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
         closeAfterMutate.close();
       }
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 }

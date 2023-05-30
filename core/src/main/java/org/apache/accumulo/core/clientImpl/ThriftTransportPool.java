@@ -275,7 +275,7 @@ public class ThriftTransportPool {
     try {
       checkThread.join();
     } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
