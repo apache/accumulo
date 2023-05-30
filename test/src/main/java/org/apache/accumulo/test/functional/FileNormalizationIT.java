@@ -211,7 +211,7 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
     return scanner;
   }
 
-  private Set<String> misnormalizeFiles(AccumuloClient client, String table) throws Exception {
+  private void misnormalizeFiles(AccumuloClient client, String table) throws Exception {
     client.tableOperations().offline(table, true);
 
     client.securityOperations().grantTablePermission(getPrincipal(), MetadataTable.NAME,
@@ -237,7 +237,5 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
           TablePermission.WRITE);
       client.tableOperations().online(table, true);
     }
-
-    return Set.of();
   }
 }
