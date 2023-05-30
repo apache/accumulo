@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -33,6 +34,7 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
@@ -45,13 +47,8 @@ public class GarbageCollectorTrashBase extends ConfigurableMacBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(GarbageCollectorTrashBase.class);
 
-  public ArrayList<StoredTabletFile> loadData(ServerContext ctx, AccumuloClient client,
-      String tableName) throws Exception {
-    // create some files
-    for (int i = 0; i < 5; i++) {
-      ReadWriteIT.ingest(client, 10, 10, 10, 0, tableName);
-      client.tableOperations().flush(tableName);
-    }
+  public ArrayList<StoredTabletFile> getFilesForTable(ServerContext ctx, AccumuloClient client,
+      String tableName) {
     String tid = client.tableOperations().tableIdMap().get(tableName);
     TabletsMetadata tms =
         ctx.getAmple().readTablets().forTable(TableId.of(tid)).fetch(ColumnType.FILES).build();
@@ -61,6 +58,16 @@ public class GarbageCollectorTrashBase extends ConfigurableMacBase {
     });
     LOG.debug("Tablet files: {}", files);
     return files;
+  }
+
+  public ArrayList<StoredTabletFile> loadData(ServerContext ctx, AccumuloClient client,
+      String tableName) throws Exception {
+    // create some files
+    for (int i = 0; i < 5; i++) {
+      ReadWriteIT.ingest(client, 10, 10, 10, 0, tableName);
+      client.tableOperations().flush(tableName);
+    }
+    return getFilesForTable(ctx, client, tableName);
   }
 
   public boolean userTrashDirExists(FileSystem fs) {
@@ -75,6 +82,16 @@ public class GarbageCollectorTrashBase extends ConfigurableMacBase {
     }
     assertTrue(userTrashDirExists(fs));
 
+  }
+
+  public void waitForFilesToBeGCd(final ArrayList<StoredTabletFile> files) throws Exception {
+    Wait.waitFor(() -> files.stream().noneMatch(stf -> {
+      try {
+        return super.getCluster().getMiniDfs().getFileSystem().exists(stf.getPath());
+      } catch (IOException e) {
+        throw new UncheckedIOException("error", e);
+      }
+    }));
   }
 
   public long countFilesInTrash(FileSystem fs, TableId tid)

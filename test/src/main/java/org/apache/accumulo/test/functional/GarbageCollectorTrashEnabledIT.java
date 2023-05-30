@@ -69,16 +69,14 @@ public class GarbageCollectorTrashEnabledIT extends GarbageCollectorTrashBase {
     String table = this.getUniqueNames(1)[0];
     final FileSystem fs = super.getCluster().getFileSystem();
     super.makeTrashDir(fs);
-    ArrayList<StoredTabletFile> files = null;
-    TableId tid = null;
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      files = super.loadData(super.getServerContext(), c, table);
+      ArrayList<StoredTabletFile> files = super.loadData(super.getServerContext(), c, table);
       assertFalse(files.isEmpty());
       c.tableOperations().compact(table, new CompactionConfig());
-      tid = TableId.of(c.tableOperations().tableIdMap().get(table));
+      TableId tid = TableId.of(c.tableOperations().tableIdMap().get(table));
+      super.waitForFilesToBeGCd(files);
+      assertEquals(files.size(), super.countFilesInTrash(fs, tid));
     }
-    Thread.sleep(10000);
-    assertEquals(files.size(), super.countFilesInTrash(fs, tid));
   }
 
 }

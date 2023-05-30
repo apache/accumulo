@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -86,16 +87,25 @@ public class GarbageCollectorTrashEnabledCustomPolicyIT extends GarbageCollector
     String table = this.getUniqueNames(1)[0];
     final FileSystem fs = super.getCluster().getFileSystem();
     super.makeTrashDir(fs);
-    ArrayList<StoredTabletFile> files = null;
-    TableId tid = null;
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      files = super.loadData(super.getServerContext(), c, table);
-      assertFalse(files.isEmpty());
+      ReadWriteIT.ingest(c, 10, 10, 10, 0, table);
+      c.tableOperations().flush(table);
+      ArrayList<StoredTabletFile> files1 = getFilesForTable(super.getServerContext(), c, table);
+      assertFalse(files1.isEmpty());
+      assertTrue(files1.stream().allMatch(stf -> stf.getPath().getName().startsWith("F")));
       c.tableOperations().compact(table, new CompactionConfig());
-      tid = TableId.of(c.tableOperations().tableIdMap().get(table));
+      super.waitForFilesToBeGCd(files1);
+      ArrayList<StoredTabletFile> files2 = getFilesForTable(super.getServerContext(), c, table);
+      assertTrue(files2.stream().noneMatch(stf -> stf.getPath().getName().startsWith("F")));
+      assertTrue(files2.stream().allMatch(stf -> stf.getPath().getName().startsWith("A")));
+      c.tableOperations().compact(table, new CompactionConfig());
+      super.waitForFilesToBeGCd(files2);
+      ArrayList<StoredTabletFile> files3 = getFilesForTable(super.getServerContext(), c, table);
+      assertTrue(files3.stream().allMatch(stf -> stf.getPath().getName().startsWith("A")));
+      assertEquals(1, files3.size());
+      TableId tid = TableId.of(c.tableOperations().tableIdMap().get(table));
+      assertEquals(1, super.countFilesInTrash(fs, tid));
     }
-    Thread.sleep(10000);
-    assertEquals(0, super.countFilesInTrash(fs, tid));
   }
 
 }

@@ -23,6 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -32,6 +34,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.junit.jupiter.api.Test;
 
@@ -45,6 +48,9 @@ public class GarbageCollectorTrashDefaultIT extends GarbageCollectorTrashBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // By default Hadoop trash is disabled - fs.trash.interval defaults to 0
+    Map<String,String> hadoopOverrides = new HashMap<>();
+    hadoopOverrides.put(CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY, "0");
+    cfg.setHadoopConfOverrides(hadoopOverrides);
     cfg.useMiniDFS(true);
 
     cfg.setProperty(Property.GC_CYCLE_START, "1");
@@ -63,19 +69,18 @@ public class GarbageCollectorTrashDefaultIT extends GarbageCollectorTrashBase {
     String table = this.getUniqueNames(1)[0];
     final FileSystem fs = super.getCluster().getFileSystem();
     super.makeTrashDir(fs);
-    TableId tid = null;
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       ArrayList<StoredTabletFile> files = super.loadData(super.getServerContext(), c, table);
       assertFalse(files.isEmpty());
       c.tableOperations().compact(table, new CompactionConfig());
-      tid = TableId.of(c.tableOperations().tableIdMap().get(table));
+      TableId tid = TableId.of(c.tableOperations().tableIdMap().get(table));
+      // The default value for fs.trash.interval is 0, which means that
+      // trash is disabled in the Hadoop configuration. Enabling trash in
+      // Accumulo (GC_TRASH_IGNORE = false) still requires enabling trash in Hadoop
+      super.waitForFilesToBeGCd(files);
+      assertEquals(0, super.countFilesInTrash(fs, tid));
     }
 
-    // The default value for fs.trash.interval is 0, which means that
-    // trash is disabled in the Hadoop configuration. Enabling trash in
-    // Accumulo (GC_TRASH_IGNORE = false) still requires enabling trash in Hadoop
-    Thread.sleep(10000);
-    assertEquals(0, super.countFilesInTrash(fs, tid));
   }
 
 }
