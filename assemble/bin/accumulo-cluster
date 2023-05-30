@@ -34,7 +34,6 @@ Commands:
   start-here          Starts all services on this node
   stop-here           Stops all services on this node
 EOF
-  exit 1
 }
 
 function invalid_args {
