@@ -634,7 +634,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     if (!extentsToBringOnline.isEmpty()) {
       log.debug("Requesting hosting for {} ondemand tablets for table id {}.",
           extentsToBringOnline.size(), tableId);
-      ThriftClientTypes.TABLET_MGMT.executeVoid(context,
+      ThriftClientTypes.MANAGER.executeVoid(context,
           client -> client.requestTabletHosting(TraceUtil.traceInfo(), context.rpcCreds(),
               tableId.canonical(), extentsToBringOnline));
       tabletHostingRequestCount.addAndGet(extentsToBringOnline.size());

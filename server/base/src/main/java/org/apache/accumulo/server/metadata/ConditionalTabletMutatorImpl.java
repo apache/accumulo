@@ -19,6 +19,7 @@
 
 package org.apache.accumulo.server.metadata;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow;
@@ -27,6 +28,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -116,6 +119,15 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     Condition c =
         new Condition(PREV_ROW_COLUMN.getColumnFamily(), PREV_ROW_COLUMN.getColumnQualifier())
             .setValue(encodePrevEndRow(per).get());
+    mutation.addCondition(c);
+    return this;
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireHostingGoal(TabletHostingGoal goal) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition c = new Condition(GOAL_COLUMN.getColumnFamily(), GOAL_COLUMN.getColumnQualifier())
+        .setValue(TabletHostingGoalUtil.toValue(goal).get());
     mutation.addCondition(c);
     return this;
   }
