@@ -65,7 +65,7 @@ public class CheckTabletMetadataTest {
   private static void assertFail(TreeMap<Key,Value> tabletMeta, KeyExtent ke, TServerInstance tsi) {
     try {
       TabletMetadata tm = TabletMetadata.convertRow(tabletMeta.entrySet().iterator(),
-          EnumSet.allOf(ColumnType.class), true);
+          EnumSet.allOf(ColumnType.class), true, false);
       assertFalse(checkTabletMetadata(ke, tsi, tm));
     } catch (Exception e) {
       e.printStackTrace();
@@ -78,7 +78,7 @@ public class CheckTabletMetadataTest {
     assertNotNull(copy.remove(keyToDelete));
     try {
       TabletMetadata tm = TabletMetadata.convertRow(copy.entrySet().iterator(),
-          EnumSet.allOf(ColumnType.class), true);
+          EnumSet.allOf(ColumnType.class), true, false);
       assertFalse(checkTabletMetadata(ke, tsi, tm));
     } catch (Exception e) {
       e.printStackTrace();
@@ -101,7 +101,7 @@ public class CheckTabletMetadataTest {
     TServerInstance tsi = new TServerInstance("127.0.0.1:9997", 4);
 
     TabletMetadata tm = TabletMetadata.convertRow(tabletMeta.entrySet().iterator(),
-        EnumSet.allOf(ColumnType.class), true);
+        EnumSet.allOf(ColumnType.class), true, false);
     assertTrue(checkTabletMetadata(ke, tsi, tm));
 
     assertFail(tabletMeta, ke, new TServerInstance("127.0.0.1:9998", 4));

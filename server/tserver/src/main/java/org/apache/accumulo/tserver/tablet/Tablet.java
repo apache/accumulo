@@ -971,7 +971,7 @@ public class Tablet extends TabletBase {
             activeScans.size());
         this.wait(50);
       } catch (InterruptedException e) {
-        log.error(e.toString());
+        log.error("Interrupted waiting to completeClose for extent {}", extent, e);
       }
     }
 
@@ -1379,9 +1379,8 @@ public class Tablet extends TabletBase {
     // Only want one thread doing this computation at time for a tablet.
     if (splitComputationLock.tryLock()) {
       try {
-        SortedMap<Double,Key> midpoint =
-            FileUtil.findMidPoint(context, tableConfiguration, chooseTabletDir(),
-                extent.prevEndRow(), extent.endRow(), FileUtil.toPathStrings(files), .25, true);
+        SortedMap<Double,Key> midpoint = FileUtil.findMidPoint(context, tableConfiguration,
+            chooseTabletDir(), extent.prevEndRow(), extent.endRow(), files, .25, true);
 
         Text lastRow = null;
 
@@ -1537,9 +1536,8 @@ public class Tablet extends TabletBase {
         splitPoint = findSplitRow(splitComputations);
       } else {
         Text tsp = new Text(sp);
-        var fileStrings = FileUtil.toPathStrings(getDatafileManager().getFiles());
         var ratio = FileUtil.estimatePercentageLTE(context, tableConfiguration, chooseTabletDir(),
-            extent.prevEndRow(), extent.endRow(), fileStrings, tsp);
+            extent.prevEndRow(), extent.endRow(), getDatafileManager().getFiles(), tsp);
         splitPoint = new SplitRowSpec(ratio, tsp);
       }
 

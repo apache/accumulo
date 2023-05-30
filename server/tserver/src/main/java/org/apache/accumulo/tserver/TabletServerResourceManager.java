@@ -258,8 +258,8 @@ public class TabletServerResourceManager {
 
     try {
       cacheManager = BlockCacheManagerFactory.getInstance(acuConf);
-    } catch (Exception e) {
-      throw new RuntimeException("Error creating BlockCacheManager", e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException("Error creating BlockCacheManager", e);
     }
 
     cacheManager.start(tserver.getBlockCacheConfiguration(acuConf));

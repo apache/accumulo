@@ -23,16 +23,15 @@ import java.io.IOException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
+import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.summary.SummaryWriter;
-import org.apache.hadoop.fs.Path;
 
 class DispatchingFileFactory extends FileOperations {
 
   private FileOperations findFileFactory(FileOptions options) {
-    String file = options.getFilename();
+    AbstractTabletFile<?> file = options.getFile();
 
-    Path p = new Path(file);
-    String name = p.getName();
+    String name = file.getPath().getName();
 
     String[] sp = name.split("\\.");
 

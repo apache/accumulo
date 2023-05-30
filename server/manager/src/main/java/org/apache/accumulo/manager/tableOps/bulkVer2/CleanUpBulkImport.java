@@ -27,13 +27,13 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.ConditionalWriter.Status;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.manager.Manager;
@@ -111,7 +111,7 @@ public class CleanUpBulkImport extends ManagerRepo {
                 tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
             tablet.getLoaded().entrySet().stream().filter(entry -> entry.getValue() == tid)
                 .map(Map.Entry::getKey).forEach(tabletMutator::deleteBulkFile);
-            tabletMutator.submit();
+            tabletMutator.submit(tm -> false);
           }
         }
 

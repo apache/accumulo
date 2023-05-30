@@ -34,13 +34,13 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
+import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +55,7 @@ public class RFileOperations extends FileOperations {
 
   private static RFile.Reader getReader(FileOptions options) throws IOException {
     CachableBuilder cb = new CachableBuilder()
-        .fsPath(options.getFileSystem(), new Path(options.getFilename()), options.dropCacheBehind)
+        .fsPath(options.getFileSystem(), options.getFile().getPath(), options.dropCacheBehind)
         .conf(options.getConfiguration()).fileLen(options.getFileLenCache())
         .cacheProvider(options.cacheProvider).readLimiter(options.getRateLimiter())
         .cryptoService(options.getCryptoService());
@@ -64,7 +64,7 @@ public class RFileOperations extends FileOperations {
 
   @Override
   protected long getFileSize(FileOptions options) throws IOException {
-    return options.getFileSystem().getFileStatus(new Path(options.getFilename())).getLen();
+    return options.getFileSystem().getFileStatus(options.getFile().getPath()).getLen();
   }
 
   @Override
@@ -133,25 +133,25 @@ public class RFileOperations extends FileOperations {
       }
       int bufferSize = conf.getInt("io.file.buffer.size", 4096);
 
-      String file = options.getFilename();
+      AbstractTabletFile<?> file = options.getFile();
       FileSystem fs = options.getFileSystem();
 
       if (options.dropCacheBehind) {
         EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
-        outputStream = fs.create(new Path(file), FsPermission.getDefault(), set, bufferSize,
+        outputStream = fs.create(file.getPath(), FsPermission.getDefault(), set, bufferSize,
             (short) rep, block, null);
         try {
           // Tell the DataNode that the file does not need to be cached in the OS page cache
           outputStream.setDropBehind(Boolean.TRUE);
-          LOG.trace("Called setDropBehind(TRUE) for stream writing file {}", options.filename);
+          LOG.trace("Called setDropBehind(TRUE) for stream writing file {}", options.file);
         } catch (UnsupportedOperationException e) {
-          LOG.debug("setDropBehind not enabled for file: {}", options.filename);
+          LOG.debug("setDropBehind not enabled for file: {}", options.file);
         } catch (IOException e) {
-          LOG.debug("IOException setting drop behind for file: {}, msg: {}", options.filename,
+          LOG.debug("IOException setting drop behind for file: {}, msg: {}", options.file,
               e.getMessage());
         }
       } else {
-        outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
+        outputStream = fs.create(file.getPath(), false, bufferSize, (short) rep, block);
       }
     }
 

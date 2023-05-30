@@ -56,8 +56,8 @@ import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
@@ -77,7 +77,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.state.Assignment;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
+import org.apache.accumulo.server.manager.state.TabletManagementScanner;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -360,13 +360,13 @@ public class NullTserver {
     // read the locations for the table
     Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
     List<Assignment> assignments = new ArrayList<>();
-    try (var s = new MetaDataTableScanner(context, tableRange, MetadataTable.NAME)) {
+    try (var s = new TabletManagementScanner(context, tableRange, MetadataTable.NAME)) {
       long randomSessionID = opts.port;
       TServerInstance instance = new TServerInstance(addr, randomSessionID);
 
       while (s.hasNext()) {
-        TabletLocationState next = s.next();
-        assignments.add(new Assignment(next.extent, instance, next.last));
+        TabletMetadata next = s.next().getTabletMetadata();
+        assignments.add(new Assignment(next.getExtent(), instance, next.getLast()));
       }
     }
     // point them to this server

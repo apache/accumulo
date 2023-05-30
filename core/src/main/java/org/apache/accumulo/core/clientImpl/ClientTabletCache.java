@@ -105,7 +105,6 @@ public abstract class ClientTabletCache {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       InvalidTabletHostingRequestException;
 
-  // ELASTICITY_TODO rename to findTablets
   /**
    * <p>
    * This method finds what tablets overlap a given set of ranges, passing each range and its
@@ -277,34 +276,39 @@ public abstract class ClientTabletCache {
     private final String tserverLocation;
     private final String tserverSession;
     private final TabletHostingGoal goal;
+    private final boolean hostingRequested;
+
     private final Long creationTime = System.nanoTime();
 
     public CachedTablet(KeyExtent tablet_extent, String tablet_location, String session,
-        TabletHostingGoal goal) {
+        TabletHostingGoal goal, boolean hostingRequested) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       checkArgument(tablet_location != null, "tablet_location is null");
       checkArgument(session != null, "session is null");
       this.tablet_extent = tablet_extent;
       this.tserverLocation = interner.intern(tablet_location);
       this.tserverSession = interner.intern(session);
-      this.goal = goal;
+      this.goal = Objects.requireNonNull(goal);
+      this.hostingRequested = hostingRequested;
     }
 
     public CachedTablet(KeyExtent tablet_extent, Optional<String> tablet_location,
-        Optional<String> session, TabletHostingGoal goal) {
+        Optional<String> session, TabletHostingGoal goal, boolean hostingRequested) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       this.tablet_extent = tablet_extent;
       this.tserverLocation = tablet_location.map(interner::intern).orElse(null);
       this.tserverSession = session.map(interner::intern).orElse(null);
-      this.goal = goal;
+      this.goal = Objects.requireNonNull(goal);
+      this.hostingRequested = hostingRequested;
     }
 
-    public CachedTablet(KeyExtent tablet_extent, TabletHostingGoal goal) {
+    public CachedTablet(KeyExtent tablet_extent, TabletHostingGoal goal, boolean hostingRequested) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       this.tablet_extent = tablet_extent;
       this.tserverLocation = null;
       this.tserverSession = null;
-      this.goal = goal;
+      this.goal = Objects.requireNonNull(goal);
+      this.hostingRequested = hostingRequested;
     }
 
     @Override
@@ -313,14 +317,15 @@ public abstract class ClientTabletCache {
         CachedTablet otl = (CachedTablet) o;
         return getExtent().equals(otl.getExtent())
             && getTserverLocation().equals(otl.getTserverLocation())
-            && getTserverSession().equals(otl.getTserverSession()) && getGoal() == otl.getGoal();
+            && getTserverSession().equals(otl.getTserverSession()) && getGoal() == otl.getGoal()
+            && hostingRequested == otl.hostingRequested;
       }
       return false;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(getExtent(), tserverLocation, tserverSession, goal);
+      return Objects.hash(getExtent(), tserverLocation, tserverSession, goal, hostingRequested);
     }
 
     @Override
@@ -353,6 +358,10 @@ public abstract class ClientTabletCache {
 
     public Duration getAge() {
       return Duration.ofNanos(System.nanoTime() - creationTime);
+    }
+
+    public boolean wasHostingRequested() {
+      return hostingRequested;
     }
   }
 

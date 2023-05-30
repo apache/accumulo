@@ -41,6 +41,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -63,6 +66,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
@@ -72,6 +76,7 @@ import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.core.volume.Volume;
@@ -89,6 +94,7 @@ import org.apache.accumulo.manager.tableOps.namespace.create.CreateNamespace;
 import org.apache.accumulo.manager.tableOps.namespace.delete.DeleteNamespace;
 import org.apache.accumulo.manager.tableOps.namespace.rename.RenameNamespace;
 import org.apache.accumulo.manager.tableOps.rename.RenameTable;
+import org.apache.accumulo.manager.tableOps.split.PreSplit;
 import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
 import org.apache.accumulo.manager.tableOps.tableImport.ImportTable;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -692,6 +698,84 @@ class FateServiceHandler implements FateService.Iface {
         manager.fate().seedTransaction(op.toString(), opid,
             new TraceRepo<>(new SetHostingGoal(tableId, namespaceId, tRange, goal)), autoCleanup,
             goalMessage);
+        break;
+      }
+      case TABLE_SPLIT: {
+        TableOperation tableOp = TableOperation.SPLIT;
+
+        // ELASTICITY_TODO this does not check if table is offline for now, that is usually done in
+        // FATE operation with a table lock. Deferring that check for now as its possible tablet
+        // locks may not be needed.
+
+        int SPLIT_OFFSET = 3; // offset where split data begins in arguments list
+        if (arguments.size() < (SPLIT_OFFSET + 1)) {
+          throw new ThriftTableOperationException(null, null, tableOp,
+              TableOperationExceptionType.OTHER,
+              "Expected at least " + (SPLIT_OFFSET + 1) + " arguments, saw :" + arguments.size());
+        }
+
+        var tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_TABLE_ID);
+        NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+
+        boolean canSplit;
+
+        try {
+          canSplit = manager.security.canSplitTablet(c, tableId, namespaceId);
+        } catch (ThriftSecurityException e) {
+          throwIfTableMissingSecurityException(e, tableId, null, TableOperation.SPLIT);
+          throw e;
+        }
+
+        if (!canSplit) {
+          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
+
+        var endRow = ByteBufferUtil.toText(arguments.get(1));
+        var prevEndRow = ByteBufferUtil.toText(arguments.get(2));
+
+        endRow = endRow.getLength() == 0 ? null : endRow;
+        prevEndRow = prevEndRow.getLength() == 0 ? null : prevEndRow;
+
+        // ELASTICITY_TODO create table stores splits in a file, maybe this operation should do the
+        // same
+        SortedSet<Text> splits = arguments.subList(SPLIT_OFFSET, arguments.size()).stream()
+            .map(ByteBufferUtil::toText).collect(Collectors.toCollection(TreeSet::new));
+
+        KeyExtent extent = new KeyExtent(tableId, endRow, prevEndRow);
+
+        Predicate<Text> outOfBoundsTest =
+            split -> !extent.contains(split) || split.equals(extent.endRow());
+
+        if (splits.stream().anyMatch(outOfBoundsTest)) {
+          splits.stream().filter(outOfBoundsTest).forEach(split -> log
+              .warn("split for {} is out of bounds : {}", extent, TextUtil.truncate(split)));
+
+          throw new ThriftTableOperationException(tableId.canonical(), null, tableOp,
+              TableOperationExceptionType.OTHER,
+              "Split is outside bounds of tablet or equal to the tablets endrow, see warning in logs for more information.");
+        }
+
+        var maxSplitSize = manager.getContext().getTableConfiguration(tableId)
+            .getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
+
+        Predicate<Text> oversizedTest = split -> split.getLength() > maxSplitSize;
+
+        if (splits.stream().anyMatch(oversizedTest)) {
+          splits.stream().filter(oversizedTest)
+              .forEach(split -> log.warn(
+                  "split exceeds max configured split size len:{}  max:{} extent:{} split:{}",
+                  split.getLength(), maxSplitSize, extent, TextUtil.truncate(split)));
+
+          throw new ThriftTableOperationException(tableId.canonical(), null, tableOp,
+              TableOperationExceptionType.OTHER,
+              "Length of requested split exceeds tables configured max, see warning in logs for more information.");
+        }
+
+        manager.requestUnassignment(extent, opid);
+
+        goalMessage = "Splitting " + extent + " for user into " + (splits.size() + 1) + " tablets";
+        manager.fate().seedTransaction(op.toString(), opid, new PreSplit(extent, splits),
+            autoCleanup, goalMessage);
         break;
       }
       default:

@@ -173,7 +173,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
               try {
                 return TabletMetadata.convertRow(WholeRowIterator
                     .decodeRow(entry.getKey(), entry.getValue()).entrySet().iterator(), fetchedCols,
-                    saveKeyValues);
+                    saveKeyValues, false);
               } catch (IOException e) {
                 throw new UncheckedIOException(e);
               }
@@ -183,7 +183,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             closables.add(scanner);
 
           } catch (TableNotFoundException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
           }
 
         }
@@ -242,7 +242,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             scanner.setRange(r);
             RowIterator rowIter = new RowIterator(scanner);
             Iterator<TabletMetadata> iter = Iterators.transform(rowIter,
-                ri -> TabletMetadata.convertRow(ri, fetchedCols, saveKeyValues));
+                ri -> TabletMetadata.convertRow(ri, fetchedCols, saveKeyValues, false));
             if (extentsPresent) {
               return Iterators.filter(iter,
                   tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()));
@@ -267,7 +267,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           return new TabletsMetadata(scanner, tmi);
         }
       } catch (TableNotFoundException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
 
@@ -587,7 +587,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           byte[] bytes = zooReader.getData(zkRoot + RootTable.ZROOT_TABLET);
           return new RootTabletMetadata(new String(bytes, UTF_8)).toTabletMetadata();
         } catch (InterruptedException | KeeperException e) {
-          throw new RuntimeException(e);
+          throw new IllegalStateException(e);
         }
       default:
         throw new IllegalArgumentException("Unknown consistency level " + readConsistency);
@@ -622,7 +622,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         // avoid wrapping runtime w/ runtime
         throw e;
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
   }

@@ -26,12 +26,12 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -169,7 +169,7 @@ public class UpdateTablets extends ManagerRepo {
     try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
       for (var newExtent : newTablets) {
         if (newExtent.equals(newTablets.last())) {
-          // Skip the last tablet, its done in the next fate step.
+          // Skip the last tablet, its done after successfully adding all new tablets
           continue;
         }
 
@@ -188,28 +188,15 @@ public class UpdateTablets extends ManagerRepo {
 
         newTabletsFiles.get(newExtent).forEach(mutator::putFile);
 
-        mutator.submit(afterMeta -> afterMeta.getOperationId() != null
-            && afterMeta.getOperationId().equals(opid));
+        mutator.submit(afterMeta -> opid.equals(afterMeta.getOperationId()));
       }
 
       var results = tabletsMutator.process();
       results.values().forEach(result -> {
         var status = result.getStatus();
-        if (status == ConditionalWriter.Status.REJECTED) {
-          // lets see if this was rejected because this operation is running again in the case of
-          // failure
-          var newTabletMetadata = result.readMetadata();
-          if (newTabletMetadata != null && opid.equals(newTabletMetadata.getOperationId())) {
-            log.trace(
-                "{} {} creating new tablet was rejected because it existed, operation probably failed before.",
-                FateTxId.formatTid(tid), result.getExtent());
-            return;
-          }
-        }
 
-        Preconditions.checkState(status == ConditionalWriter.Status.ACCEPTED,
-            "Failed to add new tablet %s %s %s", status, splitInfo.getOriginal(),
-            result.getExtent());
+        Preconditions.checkState(status == Status.ACCEPTED, "Failed to add new tablet %s %s %s",
+            status, splitInfo.getOriginal(), result.getExtent());
       });
     }
   }
@@ -234,24 +221,21 @@ public class UpdateTablets extends ManagerRepo {
         }
       });
 
-      mutator.submit();
+      mutator.submit(tm -> false);
 
       var result = tabletsMutator.process().get(splitInfo.getOriginal());
 
-      if (result.getStatus() == ConditionalWriter.Status.UNKNOWN) {
-        // Can not use Ample's built in code for checking unknown because we are changing the prev
-        // end row, so much check it manually
+      if (result.getStatus() == Status.REJECTED) {
+        // Can not use Ample's built in code for checking rejected because we are changing the prev
+        // end row and Ample would try to read the old tablet, so must check it manually.
 
         var tabletMeta = manager.getContext().getAmple().readTablet(newExtent);
 
         if (tabletMeta == null || !tabletMeta.getOperationId().equals(opid)) {
-          // ELASTICITY_TODO need to retry when an UNKNOWN condition is seen, its possible the
-          // mutation never made it to the tserver. May want ample to always retry on unknown and
-          // change the unknown handler to a rejected handler.
           throw new IllegalStateException("Failed to update existing tablet in split "
               + splitInfo.getOriginal() + " " + result.getStatus() + " " + result.getExtent());
         }
-      } else if (result.getStatus() != ConditionalWriter.Status.ACCEPTED) {
+      } else if (result.getStatus() != Status.ACCEPTED) {
         // maybe this step is being run again and the update was already made
         throw new IllegalStateException("Failed to update existing tablet in split "
             + splitInfo.getOriginal() + " " + result.getStatus() + " " + result.getExtent());

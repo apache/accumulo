@@ -28,7 +28,6 @@ import java.util.function.Function;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
-import org.apache.accumulo.core.client.ConditionalWriter.Status;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.TableId;
@@ -45,9 +44,11 @@ public class ConditionalTabletsMutatorImplTest {
   static class TestConditionalTabletsMutator extends ConditionalTabletsMutatorImpl {
 
     private final Map<KeyExtent,TabletMetadata> failedExtents;
-    private final Function<Text,Status> statuses;
+    private final List<Function<Text,ConditionalWriter.Status>> statuses;
 
-    public TestConditionalTabletsMutator(Function<Text,Status> statuses,
+    private int attempt = 0;
+
+    public TestConditionalTabletsMutator(List<Function<Text,ConditionalWriter.Status>> statuses,
         Map<KeyExtent,TabletMetadata> failedExtents) {
       super(null);
       this.statuses = statuses;
@@ -64,8 +65,10 @@ public class ConditionalTabletsMutatorImplTest {
         @Override
         public Iterator<Result> write(Iterator<ConditionalMutation> mutations) {
           Iterable<ConditionalMutation> iterable = () -> mutations;
+          var localAttempt = attempt++;
           return StreamSupport.stream(iterable.spliterator(), false)
-              .map(cm -> new Result(statuses.apply(new Text(cm.getRow())), cm, "server"))
+              .map(cm -> new Result(statuses.get(localAttempt).apply(new Text(cm.getRow())), cm,
+                  "server"))
               .iterator();
         }
 
@@ -83,9 +86,10 @@ public class ConditionalTabletsMutatorImplTest {
   }
 
   @Test
-  public void testUnknownValidation() {
+  public void testRejectionHandler() {
 
-    // this test checks the handling of conditional mutations that return a status of unknown
+    // this test checks the handling of conditional mutations that return a status of unknown and
+    // rejected
 
     var ke1 = new KeyExtent(TableId.of("1"), null, null);
 
@@ -100,41 +104,51 @@ public class ConditionalTabletsMutatorImplTest {
     EasyMock.replay(tm2);
 
     var ke3 = new KeyExtent(TableId.of("b"), null, null);
+
+    TabletMetadata tm3 = EasyMock.createMock(TabletMetadata.class);
+    EasyMock.expect(tm3.getDirName()).andReturn("dir4").anyTimes();
+    EasyMock.replay(tm3);
+
     var ke4 = new KeyExtent(TableId.of("c"), null, null);
 
-    var failedExtents = Map.of(ke1, tm1, ke2, tm2);
-    var statuses = Map.of(ke1.toMetaRow(), Status.UNKNOWN, ke2.toMetaRow(), Status.UNKNOWN,
-        ke3.toMetaRow(), Status.REJECTED, ke4.toMetaRow(), Status.ACCEPTED);
+    TabletMetadata tm4 = EasyMock.createMock(TabletMetadata.class);
+    EasyMock.expect(tm4.getDirName()).andReturn("dir5").anyTimes();
+    EasyMock.replay(tm4);
 
-    try (var mutator = new TestConditionalTabletsMutator(statuses::get, failedExtents)) {
-      // passed in unknown handler should determine the mutations status should be accepted
+    var failedExtents = Map.of(ke1, tm1, ke2, tm2, ke3, tm3, ke4, tm4);
+
+    // expect retry on unknown
+    var statuses1 = Map.of(ke1.toMetaRow(), ConditionalWriter.Status.UNKNOWN, ke2.toMetaRow(),
+        ConditionalWriter.Status.UNKNOWN, ke3.toMetaRow(), ConditionalWriter.Status.REJECTED,
+        ke4.toMetaRow(), ConditionalWriter.Status.ACCEPTED);
+
+    // on the 2nd retry, return rejected
+    var statuses2 = Map.of(ke1.toMetaRow(), ConditionalWriter.Status.REJECTED, ke2.toMetaRow(),
+        ConditionalWriter.Status.REJECTED);
+
+    try (var mutator =
+        new TestConditionalTabletsMutator(List.of(statuses1::get, statuses2::get), failedExtents)) {
+
       mutator.mutateTablet(ke1).requireAbsentOperation().putDirName("dir1")
           .submit(tmeta -> tmeta.getDirName().equals("dir1"));
 
-      // passed in unknown handler should determine the mutations status should continue to be
-      // UNKNOWN
       mutator.mutateTablet(ke2).requireAbsentOperation().putDirName("dir3")
           .submit(tmeta -> tmeta.getDirName().equals("dir3"));
 
-      // ensure the unknown handler is only called when the status is unknown, this mutation will
-      // have a status of REJECTED
-      mutator.mutateTablet(ke3).requireAbsentOperation().putDirName("dir3").submit(tmeta -> {
-        throw new IllegalStateException();
-      });
+      mutator.mutateTablet(ke3).requireAbsentOperation().putDirName("dir4")
+          .submit(tmeta -> tmeta.getDirName().equals("dir4"));
 
-      // ensure the unknown handler is only called when the status is unknown, this mutations will
-      // have a status of ACCEPTED
-      mutator.mutateTablet(ke4).requireAbsentOperation().putDirName("dir3").submit(tmeta -> {
+      mutator.mutateTablet(ke4).requireAbsentOperation().putDirName("dir5").submit(tmeta -> {
         throw new IllegalStateException();
       });
 
       Map<KeyExtent,Ample.ConditionalResult> results = mutator.process();
 
       assertEquals(Set.of(ke1, ke2, ke3, ke4), results.keySet());
-      assertEquals(Status.ACCEPTED, results.get(ke1).getStatus());
-      assertEquals(Status.UNKNOWN, results.get(ke2).getStatus());
-      assertEquals(Status.REJECTED, results.get(ke3).getStatus());
-      assertEquals(Status.ACCEPTED, results.get(ke4).getStatus());
+      assertEquals(Ample.ConditionalResult.Status.ACCEPTED, results.get(ke1).getStatus());
+      assertEquals(Ample.ConditionalResult.Status.REJECTED, results.get(ke2).getStatus());
+      assertEquals(Ample.ConditionalResult.Status.ACCEPTED, results.get(ke3).getStatus());
+      assertEquals(Ample.ConditionalResult.Status.ACCEPTED, results.get(ke4).getStatus());
     }
   }
 }

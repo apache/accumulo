@@ -56,14 +56,15 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.balancer.HostRegexTableLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
+import org.apache.accumulo.server.manager.state.TabletManagementScanner;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -180,13 +181,13 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       Set<TServerInstance> metadataServerSet = new HashSet<>();
 
       ClientTabletCache tl = ClientTabletCache.getInstance(ctx, MetadataTable.ID);
-      for (TabletLocationState tls : locs.locationStates.values()) {
-        if (tls.current != null) {
+      for (TabletMetadata tm : locs.locationStates.values()) {
+        if (tm.hasCurrent()) {
           // add to set of all servers
-          tserverSet.add(tls.current.getServerInstance());
+          tserverSet.add(tm.getLocation().getServerInstance());
 
           // get server that the current tablets metadata is on
-          ClientTabletCache.CachedTablet tab = tl.findTablet(ctx, tls.extent.toMetaRow(), false,
+          ClientTabletCache.CachedTablet tab = tl.findTablet(ctx, tm.getExtent().toMetaRow(), false,
               ClientTabletCache.LocationNeed.REQUIRED);
           // add it to the set of servers with metadata
           metadataServerSet.add(new TServerInstance(tab.getTserverLocation().orElseThrow(),
@@ -386,7 +387,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   }
 
   private static class TabletLocations {
-    public final Map<KeyExtent,TabletLocationState> locationStates = new HashMap<>();
+    public final Map<KeyExtent,TabletMetadata> locationStates = new HashMap<>();
     public final SetMultimap<HostAndPort,KeyExtent> hosted = HashMultimap.create();
     public final SetMultimap<HostAndPort,KeyExtent> suspended = HashMultimap.create();
     public int hostedCount = 0;
@@ -429,21 +430,23 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     private void scan(ClientContext ctx, String tableName, String metaName) {
       Map<String,String> idMap = ctx.tableOperations().tableIdMap();
       String tableId = Objects.requireNonNull(idMap.get(tableName));
-      try (var scanner = new MetaDataTableScanner(ctx, new Range(), metaName)) {
+      try (var scanner = new TabletManagementScanner(ctx, new Range(), metaName)) {
         while (scanner.hasNext()) {
-          TabletLocationState tls = scanner.next();
+          final TabletMetadata tm = scanner.next().getTabletMetadata();
+          final KeyExtent ke = tm.getExtent();
 
-          if (!tls.extent.tableId().canonical().equals(tableId)) {
+          if (!tm.getTableId().canonical().equals(tableId)) {
             continue;
           }
-          locationStates.put(tls.extent, tls);
-          if (tls.suspend != null) {
-            suspended.put(tls.suspend.server, tls.extent);
+          locationStates.put(ke, tm);
+          if (tm.getSuspend() != null) {
+            suspended.put(tm.getSuspend().server, ke);
             ++suspendedCount;
-          } else if (tls.current != null) {
-            hosted.put(tls.current.getHostAndPort(), tls.extent);
+          } else if (tm.hasCurrent()) {
+            hosted.put(tm.getLocation().getHostAndPort(), ke);
             ++hostedCount;
-          } else if (tls.future != null) {
+          } else if (tm.getLocation() != null
+              && tm.getLocation().getType().equals(LocationType.FUTURE)) {
             ++assignedCount;
           } else {
             // unassigned case

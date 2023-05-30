@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,19 +57,22 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.state.CurrentState;
 import org.apache.accumulo.server.manager.state.MergeInfo;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
-import org.apache.accumulo.server.manager.state.TabletStateChangeIterator;
+import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -78,11 +82,11 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
- * Test to ensure that the {@link TabletStateChangeIterator} properly skips over tablet information
+ * Test to ensure that the {@link TabletManagementIterator} properly skips over tablet information
  * in the metadata table when there is no work to be done on the tablet (see ACCUMULO-3580)
  */
-public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
-  private final static Logger log = LoggerFactory.getLogger(TabletStateChangeIteratorIT.class);
+public class TabletManagementIteratorIT extends AccumuloClusterHarness {
+  private final static Logger log = LoggerFactory.getLogger(TabletManagementIteratorIT.class);
 
   @Override
   protected Duration defaultTimeout() {
@@ -91,7 +95,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws AccumuloException, AccumuloSecurityException, TableExistsException,
-      TableNotFoundException {
+      TableNotFoundException, IOException {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
@@ -147,10 +151,16 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       assertEquals(2, findTabletsNeedingAttention(client, metaCopy1, state),
           "Should have two tablets without a loc");
 
+      // Test setting the operation id on one of the tablets in table t1. Table t1 has two tablets
+      // w/o a location. Only one should need attention because of the operation id.
+      setOperationId(client, metaCopy1, t1);
+      assertEquals(1, findTabletsNeedingAttention(client, metaCopy1, state),
+          "Should have not tablets needing attention because of operation id");
+
       // test the cases where the assignment is to a dead tserver
       reassignLocation(client, metaCopy2, t3);
       assertEquals(1, findTabletsNeedingAttention(client, metaCopy2, state),
-          "Should have one tablet that needs to be unassigned");
+          "Only 1 of 2 tablets in table t1 should be returned");
 
       // test the cases where there is ongoing merges
       state = new State(client) {
@@ -224,6 +234,23 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     }
   }
 
+  private void setOperationId(AccumuloClient client, String table, String tableNameToModify)
+      throws TableNotFoundException, MutationsRejectedException {
+    var opid = TabletOperationId.from(TabletOperationType.SPLITTING, 42L);
+    TableId tableIdToModify =
+        TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
+    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
+      scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetaRange());
+      Entry<Key,Value> entry = scanner.iterator().next();
+      Mutation m = new Mutation(entry.getKey().getRow());
+      MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN.put(m,
+          new Value(opid.canonical()));
+      try (BatchWriter bw = client.createBatchWriter(table)) {
+        bw.addMutation(m);
+      }
+    }
+  }
+
   private void removeLocation(AccumuloClient client, String table, String tableNameToModify)
       throws TableNotFoundException, MutationsRejectedException {
     TableId tableIdToModify =
@@ -237,18 +264,19 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   }
 
   private int findTabletsNeedingAttention(AccumuloClient client, String table, State state)
-      throws TableNotFoundException {
+      throws TableNotFoundException, IOException {
     int results = 0;
-    List<Key> resultList = new ArrayList<>();
+    List<KeyExtent> resultList = new ArrayList<>();
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
-      MetaDataTableScanner.configureScanner(scanner, state);
+      TabletManagementIterator.configureScanner(scanner, state);
       log.debug("Current state = {}", state);
       scanner.updateScanIteratorOption("tabletChange", "debug", "1");
       for (Entry<Key,Value> e : scanner) {
         if (e != null) {
+          TabletManagement mti = TabletManagementIterator.decode(e);
           results++;
-          log.debug("Found tablets that changed state: {}", e.getKey());
-          resultList.add(e.getKey());
+          log.debug("Found tablets that changed state: {}", mti.getTabletMetadata().getExtent());
+          resultList.add(mti.getTabletMetadata().getExtent());
         }
       }
     }
@@ -376,6 +404,11 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
     @Override
     public Set<TServerInstance> shutdownServers() {
+      return Collections.emptySet();
+    }
+
+    @Override
+    public Set<KeyExtent> getUnassignmentRequest() {
       return Collections.emptySet();
     }
 

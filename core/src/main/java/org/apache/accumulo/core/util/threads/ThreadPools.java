@@ -241,7 +241,7 @@ public class ThreadPools {
    *        pools. Creating lots of short lived thread pools and registering them can lead to out of
    *        memory errors over long time periods.
    * @return ExecutorService impl
-   * @throws RuntimeException if property is not handled
+   * @throws IllegalArgumentException if property is not handled
    */
   public ThreadPoolExecutor createExecutorService(final AccumuloConfiguration conf,
       final Property p, boolean emitThreadPoolMetrics) {
@@ -287,7 +287,7 @@ public class ThreadPools {
         return createFixedThreadPool(conf.getCount(p), "tablet split inspection",
             emitThreadPoolMetrics);
       default:
-        throw new RuntimeException("Unhandled thread pool property: " + p);
+        throw new IllegalArgumentException("Unhandled thread pool property: " + p);
     }
   }
 

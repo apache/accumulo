@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.Constants;
@@ -44,8 +45,6 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 public class RootClientTabletCache extends ClientTabletCache {
 
@@ -74,18 +73,17 @@ public class RootClientTabletCache extends ClientTabletCache {
   public List<Range> findTablets(ClientContext context, List<Range> ranges,
       BiConsumer<CachedTablet,Range> rangeConsumer, LocationNeed locationNeed) {
 
-    // only expect the hosted case so this code only handles that, so throw an exception is
-    // something else is seen
-    Preconditions.checkArgument(locationNeed == LocationNeed.REQUIRED);
-
     CachedTablet rootCachedTablet = getRootTabletLocation(context);
-    if (rootCachedTablet != null) {
+
+    if (rootCachedTablet.getTserverLocation().isEmpty() && locationNeed == LocationNeed.REQUIRED) {
+      // there is no location and one is required so return all ranges as failures
+      return ranges;
+    } else {
       for (Range range : ranges) {
         rangeConsumer.accept(rootCachedTablet, range);
       }
       return Collections.emptyList();
     }
-    return ranges;
   }
 
   @Override
@@ -125,33 +123,33 @@ public class RootClientTabletCache extends ClientTabletCache {
     }
 
     if (loc == null || loc.getType() != LocationType.CURRENT) {
-      return null;
+      return new CachedTablet(RootTable.EXTENT, Optional.empty(), Optional.empty(),
+          TabletHostingGoal.ALWAYS, false);
     }
 
     String server = loc.getHostPort();
 
     if (lockChecker.isLockHeld(server, loc.getSession())) {
-      return new CachedTablet(RootTable.EXTENT, server, loc.getSession(), TabletHostingGoal.ALWAYS);
+      return new CachedTablet(RootTable.EXTENT, server, loc.getSession(), TabletHostingGoal.ALWAYS,
+          false);
     } else {
-      return null;
+      return new CachedTablet(RootTable.EXTENT, Optional.empty(), Optional.empty(),
+          TabletHostingGoal.ALWAYS, false);
     }
   }
 
   @Override
   public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
       LocationNeed locationNeed) {
-    // only expect the hosted case so this code only handles that, so throw an exception is
-    // something else is seen
-    Preconditions.checkArgument(locationNeed == LocationNeed.REQUIRED);
 
-    CachedTablet location = getRootTabletLocation(context);
+    CachedTablet cachedTablet = getRootTabletLocation(context);
+
     // Always retry when finding the root tablet
-    while (location == null) {
+    while (cachedTablet.getTserverLocation().isEmpty() && locationNeed == LocationNeed.REQUIRED) {
       sleepUninterruptibly(500, MILLISECONDS);
-      location = getRootTabletLocation(context);
+      cachedTablet = getRootTabletLocation(context);
     }
 
-    return location;
+    return cachedTablet;
   }
-
 }

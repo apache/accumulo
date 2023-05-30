@@ -35,7 +35,6 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <a href="https://micrometer.io/">Micrometer</a>. Micrometer suggests using a particular
  * <a href="https://micrometer.io/docs/concepts#_naming_meters">naming convention</a> for the
  * metrics. The table below contains a mapping of the old to new metric names.
- * <p>
  * <table border="1">
  * <caption>Summary of Metric Changes</caption> <!-- fate -->
  * <tr>

@@ -18,8 +18,13 @@
  */
 package org.apache.accumulo.server.metadata;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,12 +34,12 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConditionalWriter;
-import org.apache.accumulo.core.client.ConditionalWriter.Status;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -58,7 +63,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
   private boolean active = true;
 
-  Map<KeyExtent,Ample.UnknownValidator> unknownValidators = new HashMap<>();
+  Map<KeyExtent,Ample.RejectionHandler> rejectedHandlers = new HashMap<>();
 
   public ConditionalTabletsMutatorImpl(ServerContext context) {
     this.context = context;
@@ -80,7 +85,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
     Preconditions.checkState(extents.putIfAbsent(extent.toMetaRow(), extent) == null,
         "Duplicate extents not handled");
     return new ConditionalTabletMutatorImpl(this, context, extent, mutations::add,
-        unknownValidators::put);
+        rejectedHandlers::put);
   }
 
   protected ConditionalWriter createConditionalWriter(Ample.DataLevel dataLevel)
@@ -109,7 +114,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
     var extents = results.entrySet().stream().filter(e -> {
       try {
-        return e.getValue().getStatus() != Status.ACCEPTED;
+        return e.getValue().getStatus() != ConditionalWriter.Status.ACCEPTED;
       } catch (AccumuloException | AccumuloSecurityException ex) {
         throw new RuntimeException(ex);
       }
@@ -122,12 +127,83 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
     return readTablets(extents);
   }
 
+  private void partitionResults(Iterator<ConditionalWriter.Result> results,
+      List<ConditionalWriter.Result> resultsList, List<ConditionalWriter.Result> unknownResults) {
+    while (results.hasNext()) {
+      var result = results.next();
+
+      try {
+        if (result.getStatus() == ConditionalWriter.Status.UNKNOWN) {
+          unknownResults.add(result);
+        } else {
+          resultsList.add(result);
+        }
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  private Iterator<ConditionalWriter.Result> writeMutations(ConditionalWriter conditionalWriter) {
+    var results = conditionalWriter.write(mutations.iterator());
+
+    List<ConditionalWriter.Result> resultsList = new ArrayList<>();
+    List<ConditionalWriter.Result> unknownResults = new ArrayList<>();
+    partitionResults(results, resultsList, unknownResults);
+
+    Retry retry = null;
+
+    while (!unknownResults.isEmpty()) {
+      try {
+        if (retry == null) {
+          retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
+              .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
+              .logInterval(3, MINUTES).createRetry();
+        }
+        retry.waitForNextAttempt(log, "handle conditional mutations with unknown status");
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+
+      results = conditionalWriter
+          .write(unknownResults.stream().map(ConditionalWriter.Result::getMutation).iterator());
+
+      // create a new array instead of clearing in case the above has not consumed everything
+      unknownResults = new ArrayList<>();
+
+      partitionResults(results, resultsList, unknownResults);
+    }
+
+    return resultsList.iterator();
+  }
+
+  private Ample.ConditionalResult.Status mapStatus(KeyExtent extent,
+      ConditionalWriter.Result result) {
+
+    ConditionalWriter.Status status = null;
+    try {
+      status = result.getStatus();
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new IllegalStateException(e);
+    }
+
+    switch (status) {
+      case REJECTED:
+        return Ample.ConditionalResult.Status.REJECTED;
+      case ACCEPTED:
+        return Ample.ConditionalResult.Status.ACCEPTED;
+      default:
+        throw new IllegalStateException(
+            "Unexpected conditional mutation status : " + extent + " " + status);
+    }
+  }
+
   @Override
   public Map<KeyExtent,Ample.ConditionalResult> process() {
     Preconditions.checkState(active);
     if (dataLevel != null) {
       try (ConditionalWriter conditionalWriter = createConditionalWriter(dataLevel)) {
-        var results = conditionalWriter.write(mutations.iterator());
+        var results = writeMutations(conditionalWriter);
 
         var resultsMap = new HashMap<KeyExtent,ConditionalWriter.Result>();
 
@@ -138,22 +214,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
         }
 
         var extentsSet = Set.copyOf(extents.values());
-        if (!resultsMap.keySet().equals(Set.copyOf(extents.values()))) {
-          // ELASTICITY_TODO this check can trigger if someone forgets to submit, could check for
-          // that
-
-          Sets.difference(resultsMap.keySet(), extentsSet)
-              .forEach(extent -> log.error("Unexpected extent seen in in result {}", extent));
-
-          Sets.difference(extentsSet, resultsMap.keySet())
-              .forEach(extent -> log.error("Expected extent not seen in result {}", extent));
-
-          resultsMap.forEach((keyExtent, result) -> {
-            log.error("result seen {} {}", keyExtent, new Text(result.getMutation().getRow()));
-          });
-
-          throw new AssertionError("Not all extents were seen, this is unexpected");
-        }
+        ensureAllExtentsSeen(resultsMap, extentsSet);
 
         // only fetch the metadata for failures when requested and when it is requested fetch all
         // of the failed extents at once to avoid fetching them one by one.
@@ -161,20 +222,16 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
         return Maps.transformEntries(resultsMap, (extent, result) -> new Ample.ConditionalResult() {
 
-          private Status _getStatus() {
-            try {
-              return result.getStatus();
-            } catch (AccumuloException | AccumuloSecurityException e) {
-              throw new RuntimeException(e);
-            }
+          private Ample.ConditionalResult.Status _getStatus() {
+            return mapStatus(extent, result);
           }
 
           @Override
           public Status getStatus() {
             var status = _getStatus();
-            if (status == Status.UNKNOWN && unknownValidators.containsKey(extent)) {
+            if (status == Status.REJECTED && rejectedHandlers.containsKey(extent)) {
               var tabletMetadata = readMetadata();
-              if (tabletMetadata != null && unknownValidators.get(extent).test(tabletMetadata)) {
+              if (tabletMetadata != null && rejectedHandlers.get(extent).test(tabletMetadata)) {
                 return Status.ACCEPTED;
               }
             }
@@ -208,6 +265,26 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
       mutations.clear();
       active = false;
       return Map.of();
+    }
+  }
+
+  private void ensureAllExtentsSeen(HashMap<KeyExtent,ConditionalWriter.Result> resultsMap,
+      Set<KeyExtent> extentsSet) {
+    if (!resultsMap.keySet().equals(Set.copyOf(extents.values()))) {
+      // ELASTICITY_TODO this check can trigger if someone forgets to submit, could check for
+      // that
+
+      Sets.difference(resultsMap.keySet(), extentsSet)
+          .forEach(extent -> log.error("Unexpected extent seen in in result {}", extent));
+
+      Sets.difference(extentsSet, resultsMap.keySet())
+          .forEach(extent -> log.error("Expected extent not seen in result {}", extent));
+
+      resultsMap.forEach((keyExtent, result) -> {
+        log.error("result seen {} {}", keyExtent, new Text(result.getMutation().getRow()));
+      });
+
+      throw new AssertionError("Not all extents were seen, this is unexpected");
     }
   }
 

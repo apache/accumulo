@@ -60,7 +60,6 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -77,7 +76,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,35 +88,37 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.net.HostAndPort;
 
 public class TabletMetadata {
+
   private static final Logger log = LoggerFactory.getLogger(TabletMetadata.class);
 
-  private TableId tableId;
+  protected TableId tableId;
   private Text prevEndRow;
   private boolean sawPrevEndRow = false;
   private Text oldPrevEndRow;
   private boolean sawOldPrevEndRow = false;
-  private Text endRow;
-  private Location location;
+  protected Text endRow;
+  protected Location location;
   private Map<StoredTabletFile,DataFileValue> files;
   private List<StoredTabletFile> scans;
   private Map<TabletFile,Long> loadedFiles;
-  private EnumSet<ColumnType> fetchedCols;
-  private KeyExtent extent;
-  private Location last;
-  private SuspendingTServer suspend;
+  protected EnumSet<ColumnType> fetchedCols;
+  protected KeyExtent extent;
+  protected Location last;
+  protected SuspendingTServer suspend;
   private String dirName;
   private MetadataTime time;
   private String cloned;
   private SortedMap<Key,Value> keyValues;
   private OptionalLong flush = OptionalLong.empty();
-  private List<LogEntry> logs;
+  protected List<LogEntry> logs;
   private OptionalLong compact = OptionalLong.empty();
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
-  private boolean chopped = false;
-  private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
-  private boolean onDemandHostingRequested = false;
+  protected boolean chopped = false;
+  protected TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
+  protected boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
+  protected boolean futureAndCurrentLocationSet = false;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -370,6 +370,10 @@ public class TabletMetadata {
   }
 
   public TabletHostingGoal getHostingGoal() {
+    if (RootTable.ID.equals(getTableId()) || MetadataTable.ID.equals(getTableId())) {
+      // Override the goal for the system tables
+      return TabletHostingGoal.ALWAYS;
+    }
     ensureFetched(ColumnType.HOSTING_GOAL);
     return goal;
   }
@@ -377,6 +381,20 @@ public class TabletMetadata {
   public boolean getHostingRequested() {
     ensureFetched(ColumnType.HOSTING_REQUESTED);
     return onDemandHostingRequested;
+  }
+
+  @Override
+  public String toString() {
+    return "TabletMetadata [tableId=" + tableId + ", prevEndRow=" + prevEndRow + ", sawPrevEndRow="
+        + sawPrevEndRow + ", oldPrevEndRow=" + oldPrevEndRow + ", sawOldPrevEndRow="
+        + sawOldPrevEndRow + ", endRow=" + endRow + ", location=" + location + ", files=" + files
+        + ", scans=" + scans + ", loadedFiles=" + loadedFiles + ", fetchedCols=" + fetchedCols
+        + ", extent=" + extent + ", last=" + last + ", suspend=" + suspend + ", dirName=" + dirName
+        + ", time=" + time + ", cloned=" + cloned + ", flush=" + flush + ", logs=" + logs
+        + ", compact=" + compact + ", splitRatio=" + splitRatio + ", extCompactions="
+        + extCompactions + ", chopped=" + chopped + ", goal=" + goal + ", onDemandHostingRequested="
+        + onDemandHostingRequested + ", operationId=" + operationId
+        + ", futureAndCurrentLocationSet=" + futureAndCurrentLocationSet + "]";
   }
 
   public SortedMap<Key,Value> getKeyValues() {
@@ -388,22 +406,23 @@ public class TabletMetadata {
     ensureFetched(ColumnType.LOCATION);
     ensureFetched(ColumnType.LAST);
     ensureFetched(ColumnType.SUSPEND);
-    ensureFetched(ColumnType.HOSTING_GOAL);
-    ensureFetched(ColumnType.HOSTING_REQUESTED);
-    try {
-      Location current = null;
-      Location future = null;
-      if (hasCurrent()) {
-        current = location;
-      } else {
-        future = location;
-      }
-      // only care about the state so don't need walogs and chopped params
-      var tls = new TabletLocationState(extent, future, current, last, suspend, null, false, goal,
-          onDemandHostingRequested);
-      return tls.getState(liveTServers);
-    } catch (TabletLocationState.BadLocationStateException blse) {
-      throw new IllegalArgumentException("Error creating TabletLocationState", blse);
+    Location current = null;
+    Location future = null;
+    if (hasCurrent()) {
+      current = location;
+    } else {
+      future = location;
+    }
+    if (future != null) {
+      return liveTServers.contains(future.getServerInstance()) ? TabletState.ASSIGNED
+          : TabletState.ASSIGNED_TO_DEAD_SERVER;
+    } else if (current != null) {
+      return liveTServers.contains(current.getServerInstance()) ? TabletState.HOSTED
+          : TabletState.ASSIGNED_TO_DEAD_SERVER;
+    } else if (getSuspend() != null) {
+      return TabletState.SUSPENDED;
+    } else {
+      return TabletState.UNASSIGNED;
     }
   }
 
@@ -421,9 +440,13 @@ public class TabletMetadata {
     return operationId;
   }
 
+  public boolean isFutureAndCurrentLocationSet() {
+    return futureAndCurrentLocationSet;
+  }
+
   @VisibleForTesting
   public static <E extends Entry<Key,Value>> TabletMetadata convertRow(Iterator<E> rowIter,
-      EnumSet<ColumnType> fetchedColumns, boolean buildKeyValueMap) {
+      EnumSet<ColumnType> fetchedColumns, boolean buildKeyValueMap, boolean suppressLocationError) {
     Objects.requireNonNull(rowIter);
 
     TabletMetadata te = new TabletMetadata();
@@ -505,10 +528,10 @@ public class TabletMetadata {
               BulkFileColumnFamily.getBulkLoadTid(val));
           break;
         case CurrentLocationColumnFamily.STR_NAME:
-          te.setLocationOnce(val, qual, LocationType.CURRENT);
+          te.setLocationOnce(val, qual, LocationType.CURRENT, suppressLocationError);
           break;
         case FutureLocationColumnFamily.STR_NAME:
-          te.setLocationOnce(val, qual, LocationType.FUTURE);
+          te.setLocationOnce(val, qual, LocationType.FUTURE, suppressLocationError);
           break;
         case LastLocationColumnFamily.STR_NAME:
           te.last = Location.last(val, qual);
@@ -535,11 +558,7 @@ public class TabletMetadata {
         case HostingColumnFamily.STR_NAME:
           switch (qual) {
             case GOAL_QUAL:
-              if (StringUtils.isEmpty(kv.getValue().toString())) {
-                te.goal = TabletHostingGoal.ONDEMAND;
-              } else {
-                te.goal = TabletHostingGoalUtil.fromValue(kv.getValue());
-              }
+              te.goal = TabletHostingGoalUtil.fromValue(kv.getValue());
               break;
             case REQUESTED_QUAL:
               te.onDemandHostingRequested = true;
@@ -568,10 +587,13 @@ public class TabletMetadata {
     return te;
   }
 
-  private void setLocationOnce(String val, String qual, LocationType lt) {
+  private void setLocationOnce(String val, String qual, LocationType lt, boolean suppressError) {
     if (location != null) {
-      throw new IllegalStateException("Attempted to set second location for tableId: " + tableId
-          + " endrow: " + endRow + " -- " + location + " " + qual + " " + val);
+      if (!suppressError) {
+        throw new IllegalStateException("Attempted to set second location for tableId: " + tableId
+            + " endrow: " + endRow + " -- " + location + " " + qual + " " + val);
+      }
+      futureAndCurrentLocationSet = true;
     }
     location = new Location(val, qual, lt);
   }

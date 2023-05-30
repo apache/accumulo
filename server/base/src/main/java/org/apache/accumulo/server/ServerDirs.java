@@ -19,6 +19,7 @@
 package org.apache.accumulo.server;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -116,7 +117,7 @@ public class ServerDirs {
     }
 
     if (baseDirsList.isEmpty()) {
-      throw new RuntimeException("None of the configured paths are initialized.");
+      throw new IllegalStateException("None of the configured paths are initialized.");
     }
 
     return baseDirsList;
@@ -234,7 +235,7 @@ public class ServerDirs {
       }
       return dataVersion;
     } catch (IOException e) {
-      throw new RuntimeException("Unable to read accumulo version: an error occurred.", e);
+      throw new UncheckedIOException("Unable to read accumulo version: an error occurred.", e);
     }
   }
 

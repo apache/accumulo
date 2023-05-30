@@ -163,17 +163,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           log.warn("Failed to add Batch Scan result", e);
         }
         fatalException = e;
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
 
       }
     };
 
     try {
       lookup(ranges, rr);
-    } catch (RuntimeException re) {
-      throw re;
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to create iterator", e);
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
+        | InvalidTabletHostingRequestException e) {
+      throw new IllegalStateException("Failed to create iterator", e);
     }
   }
 
@@ -199,7 +198,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           if (fatalException instanceof RuntimeException) {
             throw (RuntimeException) fatalException;
           } else {
-            throw new RuntimeException(fatalException);
+            throw new IllegalStateException(fatalException);
           }
         }
 
@@ -210,13 +209,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               + " so that it can be closed when this Iterator is exhausted. Not"
               + " retaining a reference to the BatchScanner guarantees that you are"
               + " leaking threads in your client JVM.", shortMsg);
-          throw new RuntimeException(shortMsg + " Ensure proper handling of the BatchScanner.");
+          throw new IllegalStateException(
+              shortMsg + " Ensure proper handling of the BatchScanner.");
         }
 
         batchIterator = batch.iterator();
         return batch != LAST_BATCH;
       } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
   }
@@ -285,12 +285,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         break;
       } else {
         // tried to only do table state checks when failures.size() == ranges.size(), however this
-        // did
-        // not work because nothing ever invalidated entries in the tabletLocator cache... so even
-        // though
-        // the table was deleted the tablet locator entries for the deleted table were not
-        // cleared... so
-        // need to always do the check when failures occur
+        // did not work because nothing ever invalidated entries in the tabletLocator cache... so
+        // even though the table was deleted the tablet locator entries for the deleted table
+        // were not cleared. So need to always do the check when failures occur
         if (failures.size() >= lastFailureSize) {
           context.requireNotDeleted(tableId);
           context.requireNotOffline(tableId, tableName);
@@ -298,8 +295,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         lastFailureSize = failures.size();
 
         if (log.isTraceEnabled()) {
-          log.trace("Failed to bin {} ranges, tablet locations were null, retrying in 100ms",
-              failures.size());
+          log.trace(
+              "Failed to bin {} ranges for table {}, tablet locations were null, retrying in 100ms",
+              failures.size(), tableId);
         }
 
         if (System.currentTimeMillis() - startTime > retryTimeout) {
@@ -311,7 +309,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         try {
           retry.waitForNextAttempt(log, "binRanges retry failures");
         } catch (InterruptedException e) {
-          throw new RuntimeException(e);
+          throw new IllegalStateException(e);
         }
 
       }

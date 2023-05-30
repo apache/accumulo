@@ -21,6 +21,7 @@ package org.apache.accumulo.core.metadata;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -79,6 +80,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
     locCols.add(new Column(TextUtil.getBytes(CurrentLocationColumnFamily.NAME), null, null));
     locCols.add(TabletColumnFamily.PREV_ROW_COLUMN.toColumn());
     locCols.add(HostingColumnFamily.GOAL_COLUMN.toColumn());
+    locCols.add(HostingColumnFamily.REQUESTED_COLUMN.toColumn());
     columns = new ArrayList<>(locCols);
   }
 
@@ -184,7 +186,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
         try {
           results.putAll(WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()));
         } catch (IOException e) {
-          throw new RuntimeException(e);
+          throw new UncheckedIOException(e);
         }
       }
     };
@@ -221,6 +223,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
     Text location = null;
     Text session = null;
     TabletHostingGoal goal = null;
+    boolean hostingRequested = false;
 
     List<CachedTablet> results = new ArrayList<>();
 
@@ -238,6 +241,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
         location = null;
         session = null;
         goal = null;
+        hostingRequested = false;
         key.getRow(lastRowFromKey);
       }
 
@@ -254,18 +258,18 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
         session = new Text(colq);
       } else if (HostingColumnFamily.GOAL_COLUMN.equals(colf, colq)) {
         goal = TabletHostingGoalUtil.fromValue(val);
+      } else if (HostingColumnFamily.REQUESTED_COLUMN.equals(colf, colq)) {
+        hostingRequested = true;
       } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
         KeyExtent ke = KeyExtent.fromMetaPrevRow(entry);
         if (ke.isMeta()) {
           goal = TabletHostingGoal.ALWAYS;
-        } else if (goal == null) {
-          log.debug("TabletHostingGoal not set for extent: {}, using ONDEMAND", ke);
-          goal = TabletHostingGoal.ONDEMAND;
         }
         if (location != null) {
-          results.add(new CachedTablet(ke, location.toString(), session.toString(), goal));
+          results.add(new CachedTablet(ke, location.toString(), session.toString(), goal,
+              hostingRequested));
         } else {
-          results.add(new CachedTablet(ke, goal));
+          results.add(new CachedTablet(ke, goal, hostingRequested));
         }
         location = null;
       }

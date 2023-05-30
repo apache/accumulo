@@ -43,7 +43,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,18 +108,16 @@ public class SplitUtils {
 
   private static ArrayList<FileSKVIterator> openIndexes(ServerContext context,
       TableConfiguration tableConf, Collection<StoredTabletFile> files) throws IOException {
-    long numKeys = 0;
 
     ArrayList<FileSKVIterator> readers = new ArrayList<>();
 
     try {
       for (TabletFile file : files) {
         FileSKVIterator reader = null;
-        Path path = file.getPath();
-        FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
+        FileSystem ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
 
         reader = FileOperations.getInstance().newIndexReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+            .forFile(file, ns, ns.getConf(), tableConf.getCryptoService())
             .withTableConfiguration(tableConf).build();
 
         readers.add(reader);
