@@ -96,6 +96,7 @@ public class GarbageCollectorTrashEnabledCustomPolicyIT extends GarbageCollector
       c.tableOperations().compact(table, new CompactionConfig());
       super.waitForFilesToBeGCd(files1);
       ArrayList<StoredTabletFile> files2 = getFilesForTable(super.getServerContext(), c, table);
+      assertFalse(files2.isEmpty());
       assertTrue(files2.stream().noneMatch(stf -> stf.getPath().getName().startsWith("F")));
       assertTrue(files2.stream().allMatch(stf -> stf.getPath().getName().startsWith("A")));
       c.tableOperations().compact(table, new CompactionConfig());
