@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -46,7 +47,9 @@ public class TabletManagement {
           ColumnType.CHOPPED, ColumnType.HOSTING_GOAL, ColumnType.HOSTING_REQUESTED,
           ColumnType.FILES, ColumnType.LAST, ColumnType.OPID);
 
-  private static final String REASONS_COLUMN_NAME = "REASONS";
+  private static final Text REASONS_COLUMN_NAME = new Text("REASONS");
+
+  private static final Text EMPTY = new Text("");
 
   public static enum ManagementAction {
     BAD_STATE, NEEDS_COMPACTING, NEEDS_LOCATION_UPDATE, IS_MERGING, NEEDS_SPLITTING;
@@ -54,8 +57,7 @@ public class TabletManagement {
 
   public static void addActions(final SortedMap<Key,Value> decodedRow,
       final Set<ManagementAction> actions) {
-    final Key reasonsKey =
-        new Key(decodedRow.firstKey().getRow().toString(), REASONS_COLUMN_NAME, "");
+    final Key reasonsKey = new Key(decodedRow.firstKey().getRow(), REASONS_COLUMN_NAME, EMPTY);
     final Value reasonsValue = new Value(Joiner.on(',').join(actions));
     decodedRow.put(reasonsKey, reasonsValue);
   }
@@ -74,8 +76,8 @@ public class TabletManagement {
 
   public TabletManagement(Key wholeRowKey, Value wholeRowValue, boolean saveKV) throws IOException {
     final SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(wholeRowKey, wholeRowValue);
-    String row = decodedRow.firstKey().getRow().toString();
-    Value val = decodedRow.remove(new Key(row, REASONS_COLUMN_NAME, ""));
+    Text row = decodedRow.firstKey().getRow();
+    Value val = decodedRow.remove(new Key(row, REASONS_COLUMN_NAME, EMPTY));
     Set<ManagementAction> actions = new HashSet<>();
     Splitter.on(',').split(val.toString()).forEach(a -> actions.add(ManagementAction.valueOf(a)));
     TabletMetadata tm = TabletMetadata.convertRow(decodedRow.entrySet().iterator(),
