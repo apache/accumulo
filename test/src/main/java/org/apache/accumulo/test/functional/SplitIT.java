@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.test.VerifyIngest.verifyIngest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;

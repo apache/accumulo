@@ -85,6 +85,7 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
+import org.apache.accumulo.manager.split.SplitTask;
 import org.apache.accumulo.manager.state.MergeStats;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
@@ -292,7 +293,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           stats.update(tableId, state);
           mergeStats.update(tm.getExtent(), state, tm.hasChopped(), !tm.getLogs().isEmpty());
           sendChopRequest(mergeStats.getMergeInfo(), state, tm);
-          sendSplitRequest(mergeStats.getMergeInfo(), state, tm);
 
           // Always follow through with assignments
           if (state == TabletState.ASSIGNED) {
@@ -305,6 +305,21 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             if (dependentWatcher != null && dependentWatcher.assignedOrHosted() > 0) {
               goal = TabletGoalState.HOSTED;
             }
+          }
+
+          if (actions.contains(ManagementAction.NEEDS_SPLITTING)) {
+            LOG.debug("{} may need splitting.", tm.getExtent());
+            if (manager.getSplitter().isSplittable(tm)) {
+              if (manager.getSplitter().addSplitStarting(tm.getExtent())) {
+                LOG.debug("submitting tablet {} for split", tm.getExtent());
+                manager.getSplitter()
+                    .executeSplit(new SplitTask(manager.getContext(), tm, manager));
+              }
+            } else {
+              LOG.debug("{} is not splittable.", tm.getExtent());
+            }
+            // ELASITICITY_TODO: remove below
+            // sendSplitRequest(mergeStats.getMergeInfo(), state, tm);
           }
 
           if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)) {
@@ -561,6 +576,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     return result;
   }
 
+  // ELASITICITY_TODO: Remove
   private void sendSplitRequest(MergeInfo info, TabletState state, TabletMetadata tm) {
     // Already split?
     if (!info.getState().equals(MergeState.SPLITTING)) {
