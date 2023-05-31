@@ -315,8 +315,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     Combiner newInstance;
     try {
       newInstance = this.getClass().getDeclaredConstructor().newInstance();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException(e);
     }
     newInstance.setSource(getSource().deepCopy(env));
     newInstance.combiners = combiners;

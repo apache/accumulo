@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -115,7 +116,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
         token.write(out);
         return baos.toByteArray();
       } catch (IOException e) {
-        throw new RuntimeException("Bug found in serialization code", e);
+        throw new UncheckedIOException("Bug found in serialization code", e);
       }
     }
   }

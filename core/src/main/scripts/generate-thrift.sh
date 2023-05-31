@@ -78,7 +78,7 @@ done
 # add dummy method to suppress "unnecessary suppress warnings" for classes which don't have any unused variables
 # this only affects classes, enums aren't affected
 #shellcheck disable=SC1004
-find $BUILD_DIR/gen-java -name '*.java' -exec grep -Zl '^public class ' {} + | xargs -0 sed -i -e 's/^[}]$/  private static void unusedMethod() {}\
+find "$BUILD_DIR/gen-java" -name '*.java' -exec grep -Zl '^public class ' {} + | xargs -0 sed -i -e 's/^[}]$/  private static void unusedMethod() {}\
 }/'
 
 for lang in "${LANGUAGES_TO_GENERATE[@]}"; do

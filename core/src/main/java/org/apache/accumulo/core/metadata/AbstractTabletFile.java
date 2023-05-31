@@ -16,22 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util.ratelimit;
+package org.apache.accumulo.core.metadata;
+
+import java.util.Objects;
+
+import org.apache.hadoop.fs.Path;
 
 /**
- * A rate limiter which doesn't actually limit rates at all.
+ * A base class used to represent file references that are handled by code that processes tablet
+ * files.
+ *
+ * @since 3.0.0
  */
-public class NullRateLimiter implements RateLimiter {
-  public static final NullRateLimiter INSTANCE = new NullRateLimiter();
+public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>> implements Comparable<T> {
 
-  private NullRateLimiter() {}
+  private final String fileName; // C0004.rf
+  protected final Path path;
 
-  @Override
-  public long getRate() {
-    return 0;
+  protected AbstractTabletFile(Path path) {
+    this.path = Objects.requireNonNull(path);
+    this.fileName = path.getName();
+    ValidationUtil.validateFileName(fileName);
   }
 
-  @Override
-  public void acquire(long numPermits) {}
+  /**
+   * @return The file name of the TabletFile
+   */
+  public String getFileName() {
+    return fileName;
+  }
+
+  /**
+   * @return The path of the TabletFile
+   */
+  public Path getPath() {
+    return path;
+  }
 
 }

@@ -227,14 +227,14 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             incrementStatsForRun(userGC);
             logStats();
 
+          } catch (Exception e) {
+            TraceUtil.setException(innerSpan, e, false);
+            log.error("{}", e.getMessage(), e);
+          } finally {
             status.getCurrent().setFinished(System.currentTimeMillis());
             status.setLast(status.getCurrent());
             gcCycleMetrics.setLastCollect(status.getCurrent());
             status.setCurrent(new GcCycleStats());
-
-          } catch (Exception e) {
-            TraceUtil.setException(innerSpan, e, false);
-            log.error("{}", e.getMessage(), e);
           }
 
           final long tStop = System.nanoTime();

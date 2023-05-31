@@ -22,6 +22,7 @@
   <!--
     DO NOT exclude anything other than generated files here. Other files
     can be excluded inline by adding the @SuppressFBWarnings annotation.
+    Exceptions can be made if the bug is particularly spammy or trivial.
   -->
   <Match>
     <!-- ignore thrift-generated files -->

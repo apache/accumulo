@@ -1292,7 +1292,7 @@ public class RFile {
     @Override
     public void closeDeepCopies() {
       if (deepCopy) {
-        throw new RuntimeException("Calling closeDeepCopies on a deep copy is not supported");
+        throw new IllegalStateException("Calling closeDeepCopies on a deep copy is not supported");
       }
 
       for (Reader deepCopy : deepCopies) {
@@ -1305,7 +1305,7 @@ public class RFile {
     @Override
     public void close() throws IOException {
       if (deepCopy) {
-        throw new RuntimeException("Calling close on a deep copy is not supported");
+        throw new IllegalStateException("Calling close on a deep copy is not supported");
       }
 
       closeDeepCopies();
@@ -1531,11 +1531,12 @@ public class RFile {
     @Override
     public void setInterruptFlag(AtomicBoolean flag) {
       if (deepCopy) {
-        throw new RuntimeException("Calling setInterruptFlag on a deep copy is not supported");
+        throw new IllegalStateException("Calling setInterruptFlag on a deep copy is not supported");
       }
 
       if (!deepCopies.isEmpty()) {
-        throw new RuntimeException("Setting interrupt flag after calling deep copy not supported");
+        throw new IllegalStateException(
+            "Setting interrupt flag after calling deep copy not supported");
       }
 
       setInterruptFlagInternal(flag);

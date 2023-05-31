@@ -89,7 +89,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
       if (thrown instanceof Exception) {
         throw (Exception) thrown;
       }
-      throw new RuntimeException("Weird throwable type thrown", thrown);
+      throw new IllegalStateException("Weird throwable type thrown", thrown);
     }
   }
 
