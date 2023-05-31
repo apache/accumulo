@@ -254,6 +254,10 @@ public class ThriftScanner {
 
     Duration busyTimeout;
 
+    int tabletsScanned;
+
+    KeyExtent prevExtent = null;
+
     public ScanState(ClientContext context, TableId tableId, Authorizations authorizations,
         Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList,
@@ -302,6 +306,18 @@ public class ThriftScanner {
 
       if (useScanServer) {
         scanAttempts = new ScanServerAttemptsImpl();
+      }
+
+      this.tabletsScanned = 0;
+    }
+
+    long startTimeNanos = 0;
+    long getNextScanAddressTimeNanos = 0;
+
+    public void incrementTabletsScanned(KeyExtent extent) {
+      if (!extent.equals(prevExtent)) {
+        tabletsScanned++;
+        prevExtent = extent;
       }
     }
   }
@@ -457,6 +473,63 @@ public class ThriftScanner {
     return Optional.of(addr);
   }
 
+  /**
+   * @see ClientTabletCache#findTablet(ClientContext, Text, boolean, ClientTabletCache.LocationNeed,
+   *      int, Range)
+   */
+  private static int computeMinimumHostAhead(ScanState scanState,
+      ClientTabletCache.LocationNeed hostingNeed) {
+    int minimumHostAhead = 0;
+
+    if (hostingNeed == ClientTabletCache.LocationNeed.REQUIRED) {
+      long currTime = System.nanoTime();
+
+      double timeRatio = 0;
+
+      long totalTime = currTime - scanState.startTimeNanos;
+      if (totalTime > 0) {
+        // The following computes (total time spent in this method)/(total time scanning and time
+        // spent in this method)
+        timeRatio = (double) scanState.getNextScanAddressTimeNanos / (double) (totalTime);
+      }
+
+      if (timeRatio < 0 || timeRatio > 1) {
+        log.warn("Computed ratio of time spent in getNextScanAddress has unexpected value : {} ",
+            timeRatio);
+        timeRatio = Math.max(0.0, Math.min(1.0, timeRatio));
+      }
+
+      //
+      // Do not want to host all tablets in the scan range in case not all data in the range is
+      // read. Need to determine how many tablets to host ahead of time. The following information
+      // is used to determine how many tablets to host ahead of time.
+      //
+      // 1. The number of tablets this scan has already read. The more tablets that this scan has
+      // read, the more likely that it will read many more tablets.
+      //
+      // 2. The timeRatio computed above. As timeRatio approaches 1.0 it means we are spending
+      // most of our time waiting on the next tablet to have an address. When are spending most of
+      // our time waiting for a tablet to have an address we want to increase the number of tablets
+      // we request to host ahead of time so we can hopefully spend less time waiting on that.
+      //
+
+      if (timeRatio > .9) {
+        minimumHostAhead = 16;
+      } else if (timeRatio > .75) {
+        minimumHostAhead = 8;
+      } else if (timeRatio > .5) {
+        minimumHostAhead = 4;
+      } else if (timeRatio > .25) {
+        minimumHostAhead = 2;
+      } else {
+        minimumHostAhead = 1;
+      }
+
+      minimumHostAhead = Math.min(scanState.tabletsScanned, minimumHostAhead);
+    }
+    return minimumHostAhead;
+  }
+
   static ScanAddress getNextScanAddress(ClientContext context, ScanState scanState, long timeOut,
       long startTime, long maxSleepTime)
       throws TableNotFoundException, AccumuloSecurityException, AccumuloServerException,
@@ -471,6 +544,8 @@ public class ThriftScanner {
     var hostingNeed = scanState.runOnScanServer ? ClientTabletCache.LocationNeed.NOT_REQUIRED
         : ClientTabletCache.LocationNeed.REQUIRED;
 
+    int minimumHostAhead = computeMinimumHostAhead(scanState, hostingNeed);
+
     while (addr == null) {
       long currentTime = System.currentTimeMillis();
       if ((currentTime - startTime) / 1000.0 > timeOut) {
@@ -483,7 +558,8 @@ public class ThriftScanner {
       try (Scope locateSpan = child1.makeCurrent()) {
 
         loc = ClientTabletCache.getInstance(context, scanState.tableId).findTablet(context,
-            scanState.startRow, scanState.skipStartRow, hostingNeed);
+            scanState.startRow, scanState.skipStartRow, hostingNeed, minimumHostAhead,
+            scanState.range);
 
         if (loc == null) {
           context.requireNotDeleted(scanState.tableId);
@@ -499,6 +575,8 @@ public class ThriftScanner {
           lastError = error;
           sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
         } else {
+          scanState.incrementTabletsScanned(loc.getExtent());
+
           // when a tablet splits we do want to continue scanning the low child
           // of the split if we are already passed it
           Range dataRange = loc.getExtent().toDataRange();
@@ -579,7 +657,20 @@ public class ThriftScanner {
               "Failed to retrieve next batch of key values before timeout");
         }
 
-        ScanAddress addr = getNextScanAddress(context, scanState, timeOut, startTime, maxSleepTime);
+        ScanAddress addr;
+        long beginTime = System.nanoTime();
+        try {
+          addr = getNextScanAddress(context, scanState, timeOut, startTime, maxSleepTime);
+        } finally {
+          // track the initial time that we started tracking the time for getting the next scan
+          // address
+          if (scanState.startTimeNanos == 0) {
+            scanState.startTimeNanos = beginTime;
+          }
+
+          // track the total amount of time spent getting the next scan address
+          scanState.getNextScanAddressTimeNanos += System.nanoTime() - beginTime;
+        }
 
         Span child2 = TraceUtil.startSpan(ThriftScanner.class, "scan::location",
             Map.of("tserver", addr.serverAddress));
@@ -839,8 +930,6 @@ public class ThriftScanner {
               sr.results.size(), scanState.scanID);
         }
       } else {
-        // log.debug("No more : tab end row = "+loc.tablet_extent.getEndRow()+" range =
-        // "+scanState.range);
         if (addr.getExtent().endRow() == null) {
           scanState.finished = true;
 

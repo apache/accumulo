@@ -62,10 +62,12 @@ public class TimeoutClientTabletCache extends SyncingClientTabletCache {
 
   @Override
   public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
-      LocationNeed locationNeed) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, InvalidTabletHostingRequestException {
+      LocationNeed locationNeed, int minimumHostAhead, Range hostAheadRange)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
     try {
-      CachedTablet ret = super.findTablet(context, row, skipRow, locationNeed);
+      CachedTablet ret =
+          super.findTablet(context, row, skipRow, locationNeed, minimumHostAhead, hostAheadRange);
 
       if (ret == null) {
         failed();

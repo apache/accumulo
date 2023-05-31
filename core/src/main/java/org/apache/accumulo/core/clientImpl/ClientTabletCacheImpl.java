@@ -535,8 +535,9 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
   @Override
   public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
-      LocationNeed locationNeed) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, InvalidTabletHostingRequestException {
+      LocationNeed locationNeed, int minimumHostAhead, Range hostAheadRange)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
 
     OpTimer timer = null;
 
@@ -556,13 +557,66 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
           String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
-    if (tl != null && locationNeed == LocationNeed.REQUIRED && tl.getTserverLocation().isEmpty()) {
-      requestTabletHosting(context, List.of(tl));
-      return null;
+    if (tl != null && locationNeed == LocationNeed.REQUIRED) {
+      Map<KeyExtent,CachedTablet> extentsToHost =
+          findExtentsToHost(context, minimumHostAhead * 2, hostAheadRange, lcSession, tl);
+
+      if (!extentsToHost.isEmpty()) {
+        if (extentsToHost.containsKey(tl.getExtent()) || extentsToHost.size() >= minimumHostAhead) {
+          requestTabletHosting(context, extentsToHost.values());
+        }
+      }
+
+      if (tl.getTserverLocation().isEmpty()) {
+        return null;
+      }
     }
 
     return tl;
 
+  }
+
+  private Map<KeyExtent,CachedTablet> findExtentsToHost(ClientContext context, int hostAheadCount,
+      Range hostAheadRange, LockCheckerSession lcSession, CachedTablet firstTablet)
+      throws AccumuloException, TableNotFoundException, InvalidTabletHostingRequestException,
+      AccumuloSecurityException {
+    Map<KeyExtent,CachedTablet> extentsToHost;
+
+    if (hostAheadCount > 0) {
+      extentsToHost = new HashMap<>();
+      if (firstTablet.getTserverLocation().isEmpty()) {
+        extentsToHost.put(firstTablet.getExtent(), firstTablet);
+      }
+
+      KeyExtent extent = firstTablet.getExtent();
+
+      var currTablet = extent;
+
+      for (int i = 0; i < hostAheadCount; i++) {
+        if (currTablet.endRow() == null || !hostAheadRange.contains(new Key(currTablet.endRow()))) {
+          break;
+        }
+
+        CachedTablet followingTablet = _findTablet(context, currTablet.endRow(), true, false, true,
+            lcSession, LocationNeed.REQUIRED);
+
+        if (followingTablet == null) {
+          break;
+        }
+
+        currTablet = followingTablet.getExtent();
+
+        if (followingTablet.getTserverLocation().isEmpty()
+            && !followingTablet.wasHostingRequested()) {
+          extentsToHost.put(followingTablet.getExtent(), followingTablet);
+        }
+      }
+    } else if (firstTablet.getTserverLocation().isEmpty()) {
+      extentsToHost = Map.of(firstTablet.getExtent(), firstTablet);
+    } else {
+      extentsToHost = Map.of();
+    }
+    return extentsToHost;
   }
 
   @Override
