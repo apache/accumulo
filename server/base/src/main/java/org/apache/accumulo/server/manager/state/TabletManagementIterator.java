@@ -410,14 +410,16 @@ public class TabletManagementIterator extends SkippingIterator {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LOCATION_UPDATE);
     }
 
-    final long splitThreshold =
-        ConfigurationTypeHelper.getFixedMemoryAsBytes(this.env.getPluginEnv()
-            .getConfiguration(tm.getTableId()).get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
-    if (shouldReturnDueToSplit(tm, splitThreshold)) {
-      reasonsToReturnThisTablet.add(ManagementAction.NEEDS_SPLITTING);
-    }
+    if (tm.getOperationId() == null) {
+      final long splitThreshold =
+          ConfigurationTypeHelper.getFixedMemoryAsBytes(this.env.getPluginEnv()
+              .getConfiguration(tm.getTableId()).get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
+      if (shouldReturnDueToSplit(tm, splitThreshold)) {
+        reasonsToReturnThisTablet.add(ManagementAction.NEEDS_SPLITTING);
+      }
 
-    // TODO: Add compaction logic
+      // TODO: Add compaction logic
+    }
 
   }
 }

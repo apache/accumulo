@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.test.VerifyIngest.verifyIngest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -154,8 +153,6 @@ public class SplitIT extends AccumuloClusterHarness {
       VerifyParams params = new VerifyParams(getClientProps(), table, 100_000);
       TestIngest.ingest(c, params);
       VerifyIngest.verifyIngest(c, params);
-      // ELASTICITY_TODO: Sum of file sizes is zero in
-      // TabletManagementIterator.shouldReturnDueToSplit, so split never happens
       while (c.tableOperations().listSplits(table).size() < 10) {
         Thread.sleep(SECONDS.toMillis(15));
       }

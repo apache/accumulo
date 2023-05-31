@@ -23,8 +23,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.Property;
@@ -43,16 +41,12 @@ import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Weigher;
-import com.google.common.base.Preconditions;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 
 public class Splitter {
 
   private final ExecutorService splitExecutor;
-
-  private final ScheduledExecutorService scanExecutor;
-  private ScheduledFuture<?> scanFuture;
 
   Cache<KeyExtent,KeyExtent> splitsStarting;
 
@@ -105,8 +99,6 @@ public class Splitter {
   public Splitter(ServerContext context) {
     this.splitExecutor = context.threadPools().createExecutorService(context.getConfiguration(),
         Property.MANAGER_SPLIT_WORKER_THREADS, true);
-    this.scanExecutor =
-        context.threadPools().createScheduledExecutorService(1, "Tablet Split Scanner", true);
 
     Weigher<CacheKey,FileInfo> weigher =
         (key, info) -> key.tableId.canonical().length() + key.tabletFile.getPathStr().length()
@@ -138,14 +130,9 @@ public class Splitter {
         .maximumWeight(10_000_000L).weigher(weigher3).build();
   }
 
-  public synchronized void start() {
-    Preconditions.checkState(scanFuture == null);
-    Preconditions.checkState(!scanExecutor.isShutdown());
-  }
+  public synchronized void start() {}
 
   public synchronized void stop() {
-    scanFuture.cancel(true);
-    scanExecutor.shutdownNow();
     splitExecutor.shutdownNow();
   }
 
