@@ -43,11 +43,12 @@ import org.apache.hadoop.fs.RemoteIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// base class for ITs that test our legacy trash property and Hadoop's trash policy with accumulo gc
 public class GarbageCollectorTrashBase extends ConfigurableMacBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(GarbageCollectorTrashBase.class);
 
-  public ArrayList<StoredTabletFile> getFilesForTable(ServerContext ctx, AccumuloClient client,
+  protected ArrayList<StoredTabletFile> getFilesForTable(ServerContext ctx, AccumuloClient client,
       String tableName) {
     String tid = client.tableOperations().tableIdMap().get(tableName);
     TabletsMetadata tms =
@@ -60,7 +61,7 @@ public class GarbageCollectorTrashBase extends ConfigurableMacBase {
     return files;
   }
 
-  public ArrayList<StoredTabletFile> loadData(ServerContext ctx, AccumuloClient client,
+  protected ArrayList<StoredTabletFile> loadData(ServerContext ctx, AccumuloClient client,
       String tableName) throws Exception {
     // create some files
     for (int i = 0; i < 5; i++) {
@@ -70,11 +71,11 @@ public class GarbageCollectorTrashBase extends ConfigurableMacBase {
     return getFilesForTable(ctx, client, tableName);
   }
 
-  public boolean userTrashDirExists(FileSystem fs) {
+  protected boolean userTrashDirExists(FileSystem fs) {
     return !fs.getTrashRoots(false).isEmpty();
   }
 
-  public void makeTrashDir(FileSystem fs) throws IOException {
+  protected void makeTrashDir(FileSystem fs) throws IOException {
     if (!userTrashDirExists(fs)) {
       Path homeDir = fs.getHomeDirectory();
       Path trashDir = new Path(homeDir, ".Trash");
@@ -84,7 +85,7 @@ public class GarbageCollectorTrashBase extends ConfigurableMacBase {
 
   }
 
-  public void waitForFilesToBeGCd(final ArrayList<StoredTabletFile> files) throws Exception {
+  protected void waitForFilesToBeGCd(final ArrayList<StoredTabletFile> files) throws Exception {
     Wait.waitFor(() -> files.stream().noneMatch(stf -> {
       try {
         return super.getCluster().getMiniDfs().getFileSystem().exists(stf.getPath());
@@ -94,7 +95,7 @@ public class GarbageCollectorTrashBase extends ConfigurableMacBase {
     }));
   }
 
-  public long countFilesInTrash(FileSystem fs, TableId tid)
+  protected long countFilesInTrash(FileSystem fs, TableId tid)
       throws FileNotFoundException, IOException {
     Collection<FileStatus> dirs = fs.getTrashRoots(true);
     if (dirs.isEmpty()) {

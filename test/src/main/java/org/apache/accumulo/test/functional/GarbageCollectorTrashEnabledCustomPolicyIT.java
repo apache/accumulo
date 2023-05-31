@@ -42,6 +42,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.TrashPolicyDefault;
 import org.junit.jupiter.api.Test;
 
+// verify that trash is used if our property is set to not ignore it (the default)
+// and Hadoop Trash is configured to enable it and use a custom policy.
 public class GarbageCollectorTrashEnabledCustomPolicyIT extends GarbageCollectorTrashBase {
 
   public static class NoFlushFilesInTrashPolicy extends TrashPolicyDefault {

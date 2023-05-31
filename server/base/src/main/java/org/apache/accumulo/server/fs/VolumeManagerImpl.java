@@ -355,10 +355,10 @@ public class VolumeManagerImpl implements VolumeManager {
   @Override
   public boolean moveToTrash(Path path) throws IOException {
     FileSystem fs = getFileSystemByPath(path);
-    log.trace("fs.trash.interval: {}",
-        fs.getConf().get(CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY));
+    String key = CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY;
+    log.trace("{}: {}", key, fs.getConf().get(key));
     Trash trash = new Trash(fs, fs.getConf());
-    log.trace("Hadoop Trash is enabled: {}", trash.isEnabled());
+    log.trace("Hadoop Trash is enabled for {}: {}", path, trash.isEnabled());
     return trash.moveToTrash(path);
   }
 

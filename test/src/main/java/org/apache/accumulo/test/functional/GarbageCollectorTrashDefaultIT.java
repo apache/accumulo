@@ -38,6 +38,8 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.junit.jupiter.api.Test;
 
+// verify trash is not used with Hadoop default configuration as Trash is not
+// enabled by default.
 public class GarbageCollectorTrashDefaultIT extends GarbageCollectorTrashBase {
 
   @Override
