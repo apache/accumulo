@@ -57,6 +57,15 @@ public class SplitTask implements Runnable {
         }
       }
 
+      if (tablet.getOperationId() != null) {
+        // This will be checked in the FATE op, but no need to inspect files and start a FATE op if
+        // it currently has an operation running against it.
+        log.debug("Not splitting {} because it has operation id {}", tablet.getExtent(),
+            tablet.getOperationId());
+        manager.getSplitter().removeSplitStarting(tablet.getExtent());
+        return;
+      }
+
       var extent = tablet.getExtent();
 
       SortedSet<Text> splits = SplitUtils.findSplits(context, tablet);

@@ -46,7 +46,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.TabletType;
@@ -75,16 +74,12 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.TabletLogger;
-import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.cache.BlockCache;
@@ -134,7 +129,6 @@ import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
@@ -1603,31 +1597,4 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       return handleTimeout(sessionId);
     }
   }
-
-  @Override
-  public void requestTabletHosting(TInfo tinfo, TCredentials credentials, String tableId,
-      List<TKeyExtent> extents) throws ThriftSecurityException, TException {
-    final TableId tid = TableId.of(tableId);
-    NamespaceId namespaceId = getNamespaceId(credentials, tid);
-    if (!security.canScan(credentials, tid, namespaceId)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-    if (context.getTableState(tid) != TableState.ONLINE) {
-      throw new TApplicationException("Table is not online");
-    }
-    log.info("Tablet hosting requested for: {} ", extents);
-    final Ample ample = context.getAmple();
-    try (TabletsMutator mutator = ample.mutateTablets()) {
-      extents.forEach(e -> {
-        KeyExtent ke = KeyExtent.fromThrift(e);
-        if (ample.readTablet(ke, ColumnType.HOSTING_GOAL).getHostingGoal()
-            == TabletHostingGoal.ONDEMAND) {
-          log.info("Set hosting requested for {}", ke);
-          mutator.mutateTablet(ke).setHostingRequested().mutate();
-        }
-      });
-    }
-  }
-
 }

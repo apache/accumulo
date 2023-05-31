@@ -301,10 +301,6 @@ public class NullTserver {
         List<TKeyExtent> extents) throws TException {
       return List.of();
     }
-
-    @Override
-    public void requestTabletHosting(TInfo tinfo, TCredentials credentials, String tableId,
-        List<TKeyExtent> extents) throws ThriftSecurityException, TException {}
   }
 
   static class Opts extends Help {

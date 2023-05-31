@@ -435,4 +435,13 @@ service ManagerClientService {
     2:client.ThriftNotActiveServiceException tnase
   )
 
+  void requestTabletHosting(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string tableId
+    4:list<data.TKeyExtent> extents
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftTableOperationException toe
+  )
 }

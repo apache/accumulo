@@ -90,7 +90,7 @@ public class Splitter {
 
   LoadingCache<CacheKey,FileInfo> splitFileCache;
 
-  private static int weigh(KeyExtent keyExtent) {
+  public static int weigh(KeyExtent keyExtent) {
     int size = 0;
     size += keyExtent.tableId().toString().length();
     if (keyExtent.endRow() != null) {

@@ -437,6 +437,11 @@ public interface Ample {
     ConditionalTabletMutator requirePrevEndRow(Text per);
 
     /**
+     * Requires the tablet to have the specified hosting goal before any changes are made.
+     */
+    ConditionalTabletMutator requireHostingGoal(TabletHostingGoal tabletHostingGoal);
+
+    /**
      * <p>
      * Ample provides the following features on top of the conditional writer to help automate
      * handling of edges cases that arise when using the conditional writer.
