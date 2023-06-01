@@ -53,7 +53,7 @@ public class ConfigOpts extends Help {
   private String legacyOpts = null;
 
   // catch all for boolean dropped options, including those specific to subclassed extensions
-  @Parameter(names = {"-s", "--safemode"}, hidden = true)
+  @Parameter(names = {"--safemode"}, hidden = true)
   private boolean legacyOptsBoolean = false;
 
   // holds information on dealing with dropped options
@@ -61,10 +61,8 @@ public class ConfigOpts extends Help {
   private static Map<String,String> LEGACY_OPTION_MSG = new HashMap<>();
   static {
     // garbage collector legacy options
-    LEGACY_OPTION_MSG.put("-s", "Replaced by configuration property " + Property.GC_SAFEMODE);
     LEGACY_OPTION_MSG.put("--safemode",
         "Replaced by configuration property " + Property.GC_SAFEMODE);
-
   }
 
   public static class NullSplitter implements IParameterSplitter {
