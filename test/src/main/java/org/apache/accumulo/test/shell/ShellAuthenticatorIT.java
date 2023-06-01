@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Properties;
 import java.util.TimeZone;
@@ -74,7 +75,7 @@ public class ShellAuthenticatorIT extends SharedMiniClusterBase {
       config.delete();
     }
     config = Files.createTempFile(null, null).toFile();
-    try (FileWriter writer = new FileWriter(config)) {
+    try (FileWriter writer = new FileWriter(config, StandardCharsets.UTF_8)) {
       Properties p = SharedMiniClusterBase.getClientProps();
       p.store(writer, null);
     }
@@ -99,7 +100,7 @@ public class ShellAuthenticatorIT extends SharedMiniClusterBase {
   public void testClientProperties() throws IOException {
     shell = new Shell(reader);
     shell.setLogErrorsToConsole();
-    assertTrue(shell.config("-u", "root", "-p", getRootPassword(), "-zi",
+    assertTrue(shell.config("-u", getAdminPrincipal(), "-p", getRootPassword(), "-zi",
         getCluster().getInstanceName(), "-zh", getCluster().getZooKeepers()));
   }
 
@@ -107,8 +108,8 @@ public class ShellAuthenticatorIT extends SharedMiniClusterBase {
   public void testClientPropertiesBadPassword() throws IOException {
     shell = new Shell(reader);
     shell.setLogErrorsToConsole();
-    assertFalse(shell.config("-u", "root", "-p", "BADPW", "-zi", getCluster().getInstanceName(),
-        "-zh", getCluster().getZooKeepers()));
+    assertFalse(shell.config("-u", getAdminPrincipal(), "-p", "BADPW", "-zi",
+        getCluster().getInstanceName(), "-zh", getCluster().getZooKeepers()));
   }
 
   @Test
@@ -123,14 +124,14 @@ public class ShellAuthenticatorIT extends SharedMiniClusterBase {
       config.delete();
     }
     config = Files.createTempFile(null, null).toFile();
-    try (FileWriter writer = new FileWriter(config)) {
+    try (FileWriter writer = new FileWriter(config, StandardCharsets.UTF_8)) {
       Properties p = SharedMiniClusterBase.getClientProps();
       p.store(writer, null);
     }
     config.deleteOnExit();
     shell = new Shell(reader);
     shell.setLogErrorsToConsole();
-    assertTrue(shell.config("--auth-timeout", "2", "--config-file", config.toString()));
+    assertTrue(shell.config("--auth-timeout", "1", "--config-file", config.toString()));
     Thread.sleep(90000);
     shell.execCommand("whoami", false, false);
     assertTrue(output.get().contains("root"));
