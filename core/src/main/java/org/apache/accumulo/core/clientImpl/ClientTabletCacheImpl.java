@@ -67,6 +67,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -558,8 +559,10 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
 
     if (tl != null && locationNeed == LocationNeed.REQUIRED) {
-      Map<KeyExtent,CachedTablet> extentsToHost =
-          findExtentsToHost(context, minimumHostAhead * 2, hostAheadRange, lcSession, tl);
+      // Look at the next (minimumHostAhead * 2) tablets and return which ones need hosting. See the
+      // javadoc in the superclass of this method for more details.
+      Map<KeyExtent,CachedTablet> extentsToHost = findExtentsToHost(context, minimumHostAhead * 2,
+          hostAheadRange, lcSession, tl, locationNeed);
 
       if (!extentsToHost.isEmpty()) {
         if (extentsToHost.containsKey(tl.getExtent()) || extentsToHost.size() >= minimumHostAhead) {
@@ -577,9 +580,13 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   }
 
   private Map<KeyExtent,CachedTablet> findExtentsToHost(ClientContext context, int hostAheadCount,
-      Range hostAheadRange, LockCheckerSession lcSession, CachedTablet firstTablet)
-      throws AccumuloException, TableNotFoundException, InvalidTabletHostingRequestException,
-      AccumuloSecurityException {
+      Range hostAheadRange, LockCheckerSession lcSession, CachedTablet firstTablet,
+      LocationNeed locationNeed) throws AccumuloException, TableNotFoundException,
+      InvalidTabletHostingRequestException, AccumuloSecurityException {
+
+    // its only expected that this method is called when location need is required
+    Preconditions.checkArgument(locationNeed == LocationNeed.REQUIRED);
+
     Map<KeyExtent,CachedTablet> extentsToHost;
 
     if (hostAheadCount > 0) {
@@ -597,8 +604,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
           break;
         }
 
-        CachedTablet followingTablet = _findTablet(context, currTablet.endRow(), true, false, true,
-            lcSession, LocationNeed.REQUIRED);
+        CachedTablet followingTablet =
+            _findTablet(context, currTablet.endRow(), true, false, true, lcSession, locationNeed);
 
         if (followingTablet == null) {
           break;
