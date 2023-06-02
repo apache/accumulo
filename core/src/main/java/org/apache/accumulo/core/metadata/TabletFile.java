@@ -50,7 +50,7 @@ public class TabletFile extends AbstractTabletFile<TabletFile> {
   private static final Logger log = LoggerFactory.getLogger(TabletFile.class);
 
   private static final Comparator<TabletFile> comparator =
-      Comparator.comparing(TabletFile::getPathStr).thenComparing(TabletFile::getRange);
+      Comparator.comparing(TabletFile::getNormalizedPathStr).thenComparing(TabletFile::getRange);
 
   public TabletFile(Path metaPath) {
     this(metaPath, new Range());
