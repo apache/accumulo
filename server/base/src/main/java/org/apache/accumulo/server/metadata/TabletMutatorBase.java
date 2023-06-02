@@ -88,6 +88,14 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   }
 
   @Override
+  public Ample.TabletMutator putFile(StoredTabletFile path, DataFileValue dfv) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    mutation.put(DataFileColumnFamily.NAME, path.getMetaUpdateDeleteText(),
+        new Value(dfv.encode()));
+    return this;
+  }
+
+  @Override
   public Ample.TabletMutator deleteFile(StoredTabletFile path) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.putDelete(DataFileColumnFamily.NAME, path.getMetaUpdateDeleteText());
