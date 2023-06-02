@@ -117,7 +117,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
    * @return true if trash is used
    */
   boolean isUsingTrash() {
-    return !getConfiguration().getBoolean(Property.GC_TRASH_IGNORE);
+    @SuppressWarnings("removal")
+    Property p = Property.GC_TRASH_IGNORE;
+    return !getConfiguration().getBoolean(p);
   }
 
   /**
