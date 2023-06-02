@@ -37,7 +37,7 @@ import org.apache.hadoop.io.Text;
  */
 public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   private final String metadataEntry;
-  private final TabletFile tabletFile;
+  private final ReferencedTabletFile referencedTabletFile;
 
   /**
    * Construct a tablet file using the string read from the metadata. Preserve the exact string so
@@ -46,7 +46,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   public StoredTabletFile(String metadataEntry) {
     super(new Path(metadataEntry));
     this.metadataEntry = metadataEntry;
-    this.tabletFile = TabletFile.of(getPath());
+    this.referencedTabletFile = ReferencedTabletFile.of(getPath());
   }
 
   /**
@@ -65,16 +65,16 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return new Text(getMetaUpdateDelete());
   }
 
-  public TabletFile getTabletFile() {
-    return tabletFile;
+  public ReferencedTabletFile getTabletFile() {
+    return referencedTabletFile;
   }
 
   public TableId getTableId() {
-    return tabletFile.getTableId();
+    return referencedTabletFile.getTableId();
   }
 
   public String getNormalizedPathStr() {
-    return tabletFile.getNormalizedPathStr();
+    return referencedTabletFile.getNormalizedPathStr();
   }
 
   /**
