@@ -258,7 +258,7 @@ public class MetadataTableUtil {
     ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
 
     for (Entry<StoredTabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
-      m.put(DataFileColumnFamily.NAME, entry.getKey().getMetaInsertText(),
+      m.put(DataFileColumnFamily.NAME, entry.getKey().getMetaUpdateDeleteText(),
           new Value(entry.getValue().encode()));
     }
 

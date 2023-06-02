@@ -733,6 +733,7 @@ public enum Property {
       "The listening port for the garbage collector's monitor service", "1.3.5"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
       "The number of threads used to delete RFiles and write-ahead logs", "1.3.5"),
+  @Deprecated(since = "2.1.1", forRemoval = true)
   GC_TRASH_IGNORE("gc.trash.ignore", "false", PropertyType.BOOLEAN,
       "Do not use the Trash, even if it is configured.", "1.5.0"),
   GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
