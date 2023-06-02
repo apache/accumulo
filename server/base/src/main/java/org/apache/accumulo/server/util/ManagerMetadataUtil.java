@@ -202,7 +202,7 @@ public class ManagerMetadataUtil {
     scanFiles.stream().map(StoredTabletFile::getTabletFile).forEach(tablet::putScan);
 
     if (path.isPresent()) {
-      tablet.putFile(path.orElseThrow().getTabletFile(), size);
+      tablet.putFile(path.orElseThrow(), size);
     }
 
     if (compactionId != null) {

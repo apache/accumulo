@@ -77,12 +77,6 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return tabletFile.getNormalizedPathStr();
   }
 
-  // TODO: This will be deleted as soon as #3432 is merged in which
-  // removes the only call to this method
-  public Text getMetaInsertText() {
-    return tabletFile.getMetaInsertText();
-  }
-
   /**
    * Validate that the provided reference matches what is in the metadata table.
    *
