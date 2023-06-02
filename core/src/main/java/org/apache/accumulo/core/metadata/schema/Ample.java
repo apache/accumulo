@@ -247,6 +247,8 @@ public interface Ample {
 
     TabletMutator putFile(TabletFile path, DataFileValue dfv);
 
+    TabletMutator putFile(StoredTabletFile path, DataFileValue dfv);
+
     TabletMutator deleteFile(StoredTabletFile path);
 
     TabletMutator putScan(TabletFile path);
