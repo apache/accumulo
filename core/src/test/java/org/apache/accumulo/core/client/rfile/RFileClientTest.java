@@ -44,7 +44,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.rfile.RFile.InputArguments.FencedRfile;
+import org.apache.accumulo.core.client.rfile.RFile.InputArguments.FencedPath;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.CounterSummary;
@@ -235,7 +235,7 @@ public class RFileClientTest {
 
     Range range = new Range(rowStr(3), true, rowStr(14), true);
     Scanner scanner =
-        RFile.newScanner().from(new FencedRfile(new Path(new File(testFile).toURI()), range))
+        RFile.newScanner().from(new FencedPath(new Path(new File(testFile).toURI()), range))
             .withFileSystem(localFs).build();
 
     TreeMap<Key,Value> expected = new TreeMap<>(testData);

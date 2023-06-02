@@ -38,6 +38,9 @@ public class RFileSource {
     this(in, len, new Range());
   }
 
+  /**
+   * @since 3.1.0
+   */
   public RFileSource(InputStream in, long len, Range range) {
     this.in = Objects.requireNonNull(in);
     this.len = len;

@@ -1688,11 +1688,6 @@ public class RFile {
     }
 
     @Override
-    public void next() throws IOException {
-      super.next();
-    }
-
-    @Override
     public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
       throw new UnsupportedOperationException();
     }

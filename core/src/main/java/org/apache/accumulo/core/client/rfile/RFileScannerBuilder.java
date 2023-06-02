@@ -38,17 +38,17 @@ import com.google.common.base.Preconditions;
 class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOptions {
 
   static class InputArgs extends FSConfArgs {
-    private FencedRfile[] rFiles;
+    private FencedPath[] rFiles;
     private RFileSource[] sources;
 
     InputArgs(String... files) {
-      this.rFiles = new FencedRfile[files.length];
+      this.rFiles = new FencedPath[files.length];
       for (int i = 0; i < files.length; i++) {
-        this.rFiles[i] = new FencedRfile(new Path(files[i]), new Range());
+        this.rFiles[i] = new FencedPath(new Path(files[i]), new Range());
       }
     }
 
-    InputArgs(FencedRfile... files) {
+    InputArgs(FencedPath... files) {
       this.rFiles = files;
     }
 
@@ -133,7 +133,7 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
   }
 
   @Override
-  public ScannerFSOptions from(FencedRfile... files) {
+  public ScannerFSOptions from(FencedPath... files) {
     Objects.requireNonNull(files);
     opts.in = new InputArgs(files);
     return this;

@@ -80,24 +80,24 @@ public class RFile {
     ScannerFSOptions from(String... files);
 
     /**
-     * Specify FencedRfiles to read from. When multiple are specified the {@link Scanner}
+     * Specify FencedPath files to read from. When multiple are specified the {@link Scanner}
      * constructed will present a merged view.
      *
-     * @param files one or more FencedRfiles to read.
+     * @param files one or more FencedPaths to read.
      * @return this
      *
      * @since 3.1.0
      */
-    ScannerFSOptions from(FencedRfile... files);
+    ScannerFSOptions from(FencedPath... files);
 
     /**
      * @since 3.1.0
      */
-    class FencedRfile {
+    class FencedPath {
       private final Path path;
       private final Range fence;
 
-      public FencedRfile(Path path, Range fence) {
+      public FencedPath(Path path, Range fence) {
         this.path = Objects.requireNonNull(path);
         this.fence = Objects.requireNonNull(fence);
       }
