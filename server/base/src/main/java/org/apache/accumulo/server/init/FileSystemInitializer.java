@@ -41,8 +41,8 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -165,7 +165,7 @@ class FileSystemInitializer {
     for (Tablet tablet : tablets) {
       createEntriesForTablet(sorted, tablet);
     }
-    TabletFile file = TabletFile.of(new Path(fileName));
+    ReferencedTabletFile file = ReferencedTabletFile.of(new Path(fileName));
     FileSystem fs = volmanager.getFileSystemByPath(file.getPath());
 
     CryptoService cs = CryptoFactoryLoader.getServiceForServer(conf);

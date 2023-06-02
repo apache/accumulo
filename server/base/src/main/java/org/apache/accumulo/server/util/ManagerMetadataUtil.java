@@ -45,9 +45,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -72,7 +72,7 @@ public class ManagerMetadataUtil {
 
   public static void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
       TServerInstance tServerInstance, Map<StoredTabletFile,DataFileValue> datafileSizes,
-      Map<Long,? extends Collection<TabletFile>> bulkLoadedFiles, MetadataTime time,
+      Map<Long,? extends Collection<ReferencedTabletFile>> bulkLoadedFiles, MetadataTime time,
       long lastFlushID, long lastCompactID, ServiceLock zooLock) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
@@ -96,8 +96,9 @@ public class ManagerMetadataUtil {
 
     datafileSizes.forEach((key, value) -> tablet.putFile(key.getTabletFile(), value));
 
-    for (Entry<Long,? extends Collection<TabletFile>> entry : bulkLoadedFiles.entrySet()) {
-      for (TabletFile ref : entry.getValue()) {
+    for (Entry<Long,? extends Collection<ReferencedTabletFile>> entry : bulkLoadedFiles
+        .entrySet()) {
+      for (ReferencedTabletFile ref : entry.getValue()) {
         tablet.putBulkFile(ref, entry.getKey());
       }
     }
@@ -224,7 +225,7 @@ public class ManagerMetadataUtil {
    * Update tablet file data from flush. Returns a StoredTabletFile if there are data entries.
    */
   public static Optional<StoredTabletFile> updateTabletDataFile(ServerContext context,
-      KeyExtent extent, TabletFile newDatafile, DataFileValue dfv, MetadataTime time,
+      KeyExtent extent, ReferencedTabletFile newDatafile, DataFileValue dfv, MetadataTime time,
       String address, ServiceLock zooLock, Set<String> unusedWalLogs, Location lastLocation,
       long flushId) {
 

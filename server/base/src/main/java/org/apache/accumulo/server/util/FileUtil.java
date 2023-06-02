@@ -45,7 +45,7 @@ import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -570,7 +570,8 @@ public class FileUtil {
    * Convert TabletFiles to Strings in case we need to reduce number of files. The temporary files
    * used will have irregular paths that don't conform to TabletFile verification.
    */
-  public static Collection<String> toPathStrings(Collection<TabletFile> files) {
-    return files.stream().map(TabletFile::getNormalizedPathStr).collect(Collectors.toList());
+  public static Collection<String> toPathStrings(Collection<ReferencedTabletFile> files) {
+    return files.stream().map(ReferencedTabletFile::getNormalizedPathStr)
+        .collect(Collectors.toList());
   }
 }
