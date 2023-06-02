@@ -31,7 +31,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.metadata.AbstractTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
@@ -168,7 +168,7 @@ public abstract class FileOperations {
   protected static class FileOptions {
     // objects used by all
     public final AccumuloConfiguration tableConfiguration;
-    public final AbstractTabletFile<?> file;
+    public final TabletFile<?> file;
     public final FileSystem fs;
     public final Configuration fsConf;
     public final RateLimiter rateLimiter;
@@ -187,7 +187,7 @@ public abstract class FileOperations {
     public final boolean inclusive;
     public final boolean dropCacheBehind;
 
-    protected FileOptions(AccumuloConfiguration tableConfiguration, AbstractTabletFile<?> file,
+    protected FileOptions(AccumuloConfiguration tableConfiguration, TabletFile<?> file,
         FileSystem fs, Configuration fsConf, RateLimiter rateLimiter, String compression,
         FSDataOutputStream outputStream, boolean enableAccumuloStart, CacheProvider cacheProvider,
         Cache<String,Long> fileLenCache, boolean seekToBeginning, CryptoService cryptoService,
@@ -214,7 +214,7 @@ public abstract class FileOperations {
       return tableConfiguration;
     }
 
-    public AbstractTabletFile<?> getFile() {
+    public TabletFile<?> getFile() {
       return file;
     }
 
@@ -276,7 +276,7 @@ public abstract class FileOperations {
    */
   public static class FileHelper {
     private AccumuloConfiguration tableConfiguration;
-    private AbstractTabletFile<?> file;
+    private TabletFile<?> file;
     private FileSystem fs;
     private Configuration fsConf;
     private RateLimiter rateLimiter;
@@ -293,7 +293,7 @@ public abstract class FileOperations {
       return this;
     }
 
-    protected FileHelper file(AbstractTabletFile<?> file) {
+    protected FileHelper file(TabletFile<?> file) {
       this.file = Objects.requireNonNull(file);
       return this;
     }
@@ -366,8 +366,8 @@ public abstract class FileOperations {
       return this;
     }
 
-    public WriterTableConfiguration forFile(AbstractTabletFile<?> file, FileSystem fs,
-        Configuration fsConf, CryptoService cs) {
+    public WriterTableConfiguration forFile(TabletFile<?> file, FileSystem fs, Configuration fsConf,
+        CryptoService cs) {
       file(file).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
     }
@@ -415,8 +415,8 @@ public abstract class FileOperations {
     private Cache<String,Long> fileLenCache;
     private boolean seekToBeginning = false;
 
-    public ReaderTableConfiguration forFile(AbstractTabletFile<?> file, FileSystem fs,
-        Configuration fsConf, CryptoService cs) {
+    public ReaderTableConfiguration forFile(TabletFile<?> file, FileSystem fs, Configuration fsConf,
+        CryptoService cs) {
       file(file).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
     }
@@ -483,7 +483,7 @@ public abstract class FileOperations {
 
     private Cache<String,Long> fileLenCache = null;
 
-    public IndexReaderTableConfiguration forFile(AbstractTabletFile<?> file, FileSystem fs,
+    public IndexReaderTableConfiguration forFile(TabletFile<?> file, FileSystem fs,
         Configuration fsConf, CryptoService cs) {
       file(file).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
@@ -515,7 +515,7 @@ public abstract class FileOperations {
     private Set<ByteSequence> columnFamilies;
     private boolean inclusive;
 
-    public ScanReaderTableConfiguration forFile(AbstractTabletFile<?> file, FileSystem fs,
+    public ScanReaderTableConfiguration forFile(TabletFile<?> file, FileSystem fs,
         Configuration fsConf, CryptoService cs) {
       file(file).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;

@@ -63,9 +63,9 @@ import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator.Behavior;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
-import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.Stat;
@@ -397,11 +397,11 @@ public class CollectTabletStats {
   }
 
   private static void reportHdfsBlockLocations(ServerContext context,
-      List<? extends AbstractTabletFile<?>> files) throws Exception {
+      List<? extends TabletFile<?>> files) throws Exception {
     VolumeManager fs = context.getVolumeManager();
 
     System.out.println("\t\tFile block report : ");
-    for (AbstractTabletFile<?> file : files) {
+    for (TabletFile<?> file : files) {
       FileStatus status = fs.getFileStatus(file.getPath());
 
       if (status.isDirectory()) {

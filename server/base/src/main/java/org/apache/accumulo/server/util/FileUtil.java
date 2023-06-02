@@ -44,8 +44,8 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
-import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -112,12 +112,12 @@ public class FileUtil {
     return result;
   }
 
-  public static Collection<? extends AbstractTabletFile<?>> reduceFiles(ServerContext context,
+  public static Collection<? extends TabletFile<?>> reduceFiles(ServerContext context,
       TableConfiguration tableConf, Text prevEndRow, Text endRow,
-      Collection<? extends AbstractTabletFile<?>> dataFiles, int maxFiles, Path tmpDir, int pass)
+      Collection<? extends TabletFile<?>> dataFiles, int maxFiles, Path tmpDir, int pass)
       throws IOException {
 
-    ArrayList<? extends AbstractTabletFile<?>> files = new ArrayList<>(dataFiles);
+    ArrayList<? extends TabletFile<?>> files = new ArrayList<>(dataFiles);
 
     if (files.size() <= maxFiles) {
       return files;
@@ -133,7 +133,7 @@ public class FileUtil {
 
     while (start < files.size()) {
       int end = Math.min(maxFiles + start, files.size());
-      List<? extends AbstractTabletFile<?>> inFiles = files.subList(start, end);
+      List<? extends TabletFile<?>> inFiles = files.subList(start, end);
 
       start = end;
 
@@ -151,7 +151,7 @@ public class FileUtil {
 
       FileSKVIterator reader = null;
       try {
-        for (AbstractTabletFile<?> file : inFiles) {
+        for (TabletFile<?> file : inFiles) {
           ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
           reader = FileOperations.getInstance().newIndexReaderBuilder()
               .forFile(file, ns, ns.getConf(), tableConf.getCryptoService())
@@ -211,8 +211,8 @@ public class FileUtil {
   }
 
   public static double estimatePercentageLTE(ServerContext context, TableConfiguration tableConf,
-      String tabletDir, Text prevEndRow, Text endRow,
-      Collection<? extends AbstractTabletFile<?>> dataFiles, Text splitRow) throws IOException {
+      String tabletDir, Text prevEndRow, Text endRow, Collection<? extends TabletFile<?>> dataFiles,
+      Text splitRow) throws IOException {
 
     Path tmpDir = null;
 
@@ -289,10 +289,10 @@ public class FileUtil {
    */
   public static SortedMap<Double,Key> findMidPoint(ServerContext context,
       TableConfiguration tableConf, String tabletDirectory, Text prevEndRow, Text endRow,
-      Collection<? extends AbstractTabletFile<?>> dataFiles, double minSplit, boolean useIndex)
+      Collection<? extends TabletFile<?>> dataFiles, double minSplit, boolean useIndex)
       throws IOException {
 
-    Collection<? extends AbstractTabletFile<?>> origDataFiles = dataFiles;
+    Collection<? extends TabletFile<?>> origDataFiles = dataFiles;
 
     Path tmpDir = null;
 
@@ -430,12 +430,12 @@ public class FileUtil {
   }
 
   private static long countIndexEntries(ServerContext context, TableConfiguration tableConf,
-      Text prevEndRow, Text endRow, Collection<? extends AbstractTabletFile<?>> dataFiles,
-      boolean useIndex, ArrayList<FileSKVIterator> readers) throws IOException {
+      Text prevEndRow, Text endRow, Collection<? extends TabletFile<?>> dataFiles, boolean useIndex,
+      ArrayList<FileSKVIterator> readers) throws IOException {
     long numKeys = 0;
 
     // count the total number of index entries
-    for (AbstractTabletFile<?> file : dataFiles) {
+    for (TabletFile<?> file : dataFiles) {
       FileSKVIterator reader = null;
       FileSystem ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
       try {
@@ -485,7 +485,7 @@ public class FileUtil {
     return numKeys;
   }
 
-  public static <T extends AbstractTabletFile<T>> Map<T,FileInfo> tryToGetFirstAndLastRows(
+  public static <T extends TabletFile<T>> Map<T,FileInfo> tryToGetFirstAndLastRows(
       ServerContext context, TableConfiguration tableConf, Set<T> dataFiles) {
 
     HashMap<T,FileInfo> dataFilesInfo = new HashMap<>();
@@ -528,9 +528,8 @@ public class FileUtil {
     return dataFilesInfo;
   }
 
-  public static <T extends AbstractTabletFile<T>> WritableComparable<Key>
-      findLastKey(ServerContext context, TableConfiguration tableConf, Collection<T> dataFiles)
-          throws IOException {
+  public static <T extends TabletFile<T>> WritableComparable<Key> findLastKey(ServerContext context,
+      TableConfiguration tableConf, Collection<T> dataFiles) throws IOException {
 
     Key lastKey = null;
 

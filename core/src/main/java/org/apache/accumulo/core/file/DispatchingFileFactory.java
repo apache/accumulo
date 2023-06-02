@@ -23,13 +23,13 @@ import java.io.IOException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
-import org.apache.accumulo.core.metadata.AbstractTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.summary.SummaryWriter;
 
 class DispatchingFileFactory extends FileOperations {
 
   private FileOperations findFileFactory(FileOptions options) {
-    AbstractTabletFile<?> file = options.getFile();
+    TabletFile<?> file = options.getFile();
 
     String name = file.getPath().getName();
 

@@ -34,7 +34,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
-import org.apache.accumulo.core.metadata.AbstractTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -133,7 +133,7 @@ public class RFileOperations extends FileOperations {
       }
       int bufferSize = conf.getInt("io.file.buffer.size", 4096);
 
-      AbstractTabletFile<?> file = options.getFile();
+      TabletFile<?> file = options.getFile();
       FileSystem fs = options.getFileSystem();
 
       if (options.dropCacheBehind) {
