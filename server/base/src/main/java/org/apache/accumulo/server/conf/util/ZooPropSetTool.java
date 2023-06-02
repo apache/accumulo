@@ -99,24 +99,29 @@ public class ZooPropSetTool implements KeywordExecutable {
       throw new IllegalArgumentException("Cannot continue without a valid instance.");
     }
 
-    PropStoreKey<?> propKey = getPropKey(iid, opts, zrw);
-    switch (opts.getCmdMode()) {
-      case SET:
-        setProperty(propKey, opts);
-        break;
-      case DELETE:
-        deleteProperty(propKey, readPropNode(propKey, zrw), opts);
-        break;
-      case PRINT:
-        printProperties(propKey, readPropNode(propKey, zrw), opts);
-        break;
-      case ERROR:
-      default:
-        throw new IllegalArgumentException("Invalid operation requested");
+    var siteConfig = opts.getSiteConfiguration();
+    try (ServerContext context = new ServerContext(siteConfig)) {
+
+      PropStoreKey<?> propKey = getPropKey(iid, opts, zrw);
+      switch (opts.getCmdMode()) {
+        case SET:
+          setProperty(context, propKey, opts);
+          break;
+        case DELETE:
+          deleteProperty(context, propKey, readPropNode(propKey, zrw), opts);
+          break;
+        case PRINT:
+          printProperties(context, propKey, readPropNode(propKey, zrw), opts);
+          break;
+        case ERROR:
+        default:
+          throw new IllegalArgumentException("Invalid operation requested");
+      }
     }
   }
 
-  private void setProperty(final PropStoreKey<?> propKey, final Opts opts) {
+  private void setProperty(final ServerContext context, final PropStoreKey<?> propKey,
+      final Opts opts) {
     LOG.trace("set {}", propKey);
 
     if (!opts.setOpt.contains("=")) {
@@ -125,12 +130,10 @@ public class ZooPropSetTool implements KeywordExecutable {
     }
     String[] tokens = opts.setOpt.split("=");
     Map<String,String> propValue = Map.of(tokens[0].trim(), tokens[1].trim());
-    var siteConfig = opts.getSiteConfiguration();
-    ServerContext context = new ServerContext(siteConfig);
     PropUtil.setProperties(context, propKey, propValue);
   }
 
-  private void deleteProperty(final PropStoreKey<?> propKey,
+  private void deleteProperty(final ServerContext context, final PropStoreKey<?> propKey,
       VersionedProperties versionedProperties, final Opts opts) {
     LOG.trace("delete {} - {}", propKey, opts.deleteOpt);
     String p = opts.deleteOpt.trim();
@@ -143,13 +146,11 @@ public class ZooPropSetTool implements KeywordExecutable {
           propKey);
       return;
     }
-    var siteConfig = opts.getSiteConfiguration();
-    ServerContext context = new ServerContext(siteConfig);
     PropUtil.removeProperties(context, propKey, List.of(p));
   }
 
-  private void printProperties(final PropStoreKey<?> propKey, final VersionedProperties props,
-      final Opts opts) {
+  private void printProperties(final ServerContext context, final PropStoreKey<?> propKey,
+      final VersionedProperties props, final Opts opts) {
     LOG.trace("print {}", propKey);
 
     OutputStream outStream = System.out;
@@ -168,8 +169,11 @@ public class ZooPropSetTool implements KeywordExecutable {
     try (PrintWriter writer =
         new PrintWriter(new BufferedWriter(new OutputStreamWriter(outStream, UTF_8)))) {
       // header
-      writer.printf("%s - custom properties\nid: %s, data version: %d, timestamp: %s\n", scope,
-          propKey.getId(), props.getDataVersion(), props.getTimestampISO());
+      writer.printf("- Instance name: %s\n", context.getInstanceName());
+      writer.printf("- Instance id: %s\n", context.getInstanceID());
+      writer.printf("- Property scope: - %s\n", scope);
+      writer.printf("- id: %s, data version: %d, timestamp: %s\n", propKey.getId(),
+          props.getDataVersion(), props.getTimestampISO());
 
       // skip filtering if no props
       if (props.asMap().isEmpty()) {
