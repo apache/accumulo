@@ -62,7 +62,6 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class ZooPropSetTool implements KeywordExecutable {
 
-  public static final String INDENT = "  ";
   private static final Logger LOG = LoggerFactory.getLogger(ZooPropSetTool.class);
   private final NullWatcher nullWatcher =
       new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
@@ -177,17 +176,17 @@ public class ZooPropSetTool implements KeywordExecutable {
 
       // skip filtering if no props
       if (props.asMap().isEmpty()) {
-        writer.printf("%snone\n", INDENT);
+        writer.println("none");
         return;
       }
 
       SortedMap<String,String> sortedMap = filterProps(props, opts);
       // skip print if all filtered out
       if (sortedMap.isEmpty()) {
-        writer.printf("%snone\n", INDENT);
+        writer.println("none");
         return;
       }
-      sortedMap.forEach((name, value) -> writer.printf("%s%s=%s\n", INDENT, name, value));
+      sortedMap.forEach((name, value) -> writer.printf("%s=%s\n", name, value));
     }
   }
 
