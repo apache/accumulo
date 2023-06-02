@@ -445,4 +445,5 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       return s.next();
     }
   }
+
 }

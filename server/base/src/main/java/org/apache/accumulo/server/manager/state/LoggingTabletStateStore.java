@@ -53,6 +53,11 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
+  public void knownTabletStateChange(TabletManagement tablet) {
+    this.wrapped.knownTabletStateChange(tablet);
+  }
+
+  @Override
   public void setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException {
     wrapped.setFutureLocations(assignments);

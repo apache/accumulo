@@ -31,7 +31,8 @@ class RootTabletStateStore extends MetaDataStateStore {
 
   @Override
   public ClosableIterator<TabletManagement> iterator() {
-    return new TabletManagementScanner(context, TabletsSection.getRange(), state, RootTable.NAME);
+    return new TabletManagementScanner(context, TabletsSection.getRange(), state, RootTable.NAME,
+        knownStateChanges);
   }
 
   @Override

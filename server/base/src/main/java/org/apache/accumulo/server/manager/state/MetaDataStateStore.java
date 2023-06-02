@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.manager.state;
 
 import java.util.Collection;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.manager.state.TabletManagement;
@@ -34,6 +35,8 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
   protected final CurrentState state;
   private final String targetTableName;
   private final Ample ample;
+  protected final ConcurrentLinkedQueue<TabletManagement> knownStateChanges =
+      new ConcurrentLinkedQueue<>();
 
   protected MetaDataStateStore(ClientContext context, CurrentState state, String targetTableName) {
     super(context);
@@ -49,7 +52,13 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
 
   @Override
   public ClosableIterator<TabletManagement> iterator() {
-    return new TabletManagementScanner(context, TabletsSection.getRange(), state, targetTableName);
+    return new TabletManagementScanner(context, TabletsSection.getRange(), state, targetTableName,
+        knownStateChanges);
+  }
+
+  @Override
+  public void knownTabletStateChange(TabletManagement tablet) {
+    this.knownStateChanges.add(tablet);
   }
 
   @Override
