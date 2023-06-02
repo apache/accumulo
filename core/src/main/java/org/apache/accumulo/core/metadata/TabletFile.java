@@ -18,36 +18,17 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import java.util.Objects;
-
 import org.apache.hadoop.fs.Path;
 
-/**
- * A base class used to represent file references that are handled by code that processes tablet
- * files.
- *
- * @since 3.0.0
- */
-public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
-    implements TabletFile, Comparable<T> {
+public interface TabletFile {
 
-  private final String fileName; // C0004.rf
-  protected final Path path;
+  /**
+   * @return The file name of the TabletFile
+   */
+  String getFileName();
 
-  protected AbstractTabletFile(Path path) {
-    this.path = Objects.requireNonNull(path);
-    this.fileName = path.getName();
-    ValidationUtil.validateFileName(fileName);
-  }
-
-  @Override
-  public String getFileName() {
-    return fileName;
-  }
-
-  @Override
-  public Path getPath() {
-    return path;
-  }
-
+  /**
+   * @return The path of the TabletFile
+   */
+  Path getPath();
 }
