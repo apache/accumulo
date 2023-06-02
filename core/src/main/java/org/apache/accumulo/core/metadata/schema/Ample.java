@@ -251,7 +251,7 @@ public interface Ample {
 
     TabletMutator deleteFile(StoredTabletFile path);
 
-    TabletMutator putScan(TabletFile path);
+    TabletMutator putScan(StoredTabletFile path);
 
     TabletMutator deleteScan(StoredTabletFile path);
 

@@ -199,7 +199,7 @@ public class ManagerMetadataUtil {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
 
     datafilesToDelete.forEach(tablet::deleteFile);
-    scanFiles.stream().map(StoredTabletFile::getTabletFile).forEach(tablet::putScan);
+    scanFiles.stream().forEach(tablet::putScan);
 
     if (path.isPresent()) {
       tablet.putFile(path.orElseThrow(), size);
