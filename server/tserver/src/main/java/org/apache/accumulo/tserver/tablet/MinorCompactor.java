@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.FileCompactor;
@@ -54,7 +54,8 @@ public class MinorCompactor extends FileCompactor {
   private final MinorCompactionReason mincReason;
 
   public MinorCompactor(TabletServer tabletServer, Tablet tablet, InMemoryMap imm,
-      TabletFile outputFile, MinorCompactionReason mincReason, TableConfiguration tableConfig) {
+      ReferencedTabletFile outputFile, MinorCompactionReason mincReason,
+      TableConfiguration tableConfig) {
     super(tabletServer.getContext(), tablet.getExtent(), Collections.emptyMap(), outputFile, true,
         new MinCEnv(mincReason, imm.compactionIterator()), Collections.emptyList(), tableConfig,
         tableConfig.getCryptoService(), tabletServer.getPausedCompactionMetrics());

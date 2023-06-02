@@ -77,8 +77,8 @@ import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -174,16 +174,16 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
       tabletImports.forEach((tke, fileMap) -> {
-        Map<TabletFile,DataFileInfo> newFileMap = new HashMap<>();
+        Map<ReferencedTabletFile,DataFileInfo> newFileMap = new HashMap<>();
 
         for (Entry<String,DataFileInfo> mapping : fileMap.entrySet()) {
           Path path = new Path(dir, mapping.getKey());
           FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
           path = ns.makeQualified(path);
-          newFileMap.put(new TabletFile(path), mapping.getValue());
+          newFileMap.put(new ReferencedTabletFile(path), mapping.getValue());
         }
-        var files =
-            newFileMap.keySet().stream().map(TabletFile::getNormalizedPathStr).collect(toList());
+        var files = newFileMap.keySet().stream().map(ReferencedTabletFile::getNormalizedPathStr)
+            .collect(toList());
         server.updateBulkImportState(files, BulkImportState.INITIAL);
 
         Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));

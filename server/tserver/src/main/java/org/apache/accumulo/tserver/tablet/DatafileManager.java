@@ -38,8 +38,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -209,14 +209,14 @@ class DatafileManager {
     return inUse;
   }
 
-  public Collection<StoredTabletFile> importDataFiles(long tid, Map<TabletFile,DataFileValue> paths,
-      boolean setTime) throws IOException {
+  public Collection<StoredTabletFile> importDataFiles(long tid,
+      Map<ReferencedTabletFile,DataFileValue> paths, boolean setTime) throws IOException {
 
     String bulkDir = null;
     // once tablet files are inserted into the metadata they will become StoredTabletFiles
     Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>(paths.size());
 
-    for (TabletFile tpath : paths.keySet()) {
+    for (ReferencedTabletFile tpath : paths.keySet()) {
       boolean inTheRightDirectory = false;
       Path parent = tpath.getPath().getParent().getParent();
       for (String tablesDir : tablet.getContext().getTablesDirs()) {
@@ -293,8 +293,9 @@ class DatafileManager {
    * entries so was not inserted into the metadata. In this case empty is returned. If the file was
    * stored in the metadata table, then StoredTableFile will be returned.
    */
-  Optional<StoredTabletFile> bringMinorCompactionOnline(TabletFile tmpDatafile,
-      TabletFile newDatafile, DataFileValue dfv, CommitSession commitSession, long flushId) {
+  Optional<StoredTabletFile> bringMinorCompactionOnline(ReferencedTabletFile tmpDatafile,
+      ReferencedTabletFile newDatafile, DataFileValue dfv, CommitSession commitSession,
+      long flushId) {
     Optional<StoredTabletFile> newFile;
     // rename before putting in metadata table, so files in metadata table should
     // always exist
@@ -395,13 +396,13 @@ class DatafileManager {
   }
 
   Optional<StoredTabletFile> bringMajorCompactionOnline(Set<StoredTabletFile> oldDatafiles,
-      TabletFile tmpDatafile, Long compactionId, Set<StoredTabletFile> selectedFiles,
+      ReferencedTabletFile tmpDatafile, Long compactionId, Set<StoredTabletFile> selectedFiles,
       DataFileValue dfv, Optional<ExternalCompactionId> ecid) throws IOException {
     final KeyExtent extent = tablet.getExtent();
     VolumeManager vm = tablet.getTabletServer().getContext().getVolumeManager();
     long t1, t2;
 
-    TabletFile newDatafile = CompactableUtils.computeCompactionFileDest(tmpDatafile);
+    ReferencedTabletFile newDatafile = CompactableUtils.computeCompactionFileDest(tmpDatafile);
 
     if (vm.exists(newDatafile.getPath())) {
       log.error("Target data file already exist " + newDatafile, new Exception());

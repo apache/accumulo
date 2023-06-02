@@ -55,9 +55,9 @@ import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
@@ -107,7 +107,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   private final Map<StoredTabletFile,DataFileValue> filesToCompact;
-  private final TabletFile outputFile;
+  private final ReferencedTabletFile outputFile;
   private final boolean propagateDeletes;
   private final AccumuloConfiguration acuTableConf;
   private final CompactionEnv env;
@@ -165,9 +165,9 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   public FileCompactor(ServerContext context, KeyExtent extent,
-      Map<StoredTabletFile,DataFileValue> files, TabletFile outputFile, boolean propagateDeletes,
-      CompactionEnv env, List<IteratorSetting> iterators, AccumuloConfiguration tableConfiguation,
-      CryptoService cs, PausedCompactionMetrics metrics) {
+      Map<StoredTabletFile,DataFileValue> files, ReferencedTabletFile outputFile,
+      boolean propagateDeletes, CompactionEnv env, List<IteratorSetting> iterators,
+      AccumuloConfiguration tableConfiguation, CryptoService cs, PausedCompactionMetrics metrics) {
     this.context = context;
     this.extent = extent;
     this.fs = context.getVolumeManager();

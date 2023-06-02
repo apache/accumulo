@@ -42,17 +42,18 @@ import com.google.common.base.Preconditions;
  * As of 2.1, Tablet file paths should now be only absolute URIs with the removal of relative paths
  * in Upgrader9to10.upgradeRelativePaths()
  */
-public class TabletFile extends AbstractTabletFile<TabletFile> {
+public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFile> {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"
   private final TabletDirectory tabletDir; // hdfs://1.2.3.4/accumulo/tables/2a/t-0003
   private final String normalizedPath;
 
-  private static final Logger log = LoggerFactory.getLogger(TabletFile.class);
+  private static final Logger log = LoggerFactory.getLogger(ReferencedTabletFile.class);
 
-  private static final Comparator<TabletFile> comparator =
-      Comparator.comparing(TabletFile::getNormalizedPathStr).thenComparing(TabletFile::getRange);
+  private static final Comparator<ReferencedTabletFile> comparator =
+      Comparator.comparing(ReferencedTabletFile::getNormalizedPathStr)
+          .thenComparing(ReferencedTabletFile::getRange);
 
-  public TabletFile(Path metaPath) {
+  public ReferencedTabletFile(Path metaPath) {
     this(metaPath, new Range());
   }
 
@@ -60,7 +61,7 @@ public class TabletFile extends AbstractTabletFile<TabletFile> {
    * Construct new tablet file using a Path. Used in the case where we had to use Path object to
    * qualify an absolute path or create a new file.
    */
-  public TabletFile(Path metaPath, Range range) {
+  public ReferencedTabletFile(Path metaPath, Range range) {
     super(Objects.requireNonNull(metaPath), range);
     String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
     log.trace("Parsing TabletFile from {}", metaPath);
@@ -125,7 +126,7 @@ public class TabletFile extends AbstractTabletFile<TabletFile> {
   }
 
   @Override
-  public int compareTo(TabletFile o) {
+  public int compareTo(ReferencedTabletFile o) {
     if (equals(o)) {
       return 0;
     } else {
@@ -135,8 +136,8 @@ public class TabletFile extends AbstractTabletFile<TabletFile> {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof TabletFile) {
-      TabletFile that = (TabletFile) obj;
+    if (obj instanceof ReferencedTabletFile) {
+      ReferencedTabletFile that = (ReferencedTabletFile) obj;
       return normalizedPath.equals(that.normalizedPath) && range.equals(that.range);
     }
     return false;
@@ -152,8 +153,8 @@ public class TabletFile extends AbstractTabletFile<TabletFile> {
     return normalizedPath;
   }
 
-  public static TabletFile of(final Path path) {
-    return new TabletFile(path);
+  public static ReferencedTabletFile of(final Path path) {
+    return new ReferencedTabletFile(path);
   }
 
 }
