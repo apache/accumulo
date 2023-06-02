@@ -90,7 +90,7 @@ public class TabletFile extends AbstractTabletFile<TabletFile> {
    * Return a string for opening and reading the tablet file. Doesn't have to be exact string in
    * metadata.
    */
-  public String getPathStr() {
+  public String getNormalizedPathStr() {
     return normalizedPath;
   }
 

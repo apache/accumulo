@@ -84,7 +84,7 @@ class DatafileManager {
         new AtomicReference<>(new MetadataUpdateCount(tablet.getExtent(), 0L, 0L));
   }
 
-  private final Set<TabletFile> filesToDeleteAfterScan = new HashSet<>();
+  private final Set<StoredTabletFile> filesToDeleteAfterScan = new HashSet<>();
   private final Map<Long,Set<StoredTabletFile>> scanFileReservations = new HashMap<>();
   private final MapCounter<StoredTabletFile> fileScanReferenceCounts = new MapCounter<>();
   private long nextScanReservationId = 0;
@@ -95,7 +95,7 @@ class DatafileManager {
     }
   }
 
-  Pair<Long,Map<TabletFile,DataFileValue>> reserveFilesForScan() {
+  Pair<Long,Map<StoredTabletFile,DataFileValue>> reserveFilesForScan() {
     synchronized (tablet) {
 
       Set<StoredTabletFile> absFilePaths = new HashSet<>(datafileSizes.keySet());
@@ -104,7 +104,7 @@ class DatafileManager {
 
       scanFileReservations.put(rid, absFilePaths);
 
-      Map<TabletFile,DataFileValue> ret = new HashMap<>();
+      Map<StoredTabletFile,DataFileValue> ret = new HashMap<>();
 
       for (StoredTabletFile path : absFilePaths) {
         fileScanReferenceCounts.increment(path, 1);
@@ -495,9 +495,9 @@ class DatafileManager {
     }
   }
 
-  public Set<TabletFile> getFiles() {
+  public Set<StoredTabletFile> getFiles() {
     synchronized (tablet) {
-      HashSet<TabletFile> files = new HashSet<>(datafileSizes.keySet());
+      HashSet<StoredTabletFile> files = new HashSet<>(datafileSizes.keySet());
       return Collections.unmodifiableSet(files);
     }
   }
