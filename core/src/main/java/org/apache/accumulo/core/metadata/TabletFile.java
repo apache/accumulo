@@ -18,48 +18,30 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import java.util.Objects;
-
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.fs.Path;
 
-/**
- * A base class used to represent file references that are handled by code that processes tablet
- * files.
- *
- * @since 3.0.0
- */
-public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
-    implements TabletFile, Comparable<T> {
+public interface TabletFile {
 
-  private final String fileName; // C0004.rf
-  protected final Path path;
-  protected final Range range;
+  /**
+   * @return The file name of the TabletFile
+   */
+  String getFileName();
 
-  protected AbstractTabletFile(Path path, Range range) {
-    this.path = Objects.requireNonNull(path);
-    this.fileName = path.getName();
-    this.range = Objects.requireNonNull(range);
-    ValidationUtil.validateFileName(fileName);
-  }
+  /**
+   * @return The path of the TabletFile
+   */
+  Path getPath();
 
-  @Override
-  public String getFileName() {
-    return fileName;
-  }
+  /**
+   * @return The range of the TabletFile
+   *
+   */
+  Range getRange();
 
-  @Override
-  public Path getPath() {
-    return path;
-  }
-
-  @Override
-  public Range getRange() {
-    return range;
-  }
-
-  @Override
-  public boolean hasRange() {
-    return !range.isInfiniteStartKey() || !range.isInfiniteStopKey();
-  }
+  /**
+   * @return True if this file is fenced by a range
+   *
+   */
+  boolean hasRange();
 }

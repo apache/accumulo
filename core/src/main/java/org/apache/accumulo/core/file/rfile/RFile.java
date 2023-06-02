@@ -74,7 +74,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroup;
 import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroupContext;
 import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroupSeekCache;
-import org.apache.accumulo.core.metadata.AbstractTabletFile;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MutableByteSequence;
@@ -1750,8 +1750,8 @@ public class RFile {
     }
   }
 
-  public static RFileSKVIterator getReader(final CachableBuilder cb,
-      final AbstractTabletFile<?> dataFile) throws IOException {
+  public static RFileSKVIterator getReader(final CachableBuilder cb, final TabletFile dataFile)
+      throws IOException {
     final RFile.Reader reader = new RFile.Reader(Objects.requireNonNull(cb));
     return dataFile.hasRange() ? new FencedReader(reader, dataFile.getRange()) : reader;
   }
