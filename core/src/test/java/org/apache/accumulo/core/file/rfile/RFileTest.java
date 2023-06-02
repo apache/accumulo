@@ -41,7 +41,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -49,7 +48,6 @@ import java.util.Set;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -65,12 +63,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
-import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
@@ -86,8 +82,6 @@ import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.Text;
@@ -103,7 +97,7 @@ import com.google.common.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class RFileTest {
+public class RFileTest extends AbstractRFileTest {
 
   private static final SecureRandom random = new SecureRandom();
 
@@ -126,7 +120,6 @@ public class RFileTest {
     }
   }
 
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static final Configuration hadoopConf = new Configuration();
 
   @TempDir
@@ -198,155 +191,6 @@ public class RFileTest {
 
   }
 
-  private static void checkIndex(Reader reader) throws IOException {
-    FileSKVIterator indexIter = reader.getIndex();
-
-    if (indexIter.hasTop()) {
-      Key lastKey = new Key(indexIter.getTopKey());
-
-      if (reader.getFirstKey().compareTo(lastKey) > 0) {
-        throw new IllegalStateException(
-            "First key out of order " + reader.getFirstKey() + " " + lastKey);
-      }
-
-      indexIter.next();
-
-      while (indexIter.hasTop()) {
-        if (lastKey.compareTo(indexIter.getTopKey()) > 0) {
-          throw new IllegalStateException(
-              "Indext out of order " + lastKey + " " + indexIter.getTopKey());
-        }
-
-        lastKey = new Key(indexIter.getTopKey());
-        indexIter.next();
-
-      }
-
-      if (!reader.getLastKey().equals(lastKey)) {
-        throw new IllegalStateException(
-            "Last key out of order " + reader.getLastKey() + " " + lastKey);
-      }
-    }
-  }
-
-  public static class TestRFile {
-
-    protected Configuration conf = new Configuration();
-    public RFile.Writer writer;
-    protected ByteArrayOutputStream baos;
-    protected FSDataOutputStream dos;
-    protected SeekableByteArrayInputStream bais;
-    protected FSDataInputStream in;
-    protected AccumuloConfiguration accumuloConfiguration;
-    public Reader reader;
-    public SortedKeyValueIterator<Key,Value> iter;
-    private BlockCacheManager manager;
-
-    public TestRFile(AccumuloConfiguration accumuloConfiguration) {
-      this.accumuloConfiguration = accumuloConfiguration;
-      if (this.accumuloConfiguration == null) {
-        this.accumuloConfiguration = DefaultConfiguration.getInstance();
-      }
-    }
-
-    public void openWriter(boolean startDLG) throws IOException {
-      openWriter(startDLG, 1000);
-    }
-
-    public void openWriter(boolean startDLG, int blockSize) throws IOException {
-      baos = new ByteArrayOutputStream();
-      dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
-      CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
-          accumuloConfiguration.getAllCryptoProperties());
-
-      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, cs);
-
-      SamplerConfigurationImpl samplerConfig =
-          SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
-      Sampler sampler = null;
-
-      if (samplerConfig != null) {
-        sampler = SamplerFactory.newSampler(samplerConfig, accumuloConfiguration);
-      }
-
-      writer = new RFile.Writer(_cbw, blockSize, 1000, samplerConfig, sampler);
-
-      if (startDLG) {
-        writer.startDefaultLocalityGroup();
-      }
-    }
-
-    public void openWriter() throws IOException {
-      openWriter(1000);
-    }
-
-    public void openWriter(int blockSize) throws IOException {
-      openWriter(true, blockSize);
-    }
-
-    public void closeWriter() throws IOException {
-      dos.flush();
-      writer.close();
-      dos.close();
-      if (baos != null) {
-        baos.close();
-      }
-    }
-
-    public void openReader() throws IOException {
-      openReader(true);
-    }
-
-    public void openReader(boolean cfsi) throws IOException {
-      int fileLength = 0;
-      byte[] data = null;
-      data = baos.toByteArray();
-
-      bais = new SeekableByteArrayInputStream(data);
-      in = new FSDataInputStream(bais);
-      fileLength = data.length;
-
-      DefaultConfiguration dc = DefaultConfiguration.getInstance();
-      ConfigurationCopy cc = new ConfigurationCopy(dc);
-      cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
-      try {
-        manager = BlockCacheManagerFactory.getInstance(cc);
-      } catch (ReflectiveOperationException e) {
-        throw new IllegalStateException("Error creating BlockCacheManager", e);
-      }
-      cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(100000));
-      cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(100000000));
-      cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(100000000));
-      manager.start(BlockCacheConfiguration.forTabletServer(cc));
-      LruBlockCache indexCache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
-      LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
-
-      CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
-          accumuloConfiguration.getAllCryptoProperties());
-
-      CachableBuilder cb = new CachableBuilder().input(in, "source-1").length(fileLength).conf(conf)
-          .cacheProvider(new BasicCacheProvider(indexCache, dataCache)).cryptoService(cs);
-      reader = new RFile.Reader(cb);
-      if (cfsi) {
-        iter = new ColumnFamilySkippingIterator(reader);
-      }
-
-      checkIndex(reader);
-    }
-
-    public void closeReader() throws IOException {
-      reader.close();
-      in.close();
-      if (null != manager) {
-        manager.stop();
-      }
-    }
-
-    public void seek(Key nk) throws IOException {
-      iter.seek(new Range(nk, null), EMPTY_COL_FAMS, false);
-    }
-  }
-
   static Key newKey(String row, String cf, String cq, String cv, long ts) {
     return new Key(row.getBytes(), cf.getBytes(), cq.getBytes(), cv.getBytes(), ts);
   }
@@ -358,8 +202,6 @@ public class RFileTest {
   static String formatString(String prefix, int i) {
     return String.format(prefix + "%06d", i);
   }
-
-  public AccumuloConfiguration conf = null;
 
   @Test
   public void test1() throws IOException {
@@ -573,22 +415,6 @@ public class RFileTest {
     assertEquals(20, count);
 
     trf.closeReader();
-  }
-
-  private void verify(TestRFile trf, Iterator<Key> eki, Iterator<Value> evi) throws IOException {
-
-    while (trf.iter.hasTop()) {
-      Key ek = eki.next();
-      Value ev = evi.next();
-
-      assertEquals(ek, trf.iter.getTopKey());
-      assertEquals(ev, trf.iter.getTopValue());
-
-      trf.iter.next();
-    }
-
-    assertFalse(eki.hasNext());
-    assertFalse(evi.hasNext());
   }
 
   @Test
