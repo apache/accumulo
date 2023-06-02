@@ -153,7 +153,7 @@ public class TabletLogger {
     }
   }
 
-  public static void bulkImported(KeyExtent extent, TabletFile<?> file) {
+  public static void bulkImported(KeyExtent extent, TabletFile file) {
     fileLog.debug("Imported {} {}  ", extent, file);
   }
 

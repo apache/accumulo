@@ -29,7 +29,7 @@ import org.apache.accumulo.core.summary.SummaryWriter;
 class DispatchingFileFactory extends FileOperations {
 
   private FileOperations findFileFactory(FileOptions options) {
-    TabletFile<?> file = options.getFile();
+    TabletFile file = options.getFile();
 
     String name = file.getPath().getName();
 

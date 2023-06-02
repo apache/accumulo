@@ -29,7 +29,7 @@ import org.apache.hadoop.fs.Path;
  * @since 3.0.0
  */
 public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
-    implements TabletFile<T>, Comparable<T> {
+    implements TabletFile, Comparable<T> {
 
   private final String fileName; // C0004.rf
   protected final Path path;

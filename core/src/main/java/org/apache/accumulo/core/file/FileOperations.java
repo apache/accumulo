@@ -168,7 +168,7 @@ public abstract class FileOperations {
   protected static class FileOptions {
     // objects used by all
     public final AccumuloConfiguration tableConfiguration;
-    public final TabletFile<?> file;
+    public final TabletFile file;
     public final FileSystem fs;
     public final Configuration fsConf;
     public final RateLimiter rateLimiter;
@@ -187,8 +187,8 @@ public abstract class FileOperations {
     public final boolean inclusive;
     public final boolean dropCacheBehind;
 
-    protected FileOptions(AccumuloConfiguration tableConfiguration, TabletFile<?> file,
-        FileSystem fs, Configuration fsConf, RateLimiter rateLimiter, String compression,
+    protected FileOptions(AccumuloConfiguration tableConfiguration, TabletFile file, FileSystem fs,
+        Configuration fsConf, RateLimiter rateLimiter, String compression,
         FSDataOutputStream outputStream, boolean enableAccumuloStart, CacheProvider cacheProvider,
         Cache<String,Long> fileLenCache, boolean seekToBeginning, CryptoService cryptoService,
         Range range, Set<ByteSequence> columnFamilies, boolean inclusive, boolean dropCacheBehind) {
@@ -214,7 +214,7 @@ public abstract class FileOperations {
       return tableConfiguration;
     }
 
-    public TabletFile<?> getFile() {
+    public TabletFile getFile() {
       return file;
     }
 
@@ -276,7 +276,7 @@ public abstract class FileOperations {
    */
   public static class FileHelper {
     private AccumuloConfiguration tableConfiguration;
-    private TabletFile<?> file;
+    private TabletFile file;
     private FileSystem fs;
     private Configuration fsConf;
     private RateLimiter rateLimiter;
@@ -293,7 +293,7 @@ public abstract class FileOperations {
       return this;
     }
 
-    protected FileHelper file(TabletFile<?> file) {
+    protected FileHelper file(TabletFile file) {
       this.file = Objects.requireNonNull(file);
       return this;
     }
@@ -366,7 +366,7 @@ public abstract class FileOperations {
       return this;
     }
 
-    public WriterTableConfiguration forFile(TabletFile<?> file, FileSystem fs, Configuration fsConf,
+    public WriterTableConfiguration forFile(TabletFile file, FileSystem fs, Configuration fsConf,
         CryptoService cs) {
       file(file).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
@@ -415,7 +415,7 @@ public abstract class FileOperations {
     private Cache<String,Long> fileLenCache;
     private boolean seekToBeginning = false;
 
-    public ReaderTableConfiguration forFile(TabletFile<?> file, FileSystem fs, Configuration fsConf,
+    public ReaderTableConfiguration forFile(TabletFile file, FileSystem fs, Configuration fsConf,
         CryptoService cs) {
       file(file).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
@@ -483,7 +483,7 @@ public abstract class FileOperations {
 
     private Cache<String,Long> fileLenCache = null;
 
-    public IndexReaderTableConfiguration forFile(TabletFile<?> file, FileSystem fs,
+    public IndexReaderTableConfiguration forFile(TabletFile file, FileSystem fs,
         Configuration fsConf, CryptoService cs) {
       file(file).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
@@ -515,7 +515,7 @@ public abstract class FileOperations {
     private Set<ByteSequence> columnFamilies;
     private boolean inclusive;
 
-    public ScanReaderTableConfiguration forFile(TabletFile<?> file, FileSystem fs,
+    public ScanReaderTableConfiguration forFile(TabletFile file, FileSystem fs,
         Configuration fsConf, CryptoService cs) {
       file(file).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;

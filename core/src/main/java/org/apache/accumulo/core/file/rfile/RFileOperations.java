@@ -133,7 +133,7 @@ public class RFileOperations extends FileOperations {
       }
       int bufferSize = conf.getInt("io.file.buffer.size", 4096);
 
-      TabletFile<?> file = options.getFile();
+      TabletFile file = options.getFile();
       FileSystem fs = options.getFileSystem();
 
       if (options.dropCacheBehind) {

@@ -397,11 +397,11 @@ public class CollectTabletStats {
   }
 
   private static void reportHdfsBlockLocations(ServerContext context,
-      List<? extends TabletFile<?>> files) throws Exception {
+      List<? extends TabletFile> files) throws Exception {
     VolumeManager fs = context.getVolumeManager();
 
     System.out.println("\t\tFile block report : ");
-    for (TabletFile<?> file : files) {
+    for (TabletFile file : files) {
       FileStatus status = fs.getFileStatus(file.getPath());
 
       if (status.isDirectory()) {

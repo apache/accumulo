@@ -20,7 +20,7 @@ package org.apache.accumulo.core.metadata;
 
 import org.apache.hadoop.fs.Path;
 
-public interface TabletFile<T extends TabletFile<T>> {
+public interface TabletFile {
 
   /**
    * @return The file name of the TabletFile
