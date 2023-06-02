@@ -78,7 +78,7 @@ class MinorCompactionTask implements Runnable {
             try {
               if (newFile == null) {
                 newFile = tablet.getNextDataFilename(FilePrefix.MINOR_COMPACTION);
-                tmpFile = new TabletFile(new Path(newFile.getPathStr() + "_tmp"));
+                tmpFile = new TabletFile(new Path(newFile.getNormalizedPathStr() + "_tmp"));
               }
               /*
                * the purpose of the minor compaction start event is to keep track of the filename...

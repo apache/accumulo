@@ -94,7 +94,7 @@ public class ManagerMetadataUtil {
       tablet.deleteLocation(Location.future(tServerInstance));
     }
 
-    datafileSizes.forEach(tablet::putFile);
+    datafileSizes.forEach((key, value) -> tablet.putFile(key.getTabletFile(), value));
 
     for (Entry<Long,? extends Collection<TabletFile>> entry : bulkLoadedFiles.entrySet()) {
       for (TabletFile ref : entry.getValue()) {

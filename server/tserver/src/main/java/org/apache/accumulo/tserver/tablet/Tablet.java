@@ -327,8 +327,8 @@ public class Tablet extends TabletBase {
       final CommitSession commitSession = getTabletMemory().getCommitSession();
       try {
         Set<String> absPaths = new HashSet<>();
-        for (TabletFile ref : datafiles.keySet()) {
-          absPaths.add(ref.getPathStr());
+        for (StoredTabletFile ref : datafiles.keySet()) {
+          absPaths.add(ref.getNormalizedPathStr());
         }
 
         tabletServer.recover(this.getTabletServer().getVolumeManager(), extent, logEntries,
@@ -1322,7 +1322,7 @@ public class Tablet extends TabletBase {
 
   // encapsulates results of computations needed to make determinations about splits
   private static class SplitComputations {
-    final Set<TabletFile> inputFiles;
+    final Set<StoredTabletFile> inputFiles;
 
     // cached result of calling FileUtil.findMidpoint
     final SortedMap<Double,Key> midPoint;
@@ -1330,7 +1330,7 @@ public class Tablet extends TabletBase {
     // the last row seen in the files, only set for the default tablet
     final Text lastRowForDefaultTablet;
 
-    private SplitComputations(Set<TabletFile> inputFiles, SortedMap<Double,Key> midPoint,
+    private SplitComputations(Set<StoredTabletFile> inputFiles, SortedMap<Double,Key> midPoint,
         Text lastRowForDefaultTablet) {
       this.inputFiles = inputFiles;
       this.midPoint = midPoint;
@@ -1356,7 +1356,7 @@ public class Tablet extends TabletBase {
       return Optional.empty();
     }
 
-    Set<TabletFile> files = getDatafileManager().getFiles();
+    Set<StoredTabletFile> files = getDatafileManager().getFiles();
     SplitComputations lastComputation = lastSplitComputation.get();
     if (lastComputation != null && lastComputation.inputFiles.equals(files)) {
       // the last computation is still relevant
@@ -1513,8 +1513,8 @@ public class Tablet extends TabletBase {
     // this info is used for optimization... it is ok if data files are missing
     // from the set... can still query and insert into the tablet while this
     // data file operation is happening
-    Map<TabletFile,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(context,
-        tableConfiguration, getDatafileManager().getFiles());
+    Map<StoredTabletFile,FileUtil.FileInfo> firstAndLastRows = FileUtil
+        .tryToGetFirstAndLastRows(context, tableConfiguration, getDatafileManager().getFiles());
 
     synchronized (this) {
       // java needs tuples ...
@@ -1664,7 +1664,7 @@ public class Tablet extends TabletBase {
 
     for (Entry<TabletFile,DataFileInfo> entry : fileMap.entrySet()) {
       entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0L));
-      files.add(entry.getKey().getPathStr());
+      files.add(entry.getKey().getNormalizedPathStr());
     }
 
     // Clients timeout and will think that this operation failed.
@@ -2058,7 +2058,7 @@ public class Tablet extends TabletBase {
   }
 
   @Override
-  public Pair<Long,Map<TabletFile,DataFileValue>> reserveFilesForScan() {
+  public Pair<Long,Map<StoredTabletFile,DataFileValue>> reserveFilesForScan() {
     return getDatafileManager().reserveFilesForScan();
   }
 

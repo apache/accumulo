@@ -69,7 +69,7 @@ public class TabletData {
     dataFiles.putAll(meta.getFilesMap());
 
     meta.getLoaded().forEach((path, txid) -> {
-      bulkImported.computeIfAbsent(txid, k -> new ArrayList<>()).add(path);
+      bulkImported.computeIfAbsent(txid, k -> new ArrayList<>()).add(path.getTabletFile());
     });
 
     this.extCompactions = meta.getExternalCompactions();

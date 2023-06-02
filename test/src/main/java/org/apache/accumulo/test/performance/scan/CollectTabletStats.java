@@ -63,8 +63,9 @@ import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator.Behavior;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
+import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.MetadataServicer;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.Stat;
@@ -136,10 +137,10 @@ public class CollectTabletStats {
 
     List<KeyExtent> tabletsToTest = selectRandomTablets(opts.numThreads, candidates);
 
-    Map<KeyExtent,List<TabletFile>> tabletFiles = new HashMap<>();
+    Map<KeyExtent,List<StoredTabletFile>> tabletFiles = new HashMap<>();
 
     for (KeyExtent ke : tabletsToTest) {
-      List<TabletFile> files = getTabletFiles(context, ke);
+      List<StoredTabletFile> files = getTabletFiles(context, ke);
       tabletFiles.put(ke, files);
     }
 
@@ -166,7 +167,7 @@ public class CollectTabletStats {
       ArrayList<Test> tests = new ArrayList<>();
 
       for (final KeyExtent ke : tabletsToTest) {
-        final List<TabletFile> files = tabletFiles.get(ke);
+        final List<StoredTabletFile> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
           @Override
           public int runTest() throws Exception {
@@ -186,7 +187,7 @@ public class CollectTabletStats {
       ArrayList<Test> tests = new ArrayList<>();
 
       for (final KeyExtent ke : tabletsToTest) {
-        final List<TabletFile> files = tabletFiles.get(ke);
+        final List<StoredTabletFile> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
           @Override
           public int runTest() throws Exception {
@@ -204,7 +205,7 @@ public class CollectTabletStats {
       ArrayList<Test> tests = new ArrayList<>();
 
       for (final KeyExtent ke : tabletsToTest) {
-        final List<TabletFile> files = tabletFiles.get(ke);
+        final List<StoredTabletFile> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
           @Override
           public int runTest() throws Exception {
@@ -389,18 +390,18 @@ public class CollectTabletStats {
     return tabletsToTest;
   }
 
-  private static List<TabletFile> getTabletFiles(ServerContext context, KeyExtent ke)
+  private static List<StoredTabletFile> getTabletFiles(ServerContext context, KeyExtent ke)
       throws IOException {
     return new ArrayList<>(
         MetadataTableUtil.getFileAndLogEntries(context, ke).getSecond().keySet());
   }
 
-  private static void reportHdfsBlockLocations(ServerContext context, List<TabletFile> files)
-      throws Exception {
+  private static void reportHdfsBlockLocations(ServerContext context,
+      List<? extends AbstractTabletFile<?>> files) throws Exception {
     VolumeManager fs = context.getVolumeManager();
 
     System.out.println("\t\tFile block report : ");
-    for (TabletFile file : files) {
+    for (AbstractTabletFile<?> file : files) {
       FileStatus status = fs.getFileStatus(file.getPath());
 
       if (status.isDirectory()) {
@@ -455,13 +456,13 @@ public class CollectTabletStats {
   }
 
   private static int readFiles(VolumeManager fs, AccumuloConfiguration aconf,
-      List<TabletFile> files, KeyExtent ke, String[] columns) throws Exception {
+      List<StoredTabletFile> files, KeyExtent ke, String[] columns) throws Exception {
 
     int count = 0;
 
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
 
-    for (TabletFile file : files) {
+    for (StoredTabletFile file : files) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(file, ns, ns.getConf(), NoCryptoServiceFactory.NONE)
@@ -487,14 +488,14 @@ public class CollectTabletStats {
   }
 
   private static int readFilesUsingIterStack(VolumeManager fs, ServerContext context,
-      List<TabletFile> files, Authorizations auths, KeyExtent ke, String[] columns,
+      List<StoredTabletFile> files, Authorizations auths, KeyExtent ke, String[] columns,
       boolean useTableIterators) throws Exception {
 
     SortedKeyValueIterator<Key,Value> reader;
 
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
 
-    for (TabletFile file : files) {
+    for (StoredTabletFile file : files) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
       readers.add(FileOperations.getInstance().newReaderBuilder()
           .forFile(file, ns, ns.getConf(), NoCryptoServiceFactory.NONE)
