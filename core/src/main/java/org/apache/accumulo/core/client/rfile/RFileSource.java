@@ -34,6 +34,10 @@ public class RFileSource {
   private final long len;
   private final Range range;
 
+  public RFileSource(InputStream in, long len) {
+    this(in, len, new Range());
+  }
+
   public RFileSource(InputStream in, long len, Range range) {
     this.in = Objects.requireNonNull(in);
     this.len = len;
@@ -48,6 +52,11 @@ public class RFileSource {
     return len;
   }
 
+  /**
+   * @return The range of the RFileSource
+   *
+   * @since 3.1.0
+   */
   public Range getRange() {
     return range;
   }

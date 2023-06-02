@@ -23,11 +23,11 @@ import java.io.OutputStream;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.FencedRfile;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -79,13 +80,36 @@ public class RFile {
     ScannerFSOptions from(String... files);
 
     /**
-     * Specify RFiles to read from. When multiple are specified the {@link Scanner} constructed will
-     * present a merged view.
+     * Specify FencedRfiles to read from. When multiple are specified the {@link Scanner}
+     * constructed will present a merged view.
      *
-     * @param files one or more RFiles to read.
+     * @param files one or more FencedRfiles to read.
      * @return this
+     *
+     * @since 3.1.0
      */
     ScannerFSOptions from(FencedRfile... files);
+
+    /**
+     * @since 3.1.0
+     */
+    class FencedRfile {
+      private final Path path;
+      private final Range fence;
+
+      public FencedRfile(Path path, Range fence) {
+        this.path = Objects.requireNonNull(path);
+        this.fence = Objects.requireNonNull(fence);
+      }
+
+      public Path getPath() {
+        return path;
+      }
+
+      public Range getFence() {
+        return fence;
+      }
+    }
   }
 
   /**

@@ -44,7 +44,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.FencedRfile;
+import org.apache.accumulo.core.client.rfile.RFile.InputArguments.FencedRfile;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.CounterSummary;

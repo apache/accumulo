@@ -59,7 +59,6 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>> implem
   /**
    * @return The range of the TabletFile
    *
-   * @since 3.1.0
    */
   public Range getRange() {
     return range;
@@ -68,7 +67,6 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>> implem
   /**
    * @return True if this file is fenced by a range
    *
-   * @since 3.1.0
    */
   public boolean hasRange() {
     return !range.isInfiniteStartKey() || !range.isInfiniteStopKey();

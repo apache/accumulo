@@ -163,23 +163,4 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
     return this;
   }
 
-  // UnreferencedTabletFile is not allowed here
-  // as part of the public API so we need a new object
-  public static class FencedRfile {
-    private final Path path;
-    private final Range fence;
-
-    public FencedRfile(Path path, Range fence) {
-      this.path = Objects.requireNonNull(path);
-      this.fence = Objects.requireNonNull(fence);
-    }
-
-    public Path getPath() {
-      return path;
-    }
-
-    public Range getFence() {
-      return fence;
-    }
-  }
 }
