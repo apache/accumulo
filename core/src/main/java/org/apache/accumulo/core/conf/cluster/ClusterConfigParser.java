@@ -40,6 +40,12 @@ public class ClusterConfigParser {
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String[] SECTIONS = new String[] {"manager", "monitor", "gc", "tserver"};
 
+  private static final Set<String> VALID_CONFIG_KEYS = Set.of("manager", "monitor", "gc", "tserver",
+      "tservers_per_host", "sservers_per_host", "compaction.coordinator");
+
+  private static final String[] VALID_CONFIG_PREFIXES =
+      new String[] {"compaction.compactor.", "sserver."};
+
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
   public static Map<String,String> parseConfiguration(String configFile) throws IOException {
     Map<String,String> results = new HashMap<>();
@@ -86,6 +92,20 @@ public class ClusterConfigParser {
   }
 
   public static void outputShellVariables(Map<String,String> config, PrintStream out) {
+
+    config.keySet().forEach(section -> {
+      if (VALID_CONFIG_KEYS.contains(section)) {
+        return;
+      }
+
+      for (String validPrefix : VALID_CONFIG_PREFIXES) {
+        if (section.startsWith(validPrefix)) {
+          return;
+        }
+      }
+
+      throw new IllegalArgumentException("Unknown configuration section : " + section);
+    });
 
     for (String section : SECTIONS) {
       if (config.containsKey(section)) {
