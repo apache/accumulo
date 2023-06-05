@@ -229,6 +229,10 @@ public class Manager extends AbstractServer
   private final long timeToCacheRecoveryWalExistence;
   private ExecutorService tableInformationStatusPool = null;
 
+  private final TabletStateStore rootTabletStore;
+  private final TabletStateStore metadataTabletStore;
+  private final TabletStateStore userTabletStore;
+
   @Override
   public synchronized ManagerState getManagerState() {
     return state;
@@ -435,6 +439,10 @@ public class Manager extends AbstractServer
     this.security = context.getSecurityOperation();
 
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
+
+    this.rootTabletStore = TabletStateStore.getStoreForLevel(DataLevel.ROOT, context, this);
+    this.metadataTabletStore = TabletStateStore.getStoreForLevel(DataLevel.METADATA, context, this);
+    this.userTabletStore = TabletStateStore.getStoreForLevel(DataLevel.USER, context, this);
 
     authenticationTokenKeyManager = null;
     keyDistributor = null;
@@ -1232,8 +1240,7 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Unable to read " + zroot + Constants.ZRECOVERY, e);
     }
 
-    watchers.add(new TabletGroupWatcher(this,
-        TabletStateStore.getStoreForLevel(DataLevel.USER, context, this), null) {
+    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null) {
       @Override
       boolean canSuspendTablets() {
         // Always allow user data tablets to enter suspended state.
@@ -1241,8 +1248,7 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this,
-        TabletStateStore.getStoreForLevel(DataLevel.METADATA, context, this), watchers.get(0)) {
+    watchers.add(new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0)) {
       @Override
       boolean canSuspendTablets() {
         // Allow metadata tablets to enter suspended state only if so configured. Generally
@@ -1253,8 +1259,7 @@ public class Manager extends AbstractServer
       }
     });
 
-    watchers.add(new TabletGroupWatcher(this,
-        TabletStateStore.getStoreForLevel(DataLevel.ROOT, context), watchers.get(1)) {
+    watchers.add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1)) {
       @Override
       boolean canSuspendTablets() {
         // Never allow root tablet to enter suspended state.
@@ -1842,6 +1847,19 @@ public class Manager extends AbstractServer
             (m, e) -> m.put(e.getKey(), e.getValue().getServerInstance()), Map::putAll),
         assignedOut);
     tabletBalancer.getAssignments(params);
+  }
+
+  public TabletStateStore getTabletStateStore(DataLevel level) {
+    switch (level) {
+      case METADATA:
+        return this.metadataTabletStore;
+      case ROOT:
+        return this.rootTabletStore;
+      case USER:
+        return this.userTabletStore;
+      default:
+        throw new IllegalStateException("Unhandled DataLevel value: " + level);
+    }
   }
 
 }

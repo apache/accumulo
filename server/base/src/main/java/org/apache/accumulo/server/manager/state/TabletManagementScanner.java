@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -47,11 +48,11 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
   private final BatchScanner mdScanner;
   private final Iterator<Entry<Key,Value>> iter;
   private final AtomicBoolean closed = new AtomicBoolean(false);
-  private final ConcurrentLinkedQueue<TabletManagement> knownTabletModifications;
+  private final Queue<TabletManagement> knownTabletModifications;
 
   // This constructor is called from TabletStateStore implementations
   public TabletManagementScanner(ClientContext context, Range range, CurrentState state,
-      String tableName, ConcurrentLinkedQueue<TabletManagement> knownTabletModifications) {
+      String tableName, Queue<TabletManagement> knownTabletModifications) {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers
     // and online tables
     try {

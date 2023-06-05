@@ -74,9 +74,10 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
   }
 
   @Override
-  public void knownTabletStateChange(TabletManagement tablet) {
+  public boolean knownTabletStateChange(TabletManagement tablet) {
     // This method does nothing, this TabletStateStore always returns
     // the TabletManagement object for the Root Tablet.
+    return true;
   }
 
   private static void validateAssignments(Collection<Assignment> assignments) {

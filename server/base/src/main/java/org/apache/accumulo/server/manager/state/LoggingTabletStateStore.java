@@ -53,8 +53,8 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void knownTabletStateChange(TabletManagement tablet) {
-    this.wrapped.knownTabletStateChange(tablet);
+  public boolean knownTabletStateChange(TabletManagement tablet) {
+    return this.wrapped.knownTabletStateChange(tablet);
   }
 
   @Override

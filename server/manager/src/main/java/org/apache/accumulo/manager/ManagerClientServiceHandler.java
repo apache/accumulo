@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -58,6 +59,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.manager.state.TabletManagement;
+import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -70,8 +73,10 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
@@ -648,6 +653,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     manager.mustBeOnline(tableId);
 
     log.info("Tablet hosting requested for: {} ", extents);
+    List<KeyExtent> success = new ArrayList<>();
     final Ample ample = manager.getContext().getAmple();
     try (var mutator = ample.conditionallyMutateTablets()) {
       extents.forEach(e -> {
@@ -665,14 +671,27 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       mutator.process().forEach((extent, result) -> {
         if (result.getStatus() == Status.ACCEPTED) {
           // cache this success for a bit
+          success.add(extent);
           recentHostingRequest.put(extent, System.currentTimeMillis());
         } else {
           if (log.isTraceEnabled()) {
-            // only read the metdata if the logging is enabled
+            // only read the metadata if the logging is enabled
             log.trace("Failed to set hosting request {}", result.readMetadata());
           }
         }
       });
+    }
+
+    if (!success.isEmpty()) {
+      final Set<ManagementAction> actions = new HashSet<>();
+      actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
+
+      manager.getContext().getAmple().readTablets().forTablets(success, Optional.empty())
+          .fetch(TabletManagement.CONFIGURED_COLUMNS.toArray(new ColumnType[] {})).build()
+          .forEach(tm -> {
+            manager.getTabletStateStore(DataLevel.of(tm.getTableId()))
+                .knownTabletStateChange(new TabletManagement(actions, tm));
+          });
     }
 
     // this will kick the tablet group watcher into action

@@ -53,8 +53,9 @@ public interface TabletStateStore extends Iterable<TabletManagement> {
    * that the TabletGroupWatcher can perform the associated action on this Tablet.
    *
    * @param tablet TabletMetadata and Action that needs to be performed on it.
+   * @return true if tablet modification accepted for processing, false otherwise.
    */
-  void knownTabletStateChange(TabletManagement tablet);
+  boolean knownTabletStateChange(TabletManagement tablet);
 
   /**
    * Store the assigned locations in the data store.
