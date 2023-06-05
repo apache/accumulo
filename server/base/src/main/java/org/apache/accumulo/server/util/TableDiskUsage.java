@@ -45,14 +45,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -211,12 +210,12 @@ public class TableDiskUsage {
         mdScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
         mdScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
-        final Set<TabletFile> files = new HashSet<>();
+        final Set<StoredTabletFile> files = new HashSet<>();
 
         // Read each file referenced by that table
         for (Map.Entry<Key,Value> entry : mdScanner) {
-          final TabletFile file =
-              new TabletFile(new Path(entry.getKey().getColumnQualifier().toString()));
+          final StoredTabletFile file =
+              new StoredTabletFile(entry.getKey().getColumnQualifier().toString());
 
           // get the table referenced by the file which may not be the same as the current
           // table we are scanning if the file is shared between multiple tables

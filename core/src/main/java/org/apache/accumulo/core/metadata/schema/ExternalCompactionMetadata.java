@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
@@ -40,7 +40,7 @@ public class ExternalCompactionMetadata {
 
   private final Set<StoredTabletFile> jobFiles;
   private final Set<StoredTabletFile> nextFiles;
-  private final TabletFile compactTmpName;
+  private final ReferencedTabletFile compactTmpName;
   private final String compactorId;
   private final CompactionKind kind;
   private final short priority;
@@ -50,7 +50,7 @@ public class ExternalCompactionMetadata {
   private final Long compactionId;
 
   public ExternalCompactionMetadata(Set<StoredTabletFile> jobFiles, Set<StoredTabletFile> nextFiles,
-      TabletFile compactTmpName, String compactorId, CompactionKind kind, short priority,
+      ReferencedTabletFile compactTmpName, String compactorId, CompactionKind kind, short priority,
       CompactionExecutorId ceid, boolean propagateDeletes, boolean initiallySelectedAll,
       Long compactionId) {
     if (!initiallySelectedAll && !propagateDeletes
@@ -79,7 +79,7 @@ public class ExternalCompactionMetadata {
     return nextFiles;
   }
 
-  public TabletFile getCompactTmpName() {
+  public ReferencedTabletFile getCompactTmpName() {
     return compactTmpName;
   }
 
@@ -149,9 +149,10 @@ public class ExternalCompactionMetadata {
     return new ExternalCompactionMetadata(
         jData.inputs.stream().map(StoredTabletFile::new).collect(toSet()),
         jData.nextFiles.stream().map(StoredTabletFile::new).collect(toSet()),
-        new TabletFile(new Path(jData.tmp)), jData.compactor, CompactionKind.valueOf(jData.kind),
-        jData.priority, CompactionExecutorIdImpl.externalId(jData.executorId), jData.propDels,
-        jData.selectedAll, jData.compactionId);
+        new ReferencedTabletFile(new Path(jData.tmp)), jData.compactor,
+        CompactionKind.valueOf(jData.kind), jData.priority,
+        CompactionExecutorIdImpl.externalId(jData.executorId), jData.propDels, jData.selectedAll,
+        jData.compactionId);
   }
 
   @Override

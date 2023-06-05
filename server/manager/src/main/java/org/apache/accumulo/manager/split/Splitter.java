@@ -100,9 +100,10 @@ public class Splitter {
     this.splitExecutor = context.threadPools().createExecutorService(context.getConfiguration(),
         Property.MANAGER_SPLIT_WORKER_THREADS, true);
 
-    Weigher<CacheKey,FileInfo> weigher =
-        (key, info) -> key.tableId.canonical().length() + key.tabletFile.getPathStr().length()
-            + info.getFirstRow().getLength() + info.getLastRow().getLength();
+    Weigher<CacheKey,
+        FileInfo> weigher = (key, info) -> key.tableId.canonical().length()
+            + key.tabletFile.getPath().toString().length() + info.getFirstRow().getLength()
+            + info.getLastRow().getLength();
 
     CacheLoader<CacheKey,FileInfo> loader = new CacheLoader<>() {
       @Override
@@ -142,7 +143,7 @@ public class Splitter {
 
   private HashCode caclulateFilesHash(TabletMetadata tabletMetadata) {
     var hasher = Hashing.goodFastHash(128).newHasher();
-    tabletMetadata.getFiles().stream().map(StoredTabletFile::getPathStr).sorted()
+    tabletMetadata.getFiles().stream().map(StoredTabletFile::getNormalizedPathStr).sorted()
         .forEach(path -> hasher.putString(path, UTF_8));
     return hasher.hash();
   }

@@ -228,8 +228,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       var stf5 =
           new StoredTabletFile("hdfs://localhost:8020/accumulo/tables/2a/b-0000009/I0000074.rf");
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentBulkFile(stf5)
-          .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5, 9L)
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentBulkFile(stf5.getTabletFile())
+          .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5.getTabletFile(), 9L)
           .putFile(stf5, new DataFileValue(0, 0)).submit(tm -> false);
       results = ctmi.process();
       assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
@@ -250,8 +250,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       // simulate trying to re bulk import file after a compaction
       ctmi = new ConditionalTabletsMutatorImpl(context);
-      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentBulkFile(stf5)
-          .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5, 9L)
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentBulkFile(stf5.getTabletFile())
+          .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5.getTabletFile(), 9L)
           .putFile(stf5, new DataFileValue(0, 0)).submit(tm -> false);
       results = ctmi.process();
       assertEquals(Status.REJECTED, results.get(e1).getStatus());

@@ -33,8 +33,8 @@ import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -106,7 +106,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
-  public Ample.ConditionalTabletMutator requireAbsentBulkFile(TabletFile bulkref) {
+  public Ample.ConditionalTabletMutator requireAbsentBulkFile(ReferencedTabletFile bulkref) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition c = new Condition(BulkFileColumnFamily.NAME, bulkref.getMetaInsertText());
     mutation.addCondition(c);

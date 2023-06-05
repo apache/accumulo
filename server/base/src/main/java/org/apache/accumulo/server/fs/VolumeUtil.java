@@ -26,8 +26,8 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
@@ -144,7 +144,7 @@ public class VolumeUtil {
     List<LogEntry> logsToAdd = new ArrayList<>();
 
     List<StoredTabletFile> filesToRemove = new ArrayList<>();
-    SortedMap<TabletFile,DataFileValue> filesToAdd = new TreeMap<>();
+    SortedMap<ReferencedTabletFile,DataFileValue> filesToAdd = new TreeMap<>();
 
     TabletFiles ret = new TabletFiles();
 
@@ -166,7 +166,7 @@ public class VolumeUtil {
       Path switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
       if (switchedPath != null) {
         filesToRemove.add(entry.getKey());
-        TabletFile switchedFile = new TabletFile(switchedPath);
+        ReferencedTabletFile switchedFile = new ReferencedTabletFile(switchedPath);
         filesToAdd.put(switchedFile, entry.getValue());
         ret.datafiles.put(switchedFile.insert(), entry.getValue());
         log.debug("Replacing volume {} : {} -> {}", extent, metaPath, switchedPath);

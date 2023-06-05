@@ -33,11 +33,11 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -231,7 +231,7 @@ public interface Ample {
   /**
    * Return an encoded delete marker Mutation to delete the specified TabletFile path. A
    * ReferenceFile is used for the parameter because the Garbage Collector is optimized to store a
-   * directory for Tablet File. Otherwise, a {@link TabletFile} object could be used. The
+   * directory for Tablet File. Otherwise, a {@link ReferencedTabletFile} object could be used. The
    * tabletFilePathToRemove is validated and normalized before creating the mutation.
    *
    * @param tabletFilePathToRemove String full path of the TabletFile
@@ -306,11 +306,13 @@ public interface Ample {
   interface TabletUpdates<T> {
     T putPrevEndRow(Text per);
 
-    T putFile(TabletFile path, DataFileValue dfv);
+    T putFile(ReferencedTabletFile path, DataFileValue dfv);
+
+    T putFile(StoredTabletFile path, DataFileValue dfv);
 
     T deleteFile(StoredTabletFile path);
 
-    T putScan(TabletFile path);
+    T putScan(StoredTabletFile path);
 
     T deleteScan(StoredTabletFile path);
 
@@ -334,9 +336,9 @@ public interface Ample {
 
     T putTime(MetadataTime time);
 
-    T putBulkFile(TabletFile bulkref, long tid);
+    T putBulkFile(ReferencedTabletFile bulkref, long tid);
 
-    T deleteBulkFile(TabletFile bulkref);
+    T deleteBulkFile(ReferencedTabletFile bulkref);
 
     T putChopped();
 
@@ -429,7 +431,7 @@ public interface Ample {
     /**
      * Require that a tablet does not have the specfied bulk load marker.
      */
-    ConditionalTabletMutator requireAbsentBulkFile(TabletFile bulkref);
+    ConditionalTabletMutator requireAbsentBulkFile(ReferencedTabletFile bulkref);
 
     /**
      * Require that a tablet has the specified previous end row.

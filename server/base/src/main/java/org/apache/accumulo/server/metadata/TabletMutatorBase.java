@@ -25,10 +25,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -98,9 +98,17 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putFile(TabletFile path, DataFileValue dfv) {
+  public T putFile(ReferencedTabletFile path, DataFileValue dfv) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.put(DataFileColumnFamily.NAME, path.getMetaInsertText(), new Value(dfv.encode()));
+    return getThis();
+  }
+
+  @Override
+  public T putFile(StoredTabletFile path, DataFileValue dfv) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    mutation.put(DataFileColumnFamily.NAME, path.getMetaUpdateDeleteText(),
+        new Value(dfv.encode()));
     return getThis();
   }
 
@@ -112,9 +120,9 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putScan(TabletFile path) {
+  public T putScan(StoredTabletFile path) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(ScanFileColumnFamily.NAME, path.getMetaInsertText(), new Value());
+    mutation.put(ScanFileColumnFamily.NAME, path.getMetaUpdateDeleteText(), new Value());
     return getThis();
   }
 
@@ -204,7 +212,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putBulkFile(TabletFile bulkref, long tid) {
+  public T putBulkFile(ReferencedTabletFile bulkref, long tid) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.put(BulkFileColumnFamily.NAME, bulkref.getMetaInsertText(),
         new Value(FateTxId.formatTid(tid)));
@@ -212,7 +220,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T deleteBulkFile(TabletFile bulkref) {
+  public T deleteBulkFile(ReferencedTabletFile bulkref) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.putDelete(BulkFileColumnFamily.NAME, bulkref.getMetaInsertText());
     return getThis();
