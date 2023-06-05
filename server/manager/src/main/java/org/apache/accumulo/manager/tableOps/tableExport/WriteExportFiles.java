@@ -25,11 +25,12 @@ import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -60,6 +61,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -68,6 +70,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 class WriteExportFiles extends ManagerRepo {
@@ -156,8 +159,6 @@ class WriteExportFiles extends ManagerRepo {
   public static void exportTable(VolumeManager fs, ServerContext context, String tableName,
       TableId tableID, String exportDir) throws Exception {
 
-    Set<String> volumeSet = new TreeSet<>();
-
     fs.mkdirs(new Path(exportDir));
     Path exportMetaFilePath = fs.getFileSystemByPath(new Path(exportDir))
         .makeQualified(new Path(exportDir, Constants.EXPORT_FILE));
@@ -190,34 +191,41 @@ class WriteExportFiles extends ManagerRepo {
       dataOut.close();
       dataOut = null;
 
-      // make a set of unique volumes from the map
-      for (String fileString : uniqueFiles.values()) {
-        String uniqueVolume = getVolumeFromString(fileString);
-        volumeSet.add(uniqueVolume);
-      }
-
-      // for each unique volume: get every matching entry in the map and send them to
-      // createDistcpFile method
-      for (String volumeString : volumeSet) {
-        Set<String> sortedVolumeSet = new TreeSet<>();
-        for (String rFileString : uniqueFiles.values()) {
-          String currentVolume = getVolumeFromString(rFileString);
-          if (currentVolume.equals(volumeString)) {
-            sortedVolumeSet.add(rFileString);
+      // make map containing a volume and corresponding files
+      final Map<Volume,Set<String>> volumeFileMap = new HashMap<>();
+      final Collection<Volume> configuredVolumes = fs.getVolumes();
+      configuredVolumes.forEach(vol -> {
+        final FileSystem dfs = vol.getFileSystem();
+        uniqueFiles.values().forEach(file -> {
+          Path p = null;
+          try {
+            p = dfs.resolvePath(new Path(file));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
           }
-        }
-        createDistcpFile(fs, exportDir, exportMetaFilePath, sortedVolumeSet, volumeString);
+          if (vol.containsPath(p)) {
+            if (volumeFileMap.get(vol) == null) {
+              volumeFileMap.put(vol, new HashSet<String>());
+            }
+            volumeFileMap.get(vol).add(file);
+          }
+        });
+      });
+
+      // for each entry in volumeFileMap, get 'name' of volume to name distcp.txt file
+      // and call createDistcpFile
+      for (Map.Entry<Volume,Set<String>> entry : volumeFileMap.entrySet()) {
+        String keyValueString = entry.getKey().toString();
+        String[] keyValueArray = keyValueString.split("/");
+        String volumeName = keyValueArray[2];
+        createDistcpFile(fs, exportDir, exportMetaFilePath, volumeFileMap.get(entry.getKey()),
+            volumeName);
       }
     } finally {
       if (dataOut != null) {
         dataOut.close();
       }
     }
-  }
-
-  private static String getVolumeFromString(String searchString) {
-    String[] segmentArray = searchString.split("/");
-    return segmentArray[2];
   }
 
   private static void createDistcpFile(VolumeManager fs, String exportDir, Path exportMetaFilePath,
