@@ -18,12 +18,10 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.HostingGoalForTablet;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -31,37 +29,36 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
-public class TabletHostingGoalCommand extends TableOperation {
+public class GetTabletHostingGoalCommand extends TableOperation {
 
   private Option optRow;
   private Option optStartRowExclusive;
   private Option optEndRowExclusive;
-  private Option goalOpt;
-
   private Range range;
-  private TabletHostingGoal goal;
 
   @Override
   public String getName() {
-    return "goal";
+    return "getgoal";
   }
 
   @Override
   public String description() {
-    return "Sets the hosting goal (ALWAYS, ONDEMAND, NEVER) for a range of tablets";
+    return "Retrieves the hosting goal (ALWAYS, ONDEMAND, NEVER) for a range of tablets";
   }
 
   @Override
-  protected void doTableOp(final Shell shellState, final String tableName)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
-    shellState.getAccumuloClient().tableOperations().setTabletHostingGoal(tableName, range, goal);
-    Shell.log.debug("Set goal state: {} on table: {}, range: {}", goal, tableName, range);
+  protected void doTableOp(Shell shellState, String tableName) throws Exception {
+    List<HostingGoalForTablet> tabletHostingGoal = shellState.getAccumuloClient().tableOperations()
+        .getTabletHostingGoal(tableName, range).collect(Collectors.toList());
+    shellState.getWriter().println("TABLE: " + tableName);
+    shellState.getWriter().println("TABLET ID    HOSTING GOAL");
+    tabletHostingGoal.forEach(p -> shellState.getWriter()
+        .println(String.format("%-10s   %s", p.getTabletId(), p.getHostingGoal())));
   }
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
-
     if ((cl.hasOption(OptUtil.START_ROW_OPT) || cl.hasOption(OptUtil.END_ROW_OPT))
         && cl.hasOption(optRow.getOpt())) {
       // did not see a way to make commons cli do this check... it has mutually exclusive options
@@ -79,35 +76,30 @@ public class TabletHostingGoalCommand extends TableOperation {
       final boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
       this.range = new Range(startRow, startInclusive, endRow, endInclusive);
     }
-
-    this.goal = TabletHostingGoal.valueOf(cl.getOptionValue(goalOpt).toUpperCase());
     return super.execute(fullCommand, cl, shellState);
   }
 
   @Override
   public Options getOptions() {
+    Option optStartRowInclusive =
+        new Option(OptUtil.START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
     optStartRowExclusive = new Option("be", "begin-exclusive", false,
-        "make start row exclusive (by default it's inclusive)");
+        "make start row exclusive (by default it's inclusive");
     optStartRowExclusive.setArgName("begin-exclusive");
     optEndRowExclusive = new Option("ee", "end-exclusive", false,
         "make end row exclusive (by default it's inclusive)");
     optEndRowExclusive.setArgName("end-exclusive");
-    optRow = new Option("r", "range", true, "tablet range to modify");
-    optRow.setArgName("range");
-    goalOpt = new Option("g", "goal", true, "tablet hosting goal");
-    goalOpt.setArgName("goal");
-    goalOpt.setArgs(1);
-    goalOpt.setRequired(true);
+    optRow = new Option("r", "row", true, "tablet row to modify");
+    optRow.setArgName("row");
 
     final Options opts = super.getOptions();
-    opts.addOption(OptUtil.startRowOpt());
+    opts.addOption(optStartRowInclusive);
     opts.addOption(optStartRowExclusive);
     opts.addOption(OptUtil.endRowOpt());
-    opts.addOption(optStartRowExclusive);
     opts.addOption(optEndRowExclusive);
     opts.addOption(optRow);
-    opts.addOption(goalOpt);
 
     return opts;
   }
+
 }
