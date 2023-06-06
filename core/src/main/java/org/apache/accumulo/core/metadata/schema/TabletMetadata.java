@@ -394,7 +394,8 @@ public class TabletMetadata {
         + ", compact=" + compact + ", splitRatio=" + splitRatio + ", extCompactions="
         + extCompactions + ", chopped=" + chopped + ", goal=" + goal + ", onDemandHostingRequested="
         + onDemandHostingRequested + ", operationId=" + operationId
-        + ", futureAndCurrentLocationSet=" + futureAndCurrentLocationSet + "]";
+        + ", futureAndCurrentLocationSet=" + futureAndCurrentLocationSet
+        + ", operationIdAndCurrentLocationSet=" + operationIdAndCurrentLocationSet + "]";
   }
 
   public SortedMap<Key,Value> getKeyValues() {
