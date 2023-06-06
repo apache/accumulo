@@ -75,6 +75,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -385,17 +387,20 @@ public class TabletMetadata {
 
   @Override
   public String toString() {
-    return "TabletMetadata [tableId=" + tableId + ", prevEndRow=" + prevEndRow + ", sawPrevEndRow="
-        + sawPrevEndRow + ", oldPrevEndRow=" + oldPrevEndRow + ", sawOldPrevEndRow="
-        + sawOldPrevEndRow + ", endRow=" + endRow + ", location=" + location + ", files=" + files
-        + ", scans=" + scans + ", loadedFiles=" + loadedFiles + ", fetchedCols=" + fetchedCols
-        + ", extent=" + extent + ", last=" + last + ", suspend=" + suspend + ", dirName=" + dirName
-        + ", time=" + time + ", cloned=" + cloned + ", flush=" + flush + ", logs=" + logs
-        + ", compact=" + compact + ", splitRatio=" + splitRatio + ", extCompactions="
-        + extCompactions + ", chopped=" + chopped + ", goal=" + goal + ", onDemandHostingRequested="
-        + onDemandHostingRequested + ", operationId=" + operationId
-        + ", futureAndCurrentLocationSet=" + futureAndCurrentLocationSet
-        + ", operationIdAndCurrentLocationSet=" + operationIdAndCurrentLocationSet + "]";
+    return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("tableId", tableId)
+        .append("prevEndRow", prevEndRow).append("sawPrevEndRow", sawPrevEndRow)
+        .append("oldPrevEndRow", oldPrevEndRow).append("sawOldPrevEndRow", sawOldPrevEndRow)
+        .append("endRow", endRow).append("location", location).append("files", files)
+        .append("scans", scans).append("loadedFiles", loadedFiles)
+        .append("fetchedCols", fetchedCols).append("extent", extent).append("last", last)
+        .append("suspend", suspend).append("dirName", dirName).append("time", time)
+        .append("cloned", cloned).append("flush", flush).append("logs", logs)
+        .append("compact", compact).append("splitRatio", splitRatio)
+        .append("extCompactions", extCompactions).append("chopped", chopped).append("goal", goal)
+        .append("onDemandHostingRequested", onDemandHostingRequested)
+        .append("operationId", operationId)
+        .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet)
+        .append("operationIdAndCurrentLocationSet", operationIdAndCurrentLocationSet).toString();
   }
 
   public SortedMap<Key,Value> getKeyValues() {
