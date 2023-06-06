@@ -44,6 +44,9 @@ import org.junit.jupiter.api.Test;
 // ACCUMULO-2862
 public class SplitCancelsMajCIT extends SharedMiniClusterBase {
 
+  // ELASTICITY_TODO: Need to check new split code to ensure that it
+  // still cancels running MAJC.
+
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);

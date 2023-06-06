@@ -59,7 +59,6 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -100,7 +99,7 @@ public class TabletMetadata {
   protected Location location;
   private Map<StoredTabletFile,DataFileValue> files;
   private List<StoredTabletFile> scans;
-  private Map<TabletFile,Long> loadedFiles;
+  private Map<StoredTabletFile,Long> loadedFiles;
   protected EnumSet<ColumnType> fetchedCols;
   protected KeyExtent extent;
   protected Location last;
@@ -299,7 +298,7 @@ public class TabletMetadata {
     return location != null && location.getType() == LocationType.CURRENT;
   }
 
-  public Map<TabletFile,Long> getLoaded() {
+  public Map<StoredTabletFile,Long> getLoaded() {
     ensureFetched(ColumnType.LOADED);
     return loadedFiles;
   }
@@ -458,7 +457,7 @@ public class TabletMetadata {
     final var logsBuilder = ImmutableList.<LogEntry>builder();
     final var extCompBuilder =
         ImmutableMap.<ExternalCompactionId,ExternalCompactionMetadata>builder();
-    final var loadedFilesBuilder = ImmutableMap.<TabletFile,Long>builder();
+    final var loadedFilesBuilder = ImmutableMap.<StoredTabletFile,Long>builder();
     ByteSequence row = null;
     final var requestIdsBuilder = ImmutableMap.<Long,TServerInstance>builder();
 

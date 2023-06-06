@@ -1348,7 +1348,7 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Exception updating manager lock", e);
     }
 
-    this.splitter = new Splitter(context, DataLevel.USER, this);
+    this.splitter = new Splitter(context);
     this.splitter.start();
 
     while (!clientService.isServing()) {

@@ -19,8 +19,6 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -33,7 +31,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -59,8 +56,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.OpTimer;
@@ -71,8 +66,6 @@ import org.apache.hadoop.io.WritableComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -112,9 +105,6 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   private final Lock rLock = rwLock.readLock();
   private final Lock wLock = rwLock.writeLock();
   private final AtomicLong tabletHostingRequestCount = new AtomicLong(0);
-
-  private final Cache<KeyExtent,Long> recentOndemandRequest =
-      Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build();
 
   public interface CachedTabletObtainer {
     /**
@@ -235,7 +225,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       rLock.unlock();
     }
 
-    List<KeyExtent> locationLess = new ArrayList<>();
+    HashSet<CachedTablet> locationLess = new HashSet<>();
 
     if (!notInCache.isEmpty()) {
       notInCache.sort((o1, o2) -> WritableComparator.compareBytes(o1.getRow(), 0,
@@ -253,7 +243,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
           if (!addMutation(binnedMutations, mutation, tl, lcSession)) {
             failures.add(mutation);
             if (tl != null && tl.getTserverLocation().isEmpty()) {
-              locationLess.add(tl.getExtent());
+              locationLess.add(tl);
             }
           }
         }
@@ -323,8 +313,9 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
   private List<Range> findTablets(ClientContext context, List<Range> ranges,
       BiConsumer<CachedTablet,Range> rangeConsumer, boolean useCache, LockCheckerSession lcSession,
-      LocationNeed locationNeed, Consumer<KeyExtent> locationlessConsumer) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
+      LocationNeed locationNeed, Consumer<CachedTablet> locationlessConsumer)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
     List<Range> failures = new ArrayList<>();
     List<CachedTablet> cachedTablets = new ArrayList<>();
 
@@ -375,7 +366,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
       // pass all tablets without a location before failing range
       cachedTablets.stream().filter(tloc -> tloc.getTserverLocation().isEmpty())
-          .map(CachedTablet::getExtent).forEach(locationlessConsumer);
+          .forEach(locationlessConsumer);
 
       if (locationNeed == LocationNeed.REQUIRED
           && !cachedTablets.stream().allMatch(tloc -> tloc.getTserverLocation().isPresent())) {
@@ -443,8 +434,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
       // use a hashset because some ranges may overlap the same extent, so want to avoid duplicate
       // extents
-      HashSet<KeyExtent> locationLess = new HashSet<>();
-      Consumer<KeyExtent> locationLessConsumer;
+      HashSet<CachedTablet> locationLess = new HashSet<>();
+      Consumer<CachedTablet> locationLessConsumer;
       if (locationNeed == LocationNeed.REQUIRED) {
         locationLessConsumer = locationLess::add;
       } else {
@@ -566,7 +557,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
 
     if (tl != null && locationNeed == LocationNeed.REQUIRED && tl.getTserverLocation().isEmpty()) {
-      requestTabletHosting(context, List.of(tl.getExtent()));
+      requestTabletHosting(context, List.of(tl));
       return null;
     }
 
@@ -589,8 +580,10 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     HOSTING_ENABLED.set(enabled);
   }
 
+  private static final Duration STALE_DURATION = Duration.ofMinutes(2);
+
   private void requestTabletHosting(ClientContext context,
-      Collection<KeyExtent> extentsWithNoLocation) throws AccumuloException,
+      Collection<CachedTablet> tabletsWithNoLocation) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
 
     if (!HOSTING_ENABLED.get()) {
@@ -602,7 +595,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       return;
     }
 
-    if (extentsWithNoLocation.isEmpty()) {
+    if (tabletsWithNoLocation.isEmpty()) {
       return;
     }
 
@@ -611,36 +604,37 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       return;
     }
 
-    List<KeyExtent> extentsToLookup = new ArrayList<>();
-    for (var extent : extentsWithNoLocation) {
-      if (recentOndemandRequest.asMap().putIfAbsent(extent, System.currentTimeMillis()) == null) {
-        extentsToLookup.add(extent);
-        log.debug("Marking tablet as onDemand: {}", extent);
-      }
-    }
-
     List<TKeyExtent> extentsToBringOnline = new ArrayList<>();
-
-    try (TabletsMetadata tm =
-        context.getAmple().readTablets().forTablets(extentsToLookup, Optional.empty())
-            .fetch(HOSTING_REQUESTED, HOSTING_GOAL).build()) {
-
-      for (TabletMetadata tabletMetadata : tm) {
-        if (tabletMetadata.getHostingGoal() == TabletHostingGoal.ONDEMAND
-            && !tabletMetadata.getHostingRequested()) {
-          extentsToBringOnline.add(tabletMetadata.getExtent().toThrift());
-        }
-
-        if (tabletMetadata.getHostingGoal() == TabletHostingGoal.NEVER) {
-          throw new InvalidTabletHostingRequestException("Extent " + tabletMetadata.getExtent()
+    for (var cachedTablet : tabletsWithNoLocation) {
+      if (cachedTablet.getAge().compareTo(STALE_DURATION) < 0) {
+        if (cachedTablet.getGoal() == TabletHostingGoal.ONDEMAND) {
+          if (!cachedTablet.wasHostingRequested()) {
+            extentsToBringOnline.add(cachedTablet.getExtent().toThrift());
+            log.trace("requesting ondemand tablet to be hosted {}", cachedTablet.getExtent());
+          } else {
+            log.trace("ignoring ondemand tablet that already has a hosting request in place {} {}",
+                cachedTablet.getExtent(), cachedTablet.getAge());
+          }
+        } else if (cachedTablet.getGoal() == TabletHostingGoal.NEVER) {
+          throw new InvalidTabletHostingRequestException("Extent " + cachedTablet.getExtent()
               + " has a tablet hosting goal state " + TabletHostingGoal.NEVER);
         }
+      } else {
+        // When a tablet does not have a location it is reread from the metadata table before this
+        // method is called. Therefore, it's expected that entries in the cache are recent. If the
+        // entries are not recent it could have two causes. One is a bug in the Accumulo code.
+        // Another is externalities like process swapping or slow metadata table reads. Logging a
+        // warning in case there is a bug. If the warning ends up being too spammy and is caused by
+        // externalities then this code/warning will need to be improved.
+        log.warn("Unexpected stale tablet seen in cache {}", cachedTablet.getExtent());
+        invalidateCache(cachedTablet.getExtent());
       }
     }
 
     if (!extentsToBringOnline.isEmpty()) {
-      log.debug("Requesting tablets be hosted: {}", extentsToBringOnline);
-      ThriftClientTypes.TABLET_MGMT.executeVoid(context,
+      log.debug("Requesting hosting for {} ondemand tablets for table id {}.",
+          extentsToBringOnline.size(), tableId);
+      ThriftClientTypes.MANAGER.executeVoid(context,
           client -> client.requestTabletHosting(TraceUtil.traceInfo(), context.rpcCreds(),
               tableId.canonical(), extentsToBringOnline));
       tabletHostingRequestCount.addAndGet(extentsToBringOnline.size());
@@ -693,7 +687,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
             && ke.prevEndRow().equals(lastEndRow)) {
           locToCache = new CachedTablet(new KeyExtent(ke.tableId(), ke.endRow(), lastEndRow),
               cachedTablet.getTserverLocation(), cachedTablet.getTserverSession(),
-              cachedTablet.getGoal());
+              cachedTablet.getGoal(), cachedTablet.wasHostingRequested());
         } else {
           locToCache = cachedTablet;
         }

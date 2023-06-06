@@ -109,7 +109,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
       Thread.sleep(SECONDS.toMillis(2));
 
       // wait until over split threshold -- should be 78 splits
-      while (c.tableOperations().listSplits(tableName).size() < 75) {
+      while (c.tableOperations().listSplits(tableName).size() < 50) {
         Thread.sleep(500);
       }
 

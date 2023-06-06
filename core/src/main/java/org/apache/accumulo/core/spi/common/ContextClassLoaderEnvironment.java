@@ -16,25 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.compaction;
+package org.apache.accumulo.core.spi.common;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+/**
+ * The environment provided to the context class loader factory for its use
+ *
+ * @since 2.1.1
+ */
+public interface ContextClassLoaderEnvironment {
 
-import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.tserver.tablet.CompactableUtils;
-import org.apache.hadoop.fs.Path;
-import org.junit.jupiter.api.Test;
-
-public class CompactableUtilsTest {
-
-  @Test
-  public void testEquivalence() {
-    ReferencedTabletFile expected = new ReferencedTabletFile(
-        new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
-    ReferencedTabletFile tmpFile =
-        new ReferencedTabletFile(new Path(expected.getMetaInsert() + "_tmp"));
-    ReferencedTabletFile dest = CompactableUtils.computeCompactionFileDest(tmpFile);
-    assertEquals(expected, dest);
-  }
-
+  /**
+   * Get the service environment configuration
+   *
+   * @return The configuration
+   */
+  ServiceEnvironment.Configuration getConfiguration();
 }

@@ -82,7 +82,7 @@ public class PreSplit extends ManagerRepo {
       Map<KeyExtent,Ample.ConditionalResult> results = tabletsMutator.process();
 
       if (results.get(splitInfo.getOriginal()).getStatus() == Status.ACCEPTED) {
-        log.trace("{} reserved {} for split", FateTxId.formatTid(tid), splitInfo.getOriginal());
+        log.debug("{} reserved {} for split", FateTxId.formatTid(tid), splitInfo.getOriginal());
         return 0;
       } else {
         var tabletMetadata = results.get(splitInfo.getOriginal()).readMetadata();
@@ -90,7 +90,8 @@ public class PreSplit extends ManagerRepo {
         // its possible the tablet no longer exists
         var optMeta = Optional.ofNullable(tabletMetadata);
 
-        log.debug("{} Failed to set operation id. extent:{} location:{} opid:{}",
+        log.debug(
+            "{} Failed to set operation id (may have location or operationId). extent:{} location:{} opid:{}",
             FateTxId.formatTid(tid), splitInfo.getOriginal(),
             optMeta.map(TabletMetadata::getLocation).orElse(null),
             optMeta.map(TabletMetadata::getOperationId).orElse(null));

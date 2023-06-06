@@ -22,9 +22,11 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.TableId;
@@ -39,49 +41,58 @@ import org.junit.jupiter.api.Test;
 public class SplitterTest {
 
   @Test
-  public void testShouldInspect() {
+  public void testIsSplittable() {
     ThreadPools threadPools = createNiceMock(ThreadPools.class);
     replay(threadPools);
     ServerContext context = createNiceMock(ServerContext.class);
     expect(context.threadPools()).andReturn(threadPools).anyTimes();
     replay(context);
 
-    var splitter = new Splitter(context, null, null);
+    var splitter = new Splitter(context);
 
     KeyExtent ke1 = new KeyExtent(TableId.of("1"), new Text("m"), null);
     KeyExtent ke2 = new KeyExtent(TableId.of("1"), null, new Text("m"));
 
-    Set<StoredTabletFile> files1 = Set.of(
-        new StoredTabletFile("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"),
-        new StoredTabletFile(
-            "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
+    Set<StoredTabletFile> files1 = new HashSet<>();
+    files1.add(new StoredTabletFile(
+        "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
+    files1.add(new StoredTabletFile(
+        "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
 
     TabletMetadata tabletMeta1 = createMock(TabletMetadata.class);
     expect(tabletMeta1.getExtent()).andReturn(ke1).anyTimes();
-    expect(tabletMeta1.getFiles()).andReturn(files1).anyTimes();
+    expect(tabletMeta1.getFiles()).andReturn(files1).times(3);
     replay(tabletMeta1);
 
     TabletMetadata tabletMeta2 = createMock(TabletMetadata.class);
     expect(tabletMeta2.getExtent()).andReturn(ke2).anyTimes();
     replay(tabletMeta2);
 
-    assertTrue(splitter.shouldInspect(tabletMeta1));
-    assertTrue(splitter.shouldInspect(tabletMeta2));
+    assertTrue(splitter.isSplittable(tabletMeta1));
+    assertTrue(splitter.isSplittable(tabletMeta2));
 
     splitter.addSplitStarting(ke1);
 
-    assertFalse(splitter.shouldInspect(tabletMeta1));
-    assertTrue(splitter.shouldInspect(tabletMeta2));
+    assertFalse(splitter.isSplittable(tabletMeta1));
+    assertTrue(splitter.isSplittable(tabletMeta2));
 
     splitter.removeSplitStarting(ke1);
 
-    assertTrue(splitter.shouldInspect(tabletMeta1));
-    assertTrue(splitter.shouldInspect(tabletMeta2));
+    assertTrue(splitter.isSplittable(tabletMeta1));
+    assertTrue(splitter.isSplittable(tabletMeta2));
 
     splitter.rememberUnsplittable(tabletMeta1);
 
-    assertFalse(splitter.shouldInspect(tabletMeta1));
-    assertTrue(splitter.shouldInspect(tabletMeta2));
+    assertFalse(splitter.isSplittable(tabletMeta1));
+    assertTrue(splitter.isSplittable(tabletMeta2));
+
+    // tabletMeta1 is currently unsplittable. Adding a file
+    // to it's file set should cause it to be removed from
+    // the unsplittable set of tablets, becoming splittable
+    // again.
+    files1.add(new StoredTabletFile(
+        "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
+    assertTrue(splitter.isSplittable(tabletMeta1));
 
     // when a tablets files change it should become a candidate for inspection
     Set<StoredTabletFile> files2 = Set.of(
@@ -94,8 +105,10 @@ public class SplitterTest {
     expect(tabletMeta3.getFiles()).andReturn(files2).anyTimes();
     replay(tabletMeta3);
 
-    assertTrue(splitter.shouldInspect(tabletMeta3));
-    assertTrue(splitter.shouldInspect(tabletMeta2));
+    assertTrue(splitter.isSplittable(tabletMeta3));
+    assertTrue(splitter.isSplittable(tabletMeta2));
+
+    verify(threadPools, context, tabletMeta1, tabletMeta2, tabletMeta3);
   }
 
 }

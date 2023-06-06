@@ -49,7 +49,6 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -123,7 +122,7 @@ public class RootTabletStateStoreTest {
       return tm.hasCurrent();
     }
 
-    public Map<TabletFile,Long> getLoaded() {
+    public Map<StoredTabletFile,Long> getLoaded() {
       return tm.getLoaded();
     }
 
