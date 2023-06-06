@@ -28,7 +28,8 @@ import org.apache.hadoop.fs.Path;
  *
  * @since 3.0.0
  */
-public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>> implements Comparable<T> {
+public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
+    implements TabletFile, Comparable<T> {
 
   private final String fileName; // C0004.rf
   protected final Path path;
@@ -39,16 +40,12 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>> implem
     ValidationUtil.validateFileName(fileName);
   }
 
-  /**
-   * @return The file name of the TabletFile
-   */
+  @Override
   public String getFileName() {
     return fileName;
   }
 
-  /**
-   * @return The path of the TabletFile
-   */
+  @Override
   public Path getPath() {
     return path;
   }

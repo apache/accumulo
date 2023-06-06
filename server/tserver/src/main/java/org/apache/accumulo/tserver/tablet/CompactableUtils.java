@@ -59,8 +59,8 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -284,7 +284,8 @@ public class CompactableUtils {
           FileSystem ns = tablet.getTabletServer().getVolumeManager().getFileSystemByPath(path);
           var tableConf = tablet.getTableConfiguration();
           var fiter = fileFactory.newReaderBuilder()
-              .forFile(TabletFile.of(path), ns, ns.getConf(), tableConf.getCryptoService())
+              .forFile(ReferencedTabletFile.of(path), ns, ns.getConf(),
+                  tableConf.getCryptoService())
               .withTableConfiguration(tableConf).seekToBeginning().build();
           return Optional.ofNullable(fiter.getSample(new SamplerConfigurationImpl(sc)));
         } catch (IOException e) {
@@ -422,7 +423,7 @@ public class CompactableUtils {
    */
   static CompactionStats compact(Tablet tablet, CompactionJob job,
       CompactableImpl.CompactionInfo cInfo, CompactionEnv cenv,
-      Map<StoredTabletFile,DataFileValue> compactFiles, TabletFile tmpFileName)
+      Map<StoredTabletFile,DataFileValue> compactFiles, ReferencedTabletFile tmpFileName)
       throws IOException, CompactionCanceledException {
     TableConfiguration tableConf = tablet.getTableConfiguration();
 
@@ -441,7 +442,7 @@ public class CompactableUtils {
    */
   static Optional<StoredTabletFile> bringOnline(DatafileManager datafileManager,
       CompactableImpl.CompactionInfo cInfo, CompactionStats stats,
-      Map<StoredTabletFile,DataFileValue> compactFiles, TabletFile compactTmpName)
+      Map<StoredTabletFile,DataFileValue> compactFiles, ReferencedTabletFile compactTmpName)
       throws IOException {
 
     var dfv = new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
@@ -449,7 +450,7 @@ public class CompactableUtils {
         cInfo.checkCompactionId, cInfo.selectedFiles, dfv, Optional.empty());
   }
 
-  public static TabletFile computeCompactionFileDest(TabletFile tmpFile) {
+  public static ReferencedTabletFile computeCompactionFileDest(ReferencedTabletFile tmpFile) {
     String newFilePath = tmpFile.getMetaInsert();
     int idx = newFilePath.indexOf("_tmp");
     if (idx > 0) {
@@ -458,7 +459,7 @@ public class CompactableUtils {
       throw new IllegalArgumentException(
           "Expected compaction tmp file " + tmpFile.getMetaInsert() + " to have suffix '_tmp'");
     }
-    return new TabletFile(new Path(newFilePath));
+    return new ReferencedTabletFile(new Path(newFilePath));
   }
 
 }

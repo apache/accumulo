@@ -33,8 +33,8 @@ import org.apache.hadoop.fs.Path;
  * added to a tablet later as a new file reference, but within a different scope (process, thread,
  * code block, method, etc.) that uses a different class to represent the file in that scope.
  *
- * Unlike {@link TabletFile}, this class does not perform any validation or normalization on the
- * provided path.
+ * Unlike {@link ReferencedTabletFile}, this class does not perform any validation or normalization
+ * on the provided path.
  *
  * @since 3.0.0
  */
