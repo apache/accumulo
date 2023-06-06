@@ -253,14 +253,10 @@ public class ClusterConfigParserTest {
     Map<String,String> contents =
         ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
 
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    PrintStream ps = new PrintStream(baos);
-
-    var exception = assertThrows(IllegalArgumentException.class,
-        () -> ClusterConfigParser.outputShellVariables(contents, System.out));
-
-    assertTrue(exception.getMessage().contains("vserver"));
-
-    ps.close();
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, System.out));
+      assertTrue(exception.getMessage().contains("vserver"));
+    }
   }
 }
