@@ -603,7 +603,7 @@ public class TabletMetadata {
   }
 
   private void setOperationIdOnce(String val, boolean suppressError) {
-    if (location != null) {
+    if (location != null || operationId != null) {
       if (!suppressError) {
         throw new IllegalStateException(
             "Attempted to set operation id for tablet with current location. table ID: " + tableId
