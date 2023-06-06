@@ -18,133 +18,17 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
-
-import java.util.Objects;
-
-import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
-/**
- * Object representing a tablet file that may exist in the metadata table. This class is used for
- * reading and opening tablet files. It is also used when inserting new tablet files. When a new
- * file is inserted, the {@link #insert()} method is called and returns a {@link StoredTabletFile}
- * For situations where a tablet file needs to be updated or deleted in the metadata, a
- * {@link StoredTabletFile} is required.
- * <p>
- * As of 2.1, Tablet file paths should now be only absolute URIs with the removal of relative paths
- * in Upgrader9to10.upgradeRelativePaths()
- */
-public class TabletFile extends AbstractTabletFile<TabletFile> {
-  // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"
-  private final TabletDirectory tabletDir; // hdfs://1.2.3.4/accumulo/tables/2a/t-0003
-  private final String normalizedPath;
-
-  private static final Logger log = LoggerFactory.getLogger(TabletFile.class);
+public interface TabletFile {
 
   /**
-   * Construct new tablet file using a Path. Used in the case where we had to use Path object to
-   * qualify an absolute path or create a new file.
+   * @return The file name of the TabletFile
    */
-  public TabletFile(Path metaPath) {
-    super(Objects.requireNonNull(metaPath));
-    String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
-    log.trace("Parsing TabletFile from {}", metaPath);
-
-    // use Path object to step backwards from the filename through all the parts
-    Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), errorMsg);
-
-    Path tableIdPath = Objects.requireNonNull(tabletDirPath.getParent(), errorMsg);
-    var id = tableIdPath.getName();
-
-    Path tablePath = Objects.requireNonNull(tableIdPath.getParent(), errorMsg);
-    String tpString = "/" + tablePath.getName();
-    Preconditions.checkArgument(tpString.equals(HDFS_TABLES_DIR), errorMsg);
-
-    Path volumePath = Objects.requireNonNull(tablePath.getParent(), errorMsg);
-    Preconditions.checkArgument(volumePath.toUri().getScheme() != null, errorMsg);
-    var volume = volumePath.toString();
-
-    this.tabletDir = new TabletDirectory(volume, TableId.of(id), tabletDirPath.getName());
-    this.normalizedPath = tabletDir.getNormalizedPath() + "/" + getFileName();
-  }
-
-  public String getVolume() {
-    return tabletDir.getVolume();
-  }
-
-  public TableId getTableId() {
-    return tabletDir.getTableId();
-  }
-
-  public String getTabletDir() {
-    return tabletDir.getTabletDir();
-  }
+  String getFileName();
 
   /**
-   * Return a string for opening and reading the tablet file. Doesn't have to be exact string in
-   * metadata.
+   * @return The path of the TabletFile
    */
-  public String getPathStr() {
-    return normalizedPath;
-  }
-
-  /**
-   * Return a string for inserting a new tablet file.
-   */
-  public String getMetaInsert() {
-    return normalizedPath;
-  }
-
-  /**
-   * Return a new Text object of {@link #getMetaInsert()}
-   */
-  public Text getMetaInsertText() {
-    return new Text(getMetaInsert());
-  }
-
-  /**
-   * New file was written to metadata so return a StoredTabletFile
-   */
-  public StoredTabletFile insert() {
-    return new StoredTabletFile(normalizedPath);
-  }
-
-  @Override
-  public int compareTo(TabletFile o) {
-    if (equals(o)) {
-      return 0;
-    } else {
-      return normalizedPath.compareTo(o.normalizedPath);
-    }
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (obj instanceof TabletFile) {
-      TabletFile that = (TabletFile) obj;
-      return normalizedPath.equals(that.normalizedPath);
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return normalizedPath.hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return normalizedPath;
-  }
-
-  public static TabletFile of(final Path path) {
-    return new TabletFile(path);
-  }
-
+  Path getPath();
 }
