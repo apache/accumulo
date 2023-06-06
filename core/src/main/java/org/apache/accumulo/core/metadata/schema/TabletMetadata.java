@@ -118,6 +118,7 @@ public class TabletMetadata {
   protected boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
   protected boolean futureAndCurrentLocationSet = false;
+  protected boolean operationIdAndCurrentLocationSet = false;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -443,6 +444,10 @@ public class TabletMetadata {
     return futureAndCurrentLocationSet;
   }
 
+  public boolean isOperationIdAndCurrentLocationSet() {
+    return operationIdAndCurrentLocationSet;
+  }
+
   @VisibleForTesting
   public static <E extends Entry<Key,Value>> TabletMetadata convertRow(Iterator<E> rowIter,
       EnumSet<ColumnType> fetchedColumns, boolean buildKeyValueMap, boolean suppressLocationError) {
@@ -515,7 +520,7 @@ public class TabletMetadata {
               te.compact = OptionalLong.of(Long.parseLong(val));
               break;
             case OPID_QUAL:
-              te.operationId = TabletOperationId.from(val);
+              te.setOperationIdOnce(val, suppressLocationError);
               break;
           }
           break;
@@ -595,6 +600,18 @@ public class TabletMetadata {
       futureAndCurrentLocationSet = true;
     }
     location = new Location(val, qual, lt);
+  }
+
+  private void setOperationIdOnce(String val, boolean suppressError) {
+    if (location != null) {
+      if (!suppressError) {
+        throw new IllegalStateException(
+            "Attempted to set operation id for tablet with current location. table ID: " + tableId
+                + " endrow: " + endRow + " -- " + location);
+      }
+      operationIdAndCurrentLocationSet = true;
+    }
+    operationId = TabletOperationId.from(val);
   }
 
   @VisibleForTesting
