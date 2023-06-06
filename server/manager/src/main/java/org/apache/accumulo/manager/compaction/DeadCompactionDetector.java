@@ -74,7 +74,7 @@ public class DeadCompactionDetector {
 
     if (tabletCompactions.isEmpty()) {
       // Clear out dead compactions, tservers don't think anything is running
-      log.debug("Clearing the dead compaction map, no tablets have compactions running");
+      log.trace("Clearing the dead compaction map, no tablets have compactions running");
       this.deadCompactions.clear();
       // no need to look for dead compactions when tablets don't have anything recorded as running
       return;

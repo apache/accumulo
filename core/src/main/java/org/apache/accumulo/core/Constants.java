@@ -72,9 +72,6 @@ public class Constants {
 
   public static final String ZCOMPACTORS = "/compactors";
 
-  public static final String ZCOORDINATOR = "/coordinators";
-  public static final String ZCOORDINATOR_LOCK = ZCOORDINATOR + "/lock";
-
   public static final String ZDEAD = "/dead";
   public static final String ZDEADTSERVERS = ZDEAD + "/tservers";
 
