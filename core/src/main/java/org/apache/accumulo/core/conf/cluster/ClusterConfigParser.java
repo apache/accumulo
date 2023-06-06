@@ -97,19 +97,11 @@ public class ClusterConfigParser {
 
   public static void outputShellVariables(Map<String,String> config, PrintStream out) {
 
-    config.keySet().forEach(section -> {
-      if (VALID_CONFIG_KEYS.contains(section)) {
-        return;
-      }
-
-      for (String validPrefix : VALID_CONFIG_PREFIXES) {
-        if (section.startsWith(validPrefix)) {
-          return;
-        }
-      }
-
-      throw new IllegalArgumentException("Unknown configuration section : " + section);
-    });
+    // find invalid config sections and point the user to the first one
+    config.keySet().stream().filter(VALID_CONFIG_SECTIONS.negate()).findFirst()
+        .ifPresent(section -> {
+          throw new IllegalArgumentException("Unknown configuration section : " + section);
+        });
 
     for (String section : SECTIONS) {
       if (config.containsKey(section)) {
