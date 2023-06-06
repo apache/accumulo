@@ -43,8 +43,12 @@ public class ClusterConfigParser {
   private static final Set<String> VALID_CONFIG_KEYS = Set.of("manager", "monitor", "gc", "tserver",
       "tservers_per_host", "sservers_per_host", "compaction.coordinator");
 
-  private static final String[] VALID_CONFIG_PREFIXES =
-      new String[] {"compaction.compactor.", "sserver."};
+  private static final Set<String> VALID_CONFIG_PREFIXES =
+      Set.of("compaction.compactor.", "sserver.");
+
+  private static final Predicate<String> VALID_CONFIG_SECTIONS =
+      section -> VALID_CONFIG_KEYS.contains(section)
+          || VALID_CONFIG_PREFIXES.stream().anyMatch(section::startsWith);
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
   public static Map<String,String> parseConfiguration(String configFile) throws IOException {
