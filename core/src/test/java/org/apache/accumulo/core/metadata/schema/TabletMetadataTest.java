@@ -201,7 +201,7 @@ public class TabletMetadataTest {
     assertThrows(IllegalStateException.class,
         () -> TabletMetadata.convertRow(rowMap.entrySet().iterator(),
             EnumSet.allOf(ColumnType.class), false, false),
-        "Should not be able to have both a future location and operation id set");
+        "tablet should not have operation id and current location at the same time");
 
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
         EnumSet.allOf(ColumnType.class), false, true);
