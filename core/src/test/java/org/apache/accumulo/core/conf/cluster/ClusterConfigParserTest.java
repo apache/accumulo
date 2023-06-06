@@ -255,7 +255,7 @@ public class ClusterConfigParserTest {
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,
-          () -> ClusterConfigParser.outputShellVariables(contents, System.out));
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
       assertTrue(exception.getMessage().contains("vserver"));
     }
   }
