@@ -26,6 +26,8 @@ import org.apache.accumulo.core.data.TabletId;
  * This class contains information that defines the tablet hosting data for a table. The class
  * contains the TabletId and associated goal for each tablet in a table or a subset of tablets if a
  * range is provided.
+ *
+ * @since 4.0.0
  */
 public class HostingGoalForTablet {
   TabletId tabletId;
