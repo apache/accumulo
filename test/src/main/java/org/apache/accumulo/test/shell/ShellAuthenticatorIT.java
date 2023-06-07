@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.test.shell;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Properties;
 import java.util.TimeZone;
@@ -75,7 +75,7 @@ public class ShellAuthenticatorIT extends SharedMiniClusterBase {
       config.delete();
     }
     config = Files.createTempFile(null, null).toFile();
-    try (FileWriter writer = new FileWriter(config, StandardCharsets.UTF_8)) {
+    try (FileWriter writer = new FileWriter(config, UTF_8)) {
       Properties p = SharedMiniClusterBase.getClientProps();
       p.store(writer, null);
     }
@@ -124,7 +124,7 @@ public class ShellAuthenticatorIT extends SharedMiniClusterBase {
       config.delete();
     }
     config = Files.createTempFile(null, null).toFile();
-    try (FileWriter writer = new FileWriter(config, StandardCharsets.UTF_8)) {
+    try (FileWriter writer = new FileWriter(config, UTF_8)) {
       Properties p = SharedMiniClusterBase.getClientProps();
       p.store(writer, null);
     }
