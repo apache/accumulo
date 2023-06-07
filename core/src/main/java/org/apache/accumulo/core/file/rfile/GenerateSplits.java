@@ -51,6 +51,8 @@ import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.datasketches.quantiles.ItemsSketch;
+import org.apache.datasketches.quantilescommon.QuantileSearchCriteria;
+import org.apache.datasketches.quantilescommon.QuantilesUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -200,14 +202,21 @@ public class GenerateSplits implements KeywordExecutable {
 
   private Text[] getQuantiles(SortedKeyValueIterator<Key,Value> iterator, int numSplits)
       throws IOException {
-    ItemsSketch<Text> itemsSketch = ItemsSketch.getInstance(BinaryComparable::compareTo);
+    var itemsSketch = ItemsSketch.getInstance(Text.class, BinaryComparable::compareTo);
     while (iterator.hasTop()) {
       Text row = iterator.getTopKey().getRow();
       itemsSketch.update(row);
       iterator.next();
     }
-    Text[] items = itemsSketch.getQuantiles(numSplits + 2);
-    // based on the ItemsSketch javadoc, method returns min, max as well so drop first and last
+    // the number requested represents the number of regions between the resulting array elements
+    // the actual number of array elements is one more than that to account for endpoints;
+    // so, we ask for one more because we want the number of median elements in the array to
+    // represent the number of split points and we will drop the first and last array element
+    double[] ranks = QuantilesUtil.equallyWeightedRanks(numSplits + 1);
+    // the choice to use INCLUSIVE or EXCLUSIVE is arbitrary here; EXCLUSIVE matches the behavior
+    // of datasketches 3.x, so we might as well preserve that for 4.x
+    Text[] items = itemsSketch.getQuantiles(ranks, QuantileSearchCriteria.EXCLUSIVE);
+    // drop the min and max, so we only keep the median elements to use as split points
     return Arrays.copyOfRange(items, 1, items.length - 1);
   }
 
