@@ -30,8 +30,8 @@ import org.apache.accumulo.core.data.TabletId;
  * @since 4.0.0
  */
 public class HostingGoalForTablet {
-  TabletId tabletId;
-  TabletHostingGoal hostingGoal;
+  private final TabletId tabletId;
+  private final TabletHostingGoal hostingGoal;
 
   public HostingGoalForTablet(TabletId tabletId, TabletHostingGoal hostingGoal) {
     this.tabletId = tabletId;
