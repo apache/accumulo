@@ -2161,7 +2161,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     TableId tableId = context.getTableId(tableName);
 
     try (TabletsMetadata m = context.getAmple().readTablets().forTable(tableId)
-        .overlapping(scanRangeStart, true, null).build()) {
+        .overlapping(scanRangeStart, true, null).fetch(HOSTING_GOAL, PREV_ROW).checkConsistency().build()) {
 
       for (TabletMetadata tm : m) {
         final KeyExtent tabletExtent = tm.getExtent();
