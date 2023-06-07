@@ -54,6 +54,7 @@ public class MiniAccumuloConfigImpl {
 
   private File dir = null;
   private String rootPassword = null;
+  private Map<String,String> hadoopConfOverrides = new HashMap<>();
   private Map<String,String> siteConfig = new HashMap<>();
   private Map<String,String> configuredSiteConig = new HashMap<>();
   private Map<String,String> clientProps = new HashMap<>();
@@ -835,5 +836,25 @@ public class MiniAccumuloConfigImpl {
     if (this.preStartConfigProcessor != null) {
       this.preStartConfigProcessor.accept(this);
     }
+  }
+
+  /**
+   * Add server-side Hadoop configuration properties
+   *
+   * @param overrides properties
+   * @since 2.1.1
+   */
+  public void setHadoopConfOverrides(Map<String,String> overrides) {
+    hadoopConfOverrides.putAll(overrides);
+  }
+
+  /**
+   * Get server-side Hadoop configuration properties
+   *
+   * @return map of properties set in prior call to {@link #setHadoopConfOverrides(Map)}
+   * @since 2.1.1
+   */
+  public Map<String,String> getHadoopConfOverrides() {
+    return new HashMap<>(hadoopConfOverrides);
   }
 }
