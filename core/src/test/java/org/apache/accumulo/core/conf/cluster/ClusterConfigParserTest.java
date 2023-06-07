@@ -21,10 +21,12 @@ package org.apache.accumulo.core.conf.cluster;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -242,4 +244,19 @@ public class ClusterConfigParserTest {
     assertEquals(expected, actual);
   }
 
+  @Test
+  public void testFileWithUnknownSections() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/bad-cluster.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("vserver"));
+    }
+  }
 }
