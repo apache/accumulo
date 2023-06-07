@@ -1189,7 +1189,7 @@ public class Manager extends AbstractServer
 
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          sa.getAddress());
+          sa.getAddress(), getResourceGroupName());
       ManagerMetrics mm = new ManagerMetrics(getConfiguration(), this);
       MetricsUtil.initializeProducers(this, mm);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
@@ -1337,7 +1337,7 @@ public class Manager extends AbstractServer
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER,
         ThriftService.COORDINATOR}) {
-      descriptors.addService(new ServiceDescriptor(uuid, svc, address));
+      descriptors.addService(new ServiceDescriptor(uuid, svc, address, getResourceGroupName()));
     }
 
     sld = new ServiceLockData(descriptors);
@@ -1571,7 +1571,8 @@ public class Manager extends AbstractServer
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER,
         ThriftService.COORDINATOR}) {
-      descriptors.addService(new ServiceDescriptor(zooLockUUID, svc, managerClientAddress));
+      descriptors.addService(
+          new ServiceDescriptor(zooLockUUID, svc, managerClientAddress, getResourceGroupName()));
     }
 
     ServiceLockData sld = new ServiceLockData(descriptors);

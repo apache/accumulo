@@ -61,7 +61,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.slf4j.Logger;
@@ -92,7 +91,7 @@ public class TabletManagementIterator extends SkippingIterator {
     if (goodServers != null) {
       List<String> servers = new ArrayList<>();
       for (TServerInstance server : goodServers) {
-        servers.add(server.getHostPortSession());
+        servers.add(server.getHostPortSessionGroup());
       }
       cfg.addOption(SERVERS_OPTION, Joiner.on(",").join(servers));
     }
@@ -177,16 +176,9 @@ public class TabletManagementIterator extends SkippingIterator {
   private static Set<TServerInstance> parseServers(final String servers) {
     Set<TServerInstance> result = new HashSet<>();
     if (servers != null) {
-      // parse "host:port[INSTANCE]"
       if (!servers.isEmpty()) {
-        for (String part : servers.split(",")) {
-          String[] parts = part.split("\\[", 2);
-          String hostport = parts[0];
-          String instance = parts[1];
-          if (instance != null && instance.endsWith("]")) {
-            instance = instance.substring(0, instance.length() - 1);
-          }
-          result.add(new TServerInstance(AddressUtil.parseAddress(hostport, false), instance));
+        for (String server : servers.split(",")) {
+          result.add(TServerInstance.fromString(server));
         }
       }
     }

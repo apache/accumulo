@@ -89,8 +89,8 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Preconditions.checkArgument(location.getType() == TabletMetadata.LocationType.FUTURE
         || location.getType() == TabletMetadata.LocationType.CURRENT);
-    Condition c = new Condition(getLocationFamily(location.getType()), location.getSession())
-        .setValue(location.getHostPort());
+    Condition c = new Condition(getLocationFamily(location.getType()), "")
+        .setValue(location.getServerInstance().toString());
     mutation.addCondition(c);
     return this;
   }

@@ -35,9 +35,9 @@ public class TabletServerIdImpl implements TabletServerId {
     return (tsi == null) ? null : new TabletServerIdImpl(tsi);
   }
 
-  public TabletServerIdImpl(String host, int port, String session) {
+  public TabletServerIdImpl(String host, int port, String session, String group) {
     requireNonNull(host);
-    this.tServerInstance = new TServerInstance(HostAndPort.fromParts(host, port), session);
+    this.tServerInstance = new TServerInstance(HostAndPort.fromParts(host, port), session, group);
   }
 
   public TabletServerIdImpl(TServerInstance tServerInstance) {
@@ -57,6 +57,11 @@ public class TabletServerIdImpl implements TabletServerId {
   @Override
   public String getSession() {
     return tServerInstance.getSession();
+  }
+
+  @Override
+  public String getGroup() {
+    return tServerInstance.getGroup();
   }
 
   @Override
@@ -96,7 +101,7 @@ public class TabletServerIdImpl implements TabletServerId {
     } else {
       return new TServerInstance(
           HostAndPort.fromParts(tabletServerId.getHost(), tabletServerId.getPort()),
-          tabletServerId.getSession());
+          tabletServerId.getSession(), tabletServerId.getGroup());
     }
   }
 }

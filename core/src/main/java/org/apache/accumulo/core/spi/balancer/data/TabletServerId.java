@@ -27,4 +27,6 @@ public interface TabletServerId extends Comparable<TabletServerId> {
   int getPort();
 
   String getSession();
+
+  String getGroup();
 }

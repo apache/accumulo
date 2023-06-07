@@ -36,6 +36,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -229,6 +230,18 @@ public class MetadataConstraints implements Constraint {
         } catch (IllegalArgumentException e) {
           violations = addViolation(violations, 9);
         }
+      } else if (columnFamily.equals(CurrentLocationColumnFamily.NAME)
+          || columnFamily.equals(LastLocationColumnFamily.NAME)
+          || columnFamily.equals(FutureLocationColumnFamily.NAME)) {
+        if (!columnQualifier.toString().isEmpty()) {
+          violations = addViolation(violations, 11);
+        } else {
+          try {
+            TServerInstance.fromString(new String(columnUpdate.getValue(), UTF_8));
+          } catch (IllegalStateException e) {
+            violations = addViolation(violations, 12);
+          }
+        }
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
           // splits, which also write the time reference, are allowed to write this reference even
@@ -359,6 +372,10 @@ public class MetadataConstraints implements Constraint {
         return "Malformed operation id";
       case 10:
         return "Malformed hosting goal";
+      case 11:
+        return "location information in column qualifier";
+      case 12:
+        return "location information in wrong format";
     }
     return null;
   }

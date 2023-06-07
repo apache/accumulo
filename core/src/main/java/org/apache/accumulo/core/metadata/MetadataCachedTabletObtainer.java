@@ -220,8 +220,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
   }
 
   public static CachedTablets getMetadataLocationEntries(SortedMap<Key,Value> entries) {
-    Text location = null;
-    Text session = null;
+    TServerInstance tsi = null;
     TabletHostingGoal goal = null;
     boolean hostingRequested = false;
 
@@ -238,8 +237,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
       Value val = entry.getValue();
 
       if (key.compareRow(lastRowFromKey) != 0) {
-        location = null;
-        session = null;
+        tsi = null;
         goal = null;
         hostingRequested = false;
         key.getRow(lastRowFromKey);
@@ -251,11 +249,10 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
       // interpret the row id as a key extent
       if (colf.equals(CurrentLocationColumnFamily.NAME)
           || colf.equals(FutureLocationColumnFamily.NAME)) {
-        if (location != null) {
+        if (tsi != null) {
           throw new IllegalStateException("Tablet has multiple locations : " + lastRowFromKey);
         }
-        location = new Text(val.toString());
-        session = new Text(colq);
+        tsi = TServerInstance.fromString(val.toString());
       } else if (HostingColumnFamily.GOAL_COLUMN.equals(colf, colq)) {
         goal = TabletHostingGoalUtil.fromValue(val);
       } else if (HostingColumnFamily.REQUESTED_COLUMN.equals(colf, colq)) {
@@ -265,13 +262,12 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
         if (ke.isMeta()) {
           goal = TabletHostingGoal.ALWAYS;
         }
-        if (location != null) {
-          results.add(new CachedTablet(ke, location.toString(), session.toString(), goal,
-              hostingRequested));
+        if (tsi != null) {
+          results.add(new CachedTablet(ke, tsi, goal, hostingRequested));
         } else {
           results.add(new CachedTablet(ke, goal, hostingRequested));
         }
-        location = null;
+        tsi = null;
       }
     }
 

@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
@@ -103,9 +104,15 @@ public class SimpleLoadBalancerTest {
 
   @Test
   public void testAssignMigrations() {
-    servers.put(new TabletServerIdImpl("127.0.0.1", 1234, "a"), new FakeTServer());
-    servers.put(new TabletServerIdImpl("127.0.0.2", 1234, "b"), new FakeTServer());
-    servers.put(new TabletServerIdImpl("127.0.0.3", 1234, "c"), new FakeTServer());
+    servers.put(
+        new TabletServerIdImpl("127.0.0.1", 1234, "a", ServiceDescriptor.DEFAULT_GROUP_NAME),
+        new FakeTServer());
+    servers.put(
+        new TabletServerIdImpl("127.0.0.2", 1234, "b", ServiceDescriptor.DEFAULT_GROUP_NAME),
+        new FakeTServer());
+    servers.put(
+        new TabletServerIdImpl("127.0.0.3", 1234, "c", ServiceDescriptor.DEFAULT_GROUP_NAME),
+        new FakeTServer());
     List<TabletId> metadataTable = new ArrayList<>();
     String table = "t1";
     metadataTable.add(makeTablet(table, null, null));
@@ -180,7 +187,8 @@ public class SimpleLoadBalancerTest {
   public void testUnevenAssignment() {
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
       String cString = Character.toString(c);
-      TabletServerId tsid = new TabletServerIdImpl("127.0.0.1", c, cString);
+      TabletServerId tsid =
+          new TabletServerIdImpl("127.0.0.1", c, cString, ServiceDescriptor.DEFAULT_GROUP_NAME);
       FakeTServer fakeTServer = new FakeTServer();
       servers.put(tsid, fakeTServer);
       fakeTServer.tablets.add(makeTablet(cString, null, null));
@@ -220,7 +228,8 @@ public class SimpleLoadBalancerTest {
   public void testUnevenAssignment2() {
     // make 26 servers
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
-      TabletServerId tsid = new TabletServerIdImpl("127.0.0.1", c, Character.toString(c));
+      TabletServerId tsid = new TabletServerIdImpl("127.0.0.1", c, Character.toString(c),
+          ServiceDescriptor.DEFAULT_GROUP_NAME);
       FakeTServer fakeTServer = new FakeTServer();
       servers.put(tsid, fakeTServer);
     }

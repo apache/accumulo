@@ -40,6 +40,7 @@ import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
@@ -90,9 +91,11 @@ public class TabletManagementTest {
     mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf2.getMetaUpdateDelete())
         .put(dfv2.encode());
 
-    mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
+    mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("")
+        .put(new TServerInstance("server1:8555", "s001", "default").toString());
 
-    mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
+    mutation.at().family(LastLocationColumnFamily.NAME).qualifier("")
+        .put(new TServerInstance("server2:8555", "s000", "default").toString());
 
     LogEntry le1 = new LogEntry(extent, 55, "lf1");
     mutation.at().family(le1.getColumnFamily()).qualifier(le1.getColumnQualifier())

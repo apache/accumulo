@@ -42,17 +42,19 @@ public class ShutdownTServer extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(ShutdownTServer.class);
   private final HostAndPort hostAndPort;
   private final String serverSession;
+  private final String resourceGroup;
   private final boolean force;
 
   public ShutdownTServer(TServerInstance server, boolean force) {
     this.hostAndPort = server.getHostAndPort();
     this.serverSession = server.getSession();
+    this.resourceGroup = server.getGroup();
     this.force = force;
   }
 
   @Override
   public long isReady(long tid, Manager manager) {
-    TServerInstance server = new TServerInstance(hostAndPort, serverSession);
+    TServerInstance server = new TServerInstance(hostAndPort, serverSession, resourceGroup);
     // suppress assignment of tablets to the server
     if (force) {
       return 0;

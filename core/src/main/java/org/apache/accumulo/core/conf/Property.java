@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.constraints.NoDeleteConstraint;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
@@ -724,6 +725,11 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The interval at which the TabletServer will check if on-demand tablets can be unloaded",
       "4.0.0"),
+  TSERV_GROUP_NAME("tserver.group", ServiceDescriptor.DEFAULT_GROUP_NAME, PropertyType.STRING,
+      "Optional group name that will be made available to the "
+          + "TablerServer plugins. Groups can be used to dedicate resources "
+          + " to specific tables (e.g. balancing tablets for table(s) within a group)",
+      "4.0.0"),
 
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
@@ -808,6 +814,11 @@ public enum Property {
           + " global setting to take effect. However, you must use the API or the shell"
           + " to change properties in zookeeper that are set on a table.",
       "1.3.5"),
+  TABLE_ASSIGNMENT_GROUP("table.assignment.group", ServiceDescriptor.DEFAULT_GROUP_NAME,
+      PropertyType.STRING,
+      "Tablets for this table will be assigned to TabletServers that have a corresponding"
+          + " tserver.group property value.",
+      "4.0.0"),
   TABLE_ARBITRARY_PROP_PREFIX("table.custom.", null, PropertyType.PREFIX,
       "Prefix to be used for user defined arbitrary properties.", "1.7.0"),
   TABLE_MINC_OUTPUT_DROP_CACHE("table.compaction.minor.output.drop.cache", "false",
@@ -1095,7 +1106,8 @@ public enum Property {
   COMPACTOR_MAX_MESSAGE_SIZE("compactor.message.size.max", "10M", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a tablet server.", "2.1.0"),
   @Experimental
-  COMPACTOR_QUEUE_NAME("compactor.queue", "", PropertyType.STRING,
+  // ELASTICITY_TODO: rename to compactor.group
+  COMPACTOR_QUEUE_NAME("compactor.queue", ServiceDescriptor.DEFAULT_GROUP_NAME, PropertyType.STRING,
       "The queue for which this Compactor will perform compactions", "3.0.0"),
   // CompactionCoordinator properties
   @Experimental

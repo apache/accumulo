@@ -70,10 +70,6 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     private final String address;
     private final String group;
 
-    public ServiceDescriptor(UUID uuid, ThriftService service, String address) {
-      this(uuid, service, address, DEFAULT_GROUP_NAME);
-    }
-
     public ServiceDescriptor(UUID uuid, ThriftService service, String address, String group) {
       this.uuid = requireNonNull(uuid);
       this.service = requireNonNull(service);
@@ -157,11 +153,6 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
   public ServiceLockData(UUID uuid, String address, ThriftService service, String group) {
     this(new ServiceDescriptors(new HashSet<>(
         Collections.singleton(new ServiceDescriptor(uuid, service, address, group)))));
-  }
-
-  public ServiceLockData(UUID uuid, String address, ThriftService service) {
-    this(new ServiceDescriptors(
-        new HashSet<>(Collections.singleton(new ServiceDescriptor(uuid, service, address)))));
   }
 
   public String getAddressString(ThriftService service) {

@@ -73,6 +73,7 @@ import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -368,7 +369,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     } else {
       authKeyWatcher = null;
     }
+
     config();
+  }
+
+  @Override
+  protected String getResourceGroupNamePropertyValue(SiteConfiguration conf) {
+    return conf.get(Property.TSERV_GROUP_NAME);
   }
 
   public InstanceId getInstanceID() {
@@ -672,8 +679,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
             ThriftService.TABLET_INGEST, ThriftService.TABLET_MANAGEMENT, ThriftService.TABLET_SCAN,
             ThriftService.TSERV}) {
-          descriptors
-              .addService(new ServiceDescriptor(tabletServerUUID, svc, getClientAddressString()));
+          descriptors.addService(new ServiceDescriptor(tabletServerUUID, svc,
+              getClientAddressString(), getResourceGroupName()));
         }
 
         if (tabletServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
@@ -719,8 +726,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     try {
-      MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
-          clientAddress);
+      MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName, clientAddress,
+          getResourceGroupName());
 
       metrics = new TabletServerMetrics(this);
       updateMetrics = new TabletServerUpdateMetrics();
@@ -945,7 +952,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     try {
-      return new TServerInstance(address, tabletServerLock.getSessionId());
+      return new TServerInstance(address, tabletServerLock.getSessionId(), getResourceGroupName());
     } catch (Exception ex) {
       log.warn("Unable to read session from tablet server lock" + ex);
       return null;

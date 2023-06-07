@@ -469,8 +469,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
       // Tablet is suspended. See if its tablet server is back.
       TServerInstance returnInstance = null;
-      Iterator<TServerInstance> find = tLists.destinations
-          .tailMap(new TServerInstance(tm.getSuspend().server, " ")).keySet().iterator();
+      Iterator<TServerInstance> find =
+          tLists.destinations.tailMap(new TServerInstance(tm.getSuspend().server, " ",
+              tableConf.get(Property.TABLE_ASSIGNMENT_GROUP))).keySet().iterator();
       if (find.hasNext()) {
         TServerInstance found = find.next();
         if (found.getHostAndPort().equals(tm.getSuspend().server)) {

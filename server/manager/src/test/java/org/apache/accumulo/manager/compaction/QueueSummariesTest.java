@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.manager.compaction.QueueSummaries.PrioTserver;
@@ -33,7 +34,7 @@ import org.junit.jupiter.api.Test;
 public class QueueSummariesTest {
 
   private TServerInstance ntsi(String tserver) {
-    return new TServerInstance(tserver + ":9997", 0);
+    return new TServerInstance(tserver + ":9997", 0, ServiceDescriptor.DEFAULT_GROUP_NAME);
   }
 
   private PrioTserver npt(String tserver, short prio) {

@@ -473,7 +473,8 @@ class DatafileManager {
       ManagerMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
           filesInUseByScans, newFile, compactionIdToWrite, dfv,
           tablet.getTabletServer().getClientAddressString(), lastLocation,
-          tablet.getTabletServer().getLock(), ecid);
+          tablet.getTabletServer().getLock(), ecid,
+          tablet.getTabletServer().getResourceGroupName());
       tablet.setLastCompactionID(compactionIdToWrite);
       removeFilesAfterScan(filesInUseByScans);
 

@@ -93,7 +93,7 @@ class LoggingTabletStateStore implements TabletStateStore {
       var location = tm.getLocation();
       HostAndPort server = null;
       if (location != null) {
-        server = location.getHostAndPort();
+        server = location.getServerInstance().getHostAndPort();
       }
       TabletLogger.suspended(tm.getExtent(), server, suspensionTimestamp, TimeUnit.MILLISECONDS,
           logsForDeadServers.size());

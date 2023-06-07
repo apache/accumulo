@@ -39,6 +39,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -325,8 +326,10 @@ public class LiveTServerSet implements Watcher {
       }
     } else {
       locklessServers.remove(zPath);
-      HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
-      TServerInstance instance = new TServerInstance(client, stat.getEphemeralOwner());
+      HostAndPort client = sld.orElseThrow().getAddress(ThriftService.TSERV);
+      String resourceGroup = sld.orElseThrow().getGroup(ThriftService.TSERV);
+      TServerInstance instance =
+          new TServerInstance(client, stat.getEphemeralOwner(), resourceGroup);
 
       if (info == null) {
         updates.add(instance);

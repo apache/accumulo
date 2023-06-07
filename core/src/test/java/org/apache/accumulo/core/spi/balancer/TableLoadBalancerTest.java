@@ -39,6 +39,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
@@ -59,7 +60,7 @@ public class TableLoadBalancerTest {
       Map.of("t1", "a1", "t2", "b12", "t3", "c4");
 
   private static TabletServerId mkts(String host, int port, String session) {
-    return new TabletServerIdImpl(host, port, session);
+    return new TabletServerIdImpl(host, port, session, ServiceDescriptor.DEFAULT_GROUP_NAME);
   }
 
   private static TServerStatus status(Object... config) {

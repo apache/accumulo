@@ -123,18 +123,17 @@ public class RootClientTabletCache extends ClientTabletCache {
     }
 
     if (loc == null || loc.getType() != LocationType.CURRENT) {
-      return new CachedTablet(RootTable.EXTENT, Optional.empty(), Optional.empty(),
-          TabletHostingGoal.ALWAYS, false);
+      return new CachedTablet(RootTable.EXTENT, Optional.empty(), TabletHostingGoal.ALWAYS, false);
     }
 
-    String server = loc.getHostPort();
+    String server = loc.getServerInstance().getHostPort();
+    String session = loc.getServerInstance().getSession();
 
-    if (lockChecker.isLockHeld(server, loc.getSession())) {
-      return new CachedTablet(RootTable.EXTENT, server, loc.getSession(), TabletHostingGoal.ALWAYS,
+    if (lockChecker.isLockHeld(server, session)) {
+      return new CachedTablet(RootTable.EXTENT, loc.getServerInstance(), TabletHostingGoal.ALWAYS,
           false);
     } else {
-      return new CachedTablet(RootTable.EXTENT, Optional.empty(), Optional.empty(),
-          TabletHostingGoal.ALWAYS, false);
+      return new CachedTablet(RootTable.EXTENT, Optional.empty(), TabletHostingGoal.ALWAYS, false);
     }
   }
 

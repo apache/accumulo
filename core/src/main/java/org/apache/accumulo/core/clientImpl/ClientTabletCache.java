@@ -43,9 +43,9 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
-import org.apache.accumulo.core.util.Interner;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
@@ -270,34 +270,29 @@ public abstract class ClientTabletCache {
   }
 
   public static class CachedTablet {
-    private static final Interner<String> interner = new Interner<>();
 
     private final KeyExtent tablet_extent;
-    private final String tserverLocation;
-    private final String tserverSession;
+    private final TServerInstance tsi;
     private final TabletHostingGoal goal;
     private final boolean hostingRequested;
 
     private final Long creationTime = System.nanoTime();
 
-    public CachedTablet(KeyExtent tablet_extent, String tablet_location, String session,
-        TabletHostingGoal goal, boolean hostingRequested) {
+    public CachedTablet(KeyExtent tablet_extent, TServerInstance instance, TabletHostingGoal goal,
+        boolean hostingRequested) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
-      checkArgument(tablet_location != null, "tablet_location is null");
-      checkArgument(session != null, "session is null");
+      checkArgument(instance != null, "tablet_location is null");
       this.tablet_extent = tablet_extent;
-      this.tserverLocation = interner.intern(tablet_location);
-      this.tserverSession = interner.intern(session);
+      this.tsi = instance;
       this.goal = Objects.requireNonNull(goal);
       this.hostingRequested = hostingRequested;
     }
 
-    public CachedTablet(KeyExtent tablet_extent, Optional<String> tablet_location,
-        Optional<String> session, TabletHostingGoal goal, boolean hostingRequested) {
+    public CachedTablet(KeyExtent tablet_extent, Optional<TServerInstance> tablet_location,
+        TabletHostingGoal goal, boolean hostingRequested) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       this.tablet_extent = tablet_extent;
-      this.tserverLocation = tablet_location.map(interner::intern).orElse(null);
-      this.tserverSession = session.map(interner::intern).orElse(null);
+      this.tsi = tablet_location.orElse(null);
       this.goal = Objects.requireNonNull(goal);
       this.hostingRequested = hostingRequested;
     }
@@ -305,8 +300,7 @@ public abstract class ClientTabletCache {
     public CachedTablet(KeyExtent tablet_extent, TabletHostingGoal goal, boolean hostingRequested) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       this.tablet_extent = tablet_extent;
-      this.tserverLocation = null;
-      this.tserverSession = null;
+      this.tsi = null;
       this.goal = Objects.requireNonNull(goal);
       this.hostingRequested = hostingRequested;
     }
@@ -325,13 +319,13 @@ public abstract class ClientTabletCache {
 
     @Override
     public int hashCode() {
-      return Objects.hash(getExtent(), tserverLocation, tserverSession, goal, hostingRequested);
+      return Objects.hash(getExtent(), tsi, goal, hostingRequested);
     }
 
     @Override
     public String toString() {
       return "(" + getExtent() + "," + getTserverLocation() + "," + getTserverSession() + ","
-          + getGoal() + ")";
+          + getResourceGroup() + "," + getGoal() + ")";
     }
 
     public KeyExtent getExtent() {
@@ -339,11 +333,19 @@ public abstract class ClientTabletCache {
     }
 
     public Optional<String> getTserverLocation() {
-      return Optional.ofNullable(tserverLocation);
+      return Optional.ofNullable(tsi == null ? null : tsi.getHostPort());
     }
 
     public Optional<String> getTserverSession() {
-      return Optional.ofNullable(tserverSession);
+      return Optional.ofNullable(tsi == null ? null : tsi.getSession());
+    }
+
+    public Optional<String> getResourceGroup() {
+      return Optional.ofNullable(tsi == null ? null : tsi.getGroup());
+    }
+
+    public Optional<TServerInstance> getServer() {
+      return Optional.ofNullable(tsi == null ? null : tsi);
     }
 
     /**

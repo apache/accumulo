@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -69,8 +70,8 @@ public class MergeStateIT extends ConfigurableMacBase {
 
   private static class MockCurrentState implements CurrentState {
 
-    TServerInstance someTServer =
-        new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234), 0x123456);
+    TServerInstance someTServer = new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234),
+        0x123456, ServiceDescriptor.DEFAULT_GROUP_NAME);
     MergeInfo mergeInfo;
 
     MockCurrentState(MergeInfo info) {

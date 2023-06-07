@@ -131,11 +131,12 @@ public abstract class GroupBalancer implements TabletBalancer {
         // Maintain locality
         String fakeSessionID = " ";
         TabletServerId simple =
-            new TabletServerIdImpl(last.getHost(), last.getPort(), fakeSessionID);
+            new TabletServerIdImpl(last.getHost(), last.getPort(), fakeSessionID, last.getGroup());
         Iterator<TabletServerId> find = params.currentStatus().tailMap(simple).keySet().iterator();
         if (find.hasNext()) {
           TabletServerId tserver = find.next();
-          if (tserver.getHost().equals(last.getHost())) {
+          if (tserver.getHost().equals(last.getHost())
+              && tserver.getGroup().equals(last.getGroup())) {
             params.addAssignment(entry.getKey(), tserver);
             continue;
           }

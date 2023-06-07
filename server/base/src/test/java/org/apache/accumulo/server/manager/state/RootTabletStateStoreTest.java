@@ -44,6 +44,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -266,8 +267,8 @@ public class RootTabletStateStoreTest {
     ZooTabletStateStore tstore = new ZooTabletStateStore(context);
     KeyExtent root = RootTable.EXTENT;
     String sessionId = "this is my unique session data";
-    TServerInstance server =
-        new TServerInstance(HostAndPort.fromParts("127.0.0.1", 10000), sessionId);
+    TServerInstance server = new TServerInstance(HostAndPort.fromParts("127.0.0.1", 10000),
+        sessionId, ServiceDescriptor.DEFAULT_GROUP_NAME);
     List<Assignment> assignments = Collections.singletonList(new Assignment(root, server, null));
     tstore.setFutureLocations(assignments);
     int count = 0;

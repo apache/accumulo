@@ -67,7 +67,8 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
         newTablet = ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       } while (!newTablet.hasCurrent());
       // this would be null if the mode was not "assign"
-      assertEquals(newTablet.getLocation().getHostPort(), newTablet.getLast().getHostPort());
+      assertEquals(newTablet.getLocation().getServerInstance().getHostPort(),
+          newTablet.getLast().getServerInstance().getHostPort());
 
       // put something in it
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
@@ -82,8 +83,10 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
       // last location should not be set yet
       TabletMetadata unflushed =
           ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
-      assertEquals(newTablet.getLocation().getHostPort(), unflushed.getLocation().getHostPort());
-      assertEquals(newTablet.getLocation().getHostPort(), unflushed.getLast().getHostPort());
+      assertEquals(newTablet.getLocation().getServerInstance().getHostPort(),
+          unflushed.getLocation().getServerInstance().getHostPort());
+      assertEquals(newTablet.getLocation().getServerInstance().getHostPort(),
+          unflushed.getLast().getServerInstance().getHostPort());
       assertTrue(newTablet.hasCurrent());
 
       // take the tablet offline
@@ -92,7 +95,8 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
           ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertNull(offline.getLocation());
       assertFalse(offline.hasCurrent());
-      assertEquals(newTablet.getLocation().getHostPort(), offline.getLast().getHostPort());
+      assertEquals(newTablet.getLocation().getServerInstance().getHostPort(),
+          offline.getLast().getServerInstance().getHostPort());
 
       // put it back online, should have the same last location
       c.tableOperations().online(tableName, true);
@@ -100,7 +104,8 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
           ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(online.hasCurrent());
       assertNotNull(online.getLocation());
-      assertEquals(newTablet.getLast().getHostPort(), online.getLast().getHostPort());
+      assertEquals(newTablet.getLast().getServerInstance().getHostPort(),
+          online.getLast().getServerInstance().getHostPort());
     }
   }
 

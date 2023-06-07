@@ -46,8 +46,10 @@ import org.junit.jupiter.api.Test;
 
 public class GarbageCollectWriteAheadLogsTest {
 
-  private final TServerInstance server1 = new TServerInstance("localhost:1234[SESSION]");
-  private final TServerInstance server2 = new TServerInstance("localhost:1234[OTHERSESS]");
+  private final TServerInstance server1 =
+      TServerInstance.fromString("localhost:1234#SESSION#default");
+  private final TServerInstance server2 =
+      TServerInstance.fromString("localhost:1234#OTHERSESS#default");
   private final UUID id = UUID.randomUUID();
   private final Map<TServerInstance,List<UUID>> markers =
       Collections.singletonMap(server1, Collections.singletonList(id));

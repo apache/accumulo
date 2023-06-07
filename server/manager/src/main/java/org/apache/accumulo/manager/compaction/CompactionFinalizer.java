@@ -122,7 +122,8 @@ public class CompactionFinalizer {
 
     Client client = null;
     try {
-      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, loc.getHostAndPort(), context);
+      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
+          loc.getServerInstance().getHostAndPort(), context);
       if (ecfs.getFinalState() == FinalState.FINISHED) {
         LOG.debug("Notifying tserver {} that compaction {} has finished.", loc, ecfs);
         client.compactionJobFinished(TraceUtil.traceInfo(), context.rpcCreds(),
@@ -136,7 +137,7 @@ public class CompactionFinalizer {
         throw new IllegalArgumentException(ecfs.getFinalState().name());
       }
     } catch (TException e) {
-      LOG.warn("Failed to notify tserver {}", loc.getHostAndPort(), e);
+      LOG.warn("Failed to notify tserver {}", loc.getServerInstance().getHostAndPort(), e);
     } finally {
       ThriftUtil.returnClient(client, context);
     }

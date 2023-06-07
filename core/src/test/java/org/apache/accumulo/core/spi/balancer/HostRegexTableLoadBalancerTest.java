@@ -46,7 +46,6 @@ import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
-import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
@@ -163,42 +162,27 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     assertTrue(groups.containsKey(FOO.getTableName()));
     SortedMap<TabletServerId,TServerStatus> fooHosts = groups.get(FOO.getTableName());
     assertEquals(5, fooHosts.size());
-    assertTrue(
-        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.1", 9997, Integer.toHexString(1))));
-    assertTrue(
-        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.2", 9997, Integer.toHexString(1))));
-    assertTrue(
-        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.3", 9997, Integer.toHexString(1))));
-    assertTrue(
-        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.4", 9997, Integer.toHexString(1))));
-    assertTrue(
-        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.5", 9997, Integer.toHexString(1))));
+    assertTrue(fooHosts.containsKey(createTSID("192.168.0.1")));
+    assertTrue(fooHosts.containsKey(createTSID("192.168.0.2")));
+    assertTrue(fooHosts.containsKey(createTSID("192.168.0.3")));
+    assertTrue(fooHosts.containsKey(createTSID("192.168.0.4")));
+    assertTrue(fooHosts.containsKey(createTSID("192.168.0.5")));
     assertTrue(groups.containsKey(BAR.getTableName()));
     SortedMap<TabletServerId,TServerStatus> barHosts = groups.get(BAR.getTableName());
     assertEquals(5, barHosts.size());
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.6", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.7", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.8", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.9", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.10", 9997, Integer.toHexString(1))));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.6")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.7")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.8")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.9")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.10")));
     assertTrue(groups.containsKey(DEFAULT_POOL));
     SortedMap<TabletServerId,TServerStatus> defHosts = groups.get(DEFAULT_POOL);
     assertEquals(5, defHosts.size());
-    assertTrue(
-        defHosts.containsKey(new TabletServerIdImpl("192.168.0.11", 9997, Integer.toHexString(1))));
-    assertTrue(
-        defHosts.containsKey(new TabletServerIdImpl("192.168.0.12", 9997, Integer.toHexString(1))));
-    assertTrue(
-        defHosts.containsKey(new TabletServerIdImpl("192.168.0.13", 9997, Integer.toHexString(1))));
-    assertTrue(
-        defHosts.containsKey(new TabletServerIdImpl("192.168.0.14", 9997, Integer.toHexString(1))));
-    assertTrue(
-        defHosts.containsKey(new TabletServerIdImpl("192.168.0.15", 9997, Integer.toHexString(1))));
+    assertTrue(defHosts.containsKey(createTSID("192.168.0.11")));
+    assertTrue(defHosts.containsKey(createTSID("192.168.0.12")));
+    assertTrue(defHosts.containsKey(createTSID("192.168.0.13")));
+    assertTrue(defHosts.containsKey(createTSID("192.168.0.14")));
+    assertTrue(defHosts.containsKey(createTSID("192.168.0.15")));
   }
 
   @Test
@@ -217,61 +201,36 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     for (String pool : new String[] {FOO.getTableName(), DEFAULT_POOL}) {
       SortedMap<TabletServerId,TServerStatus> fooHosts = groups.get(pool);
       assertEquals(15, fooHosts.size());
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.1", 9997, Integer.toHexString(1))));
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.2", 9997, Integer.toHexString(1))));
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.3", 9997, Integer.toHexString(1))));
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.4", 9997, Integer.toHexString(1))));
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.5", 9997, Integer.toHexString(1))));
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.6", 9997, Integer.toHexString(1))));
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.7", 9997, Integer.toHexString(1))));
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.8", 9997, Integer.toHexString(1))));
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.9", 9997, Integer.toHexString(1))));
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.10", 9997, Integer.toHexString(1))));
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.11", 9997, Integer.toHexString(1))));
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.12", 9997, Integer.toHexString(1))));
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.13", 9997, Integer.toHexString(1))));
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.14", 9997, Integer.toHexString(1))));
-      assertTrue(fooHosts
-          .containsKey(new TabletServerIdImpl("192.168.0.15", 9997, Integer.toHexString(1))));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.1")));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.2")));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.3")));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.4")));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.5")));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.6")));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.7")));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.8")));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.9")));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.10")));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.11")));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.12")));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.13")));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.14")));
+      assertTrue(fooHosts.containsKey(createTSID("192.168.0.15")));
     }
 
     assertTrue(groups.containsKey(BAR.getTableName()));
     SortedMap<TabletServerId,TServerStatus> barHosts = groups.get(BAR.getTableName());
     assertEquals(10, barHosts.size());
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.1", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.2", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.3", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.4", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.5", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.6", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.7", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.8", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.9", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.10", 9997, Integer.toHexString(1))));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.1")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.2")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.3")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.4")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.5")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.6")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.7")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.8")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.9")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.10")));
   }
 
   @Test
@@ -292,42 +251,27 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     assertTrue(groups.containsKey(FOO.getTableName()));
     SortedMap<TabletServerId,TServerStatus> fooHosts = groups.get(FOO.getTableName());
     assertEquals(5, fooHosts.size());
-    assertTrue(
-        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.1", 9997, Integer.toHexString(1))));
-    assertTrue(
-        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.2", 9997, Integer.toHexString(1))));
-    assertTrue(
-        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.3", 9997, Integer.toHexString(1))));
-    assertTrue(
-        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.4", 9997, Integer.toHexString(1))));
-    assertTrue(
-        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.5", 9997, Integer.toHexString(1))));
+    assertTrue(fooHosts.containsKey(createTSID("192.168.0.1")));
+    assertTrue(fooHosts.containsKey(createTSID("192.168.0.2")));
+    assertTrue(fooHosts.containsKey(createTSID("192.168.0.3")));
+    assertTrue(fooHosts.containsKey(createTSID("192.168.0.4")));
+    assertTrue(fooHosts.containsKey(createTSID("192.168.0.5")));
     assertTrue(groups.containsKey(BAR.getTableName()));
     SortedMap<TabletServerId,TServerStatus> barHosts = groups.get(BAR.getTableName());
     assertEquals(5, barHosts.size());
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.6", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.7", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.8", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.9", 9997, Integer.toHexString(1))));
-    assertTrue(
-        barHosts.containsKey(new TabletServerIdImpl("192.168.0.10", 9997, Integer.toHexString(1))));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.6")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.7")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.8")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.9")));
+    assertTrue(barHosts.containsKey(createTSID("192.168.0.10")));
     assertTrue(groups.containsKey(DEFAULT_POOL));
     SortedMap<TabletServerId,TServerStatus> defHosts = groups.get(DEFAULT_POOL);
     assertEquals(5, defHosts.size());
-    assertTrue(
-        defHosts.containsKey(new TabletServerIdImpl("192.168.0.11", 9997, Integer.toHexString(1))));
-    assertTrue(
-        defHosts.containsKey(new TabletServerIdImpl("192.168.0.12", 9997, Integer.toHexString(1))));
-    assertTrue(
-        defHosts.containsKey(new TabletServerIdImpl("192.168.0.13", 9997, Integer.toHexString(1))));
-    assertTrue(
-        defHosts.containsKey(new TabletServerIdImpl("192.168.0.14", 9997, Integer.toHexString(1))));
-    assertTrue(
-        defHosts.containsKey(new TabletServerIdImpl("192.168.0.15", 9997, Integer.toHexString(1))));
+    assertTrue(defHosts.containsKey(createTSID("192.168.0.11")));
+    assertTrue(defHosts.containsKey(createTSID("192.168.0.12")));
+    assertTrue(defHosts.containsKey(createTSID("192.168.0.13")));
+    assertTrue(defHosts.containsKey(createTSID("192.168.0.14")));
+    assertTrue(defHosts.containsKey(createTSID("192.168.0.15")));
   }
 
   @Test

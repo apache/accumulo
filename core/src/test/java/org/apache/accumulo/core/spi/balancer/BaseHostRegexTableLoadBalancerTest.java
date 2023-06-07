@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TableStatisticsImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
@@ -76,6 +77,11 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
         .put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r02.*");
     DEFAULT_TABLE_PROPERTIES.put(Property.TABLE_LOAD_BALANCER.getKey(),
         TestSimpleBalancer.class.getName());
+  }
+
+  protected static TabletServerIdImpl createTSID(String host) {
+    return new TabletServerIdImpl(host, 9997, Integer.toHexString(1),
+        ServiceDescriptor.DEFAULT_GROUP_NAME);
   }
 
   protected static final TestTable FOO = new TestTable("foo", TableId.of("1"));
@@ -126,43 +132,40 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     servers.put("192.168.0.14", "r03s04");
     servers.put("192.168.0.15", "r03s05");
 
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.1", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.1"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.2", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.2"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.3", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.3"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.4", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.4"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.5", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.5"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.6", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.6"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.7", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.7"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.8", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.8"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.9", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.9"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.10", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.10"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.11", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.11"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.12", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.12"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.13", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.13"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.14", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.14"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
-    allTabletServers.put(new TabletServerIdImpl("192.168.0.15", 9997, Integer.toHexString(1)),
+    allTabletServers.put(createTSID("192.168.0.15"),
         new TServerStatusImpl(new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
 
-    initialTableLocation.put(FOO.getTableName(),
-        new TabletServerIdImpl("192.168.0.1", 9997, Integer.toHexString(1)));
-    initialTableLocation.put(BAR.getTableName(),
-        new TabletServerIdImpl("192.168.0.6", 9997, Integer.toHexString(1)));
-    initialTableLocation.put(BAZ.getTableName(),
-        new TabletServerIdImpl("192.168.0.11", 9997, Integer.toHexString(1)));
+    initialTableLocation.put(FOO.getTableName(), createTSID("192.168.0.1"));
+    initialTableLocation.put(BAR.getTableName(), createTSID("192.168.0.6"));
+    initialTableLocation.put(BAZ.getTableName(), createTSID("192.168.0.11"));
 
     tableTablets.put(FOO.getTableName(), new ArrayList<>());
     tableTablets.get(FOO.getTableName())
@@ -255,7 +258,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
       tableMap.put(BAR.getId().canonical(), new TableStatisticsImpl(new TableInfo()));
       tableMap.put(BAZ.getId().canonical(), new TableStatisticsImpl(new TableInfo()));
       status.setTableMap(tableMap);
-      current.put(new TabletServerIdImpl(base + i, 9997, Integer.toHexString(1)), status);
+      current.put(createTSID(base + i), status);
     }
     // now put all of the tablets on one server
     for (Map.Entry<String,TabletServerId> entry : initialTableLocation.entrySet()) {

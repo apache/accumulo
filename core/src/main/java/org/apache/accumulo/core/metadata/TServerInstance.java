@@ -20,6 +20,8 @@ package org.apache.accumulo.core.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.Objects;
+
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.hadoop.io.Text;
@@ -34,39 +36,49 @@ import com.google.common.net.HostAndPort;
  */
 public class TServerInstance implements Comparable<TServerInstance> {
 
+  private static final String FORMAT = "%s#%s#%s";
+
   private final HostAndPort hostAndPort;
   private final String hostPort;
   private final String session;
-  private final String hostPortSession;
+  private final String hostPortSessionGroup;
+  private final String group;
 
-  public TServerInstance(HostAndPort address, String session) {
+  public static TServerInstance fromString(String val) {
+    Objects.requireNonNull(val, "String value for TServerInstance cannot be null");
+    String[] parts = val.split("#");
+    if (parts.length != 3) {
+      // could throw IllegalArgumentException, but IllegalStateException is something
+      // that is already expected in a large portion of the codebase.
+      throw new IllegalStateException(
+          "Supplied TServerInstance string: " + val + " does not follow format: " + FORMAT);
+    }
+    return new TServerInstance(parts[0], parts[1], parts[2]);
+  }
+
+  public TServerInstance(HostAndPort address, String session, String group) {
     this.hostAndPort = address;
     this.session = session;
     this.hostPort = hostAndPort.toString();
-    this.hostPortSession = hostPort + "[" + session + "]";
+    this.group = group;
+    this.hostPortSessionGroup = String.format(FORMAT, hostPort, session, group);
   }
 
-  public TServerInstance(String formattedString) {
-    int pos = formattedString.indexOf("[");
-    if (pos < 0 || !formattedString.endsWith("]")) {
-      throw new IllegalArgumentException(formattedString);
-    }
-    this.hostAndPort = HostAndPort.fromString(formattedString.substring(0, pos));
-    this.session = formattedString.substring(pos + 1, formattedString.length() - 1);
-    this.hostPort = hostAndPort.toString();
-    this.hostPortSession = hostPort + "[" + session + "]";
+  public TServerInstance(String address, String session, String group) {
+    this(AddressUtil.parseAddress(address, false), session, group);
   }
 
-  public TServerInstance(HostAndPort address, long session) {
-    this(address, Long.toHexString(session));
+  public TServerInstance(HostAndPort address, long session, String group) {
+    this(address, Long.toHexString(session), group);
   }
 
-  public TServerInstance(String address, long session) {
-    this(AddressUtil.parseAddress(address, false), Long.toHexString(session));
+  public TServerInstance(String address, long session, String group) {
+    this(AddressUtil.parseAddress(address, false), Long.toHexString(session), group);
   }
 
-  public TServerInstance(Value address, Text session) {
-    this(AddressUtil.parseAddress(new String(address.get(), UTF_8), false), session.toString());
+  public TServerInstance(Value address, Text session, String group) {
+    this(AddressUtil.parseAddress(new String(address.get(), UTF_8), false), session.toString(),
+        group);
   }
 
   @Override
@@ -74,16 +86,24 @@ public class TServerInstance implements Comparable<TServerInstance> {
     if (this == other) {
       return 0;
     }
-    return this.getHostPortSession().compareTo(other.getHostPortSession());
+    return this.getHostPortSessionGroup().compareTo(other.getHostPortSessionGroup());
   }
 
   @Override
   public int hashCode() {
-    return getHostPortSession().hashCode();
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((group == null) ? 0 : group.hashCode());
+    result =
+        prime * result + ((hostPortSessionGroup == null) ? 0 : hostPortSessionGroup.hashCode());
+    return result;
   }
 
   @Override
   public boolean equals(Object obj) {
+    if (obj == null) {
+      return false;
+    }
     if (obj instanceof TServerInstance) {
       return compareTo((TServerInstance) obj) == 0;
     }
@@ -92,11 +112,11 @@ public class TServerInstance implements Comparable<TServerInstance> {
 
   @Override
   public String toString() {
-    return hostPortSession;
+    return hostPortSessionGroup;
   }
 
-  public String getHostPortSession() {
-    return hostPortSession;
+  public String getHostPortSessionGroup() {
+    return hostPortSessionGroup;
   }
 
   public String getHost() {
@@ -113,5 +133,9 @@ public class TServerInstance implements Comparable<TServerInstance> {
 
   public String getSession() {
     return session;
+  }
+
+  public String getGroup() {
+    return group;
   }
 }

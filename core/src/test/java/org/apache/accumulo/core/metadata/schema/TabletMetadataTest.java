@@ -47,6 +47,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -97,9 +98,11 @@ public class TabletMetadataTest {
     mutation.at().family(DataFileColumnFamily.NAME).qualifier(tf2.getMetaUpdateDelete())
         .put(dfv2.encode());
 
-    mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
+    mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("")
+        .put(new TServerInstance("server1:8555", "s001", "default").toString());
 
-    mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
+    mutation.at().family(LastLocationColumnFamily.NAME).qualifier("")
+        .put(new TServerInstance("server2:8555", "s000", "default").toString());
 
     LogEntry le1 = new LogEntry(extent, 55, "lf1");
     mutation.at().family(le1.getColumnFamily()).qualifier(le1.getColumnQualifier())
@@ -129,12 +132,14 @@ public class TabletMetadataTest {
     assertEquals(rowMap, tm.getKeyValues());
     assertEquals(Map.of(new StoredTabletFile(bf1), 56L, new StoredTabletFile(bf2), 59L),
         tm.getLoaded());
-    assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
-    assertEquals("s001", tm.getLocation().getSession());
+    assertEquals(HostAndPort.fromParts("server1", 8555),
+        tm.getLocation().getServerInstance().getHostAndPort());
+    assertEquals("s001", tm.getLocation().getServerInstance().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());
     assertTrue(tm.hasCurrent());
-    assertEquals(HostAndPort.fromParts("server2", 8555), tm.getLast().getHostAndPort());
-    assertEquals("s000", tm.getLast().getSession());
+    assertEquals(HostAndPort.fromParts("server2", 8555),
+        tm.getLast().getServerInstance().getHostAndPort());
+    assertEquals("s000", tm.getLast().getServerInstance().getSession());
     assertEquals(LocationType.LAST, tm.getLast().getType());
     assertEquals(Set.of(le1.getValue() + " " + le1.timestamp, le2.getValue() + " " + le2.timestamp),
         tm.getLogs().stream().map(le -> le.getValue() + " " + le.timestamp).collect(toSet()));
@@ -150,7 +155,8 @@ public class TabletMetadataTest {
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
+    mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("")
+        .put(new TServerInstance("server1:8555", "s001", "default").toString());
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
@@ -158,8 +164,9 @@ public class TabletMetadataTest {
         EnumSet.allOf(ColumnType.class), false, false);
 
     assertEquals(extent, tm.getExtent());
-    assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
-    assertEquals("s001", tm.getLocation().getSession());
+    assertEquals(HostAndPort.fromParts("server1", 8555),
+        tm.getLocation().getServerInstance().getHostAndPort());
+    assertEquals("s001", tm.getLocation().getServerInstance().getSession());
     assertEquals(LocationType.FUTURE, tm.getLocation().getType());
     assertFalse(tm.hasCurrent());
   }
@@ -169,8 +176,10 @@ public class TabletMetadataTest {
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
-    mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
+    mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("")
+        .put(new TServerInstance("server1:8555", "s001", "default").toString());
+    mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("")
+        .put(new TServerInstance("server1:8555", "s001", "default").toString());
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
@@ -185,9 +194,12 @@ public class TabletMetadataTest {
   @Test
   public void testLocationStates() {
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
-    TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
-    TServerInstance ser2 = new TServerInstance(HostAndPort.fromParts("server2", 8111), "s002");
-    TServerInstance deadSer = new TServerInstance(HostAndPort.fromParts("server3", 8000), "s003");
+    TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001",
+        ServiceDescriptor.DEFAULT_GROUP_NAME);
+    TServerInstance ser2 = new TServerInstance(HostAndPort.fromParts("server2", 8111), "s002",
+        ServiceDescriptor.DEFAULT_GROUP_NAME);
+    TServerInstance deadSer = new TServerInstance(HostAndPort.fromParts("server3", 8000), "s003",
+        ServiceDescriptor.DEFAULT_GROUP_NAME);
     Set<TServerInstance> tservers = new LinkedHashSet<>();
     tservers.add(ser1);
     tservers.add(ser2);
@@ -196,8 +208,7 @@ public class TabletMetadataTest {
 
     // test assigned
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    mutation.at().family(FutureLocationColumnFamily.NAME).qualifier(ser1.getSession())
-        .put(ser1.getHostPort());
+    mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("").put(ser1.toString());
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
     TabletMetadata tm =
@@ -206,35 +217,33 @@ public class TabletMetadataTest {
 
     assertEquals(TabletState.ASSIGNED, state);
     assertEquals(ser1, tm.getLocation().getServerInstance());
-    assertEquals(ser1.getSession(), tm.getLocation().getSession());
+    assertEquals(ser1.getSession(), tm.getLocation().getServerInstance().getSession());
     assertEquals(LocationType.FUTURE, tm.getLocation().getType());
     assertFalse(tm.hasCurrent());
 
     // test hosted
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier(ser2.getSession())
-        .put(ser2.getHostPort());
+    mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("").put(ser2.toString());
     rowMap = toRowMap(mutation);
 
     tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false, false);
 
     assertEquals(TabletState.HOSTED, tm.getTabletState(tservers));
     assertEquals(ser2, tm.getLocation().getServerInstance());
-    assertEquals(ser2.getSession(), tm.getLocation().getSession());
+    assertEquals(ser2.getSession(), tm.getLocation().getServerInstance().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());
     assertTrue(tm.hasCurrent());
 
     // test ASSIGNED_TO_DEAD_SERVER
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier(deadSer.getSession())
-        .put(deadSer.getHostPort());
+    mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("").put(deadSer.toString());
     rowMap = toRowMap(mutation);
 
     tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(), colsToFetch, false, false);
 
     assertEquals(TabletState.ASSIGNED_TO_DEAD_SERVER, tm.getTabletState(tservers));
     assertEquals(deadSer, tm.getLocation().getServerInstance());
-    assertEquals(deadSer.getSession(), tm.getLocation().getSession());
+    assertEquals(deadSer.getSession(), tm.getLocation().getServerInstance().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());
     assertTrue(tm.hasCurrent());
 

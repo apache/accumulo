@@ -240,7 +240,7 @@ public class CompactionCoordinatorTest {
     assertNotNull(t);
     assertEquals(1, t.size());
     TServerInstance queuedTsi = t.iterator().next();
-    assertEquals(tsi.getHostPortSession(), queuedTsi.getHostPortSession());
+    assertEquals(tsi.getHostPortSessionGroup(), queuedTsi.getHostPortSessionGroup());
     assertEquals(1, coordinator.getIndex().size());
     assertTrue(coordinator.getIndex().containsKey(queuedTsi));
     Set<QueueAndPriority> i = coordinator.getIndex().get(queuedTsi);
@@ -298,7 +298,7 @@ public class CompactionCoordinatorTest {
     assertNotNull(t);
     assertEquals(1, t.size());
     TServerInstance queuedTsi = t.iterator().next();
-    assertEquals(instance.getHostPortSession(), queuedTsi.getHostPortSession());
+    assertEquals(instance.getHostPortSessionGroup(), queuedTsi.getHostPortSessionGroup());
     assertEquals(1, coordinator.getIndex().size());
     assertTrue(coordinator.getIndex().containsKey(queuedTsi));
     Set<QueueAndPriority> i = coordinator.getIndex().get(queuedTsi);
@@ -364,7 +364,7 @@ public class CompactionCoordinatorTest {
     assertNotNull(t);
     assertEquals(1, t.size());
     TServerInstance queuedTsi = t.iterator().next();
-    assertEquals(instance.getHostPortSession(), queuedTsi.getHostPortSession());
+    assertEquals(instance.getHostPortSessionGroup(), queuedTsi.getHostPortSessionGroup());
     assertEquals(1, coordinator.getIndex().size());
     assertTrue(coordinator.getIndex().containsKey(queuedTsi));
     Set<QueueAndPriority> i = coordinator.getIndex().get(queuedTsi);
@@ -435,7 +435,7 @@ public class CompactionCoordinatorTest {
     assertNotNull(t);
     assertEquals(1, t.size());
     TServerInstance queuedTsi = t.iterator().next();
-    assertEquals(tsi.getHostPortSession(), queuedTsi.getHostPortSession());
+    assertEquals(tsi.getHostPortSessionGroup(), queuedTsi.getHostPortSessionGroup());
     assertEquals(1, coordinator.getIndex().size());
     assertTrue(coordinator.getIndex().containsKey(queuedTsi));
     Set<QueueAndPriority> i = coordinator.getIndex().get(queuedTsi);

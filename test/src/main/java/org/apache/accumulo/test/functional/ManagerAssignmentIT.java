@@ -140,7 +140,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       TabletMetadata flushed = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(flushed.hasCurrent());
       assertNotNull(flushed.getLocation());
-      assertEquals(flushed.getLocation().getHostPort(), flushed.getLast().getHostPort());
+      assertEquals(flushed.getLocation().getServerInstance().getHostPort(),
+          flushed.getLast().getServerInstance().getHostPort());
       assertFalse(flushed.getLocation().getType().equals(LocationType.FUTURE));
       assertEquals(TabletHostingGoal.ONDEMAND, flushed.getHostingGoal());
 
@@ -149,7 +150,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       TabletMetadata offline = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertFalse(offline.hasCurrent());
       assertNull(offline.getLocation());
-      assertEquals(flushed.getLocation().getHostPort(), offline.getLast().getHostPort());
+      assertEquals(flushed.getLocation().getServerInstance().getHostPort(),
+          offline.getLast().getServerInstance().getHostPort());
       assertEquals(TabletHostingGoal.ONDEMAND, offline.getHostingGoal());
 
       // put it back online
@@ -157,7 +159,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       TabletMetadata online = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(online.hasCurrent());
       assertNotNull(online.getLocation());
-      assertEquals(online.getLocation().getHostPort(), online.getLast().getHostPort());
+      assertEquals(online.getLocation().getServerInstance().getHostPort(),
+          online.getLast().getServerInstance().getHostPort());
       assertEquals(TabletHostingGoal.ONDEMAND, online.getHostingGoal());
 
       // set the hosting goal to always
@@ -172,7 +175,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       final TabletMetadata always = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(alwaysHostedOrCurrentNotNull.test(always));
       assertTrue(always.hasCurrent());
-      assertEquals(flushed.getLocation().getHostPort(), always.getLast().getHostPort());
+      assertEquals(flushed.getLocation().getServerInstance().getHostPort(),
+          always.getLast().getServerInstance().getHostPort());
       assertEquals(TabletHostingGoal.ALWAYS, always.getHostingGoal());
 
       // set the hosting goal to never
@@ -185,7 +189,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       final TabletMetadata never = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(neverHostedOrCurrentNull.test(never));
       assertNull(never.getLocation());
-      assertEquals(flushed.getLocation().getHostPort(), never.getLast().getHostPort());
+      assertEquals(flushed.getLocation().getServerInstance().getHostPort(),
+          never.getLast().getServerInstance().getHostPort());
       assertEquals(TabletHostingGoal.NEVER, never.getHostingGoal());
 
       // set the hosting goal to ondemand
@@ -198,7 +203,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       final TabletMetadata ondemand = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(ondemandHosted.test(ondemand));
       assertNull(ondemand.getLocation());
-      assertEquals(flushed.getLocation().getHostPort(), ondemand.getLast().getHostPort());
+      assertEquals(flushed.getLocation().getServerInstance().getHostPort(),
+          ondemand.getLast().getServerInstance().getHostPort());
       assertEquals(TabletHostingGoal.ONDEMAND, ondemand.getHostingGoal());
     }
   }

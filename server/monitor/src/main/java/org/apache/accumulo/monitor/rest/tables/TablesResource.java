@@ -156,7 +156,7 @@ public class TablesResource {
         final TabletMetadata tm = scanner.next().getTabletMetadata();
         if (tm.hasCurrent()) {
           try {
-            locs.add(tm.getLocation().getHostPort());
+            locs.add(tm.getLocation().getServerInstance().getHostPort());
           } catch (Exception ex) {
             scanner.close();
             return tabletServers;

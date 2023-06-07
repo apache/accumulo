@@ -183,10 +183,11 @@ public class ManagerMetadataUtil {
     }
   }
 
-  private static TServerInstance getTServerInstance(String address, ServiceLock zooLock) {
+  private static TServerInstance getTServerInstance(String address, ServiceLock zooLock,
+      String resourceGroupName) {
     while (true) {
       try {
-        return new TServerInstance(address, zooLock.getSessionId());
+        return new TServerInstance(address, zooLock.getSessionId(), resourceGroupName);
       } catch (KeeperException | InterruptedException e) {
         log.error("{}", e.getMessage(), e);
       }
@@ -197,7 +198,8 @@ public class ManagerMetadataUtil {
   public static void replaceDatafiles(ServerContext context, KeyExtent extent,
       Set<StoredTabletFile> datafilesToDelete, Set<StoredTabletFile> scanFiles,
       Optional<StoredTabletFile> path, Long compactionId, DataFileValue size, String address,
-      Location lastLocation, ServiceLock zooLock, Optional<ExternalCompactionId> ecid) {
+      Location lastLocation, ServiceLock zooLock, Optional<ExternalCompactionId> ecid,
+      String resourceGroupName) {
 
     context.getAmple().putGcCandidates(extent.tableId(), datafilesToDelete);
 
@@ -214,7 +216,7 @@ public class ManagerMetadataUtil {
       tablet.putCompactionId(compactionId);
     }
 
-    updateLastForCompactionMode(context, tablet, lastLocation, address, zooLock);
+    updateLastForCompactionMode(context, tablet, lastLocation, address, zooLock, resourceGroupName);
 
     if (ecid.isPresent()) {
       tablet.deleteExternalCompaction(ecid.orElseThrow());
@@ -231,7 +233,7 @@ public class ManagerMetadataUtil {
   public static Optional<StoredTabletFile> updateTabletDataFile(ServerContext context,
       KeyExtent extent, ReferencedTabletFile newDatafile, DataFileValue dfv, MetadataTime time,
       String address, ServiceLock zooLock, Set<String> unusedWalLogs, Location lastLocation,
-      long flushId) {
+      long flushId, String resourceGroupName) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     // if there are no entries, the path doesn't get stored in metadata table, only the flush ID
@@ -243,7 +245,8 @@ public class ManagerMetadataUtil {
       tablet.putTime(time);
       newFile = Optional.of(newDatafile.insert());
 
-      updateLastForCompactionMode(context, tablet, lastLocation, address, zooLock);
+      updateLastForCompactionMode(context, tablet, lastLocation, address, zooLock,
+          resourceGroupName);
     }
     tablet.putFlushId(flushId);
 
@@ -286,12 +289,13 @@ public class ManagerMetadataUtil {
    * @param address The server address
    * @param zooLock The zookeeper lock
    */
-  public static void updateLastForCompactionMode(ClientContext context, TabletMutator tabletMutator,
-      Location lastLocation, String address, ServiceLock zooLock) {
+  private static void updateLastForCompactionMode(ClientContext context,
+      TabletMutator tabletMutator, Location lastLocation, String address, ServiceLock zooLock,
+      String resourceGroupName) {
     // if the location mode is 'compaction', then preserve the current compaction location in the
     // last location value
     if ("compaction".equals(context.getConfiguration().get(Property.TSERV_LAST_LOCATION_MODE))) {
-      Location newLocation = Location.last(getTServerInstance(address, zooLock));
+      Location newLocation = Location.last(getTServerInstance(address, zooLock, resourceGroupName));
       updateLocation(tabletMutator, lastLocation, newLocation);
     }
   }

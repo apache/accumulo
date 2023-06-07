@@ -1308,7 +1308,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           lastRow = tablet.getExtent().toMetaRow();
 
           if (loc != null) {
-            serverCounts.increment(loc.getHostPortSession(), 1);
+            serverCounts.increment(loc.getServerInstance().getHostPortSessionGroup(), 1);
           }
         }
 

@@ -53,6 +53,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -358,7 +359,8 @@ public class NullTserver {
     List<Assignment> assignments = new ArrayList<>();
     try (var s = new TabletManagementScanner(context, tableRange, MetadataTable.NAME)) {
       long randomSessionID = opts.port;
-      TServerInstance instance = new TServerInstance(addr, randomSessionID);
+      TServerInstance instance =
+          new TServerInstance(addr, randomSessionID, ServiceDescriptor.DEFAULT_GROUP_NAME);
 
       while (s.hasNext()) {
         TabletMetadata next = s.next().getTabletMetadata();

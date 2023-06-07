@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -42,7 +43,8 @@ public class ShutdownTServerTest {
   @Test
   public void testSingleShutdown() throws Exception {
     HostAndPort hap = HostAndPort.fromParts("localhost", 1234);
-    final TServerInstance tserver = new TServerInstance(hap, "fake");
+    final TServerInstance tserver =
+        new TServerInstance(hap, "fake", ServiceDescriptor.DEFAULT_GROUP_NAME);
     final boolean force = false;
 
     final ShutdownTServer op = new ShutdownTServer(tserver, force);

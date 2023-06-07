@@ -54,6 +54,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -150,10 +151,6 @@ public class TabletMetadata {
     private final TServerInstance tServerInstance;
     private final LocationType lt;
 
-    private Location(final String server, final String session, final LocationType lt) {
-      this(new TServerInstance(HostAndPort.fromString(server), session), lt);
-    }
-
     private Location(final TServerInstance tServerInstance, final LocationType lt) {
       this.tServerInstance =
           Objects.requireNonNull(tServerInstance, "tServerInstance must not be null");
@@ -166,26 +163,6 @@ public class TabletMetadata {
 
     public TServerInstance getServerInstance() {
       return tServerInstance;
-    }
-
-    public String getHostPortSession() {
-      return tServerInstance.getHostPortSession();
-    }
-
-    public String getHost() {
-      return tServerInstance.getHost();
-    }
-
-    public String getHostPort() {
-      return tServerInstance.getHostPort();
-    }
-
-    public HostAndPort getHostAndPort() {
-      return tServerInstance.getHostAndPort();
-    }
-
-    public String getSession() {
-      return tServerInstance.getSession();
     }
 
     @Override
@@ -219,24 +196,12 @@ public class TabletMetadata {
       return new Location(instance, LocationType.LAST);
     }
 
-    public static Location last(final String server, final String session) {
-      return last(new TServerInstance(HostAndPort.fromString(server), session));
-    }
-
     public static Location current(TServerInstance instance) {
       return new Location(instance, LocationType.CURRENT);
     }
 
-    public static Location current(final String server, final String session) {
-      return current(new TServerInstance(HostAndPort.fromString(server), session));
-    }
-
     public static Location future(TServerInstance instance) {
       return new Location(instance, LocationType.FUTURE);
-    }
-
-    public static Location future(final String server, final String session) {
-      return future(new TServerInstance(HostAndPort.fromString(server), session));
     }
 
   }
@@ -527,13 +492,13 @@ public class TabletMetadata {
               BulkFileColumnFamily.getBulkLoadTid(val));
           break;
         case CurrentLocationColumnFamily.STR_NAME:
-          te.setLocationOnce(val, qual, LocationType.CURRENT, suppressLocationError);
+          te.setLocationOnce(val, LocationType.CURRENT, suppressLocationError);
           break;
         case FutureLocationColumnFamily.STR_NAME:
-          te.setLocationOnce(val, qual, LocationType.FUTURE, suppressLocationError);
+          te.setLocationOnce(val, LocationType.FUTURE, suppressLocationError);
           break;
         case LastLocationColumnFamily.STR_NAME:
-          te.last = Location.last(val, qual);
+          te.last = Location.last(TServerInstance.fromString(val));
           break;
         case SuspendLocationColumn.STR_NAME:
           te.suspend = SuspendingTServer.fromValue(kv.getValue());
@@ -586,15 +551,15 @@ public class TabletMetadata {
     return te;
   }
 
-  private void setLocationOnce(String val, String qual, LocationType lt, boolean suppressError) {
+  private void setLocationOnce(String val, LocationType lt, boolean suppressError) {
     if (location != null) {
       if (!suppressError) {
         throw new IllegalStateException("Attempted to set second location for tableId: " + tableId
-            + " endrow: " + endRow + " -- " + location + " " + qual + " " + val);
+            + " endrow: " + endRow + " -- " + location + " " + val);
       }
       futureAndCurrentLocationSet = true;
     }
-    location = new Location(val, qual, lt);
+    location = new Location(TServerInstance.fromString(val), lt);
   }
 
   @VisibleForTesting
@@ -638,9 +603,10 @@ public class TabletMetadata {
 
     if (sld.isPresent()) {
       log.trace("Checking server at ZK path = " + lockPath);
-      HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
+      HostAndPort client = sld.orElseThrow().getAddress(ThriftService.TSERV);
+      String group = sld.orElseThrow().getGroup(ThriftService.TSERV);
       if (client != null) {
-        server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
+        server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner(), group));
       }
     }
     return server;

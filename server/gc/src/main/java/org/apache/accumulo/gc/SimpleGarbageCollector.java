@@ -157,7 +157,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
 
     try {
-      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName, address);
+      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName, address,
+          getResourceGroupName());
       MetricsUtil.initializeProducers(this, new GcMetrics(this));
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
         | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
@@ -355,8 +356,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     while (true) {
       ServiceLock lock =
           new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
-      if (lock.tryLock(lockWatcher,
-          new ServiceLockData(zooLockUUID, addr.toString(), ThriftService.GC))) {
+      if (lock.tryLock(lockWatcher, new ServiceLockData(zooLockUUID, addr.toString(),
+          ThriftService.GC, getResourceGroupName()))) {
         log.debug("Got GC ZooKeeper lock");
         return;
       }

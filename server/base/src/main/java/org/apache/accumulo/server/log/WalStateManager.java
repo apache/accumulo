@@ -192,7 +192,7 @@ public class WalStateManager {
     try {
       String path = root();
       for (String child : zoo.getChildren(path)) {
-        TServerInstance inst = new TServerInstance(child);
+        TServerInstance inst = TServerInstance.fromString(child);
         List<UUID> logs = result.computeIfAbsent(inst, k -> new ArrayList<>());
 
         // This function is called by the Accumulo GC which deletes WAL markers. Therefore we do not

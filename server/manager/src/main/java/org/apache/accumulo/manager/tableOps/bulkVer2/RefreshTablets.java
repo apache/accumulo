@@ -176,8 +176,8 @@ public class RefreshTablets extends ManagerRepo {
       log.trace("{} sending refresh request to {} for {} extents", FateTxId.formatTid(tid),
           location, extents.size());
       var timeInMillis = manager.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
-      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location.getHostAndPort(),
-          manager.getContext(), timeInMillis);
+      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
+          location.getServerInstance().getHostAndPort(), manager.getContext(), timeInMillis);
 
       var unrefreshed =
           client.refreshTablets(TraceUtil.traceInfo(), manager.getContext().rpcCreds(),

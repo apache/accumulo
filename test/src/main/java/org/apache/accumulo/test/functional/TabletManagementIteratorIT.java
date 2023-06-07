@@ -57,6 +57,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -375,7 +376,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
           var zPath = ServiceLock.path(ZooUtil.getRoot(context.instanceOperations().getInstanceId())
               + Constants.ZTSERVERS + "/" + tserver);
           long sessionId = ServiceLock.getSessionId(context.getZooCache(), zPath);
-          tservers.add(new TServerInstance(tserver, sessionId));
+          tservers
+              .add(new TServerInstance(tserver, sessionId, ServiceDescriptor.DEFAULT_GROUP_NAME));
         } catch (Exception e) {
           throw new RuntimeException(e);
         }

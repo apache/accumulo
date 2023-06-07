@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
@@ -67,14 +68,17 @@ public class GroupBalancerTest {
     }
 
     public void addTserver(String host, int port) {
-      tservers.add(new TabletServerIdImpl(host, port, Long.toHexString(6)));
+      tservers.add(new TabletServerIdImpl(host, port, Long.toHexString(6),
+          ServiceDescriptor.DEFAULT_GROUP_NAME));
     }
 
     public void addTablet(String er, String host, int port) {
-      TabletServerId tsi = new TabletServerIdImpl(host, port, Long.toHexString(6));
+      TabletServerId tsi = new TabletServerIdImpl(host, port, Long.toHexString(6),
+          ServiceDescriptor.DEFAULT_GROUP_NAME);
       tabletLocs.put(
           new TabletIdImpl(new KeyExtent(TableId.of("b"), er == null ? null : new Text(er), null)),
-          new TabletServerIdImpl(host, port, Long.toHexString(6)));
+          new TabletServerIdImpl(host, port, Long.toHexString(6),
+              ServiceDescriptor.DEFAULT_GROUP_NAME));
       tservers.add(tsi);
     }
 

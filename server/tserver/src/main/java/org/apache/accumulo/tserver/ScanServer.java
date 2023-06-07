@@ -53,6 +53,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -190,8 +191,6 @@ public class ScanServer extends AbstractServer
 
   private ZooCache managerLockCache;
 
-  private final String groupName;
-
   public ScanServer(ConfigOpts opts, String[] args) {
     super("sserver", opts, args);
 
@@ -236,13 +235,16 @@ public class ScanServer extends AbstractServer
 
     delegate = newThriftScanClientHandler(new WriteTracker());
 
-    this.groupName = getConfiguration().get(Property.SSERV_GROUP_NAME);
-
     ThreadPools.watchCriticalScheduledTask(getContext().getScheduledExecutor()
         .scheduleWithFixedDelay(() -> cleanUpReservedFiles(scanServerReservationExpiration),
             scanServerReservationExpiration, scanServerReservationExpiration,
             TimeUnit.MILLISECONDS));
 
+  }
+
+  @Override
+  protected String getResourceGroupNamePropertyValue(SiteConfiguration conf) {
+    return conf.get(Property.SSERV_GROUP_NAME);
   }
 
   @VisibleForTesting
@@ -327,7 +329,7 @@ public class ScanServer extends AbstractServer
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
 
         if (scanServerLock.tryLock(lw, new ServiceLockData(serverLockUUID, getClientAddressString(),
-            ThriftService.TABLET_SCAN, this.groupName))) {
+            ThriftService.TABLET_SCAN, getResourceGroupName()))) {
           LOG.debug("Obtained scan server lock {}", scanServerLock.getLockPath());
           return scanServerLock;
         }
@@ -357,7 +359,7 @@ public class ScanServer extends AbstractServer
 
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
-          clientAddress);
+          clientAddress, getResourceGroupName());
       scanMetrics = new TabletServerScanMetrics();
       MetricsUtil.initializeProducers(this, scanMetrics);
     } catch (ClassNotFoundException | InstantiationException | IllegalAccessException

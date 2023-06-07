@@ -81,7 +81,8 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
       // no last location should be set yet
       TabletMetadata unflushed =
           ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
-      assertEquals(newTablet.getLocation().getHostPort(), unflushed.getLocation().getHostPort());
+      assertEquals(newTablet.getLocation().getServerInstance().getHostPort(),
+          unflushed.getLocation().getServerInstance().getHostPort());
       assertNull(unflushed.getLast());
       assertTrue(newTablet.hasCurrent());
 
@@ -90,8 +91,10 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
 
       TabletMetadata flushed =
           ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
-      assertEquals(newTablet.getLocation().getHostPort(), flushed.getLocation().getHostPort());
-      assertEquals(flushed.getLocation().getHostPort(), flushed.getLast().getHostPort());
+      assertEquals(newTablet.getLocation().getServerInstance().getHostPort(),
+          flushed.getLocation().getServerInstance().getHostPort());
+      assertEquals(flushed.getLocation().getServerInstance().getHostPort(),
+          flushed.getLast().getServerInstance().getHostPort());
       assertTrue(newTablet.hasCurrent());
 
       // take the tablet offline
@@ -99,7 +102,8 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
       TabletMetadata offline =
           ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertNull(offline.getLocation());
-      assertEquals(flushed.getLocation().getHostPort(), offline.getLast().getHostPort());
+      assertEquals(flushed.getLocation().getServerInstance().getHostPort(),
+          offline.getLast().getServerInstance().getHostPort());
 
       // put it back online, should have the same last location
       c.tableOperations().online(tableName, true);
@@ -107,7 +111,8 @@ public class CompactLocationModeIT extends ConfigurableMacBase {
           ManagerAssignmentIT.getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(online.hasCurrent());
       assertNotNull(online.getLocation());
-      assertEquals(offline.getLast().getHostPort(), online.getLast().getHostPort());
+      assertEquals(offline.getLast().getServerInstance().getHostPort(),
+          online.getLast().getServerInstance().getHostPort());
     }
   }
 

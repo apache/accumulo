@@ -27,6 +27,7 @@ import java.util.List;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -207,14 +208,16 @@ public class MetadataConstraintsTest {
     // active txid, mutation that looks like a load
     m = new Mutation(new Text("0;foo"));
     m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("5"));
-    m.put(CurrentLocationColumnFamily.NAME, new Text("789"), new Value("127.0.0.1:9997"));
+    m.put(CurrentLocationColumnFamily.NAME, new Text(""),
+        new Value(new TServerInstance("127.0.0.1:9997", "789", "default").toString()));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     // inactive txid, mutation that looks like a load
     m = new Mutation(new Text("0;foo"));
     m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("12345"));
-    m.put(CurrentLocationColumnFamily.NAME, new Text("789"), new Value("127.0.0.1:9997"));
+    m.put(CurrentLocationColumnFamily.NAME, new Text(""),
+        new Value(new TServerInstance("127.0.0.1:9997", "789", "default").toString()));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 

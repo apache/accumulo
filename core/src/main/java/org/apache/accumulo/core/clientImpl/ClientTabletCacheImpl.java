@@ -541,8 +541,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     OpTimer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Locating tablet  table={} row={} skipRow={}",
-          Thread.currentThread().getId(), tableId, TextUtil.truncate(row), skipRow);
+      log.trace("tid={} Locating tablet table={} row={} skipRow={}", Thread.currentThread().getId(),
+          tableId, TextUtil.truncate(row), skipRow);
       timer = new OpTimer().start();
     }
 
@@ -686,8 +686,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
         if ((lastEndRow != null) && (ke.prevEndRow() != null)
             && ke.prevEndRow().equals(lastEndRow)) {
           locToCache = new CachedTablet(new KeyExtent(ke.tableId(), ke.endRow(), lastEndRow),
-              cachedTablet.getTserverLocation(), cachedTablet.getTserverSession(),
-              cachedTablet.getGoal(), cachedTablet.wasHostingRequested());
+              cachedTablet.getServer(), cachedTablet.getGoal(), cachedTablet.wasHostingRequested());
         } else {
           locToCache = cachedTablet;
         }
@@ -695,8 +694,11 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
         // save endRow for next iteration
         lastEndRow = locToCache.getExtent().endRow();
 
+        log.trace("Caching tablet location: {}", locToCache);
         updateCache(locToCache, lcSession);
       }
+    } else {
+      log.warn("Metadata tablet not found for row: {}", metadataRow);
     }
 
   }

@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
@@ -96,19 +97,26 @@ public class CheckTabletMetadataTest {
         TabletColumnFamily.encodePrevEndRow(null).get());
     put(tabletMeta, "1<", ServerColumnFamily.DIRECTORY_COLUMN, "t1".getBytes());
     put(tabletMeta, "1<", ServerColumnFamily.TIME_COLUMN, "M0".getBytes());
-    put(tabletMeta, "1<", FutureLocationColumnFamily.NAME, "4", "127.0.0.1:9997");
+    put(tabletMeta, "1<", FutureLocationColumnFamily.NAME, "",
+        new TServerInstance("127.0.0.1:9997", 4, "default").toString());
 
-    TServerInstance tsi = new TServerInstance("127.0.0.1:9997", 4);
+    TServerInstance tsi =
+        new TServerInstance("127.0.0.1:9997", 4, ServiceDescriptor.DEFAULT_GROUP_NAME);
 
     TabletMetadata tm = TabletMetadata.convertRow(tabletMeta.entrySet().iterator(),
         EnumSet.allOf(ColumnType.class), true, false);
     assertTrue(checkTabletMetadata(ke, tsi, tm));
 
-    assertFail(tabletMeta, ke, new TServerInstance("127.0.0.1:9998", 4));
-    assertFail(tabletMeta, ke, new TServerInstance("127.0.0.1:9998", 5));
-    assertFail(tabletMeta, ke, new TServerInstance("127.0.0.1:9997", 5));
-    assertFail(tabletMeta, ke, new TServerInstance("127.0.0.2:9997", 4));
-    assertFail(tabletMeta, ke, new TServerInstance("127.0.0.2:9997", 5));
+    assertFail(tabletMeta, ke,
+        new TServerInstance("127.0.0.1:9998", 4, ServiceDescriptor.DEFAULT_GROUP_NAME));
+    assertFail(tabletMeta, ke,
+        new TServerInstance("127.0.0.1:9998", 5, ServiceDescriptor.DEFAULT_GROUP_NAME));
+    assertFail(tabletMeta, ke,
+        new TServerInstance("127.0.0.1:9997", 5, ServiceDescriptor.DEFAULT_GROUP_NAME));
+    assertFail(tabletMeta, ke,
+        new TServerInstance("127.0.0.2:9997", 4, ServiceDescriptor.DEFAULT_GROUP_NAME));
+    assertFail(tabletMeta, ke,
+        new TServerInstance("127.0.0.2:9997", 5, ServiceDescriptor.DEFAULT_GROUP_NAME));
 
     assertFail(tabletMeta, new KeyExtent(TableId.of("1"), null, new Text("m")), tsi);
 
@@ -120,12 +128,12 @@ public class CheckTabletMetadataTest {
 
     assertFail(tabletMeta, ke, tsi, newKey("1<", ServerColumnFamily.TIME_COLUMN));
 
-    assertFail(tabletMeta, ke, tsi, newKey("1<", FutureLocationColumnFamily.NAME, "4"));
+    assertFail(tabletMeta, ke, tsi, newKey("1<", FutureLocationColumnFamily.NAME, ""));
 
     TreeMap<Key,Value> copy = new TreeMap<>(tabletMeta);
     put(copy, "1<", CurrentLocationColumnFamily.NAME, "4", "127.0.0.1:9997");
     assertFail(copy, ke, tsi);
-    assertFail(copy, ke, tsi, newKey("1<", FutureLocationColumnFamily.NAME, "4"));
+    assertFail(copy, ke, tsi, newKey("1<", FutureLocationColumnFamily.NAME, ""));
 
     copy = new TreeMap<>(tabletMeta);
     put(copy, "1<", CurrentLocationColumnFamily.NAME, "5", "127.0.0.1:9998");

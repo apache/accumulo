@@ -96,7 +96,7 @@ public class LocatorIT extends AccumuloClusterHarness {
 
     final Predicate<TabletMetadata> alwaysHostedAndCurrentNotNull =
         t -> t.getHostingGoal() == TabletHostingGoal.ALWAYS && t.hasCurrent()
-            && t.getLocation().getHostAndPort() != null;
+            && t.getLocation().getServerInstance().getHostAndPort() != null;
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];

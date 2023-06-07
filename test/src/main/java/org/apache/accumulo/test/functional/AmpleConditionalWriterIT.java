@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -69,8 +70,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       var e1 = new KeyExtent(tid, new Text("c"), null);
 
-      var ts1 = new TServerInstance("localhost:9997", 5000L);
-      var ts2 = new TServerInstance("localhost:9997", 6000L);
+      var ts1 = new TServerInstance("localhost:9997", 5000L, ServiceDescriptor.DEFAULT_GROUP_NAME);
+      var ts2 = new TServerInstance("localhost:9997", 6000L, ServiceDescriptor.DEFAULT_GROUP_NAME);
 
       var context = cluster.getServerContext();
 
@@ -146,8 +147,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
       var e1 = new KeyExtent(tid, new Text("c"), null);
 
-      var ts1 = new TServerInstance("localhost:9997", 5000L);
-      var ts2 = new TServerInstance("localhost:9997", 6000L);
+      var ts1 = new TServerInstance("localhost:9997", 5000L, ServiceDescriptor.DEFAULT_GROUP_NAME);
+      var ts2 = new TServerInstance("localhost:9997", 6000L, ServiceDescriptor.DEFAULT_GROUP_NAME);
 
       var context = cluster.getServerContext();
 
@@ -279,8 +280,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       var e3 = new KeyExtent(tid, new Text("j"), new Text("f"));
       var e4 = new KeyExtent(tid, null, new Text("j"));
 
-      var ts1 = new TServerInstance("localhost:9997", 5000L);
-      var ts2 = new TServerInstance("localhost:9997", 6000L);
+      var ts1 = new TServerInstance("localhost:9997", 5000L, ServiceDescriptor.DEFAULT_GROUP_NAME);
+      var ts2 = new TServerInstance("localhost:9997", 6000L, ServiceDescriptor.DEFAULT_GROUP_NAME);
 
       var context = cluster.getServerContext();
 

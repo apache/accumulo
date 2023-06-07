@@ -50,18 +50,19 @@ public class MetricsUtil {
   private static List<Tag> commonTags;
 
   public static void initializeMetrics(final AccumuloConfiguration conf, final String appName,
-      final HostAndPort address) throws ClassNotFoundException, InstantiationException,
-      IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-      NoSuchMethodException, SecurityException {
+      final HostAndPort address, String groupName) throws ClassNotFoundException,
+      InstantiationException, IllegalAccessException, IllegalArgumentException,
+      InvocationTargetException, NoSuchMethodException, SecurityException {
     initializeMetrics(conf.getBoolean(Property.GENERAL_MICROMETER_ENABLED),
         conf.getBoolean(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED),
-        conf.get(Property.GENERAL_MICROMETER_FACTORY), appName, address);
+        conf.get(Property.GENERAL_MICROMETER_FACTORY), appName, address, groupName);
   }
 
   private static void initializeMetrics(boolean enabled, boolean jvmMetricsEnabled,
-      String factoryClass, String appName, HostAndPort address) throws ClassNotFoundException,
-      InstantiationException, IllegalAccessException, IllegalArgumentException,
-      InvocationTargetException, NoSuchMethodException, SecurityException {
+      String factoryClass, String appName, HostAndPort address, String groupName)
+      throws ClassNotFoundException, InstantiationException, IllegalAccessException,
+      IllegalArgumentException, InvocationTargetException, NoSuchMethodException,
+      SecurityException {
 
     LOG.info("initializing metrics, enabled:{}, class:{}", enabled, factoryClass);
 
@@ -83,6 +84,9 @@ public class MetricsUtil {
         if (address.getPort() > 0) {
           tags.add(Tag.of("port", Integer.toString(address.getPort())));
         }
+      }
+      if (groupName != null) {
+        tags.add(Tag.of("group", groupName));
       }
 
       commonTags = Collections.unmodifiableList(tags);

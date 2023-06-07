@@ -170,15 +170,15 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T putLocation(Location location) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(getLocationFamily(location.getType()), location.getSession(),
-        location.getHostPort());
+    mutation.put(getLocationFamily(location.getType()), "",
+        location.getServerInstance().toString());
     return getThis();
   }
 
   @Override
   public T deleteLocation(Location location) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(getLocationFamily(location.getType()), location.getSession());
+    mutation.putDelete(getLocationFamily(location.getType()), "");
     return getThis();
   }
 

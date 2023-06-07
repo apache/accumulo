@@ -427,7 +427,7 @@ public class ListTabletsCommand extends Command {
         if (location == null) {
           this.location = "None";
         } else {
-          String server = location.getHostPort();
+          String server = location.getServerInstance().getHostPort();
           this.location = location.getType() + ":" + server;
         }
         return this;

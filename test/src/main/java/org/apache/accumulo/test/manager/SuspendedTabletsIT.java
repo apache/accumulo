@@ -53,6 +53,7 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -191,7 +192,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
               ClientTabletCache.LocationNeed.REQUIRED);
           // add it to the set of servers with metadata
           metadataServerSet.add(new TServerInstance(tab.getTserverLocation().orElseThrow(),
-              Long.valueOf(tab.getTserverSession().orElseThrow(), 16)));
+              Long.valueOf(tab.getTserverSession().orElseThrow(), 16),
+              ServiceDescriptor.DEFAULT_GROUP_NAME));
         }
       }
 
@@ -206,7 +208,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       Collections.shuffle(tserversList, random);
 
       for (int i1 = 0; i1 < count; ++i1) {
-        final String tserverName = tserversList.get(i1).getHostPortSession();
+        final String tserverName = tserversList.get(i1).getHostPortSessionGroup();
         ThriftClientTypes.MANAGER.executeVoid(ctx, client -> {
           log.info("Sending shutdown command to {} via ManagerClientService", tserverName);
           client.shutdownTabletServer(null, ctx.rpcCreds(), tserverName, false);
@@ -443,7 +445,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
             suspended.put(tm.getSuspend().server, ke);
             ++suspendedCount;
           } else if (tm.hasCurrent()) {
-            hosted.put(tm.getLocation().getHostAndPort(), ke);
+            hosted.put(tm.getLocation().getServerInstance().getHostAndPort(), ke);
             ++hostedCount;
           } else if (tm.getLocation() != null
               && tm.getLocation().getType().equals(LocationType.FUTURE)) {

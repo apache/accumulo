@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -35,9 +36,11 @@ public class ManagerMetadataUtilTest {
   private AccumuloConfiguration conf;
   private ClientContext context;
   private Ample.TabletMutator tabletMutator;
-  private final TServerInstance server1 = new TServerInstance("127.0.0.1:10000", 0);
+  private final TServerInstance server1 =
+      new TServerInstance("127.0.0.1:10000", 0, ServiceDescriptor.DEFAULT_GROUP_NAME);
   private final Location last1 = Location.last(server1);
-  private final TServerInstance server2 = new TServerInstance("127.0.0.2:10000", 1);
+  private final TServerInstance server2 =
+      new TServerInstance("127.0.0.2:10000", 1, ServiceDescriptor.DEFAULT_GROUP_NAME);
   private final Location last2 = Location.last(server2);
 
   @BeforeEach

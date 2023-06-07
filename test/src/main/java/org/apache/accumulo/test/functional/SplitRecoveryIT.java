@@ -51,6 +51,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
@@ -211,7 +212,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
 
     MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio, context, zl, Set.of());
-    TServerInstance instance = new TServerInstance(location, zl.getSessionId());
+    TServerInstance instance =
+        new TServerInstance(location, zl.getSessionId(), ServiceDescriptor.DEFAULT_GROUP_NAME);
     Assignment assignment = new Assignment(high, instance, null);
 
     TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);

@@ -34,6 +34,8 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.shell.Shell;
@@ -91,7 +93,8 @@ public class ListTabletsCommandTest {
       KeyExtent ke1 = new KeyExtent(tableId, new Text("a"), null);
       KeyExtent ke2 = new KeyExtent(tableId, new Text("m"), new Text("a"));
       KeyExtent ke3 = new KeyExtent(tableId, null, new Text("m"));
-      Location loc = Location.current("localhost", "");
+      Location loc = Location
+          .current(new TServerInstance("localhost:9997", "", ServiceDescriptor.DEFAULT_GROUP_NAME));
       ListTabletsCommand.TabletRowInfo.Factory factory =
           new ListTabletsCommand.TabletRowInfo.Factory(tableName, ke1).dir("t-dir1").numFiles(1)
               .numWalLogs(1).numEntries(1).size(100).status(TabletState.HOSTED.toString())
@@ -168,7 +171,8 @@ public class ListTabletsCommandTest {
     Text startRow = new Text("a");
     Text endRow = new Text("z");
     KeyExtent ke = new KeyExtent(id, endRow, startRow);
-    Location loc = Location.current("localhost", "");
+    Location loc = Location
+        .current(new TServerInstance("localhost:9997", "", ServiceDescriptor.DEFAULT_GROUP_NAME));
     ListTabletsCommand.TabletRowInfo.Factory factory =
         new ListTabletsCommand.TabletRowInfo.Factory("aName", ke).numFiles(1).numWalLogs(2)
             .numEntries(3).size(4).status(TabletState.HOSTED.toString()).location(loc)
@@ -184,7 +188,7 @@ public class ListTabletsCommandTest {
     assertEquals("4", info.getSize(false));
     assertEquals(4, info.size);
     assertEquals("HOSTED", info.status);
-    assertEquals("CURRENT:localhost", info.location);
+    assertEquals("CURRENT:localhost:9997", info.location);
     assertEquals(TableId.of("123"), info.tableId);
     assertEquals(startRow + " " + endRow, info.getTablet());
     assertTrue(info.tableExists);
