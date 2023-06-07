@@ -38,8 +38,7 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.junit.jupiter.api.Test;
 
-// verify trash is not used with Hadoop default configuration as Trash is not
-// enabled by default.
+// verify trash is not used with Hadoop defaults, since Trash is not enabled by default
 public class GarbageCollectorTrashDefaultIT extends GarbageCollectorTrashBase {
 
   @Override
@@ -49,7 +48,7 @@ public class GarbageCollectorTrashDefaultIT extends GarbageCollectorTrashBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    // By default Hadoop trash is disabled - fs.trash.interval defaults to 0
+    // By default Hadoop trash is disabled - fs.trash.interval defaults to 0; ensure it's 0 here
     Map<String,String> hadoopOverrides = new HashMap<>();
     hadoopOverrides.put(CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY, "0");
     cfg.setHadoopConfOverrides(hadoopOverrides);
@@ -57,9 +56,6 @@ public class GarbageCollectorTrashDefaultIT extends GarbageCollectorTrashBase {
 
     cfg.setProperty(Property.GC_CYCLE_START, "1");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
-    @SuppressWarnings("removal")
-    Property p = Property.GC_TRASH_IGNORE;
-    cfg.setProperty(p, "false"); // default, use trash if configured
     cfg.setProperty(Property.GC_PORT, "0");
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
     cfg.setProperty(Property.TABLE_MAJC_RATIO, "5.0");
@@ -76,13 +72,9 @@ public class GarbageCollectorTrashDefaultIT extends GarbageCollectorTrashBase {
       assertFalse(files.isEmpty());
       c.tableOperations().compact(table, new CompactionConfig());
       TableId tid = TableId.of(c.tableOperations().tableIdMap().get(table));
-      // The default value for fs.trash.interval is 0, which means that
-      // trash is disabled in the Hadoop configuration. Enabling trash in
-      // Accumulo (GC_TRASH_IGNORE = false) still requires enabling trash in Hadoop
       super.waitForFilesToBeGCd(files);
       assertEquals(0, super.countFilesInTrash(fs, tid));
     }
-
   }
 
 }
