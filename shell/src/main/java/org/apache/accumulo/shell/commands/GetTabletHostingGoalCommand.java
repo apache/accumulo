@@ -89,7 +89,7 @@ public class GetTabletHostingGoalCommand extends TableOperation {
     optEndRowExclusive = new Option("ee", "end-exclusive", false,
         "make end row exclusive (by default it's inclusive)");
     optEndRowExclusive.setArgName("end-exclusive");
-    optRow = new Option("r", "row", true, "tablet row to modify");
+    optRow = new Option("r", "row", true, "tablet row to read");
     optRow.setArgName("row");
 
     final Options opts = super.getOptions();
