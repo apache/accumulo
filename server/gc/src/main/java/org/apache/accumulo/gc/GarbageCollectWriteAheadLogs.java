@@ -60,7 +60,6 @@ public class GarbageCollectWriteAheadLogs {
 
   private final ServerContext context;
   private final VolumeManager fs;
-  private final boolean useTrash;
   private final LiveTServerSet liveServers;
   private final WalStateManager walMarker;
   private final Iterable<TabletLocationState> store;
@@ -70,13 +69,11 @@ public class GarbageCollectWriteAheadLogs {
    *
    * @param context the collection server's context
    * @param fs volume manager to use
-   * @param useTrash true to move files to trash rather than delete them
    */
   GarbageCollectWriteAheadLogs(final ServerContext context, final VolumeManager fs,
-      final LiveTServerSet liveServers, boolean useTrash) {
+      final LiveTServerSet liveServers) {
     this.context = context;
     this.fs = fs;
-    this.useTrash = useTrash;
     this.liveServers = liveServers;
     this.walMarker = new WalStateManager(context);
     this.store = () -> Iterators.concat(
@@ -90,16 +87,14 @@ public class GarbageCollectWriteAheadLogs {
    *
    * @param context the collection server's context
    * @param fs volume manager to use
-   * @param useTrash true to move files to trash rather than delete them
    * @param liveTServerSet a started LiveTServerSet instance
    */
   @VisibleForTesting
-  GarbageCollectWriteAheadLogs(ServerContext context, VolumeManager fs, boolean useTrash,
+  GarbageCollectWriteAheadLogs(ServerContext context, VolumeManager fs,
       LiveTServerSet liveTServerSet, WalStateManager walMarker,
       Iterable<TabletLocationState> store) {
     this.context = context;
     this.fs = fs;
-    this.useTrash = useTrash;
     this.liveServers = liveTServerSet;
     this.walMarker = walMarker;
     this.store = store;
@@ -230,7 +225,7 @@ public class GarbageCollectWriteAheadLogs {
 
   private long removeFile(Path path) {
     try {
-      if (!useTrash || !fs.moveToTrash(path)) {
+      if (!fs.moveToTrash(path)) {
         fs.deleteRecursively(path);
       }
       return 1;

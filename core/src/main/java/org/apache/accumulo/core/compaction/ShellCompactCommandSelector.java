@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.compaction.strategies;
+package org.apache.accumulo.core.compaction;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,13 +32,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
-import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
-import org.apache.accumulo.core.compaction.CompactionSettings;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -46,9 +43,10 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.hadoop.fs.Path;
 
 /**
- * The compaction strategy used by the shell compact command.
+ * The compaction selector is used by the shell compact command. It exists in accumulo-core, so it
+ * is on the class path for the shell and servers that run compactions.
  */
-public class ConfigurableCompactionStrategy implements CompactionSelector, CompactionConfigurer {
+public class ShellCompactCommandSelector implements CompactionSelector {
 
   private abstract static class Test {
     abstract Set<CompactableFile> getFilesToCompact(SelectionParameters params);
@@ -168,45 +166,9 @@ public class ConfigurableCompactionStrategy implements CompactionSelector, Compa
   private List<Test> tests = new ArrayList<>();
   private boolean andTest = true;
   private int minFiles = 1;
-  private Map<String,String> overrides = new HashMap<>();
 
   @Override
-  public void init(
-      org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer.InitParameters iparams) {
-    Set<Entry<String,String>> es = iparams.getOptions().entrySet();
-    for (Entry<String,String> entry : es) {
-
-      switch (CompactionSettings.valueOf(entry.getKey())) {
-        case OUTPUT_COMPRESSION_OPT:
-          overrides.put(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), entry.getValue());
-          break;
-        case OUTPUT_BLOCK_SIZE_OPT:
-          overrides.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), entry.getValue());
-          break;
-        case OUTPUT_INDEX_BLOCK_SIZE_OPT:
-          overrides.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey(), entry.getValue());
-          break;
-        case OUTPUT_HDFS_BLOCK_SIZE_OPT:
-          overrides.put(Property.TABLE_FILE_BLOCK_SIZE.getKey(), entry.getValue());
-          break;
-        case OUTPUT_REPLICATION_OPT:
-          overrides.put(Property.TABLE_FILE_REPLICATION.getKey(), entry.getValue());
-          break;
-        default:
-          throw new IllegalArgumentException("Unknown option " + entry.getKey());
-      }
-    }
-
-  }
-
-  @Override
-  public Overrides override(InputParameters params) {
-    return new Overrides(overrides);
-  }
-
-  @Override
-  public void init(
-      org.apache.accumulo.core.client.admin.compaction.CompactionSelector.InitParameters iparams) {
+  public void init(InitParameters iparams) {
     boolean selectNoSummary = false;
     boolean selectExtraSummary = false;
 
