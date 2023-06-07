@@ -42,9 +42,6 @@ vserver:
   - localhost8
 
 #compaction:
-#  coordinator:
-#    - localhost1
-#    - localhost2
 #  compactor:
 #    - q1:
 #        - localhost1

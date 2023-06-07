@@ -41,8 +41,8 @@ public class ClusterConfigParser {
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String[] SECTIONS = new String[] {"manager", "monitor", "gc", "tserver"};
 
-  private static final Set<String> VALID_CONFIG_KEYS = Set.of("manager", "monitor", "gc", "tserver",
-      "tservers_per_host", "sservers_per_host", "compaction.coordinator");
+  private static final Set<String> VALID_CONFIG_KEYS =
+      Set.of("manager", "monitor", "gc", "tserver", "tservers_per_host", "sservers_per_host");
 
   private static final Set<String> VALID_CONFIG_PREFIXES =
       Set.of("compaction.compactor.", "sserver.");
@@ -110,10 +110,6 @@ public class ClusterConfigParser {
         }
         System.err.println("WARN: " + section + " is missing");
       }
-    }
-
-    if (config.containsKey("compaction.coordinator")) {
-      out.printf(PROPERTY_FORMAT, "COORDINATOR_HOSTS", config.get("compaction.coordinator"));
     }
 
     String compactorPrefix = "compaction.compactor.";
