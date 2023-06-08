@@ -427,15 +427,15 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       List<HostingGoalForTablet> expectedGoals = new ArrayList<>();
       setExpectedGoal(expectedGoals, idMap.get(tableOnDemand), null, null,
           TabletHostingGoal.ONDEMAND);
-      verifyTabletGoals(tableOnDemand, null, null, expectedGoals, 1);
+      verifyTabletGoals(tableOnDemand, null, null, expectedGoals);
 
       expectedGoals.clear();
       setExpectedGoal(expectedGoals, idMap.get(tableAlways), null, null, TabletHostingGoal.ALWAYS);
-      verifyTabletGoals(tableAlways, null, null, expectedGoals, 1);
+      verifyTabletGoals(tableAlways, null, null, expectedGoals);
 
       expectedGoals.clear();
       setExpectedGoal(expectedGoals, idMap.get(tableNever), null, null, TabletHostingGoal.NEVER);
-      verifyTabletGoals(tableNever, null, null, expectedGoals, 1);
+      verifyTabletGoals(tableNever, null, null, expectedGoals);
 
       verifyTablesWithSplits(tableOnDemandWithSplits, idMap, splits, TabletHostingGoal.ONDEMAND);
       verifyTablesWithSplits(tableAlwaysWithSplits, idMap, splits, TabletHostingGoal.ALWAYS);
@@ -485,14 +485,12 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       Map<String,String> idMap = accumuloClient.tableOperations().tableIdMap();
       expectedGoals = new ArrayList<>();
       String tableId = idMap.get(tableName);
-      setExpectedGoal(expectedGoals, tableId, new Text("d"), null, TabletHostingGoal.NEVER);
+      setExpectedGoal(expectedGoals, tableId, "d", null, TabletHostingGoal.NEVER);
       // this range was intentionally not set above, checking that the tablet has the default
       // hosting goal
-      setExpectedGoal(expectedGoals, tableId, new Text("m"), new Text("d"),
-          TabletHostingGoal.ONDEMAND);
-      setExpectedGoal(expectedGoals, tableId, new Text("s"), new Text("m"),
-          TabletHostingGoal.ALWAYS);
-      setExpectedGoal(expectedGoals, tableId, null, new Text("s"), TabletHostingGoal.NEVER);
+      setExpectedGoal(expectedGoals, tableId, "m", "d", TabletHostingGoal.ONDEMAND);
+      setExpectedGoal(expectedGoals, tableId, "s", "m", TabletHostingGoal.ALWAYS);
+      setExpectedGoal(expectedGoals, tableId, null, "s", TabletHostingGoal.NEVER);
       assertEquals(4, hostingInfo.size());
       hostingInfo.forEach(p -> assertTrue(expectedGoals.contains(p)));
     } finally {
@@ -530,10 +528,10 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       idMap = accumuloClient.tableOperations().tableIdMap();
       tableId = idMap.get(tableName);
 
-      setExpectedGoal(expectedGoals, tableId, new Text("d"), null, TabletHostingGoal.ALWAYS);
+      setExpectedGoal(expectedGoals, tableId, "d", null, TabletHostingGoal.ALWAYS);
       // test using row as range constructor
-      hostingInfo = accumuloClient.tableOperations()
-          .getTabletHostingGoal(tableName, new Range(new Text("a"))).collect(Collectors.toList());
+      hostingInfo = accumuloClient.tableOperations().getTabletHostingGoal(tableName, new Range("a"))
+          .collect(Collectors.toList());
       assertEquals(1, hostingInfo.size());
       hostingInfo.forEach(p -> assertTrue(expectedGoals.contains(p)));
 
@@ -545,10 +543,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       hostingInfo.forEach(p -> assertTrue(expectedGoals.contains(p)));
 
       expectedGoals.clear();
-      setExpectedGoal(expectedGoals, tableId, new Text("m"), new Text("d"),
-          TabletHostingGoal.NEVER);
-      setExpectedGoal(expectedGoals, tableId, new Text("s"), new Text("m"),
-          TabletHostingGoal.ALWAYS);
+      setExpectedGoal(expectedGoals, tableId, "m", "d", TabletHostingGoal.NEVER);
+      setExpectedGoal(expectedGoals, tableId, "s", "m", TabletHostingGoal.ALWAYS);
 
       range = new Range(new Text("m"), new Text("p"));
       hostingInfo = accumuloClient.tableOperations().getTabletHostingGoal(tableName, range)
@@ -556,14 +552,12 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       assertEquals(expectedGoals, hostingInfo);
 
       expectedGoals.clear();
-      setExpectedGoal(expectedGoals, tableId, new Text("d"), null, TabletHostingGoal.ALWAYS);
-      setExpectedGoal(expectedGoals, tableId, new Text("m"), new Text("d"),
-          TabletHostingGoal.NEVER);
-      setExpectedGoal(expectedGoals, tableId, new Text("s"), new Text("m"),
-          TabletHostingGoal.ALWAYS);
-      setExpectedGoal(expectedGoals, tableId, null, new Text("s"), TabletHostingGoal.ONDEMAND);
+      setExpectedGoal(expectedGoals, tableId, "d", null, TabletHostingGoal.ALWAYS);
+      setExpectedGoal(expectedGoals, tableId, "m", "d", TabletHostingGoal.NEVER);
+      setExpectedGoal(expectedGoals, tableId, "s", "m", TabletHostingGoal.ALWAYS);
+      setExpectedGoal(expectedGoals, tableId, null, "s", TabletHostingGoal.ONDEMAND);
 
-      range = new Range(new Text("b"), false, new Text("t"), true);
+      range = new Range("b", false, "t", true);
       hostingInfo = accumuloClient.tableOperations().getTabletHostingGoal(tableName, range)
           .collect(Collectors.toList());
       assertEquals(4, hostingInfo.size());
@@ -607,12 +601,10 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
       expectedGoals.clear();
       hostingInfo.clear();
-      setExpectedGoal(expectedGoals, tableId, new Text("g"), null, TabletHostingGoal.ALWAYS);
-      setExpectedGoal(expectedGoals, tableId, new Text("n"), new Text("g"),
-          TabletHostingGoal.ALWAYS);
-      setExpectedGoal(expectedGoals, tableId, new Text("r"), new Text("n"),
-          TabletHostingGoal.ALWAYS);
-      setExpectedGoal(expectedGoals, tableId, null, new Text("r"), TabletHostingGoal.ALWAYS);
+      setExpectedGoal(expectedGoals, tableId, "g", null, TabletHostingGoal.ALWAYS);
+      setExpectedGoal(expectedGoals, tableId, "n", "g", TabletHostingGoal.ALWAYS);
+      setExpectedGoal(expectedGoals, tableId, "r", "n", TabletHostingGoal.ALWAYS);
+      setExpectedGoal(expectedGoals, tableId, null, "r", TabletHostingGoal.ALWAYS);
 
       // Retrieve goals for table
       hostingInfo.clear();
@@ -631,7 +623,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     List<HostingGoalForTablet> expectedGoals = new ArrayList<>();
     List<HostingGoalForTablet> hostingInfo;
     String tableId = idMap.get(tableName);
-    Text[] splitPts = splits.toArray(new Text[0]);
+    String[] splitPts = splits.stream().map(Text::toString).toArray(String[]::new);
 
     // retrieve all tablets for a table
     setExpectedGoal(expectedGoals, tableId, splitPts[0], null, goal);
@@ -647,29 +639,28 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     // verify individual tablets can be retrieved
     expectedGoals.clear();
     setExpectedGoal(expectedGoals, tableId, splitPts[0], null, goal);
-    verifyTabletGoals(tableName, splitPts[0], null, expectedGoals, 1);
+    verifyTabletGoals(tableName, new Text(splitPts[0]), null, expectedGoals);
 
     expectedGoals.clear();
     setExpectedGoal(expectedGoals, tableId, splitPts[1], splitPts[0], goal);
-    verifyTabletGoals(tableName, splitPts[1], splitPts[0], expectedGoals, 1);
+    verifyTabletGoals(tableName, new Text(splitPts[1]), new Text(splitPts[0]), expectedGoals);
 
     expectedGoals.clear();
     setExpectedGoal(expectedGoals, tableId, splitPts[2], splitPts[1], goal);
-    verifyTabletGoals(tableName, splitPts[2], splitPts[1], expectedGoals, 1);
+    verifyTabletGoals(tableName, new Text(splitPts[2]), new Text(splitPts[1]), expectedGoals);
 
     expectedGoals.clear();
     setExpectedGoal(expectedGoals, tableId, null, splitPts[2], goal);
-    verifyTabletGoals(tableName, null, splitPts[2], expectedGoals, 1);
+    verifyTabletGoals(tableName, null, new Text(splitPts[2]), expectedGoals);
 
     expectedGoals.clear();
     setExpectedGoal(expectedGoals, tableId, splitPts[1], splitPts[0], goal);
     setExpectedGoal(expectedGoals, tableId, splitPts[2], splitPts[1], goal);
-    verifyTabletGoals(tableName, splitPts[2], splitPts[0], expectedGoals, 2);
+    verifyTabletGoals(tableName, new Text(splitPts[2]), new Text(splitPts[0]), expectedGoals);
   }
 
   private void verifyTabletGoals(String tableName, Text endRow, Text prevEndRow,
-      List<HostingGoalForTablet> expectedGoals, int expectedTabletsReturned)
-      throws TableNotFoundException {
+      List<HostingGoalForTablet> expectedGoals) throws TableNotFoundException {
 
     List<HostingGoalForTablet> hostingInfo;
     Range range = new Range(prevEndRow, false, endRow, true);
@@ -680,7 +671,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
   private void setExpectedGoal(List<HostingGoalForTablet> expected, String id, String endRow,
       String prevEndRow, TabletHostingGoal goal) {
-    KeyExtent ke = new KeyExtent(TableId.of(id), endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
+    KeyExtent ke = new KeyExtent(TableId.of(id), endRow == null ? null : new Text(endRow),
+        prevEndRow == null ? null : new Text(prevEndRow));
     expected.add(new HostingGoalForTablet(new TabletIdImpl(ke), goal));
   }
 
