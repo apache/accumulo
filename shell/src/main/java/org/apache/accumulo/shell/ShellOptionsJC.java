@@ -50,7 +50,7 @@ public class ShellOptionsJC {
           + " 'file:<local file containing the password>', 'env:<variable containing"
           + " the pass>', or stdin)",
       converter = ClientOpts.PasswordConverter.class)
-  private String password;
+  private String authenticationString;
 
   @DynamicParameter(names = {"-l"},
       description = "command line properties in the format key=value. Reuse -l for each property")
@@ -141,7 +141,7 @@ public class ShellOptionsJC {
   }
 
   public String getPassword() {
-    return password;
+    return authenticationString;
   }
 
   public boolean isTabCompletionDisabled() {
@@ -231,7 +231,7 @@ public class ShellOptionsJC {
     return props;
   }
 
-  static class PositiveInteger implements IParameterValidator {
+  public static class PositiveInteger implements IParameterValidator {
     @Override
     public void validate(String name, String value) throws ParameterException {
       int n = -1;
