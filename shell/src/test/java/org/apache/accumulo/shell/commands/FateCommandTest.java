@@ -37,8 +37,6 @@ import java.nio.file.Files;
 import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.AdminUtil;
@@ -134,13 +132,6 @@ public class FateCommandTest {
   public static void setup() {
     zk = createMock(ZooReaderWriter.class);
     managerLockPath = createMock(ServiceLockPath.class);
-    Shell.AUTHENTICATOR = new Shell.Authenticator() {
-      @Override
-      public boolean authenticateUser(AccumuloClient client, String principal,
-          AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-        return true;
-      }
-    };
   }
 
   @Test
@@ -331,7 +322,12 @@ public class FateCommandTest {
     Terminal terminal = new DumbTerminal(new FileInputStream(FileDescriptor.in), output);
     terminal.setSize(new Size(80, 24));
     LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
-    Shell shell = new Shell(reader);
+    Shell shell = new Shell(reader) {
+      @Override
+      protected boolean authenticateUser(AccumuloClient client, AuthenticationToken token) {
+        return true;
+      }
+    };
     shell.setLogErrorsToConsole();
     return shell;
   }

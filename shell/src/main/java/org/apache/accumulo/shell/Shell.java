@@ -190,15 +190,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @AutoService(KeywordExecutable.class)
 public class Shell extends ShellOptions implements KeywordExecutable {
 
-  public static interface Authenticator {
-    default boolean authenticateUser(AccumuloClient client, String principal,
-        AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-      return client.securityOperations().authenticateUser(principal, token);
-    }
-  }
-
-  public static Authenticator AUTHENTICATOR = new Authenticator() {};
-
   public static final Logger log = LoggerFactory.getLogger(Shell.class);
   private static final Logger audit = LoggerFactory.getLogger(Shell.class.getName() + ".audit");
 
@@ -267,29 +258,29 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     this.writer = terminal.writer();
   }
 
-  private boolean authenticateUser(AccumuloClient client, AuthenticationToken token)
+  // this is visible only for FateCommandTest, otherwise, should be private or inline
+  protected boolean authenticateUser(AccumuloClient client, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
-    return AUTHENTICATOR.authenticateUser(client, client.whoami(), token);
+    return client.securityOperations().authenticateUser(client.whoami(), token);
   }
 
-  private AuthenticationToken getAuthenticationToken(String principal,
-      String authenticationString) {
+  private AuthenticationToken getAuthenticationToken(String principal, String password,
+      String passwordPrompt) {
     AuthenticationToken token = null;
-    if (authenticationString == null
-        && clientProperties.containsKey(ClientProperty.AUTH_TOKEN.getKey())
+    if (password == null && clientProperties.containsKey(ClientProperty.AUTH_TOKEN.getKey())
         && principal.equals(ClientProperty.AUTH_PRINCIPAL.getValue(clientProperties))) {
       token = ClientProperty.getAuthenticationToken(clientProperties);
     }
     if (token == null) {
       // Read password if the user explicitly asked for it, or didn't specify anything at all
-      if (PasswordConverter.STDIN.equals(authenticationString) || authenticationString == null) {
-        authenticationString = reader.readLine("Password: ", '*');
+      if (PasswordConverter.STDIN.equals(password) || password == null) {
+        password = reader.readLine(passwordPrompt, '*');
       }
-      if (authenticationString == null) {
+      if (password == null) {
         // User cancel, e.g. Ctrl-D pressed
         throw new ParameterException("No password or token option supplied");
       } else {
-        token = new PasswordToken(authenticationString);
+        token = new PasswordToken(password);
       }
     }
     return token;
@@ -369,13 +360,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         exitCode = 1;
         return false;
       }
-      String authenticationString = options.getPassword();
-      final AuthenticationToken authToken = getAuthenticationToken(principal, authenticationString);
+      String password = options.getPassword();
+      final AuthenticationToken token = getAuthenticationToken(principal, password, "Password: ");
       try {
         this.setTableName("");
-        accumuloClient =
-            Accumulo.newClient().from(clientProperties).as(principal, authToken).build();
-        authenticateUser(accumuloClient, authToken);
+        accumuloClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
+        authenticateUser(accumuloClient, token);
         context = (ClientContext) accumuloClient;
       } catch (Exception e) {
         printException(e);
@@ -756,8 +746,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           writer.println("Shell has been idle for too long. Please re-authenticate.");
           boolean authFailed = true;
           do {
-            final AuthenticationToken authToken =
-                getAuthenticationToken(accumuloClient.whoami(), null);
+            final AuthenticationToken authToken = getAuthenticationToken(accumuloClient.whoami(),
+                null, "Enter current password for '" + accumuloClient.whoami() + "': ");
             try {
               authFailed = !authenticateUser(accumuloClient, authToken);
             } catch (Exception e) {

@@ -18,15 +18,10 @@
  */
 package org.apache.accumulo.test.shell;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.util.Properties;
 import java.util.TimeZone;
 
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -59,7 +54,6 @@ public class ShellAuthenticatorIT extends SharedMiniClusterBase {
   private StringInputStream input;
   private TestOutputStream output;
   private Shell shell;
-  private File config;
   public LineReader reader;
   public Terminal terminal;
 
@@ -71,17 +65,6 @@ public class ShellAuthenticatorIT extends SharedMiniClusterBase {
     terminal = new DumbTerminal(input, output);
     terminal.setSize(new Size(80, 24));
     reader = LineReaderBuilder.builder().terminal(terminal).build();
-    if (config != null) {
-      if (!config.delete()) {
-        throw new IllegalStateException("failed to delete: " + config.getAbsolutePath());
-      }
-    }
-    config = Files.createTempFile(null, null).toFile();
-    try (FileWriter writer = new FileWriter(config, UTF_8)) {
-      Properties p = SharedMiniClusterBase.getClientProps();
-      p.store(writer, null);
-    }
-    config.deleteOnExit();
   }
 
   @AfterEach
@@ -95,7 +78,7 @@ public class ShellAuthenticatorIT extends SharedMiniClusterBase {
   public void testClientPropertiesFile() throws IOException {
     shell = new Shell(reader);
     shell.setLogErrorsToConsole();
-    assertTrue(shell.config("--config-file", config.toString()));
+    assertTrue(shell.config("--config-file", getCluster().getClientPropsPath()));
   }
 
   @Test
@@ -122,20 +105,10 @@ public class ShellAuthenticatorIT extends SharedMiniClusterBase {
     terminal = new DumbTerminal(input, output);
     terminal.setSize(new Size(80, 24));
     reader = LineReaderBuilder.builder().terminal(terminal).build();
-    if (config != null) {
-      if (!config.delete()) {
-        throw new IllegalStateException("failed to delete: " + config.getAbsolutePath());
-      }
-    }
-    config = Files.createTempFile(null, null).toFile();
-    try (FileWriter writer = new FileWriter(config, UTF_8)) {
-      Properties p = SharedMiniClusterBase.getClientProps();
-      p.store(writer, null);
-    }
-    config.deleteOnExit();
     shell = new Shell(reader);
     shell.setLogErrorsToConsole();
-    assertTrue(shell.config("--auth-timeout", "1", "--config-file", config.toString()));
+    assertTrue(
+        shell.config("--auth-timeout", "1", "--config-file", getCluster().getClientPropsPath()));
     Thread.sleep(90000);
     shell.execCommand("whoami", false, false);
     assertTrue(output.get().contains("root"));
