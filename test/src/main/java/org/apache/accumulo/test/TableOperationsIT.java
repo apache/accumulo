@@ -673,8 +673,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     Range range = new Range(prevEndRow, false, endRow, true);
     hostingInfo = accumuloClient.tableOperations().getTabletHostingGoal(tableName, range)
         .collect(Collectors.toList());
-    assertEquals(expectedTabletsReturned, hostingInfo.size());
-    hostingInfo.forEach(p -> assertTrue(expectedGoals.contains(p)));
+    assertEquals(expectedGoals, hostingInfo);
   }
 
   private void setExpectedGoal(List<HostingGoalForTablet> expected, String id, Text endRow,
