@@ -157,6 +157,7 @@ class ZKSecurityTool {
 
   @VisibleForTesting
   static long getCryptPasswordCacheSize() {
+    CRYPT_PASSWORD_CACHE.cleanUp();
     return CRYPT_PASSWORD_CACHE.estimatedSize();
   }
 
