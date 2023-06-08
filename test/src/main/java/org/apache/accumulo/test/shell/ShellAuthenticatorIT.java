@@ -72,7 +72,9 @@ public class ShellAuthenticatorIT extends SharedMiniClusterBase {
     terminal.setSize(new Size(80, 24));
     reader = LineReaderBuilder.builder().terminal(terminal).build();
     if (config != null) {
-      config.delete();
+      if (!config.delete()) {
+        throw new IllegalStateException("failed to delete: " + config.getAbsolutePath());
+      }
     }
     config = Files.createTempFile(null, null).toFile();
     try (FileWriter writer = new FileWriter(config, UTF_8)) {
@@ -121,7 +123,9 @@ public class ShellAuthenticatorIT extends SharedMiniClusterBase {
     terminal.setSize(new Size(80, 24));
     reader = LineReaderBuilder.builder().terminal(terminal).build();
     if (config != null) {
-      config.delete();
+      if (!config.delete()) {
+        throw new IllegalStateException("failed to delete: " + config.getAbsolutePath());
+      }
     }
     config = Files.createTempFile(null, null).toFile();
     try (FileWriter writer = new FileWriter(config, UTF_8)) {
