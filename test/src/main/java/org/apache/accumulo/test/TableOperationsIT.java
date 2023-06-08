@@ -678,9 +678,9 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(expectedGoals, hostingInfo);
   }
 
-  private void setExpectedGoal(List<HostingGoalForTablet> expected, String id, Text endRow,
-      Text prevEndRow, TabletHostingGoal goal) {
-    KeyExtent ke = new KeyExtent(TableId.of(id), endRow, prevEndRow);
+  private void setExpectedGoal(List<HostingGoalForTablet> expected, String id, String endRow,
+      String prevEndRow, TabletHostingGoal goal) {
+    KeyExtent ke = new KeyExtent(TableId.of(id), endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
     expected.add(new HostingGoalForTablet(new TabletIdImpl(ke), goal));
   }
 
