@@ -24,20 +24,30 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.apache.commons.codec.digest.Crypt;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class ZKSecurityToolTest {
 
+  // use a fixed salt instead of random, for testing only; this is just so we can print the hashes
+  // for manual comparison when debugging this test
+  private final String TEST_SALT = "$6$test$";
   private final String good = "GOODPASSWORD";
-  private final String goodHash = Crypt.crypt(good.getBytes(UTF_8));
+  private final String goodHash = Crypt.crypt(good.getBytes(UTF_8), TEST_SALT);
 
   private final String good2 = "GOODPASSWORD2";
-  private final String goodHash2 = Crypt.crypt(good2.getBytes(UTF_8));
+  private final String goodHash2 = Crypt.crypt(good2.getBytes(UTF_8), TEST_SALT);
 
   private final String bad = "BADPASSWORD";
 
+  @BeforeEach
+  public void clearCache() {
+    ZKSecurityTool.clearCryptPasswordCache();
+  }
+
   @Test
   public void testCheckCryptPass() {
+    assertEquals(0L, ZKSecurityTool.getCryptPasswordCacheSize());
     assertTrue(ZKSecurityTool.checkCryptPass(good.getBytes(UTF_8), goodHash.getBytes(UTF_8)));
     assertEquals(1L, ZKSecurityTool.getCryptPasswordCacheSize());
     assertFalse(ZKSecurityTool.checkCryptPass(bad.getBytes(UTF_8), goodHash.getBytes(UTF_8)));
@@ -64,23 +74,25 @@ public class ZKSecurityToolTest {
     assertEquals(0L, ZKSecurityTool.getCryptPasswordCacheSize());
     assertFalse(ZKSecurityTool.checkCryptPass(bad.getBytes(UTF_8), goodHash.getBytes(UTF_8)));
     assertEquals(0L, ZKSecurityTool.getCryptPasswordCacheSize());
-
   }
 
   @Test
-  public void testMatchingPasswordNoHash() {
-    ZKSecurityTool.clearCryptPasswordCache();
-    assertEquals(0L, ZKSecurityTool.getCryptPasswordCacheSize());
-    assertTrue(ZKSecurityTool.checkCryptPass(good.getBytes(UTF_8), goodHash.getBytes(UTF_8)));
-    assertEquals(1L, ZKSecurityTool.getCryptPasswordCacheSize());
-
-    String passwordPlusHash = good + goodHash;
-    assertFalse(ZKSecurityTool.checkCryptPass(passwordPlusHash.getBytes(UTF_8), new byte[0]));
-    // This invalidates the existing key because the cache key matches but the hashes do not
+  public void testMatchingPasswordDifferentHash() {
     assertEquals(0L, ZKSecurityTool.getCryptPasswordCacheSize());
 
-    assertTrue(ZKSecurityTool.checkCryptPass(good.getBytes(UTF_8), goodHash.getBytes(UTF_8)));
-    assertEquals(1L, ZKSecurityTool.getCryptPasswordCacheSize());
+    // place any portion of the hash in the password, so it matches the cache key but not the value
+    // portion placed in password must be at least length 1, so start index at 1
+    for (int index = 1; index <= goodHash.length(); index++) {
+      assertTrue(ZKSecurityTool.checkCryptPass(good.getBytes(UTF_8), goodHash.getBytes(UTF_8)));
+      assertEquals(1L, ZKSecurityTool.getCryptPasswordCacheSize());
+      String passwordPlusHash = good + goodHash.substring(0, index);
+      assertFalse(ZKSecurityTool.checkCryptPass(passwordPlusHash.getBytes(UTF_8),
+          goodHash.substring(index, goodHash.length()).getBytes(UTF_8)));
+      // This invalidates the existing key because the cache key matches but the hashes do not
+      assertEquals(0L, ZKSecurityTool.getCryptPasswordCacheSize());
 
+      assertTrue(ZKSecurityTool.checkCryptPass(good.getBytes(UTF_8), goodHash.getBytes(UTF_8)));
+      assertEquals(1L, ZKSecurityTool.getCryptPasswordCacheSize());
+    }
   }
 }
