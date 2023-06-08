@@ -486,7 +486,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       expectedGoals = new ArrayList<>();
       String tableId = idMap.get(tableName);
       setExpectedGoal(expectedGoals, tableId, new Text("d"), null, TabletHostingGoal.NEVER);
-      // this range was intentionally not set above, checking that the tablet has the default hosting goal
+      // this range was intentionally not set above, checking that the tablet has the default
+      // hosting goal
       setExpectedGoal(expectedGoals, tableId, new Text("m"), new Text("d"),
           TabletHostingGoal.ONDEMAND);
       setExpectedGoal(expectedGoals, tableId, new Text("s"), new Text("m"),
