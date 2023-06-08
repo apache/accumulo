@@ -77,7 +77,7 @@ public class ZooPropSetTool implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "zoo-prop-set-tool";
+    return "zoo-prop-editor";
   }
 
   @Override

@@ -149,7 +149,7 @@ public class KeywordStartIT {
     expectSet.put("split-large", SplitLarge.class);
     expectSet.put("sserver", ScanServerExecutable.class);
     expectSet.put("zoo-info-viewer", ZooInfoViewer.class);
-    expectSet.put("zoo-prop-set-tool", ZooPropSetTool.class);
+    expectSet.put("zoo-prop-editor", ZooPropSetTool.class);
     expectSet.put("zoo-zap", ZooZap.class);
 
     Iterator<Entry<String,Class<? extends KeywordExecutable>>> expectIter =
