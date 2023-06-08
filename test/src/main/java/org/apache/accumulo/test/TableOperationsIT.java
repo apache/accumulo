@@ -551,8 +551,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       range = new Range(new Text("m"), new Text("p"));
       hostingInfo = accumuloClient.tableOperations().getTabletHostingGoal(tableName, range)
           .collect(Collectors.toList());
-      assertEquals(2, hostingInfo.size());
-      hostingInfo.forEach(p -> assertTrue(expectedGoals.contains(p)));
+      assertEquals(expectedGoals, hostingInfo);
 
       expectedGoals.clear();
       setExpectedGoal(expectedGoals, tableId, new Text("d"), null, TabletHostingGoal.ALWAYS);
