@@ -264,23 +264,24 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     return client.securityOperations().authenticateUser(client.whoami(), token);
   }
 
-  private AuthenticationToken getAuthenticationToken(String principal, String password,
+  private AuthenticationToken getAuthenticationToken(String principal, String authenticationString,
       String passwordPrompt) {
     AuthenticationToken token = null;
-    if (password == null && clientProperties.containsKey(ClientProperty.AUTH_TOKEN.getKey())
+    if (authenticationString == null
+        && clientProperties.containsKey(ClientProperty.AUTH_TOKEN.getKey())
         && principal.equals(ClientProperty.AUTH_PRINCIPAL.getValue(clientProperties))) {
       token = ClientProperty.getAuthenticationToken(clientProperties);
     }
     if (token == null) {
       // Read password if the user explicitly asked for it, or didn't specify anything at all
-      if (PasswordConverter.STDIN.equals(password) || password == null) {
-        password = reader.readLine(passwordPrompt, '*');
+      if (PasswordConverter.STDIN.equals(authenticationString) || authenticationString == null) {
+        authenticationString = reader.readLine(passwordPrompt, '*');
       }
-      if (password == null) {
+      if (authenticationString == null) {
         // User cancel, e.g. Ctrl-D pressed
         throw new ParameterException("No password or token option supplied");
       } else {
-        token = new PasswordToken(password);
+        token = new PasswordToken(authenticationString);
       }
     }
     return token;
@@ -360,8 +361,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         exitCode = 1;
         return false;
       }
-      String password = options.getPassword();
-      final AuthenticationToken token = getAuthenticationToken(principal, password, "Password: ");
+      String authenticationString = options.getPassword();
+      final AuthenticationToken token =
+          getAuthenticationToken(principal, authenticationString, "Password: ");
       try {
         this.setTableName("");
         accumuloClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
