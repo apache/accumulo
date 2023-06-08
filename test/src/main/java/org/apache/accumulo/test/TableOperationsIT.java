@@ -468,7 +468,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
       accumuloClient.tableOperations().create(tableName, ntc);
 
-      // set each table with a different goal and query to see if they are set accordingly
+      // set each tablet with a different goal and query to see if they are set accordingly
       Range range = new Range(null, false, new Text("d"), true);
       accumuloClient.tableOperations().setTabletHostingGoal(tableName, range,
           TabletHostingGoal.NEVER);
