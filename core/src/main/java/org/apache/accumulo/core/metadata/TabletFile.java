@@ -37,7 +37,7 @@ public interface TabletFile {
 
   /**
    * Returns the full path for the TabletFile on the file system. The path may be normalized
-   * depending on the specific implementation.
+   * depending on the specific implementation.  For example, a path in hdfs would be returned as `hdfs://nn1/accumulo/tables/5a/t-0001/F0002.rf`
    */
   Path getPath();
 
