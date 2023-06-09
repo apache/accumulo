@@ -109,10 +109,9 @@ public class CompactionJobPriorityQueue {
   }
 
   public synchronized boolean add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
-    if(closed){
+    if (closed) {
       return false;
     }
-
 
     Preconditions
         .checkArgument(jobs.stream().allMatch(job -> job.getExecutor().equals(executorId)));
@@ -151,7 +150,7 @@ public class CompactionJobPriorityQueue {
   }
 
   public synchronized boolean closeIfEmpty() {
-    if(jobQueue.isEmpty()) {
+    if (jobQueue.isEmpty()) {
       closed = true;
       return true;
     }

@@ -19,5 +19,7 @@
 package org.apache.accumulo.manager.compaction;
 
 public class CompactionCoordinatorTest {
-  // ELASTICITY_TODO this test was no longer compiling with all the changes to CompactionCoordinator. Its contents were deleted to get things compiling, however need to go and look at the test and determine what to carry forward with CompactionCoordinator.
+  // ELASTICITY_TODO this test was no longer compiling with all the changes to
+  // CompactionCoordinator. Its contents were deleted to get things compiling, however need to go
+  // and look at the test and determine what to carry forward with CompactionCoordinator.
 }

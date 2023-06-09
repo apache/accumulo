@@ -525,8 +525,6 @@ public class BulkNewIT extends SharedMiniClusterBase {
       c.tableOperations().importDirectory(dir).to(tableName).load();
 
       verifyData(c, tableName, 0, 100 * 100 - 1, false);
-
-      Thread.sleep(600000);
     }
   }
 
