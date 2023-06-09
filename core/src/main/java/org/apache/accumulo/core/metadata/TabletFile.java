@@ -28,9 +28,7 @@ public interface TabletFile {
 
   /**
    * Returns the fileName of the TabletFile. The value return is the name itself and not the entire
-   * path.
-   *
-   * For example, if the full path for a TabletFile is
+   * path. For example, if the full path for a TabletFile is
    * 'hdfs://nn1/accumulo/tables/5a/t-0001/F0002.rf', this method returns 'F0002.rf'.
    */
   String getFileName();
