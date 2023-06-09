@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.compaction;
+package org.apache.accumulo.manager.compaction.coordinator;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -104,17 +104,6 @@ public class DeadCompactionDetector {
         log.debug("Removed {} from the dead compaction map, it's running on a compactor", ecid);
       }
     });
-
-    // Determine which compactions are currently committing and remove those
-    context.getAmple().getExternalCompactionFinalStates()
-        .map(ecfs -> ecfs.getExternalCompactionId()).forEach(ecid -> {
-          if (tabletCompactions.remove(ecid) != null) {
-            log.debug("Removed compaction {} that is committing", ecid);
-          }
-          if (this.deadCompactions.remove(ecid) != null) {
-            log.debug("Removed {} from the dead compaction map, it's committing", ecid);
-          }
-        });
 
     tabletCompactions.forEach((ecid, extent) -> {
       log.info("Possible dead compaction detected {} {}", ecid, extent);

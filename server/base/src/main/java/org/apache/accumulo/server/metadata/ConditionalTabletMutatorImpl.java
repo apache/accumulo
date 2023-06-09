@@ -36,12 +36,15 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.metadata.iterators.CompactionsExistsIterator;
 import org.apache.accumulo.server.metadata.iterators.LocationExistsIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
 import org.apache.accumulo.server.metadata.iterators.TabletExistsIterator;
@@ -128,6 +131,26 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition c = new Condition(GOAL_COLUMN.getColumnFamily(), GOAL_COLUMN.getColumnQualifier())
         .setValue(TabletHostingGoalUtil.toValue(goal).get());
+    mutation.addCondition(c);
+    return this;
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireAbsentCompactions() {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    IteratorSetting is =
+        new IteratorSetting(INITIAL_ITERATOR_PRIO, CompactionsExistsIterator.class);
+    Condition c = new Condition(ExternalCompactionColumnFamily.STR_NAME, "").setIterators(is);
+    mutation.addCondition(c);
+    return this;
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireCompaction(ExternalCompactionId ecid) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, PresentIterator.class);
+    Condition c = new Condition(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical())
+        .setValue(PresentIterator.VALUE).setIterators(is);
     mutation.addCondition(c);
     return this;
   }
