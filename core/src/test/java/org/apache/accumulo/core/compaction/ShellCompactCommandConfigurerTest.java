@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.compaction.strategies;
+package org.apache.accumulo.core.compaction;
 
 import static org.apache.accumulo.core.conf.ConfigurationTypeHelper.getFixedMemoryAsBytes;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,15 +33,12 @@ import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer.Overrides;
-import org.apache.accumulo.core.compaction.CompactionSettings;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.junit.jupiter.api.Test;
 
-public class ConfigurableCompactionStrategyTest {
-
-  // file selection options are adequately tested by ShellServerIT
+public class ShellCompactCommandConfigurerTest {
 
   @Test
   public void testOutputOptions() throws URISyntaxException {
@@ -50,7 +47,7 @@ public class ConfigurableCompactionStrategyTest {
         .create(new URI("hdfs://nn1/accumulo/tables/1/t-009/F00001.rf"), 50000, 400));
 
     // test setting no output options
-    ConfigurableCompactionStrategy ccs = new ConfigurableCompactionStrategy();
+    ShellCompactCommandConfigurer ccs = new ShellCompactCommandConfigurer();
 
     Map<String,String> opts = new HashMap<>();
 
@@ -102,7 +99,7 @@ public class ConfigurableCompactionStrategyTest {
     assertTrue(plan.getOverrides().isEmpty());
 
     // test setting all output options
-    ccs = new ConfigurableCompactionStrategy();
+    ccs = new ShellCompactCommandConfigurer();
 
     CompactionSettings.OUTPUT_BLOCK_SIZE_OPT.put(null, opts, "64K");
     CompactionSettings.OUTPUT_COMPRESSION_OPT.put(null, opts, "snappy");

@@ -564,7 +564,6 @@ public class CompactionIT extends AccumuloClusterHarness {
   @Test
   public void testSelectNoFiles() throws Exception {
 
-    // Adapted from the now removed UserCompactionStrategyIT class
     // Test a compaction selector that selects no files. In this case there is no work to,
     // so we want to ensure it does not hang
 
