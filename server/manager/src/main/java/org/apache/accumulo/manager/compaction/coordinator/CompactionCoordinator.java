@@ -382,7 +382,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
         ecm.getCompactTmpName().getNormalizedPathStr(), ecm.getPropagateDeletes(),
         TCompactionKind.valueOf(ecm.getKind().name()),
         ecm.getCompactionId() == null ? 0 : ecm.getCompactionId(), overrides);
-  };
+  }
 
   /**
    * Compactor calls compactionCompleted passing in the CompactionStats
