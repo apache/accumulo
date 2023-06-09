@@ -150,12 +150,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     private final Map<KeyExtent,UnassignedTablet> unassigned = new HashMap<>();
     private final Map<TServerInstance,List<Path>> logsForDeadServers = new TreeMap<>();
     // read only list of tablet servers that are not shutting down
-    private final SortedMap<TServerInstance,TabletServerStatus> validAssignmentDestinations;
+    private final SortedMap<TServerInstance,TabletServerStatus> destinations;
 
     public TabletLists(Manager m, SortedMap<TServerInstance,TabletServerStatus> curTServers) {
       var destinationsMod = new TreeMap<>(curTServers);
       destinationsMod.keySet().removeAll(m.serversToShutdown);
-      this.validAssignmentDestinations = Collections.unmodifiableSortedMap(destinationsMod);
+      this.destinations = Collections.unmodifiableSortedMap(destinationsMod);
     }
 
     public void reset() {
@@ -386,7 +386,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     TServerInstance dest = manager.migrations.get(tablet);
     if (dest != null) {
       // if destination is still good, assign it
-      if (tLists.validAssignmentDestinations.containsKey(dest)) {
+      if (tLists.destinations.containsKey(dest)) {
         tLists.assignments.add(new Assignment(tablet, dest, unassignedTablet.getLastLocation()));
       } else {
         // get rid of this migration
@@ -404,7 +404,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
       // Tablet is suspended. See if its tablet server is back.
       TServerInstance returnInstance = null;
-      Iterator<TServerInstance> find = tLists.validAssignmentDestinations
+      Iterator<TServerInstance> find = tLists.destinations
           .tailMap(new TServerInstance(tls.suspend.server, " ")).keySet().iterator();
       if (find.hasNext()) {
         TServerInstance found = find.next();
@@ -902,13 +902,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private void getAssignmentsFromBalancer(TabletLists tLists,
       Map<KeyExtent,UnassignedTablet> unassigned) {
-    if (!tLists.validAssignmentDestinations.isEmpty()) {
+    if (!tLists.destinations.isEmpty()) {
       Map<KeyExtent,TServerInstance> assignedOut = new HashMap<>();
-      manager.getAssignments(tLists.validAssignmentDestinations, unassigned, assignedOut);
+      manager.getAssignments(tLists.destinations, unassigned, assignedOut);
       for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
         if (unassigned.containsKey(assignment.getKey())) {
           if (assignment.getValue() != null) {
-            if (!tLists.validAssignmentDestinations.containsKey(assignment.getValue())) {
+            if (!tLists.destinations.containsKey(assignment.getValue())) {
               Manager.log.warn(
                   "balancer assigned {} to a tablet server that is not current {} ignoring",
                   assignment.getKey(), assignment.getValue());
