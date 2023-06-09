@@ -24,33 +24,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-public class ZooPropSetToolTest {
+public class ZooPropEditorTest {
 
   @Test
   public void optionsAllDefault() {
-    ZooPropSetTool.Opts opts = new ZooPropSetTool.Opts();
+    ZooPropEditor.Opts opts = new ZooPropEditor.Opts();
     assertTrue(opts.setOpt.isEmpty());
     assertTrue(opts.deleteOpt.isEmpty());
   }
 
   @Test
   public void invalidSetAndDelete() {
-    ZooPropSetTool.Opts opts = new ZooPropSetTool.Opts();
+    ZooPropEditor.Opts opts = new ZooPropEditor.Opts();
     assertThrows(IllegalArgumentException.class, () -> opts.parseArgs(ZooInfoViewer.class.getName(),
         new String[] {"-s", "foo=1", "-d", "bar=2"}));
-  }
-
-  @Test
-  public void failSetAndFilter() {
-    ZooPropSetTool.Opts opts = new ZooPropSetTool.Opts();
-    assertThrows(IllegalArgumentException.class, () -> opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"-s", "foo=1", "-f", "bloom"}));
-  }
-
-  @Test
-  public void failDeleteAndFilter() {
-    ZooPropSetTool.Opts opts = new ZooPropSetTool.Opts();
-    assertThrows(IllegalArgumentException.class, () -> opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"-d", "foo", "-f", "bloom"}));
   }
 }

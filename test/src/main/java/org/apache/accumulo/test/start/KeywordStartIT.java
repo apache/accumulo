@@ -55,7 +55,7 @@ import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.CheckServerConfig;
 import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
 import org.apache.accumulo.server.conf.util.ZooInfoViewer;
-import org.apache.accumulo.server.conf.util.ZooPropSetTool;
+import org.apache.accumulo.server.conf.util.ZooPropEditor;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.ConvertConfig;
@@ -149,7 +149,7 @@ public class KeywordStartIT {
     expectSet.put("split-large", SplitLarge.class);
     expectSet.put("sserver", ScanServerExecutable.class);
     expectSet.put("zoo-info-viewer", ZooInfoViewer.class);
-    expectSet.put("zoo-prop-editor", ZooPropSetTool.class);
+    expectSet.put("zoo-prop-editor", ZooPropEditor.class);
     expectSet.put("zoo-zap", ZooZap.class);
 
     Iterator<Entry<String,Class<? extends KeywordExecutable>>> expectIter =
@@ -204,7 +204,6 @@ public class KeywordStartIT {
     expectSet.add(SimpleGarbageCollector.class);
     expectSet.add(TabletServer.class);
     expectSet.add(ZooInfoViewer.class);
-    expectSet.add(ZooPropSetTool.class);
     expectSet.add(ZooKeeperMain.class);
 
     for (Class<?> c : expectSet) {

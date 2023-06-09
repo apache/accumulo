@@ -18,21 +18,16 @@
  */
 package org.apache.accumulo.test.conf.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.server.conf.util.ZooPropSetTool;
+import org.apache.accumulo.server.conf.util.ZooPropEditor;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,9 +38,9 @@ import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
 @Tag(SUNNY_DAY)
-public class ZooPropSetToolIT extends SharedMiniClusterBase {
+public class ZooPropEditorIT extends SharedMiniClusterBase {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ZooPropSetToolIT.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ZooPropEditorIT.class);
 
   @Override
   protected Duration defaultTimeout() {
@@ -84,24 +79,22 @@ public class ZooPropSetToolIT extends SharedMiniClusterBase {
       assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500));
 
-      ZooPropSetTool tool = new ZooPropSetTool();
-      InstanceId iid = getCluster().getServerContext().getInstanceID();
-
+      ZooPropEditor tool = new ZooPropEditor();
       // before - check setup correct
       assertTrue(Wait.waitFor(() -> client.tableOperations().getTableProperties(table)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500));
 
       // set table property (table.bloom.enabled=true)
-      String[] setTablePropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "--instanceId",
-          iid.toString(), "-t", table, "-s", Property.TABLE_BLOOM_ENABLED.getKey() + "=true"};
+      String[] setTablePropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-t", table,
+          "-s", Property.TABLE_BLOOM_ENABLED.getKey() + "=true"};
       tool.execute(setTablePropArgs);
 
       // after set - check prop changed in ZooKeeper
       assertTrue(Wait.waitFor(() -> client.tableOperations().getTableProperties(table)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500));
 
-      String[] deleteTablePropArgs = {"-p", getCluster().getAccumuloPropertiesPath(),
-          "--instanceId", iid.toString(), "-t", table, "-d", Property.TABLE_BLOOM_ENABLED.getKey()};
+      String[] deleteTablePropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-t", table,
+          "-d", Property.TABLE_BLOOM_ENABLED.getKey()};
       tool.execute(deleteTablePropArgs);
 
       // after delete - check map entry is null (removed from ZooKeeper)
@@ -112,8 +105,8 @@ public class ZooPropSetToolIT extends SharedMiniClusterBase {
       assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500));
 
-      String[] setSystemPropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "--instanceId",
-          iid.toString(), "-s", Property.TABLE_BLOOM_ENABLED.getKey() + "=false"};
+      String[] setSystemPropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-s",
+          Property.TABLE_BLOOM_ENABLED.getKey() + "=false"};
       tool.execute(setSystemPropArgs);
 
       // after set - check map entry is false
@@ -124,98 +117,22 @@ public class ZooPropSetToolIT extends SharedMiniClusterBase {
       assertTrue(Wait.waitFor(() -> client.namespaceOperations().getNamespaceProperties(namespace)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500));
 
-      String[] setNamespacePropArgs =
-          {"-p", getCluster().getAccumuloPropertiesPath(), "--instanceId", iid.toString(), "-ns",
-              namespace, "-s", Property.TABLE_BLOOM_ENABLED.getKey() + "=false"};
+      String[] setNamespacePropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-ns",
+          namespace, "-s", Property.TABLE_BLOOM_ENABLED.getKey() + "=false"};
       tool.execute(setNamespacePropArgs);
 
       // after set - check map entry is false
       assertTrue(Wait.waitFor(() -> client.namespaceOperations().getNamespaceProperties(namespace)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500));
 
-      String[] deleteNamespacePropArgs =
-          {"-p", getCluster().getAccumuloPropertiesPath(), "--instanceId", iid.toString(), "-ns",
-              namespace, "-d", Property.TABLE_BLOOM_ENABLED.getKey()};
+      String[] deleteNamespacePropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-ns",
+          namespace, "-d", Property.TABLE_BLOOM_ENABLED.getKey()};
       tool.execute(deleteNamespacePropArgs);
 
       // after set - check map entry is false
       assertTrue(Wait.waitFor(() -> client.namespaceOperations().getNamespaceProperties(namespace)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()) == null, 5000, 500));
 
-    }
-  }
-
-  @Test
-  public void filterPropTest() throws Exception {
-    String table = getUniqueNames(1)[0];
-
-    var origStream = System.out;
-    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
-
-      client.tableOperations().create(table);
-
-      LOG.debug("Tables: {}", client.tableOperations().list());
-
-      // override default in sys, and then over-ride that for table prop
-      client.instanceOperations().setProperty(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
-      client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "false");
-
-      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500));
-
-      ZooPropSetTool tool = new ZooPropSetTool();
-      InstanceId iid = getCluster().getServerContext().getInstanceID();
-
-      // before - check setup correct
-      assertTrue(Wait.waitFor(() -> client.tableOperations().getTableProperties(table)
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500));
-
-      var baos = new ByteArrayOutputStream();
-      PrintStream testStream = new PrintStream(baos);
-      // Redirecting console output to file
-      System.setOut(testStream);
-
-      // filter on property name
-      String[] args = {"-p", getCluster().getAccumuloPropertiesPath(), "--instanceId",
-          iid.toString(), "-t", table, "-f", "bloom"};
-      tool.execute(args);
-      testStream.flush();
-
-      LOG.debug("Stream: {}", baos.toString(UTF_8));
-      assertTrue(baos.toString(UTF_8).contains(Property.TABLE_BLOOM_ENABLED.getKey()));
-
-      baos.reset();
-      testStream = new PrintStream(baos);
-      // Redirecting console output to file
-      System.setOut(testStream);
-
-      // filter based on value
-      String[] args2 = {"-p", getCluster().getAccumuloPropertiesPath(), "--instanceId",
-          iid.toString(), "-t", table, "-fv", "false"};
-      tool.execute(args2);
-
-      testStream.flush();
-
-      LOG.debug("Stream2: {}", baos.toString(UTF_8));
-      assertTrue(baos.toString(UTF_8).contains(Property.TABLE_BLOOM_ENABLED.getKey()));
-
-      baos.reset();
-      testStream = new PrintStream(baos);
-      // Redirecting console output to file
-      System.setOut(testStream);
-
-      // filter on value - not found
-      String[] args3 = {"-p", getCluster().getAccumuloPropertiesPath(), "--instanceId",
-          iid.toString(), "-t", table, "-fv", "foo"};
-      tool.execute(args3);
-
-      testStream.flush();
-
-      LOG.debug("Stream3: {}", baos.toString(UTF_8));
-      assertTrue(baos.toString(UTF_8).contains("none"));
-      assertFalse(baos.toString(UTF_8).contains(Property.TABLE_BLOOM_ENABLED.getKey()));
-
-      System.setOut(origStream);
     }
   }
 }

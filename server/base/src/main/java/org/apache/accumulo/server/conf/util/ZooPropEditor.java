@@ -19,7 +19,6 @@
 package org.apache.accumulo.server.conf.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.server.conf.util.ZooPropUtils.getInstanceId;
 import static org.apache.accumulo.server.conf.util.ZooPropUtils.getNamespaceIdToNameMap;
 import static org.apache.accumulo.server.conf.util.ZooPropUtils.getTableIdToName;
 
@@ -32,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.Property;
@@ -60,20 +58,16 @@ import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class ZooPropSetTool implements KeywordExecutable {
+public class ZooPropEditor implements KeywordExecutable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ZooPropSetTool.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ZooPropEditor.class);
   private final NullWatcher nullWatcher =
       new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
 
   /**
    * No-op constructor - provided so ServiceLoader autoload does not consume resources.
    */
-  public ZooPropSetTool() {}
-
-  public static void main(String[] args) throws Exception {
-    new ZooPropSetTool().execute(args);
-  }
+  public ZooPropEditor() {}
 
   @Override
   public String keyword() {
@@ -88,18 +82,15 @@ public class ZooPropSetTool implements KeywordExecutable {
 
   @Override
   public void execute(String[] args) throws Exception {
-    ZooPropSetTool.Opts opts = new ZooPropSetTool.Opts();
-    opts.parseArgs(ZooPropSetTool.class.getName(), args);
+    ZooPropEditor.Opts opts = new ZooPropEditor.Opts();
+    opts.parseArgs(ZooPropEditor.class.getName(), args);
 
     ZooReaderWriter zrw = new ZooReaderWriter(opts.getSiteConfiguration());
 
-    InstanceId iid = getInstanceId(zrw, opts.instanceId, opts.instanceName);
-    if (iid == null) {
-      throw new IllegalArgumentException("Cannot continue without a valid instance.");
-    }
-
     var siteConfig = opts.getSiteConfiguration();
     try (ServerContext context = new ServerContext(siteConfig)) {
+
+      InstanceId iid = context.getInstanceID();
 
       PropStoreKey<?> propKey = getPropKey(iid, opts, zrw);
       switch (opts.getCmdMode()) {
@@ -110,7 +101,7 @@ public class ZooPropSetTool implements KeywordExecutable {
           deleteProperty(context, propKey, readPropNode(propKey, zrw), opts);
           break;
         case PRINT:
-          printProperties(context, propKey, readPropNode(propKey, zrw), opts);
+          printProperties(context, propKey, readPropNode(propKey, zrw));
           break;
         case ERROR:
         default:
@@ -149,7 +140,7 @@ public class ZooPropSetTool implements KeywordExecutable {
   }
 
   private void printProperties(final ServerContext context, final PropStoreKey<?> propKey,
-      final VersionedProperties props, final Opts opts) {
+      final VersionedProperties props) {
     LOG.trace("print {}", propKey);
 
     OutputStream outStream = System.out;
@@ -168,10 +159,10 @@ public class ZooPropSetTool implements KeywordExecutable {
     try (PrintWriter writer =
         new PrintWriter(new BufferedWriter(new OutputStreamWriter(outStream, UTF_8)))) {
       // header
-      writer.printf("- Instance name: %s\n", context.getInstanceName());
-      writer.printf("- Instance id: %s\n", context.getInstanceID());
-      writer.printf("- Property scope: - %s\n", scope);
-      writer.printf("- id: %s, data version: %d, timestamp: %s\n", propKey.getId(),
+      writer.printf("+ Instance name: %s\n", context.getInstanceName());
+      writer.printf("+ Instance id: %s\n", context.getInstanceID());
+      writer.printf("+ Property scope: - %s\n", scope);
+      writer.printf("+ id: %s, data version: %d, timestamp: %s\n", propKey.getId(),
           props.getDataVersion(), props.getTimestampISO());
 
       // skip filtering if no props
@@ -180,37 +171,8 @@ public class ZooPropSetTool implements KeywordExecutable {
         return;
       }
 
-      SortedMap<String,String> sortedMap = filterProps(props, opts);
-      // skip print if all filtered out
-      if (sortedMap.isEmpty()) {
-        writer.println("none");
-        return;
-      }
+      SortedMap<String,String> sortedMap = new TreeMap<>(props.asMap());
       sortedMap.forEach((name, value) -> writer.printf("%s=%s\n", name, value));
-    }
-  }
-
-  /**
-   * If a filter is provided, filter the properties and return the map sorted for consistent
-   * presentation. If no filter is provided, all properties for the property node are returned.
-   */
-  private SortedMap<String,String> filterProps(VersionedProperties props, Opts opts) {
-    var propsMap = props.asMap();
-
-    Filter filter = opts.getFilter();
-    switch (filter.getMode()) {
-      case NAME:
-        String nameFilter = filter.getString();
-        return new TreeMap<>(
-            propsMap.entrySet().stream().filter(e -> e.getKey().contains(nameFilter))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-      case NAME_VAL:
-        String nvFilter = filter.getString();
-        return new TreeMap<>(propsMap.entrySet().stream()
-            .filter(e -> (e.getKey().contains(nvFilter) || e.getValue().contains(nvFilter)))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-      default:
-        return new TreeMap<>(propsMap);
     }
   }
 
@@ -223,7 +185,7 @@ public class ZooPropSetTool implements KeywordExecutable {
     }
   }
 
-  private PropStoreKey<?> getPropKey(final InstanceId iid, final ZooPropSetTool.Opts opts,
+  private PropStoreKey<?> getPropKey(final InstanceId iid, final ZooPropEditor.Opts opts,
       final ZooReader zooReader) {
 
     // either tid or table name option provided, get the table id
@@ -242,7 +204,7 @@ public class ZooPropSetTool implements KeywordExecutable {
     return SystemPropKey.of(iid);
   }
 
-  private TableId getTableId(final InstanceId iid, final ZooPropSetTool.Opts opts,
+  private TableId getTableId(final InstanceId iid, final ZooPropEditor.Opts opts,
       final ZooReader zooReader) {
     if (!opts.tableIdOpt.isEmpty()) {
       return TableId.of(opts.tableIdOpt);
@@ -255,7 +217,7 @@ public class ZooPropSetTool implements KeywordExecutable {
         .orElseThrow(() -> new IllegalArgumentException("Could not find table " + opts.tableOpt));
   }
 
-  private NamespaceId getNamespaceId(final InstanceId iid, final ZooPropSetTool.Opts opts,
+  private NamespaceId getNamespaceId(final InstanceId iid, final ZooPropEditor.Opts opts,
       final ZooReader zooReader) {
     if (!opts.namespaceIdOpt.isEmpty()) {
       return NamespaceId.of(opts.namespaceIdOpt);
@@ -270,18 +232,6 @@ public class ZooPropSetTool implements KeywordExecutable {
 
     @Parameter(names = {"-d", "--delete"}, description = "delete a property")
     public String deleteOpt = "";
-    @Parameter(names = {"-f", "--filter"},
-        description = "show only properties that contain this string in their name.")
-    public String filterOpt = "";
-    @Parameter(names = {"-fv", "--filter-with-values"},
-        description = "show only properties that contain this string in their name.")
-    public String filterWithValuesOpt = "";
-    @Parameter(names = {"--instanceName"},
-        description = "Specify the instance name to use. If instance name or id are not provided, determined from configuration (requires a running hdfs instance)")
-    public String instanceName = "";
-    @Parameter(names = {"--instanceId"},
-        description = "Specify the instance id to use. If instance name or id are not provided, determined from configuration (requires a running hdfs instance)")
-    public String instanceId = "";
     @Parameter(names = {"-ns", "--namespace"},
         description = "namespace to display/set/delete properties for")
     public String namespaceOpt = "";
@@ -297,8 +247,6 @@ public class ZooPropSetTool implements KeywordExecutable {
         description = "table id to display/set/delete properties for")
     public String tableIdOpt = "";
 
-    private Filter filter = null;
-
     @Override
     public void parseArgs(String programName, String[] args, Object... others) {
       super.parseArgs(programName, args, others);
@@ -306,15 +254,6 @@ public class ZooPropSetTool implements KeywordExecutable {
       if (cmdMode == Opts.CmdMode.ERROR) {
         throw new IllegalArgumentException("Cannot use set and delete in one command");
       }
-      filter = new Filter(this);
-      if (!filter.getString().isEmpty()
-          && (cmdMode == Opts.CmdMode.SET || cmdMode == CmdMode.DELETE)) {
-        throw new IllegalArgumentException("Cannot use filter with set or delete");
-      }
-    }
-
-    Filter getFilter() {
-      return filter;
     }
 
     CmdMode getCmdMode() {
@@ -332,54 +271,6 @@ public class ZooPropSetTool implements KeywordExecutable {
 
     enum CmdMode {
       ERROR, PRINT, SET, DELETE
-    }
-  }
-
-  /**
-   * The filter type and the filter string specified by command line options. Filter types are - no
-   * filter, filter on name or filter by name or value.
-   */
-  private static class Filter {
-    private final ZooPropSetTool.Opts opts;
-
-    enum Mode {
-      NONE, NAME, NAME_VAL
-    }
-
-    public Filter(ZooPropSetTool.Opts opts) {
-      this.opts = opts;
-    }
-
-    Mode getMode() {
-      if (!opts.filterOpt.isEmpty() && !opts.filterWithValuesOpt.isEmpty()) {
-        LOG.info(
-            "Filter by name and by name and value provided, using by name and value with: `{}`",
-            opts.filterWithValuesOpt);
-        return Mode.NAME_VAL;
-      }
-
-      if (!opts.filterOpt.isEmpty()) {
-        LOG.trace("Filter by name with: `{}`", opts.filterOpt);
-        return Mode.NAME;
-      }
-
-      if (!opts.filterWithValuesOpt.isEmpty()) {
-        LOG.trace("Filter by name and values with: `{}`", opts.filterWithValuesOpt);
-        return Mode.NAME_VAL;
-      }
-      return Mode.NONE;
-    }
-
-    String getString() {
-      Filter.Mode mode = getMode();
-      switch (mode) {
-        case NAME:
-          return opts.filterOpt;
-        case NAME_VAL:
-          return opts.filterWithValuesOpt;
-        default:
-          return "";
-      }
     }
   }
 
