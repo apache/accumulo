@@ -159,10 +159,10 @@ public class ZooPropEditor implements KeywordExecutable {
     try (PrintWriter writer =
         new PrintWriter(new BufferedWriter(new OutputStreamWriter(outStream, UTF_8)))) {
       // header
-      writer.printf("+ Instance name: %s\n", context.getInstanceName());
-      writer.printf("+ Instance id: %s\n", context.getInstanceID());
-      writer.printf("+ Property scope: - %s\n", scope);
-      writer.printf("+ id: %s, data version: %d, timestamp: %s\n", propKey.getId(),
+      writer.printf(": Instance name: %s\n", context.getInstanceName());
+      writer.printf(": Instance id: %s\n", context.getInstanceID());
+      writer.printf(": Property scope: - %s\n", scope);
+      writer.printf(": id: %s, data version: %d, timestamp: %s\n", propKey.getId(),
           props.getDataVersion(), props.getTimestampISO());
 
       // skip filtering if no props
