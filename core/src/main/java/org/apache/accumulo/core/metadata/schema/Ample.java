@@ -277,7 +277,7 @@ public interface Ample {
 
     TabletMutator putBulkFile(ReferencedTabletFile bulkref, long tid);
 
-    TabletMutator deleteBulkFile(ReferencedTabletFile bulkref);
+    TabletMutator deleteBulkFile(StoredTabletFile bulkref);
 
     TabletMutator putChopped();
 
