@@ -338,7 +338,7 @@ public interface Ample {
 
     T putBulkFile(ReferencedTabletFile bulkref, long tid);
 
-    T deleteBulkFile(ReferencedTabletFile bulkref); // TODO should probably be a stored tablet file
+    T deleteBulkFile(ReferencedTabletFile bulkref);
 
     T putChopped();
 
