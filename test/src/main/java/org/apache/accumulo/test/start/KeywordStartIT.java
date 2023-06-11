@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.compactor.CompactorExecutable;
@@ -47,6 +48,7 @@ import org.apache.accumulo.core.util.Version;
 import org.apache.accumulo.gc.GCExecutable;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.manager.ManagerExecutable;
+import org.apache.accumulo.manager.MasterExecutable;
 import org.apache.accumulo.minicluster.MiniAccumuloRunner;
 import org.apache.accumulo.miniclusterImpl.MiniClusterExecutable;
 import org.apache.accumulo.monitor.Monitor;
@@ -123,8 +125,8 @@ public class KeywordStartIT {
     expectSet.put("check-server-config", CheckServerConfig.class);
     expectSet.put("compaction-coordinator", CoordinatorExecutable.class);
     expectSet.put("compactor", CompactorExecutable.class);
-    expectSet.put("config-upgrade", ConfigPropertyUpgrader.class);
     expectSet.put("convert-config", ConvertConfig.class);
+    expectSet.put("config-upgrade", ConfigPropertyUpgrader.class);
     expectSet.put("create-token", CreateToken.class);
     expectSet.put("dump-zoo", DumpZookeeper.class);
     expectSet.put("ec-admin", ECAdmin.class);
@@ -135,7 +137,7 @@ public class KeywordStartIT {
     expectSet.put("init", Initialize.class);
     expectSet.put("login-info", LoginProperties.class);
     expectSet.put("manager", ManagerExecutable.class);
-    expectSet.put("master", org.apache.accumulo.manager.MasterExecutable.class);
+    expectSet.put("master", MasterExecutable.class);
     expectSet.put("minicluster", MiniClusterExecutable.class);
     expectSet.put("monitor", MonitorExecutable.class);
     expectSet.put("rfile-info", PrintInfo.class);
@@ -179,8 +181,12 @@ public class KeywordStartIT {
     assertFalse(moreActual, "Found additional unexpected classes");
   }
 
+  /**
+   * This test validates that legacy tools that had a main method that the main method is not
+   * removed to support user scripts that may use that main method. New utilities should refrain
+   * from adding a main method and instead rely on the ServiceLoader capability.
+   */
   @Test
-  @SuppressWarnings("deprecation")
   public void checkHasMain() {
     assertFalse(hasMain(this.getClass()),
         "Sanity check for test failed. Somehow the test class has a main method");
@@ -193,7 +199,6 @@ public class KeywordStartIT {
     expectSet.add(Info.class);
     expectSet.add(Initialize.class);
     expectSet.add(LoginProperties.class);
-    expectSet.add(org.apache.accumulo.master.Master.class);
     expectSet.add(MiniAccumuloRunner.class);
     expectSet.add(Monitor.class);
     expectSet.add(PrintInfo.class);
@@ -203,10 +208,41 @@ public class KeywordStartIT {
     expectSet.add(TabletServer.class);
     expectSet.add(ZooKeeperMain.class);
 
+    expectSet.add(ConvertConfig.class);
+    expectSet.add(ConfigPropertyUpgrader.class);
+    expectSet.add(CheckServerConfig.class);
+    expectSet.add(CreateEmpty.class);
+    expectSet.add(ECAdmin.class);
+    expectSet.add(GenerateSplits.class);
+    expectSet.add(SplitLarge.class);
+    expectSet.add(ZooZap.class);
+
+    // check that classes in the expected set contain a main
     for (Class<?> c : expectSet) {
       assertTrue(hasMain(c), "Class " + c.getName() + " is missing a main method!");
     }
 
+    // build a list of all classed that implement KeywordExecutable
+    TreeMap<String,KeywordExecutable> foundExecutables =
+        new TreeMap<>(Main.getExecutables(getClass().getClassLoader()));
+
+    // get the classes in the expected set that are in the foundExecutable
+    Set<String> toRemove = new HashSet<>();
+    foundExecutables.forEach((k, v) -> {
+      if (expectSet.contains(v.getClass())) {
+        log.trace("expecting to see {}, remove from found set", v.getClass().getName());
+        toRemove.add(k);
+      }
+    });
+
+    // remove the expected classes from the foundExecutables collection
+    toRemove.forEach(foundExecutables::remove);
+
+    // classes that remain should not contain a main
+    log.debug("Checking: {} classes for a main method: {}", foundExecutables.size(),
+        foundExecutables);
+    foundExecutables.values().forEach(c -> assertFalse(hasMain(c.getClass()),
+        "Class " + c.getClass().getName() + " has a main method!"));
   }
 
   private static boolean hasMain(Class<?> classToCheck) {
