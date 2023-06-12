@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.BatchScanner;
@@ -69,7 +69,7 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
 
   // This constructor is called from utilities and tests
   public TabletManagementScanner(ClientContext context, Range range, String tableName) {
-    this(context, range, null, tableName, new ConcurrentLinkedQueue<>());
+    this(context, range, null, tableName, new ArrayBlockingQueue<>(1_000));
   }
 
   @Override
