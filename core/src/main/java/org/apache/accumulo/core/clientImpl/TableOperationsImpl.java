@@ -2155,33 +2155,22 @@ public class TableOperationsImpl extends TableOperationsHelper {
       final Range range) throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    List<HostingGoalForTablet> hostingInfo = new ArrayList<>();
-
     final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
     TableId tableId = context.getTableId(tableName);
 
-    try (TabletsMetadata m =
+    TabletsMetadata tabletsMetadata =
         context.getAmple().readTablets().forTable(tableId).overlapping(scanRangeStart, true, null)
-            .fetch(HOSTING_GOAL, PREV_ROW).checkConsistency().build()) {
+            .fetch(HOSTING_GOAL, PREV_ROW).checkConsistency().build();
 
-      for (TabletMetadata tm : m) {
-        final KeyExtent tabletExtent = tm.getExtent();
-        if (scanRangeStart != null && tm.getEndRow() != null
-            && tm.getEndRow().compareTo(scanRangeStart) < 0) {
-          // the end row of this tablet is before the start row, skip it
-          log.debug(">>>> tablet {} is before scan start range: {}", tabletExtent, scanRangeStart);
-          throw new RuntimeException("Bug in ample or this code.");
-        }
-        if (tm.getPrevEndRow() != null
-            && range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW))) {
-          break;
-        }
-        hostingInfo
-            .add(new HostingGoalForTablet(new TabletIdImpl(tabletExtent), tm.getHostingGoal()));
+    return tabletsMetadata.stream().peek(tm -> {
+      if (scanRangeStart != null && tm.getEndRow() != null
+          && tm.getEndRow().compareTo(scanRangeStart) < 0) {
+        log.debug(">>>> tablet {} is before scan start range: {}", tm.getExtent(), scanRangeStart);
+        throw new RuntimeException("Bug in ample or this code.");
       }
-
-    }
-    return hostingInfo.stream();
+    }).takeWhile(tm -> !(tm.getPrevEndRow() != null
+        && range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW))))
+        .map(tm -> new HostingGoalForTablet(new TabletIdImpl(tm.getExtent()), tm.getHostingGoal()))
+        .onClose(tabletsMetadata::close);
   }
-
 }
