@@ -48,7 +48,6 @@ import org.apache.accumulo.core.util.Version;
 import org.apache.accumulo.gc.GCExecutable;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.manager.ManagerExecutable;
-import org.apache.accumulo.manager.MasterExecutable;
 import org.apache.accumulo.minicluster.MiniAccumuloRunner;
 import org.apache.accumulo.miniclusterImpl.MiniClusterExecutable;
 import org.apache.accumulo.monitor.Monitor;
@@ -137,7 +136,7 @@ public class KeywordStartIT {
     expectSet.put("init", Initialize.class);
     expectSet.put("login-info", LoginProperties.class);
     expectSet.put("manager", ManagerExecutable.class);
-    expectSet.put("master", MasterExecutable.class);
+    expectSet.put("master", org.apache.accumulo.manager.MasterExecutable.class);
     expectSet.put("minicluster", MiniClusterExecutable.class);
     expectSet.put("monitor", MonitorExecutable.class);
     expectSet.put("rfile-info", PrintInfo.class);
