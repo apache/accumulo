@@ -124,10 +124,10 @@ public class ZooInfoViewer implements KeywordExecutable {
 
     ZooReader zooReader = new ZooReaderWriter(conf);
 
-    ServerContext context = new ServerContext(conf);
-    InstanceId iid = context.getInstanceID();
-
-    generateReport(iid, opts, zooReader);
+    try (ServerContext context = new ServerContext(conf)) {
+      InstanceId iid = context.getInstanceID();
+      generateReport(iid, opts, zooReader);
+    }
   }
 
   void generateReport(final InstanceId iid, final ZooInfoViewer.Opts opts,
