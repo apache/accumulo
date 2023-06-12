@@ -2168,8 +2168,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug(">>>> tablet {} is before scan start range: {}", tm.getExtent(), scanRangeStart);
         throw new RuntimeException("Bug in ample or this code.");
       }
-    }).takeWhile(tm -> !(tm.getPrevEndRow() != null
-        && range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW))))
+    }).takeWhile(tm -> tm.getPrevEndRow() == null
+        || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
         .map(tm -> new HostingGoalForTablet(new TabletIdImpl(tm.getExtent()), tm.getHostingGoal()))
         .onClose(tabletsMetadata::close);
   }
