@@ -56,6 +56,7 @@ import org.apache.accumulo.monitor.MonitorExecutable;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.CheckServerConfig;
 import org.apache.accumulo.server.conf.util.ZooInfoViewer;
+import org.apache.accumulo.server.conf.util.ZooPropEditor;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.DumpZookeeper;
@@ -151,6 +152,7 @@ public class KeywordStartIT {
     expectSet.put("version", Version.class);
     expectSet.put("wal-info", LogReader.class);
     expectSet.put("zoo-info-viewer", ZooInfoViewer.class);
+    expectSet.put("zoo-prop-editor", ZooPropEditor.class);
     expectSet.put("zoo-zap", ZooZap.class);
     expectSet.put("zookeeper", ZooKeeperMain.class);
 
