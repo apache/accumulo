@@ -16,34 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.coordinator;
+package org.apache.accumulo.core.compaction;
 
-import org.apache.accumulo.start.spi.KeywordExecutable;
+import java.net.URISyntaxException;
 
-import com.google.auto.service.AutoService;
+import org.junit.jupiter.api.Test;
 
-@AutoService(KeywordExecutable.class)
-public class CoordinatorExecutable implements KeywordExecutable {
+public class ShellCompactCommandSelectorTest {
 
-  @Override
-  public String keyword() {
-    return "compaction-coordinator";
+  @Test
+  public void testSelection() throws URISyntaxException {
+    // file selection options are adequately tested by ShellServerIT, so this is just a placeholder
   }
-
-  @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.PROCESS;
-  }
-
-  @Override
-  public String description() {
-    return "Starts Accumulo Compaction Coordinator";
-  }
-
-  @Override
-  public void execute(final String[] args) throws Exception {
-    System.err.println("WARNING: External compaction processes are experimental");
-    CompactionCoordinator.main(args);
-  }
-
 }

@@ -220,9 +220,9 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T deleteBulkFile(ReferencedTabletFile bulkref) {
+  public T deleteBulkFile(StoredTabletFile bulkref) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(BulkFileColumnFamily.NAME, bulkref.getMetaInsertText());
+    mutation.putDelete(BulkFileColumnFamily.NAME, bulkref.getMetaUpdateDeleteText());
     return getThis();
   }
 

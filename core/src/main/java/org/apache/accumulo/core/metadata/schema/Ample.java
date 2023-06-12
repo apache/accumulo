@@ -338,7 +338,7 @@ public interface Ample {
 
     T putBulkFile(ReferencedTabletFile bulkref, long tid);
 
-    T deleteBulkFile(ReferencedTabletFile bulkref);
+    T deleteBulkFile(StoredTabletFile bulkref);
 
     T putChopped();
 

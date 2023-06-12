@@ -291,8 +291,8 @@ public interface TableOperations {
 
   /**
    * Starts a full major compaction of the tablets in the range (start, end]. If the config does not
-   * specify a compaction selector (or a deprecated strategy), then all files in a tablet are
-   * compacted. The compaction is performed even for tablets that have only one file.
+   * specify a compaction selector, then all files in a tablet are compacted. The compaction is
+   * performed even for tablets that have only one file.
    *
    * <p>
    * The following optional settings can only be set by one compact call per table at the same time.
