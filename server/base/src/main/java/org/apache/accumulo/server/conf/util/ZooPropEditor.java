@@ -160,14 +160,17 @@ public class ZooPropEditor implements KeywordExecutable {
         new PrintWriter(new BufferedWriter(new OutputStreamWriter(outStream, UTF_8)))) {
       // header
       writer.printf(": Instance name: %s\n", context.getInstanceName());
-      writer.printf(": Instance id: %s\n", context.getInstanceID());
-      writer.printf(": Property scope: - %s\n", scope);
-      writer.printf(": id: %s, data version: %d, timestamp: %s\n", propKey.getId(),
-          props.getDataVersion(), props.getTimestampISO());
+      writer.printf(": Instance Id: %s\n", context.getInstanceID());
+      writer.printf(": Property scope: %s\n", scope);
+      writer.printf(": ZooKeeper path: %s\n", propKey.getPath());
+      writer.printf(": Name: %s\n",
+          getDisplayName(propKey, context.getInstanceID(), context.getZooReader()));
+      writer.printf(": Id: %s\n", propKey.getId());
+      writer.printf(": Data version: %d\n", props.getDataVersion());
+      writer.printf(": Timestamp: %s\n", props.getTimestampISO());
 
       // skip filtering if no props
       if (props.asMap().isEmpty()) {
-        writer.println("none");
         return;
       }
 
@@ -226,6 +229,26 @@ public class ZooPropEditor implements KeywordExecutable {
     return nids.entrySet().stream().filter(entry -> opts.namespaceOpt.equals(entry.getValue()))
         .map(Map.Entry::getKey).findAny().orElseThrow(
             () -> new IllegalArgumentException("Could not find namespace " + opts.namespaceOpt));
+  }
+
+  private String getDisplayName(final PropStoreKey<?> propStoreKey, final InstanceId iid,
+      final ZooReader zooReader) {
+
+    if (propStoreKey instanceof TablePropKey) {
+      Map<NamespaceId,String> nids = getNamespaceIdToNameMap(iid, zooReader);
+      return getTableIdToName(iid, nids, zooReader).getOrDefault((TableId) propStoreKey.getId(),
+          "unknown");
+    }
+    if (propStoreKey instanceof NamespacePropKey) {
+      return getNamespaceIdToNameMap(iid, zooReader)
+          .getOrDefault((NamespaceId) propStoreKey.getId(), "unknown");
+    }
+    if (propStoreKey instanceof SystemPropKey) {
+      return "system";
+    }
+    LOG.info("Undefined PropStoreKey type provided, cannot decode name for classname: {}",
+        propStoreKey.getClass().getName());
+    return "unknown";
   }
 
   static class Opts extends ConfigOpts {
