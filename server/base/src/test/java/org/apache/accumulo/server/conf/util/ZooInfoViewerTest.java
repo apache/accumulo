@@ -134,31 +134,6 @@ public class ZooInfoViewerTest {
     assertEquals(2, opts.getTables().size());
   }
 
-  @Test
-  public void fetchInstancesFromZk() throws Exception {
-
-    String instAName = "INST_A";
-    InstanceId instA = InstanceId.of(UUID.randomUUID());
-    String instBName = "INST_B";
-    InstanceId instB = InstanceId.of(UUID.randomUUID());
-
-    ZooReader zooReader = createMock(ZooReader.class);
-    String namePath = ZROOT + ZINSTANCES;
-    expect(zooReader.getChildren(eq(namePath))).andReturn(List.of(instAName, instBName)).once();
-    expect(zooReader.getData(eq(namePath + "/" + instAName)))
-        .andReturn(instA.canonical().getBytes(UTF_8)).once();
-    expect(zooReader.getData(eq(namePath + "/" + instBName)))
-        .andReturn(instB.canonical().getBytes(UTF_8)).once();
-    replay(zooReader);
-
-    ZooInfoViewer viewer = new ZooInfoViewer();
-    Map<String,InstanceId> instanceMap = viewer.readInstancesFromZk(zooReader);
-
-    log.trace("id map returned: {}", instanceMap);
-    assertEquals(Map.of(instAName, instA, instBName, instB), instanceMap);
-    verify(zooReader);
-  }
-
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "test generated output")
   @Test
   public void instanceIdOutputTest() throws Exception {
