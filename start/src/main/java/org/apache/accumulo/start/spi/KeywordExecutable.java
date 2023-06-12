@@ -37,8 +37,9 @@ import java.util.ServiceLoader;
  * <a href="https://github.com/google/auto/tree/master/service">AutoService</a> annotation.
  *
  * <p>
- * If the implementing class also wishes to have a redundant main method, it may be useful to simply
- * implement main as:<br>
+ * It generally should be avoided, but if the implementing class also must have a redundant main
+ * method, it may be useful to simply implement main as the following to ensure consistency of
+ * behavior when executing the main method and when executing using the keyword:<br>
  * {@code new MyImplementingClass().execute(args);}
  */
 public interface KeywordExecutable {
