@@ -91,19 +91,11 @@ public class TServerInstance implements Comparable<TServerInstance> {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((group == null) ? 0 : group.hashCode());
-    result =
-        prime * result + ((hostPortSessionGroup == null) ? 0 : hostPortSessionGroup.hashCode());
-    return result;
+    return this.hostPortSessionGroup.hashCode();
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == null) {
-      return false;
-    }
     if (obj instanceof TServerInstance) {
       return compareTo((TServerInstance) obj) == 0;
     }
