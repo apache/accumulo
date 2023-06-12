@@ -34,13 +34,11 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,46 +47,6 @@ public class ZooPropUtils {
   private static final Logger LOG = LoggerFactory.getLogger(ZooPropUtils.class);
 
   private ZooPropUtils() {}
-
-  /**
-   * Get the instanceID from the command line options, or from value stored in HDFS. The search
-   * order is:
-   * <ol>
-   * <li>command line: --instanceId option</li>
-   * <li>command line: --instanceName option</li>
-   * <li>HDFS</li>
-   * </ol>
-   *
-   * @param zooReader a ZooReader
-   * @param instanceId the instance id (can specify id, or name, id take precedence)
-   * @param instanceName the instance name
-   * @return an instance id
-   */
-  public static InstanceId getInstanceId(final ZooReader zooReader, final String instanceId,
-      final String instanceName) {
-
-    if (!instanceId.isEmpty()) {
-      return InstanceId.of(instanceId);
-    }
-    if (!instanceName.isEmpty()) {
-      Map<String,InstanceId> instanceNameToIdMap = readInstancesFromZk(zooReader);
-      for (Map.Entry<String,InstanceId> e : instanceNameToIdMap.entrySet()) {
-        if (e.getKey().equals(instanceName)) {
-          return e.getValue();
-        }
-      }
-      throw new IllegalArgumentException(
-          "Specified instance name '" + instanceName + "' not found in ZooKeeper");
-    }
-
-    try (ServerContext context = new ServerContext(SiteConfiguration.auto())) {
-      return context.getInstanceID();
-    } catch (Exception ex) {
-      throw new IllegalArgumentException(
-          "Failed to read instance id from HDFS. Instances can be specified on the command line",
-          ex);
-    }
-  }
 
   /**
    * Read the instance names and instance ids from ZooKeeper. The storage structure in ZooKeeper is:

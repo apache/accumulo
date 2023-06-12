@@ -42,22 +42,6 @@ class ZooPropUtilsTest {
   private static final Logger LOG = LoggerFactory.getLogger(ZooPropUtilsTest.class);
 
   @Test
-  public void instanceNameTest() {
-    String uuid = UUID.randomUUID().toString();
-    ZooReader zooReader = createMock(ZooReader.class);
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
-    opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"--instanceId", uuid, "--instanceName", "foo"});
-    replay(zooReader);
-
-    InstanceId found = ZooPropUtils.getInstanceId(zooReader, opts.instanceId, opts.instanceName);
-
-    assertEquals(InstanceId.of(uuid), found);
-
-    verify(zooReader);
-  }
-
-  @Test
   public void fetchInstancesFromZk() throws Exception {
 
     String instAName = "INST_A";
@@ -81,33 +65,4 @@ class ZooPropUtilsTest {
     verify(zooReader);
   }
 
-  /**
-   * Expect that instance id passed is returned, instance name and zooReader are ignored.
-   */
-  @Test
-  public void instanceIdOption() throws Exception {
-
-    String instAName = "INST_A";
-    InstanceId instA = InstanceId.of(UUID.randomUUID());
-    String instBName = "INST_B";
-    InstanceId instB = InstanceId.of(UUID.randomUUID());
-
-    ZooReader zooReader = createMock(ZooReader.class);
-    String namePath = ZROOT + ZINSTANCES;
-    expect(zooReader.getChildren(eq(namePath))).andReturn(List.of(instAName, instBName)).once();
-    expect(zooReader.getData(eq(namePath + "/" + instAName)))
-        .andReturn(instA.canonical().getBytes(UTF_8)).once();
-    expect(zooReader.getData(eq(namePath + "/" + instBName)))
-        .andReturn(instB.canonical().getBytes(UTF_8)).once();
-    replay(zooReader);
-
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
-    opts.parseArgs(ZooInfoViewer.class.getName(), new String[] {"--instanceName", instBName});
-
-    InstanceId found = ZooPropUtils.getInstanceId(zooReader, opts.instanceId, opts.instanceName);
-
-    assertEquals(instB, found);
-
-    verify(zooReader);
-  }
 }
