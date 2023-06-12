@@ -224,7 +224,6 @@ public class KeywordStartIT {
     expectSet.add(SimpleGarbageCollector.class);
     expectSet.add(SplitLarge.class);
     expectSet.add(TabletServer.class);
-    expectSet.add(ZooInfoViewer.class);
     expectSet.add(ZooKeeperMain.class);
     expectSet.add(ZooZap.class);
 
