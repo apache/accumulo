@@ -630,9 +630,10 @@
         <version>2.2.1.Final</version>
       </dependency>
       <dependency>
+        <!-- stay on 3.21.0 for now due to https://github.com/apache/accumulo/issues/3446 -->
         <groupId>org.jline</groupId>
         <artifactId>jline</artifactId>
-        <version>3.22.0</version>
+        <version>3.21.0</version>
       </dependency>
       <dependency>
         <groupId>org.latencyutils</groupId>
