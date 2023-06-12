@@ -32,10 +32,13 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,6 +47,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SortedSet;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
@@ -53,6 +57,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.sample.RowColumnSampler;
 import org.apache.accumulo.core.client.sample.RowSampler;
@@ -100,6 +105,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -1225,14 +1231,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void goal() throws Exception {
+  public void testSetGoalCommand() throws Exception {
     final String table = getUniqueNames(1)[0];
     ts.exec("createtable " + table);
     ts.exec("addsplits -t " + table + " a c e g");
-    String result = ts.exec("goal -?");
+    String result = ts.exec("setgoal -?");
     assertTrue(result.contains("Sets the hosting goal"));
-    ts.exec("goal -t " + table + " -b a -e a -g never");
-    ts.exec("goal -t " + table + " -b c -e e -ee -g always");
+    ts.exec("setgoal -t " + table + " -b a -e a -g never");
+    ts.exec("setgoal -t " + table + " -b c -e e -ee -g always");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
         Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       String tableId = client.tableOperations().tableIdMap().get(table);
@@ -1242,11 +1248,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
       for (Entry<Key,Value> e : s) {
         switch (e.getKey().getRow().toString()) {
           case "1;c":
-            assertEquals(TabletHostingGoal.NEVER.name(), e.getValue().toString());
-            break;
           case "1;e":
             assertEquals(TabletHostingGoal.ALWAYS.name(), e.getValue().toString());
             break;
+          case "1;a":
+            assertEquals(TabletHostingGoal.NEVER.name(), e.getValue().toString());
+            break;
+          case "1;g":
           case "1<":
             // this tablet was loaded ondemand when we executed
             // the addsplits command
@@ -1257,6 +1265,105 @@ public class ShellServerIT extends SharedMiniClusterBase {
         }
       }
     }
+  }
+
+  @Test
+  public void testGetGoalCommand() throws IOException, TableNotFoundException {
+
+    SortedSet<Text> splits =
+        Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("s")));
+
+    final String tableName = getUniqueNames(1)[0];
+    java.nio.file.Path splitsFilePath = null;
+
+    try {
+      splitsFilePath = createSplitsFile("splitsFile", splits);
+
+      ts.exec("createtable " + tableName + " -sf " + splitsFilePath.toAbsolutePath(), true);
+      String result = ts.exec("getgoal -?");
+      assertTrue(result.contains("usage: getgoal"));
+
+      result = ts.exec("getgoal");
+      assertTrue(result.contains("TABLE: " + tableName));
+      assertTrue(result.contains("TABLET ID    HOSTING GOAL"));
+      assertTrue(result.contains("1;d<         ONDEMAND"));
+      assertTrue(result.contains("1;m;d        ONDEMAND"));
+      assertTrue(result.contains("1;s;m        ONDEMAND"));
+      assertTrue(result.contains("1<;s         ONDEMAND"));
+
+      ts.exec("setgoal -g ALWAYS -r p");
+      result = ts.exec("getgoal -r p");
+      assertFalse(result.contains("1;d<         ONDEMAND"));
+      assertFalse(result.contains("1;m;d        ONDEMAND"));
+      assertTrue(result.contains("1;s;m        ALWAYS"));
+      assertFalse(result.contains("1<;s         ONDEMAND"));
+
+      result = ts.exec("getgoal");
+      assertTrue(result.contains("1;d<         ONDEMAND"));
+      assertTrue(result.contains("1;m;d        ONDEMAND"));
+      assertTrue(result.contains("1;s;m        ALWAYS"));
+      assertTrue(result.contains("1<;s         ONDEMAND"));
+
+      result = ts.exec("getgoal -b f -e p");
+      assertFalse(result.contains("1;d<         ONDEMAND"));
+      assertTrue(result.contains("1;m;d        ONDEMAND"));
+      assertTrue(result.contains("1;s;m        ALWAYS"));
+      assertFalse(result.contains("1<;s         ONDEMAND"));
+
+    } finally {
+      if (splitsFilePath != null) {
+        Files.delete(splitsFilePath);
+      }
+    }
+  }
+
+  // Verify that when splits are added after table creation, hosting goals are set properly
+  @Test
+  public void testGetGoalCommand_DelayedSplits() throws IOException {
+
+    final String[] tableName = getUniqueNames(2);
+
+    ts.exec("createtable " + tableName[0], true);
+    String result = ts.exec("getgoal");
+    assertTrue(result.contains("TABLE: " + tableName[0]));
+    assertTrue(result.contains("TABLET ID    HOSTING GOAL"));
+    assertTrue(result.contains("1<<          ONDEMAND"));
+
+    // add the splits and check goals again
+    ts.exec("addsplits d m s", true);
+    result = ts.exec("getgoal");
+    assertTrue(result.contains("1;d<         ONDEMAND"));
+    assertTrue(result.contains("1;m;d        ONDEMAND"));
+    assertTrue(result.contains("1;s;m        ONDEMAND"));
+    assertTrue(result.contains("1<;s         ONDEMAND"));
+
+    // scan metadata table to be sure the hosting goals were properly set
+    result = ts.exec("scan -t accumulo.metadata -c hosting:goal", true);
+    assertTrue(result.contains("1;d hosting:goal []\tONDEMAND"));
+    assertTrue(result.contains("1;m hosting:goal []\tONDEMAND"));
+    assertTrue(result.contains("1;s hosting:goal []\tONDEMAND"));
+    assertTrue(result.contains("1< hosting:goal []\tONDEMAND"));
+
+    ts.exec("createtable " + tableName[1] + " -g always", true);
+    result = ts.exec("getgoal");
+    assertTrue(result.contains("TABLE: " + tableName[1]));
+    assertTrue(result.contains("TABLET ID    HOSTING GOAL"));
+    assertTrue(result.contains("2<<          ALWAYS"));
+
+    ts.exec("addsplits d m s", true);
+    result = ts.exec("getgoal");
+    assertTrue(result.contains("2;d<         ALWAYS"));
+    assertTrue(result.contains("2;m;d        ALWAYS"));
+    assertTrue(result.contains("2;s;m        ALWAYS"));
+    assertTrue(result.contains("2<;s         ALWAYS"));
+
+    // scan metadata table to be sure the hosting goals were properly set
+    result = ts.exec("scan -t accumulo.metadata -c hosting:goal -b 2", true);
+    assertTrue(result.contains("2;d hosting:goal []\tALWAYS"));
+    assertTrue(result.contains("2;m hosting:goal []\tALWAYS"));
+    assertTrue(result.contains("2;s hosting:goal []\tALWAYS"));
+    assertTrue(result.contains("2< hosting:goal []\tALWAYS"));
+
   }
 
   @Test
@@ -2149,6 +2256,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertNotContains(output, "c:f3");
     // check that there are two files, with none having extra summary info
     assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]0.*$.*");
+  }
+
+  private java.nio.file.Path createSplitsFile(final String splitsFile, final SortedSet<Text> splits)
+      throws IOException {
+    String fullSplitsFile = System.getProperty("user.dir") + "/target/" + splitsFile;
+    java.nio.file.Path path = Paths.get(fullSplitsFile);
+    try (BufferedWriter writer = Files.newBufferedWriter(path, UTF_8)) {
+      for (Text text : splits) {
+        writer.write(text.toString() + '\n');
+      }
+    }
+    return path;
   }
 
 }

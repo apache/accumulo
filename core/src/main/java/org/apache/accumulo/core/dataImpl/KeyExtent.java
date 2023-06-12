@@ -380,8 +380,8 @@ public class KeyExtent implements Comparable<KeyExtent> {
    * <p>
    * For example, if this extent represented a range of data from <code>A</code> to <code>Z</code>
    * for a user table, <code>T</code>, this would compute the range to scan
-   * <code>accumulo.metadata</code> that would include all the the metadata for <code>T</code>'s
-   * tablets that contain data in the range <code>(A,Z]</code>.
+   * <code>accumulo.metadata</code> that would include all the metadata for <code>T</code>'s tablets
+   * that contain data in the range <code>(A,Z]</code>.
    */
   public Range toMetaRange() {
     Text metadataPrevRow =

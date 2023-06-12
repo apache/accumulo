@@ -31,7 +31,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
-public class TabletHostingGoalCommand extends TableOperation {
+public class SetTabletHostingGoalCommand extends TableOperation {
 
   private Option optRow;
   private Option optStartRowExclusive;
@@ -43,7 +43,7 @@ public class TabletHostingGoalCommand extends TableOperation {
 
   @Override
   public String getName() {
-    return "goal";
+    return "setgoal";
   }
 
   @Override
@@ -86,24 +86,26 @@ public class TabletHostingGoalCommand extends TableOperation {
 
   @Override
   public Options getOptions() {
+    Option optStartRowInclusive =
+        new Option(OptUtil.START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
+    optStartRowInclusive.setArgName("begin-row");
     optStartRowExclusive = new Option("be", "begin-exclusive", false,
         "make start row exclusive (by default it's inclusive)");
     optStartRowExclusive.setArgName("begin-exclusive");
     optEndRowExclusive = new Option("ee", "end-exclusive", false,
         "make end row exclusive (by default it's inclusive)");
     optEndRowExclusive.setArgName("end-exclusive");
-    optRow = new Option("r", "range", true, "tablet range to modify");
-    optRow.setArgName("range");
+    optRow = new Option("r", "row", true, "tablet row to modify");
+    optRow.setArgName("row");
     goalOpt = new Option("g", "goal", true, "tablet hosting goal");
     goalOpt.setArgName("goal");
     goalOpt.setArgs(1);
     goalOpt.setRequired(true);
 
     final Options opts = super.getOptions();
-    opts.addOption(OptUtil.startRowOpt());
+    opts.addOption(optStartRowInclusive);
     opts.addOption(optStartRowExclusive);
     opts.addOption(OptUtil.endRowOpt());
-    opts.addOption(optStartRowExclusive);
     opts.addOption(optEndRowExclusive);
     opts.addOption(optRow);
     opts.addOption(goalOpt);
