@@ -150,7 +150,7 @@ public class ZooInfoViewerTest {
 
     ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
     opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"--instanceId", uuid, "--print-instances", "--outfile", testFileName});
+        new String[] {"--print-instances", "--outfile", testFileName});
 
     ZooInfoViewer viewer = new ZooInfoViewer();
     viewer.generateReport(InstanceId.of(uuid), opts, zooReader);
@@ -186,8 +186,8 @@ public class ZooInfoViewerTest {
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
 
     ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
-    opts.parseArgs(ZooInfoViewer.class.getName(), new String[] {"--instanceName", instanceName,
-        "--print-instances", "--outfile", testFileName});
+    opts.parseArgs(ZooInfoViewer.class.getName(),
+        new String[] {"--print-instances", "--outfile", testFileName});
 
     ZooInfoViewer viewer = new ZooInfoViewer();
     viewer.generateReport(InstanceId.of(uuid), opts, zooReader);
@@ -288,7 +288,7 @@ public class ZooInfoViewerTest {
 
     ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
     opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"--instanceId", uuid, "--print-props", "--outfile", testFileName});
+        new String[] {"--print-props", "--outfile", testFileName});
 
     ZooInfoViewer viewer = new ZooInfoViewer();
     viewer.generateReport(InstanceId.of(uuid), opts, zooReader);
@@ -350,7 +350,7 @@ public class ZooInfoViewerTest {
 
     ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
     opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"--instanceName", instanceName, "--print-id-map", "--outfile", testFileName});
+        new String[] {"--print-id-map", "--outfile", testFileName});
 
     ZooInfoViewer viewer = new ZooInfoViewer();
     viewer.generateReport(InstanceId.of(uuid), opts, zooReader);

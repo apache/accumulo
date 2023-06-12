@@ -95,10 +95,6 @@ public class ZooInfoViewer implements KeywordExecutable {
    */
   public ZooInfoViewer() {}
 
-  public static void main(String[] args) throws Exception {
-    new ZooInfoViewer().execute(args);
-  }
-
   @Override
   public String keyword() {
     return "zoo-info-viewer";
@@ -119,10 +115,14 @@ public class ZooInfoViewer implements KeywordExecutable {
     log.info("print properties: {}", opts.printProps);
     log.info("print instances: {}", opts.printInstanceIds);
 
-    ZooReader zooReader = new ZooReaderWriter(opts.getSiteConfiguration());
+    var conf = opts.getSiteConfiguration();
 
-    InstanceId iid = getInstanceId(zooReader, opts.instanceId, opts.instanceName);
-    generateReport(iid, opts, zooReader);
+    ZooReader zooReader = new ZooReaderWriter(conf);
+
+    try (ServerContext context = new ServerContext(conf)) {
+      InstanceId iid = context.getInstanceID();
+      generateReport(iid, opts, zooReader);
+    }
   }
 
   void generateReport(final InstanceId iid, final ZooInfoViewer.Opts opts,
@@ -431,14 +431,6 @@ public class ZooInfoViewer implements KeywordExecutable {
     @Parameter(names = {"--print-instances"},
         description = "print the instance ids stored in ZooKeeper")
     public boolean printInstanceIds = false;
-
-    @Parameter(names = {"--instanceName"},
-        description = "Specify the instance name to use. If instance name or id are not provided, determined from configuration (requires a running hdfs instance)")
-    public String instanceName = "";
-
-    @Parameter(names = {"--instanceId"},
-        description = "Specify the instance id to use. If instance name or id are not provided, determined from configuration (requires a running hdfs instance)")
-    public String instanceId = "";
 
     @Parameter(names = {"-ns", "--namespaces"},
         description = "a list of namespace names to print properties, with none specified, print all. Only valid with --print-props",

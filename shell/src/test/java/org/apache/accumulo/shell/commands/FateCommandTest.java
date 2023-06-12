@@ -36,6 +36,8 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.List;
 
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
@@ -320,7 +322,12 @@ public class FateCommandTest {
     Terminal terminal = new DumbTerminal(new FileInputStream(FileDescriptor.in), output);
     terminal.setSize(new Size(80, 24));
     LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
-    Shell shell = new Shell(reader);
+    Shell shell = new Shell(reader) {
+      @Override
+      protected boolean authenticateUser(AccumuloClient client, AuthenticationToken token) {
+        return true;
+      }
+    };
     shell.setLogErrorsToConsole();
     return shell;
   }
