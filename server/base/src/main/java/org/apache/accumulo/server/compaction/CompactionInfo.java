@@ -102,8 +102,8 @@ public class CompactionInfo {
           iterSetting.getName()));
       iterOptions.put(iterSetting.getName(), iterSetting.getOptions());
     }
-    List<String> files = compactor.getFilesToCompact().stream().map(StoredTabletFile::getPathStr)
-        .collect(Collectors.toList());
+    List<String> files = compactor.getFilesToCompact().stream()
+        .map(StoredTabletFile::getNormalizedPathStr).collect(Collectors.toList());
     return new ActiveCompaction(compactor.extent.toThrift(),
         System.currentTimeMillis() - compactor.getStartTime(), files, compactor.getOutputFile(),
         type, reason, localityGroup, entriesRead, entriesWritten, iiList, iterOptions, timesPaused);

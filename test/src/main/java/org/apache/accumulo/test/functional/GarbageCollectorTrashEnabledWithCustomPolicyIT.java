@@ -20,7 +20,9 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,11 +38,25 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.TrashPolicyDefault;
 import org.junit.jupiter.api.Test;
 
-// verify trash is not used when Hadoop is configured to enable it and our property
-// is set to ignore it and delete the file anyway
-public class GarbageCollectorTrashDisabledIT extends GarbageCollectorTrashBase {
+// verify that trash is used if Hadoop is configured to use it and that using a custom policy works
+public class GarbageCollectorTrashEnabledWithCustomPolicyIT extends GarbageCollectorTrashBase {
+
+  public static class NoFlushFilesInTrashPolicy extends TrashPolicyDefault {
+
+    @Override
+    public boolean moveToTrash(Path path) throws IOException {
+      // Don't put flush files in the Trash
+      if (!path.getName().startsWith("F")) {
+        return super.moveToTrash(path);
+      }
+      return false;
+    }
+
+  }
 
   @Override
   protected Duration defaultTimeout() {
@@ -49,17 +65,15 @@ public class GarbageCollectorTrashDisabledIT extends GarbageCollectorTrashBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-
+    // By default Hadoop trash is disabled - fs.trash.interval defaults to 0; override that here
     Map<String,String> hadoopOverrides = new HashMap<>();
     hadoopOverrides.put(CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY, "5");
+    hadoopOverrides.put("fs.trash.classname", NoFlushFilesInTrashPolicy.class.getName());
     cfg.setHadoopConfOverrides(hadoopOverrides);
     cfg.useMiniDFS(true);
 
     cfg.setProperty(Property.GC_CYCLE_START, "1");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
-    @SuppressWarnings("removal")
-    Property p = Property.GC_TRASH_IGNORE;
-    cfg.setProperty(p, "true"); // don't use trash if configured
     cfg.setProperty(Property.GC_PORT, "0");
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
     cfg.setProperty(Property.TABLE_MAJC_RATIO, "5.0");
@@ -67,19 +81,29 @@ public class GarbageCollectorTrashDisabledIT extends GarbageCollectorTrashBase {
   }
 
   @Test
-  public void testTrashHadoopEnabledAccumuloDisabled() throws Exception {
+  public void testTrashHadoopEnabledAccumuloEnabled() throws Exception {
     String table = this.getUniqueNames(1)[0];
     final FileSystem fs = super.getCluster().getFileSystem();
     super.makeTrashDir(fs);
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      ArrayList<StoredTabletFile> files = super.loadData(super.getServerContext(), c, table);
-      assertFalse(files.isEmpty());
+      ReadWriteIT.ingest(c, 10, 10, 10, 0, table);
+      c.tableOperations().flush(table);
+      ArrayList<StoredTabletFile> files1 = getFilesForTable(super.getServerContext(), c, table);
+      assertFalse(files1.isEmpty());
+      assertTrue(files1.stream().allMatch(stf -> stf.getPath().getName().startsWith("F")));
       c.tableOperations().compact(table, new CompactionConfig());
+      super.waitForFilesToBeGCd(files1);
+      ArrayList<StoredTabletFile> files2 = getFilesForTable(super.getServerContext(), c, table);
+      assertFalse(files2.isEmpty());
+      assertTrue(files2.stream().noneMatch(stf -> stf.getPath().getName().startsWith("F")));
+      assertTrue(files2.stream().allMatch(stf -> stf.getPath().getName().startsWith("A")));
+      c.tableOperations().compact(table, new CompactionConfig());
+      super.waitForFilesToBeGCd(files2);
+      ArrayList<StoredTabletFile> files3 = getFilesForTable(super.getServerContext(), c, table);
+      assertTrue(files3.stream().allMatch(stf -> stf.getPath().getName().startsWith("A")));
+      assertEquals(1, files3.size());
       TableId tid = TableId.of(c.tableOperations().tableIdMap().get(table));
-      super.waitForFilesToBeGCd(files);
-      // Trash is disabled in Accumulo (GC_TRASH_IGNORE = true)
-      // no files for this table should be in the trash
-      assertEquals(0, super.countFilesInTrash(fs, tid));
+      assertEquals(1, super.countFilesInTrash(fs, tid));
     }
   }
 

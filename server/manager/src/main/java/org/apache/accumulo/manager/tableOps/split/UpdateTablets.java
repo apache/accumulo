@@ -183,7 +183,7 @@ public class UpdateTablets extends ManagerRepo {
         tabletMetadata.getCompactId().ifPresent(mutator::putCompactionId);
         mutator.putHostingGoal(tabletMetadata.getHostingGoal());
 
-        tabletMetadata.getLoaded().forEach(mutator::putBulkFile);
+        tabletMetadata.getLoaded().forEach((k, v) -> mutator.putBulkFile(k.getTabletFile(), v));
         tabletMetadata.getLogs().forEach(mutator::putWal);
 
         newTabletsFiles.get(newExtent).forEach(mutator::putFile);

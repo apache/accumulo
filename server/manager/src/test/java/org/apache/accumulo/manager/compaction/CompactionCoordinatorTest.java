@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.coordinator;
+package org.apache.accumulo.manager.compaction;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -37,7 +36,6 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -45,7 +43,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
@@ -53,53 +50,32 @@ import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
-import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.LiveTServerSet;
-import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.thrift.transport.TTransportException;
-import org.apache.zookeeper.KeeperException;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.api.easymock.PowerMock;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.core.classloader.annotations.SuppressStaticInitializationFor;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.easymock.EasyMock;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({CompactionCoordinator.class, DeadCompactionDetector.class, ThriftUtil.class,
-    ExternalCompactionUtil.class})
-@SuppressStaticInitializationFor({"org.apache.log4j.LogManager"})
-@PowerMockIgnore({"org.slf4j.*", "org.apache.logging.*", "org.apache.log4j.*",
-    "org.apache.commons.logging.*", "org.xml.*", "javax.xml.*", "org.w3c.dom.*",
-    "com.sun.org.apache.xerces.*"})
 public class CompactionCoordinatorTest {
 
   public class TestCoordinator extends CompactionCoordinator {
 
-    private final ServerContext context;
-    private final ServerAddress client;
     private final Client tabletServerClient;
+    private final List<RunningCompaction> runningCompactions;
 
     private Set<ExternalCompactionId> metadataCompactionIds = null;
 
-    protected TestCoordinator(CompactionFinalizer finalizer, LiveTServerSet tservers,
-        ServerAddress client, Client tabletServerClient, ServerContext context,
-        AuditedSecurityOperation security) {
-      super(new ConfigOpts(), new String[] {}, context.getConfiguration());
-      this.compactionFinalizer = finalizer;
-      this.tserverSet = tservers;
-      this.client = client;
+    protected TestCoordinator(LiveTServerSet tservers, Client tabletServerClient,
+        ServerContext context, AuditedSecurityOperation security,
+        List<RunningCompaction> runningCompactions) {
+      super(context, tservers, security);
       this.tabletServerClient = tabletServerClient;
-      this.context = context;
-      this.security = security;
+      this.runningCompactions = runningCompactions;
     }
 
     @Override
@@ -115,34 +91,10 @@ public class CompactionCoordinatorTest {
     protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
 
     @Override
-    protected CompactionFinalizer createCompactionFinalizer(ScheduledThreadPoolExecutor stpe) {
-      return null;
-    }
+    protected void createCompactionFinalizer(ScheduledThreadPoolExecutor stpe) {}
 
     @Override
-    protected LiveTServerSet createLiveTServerSet() {
-      return null;
-    }
-
-    @Override
-    protected void setupSecurity() {}
-
-    @Override
-    protected void printStartupMsg() {}
-
-    @Override
-    public ServerContext getContext() {
-      return this.context;
-    }
-
-    @Override
-    protected void getCoordinatorLock(HostAndPort clientAddress)
-        throws KeeperException, InterruptedException {}
-
-    @Override
-    protected ServerAddress startCoordinatorClientService() throws UnknownHostException {
-      return client;
-    }
+    protected void startRunningCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
 
     @Override
     protected Client getTabletServerConnection(TServerInstance tserver) throws TTransportException {
@@ -190,45 +142,46 @@ public class CompactionCoordinatorTest {
       metadataCompactionIds = null;
     }
 
+    @Override
+    protected String getTServerAddressString(HostAndPort tserverAddress) {
+      return "";
+    }
+
+    @Override
+    protected List<RunningCompaction> getCompactionsRunningOnCompactors() {
+      return runningCompactions;
+    }
+
+    @Override
+    protected void cancelCompactionOnCompactor(String address, String externalCompactionId) {}
+
+    @Override
+    protected void returnTServerClient(Client client) {}
+
   }
 
   @Test
   public void testCoordinatorColdStartNoCompactions() throws Exception {
-    PowerMock.resetAll();
-    PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
-    PowerMock.suppress(PowerMock.methods(ThriftUtil.class, "returnClient"));
-    PowerMock.suppress(PowerMock.methods(DeadCompactionDetector.class, "detectDeadCompactions",
-        "detectDanglingFinalStateMarkers"));
 
-    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = EasyMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
 
-    PowerMock.mockStatic(ExternalCompactionUtil.class);
-    List<RunningCompaction> runningCompactions = new ArrayList<>();
-    expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
-        .andReturn(runningCompactions);
-
-    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
-    LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
+    LiveTServerSet tservers = EasyMock.createNiceMock(LiveTServerSet.class);
     expect(tservers.getCurrentServers()).andReturn(Collections.emptySet()).anyTimes();
 
-    ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
-    HostAndPort address = HostAndPort.fromString("localhost:10240");
-    expect(client.getAddress()).andReturn(address).anyTimes();
-
-    TServerInstance tsi = PowerMock.createNiceMock(TServerInstance.class);
+    TServerInstance tsi = EasyMock.createNiceMock(TServerInstance.class);
     expect(tsi.getHostPort()).andReturn("localhost:9997").anyTimes();
 
     TabletServerClientService.Client tsc =
-        PowerMock.createNiceMock(TabletServerClientService.Client.class);
+        EasyMock.createNiceMock(TabletServerClientService.Client.class);
     expect(tsc.getCompactionQueueInfo(anyObject(), anyObject())).andReturn(Collections.emptyList())
         .anyTimes();
 
-    AuditedSecurityOperation security = PowerMock.createNiceMock(AuditedSecurityOperation.class);
+    AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
 
-    PowerMock.replayAll();
+    EasyMock.replay(context, tservers, tsi, tsc, security);
 
-    var coordinator = new TestCoordinator(finalizer, tservers, client, tsc, context, security);
+    var coordinator = new TestCoordinator(tservers, tsc, context, security, new ArrayList<>());
     coordinator.resetInternals();
     assertEquals(0, coordinator.getQueues().size());
     assertEquals(0, coordinator.getIndex().size());
@@ -237,56 +190,41 @@ public class CompactionCoordinatorTest {
     assertEquals(0, coordinator.getQueues().size());
     assertEquals(0, coordinator.getIndex().size());
     assertEquals(0, coordinator.getRunning().size());
+    coordinator.shutdown();
 
-    PowerMock.verifyAll();
+    EasyMock.verify(context, tservers, tsi, tsc, security);
     coordinator.resetInternals();
-    coordinator.close();
   }
 
   @Test
   public void testCoordinatorColdStart() throws Exception {
-    PowerMock.resetAll();
-    PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
-    PowerMock.suppress(PowerMock.methods(ThriftUtil.class, "returnClient"));
-    PowerMock.suppress(PowerMock.methods(DeadCompactionDetector.class, "detectDeadCompactions",
-        "detectDanglingFinalStateMarkers"));
 
-    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = EasyMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
 
-    TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
+    TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
     expect(context.rpcCreds()).andReturn(creds);
 
-    PowerMock.mockStatic(ExternalCompactionUtil.class);
-    List<RunningCompaction> runningCompactions = new ArrayList<>();
-    expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
-        .andReturn(runningCompactions);
-
-    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
-    LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
-    TServerInstance instance = PowerMock.createNiceMock(TServerInstance.class);
+    LiveTServerSet tservers = EasyMock.createNiceMock(LiveTServerSet.class);
+    TServerInstance instance = EasyMock.createNiceMock(TServerInstance.class);
     expect(tservers.getCurrentServers()).andReturn(Collections.singleton(instance)).once();
 
-    ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
-    HostAndPort address = HostAndPort.fromString("localhost:10240");
-    expect(client.getAddress()).andReturn(address).anyTimes();
-
-    TServerInstance tsi = PowerMock.createNiceMock(TServerInstance.class);
+    TServerInstance tsi = EasyMock.createNiceMock(TServerInstance.class);
     expect(tsi.getHostPort()).andReturn("localhost:9997").anyTimes();
 
     TabletServerClientService.Client tsc =
-        PowerMock.createNiceMock(TabletServerClientService.Client.class);
-    TCompactionQueueSummary queueSummary = PowerMock.createNiceMock(TCompactionQueueSummary.class);
+        EasyMock.createNiceMock(TabletServerClientService.Client.class);
+    TCompactionQueueSummary queueSummary = EasyMock.createNiceMock(TCompactionQueueSummary.class);
     expect(tsc.getCompactionQueueInfo(anyObject(), anyObject()))
         .andReturn(Collections.singletonList(queueSummary)).anyTimes();
     expect(queueSummary.getQueue()).andReturn("R2DQ").anyTimes();
     expect(queueSummary.getPriority()).andReturn((short) 1).anyTimes();
 
-    AuditedSecurityOperation security = PowerMock.createNiceMock(AuditedSecurityOperation.class);
+    AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
 
-    PowerMock.replayAll();
+    EasyMock.replay(context, creds, tservers, instance, tsi, tsc, queueSummary, security);
 
-    var coordinator = new TestCoordinator(finalizer, tservers, client, tsc, context, security);
+    var coordinator = new TestCoordinator(tservers, tsc, context, security, new ArrayList<>());
     coordinator.resetInternals();
     assertEquals(0, coordinator.getQueues().size());
     assertEquals(0, coordinator.getIndex().size());
@@ -309,58 +247,42 @@ public class CompactionCoordinatorTest {
     assertEquals(1, i.size());
     assertEquals(qp, i.iterator().next());
     assertEquals(0, coordinator.getRunning().size());
+    coordinator.shutdown();
 
-    PowerMock.verifyAll();
+    EasyMock.verify(context, tservers, instance, tsi, tsc, queueSummary, security);
     coordinator.resetInternals();
-    coordinator.close();
   }
 
   @Test
   public void testCoordinatorRestartNoRunningCompactions() throws Exception {
-    PowerMock.resetAll();
-    PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
-    PowerMock.suppress(PowerMock.methods(ThriftUtil.class, "returnClient"));
-    PowerMock.suppress(PowerMock.methods(DeadCompactionDetector.class, "detectDeadCompactions",
-        "detectDanglingFinalStateMarkers"));
 
-    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = EasyMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
 
-    TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
+    TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
     expect(context.rpcCreds()).andReturn(creds);
 
-    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
-    LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
-    TServerInstance instance = PowerMock.createNiceMock(TServerInstance.class);
+    LiveTServerSet tservers = EasyMock.createNiceMock(LiveTServerSet.class);
+    TServerInstance instance = EasyMock.createNiceMock(TServerInstance.class);
     HostAndPort tserverAddress = HostAndPort.fromString("localhost:9997");
     expect(instance.getHostAndPort()).andReturn(tserverAddress).anyTimes();
     expect(tservers.getCurrentServers()).andReturn(Sets.newHashSet(instance)).once();
-    tservers.startListeningForTabletServerChanges();
-
-    PowerMock.mockStatic(ExternalCompactionUtil.class);
-    List<RunningCompaction> runningCompactions = new ArrayList<>();
-    expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
-        .andReturn(runningCompactions);
-
-    ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
-    HostAndPort address = HostAndPort.fromString("localhost:10240");
-    expect(client.getAddress()).andReturn(address).anyTimes();
 
     expect(instance.getHostPort()).andReturn("localhost:9997").anyTimes();
 
     TabletServerClientService.Client tsc =
-        PowerMock.createNiceMock(TabletServerClientService.Client.class);
-    TCompactionQueueSummary queueSummary = PowerMock.createNiceMock(TCompactionQueueSummary.class);
+        EasyMock.createNiceMock(TabletServerClientService.Client.class);
+    TCompactionQueueSummary queueSummary = EasyMock.createNiceMock(TCompactionQueueSummary.class);
     expect(tsc.getCompactionQueueInfo(anyObject(), anyObject()))
         .andReturn(Collections.singletonList(queueSummary)).anyTimes();
     expect(queueSummary.getQueue()).andReturn("R2DQ").anyTimes();
     expect(queueSummary.getPriority()).andReturn((short) 1).anyTimes();
 
-    AuditedSecurityOperation security = PowerMock.createNiceMock(AuditedSecurityOperation.class);
+    AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
 
-    PowerMock.replayAll();
+    EasyMock.replay(context, creds, tservers, instance, tsc, queueSummary, security);
 
-    var coordinator = new TestCoordinator(finalizer, tservers, client, tsc, context, security);
+    var coordinator = new TestCoordinator(tservers, tsc, context, security, new ArrayList<>());
     coordinator.resetInternals();
     assertEquals(0, coordinator.getQueues().size());
     assertEquals(0, coordinator.getIndex().size());
@@ -383,65 +305,50 @@ public class CompactionCoordinatorTest {
     assertEquals(1, i.size());
     assertEquals(qp, i.iterator().next());
     assertEquals(0, coordinator.getRunning().size());
+    coordinator.shutdown();
 
-    PowerMock.verifyAll();
+    EasyMock.verify(context, creds, tservers, instance, tsc, queueSummary, security);
     coordinator.resetInternals();
-    coordinator.close();
   }
 
   @Test
   public void testCoordinatorRestartOneRunningCompaction() throws Exception {
 
-    PowerMock.resetAll();
-    PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
-    PowerMock.suppress(PowerMock.methods(ThriftUtil.class, "returnClient"));
-    PowerMock.suppress(PowerMock.methods(DeadCompactionDetector.class, "detectDeadCompactions",
-        "detectDanglingFinalStateMarkers"));
-
-    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = EasyMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
 
-    TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
+    TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
     expect(context.rpcCreds()).andReturn(creds);
 
-    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
-    LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
-    TServerInstance instance = PowerMock.createNiceMock(TServerInstance.class);
+    LiveTServerSet tservers = EasyMock.createNiceMock(LiveTServerSet.class);
+    TServerInstance instance = EasyMock.createNiceMock(TServerInstance.class);
     HostAndPort tserverAddress = HostAndPort.fromString("localhost:9997");
     expect(instance.getHostAndPort()).andReturn(tserverAddress).anyTimes();
     expect(tservers.getCurrentServers()).andReturn(Sets.newHashSet(instance)).once();
-    tservers.startListeningForTabletServerChanges();
 
-    PowerMock.mockStatic(ExternalCompactionUtil.class);
     List<RunningCompaction> runningCompactions = new ArrayList<>();
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
-    TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
+    TExternalCompactionJob job = EasyMock.createNiceMock(TExternalCompactionJob.class);
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     TKeyExtent extent = new TKeyExtent();
     extent.setTable("1".getBytes());
     runningCompactions.add(new RunningCompaction(job, tserverAddress.toString(), "queue"));
-    expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
-        .andReturn(runningCompactions);
-
-    ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
-    HostAndPort address = HostAndPort.fromString("localhost:10240");
-    expect(client.getAddress()).andReturn(address).anyTimes();
 
     expect(instance.getHostPort()).andReturn("localhost:9997").anyTimes();
 
     TabletServerClientService.Client tsc =
-        PowerMock.createNiceMock(TabletServerClientService.Client.class);
-    TCompactionQueueSummary queueSummary = PowerMock.createNiceMock(TCompactionQueueSummary.class);
+        EasyMock.createNiceMock(TabletServerClientService.Client.class);
+    TCompactionQueueSummary queueSummary = EasyMock.createNiceMock(TCompactionQueueSummary.class);
     expect(tsc.getCompactionQueueInfo(anyObject(), anyObject()))
         .andReturn(Collections.singletonList(queueSummary)).anyTimes();
     expect(queueSummary.getQueue()).andReturn("R2DQ").anyTimes();
     expect(queueSummary.getPriority()).andReturn((short) 1).anyTimes();
 
-    AuditedSecurityOperation security = PowerMock.createNiceMock(AuditedSecurityOperation.class);
+    AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
 
-    PowerMock.replayAll();
+    EasyMock.replay(context, creds, tservers, instance, job, tsc, queueSummary, security);
 
-    var coordinator = new TestCoordinator(finalizer, tservers, client, tsc, context, security);
+    var coordinator = new TestCoordinator(tservers, tsc, context, security, runningCompactions);
     coordinator.resetInternals();
     assertEquals(0, coordinator.getQueues().size());
     assertEquals(0, coordinator.getIndex().size());
@@ -464,66 +371,51 @@ public class CompactionCoordinatorTest {
     assertEquals(1, i.size());
     assertEquals(qp, i.iterator().next());
     assertEquals(1, coordinator.getRunning().size());
+    coordinator.shutdown();
 
-    PowerMock.verifyAll();
+    EasyMock.verify(context, creds, tservers, instance, job, tsc, queueSummary, security);
     coordinator.resetInternals();
-    coordinator.close();
   }
 
   @Test
   public void testGetCompactionJob() throws Exception {
-    PowerMock.resetAll();
-    PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
-    PowerMock.suppress(PowerMock.methods(ThriftUtil.class, "returnClient"));
-    PowerMock.suppress(PowerMock.methods(DeadCompactionDetector.class, "detectDeadCompactions",
-        "detectDanglingFinalStateMarkers"));
 
-    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = EasyMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
 
-    TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
+    TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
     expect(context.rpcCreds()).andReturn(creds).anyTimes();
 
-    PowerMock.mockStatic(ExternalCompactionUtil.class);
-    List<RunningCompaction> runningCompactions = new ArrayList<>();
-    expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
-        .andReturn(runningCompactions);
-
-    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
-    LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
-    TServerInstance instance = PowerMock.createNiceMock(TServerInstance.class);
+    LiveTServerSet tservers = EasyMock.createNiceMock(LiveTServerSet.class);
+    TServerInstance instance = EasyMock.createNiceMock(TServerInstance.class);
     expect(tservers.getCurrentServers()).andReturn(Collections.singleton(instance)).once();
     HostAndPort tserverAddress = HostAndPort.fromString("localhost:9997");
     expect(instance.getHostAndPort()).andReturn(tserverAddress).anyTimes();
 
-    ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
-    HostAndPort address = HostAndPort.fromString("localhost:10240");
-    expect(client.getAddress()).andReturn(address).anyTimes();
-
-    TServerInstance tsi = PowerMock.createNiceMock(TServerInstance.class);
+    TServerInstance tsi = EasyMock.createNiceMock(TServerInstance.class);
     expect(tsi.getHostPort()).andReturn("localhost:9997").anyTimes();
 
     TabletServerClientService.Client tsc =
-        PowerMock.createNiceMock(TabletServerClientService.Client.class);
-    TCompactionQueueSummary queueSummary = PowerMock.createNiceMock(TCompactionQueueSummary.class);
+        EasyMock.createNiceMock(TabletServerClientService.Client.class);
+    TCompactionQueueSummary queueSummary = EasyMock.createNiceMock(TCompactionQueueSummary.class);
     expect(tsc.getCompactionQueueInfo(anyObject(), anyObject()))
         .andReturn(Collections.singletonList(queueSummary)).anyTimes();
     expect(queueSummary.getQueue()).andReturn("R2DQ").anyTimes();
     expect(queueSummary.getPriority()).andReturn((short) 1).anyTimes();
 
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
-    TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
+    TExternalCompactionJob job = EasyMock.createNiceMock(TExternalCompactionJob.class);
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     TInfo trace = TraceUtil.traceInfo();
     expect(tsc.reserveCompactionJob(trace, creds, "R2DQ", 1, "localhost:10241", eci.toString()))
         .andReturn(job).anyTimes();
 
-    AuditedSecurityOperation security = PowerMock.createNiceMock(AuditedSecurityOperation.class);
+    AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
     expect(security.canPerformSystemActions(creds)).andReturn(true);
 
-    PowerMock.replayAll();
+    EasyMock.replay(context, creds, tservers, instance, job, tsc, queueSummary, security);
 
-    var coordinator = new TestCoordinator(finalizer, tservers, client, tsc, context, security);
+    var coordinator = new TestCoordinator(tservers, tsc, context, security, new ArrayList<>());
     coordinator.resetInternals();
     assertEquals(0, coordinator.getQueues().size());
     assertEquals(0, coordinator.getIndex().size());
@@ -531,6 +423,7 @@ public class CompactionCoordinatorTest {
     // Use coordinator.run() to populate the internal data structures. This is tested in a different
     // test.
     coordinator.run();
+    coordinator.shutdown();
 
     assertEquals(1, coordinator.getQueues().size());
     QueueAndPriority qp = QueueAndPriority.get("R2DQ".intern(), (short) 1);
@@ -564,94 +457,80 @@ public class CompactionCoordinatorTest {
     assertEquals("localhost:10241", entry.getValue().getCompactorAddress());
     assertEquals(eci.toString(), entry.getValue().getJob().getExternalCompactionId());
 
-    PowerMock.verifyAll();
+    EasyMock.verify(context, creds, tservers, instance, job, tsc, queueSummary, security);
     coordinator.resetInternals();
-    coordinator.close();
 
   }
 
   @Test
   public void testGetCompactionJobNoJobs() throws Exception {
-    PowerMock.resetAll();
-    PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
 
-    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = EasyMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
 
-    TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
+    TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
 
-    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
-    LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
-
-    ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
-    HostAndPort address = HostAndPort.fromString("localhost:10240");
-    expect(client.getAddress()).andReturn(address).anyTimes();
+    LiveTServerSet tservers = EasyMock.createNiceMock(LiveTServerSet.class);
 
     TabletServerClientService.Client tsc =
-        PowerMock.createNiceMock(TabletServerClientService.Client.class);
+        EasyMock.createNiceMock(TabletServerClientService.Client.class);
 
-    AuditedSecurityOperation security = PowerMock.createNiceMock(AuditedSecurityOperation.class);
+    AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
     expect(security.canPerformSystemActions(creds)).andReturn(true);
 
-    PowerMock.replayAll();
+    EasyMock.replay(context, creds, tservers, tsc, security);
 
-    var coordinator = new TestCoordinator(finalizer, tservers, client, tsc, context, security);
+    var coordinator = new TestCoordinator(tservers, tsc, context, security, new ArrayList<>());
     coordinator.resetInternals();
     TExternalCompactionJob job = coordinator.getCompactionJob(TraceUtil.traceInfo(), creds, "R2DQ",
         "localhost:10240", UUID.randomUUID().toString());
     assertNull(job.getExternalCompactionId());
+    coordinator.shutdown();
 
-    PowerMock.verifyAll();
+    EasyMock.verify(context, creds, tservers, tsc, security);
     coordinator.resetInternals();
-    coordinator.close();
   }
 
   @Test
   public void testCleanUpRunning() throws Exception {
-    PowerMock.resetAll();
-    PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
 
-    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = EasyMock.createNiceMock(ServerContext.class);
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
 
-    TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
+    TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
 
-    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
-    LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
-
-    ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
-    HostAndPort address = HostAndPort.fromString("localhost:10240");
-    expect(client.getAddress()).andReturn(address).anyTimes();
+    LiveTServerSet tservers = EasyMock.createNiceMock(LiveTServerSet.class);
 
     TabletServerClientService.Client tsc =
-        PowerMock.createNiceMock(TabletServerClientService.Client.class);
+        EasyMock.createNiceMock(TabletServerClientService.Client.class);
 
-    AuditedSecurityOperation security = PowerMock.createNiceMock(AuditedSecurityOperation.class);
-    expect(security.canPerformSystemActions(creds)).andReturn(true);
+    AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
 
-    PowerMock.replayAll();
+    EasyMock.replay(context, creds, tservers, tsc, security);
 
-    try (var coordinator =
-        new TestCoordinator(finalizer, tservers, client, tsc, context, security)) {
-      coordinator.resetInternals();
+    TestCoordinator coordinator =
+        new TestCoordinator(tservers, tsc, context, security, new ArrayList<>());
+    coordinator.resetInternals();
 
-      var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
-      var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
-      var ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
+    var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
+    var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
+    var ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
 
-      coordinator.getRunning().put(ecid1, new RunningCompaction(new TExternalCompaction()));
-      coordinator.getRunning().put(ecid2, new RunningCompaction(new TExternalCompaction()));
-      coordinator.getRunning().put(ecid3, new RunningCompaction(new TExternalCompaction()));
+    coordinator.getRunning().put(ecid1, new RunningCompaction(new TExternalCompaction()));
+    coordinator.getRunning().put(ecid2, new RunningCompaction(new TExternalCompaction()));
+    coordinator.getRunning().put(ecid3, new RunningCompaction(new TExternalCompaction()));
 
-      coordinator.cleanUpRunning();
+    coordinator.cleanUpRunning();
 
-      assertEquals(Set.of(ecid1, ecid2, ecid3), coordinator.getRunning().keySet());
+    assertEquals(Set.of(ecid1, ecid2, ecid3), coordinator.getRunning().keySet());
 
-      coordinator.setMetadataCompactionIds(Set.of(ecid1, ecid2));
+    coordinator.setMetadataCompactionIds(Set.of(ecid1, ecid2));
 
-      coordinator.cleanUpRunning();
+    coordinator.cleanUpRunning();
 
-      assertEquals(Set.of(ecid1, ecid2), coordinator.getRunning().keySet());
-    }
+    assertEquals(Set.of(ecid1, ecid2), coordinator.getRunning().keySet());
+
+    EasyMock.verify(context, creds, tservers, tsc, security);
+
   }
 }

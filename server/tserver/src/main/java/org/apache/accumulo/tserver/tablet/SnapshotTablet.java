@@ -27,7 +27,6 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -97,10 +96,9 @@ public class SnapshotTablet extends TabletBase {
 
   }
 
-  @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
-  public Pair<Long,Map<TabletFile,DataFileValue>> reserveFilesForScan() {
-    return new Pair(0L, getDatafiles());
+  public Pair<Long,Map<StoredTabletFile,DataFileValue>> reserveFilesForScan() {
+    return new Pair<>(0L, getDatafiles());
   }
 
   @Override

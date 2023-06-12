@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -85,7 +84,6 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       writeData(client, table1, ROWS);
 
       cluster.getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
-      cluster.getClusterControl().startCoordinator(CompactionCoordinator.class);
 
       Thread checkerThread = startChecker();
       checkerThread.start();

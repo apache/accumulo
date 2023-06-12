@@ -167,7 +167,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     });
 
     var scanServerRefs = context.getAmple().getScanServerFileReferences()
-        .map(sfr -> new ReferenceFile(sfr.getTableId(), sfr.getPathStr()));
+        .map(sfr -> new ReferenceFile(sfr.getTableId(), sfr.getNormalizedPathStr()));
 
     return Stream.concat(tabletReferences, scanServerRefs);
   }
@@ -432,10 +432,6 @@ public class GCRun implements GarbageCollectionEnvironment {
    */
   boolean moveToTrash(Path path) throws IOException {
     final VolumeManager fs = context.getVolumeManager();
-    if (!isUsingTrash()) {
-      log.trace("Accumulo Trash is disabled. Skipped for {}", path);
-      return false;
-    }
     try {
       boolean success = fs.moveToTrash(path);
       log.trace("Accumulo Trash enabled, moving to trash succeeded?: {}", success);
@@ -444,17 +440,6 @@ public class GCRun implements GarbageCollectionEnvironment {
       log.error("Error moving {} to trash", path, ex);
       return false;
     }
-  }
-
-  /**
-   * Checks if the volume manager should move files to the trash rather than delete them.
-   *
-   * @return true if trash is used
-   */
-  boolean isUsingTrash() {
-    @SuppressWarnings("removal")
-    Property p = Property.GC_TRASH_IGNORE;
-    return !config.getBoolean(p);
   }
 
   /**

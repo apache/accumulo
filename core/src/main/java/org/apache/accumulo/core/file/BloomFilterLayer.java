@@ -49,7 +49,7 @@ import org.apache.accumulo.core.file.keyfunctor.KeyFunctor;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -477,7 +477,7 @@ public class BloomFilterLayer {
     String suffix = FileOperations.getNewFileExtension(acuconf);
     String fname = "/tmp/test." + suffix;
     FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
-        .forFile(new TabletFile(new Path(fname)), fs, conf, NoCryptoServiceFactory.NONE)
+        .forFile(new ReferencedTabletFile(new Path(fname)), fs, conf, NoCryptoServiceFactory.NONE)
         .withTableConfiguration(acuconf).build();
 
     long t1 = System.currentTimeMillis();
@@ -500,7 +500,7 @@ public class BloomFilterLayer {
 
     t1 = System.currentTimeMillis();
     FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder()
-        .forFile(new TabletFile(new Path(fname)), fs, conf, NoCryptoServiceFactory.NONE)
+        .forFile(new ReferencedTabletFile(new Path(fname)), fs, conf, NoCryptoServiceFactory.NONE)
         .withTableConfiguration(acuconf).build();
     t2 = System.currentTimeMillis();
     out.println("Opened " + fname + " in " + (t2 - t1));
