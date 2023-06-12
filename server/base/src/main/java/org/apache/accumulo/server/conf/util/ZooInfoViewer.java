@@ -53,7 +53,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -101,10 +100,6 @@ public class ZooInfoViewer implements KeywordExecutable {
    */
   public ZooInfoViewer() {}
 
-  public static void main(String[] args) throws Exception {
-    new ZooInfoViewer().execute(args);
-  }
-
   @Override
   public String keyword() {
     return "zoo-info-viewer";
@@ -125,10 +120,14 @@ public class ZooInfoViewer implements KeywordExecutable {
     log.info("print properties: {}", opts.printProps);
     log.info("print instances: {}", opts.printInstanceIds);
 
-    ZooReader zooReader = new ZooReaderWriter(opts.getSiteConfiguration());
+    var conf = opts.getSiteConfiguration();
 
-    InstanceId iid = getInstanceId(zooReader, opts);
-    generateReport(iid, opts, zooReader);
+    ZooReader zooReader = new ZooReaderWriter(conf);
+
+    try (ServerContext context = new ServerContext(conf)) {
+      InstanceId iid = context.getInstanceID();
+      generateReport(iid, opts, zooReader);
+    }
   }
 
   void generateReport(final InstanceId iid, final ZooInfoViewer.Opts opts,
@@ -167,45 +166,6 @@ public class ZooInfoViewer implements KeywordExecutable {
         printAcls(iid, opts, writer);
       }
       writer.println("-----------------------------------------------");
-    }
-  }
-
-  /**
-   * Get the instanceID from the command line options, or from value stored in HDFS. The search
-   * order is:
-   * <ol>
-   * <li>command line: --instanceId option</li>
-   * <li>command line: --instanceName option</li>
-   * <li>HDFS</li>
-   * </ol>
-   *
-   * @param zooReader a ZooReader
-   * @param opts the parsed command line options.
-   * @return an instance id
-   */
-  InstanceId getInstanceId(final ZooReader zooReader, final ZooInfoViewer.Opts opts) {
-
-    if (!opts.instanceId.isEmpty()) {
-      return InstanceId.of(opts.instanceId);
-    }
-    if (!opts.instanceName.isEmpty()) {
-      Map<String,InstanceId> instanceNameToIdMap = readInstancesFromZk(zooReader);
-      String instanceName = opts.instanceName;
-      for (Map.Entry<String,InstanceId> e : instanceNameToIdMap.entrySet()) {
-        if (e.getKey().equals(instanceName)) {
-          return e.getValue();
-        }
-      }
-      throw new IllegalArgumentException(
-          "Specified instance name '" + instanceName + "' not found in ZooKeeper");
-    }
-
-    try (ServerContext context = new ServerContext(SiteConfiguration.auto())) {
-      return context.getInstanceID();
-    } catch (Exception ex) {
-      throw new IllegalArgumentException(
-          "Failed to read instance id from HDFS. Instances can be specified on the command line",
-          ex);
     }
   }
 
@@ -565,14 +525,6 @@ public class ZooInfoViewer implements KeywordExecutable {
     @Parameter(names = {"--print-instances"},
         description = "print the instance ids stored in ZooKeeper")
     public boolean printInstanceIds = false;
-
-    @Parameter(names = {"--instanceName"},
-        description = "Specify the instance name to use. If instance name or id are not provided, determined from configuration (requires a running hdfs instance)")
-    public String instanceName = "";
-
-    @Parameter(names = {"--instanceId"},
-        description = "Specify the instance id to use. If instance name or id are not provided, determined from configuration (requires a running hdfs instance)")
-    public String instanceId = "";
 
     @Parameter(names = {"-ns", "--namespaces"},
         description = "a list of namespace names to print properties, with none specified, print all. Only valid with --print-props",
