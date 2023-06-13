@@ -40,7 +40,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.iteratorsImpl.system.StatsIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
@@ -124,7 +124,7 @@ class ScanDataSource implements DataSource {
 
   private SortedKeyValueIterator<Key,Value> createIterator() throws IOException {
 
-    Map<TabletFile,DataFileValue> files;
+    Map<StoredTabletFile,DataFileValue> files;
 
     SamplerConfigurationImpl samplerConfig = scanParams.getSamplerConfigurationImpl();
 
@@ -159,20 +159,20 @@ class ScanDataSource implements DataSource {
       expectedDeletionCount = tablet.getDataSourceDeletions();
 
       memIters = tablet.getMemIterators(samplerConfig);
-      Pair<Long,Map<TabletFile,DataFileValue>> reservation = tablet.reserveFilesForScan();
+      Pair<Long,Map<StoredTabletFile,DataFileValue>> reservation = tablet.reserveFilesForScan();
       fileReservationId = reservation.getFirst();
       files = reservation.getSecond();
     }
 
-    Collection<InterruptibleIterator> mapfiles =
+    Collection<InterruptibleIterator> datafiles =
         fileManager.openFiles(files, scanParams.isIsolated(), samplerConfig);
 
-    List.of(mapfiles, memIters).forEach(c -> c.forEach(ii -> ii.setInterruptFlag(interruptFlag)));
+    List.of(datafiles, memIters).forEach(c -> c.forEach(ii -> ii.setInterruptFlag(interruptFlag)));
 
     List<SortedKeyValueIterator<Key,Value>> iters =
-        new ArrayList<>(mapfiles.size() + memIters.size());
+        new ArrayList<>(datafiles.size() + memIters.size());
 
-    iters.addAll(mapfiles);
+    iters.addAll(datafiles);
     iters.addAll(memIters);
 
     MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.client;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -74,7 +73,7 @@ public class TestThrift1474 {
     Thread thread = new Thread(server::serve);
     thread.start();
     while (!server.isServing()) {
-      sleepUninterruptibly(10, MILLISECONDS);
+      Thread.sleep(10);
     }
 
     TTransport transport = new TSocket("localhost", port);

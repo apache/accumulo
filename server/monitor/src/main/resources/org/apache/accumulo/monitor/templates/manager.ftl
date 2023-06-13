@@ -23,8 +23,11 @@
           <h3>Manager Server Overview</h3>
        </div>
     </div>
-    <div id="managerBanner" style="display: none;">
+    <div id="managerRunningBanner" style="display: none;">
         <div class="alert alert-danger" role="alert">Manager Server Not Running</div>
+    </div>
+    <div id="managerStateBanner" style="display: none;">
+        <div id="manager-banner-message" class="alert alert-warning" role="alert"></div>
     </div>
     <table id="managerStatus" class="table caption-top table-bordered table-striped table-condensed">
         <caption><span class="table-caption">${title}</span><br /></caption>

@@ -63,8 +63,8 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.master.thrift.TableInfo;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
@@ -390,7 +390,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
         coordinatorCheckNanos = System.nanoTime();
         if (previousHost.isEmpty() && coordinatorHost.isPresent()) {
-          log.info("External Compaction Coordinator found at {}", coordinatorHost.get());
+          log.info("External Compaction Coordinator found at {}", coordinatorHost.orElseThrow());
         }
       }
 
@@ -431,7 +431,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         Optional<ServiceLockData> sld =
             ServiceLockData.parse(zk.getData(path + "/" + locks.get(0)));
         if (sld.isPresent()) {
-          address = sld.get().getAddress(ThriftService.GC);
+          address = sld.orElseThrow().getAddress(ThriftService.GC);
         }
         GCMonitorService.Client client =
             ThriftUtil.getClient(ThriftClientTypes.GC, address, context);
@@ -669,7 +669,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     if (coordinatorHost.isEmpty()) {
       throw new IllegalStateException(coordinatorMissingMsg);
     }
-    var ccHost = coordinatorHost.get();
+    var ccHost = coordinatorHost.orElseThrow();
     log.info("User initiated fetch of running External Compactions from " + ccHost);
     var client = getCoordinator(ccHost);
     TExternalCompactionList running;

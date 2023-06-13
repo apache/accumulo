@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -34,7 +36,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -81,14 +82,14 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
     // should automatically flush after 2 seconds
     try (
         BatchWriter bw = client.createBatchWriter(tableName,
-            new BatchWriterConfig().setMaxLatency(1000, TimeUnit.MILLISECONDS));
+            new BatchWriterConfig().setMaxLatency(1000, MILLISECONDS));
         Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
 
       Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
       m.put("cf", "cq", "1");
       bw.addMutation(m);
 
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      Thread.sleep(500);
 
       int count = Iterators.size(scanner.iterator());
 
@@ -96,7 +97,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         throw new Exception("Flushed too soon");
       }
 
-      sleepUninterruptibly(1500, TimeUnit.MILLISECONDS);
+      Thread.sleep(1500);
 
       count = Iterators.size(scanner.iterator());
 
@@ -218,7 +219,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
       threads.prestartAllCoreThreads();
 
       BatchWriterConfig cfg = new BatchWriterConfig();
-      cfg.setMaxLatency(10, TimeUnit.SECONDS);
+      cfg.setMaxLatency(10, SECONDS);
       cfg.setMaxMemory(1 * 1024 * 1024);
       cfg.setMaxWriteThreads(NUM_THREADS);
       final BatchWriter bw = c.createBatchWriter(tableName, cfg);
@@ -238,7 +239,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         });
       }
       threads.shutdown();
-      threads.awaitTermination(3, TimeUnit.MINUTES);
+      threads.awaitTermination(3, MINUTES);
       bw.close();
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         for (Entry<Key,Value> e : scanner) {

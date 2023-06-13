@@ -97,7 +97,6 @@ public class SimpleGarbageCollectorTest {
     conf.put(Property.GC_CYCLE_START.getKey(), "1");
     conf.put(Property.GC_CYCLE_DELAY.getKey(), "20");
     conf.put(Property.GC_DELETE_THREADS.getKey(), "2");
-    conf.put(Property.GC_TRASH_IGNORE.getKey(), "false");
 
     return new ConfigurationCopy(conf);
   }
@@ -106,7 +105,6 @@ public class SimpleGarbageCollectorTest {
   public void testInit() {
     assertSame(volMgr, gc.getContext().getVolumeManager());
     assertEquals(credentials, gc.getContext().getCredentials());
-    assertTrue(gc.isUsingTrash());
     assertEquals(1000L, gc.getStartDelay());
     assertEquals(2, gc.getNumDeleteThreads());
     assertFalse(gc.inSafeMode()); // false by default
@@ -128,13 +126,6 @@ public class SimpleGarbageCollectorTest {
     replay(volMgr);
     assertFalse(gc.moveToTrash(path));
     verify(volMgr);
-  }
-
-  @Test
-  public void testMoveToTrash_NotUsingTrash() throws Exception {
-    systemConfig.set(Property.GC_TRASH_IGNORE.getKey(), "true");
-    Path path = createMock(Path.class);
-    assertFalse(gc.moveToTrash(path));
   }
 
   @Test

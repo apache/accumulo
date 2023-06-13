@@ -134,7 +134,7 @@ public class FunctionalTestUtils {
       for (Entry<Text,Integer> entry : es) {
         if (entry.getValue() > maxRFiles || entry.getValue() < minRFiles) {
           throw new Exception(
-              "tablet " + entry.getKey() + " has " + entry.getValue() + " map files");
+              "tablet " + entry.getKey() + " has " + entry.getValue() + " data files");
         }
       }
     }

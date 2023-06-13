@@ -23,7 +23,6 @@ include "data.thrift"
 include "security.thrift"
 include "client.thrift"
 include "manager.thrift"
-include "master.thrift"
 include "tabletserver.thrift"
 
 exception TooManyFilesException {

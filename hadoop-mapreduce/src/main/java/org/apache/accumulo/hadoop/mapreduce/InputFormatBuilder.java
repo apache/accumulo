@@ -232,6 +232,8 @@ public interface InputFormatBuilder {
 
     /**
      * Enables the user to set the consistency level
+     *
+     * @since 2.1.0
      */
     InputFormatOptions<T> consistencyLevel(ConsistencyLevel level);
   }

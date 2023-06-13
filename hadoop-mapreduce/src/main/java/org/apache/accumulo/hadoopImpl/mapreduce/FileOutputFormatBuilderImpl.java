@@ -116,22 +116,22 @@ public class FileOutputFormatBuilderImpl<T> implements FileOutputFormatBuilder,
 
   private void _store(Configuration conf) {
     if (comp.isPresent()) {
-      FileOutputConfigurator.setCompressionType(callingClass, conf, comp.get());
+      FileOutputConfigurator.setCompressionType(callingClass, conf, comp.orElseThrow());
     }
     if (dataBlockSize.isPresent()) {
-      FileOutputConfigurator.setDataBlockSize(callingClass, conf, dataBlockSize.get());
+      FileOutputConfigurator.setDataBlockSize(callingClass, conf, dataBlockSize.orElseThrow());
     }
     if (fileBlockSize.isPresent()) {
-      FileOutputConfigurator.setFileBlockSize(callingClass, conf, fileBlockSize.get());
+      FileOutputConfigurator.setFileBlockSize(callingClass, conf, fileBlockSize.orElseThrow());
     }
     if (indexBlockSize.isPresent()) {
-      FileOutputConfigurator.setIndexBlockSize(callingClass, conf, indexBlockSize.get());
+      FileOutputConfigurator.setIndexBlockSize(callingClass, conf, indexBlockSize.orElseThrow());
     }
     if (replication.isPresent()) {
-      FileOutputConfigurator.setReplication(callingClass, conf, replication.get());
+      FileOutputConfigurator.setReplication(callingClass, conf, replication.orElseThrow());
     }
     if (sampler.isPresent()) {
-      FileOutputConfigurator.setSampler(callingClass, conf, sampler.get());
+      FileOutputConfigurator.setSampler(callingClass, conf, sampler.orElseThrow());
     }
     if (!summarizers.isEmpty()) {
       FileOutputConfigurator.setSummarizers(callingClass, conf,

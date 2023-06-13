@@ -28,6 +28,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
@@ -69,9 +70,9 @@ class ZooTabletStateStore implements TabletStateStore {
 
           TabletMetadata rootMeta = ample.readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL);
 
-          TServerInstance currentSession = null;
-          TServerInstance futureSession = null;
-          TServerInstance lastSession = null;
+          Location currentSession = null;
+          Location futureSession = null;
+          Location lastSession = null;
 
           Location loc = rootMeta.getLocation();
 
@@ -95,8 +96,8 @@ class ZooTabletStateStore implements TabletStateStore {
 
           return new TabletLocationState(RootTable.EXTENT, futureSession, currentSession,
               lastSession, null, logs, false);
-        } catch (Exception ex) {
-          throw new RuntimeException(ex);
+        } catch (BadLocationStateException ex) {
+          throw new IllegalStateException(ex);
         }
       }
 
@@ -122,7 +123,7 @@ class ZooTabletStateStore implements TabletStateStore {
     }
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
-    tabletMutator.putLocation(assignment.server, LocationType.FUTURE);
+    tabletMutator.putLocation(Location.future(assignment.server));
     tabletMutator.mutate();
   }
 
@@ -137,10 +138,10 @@ class ZooTabletStateStore implements TabletStateStore {
     }
 
     TabletMutator tabletMutator = ample.mutateTablet(assignment.tablet);
-    tabletMutator.putLocation(assignment.server, LocationType.CURRENT);
-    ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator,
-        assignment.tablet, assignment.server);
-    tabletMutator.deleteLocation(assignment.server, LocationType.FUTURE);
+    tabletMutator.putLocation(Location.current(assignment.server));
+    ManagerMetadataUtil.updateLastForAssignmentMode(context, tabletMutator, assignment.server,
+        assignment.lastLocation);
+    tabletMutator.deleteLocation(Location.future(assignment.server));
 
     tabletMutator.mutate();
   }
@@ -157,13 +158,14 @@ class ZooTabletStateStore implements TabletStateStore {
     }
 
     TabletMutator tabletMutator = ample.mutateTablet(tls.extent);
+    final TServerInstance futureOrCurrent = tls.futureOrCurrent().getServerInstance();
 
-    tabletMutator.deleteLocation(tls.futureOrCurrent(), LocationType.FUTURE);
-    tabletMutator.deleteLocation(tls.futureOrCurrent(), LocationType.CURRENT);
-    ManagerMetadataUtil.updateLastForAssignmentMode(context, ample, tabletMutator, tls.extent,
-        tls.futureOrCurrent());
+    tabletMutator.deleteLocation(Location.future(futureOrCurrent));
+    tabletMutator.deleteLocation(Location.current(futureOrCurrent));
+    ManagerMetadataUtil.updateLastForAssignmentMode(context, tabletMutator, futureOrCurrent,
+        tls.last);
     if (logsForDeadServers != null) {
-      List<Path> logs = logsForDeadServers.get(tls.futureOrCurrent());
+      List<Path> logs = logsForDeadServers.get(futureOrCurrent);
       if (logs != null) {
         for (Path entry : logs) {
           LogEntry logEntry =

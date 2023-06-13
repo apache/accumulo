@@ -82,7 +82,7 @@ public class MultiThreadedRFileTest {
       Key lastKey = new Key(indexIter.getTopKey());
 
       if (reader.getFirstKey().compareTo(lastKey) > 0) {
-        throw new RuntimeException(
+        throw new IllegalStateException(
             "First key out of order " + reader.getFirstKey() + " " + lastKey);
       }
 
@@ -90,7 +90,7 @@ public class MultiThreadedRFileTest {
 
       while (indexIter.hasTop()) {
         if (lastKey.compareTo(indexIter.getTopKey()) > 0) {
-          throw new RuntimeException(
+          throw new IllegalStateException(
               "Indext out of order " + lastKey + " " + indexIter.getTopKey());
         }
 
@@ -100,7 +100,8 @@ public class MultiThreadedRFileTest {
       }
 
       if (!reader.getLastKey().equals(lastKey)) {
-        throw new RuntimeException("Last key out of order " + reader.getLastKey() + " " + lastKey);
+        throw new IllegalStateException(
+            "Last key out of order " + reader.getLastKey() + " " + lastKey);
       }
     }
   }

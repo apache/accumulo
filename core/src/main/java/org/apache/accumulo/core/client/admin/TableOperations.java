@@ -88,47 +88,6 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException, TableExistsException;
 
   /**
-   * @param tableName the name of the table
-   * @param limitVersion Enables/disables the versioning iterator, which will limit the number of
-   *        Key versions kept.
-   * @throws AccumuloException if a general error occurs
-   * @throws AccumuloSecurityException if the user does not have permission
-   * @throws TableExistsException if the table already exists
-   * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
-   */
-  @Deprecated(since = "1.7.0")
-  default void create(String tableName, boolean limitVersion)
-      throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    if (limitVersion) {
-      create(tableName);
-    } else {
-      create(tableName, new NewTableConfiguration().withoutDefaultIterators());
-    }
-  }
-
-  /**
-   * @param tableName the name of the table
-   * @param versioningIter Enables/disables the versioning iterator, which will limit the number of
-   *        Key versions kept.
-   * @param timeType specifies logical or real-time based time recording for entries in the table
-   * @throws AccumuloException if a general error occurs
-   * @throws AccumuloSecurityException if the user does not have permission
-   * @throws TableExistsException if the table already exists
-   * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
-   */
-  @Deprecated(since = "1.7.0")
-  default void create(String tableName, boolean versioningIter, TimeType timeType)
-      throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(timeType);
-
-    if (versioningIter) {
-      create(tableName, ntc);
-    } else {
-      create(tableName, ntc.withoutDefaultIterators());
-    }
-  }
-
-  /**
    * Create a table with specified configuration. A safe way to ignore tables that do exist would be
    * to do something like the following:
    *
@@ -228,44 +187,12 @@ public interface TableOperations {
    * @param tableName the name of the table
    * @return the split points (end-row names) for the table's current split profile
    * @throws TableNotFoundException if the table does not exist
-   * @deprecated since 1.5.0; use {@link #listSplits(String)} instead.
-   */
-  @Deprecated(since = "1.5.0")
-  default Collection<Text> getSplits(String tableName) throws TableNotFoundException {
-    try {
-      return listSplits(tableName);
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  /**
-   * @param tableName the name of the table
-   * @return the split points (end-row names) for the table's current split profile
-   * @throws TableNotFoundException if the table does not exist
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
    * @since 1.5.0
    */
   Collection<Text> listSplits(String tableName)
       throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
-
-  /**
-   * @param tableName the name of the table
-   * @param maxSplits specifies the maximum number of splits to return
-   * @return the split points (end-row names) for the table's current split profile, grouped into
-   *         fewer splits so as not to exceed maxSplits
-   * @deprecated since 1.5.0; use {@link #listSplits(String, int)} instead.
-   */
-  @Deprecated(since = "1.5.0")
-  default Collection<Text> getSplits(String tableName, int maxSplits)
-      throws TableNotFoundException {
-    try {
-      return listSplits(tableName, maxSplits);
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      throw new RuntimeException(e);
-    }
-  }
 
   /**
    * @param tableName the name of the table
@@ -363,8 +290,8 @@ public interface TableOperations {
 
   /**
    * Starts a full major compaction of the tablets in the range (start, end]. If the config does not
-   * specify a compaction selector (or a deprecated strategy), then all files in a tablet are
-   * compacted. The compaction is performed even for tablets that have only one file.
+   * specify a compaction selector, then all files in a tablet are compacted. The compaction is
+   * performed even for tablets that have only one file.
    *
    * <p>
    * The following optional settings can only be set by one compact call per table at the same time.
@@ -636,27 +563,6 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
-   * Bulk import all the files in a directory into a table. Files can be created using
-   * {@link RFile#newWriter()}
-   *
-   * @param tableName the name of the table
-   * @param dir the HDFS directory to find files for importing
-   * @param failureDir the HDFS directory to place files that failed to be imported, must exist and
-   *        be empty
-   * @param setTime override the time values in the input files, and use the current time for all
-   *        mutations
-   * @throws IOException when there is an error reading/writing to HDFS
-   * @throws AccumuloException when there is a general accumulo error
-   * @throws AccumuloSecurityException when the user does not have the proper permissions
-   * @throws TableNotFoundException when the table no longer exists
-   *
-   * @deprecated since 2.0.0 use {@link #importDirectory(String)} instead.
-   */
-  @Deprecated(since = "2.0.0")
-  void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
-      throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException;
-
-  /**
    * @since 2.0.0
    */
   interface ImportOptions {
@@ -745,11 +651,9 @@ public interface TableOperations {
    * Bulk import the files in a directory into a table. Files can be created using
    * {@link RFile#newWriter()}.
    * <p>
-   * This new method of bulk import examines files in the current process outside of holding a table
-   * lock. The old bulk import method ({@link #importDirectory(String, String, String, boolean)})
-   * examines files on the server side while holding a table read lock.
-   * <p>
-   * This API supports adding files to online and offline tables.
+   * This API supports adding files to online and offline tables. The files are examined on the
+   * client side to determine destination tablets. This examination will use memory and cpu within
+   * the process calling this API.
    * <p>
    * For example, to bulk import files from the directory 'dir1' into the table 'table1' use the
    * following code.

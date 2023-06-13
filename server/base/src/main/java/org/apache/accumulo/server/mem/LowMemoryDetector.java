@@ -89,9 +89,9 @@ public class LowMemoryDetector {
       }
       boolean isEnabled = context.getConfiguration().getBoolean(p);
       // Only incur the penalty of accessing the volatile variable when enabled for this scope
-      if (isEnabled) {
+      if (isEnabled && runningLowOnMemory) {
         action.execute();
-        return runningLowOnMemory;
+        return true;
       }
     }
     return false;

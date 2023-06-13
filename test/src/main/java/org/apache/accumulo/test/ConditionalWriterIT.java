@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -43,7 +44,6 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -882,7 +882,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(nss("2", "4", "6"));
       client.tableOperations().create(tableName, ntc);
 
-      sleepUninterruptibly(2, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(2));
 
       int num = 100;
 
@@ -1289,7 +1289,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         tp.shutdown();
 
         while (!tp.isTerminated()) {
-          tp.awaitTermination(1, TimeUnit.MINUTES);
+          tp.awaitTermination(1, MINUTES);
         }
 
         assertFalse(failed.get(), "A MutatorTask failed with an exception");
@@ -1385,7 +1385,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       try (
           ConditionalWriter cw = client.createConditionalWriter(table,
-              new ConditionalWriterConfig().setTimeout(3, TimeUnit.SECONDS));
+              new ConditionalWriterConfig().setTimeout(3, SECONDS));
           Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
 
         ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.clientImpl.bulk;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,8 +34,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.util.concurrent.Uninterruptibles;
 
 public class ConcurrentKeyExtentCacheTest {
 
@@ -83,8 +80,11 @@ public class ConcurrentKeyExtentCacheTest {
         }
       }
 
-      Uninterruptibles.sleepUninterruptibly(3, MILLISECONDS);
-
+      try {
+        Thread.sleep(3);
+      } catch (InterruptedException ex) {
+        // ignore exception
+      }
       return extents.subList(index, extents.size()).stream().limit(73);
     }
   }

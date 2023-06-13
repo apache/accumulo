@@ -60,7 +60,7 @@ public class YieldingIterator extends WrappingIterator {
 
   @Override
   public boolean hasTop() {
-    return (!(yield.isPresent() && yield.get().hasYielded()) && super.hasTop());
+    return (!(yield.isPresent() && yield.orElseThrow().hasYielded()) && super.hasTop());
   }
 
   @Override
@@ -75,7 +75,8 @@ public class YieldingIterator extends WrappingIterator {
       yieldNexts.incrementAndGet();
       // since we are not actually skipping keys underneath, simply use the key following the top
       // key as the yield key
-      yield.get().yield(getTopKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
+      yield.orElseThrow()
+          .yield(getTopKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
       log.info("end YieldingIterator.next: yielded at " + getTopKey());
     }
 
@@ -122,9 +123,9 @@ public class YieldingIterator extends WrappingIterator {
         // since we are not actually skipping keys underneath, simply use the key following the
         // range start key
         if (range.isStartKeyInclusive()) {
-          yield.get().yield(range.getStartKey());
+          yield.orElseThrow().yield(range.getStartKey());
         } else {
-          yield.get()
+          yield.orElseThrow()
               .yield(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
         }
         log.info("end YieldingIterator.next: yielded at " + range.getStartKey());

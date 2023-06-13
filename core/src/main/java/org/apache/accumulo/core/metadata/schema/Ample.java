@@ -29,13 +29,13 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.hadoop.io.Text;
 
@@ -218,7 +218,7 @@ public interface Ample {
   /**
    * Return an encoded delete marker Mutation to delete the specified TabletFile path. A
    * ReferenceFile is used for the parameter because the Garbage Collector is optimized to store a
-   * directory for Tablet File. Otherwise, a {@link TabletFile} object could be used. The
+   * directory for Tablet File. Otherwise, a {@link ReferencedTabletFile} object could be used. The
    * tabletFilePathToRemove is validated and normalized before creating the mutation.
    *
    * @param tabletFilePathToRemove String full path of the TabletFile
@@ -245,11 +245,13 @@ public interface Ample {
   interface TabletMutator {
     TabletMutator putPrevEndRow(Text per);
 
-    TabletMutator putFile(TabletFile path, DataFileValue dfv);
+    TabletMutator putFile(ReferencedTabletFile path, DataFileValue dfv);
+
+    TabletMutator putFile(StoredTabletFile path, DataFileValue dfv);
 
     TabletMutator deleteFile(StoredTabletFile path);
 
-    TabletMutator putScan(TabletFile path);
+    TabletMutator putScan(StoredTabletFile path);
 
     TabletMutator deleteScan(StoredTabletFile path);
 
@@ -257,9 +259,9 @@ public interface Ample {
 
     TabletMutator putFlushId(long flushId);
 
-    TabletMutator putLocation(TServerInstance tserver, LocationType type);
+    TabletMutator putLocation(Location location);
 
-    TabletMutator deleteLocation(TServerInstance tserver, LocationType type);
+    TabletMutator deleteLocation(Location location);
 
     TabletMutator putZooLock(ServiceLock zooLock);
 
@@ -273,9 +275,9 @@ public interface Ample {
 
     TabletMutator putTime(MetadataTime time);
 
-    TabletMutator putBulkFile(TabletFile bulkref, long tid);
+    TabletMutator putBulkFile(ReferencedTabletFile bulkref, long tid);
 
-    TabletMutator deleteBulkFile(TabletFile bulkref);
+    TabletMutator deleteBulkFile(StoredTabletFile bulkref);
 
     TabletMutator putChopped();
 
@@ -339,4 +341,36 @@ public interface Ample {
   default void deleteScanServerFileReferences(String serverAddress, UUID serverSessionId) {
     throw new UnsupportedOperationException();
   }
+
+  /**
+   * Create a Bulk Load In Progress flag in the metadata table
+   *
+   * @param path The bulk directory filepath
+   * @param fateTxid The id of the Bulk Import Fate operation.
+   */
+  default void addBulkLoadInProgressFlag(String path, long fateTxid) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Remove a Bulk Load In Progress flag from the metadata table.
+   *
+   * @param path The bulk directory filepath
+   */
+  default void removeBulkLoadInProgressFlag(String path) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Remove all the Bulk Load transaction ids from a given table's metadata
+   *
+   * @param tableId Table ID for transaction removals
+   * @param tid Transaction ID to remove
+   * @param firstSplit non-inclusive table split point at which to start looking for load markers
+   * @param lastSplit inclusive tablet split point at which to stop looking for load markers
+   */
+  default void removeBulkLoadEntries(TableId tableId, long tid, Text firstSplit, Text lastSplit) {
+    throw new UnsupportedOperationException();
+  }
+
 }

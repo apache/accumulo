@@ -122,9 +122,9 @@ public class TabletLogger {
   }
 
   public static void selected(KeyExtent extent, CompactionKind kind,
-      Collection<? extends TabletFile> inputs) {
+      Collection<StoredTabletFile> inputs) {
     fileLog.trace("{} changed compaction selection set for {} new set {}", extent, kind,
-        Collections2.transform(inputs, TabletFile::getFileName));
+        Collections2.transform(inputs, StoredTabletFile::getFileName));
   }
 
   public static void compacting(KeyExtent extent, CompactionJob job, CompactionConfig config) {
@@ -140,14 +140,14 @@ public class TabletLogger {
     }
   }
 
-  public static void compacted(KeyExtent extent, CompactionJob job, TabletFile output) {
+  public static void compacted(KeyExtent extent, CompactionJob job, StoredTabletFile output) {
     fileLog.debug("Compacted {} for {} created {} from {}", extent, job.getKind(), output,
         asFileNames(job.getFiles()));
   }
 
   public static void flushed(KeyExtent extent, Optional<StoredTabletFile> newDatafile) {
     if (newDatafile.isPresent()) {
-      fileLog.debug("Flushed {} created {} from [memory]", extent, newDatafile.get());
+      fileLog.debug("Flushed {} created {} from [memory]", extent, newDatafile.orElseThrow());
     } else {
       fileLog.debug("Flushed {} from [memory] but no file was written.", extent);
     }

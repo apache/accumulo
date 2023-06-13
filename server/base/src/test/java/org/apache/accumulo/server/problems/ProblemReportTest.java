@@ -44,7 +44,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -159,7 +158,7 @@ public class ProblemReportTest {
     r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     byte[] zpathFileName = makeZPathFileName(TABLE_ID, ProblemType.FILE_READ, RESOURCE);
     String path = ZooUtil.getRoot(InstanceId.of("instance")) + Constants.ZPROBLEMS + "/"
-        + Encoding.encodeAsBase64FileName(new Text(zpathFileName));
+        + Encoding.encodeAsBase64FileName(zpathFileName);
     zoorw.recursiveDelete(path, NodeMissingPolicy.SKIP);
     replay(zoorw);
 
@@ -173,7 +172,7 @@ public class ProblemReportTest {
     r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null, now);
     byte[] zpathFileName = makeZPathFileName(TABLE_ID, ProblemType.FILE_READ, RESOURCE);
     String path = ZooUtil.getRoot(InstanceId.of("instance")) + Constants.ZPROBLEMS + "/"
-        + Encoding.encodeAsBase64FileName(new Text(zpathFileName));
+        + Encoding.encodeAsBase64FileName(zpathFileName);
     byte[] encoded = encodeReportData(now, SERVER, null);
     expect(zoorw.putPersistentData(eq(path), aryEq(encoded), eq(NodeExistsPolicy.OVERWRITE)))
         .andReturn(true);
@@ -186,7 +185,7 @@ public class ProblemReportTest {
   @Test
   public void testDecodeZooKeeperEntry() throws Exception {
     byte[] zpathFileName = makeZPathFileName(TABLE_ID, ProblemType.FILE_READ, RESOURCE);
-    String node = Encoding.encodeAsBase64FileName(new Text(zpathFileName));
+    String node = Encoding.encodeAsBase64FileName(zpathFileName);
     long now = System.currentTimeMillis();
     byte[] encoded = encodeReportData(now, SERVER, "excmsg");
 

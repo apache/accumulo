@@ -91,7 +91,7 @@ public class ColumnVisibility {
   /**
    * The node types in a parse tree for a visibility expression.
    */
-  public static enum NodeType {
+  public enum NodeType {
     EMPTY, TERM, OR, AND,
   }
 
@@ -151,7 +151,7 @@ public class ColumnVisibility {
 
     public ByteSequence getTerm(byte[] expression) {
       if (type != NodeType.TERM) {
-        throw new RuntimeException();
+        throw new IllegalStateException();
       }
 
       if (expression[start] == '"') {

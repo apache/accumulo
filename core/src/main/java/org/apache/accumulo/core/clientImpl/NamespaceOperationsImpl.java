@@ -338,7 +338,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   public Map<String,String> namespaceIdMap() {
     return Namespaces.getNameToIdMap(context).entrySet().stream()
         .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().canonical(), (v1, v2) -> {
-          throw new RuntimeException(String.format("Duplicate key for values %s and %s", v1, v2));
+          throw new IllegalStateException(
+              String.format("Duplicate key for values %s and %s", v1, v2));
         }, TreeMap::new));
   }
 

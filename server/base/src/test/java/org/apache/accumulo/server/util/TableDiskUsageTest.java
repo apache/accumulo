@@ -37,8 +37,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
@@ -91,7 +91,8 @@ public class TableDiskUsageTest {
 
     assertEquals(4096, getTotalUsage(result, tableId1));
     assertEquals(1, result.size());
-    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    Map.Entry<SortedSet<String>,Long> firstResult =
+        result.entrySet().stream().findFirst().orElseThrow();
     assertEquals(1, firstResult.getKey().size());
     assertTrue(firstResult.getKey().contains(getTableName(tableId1)));
     assertEquals(4096, firstResult.getValue());
@@ -120,7 +121,8 @@ public class TableDiskUsageTest {
 
     assertEquals(14096, getTotalUsage(result, tableId1));
     assertEquals(1, result.size());
-    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    Map.Entry<SortedSet<String>,Long> firstResult =
+        result.entrySet().stream().findFirst().orElseThrow();
     assertEquals(1, firstResult.getKey().size());
     assertEquals(14096, firstResult.getValue());
 
@@ -148,7 +150,8 @@ public class TableDiskUsageTest {
 
     assertEquals(1024, getTotalUsage(result, MetadataTable.ID));
     assertEquals(1, result.size());
-    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    Map.Entry<SortedSet<String>,Long> firstResult =
+        result.entrySet().stream().findFirst().orElseThrow();
     assertEquals(1024, firstResult.getValue());
 
     EasyMock.verify(client, scanner);
@@ -171,7 +174,8 @@ public class TableDiskUsageTest {
 
     assertEquals(1024, getTotalUsage(result, tableId1));
     assertEquals(1, result.size());
-    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    Map.Entry<SortedSet<String>,Long> firstResult =
+        result.entrySet().stream().findFirst().orElseThrow();
     assertEquals(1, firstResult.getKey().size());
     assertTrue(firstResult.getKey().contains(getTableName(tableId1)));
     assertEquals(1024, firstResult.getValue());
@@ -194,7 +198,8 @@ public class TableDiskUsageTest {
 
     assertEquals(0, getTotalUsage(result, tableId1));
     assertEquals(1, result.size());
-    Map.Entry<SortedSet<String>,Long> firstResult = result.entrySet().stream().findFirst().get();
+    Map.Entry<SortedSet<String>,Long> firstResult =
+        result.entrySet().stream().findFirst().orElseThrow();
     assertEquals(1, firstResult.getKey().size());
     assertEquals(0, firstResult.getValue());
 
@@ -271,20 +276,22 @@ public class TableDiskUsageTest {
     return tableIdToNameMap.get(tableId);
   }
 
-  private static void appendFileMetadata(Map<Key,Value> tableEntries, TabletFile file, long size) {
+  private static void appendFileMetadata(Map<Key,Value> tableEntries, ReferencedTabletFile file,
+      long size) {
     tableEntries.put(
         new Key(new Text(file.getTableId() + "<"),
             MetadataSchema.TabletsSection.DataFileColumnFamily.NAME, file.getMetaInsertText()),
         new DataFileValue(size, 1).encodeAsValue());
   }
 
-  private static TabletFile getTabletFile(String volume, TableId tableId, String tablet,
+  private static ReferencedTabletFile getTabletFile(String volume, TableId tableId, String tablet,
       String fileName) {
-    return new TabletFile(new Path(
+    return new ReferencedTabletFile(new Path(
         volume + Constants.HDFS_TABLES_DIR + "/" + tableId + "/" + tablet + "/" + fileName));
   }
 
-  private static TabletFile getTabletFile(TableId tableId, String tablet, String fileName) {
+  private static ReferencedTabletFile getTabletFile(TableId tableId, String tablet,
+      String fileName) {
     return getTabletFile(volume1, tableId, tablet, fileName);
   }
 

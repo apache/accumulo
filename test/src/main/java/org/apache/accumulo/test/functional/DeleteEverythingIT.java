@@ -18,12 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -105,7 +104,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
         c.tableOperations().flush(tableName, null, null, true);
 
         c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
-        sleepUninterruptibly(4, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(4));
 
         FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
 

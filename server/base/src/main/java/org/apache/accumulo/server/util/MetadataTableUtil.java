@@ -47,7 +47,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -62,20 +61,17 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -91,7 +87,6 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
@@ -139,10 +134,6 @@ public class MetadataTableUtil {
         new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
   }
 
-  private static void update(ServerContext context, Mutation m, KeyExtent extent) {
-    update(context, null, m, extent);
-  }
-
   public static void update(ServerContext context, ServiceLock zooLock, Mutation m,
       KeyExtent extent) {
     Writer t = extent.isMeta() ? getRootTable(context) : getMetadataTable(context);
@@ -163,7 +154,7 @@ public class MetadataTableUtil {
       } catch (ConstraintViolationException e) {
         logUpdateFailure(m, extent, e);
         // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
@@ -190,7 +181,7 @@ public class MetadataTableUtil {
   }
 
   public static Map<StoredTabletFile,DataFileValue> updateTabletDataFile(long tid, KeyExtent extent,
-      Map<TabletFile,DataFileValue> estSizes, MetadataTime time, ServerContext context,
+      Map<ReferencedTabletFile,DataFileValue> estSizes, MetadataTime time, ServerContext context,
       ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putTime(time);
@@ -206,14 +197,6 @@ public class MetadataTableUtil {
     return newFiles;
   }
 
-  public static void updateTabletDir(KeyExtent extent, String newDir, ServerContext context,
-      ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putDirName(newDir);
-    tablet.putZooLock(zooLock);
-    tablet.mutate();
-  }
-
   public static void addTablet(KeyExtent extent, String path, ServerContext context,
       TimeType timeType, ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
@@ -227,7 +210,8 @@ public class MetadataTableUtil {
 
   public static void updateTabletVolumes(KeyExtent extent, List<LogEntry> logsToRemove,
       List<LogEntry> logsToAdd, List<StoredTabletFile> filesToRemove,
-      SortedMap<TabletFile,DataFileValue> filesToAdd, ServiceLock zooLock, ServerContext context) {
+      SortedMap<ReferencedTabletFile,DataFileValue> filesToAdd, ServiceLock zooLock,
+      ServerContext context) {
 
     TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
     logsToRemove.forEach(tabletMutator::deleteWal);
@@ -275,7 +259,7 @@ public class MetadataTableUtil {
     ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
 
     for (Entry<StoredTabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
-      m.put(DataFileColumnFamily.NAME, entry.getKey().getMetaInsertText(),
+      m.put(DataFileColumnFamily.NAME, entry.getKey().getMetaUpdateDeleteText(),
           new Value(entry.getValue().encode()));
     }
 
@@ -301,7 +285,7 @@ public class MetadataTableUtil {
   }
 
   public static void splitDatafiles(Text midRow, double splitRatio,
-      Map<TabletFile,FileUtil.FileInfo> firstAndLastRows,
+      Map<StoredTabletFile,FileUtil.FileInfo> firstAndLastRows,
       SortedMap<StoredTabletFile,DataFileValue> datafiles,
       SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes,
       SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes,
@@ -423,7 +407,7 @@ public class MetadataTableUtil {
     TabletMetadata tablet = context.getAmple().readTablet(extent, FILES, LOGS, PREV_ROW, DIR);
 
     if (tablet == null) {
-      throw new RuntimeException("Tablet " + extent + " not found in metadata");
+      throw new IllegalStateException("Tablet " + extent + " not found in metadata");
     }
 
     result.addAll(tablet.getLogs());
@@ -495,7 +479,7 @@ public class MetadataTableUtil {
     Iterator<TabletMetadata> ti = createCloneScanner(testTableName, srcTableId, client).iterator();
 
     if (!ti.hasNext()) {
-      throw new RuntimeException(" table deleted during clone?  srcTableId = " + srcTableId);
+      throw new IllegalStateException(" table deleted during clone?  srcTableId = " + srcTableId);
     }
 
     while (ti.hasNext()) {
@@ -521,7 +505,7 @@ public class MetadataTableUtil {
         createCloneScanner(testTableName, tableId, client).iterator();
 
     if (!cloneIter.hasNext() || !srcIter.hasNext()) {
-      throw new RuntimeException(
+      throw new IllegalStateException(
           " table deleted during clone?  srcTableId = " + srcTableId + " tableId=" + tableId);
     }
 
@@ -530,7 +514,7 @@ public class MetadataTableUtil {
     while (cloneIter.hasNext()) {
       TabletMetadata cloneTablet = cloneIter.next();
       Text cloneEndRow = cloneTablet.getEndRow();
-      HashSet<TabletFile> cloneFiles = new HashSet<>();
+      HashSet<StoredTabletFile> cloneFiles = new HashSet<>();
 
       boolean cloneSuccessful = cloneTablet.getCloned() != null;
 
@@ -549,7 +533,7 @@ public class MetadataTableUtil {
             "Tablets deleted from src during clone : " + cloneEndRow + " " + srcEndRow);
       }
 
-      HashSet<TabletFile> srcFiles = new HashSet<>();
+      HashSet<StoredTabletFile> srcFiles = new HashSet<>();
       if (!cloneSuccessful) {
         srcFiles.addAll(srcTablet.getFiles());
       }
@@ -666,63 +650,4 @@ public class MetadataTableUtil {
     tablet.mutate();
   }
 
-  public static void removeBulkLoadEntries(AccumuloClient client, TableId tableId, long tid)
-      throws Exception {
-    try (
-        Scanner mscanner =
-            new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-        BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
-      mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
-      mscanner.fetchColumnFamily(BulkFileColumnFamily.NAME);
-
-      for (Entry<Key,Value> entry : mscanner) {
-        log.trace("Looking at entry {} with tid {}", entry, tid);
-        long entryTid = BulkFileColumnFamily.getBulkLoadTid(entry.getValue());
-        if (tid == entryTid) {
-          log.trace("deleting entry {}", entry);
-          Key key = entry.getKey();
-          Mutation m = new Mutation(key.getRow());
-          m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
-          bw.addMutation(m);
-        }
-      }
-    }
-  }
-
-  public static void addBulkLoadInProgressFlag(ServerContext context, String path, long fateTxid) {
-
-    Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
-    m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(FateTxId.formatTid(fateTxid)));
-
-    // new KeyExtent is only added to force update to write to the metadata table, not the root
-    // table
-    // because bulk loads aren't supported to the metadata table
-    update(context, m, new KeyExtent(TableId.of("anythingNotMetadata"), null, null));
-  }
-
-  public static void removeBulkLoadInProgressFlag(ServerContext context, String path) {
-
-    Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
-    m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
-
-    // new KeyExtent is only added to force update to write to the metadata table, not the root
-    // table because bulk loads aren't supported to the metadata table
-    update(context, m, new KeyExtent(TableId.of("anythingNotMetadata"), null, null));
-  }
-
-  public static SortedMap<Text,SortedMap<ColumnFQ,Value>>
-      getTabletEntries(SortedMap<Key,Value> tabletKeyValues, List<ColumnFQ> columns) {
-    TreeMap<Text,SortedMap<ColumnFQ,Value>> tabletEntries = new TreeMap<>();
-
-    HashSet<ColumnFQ> colSet = columns == null ? null : new HashSet<>(columns);
-
-    tabletKeyValues.forEach((key, val) -> {
-      ColumnFQ currentKey = new ColumnFQ(key);
-      if (columns == null || colSet.contains(currentKey)) {
-        tabletEntries.computeIfAbsent(key.getRow(), k -> new TreeMap<>()).put(currentKey, val);
-      }
-    });
-
-    return tabletEntries;
-  }
 }

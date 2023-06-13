@@ -55,7 +55,7 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
 /**
- * Remove file entries for map files that don't exist.
+ * Remove file entries for data files that don't exist.
  */
 public class RemoveEntriesForMissingFiles {
 

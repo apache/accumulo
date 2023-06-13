@@ -60,7 +60,6 @@ public class GarbageCollectWriteAheadLogs {
 
   private final ServerContext context;
   private final VolumeManager fs;
-  private final boolean useTrash;
   private final LiveTServerSet liveServers;
   private final WalStateManager walMarker;
   private final Iterable<TabletLocationState> store;
@@ -70,13 +69,11 @@ public class GarbageCollectWriteAheadLogs {
    *
    * @param context the collection server's context
    * @param fs volume manager to use
-   * @param useTrash true to move files to trash rather than delete them
    */
   GarbageCollectWriteAheadLogs(final ServerContext context, final VolumeManager fs,
-      final LiveTServerSet liveServers, boolean useTrash) {
+      final LiveTServerSet liveServers) {
     this.context = context;
     this.fs = fs;
-    this.useTrash = useTrash;
     this.liveServers = liveServers;
     this.walMarker = new WalStateManager(context);
     this.store = () -> Iterators.concat(
@@ -90,16 +87,14 @@ public class GarbageCollectWriteAheadLogs {
    *
    * @param context the collection server's context
    * @param fs volume manager to use
-   * @param useTrash true to move files to trash rather than delete them
    * @param liveTServerSet a started LiveTServerSet instance
    */
   @VisibleForTesting
-  GarbageCollectWriteAheadLogs(ServerContext context, VolumeManager fs, boolean useTrash,
+  GarbageCollectWriteAheadLogs(ServerContext context, VolumeManager fs,
       LiveTServerSet liveTServerSet, WalStateManager walMarker,
       Iterable<TabletLocationState> store) {
     this.context = context;
     this.fs = fs;
-    this.useTrash = useTrash;
     this.liveServers = liveTServerSet;
     this.walMarker = walMarker;
     this.store = store;
@@ -194,12 +189,12 @@ public class GarbageCollectWriteAheadLogs {
         span5.end();
       }
 
-      status.currentLog.finished = removeStop;
-      status.lastLog = status.currentLog;
-      status.currentLog = new GcCycleStats();
-
     } catch (Exception e) {
       log.error("exception occurred while garbage collecting write ahead logs", e);
+    } finally {
+      status.currentLog.finished = System.currentTimeMillis();
+      status.lastLog = status.currentLog;
+      status.currentLog = new GcCycleStats();
     }
   }
 
@@ -230,7 +225,7 @@ public class GarbageCollectWriteAheadLogs {
 
   private long removeFile(Path path) {
     try {
-      if (!useTrash || !fs.moveToTrash(path)) {
+      if (!fs.moveToTrash(path)) {
         fs.deleteRecursively(path);
       }
       return 1;
@@ -283,7 +278,7 @@ public class GarbageCollectWriteAheadLogs {
       // Tablet is still assigned to a dead server. Manager has moved markers and reassigned it
       // Easiest to just ignore all the WALs for the dead server.
       if (state.getState(liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {
-        Set<UUID> idsToIgnore = candidates.remove(state.current);
+        Set<UUID> idsToIgnore = candidates.remove(state.current.getServerInstance());
         if (idsToIgnore != null) {
           result.keySet().removeAll(idsToIgnore);
           recoveryLogs.keySet().removeAll(idsToIgnore);

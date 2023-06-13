@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -29,7 +28,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -102,7 +100,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
         });
         t.start();
 
-        sleepUninterruptibly(test * 2, TimeUnit.MILLISECONDS);
+        Thread.sleep(test * 2);
 
         client.tableOperations().deleteRows(tableName, start, end);
 

@@ -359,7 +359,7 @@ public class SourceSwitchingIteratorTest {
 
     @Override
     public boolean hasTop() {
-      return (!(yield.isPresent() && yield.get().hasYielded()) && super.hasTop());
+      return (!(yield.isPresent() && yield.orElseThrow().hasYielded()) && super.hasTop());
     }
 
     @Override
@@ -372,7 +372,8 @@ public class SourceSwitchingIteratorTest {
         yielded = true;
         // since we are not actually skipping keys underneath, simply use the key following the top
         // key as the yield key
-        yield.get().yield(getTopKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
+        yield.orElseThrow()
+            .yield(getTopKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
       }
 
       // if not yielding, then simply pass on the next call
@@ -393,7 +394,7 @@ public class SourceSwitchingIteratorTest {
           yielded = true;
           // since we are not actually skipping keys underneath, simply use the key following the
           // range start key
-          yield.get()
+          yield.orElseThrow()
               .yield(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
         }
       }

@@ -52,7 +52,7 @@ public class UGIAssumingTransportFactory extends TTransportFactory {
       try {
         return wrapped.getTransport(trans);
       } catch (TTransportException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     });
   }

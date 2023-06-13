@@ -18,10 +18,9 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -41,7 +40,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * This test verifies that when a lot of files are bulk imported into a table with one tablet and
- * then splits that not all map files go to the children tablets.
+ * then splits that not all data files go to the children tablets.
  */
 public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
@@ -106,11 +105,11 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
       // initiate splits
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "100K");
 
-      sleepUninterruptibly(2, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(2));
 
       // wait until over split threshold -- should be 78 splits
       while (c.tableOperations().listSplits(tableName).size() < 75) {
-        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+        Thread.sleep(500);
       }
 
       FunctionalTestUtils.checkSplits(c, tableName, 50, 100);
@@ -122,7 +121,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
       params.cols = 1;
       VerifyIngest.verifyIngest(c, params);
 
-      // ensure each tablet does not have all map files, should be ~2.5 files per tablet
+      // ensure each tablet does not have all data files, should be ~2.5 files per tablet
       FunctionalTestUtils.checkRFiles(c, tableName, 50, 100, 1, 4);
     }
   }

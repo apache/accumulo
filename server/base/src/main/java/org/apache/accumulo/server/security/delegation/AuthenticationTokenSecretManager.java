@@ -94,7 +94,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
         }
         // Ensure that the user doesn't try to extend the expiration date -- they may only limit it
         if (requestedExpirationDate > identifier.getExpirationDate()) {
-          throw new RuntimeException("Requested token lifetime exceeds configured maximum");
+          throw new IllegalStateException("Requested token lifetime exceeds configured maximum");
         }
         log.trace("Overriding token expiration date from {} to {}", identifier.getExpirationDate(),
             requestedExpirationDate);
@@ -256,7 +256,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
           keyDistributor.remove(key);
         } catch (KeeperException | InterruptedException e) {
           log.error("Failed to remove AuthenticationKey from ZooKeeper. Exiting", e);
-          throw new RuntimeException(e);
+          throw new IllegalStateException(e);
         }
       }
     }

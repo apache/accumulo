@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.net.URL;
@@ -31,7 +32,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -44,6 +44,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -132,8 +133,10 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
           fs.mkdirs(files);
           for (int i1 = 0; i1 < 100; i1++) {
             FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-                .forFile(files + "/bulk_" + i1 + "." + RFile.EXTENSION, fs, fs.getConf(),
-                    NoCryptoServiceFactory.NONE)
+                .forFile(
+                    UnreferencedTabletFile.of(fs,
+                        new Path(files + "/bulk_" + i1 + "." + RFile.EXTENSION)),
+                    fs, fs.getConf(), NoCryptoServiceFactory.NONE)
                 .withTableConfiguration(DefaultConfiguration.getInstance()).build();
             writer.startDefaultLocalityGroup();
             for (int j = 0x100; j < 0xfff; j += 3) {
@@ -162,10 +165,10 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
         err.get();
       }
       es.shutdown();
-      es.awaitTermination(2, TimeUnit.MINUTES);
+      es.awaitTermination(2, MINUTES);
       log.info(
           String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
-      sleepUninterruptibly(30, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(30));
       Map<?,?> map = getStats();
       map.forEach((k, v) -> {
         try {

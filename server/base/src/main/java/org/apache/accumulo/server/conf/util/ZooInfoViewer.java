@@ -20,12 +20,10 @@ package org.apache.accumulo.server.conf.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.ZINSTANCES;
-import static org.apache.accumulo.core.Constants.ZNAMESPACES;
-import static org.apache.accumulo.core.Constants.ZNAMESPACE_NAME;
 import static org.apache.accumulo.core.Constants.ZROOT;
-import static org.apache.accumulo.core.Constants.ZTABLES;
-import static org.apache.accumulo.core.Constants.ZTABLE_NAME;
-import static org.apache.accumulo.core.Constants.ZTABLE_NAMESPACE;
+import static org.apache.accumulo.server.conf.util.ZooPropUtils.getNamespaceIdToNameMap;
+import static org.apache.accumulo.server.conf.util.ZooPropUtils.getTableIdToName;
+import static org.apache.accumulo.server.conf.util.ZooPropUtils.readInstancesFromZk;
 import static org.apache.accumulo.server.zookeeper.ZooAclUtil.checkWritableAuth;
 import static org.apache.accumulo.server.zookeeper.ZooAclUtil.extractAuthName;
 import static org.apache.accumulo.server.zookeeper.ZooAclUtil.translateZooPerm;
@@ -45,15 +43,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -101,10 +95,6 @@ public class ZooInfoViewer implements KeywordExecutable {
    */
   public ZooInfoViewer() {}
 
-  public static void main(String[] args) throws Exception {
-    new ZooInfoViewer().execute(args);
-  }
-
   @Override
   public String keyword() {
     return "zoo-info-viewer";
@@ -125,10 +115,14 @@ public class ZooInfoViewer implements KeywordExecutable {
     log.info("print properties: {}", opts.printProps);
     log.info("print instances: {}", opts.printInstanceIds);
 
-    ZooReader zooReader = new ZooReaderWriter(opts.getSiteConfiguration());
+    var conf = opts.getSiteConfiguration();
 
-    InstanceId iid = getInstanceId(zooReader, opts);
-    generateReport(iid, opts, zooReader);
+    ZooReader zooReader = new ZooReaderWriter(conf);
+
+    try (ServerContext context = new ServerContext(conf)) {
+      InstanceId iid = context.getInstanceID();
+      generateReport(iid, opts, zooReader);
+    }
   }
 
   void generateReport(final InstanceId iid, final ZooInfoViewer.Opts opts,
@@ -168,64 +162,6 @@ public class ZooInfoViewer implements KeywordExecutable {
       }
       writer.println("-----------------------------------------------");
     }
-  }
-
-  /**
-   * Get the instanceID from the command line options, or from value stored in HDFS. The search
-   * order is:
-   * <ol>
-   * <li>command line: --instanceId option</li>
-   * <li>command line: --instanceName option</li>
-   * <li>HDFS</li>
-   * </ol>
-   *
-   * @param zooReader a ZooReader
-   * @param opts the parsed command line options.
-   * @return an instance id
-   */
-  InstanceId getInstanceId(final ZooReader zooReader, final ZooInfoViewer.Opts opts) {
-
-    if (!opts.instanceId.isEmpty()) {
-      return InstanceId.of(opts.instanceId);
-    }
-    if (!opts.instanceName.isEmpty()) {
-      Map<String,InstanceId> instanceNameToIdMap = readInstancesFromZk(zooReader);
-      String instanceName = opts.instanceName;
-      for (Map.Entry<String,InstanceId> e : instanceNameToIdMap.entrySet()) {
-        if (e.getKey().equals(instanceName)) {
-          return e.getValue();
-        }
-      }
-      throw new IllegalArgumentException(
-          "Specified instance name '" + instanceName + "' not found in ZooKeeper");
-    }
-
-    try (ServerContext context = new ServerContext(SiteConfiguration.auto())) {
-      return context.getInstanceID();
-    } catch (Exception ex) {
-      throw new IllegalArgumentException(
-          "Failed to read instance id from HDFS. Instances can be specified on the command line",
-          ex);
-    }
-  }
-
-  Map<NamespaceId,String> getNamespaceIdToNameMap(InstanceId iid, final ZooReader zooReader) {
-    SortedMap<NamespaceId,String> namespaceToName = new TreeMap<>();
-    String zooNsRoot = ZooUtil.getRoot(iid) + ZNAMESPACES;
-    try {
-      List<String> nsids = zooReader.getChildren(zooNsRoot);
-      for (String id : nsids) {
-        String path = zooNsRoot + "/" + id + ZNAMESPACE_NAME;
-        String name = new String(zooReader.getData(path), UTF_8);
-        namespaceToName.put(NamespaceId.of(id), name);
-      }
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted reading namespace ids from ZooKeeper", ex);
-    } catch (KeeperException ex) {
-      throw new IllegalStateException("Failed to read namespace ids from ZooKeeper", ex);
-    }
-    return namespaceToName;
   }
 
   private void printProps(final InstanceId iid, final ZooReader zooReader, final Opts opts,
@@ -369,49 +305,6 @@ public class ZooInfoViewer implements KeywordExecutable {
 
   }
 
-  /**
-   * Read the instance names and instance ids from ZooKeeper. The storage structure in ZooKeeper is:
-   *
-   * <pre>
-   *   /accumulo/instances/instance_name  - with the instance id stored as data.
-   * </pre>
-   *
-   * @return a map of (instance name, instance id) entries
-   */
-  Map<String,InstanceId> readInstancesFromZk(final ZooReader zooReader) {
-    String instanceRoot = ZROOT + ZINSTANCES;
-    Map<String,InstanceId> idMap = new TreeMap<>();
-    try {
-      List<String> names = zooReader.getChildren(instanceRoot);
-      names.forEach(name -> {
-        InstanceId iid = getInstanceIdForName(zooReader, name);
-        idMap.put(name, iid);
-      });
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted reading instance name info from ZooKeeper", ex);
-    } catch (KeeperException ex) {
-      throw new IllegalStateException("Failed to read instance name info from ZooKeeper", ex);
-    }
-    return idMap;
-  }
-
-  private InstanceId getInstanceIdForName(ZooReader zooReader, String name) {
-    String instanceRoot = ZROOT + ZINSTANCES;
-    String path = "";
-    try {
-      path = instanceRoot + "/" + name;
-      byte[] uuid = zooReader.getData(path);
-      return InstanceId.of(UUID.fromString(new String(uuid, UTF_8)));
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted reading instance id from ZooKeeper", ex);
-    } catch (KeeperException ex) {
-      log.warn("Failed to read instance id for " + path);
-      return null;
-    }
-  }
-
   private void printInstanceIds(final Map<String,InstanceId> instanceIdMap, PrintWriter writer) {
     writer.println("Instances (Instance Name, Instance ID)");
     instanceIdMap.forEach((name, iid) -> writer.println(name + "=" + iid));
@@ -488,33 +381,6 @@ public class ZooInfoViewer implements KeywordExecutable {
     return results;
   }
 
-  private Map<TableId,String> getTableIdToName(InstanceId iid,
-      Map<NamespaceId,String> id2NamespaceMap, ZooReader zooReader) {
-    SortedMap<TableId,String> idToName = new TreeMap<>();
-
-    String zooTables = ZooUtil.getRoot(iid) + ZTABLES;
-    try {
-      List<String> tids = zooReader.getChildren(zooTables);
-      for (String t : tids) {
-        String path = zooTables + "/" + t;
-        String tname = new String(zooReader.getData(path + ZTABLE_NAME), UTF_8);
-        NamespaceId tNsId =
-            NamespaceId.of(new String(zooReader.getData(path + ZTABLE_NAMESPACE), UTF_8));
-        if (tNsId.equals(Namespace.DEFAULT.id())) {
-          idToName.put(TableId.of(t), tname);
-        } else {
-          idToName.put(TableId.of(t), id2NamespaceMap.get(tNsId) + "." + tname);
-        }
-      }
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted reading table ids from ZooKeeper", ex);
-    } catch (KeeperException ex) {
-      throw new IllegalStateException("Failed reading table id info from ZooKeeper");
-    }
-    return idToName;
-  }
-
   private void printSortedProps(final PrintWriter writer,
       final Map<String,VersionedProperties> props) {
     log.trace("Printing: {}", props);
@@ -565,14 +431,6 @@ public class ZooInfoViewer implements KeywordExecutable {
     @Parameter(names = {"--print-instances"},
         description = "print the instance ids stored in ZooKeeper")
     public boolean printInstanceIds = false;
-
-    @Parameter(names = {"--instanceName"},
-        description = "Specify the instance name to use. If instance name or id are not provided, determined from configuration (requires a running hdfs instance)")
-    public String instanceName = "";
-
-    @Parameter(names = {"--instanceId"},
-        description = "Specify the instance id to use. If instance name or id are not provided, determined from configuration (requires a running hdfs instance)")
-    public String instanceId = "";
 
     @Parameter(names = {"-ns", "--namespaces"},
         description = "a list of namespace names to print properties, with none specified, print all. Only valid with --print-props",

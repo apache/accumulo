@@ -18,12 +18,11 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -105,7 +104,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
       client.tableOperations().flush(RootTable.NAME, null, null, true);
       try {
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-        sleepUninterruptibly(3, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(3));
       } finally {
         getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
       }

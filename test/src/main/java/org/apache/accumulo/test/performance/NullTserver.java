@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.performance;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
@@ -41,7 +40,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
-import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TCMResult;
@@ -55,7 +53,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
@@ -64,6 +62,7 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
+import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletingest.thrift.TDurability;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
@@ -118,14 +117,8 @@ public class NullTserver {
     }
 
     @Override
-    public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, long tid,
-        Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime) {
-      return null;
-    }
-
-    @Override
     public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
-        Map<TKeyExtent,Map<String,MapFileInfo>> fileMap, boolean setTime) {}
+        Map<TKeyExtent,Map<String,DataFileInfo>> fileMap, boolean setTime) {}
 
     @Override
     public void closeMultiScan(TInfo tinfo, long scanID) {}
@@ -364,7 +357,7 @@ public class NullTserver {
 
       while (s.hasNext()) {
         TabletLocationState next = s.next();
-        assignments.add(new Assignment(next.extent, instance));
+        assignments.add(new Assignment(next.extent, instance, next.last));
       }
     }
     // point them to this server
@@ -372,7 +365,7 @@ public class NullTserver {
     store.setLocations(assignments);
 
     while (true) {
-      sleepUninterruptibly(10, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(10));
     }
   }
 }

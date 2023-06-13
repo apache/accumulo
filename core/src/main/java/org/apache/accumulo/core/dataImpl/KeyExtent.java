@@ -488,7 +488,7 @@ public class KeyExtent implements Comparable<KeyExtent> {
     try {
       digester = MessageDigest.getInstance(OBSCURING_HASH_ALGORITHM);
     } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
     if (endRow() != null && endRow().getLength() > 0) {
       digester.update(endRow().getBytes(), 0, endRow().getLength());

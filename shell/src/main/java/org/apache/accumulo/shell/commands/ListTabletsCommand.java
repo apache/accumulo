@@ -37,6 +37,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.shell.Shell;
@@ -422,7 +423,7 @@ public class ListTabletsCommand extends Command {
         return this;
       }
 
-      public Factory location(TabletMetadata.Location location) {
+      public Factory location(Location location) {
         if (location == null) {
           this.location = "None";
         } else {

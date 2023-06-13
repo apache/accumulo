@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.WithTestNames;
+import org.apache.accumulo.core.file.rfile.RFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -207,6 +208,12 @@ public class PropertyTypeTest extends WithTestNames {
   @Test
   public void testTypeURI() {
     valid(null, "", "hdfs://hostname", "file:///path/", "hdfs://example.com:port/path");
+  }
+
+  @Test
+  public void testTypeFILENAME_EXT() {
+    valid(RFile.EXTENSION, "rf");
+    invalid(null, "RF", "map", "", "MAP", "rF", "Rf", " rf ");
   }
 
 }

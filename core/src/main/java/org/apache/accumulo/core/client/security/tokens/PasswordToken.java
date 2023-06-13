@@ -101,8 +101,8 @@ public class PasswordToken implements AuthenticationToken {
       AtomicBoolean calledFirstReadInt = new AtomicBoolean(false);
       DataInput wrapped = (DataInput) Proxy.newProxyInstance(DataInput.class.getClassLoader(),
           arg0.getClass().getInterfaces(), (obj, method, args) -> {
-            // wrap the original DataInput in order to return the integer that was read
-            // and then not used, because it didn't match -2
+            // wrap the original DataInput in order to simulate replacing the integer that was
+            // previously read and then not used back into the input, after it didn't match -2
             if (!calledFirstReadInt.get() && method.getName().equals("readInt")) {
               calledFirstReadInt.set(true);
               return version;
@@ -160,7 +160,7 @@ public class PasswordToken implements AuthenticationToken {
       clone.password = Arrays.copyOf(password, password.length);
       return clone;
     } catch (CloneNotSupportedException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

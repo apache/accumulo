@@ -45,8 +45,8 @@ public class MiniDFSUtil {
 
         return String.format("%03o", newPermission);
       }
-    } catch (Exception e) {
-      throw new RuntimeException("Error getting umask from O/S", e);
+    } catch (IOException | InterruptedException e) {
+      throw new IllegalStateException("Error getting umask from O/S", e);
     }
   }
 

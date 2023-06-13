@@ -22,6 +22,12 @@ import java.time.Duration;
 
 import org.apache.accumulo.core.data.TabletId;
 
+/**
+ * Returned by {@link ScanServerSelector#selectServers(ScanServerSelector.SelectorParameters)} to
+ * specify what scan servers to use and how to use them.
+ *
+ * @since 2.1.0
+ */
 public interface ScanServerSelections {
 
   /**

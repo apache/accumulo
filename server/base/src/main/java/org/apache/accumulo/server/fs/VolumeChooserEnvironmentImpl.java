@@ -102,7 +102,7 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
     }
     VolumeChooserEnvironmentImpl other = (VolumeChooserEnvironmentImpl) obj;
     return getChooserScope() == other.getChooserScope()
-        && Objects.equals(tableId.get(), other.getTable().get());
+        && Objects.equals(tableId.orElseThrow(), other.getTable().orElseThrow());
   }
 
   @Override

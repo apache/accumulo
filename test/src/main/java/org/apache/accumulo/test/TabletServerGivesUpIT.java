@@ -18,11 +18,10 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.time.Duration;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -77,7 +76,7 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
       splitter.start();
       // wait for the tserver to give up on writing to the WAL
       while (client.instanceOperations().getTabletServers().size() == 1) {
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(1));
       }
     }
   }

@@ -34,4 +34,8 @@ class BulkInfo implements Serializable {
   String bulkDir;
   boolean setTime;
   TableState tableState;
+  // firstSplit and lastSplit describe the min and max splits in the table that overlap the bulk
+  // imported data
+  byte[] firstSplit;
+  byte[] lastSplit;
 }

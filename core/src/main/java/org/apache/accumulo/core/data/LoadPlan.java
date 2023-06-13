@@ -125,7 +125,7 @@ public class LoadPlan {
               "Start row is greater than or equal to end row : " + srs + " " + ers);
         }
       } else {
-        throw new RuntimeException();
+        throw new IllegalStateException();
       }
 
     }

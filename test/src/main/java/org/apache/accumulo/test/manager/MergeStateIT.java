@@ -43,6 +43,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.manager.state.MergeStats;
@@ -187,7 +188,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5"));
       update(accumuloClient, m);
       metaDataStateStore
-          .setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer)));
+          .setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer, null)));
 
       // onos... there's a new tablet online
       stats = scan(state, metaDataStateStore);
@@ -204,10 +205,8 @@ public class MergeStateIT extends ConfigurableMacBase {
       // take it offline
       m = TabletColumnFamily.createPrevRowMutation(tablet);
       Collection<Collection<String>> walogs = Collections.emptyList();
-      metaDataStateStore.unassign(
-          Collections.singletonList(
-              new TabletLocationState(tablet, null, state.someTServer, null, null, walogs, false)),
-          null);
+      metaDataStateStore.unassign(Collections.singletonList(new TabletLocationState(tablet, null,
+          Location.current(state.someTServer), null, null, walogs, false)), null);
 
       // now we can split
       stats = scan(state, metaDataStateStore);

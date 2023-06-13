@@ -49,7 +49,7 @@ public class MetadataConstraintsTest {
         @Override
         public boolean transactionAlive(String type, long tid) {
           if (tid == 9) {
-            throw new RuntimeException("txid 9 reserved for future use");
+            throw new IllegalArgumentException("txid 9 reserved for future use");
           }
           return tid == 5 || tid == 7;
         }

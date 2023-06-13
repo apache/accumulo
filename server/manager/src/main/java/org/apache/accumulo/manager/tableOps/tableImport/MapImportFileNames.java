@@ -25,7 +25,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -78,12 +77,13 @@ class MapImportFileNames extends ManagerRepo {
           if (sa.length > 1) {
             extension = sa[sa.length - 1];
 
+            // skip files with unknown extensions
             if (!FileOperations.getValidExtensions().contains(extension)) {
               continue;
             }
           } else {
-            // assume it is a map file
-            extension = Constants.MAPFILE_EXTENSION;
+            // skip files without an extension
+            continue;
           }
 
           String newName = "I" + namer.getNextName() + "." + extension;

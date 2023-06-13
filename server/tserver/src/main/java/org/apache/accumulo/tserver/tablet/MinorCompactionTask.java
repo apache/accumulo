@@ -21,7 +21,7 @@ package org.apache.accumulo.tserver.tablet;
 import java.io.IOException;
 
 import org.apache.accumulo.core.file.FilePrefix;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.tserver.MinorCompactionReason;
@@ -70,15 +70,16 @@ class MinorCompactionTask implements Runnable {
         } finally {
           span2.end();
         }
-        TabletFile newFile = null;
-        TabletFile tmpFile = null;
+        ReferencedTabletFile newFile = null;
+        ReferencedTabletFile tmpFile = null;
         Span span3 = TraceUtil.startSpan(this.getClass(), "start");
         try (Scope scope3 = span3.makeCurrent()) {
           while (true) {
             try {
               if (newFile == null) {
-                newFile = tablet.getNextMapFilename(FilePrefix.MINOR_COMPACTION);
-                tmpFile = new TabletFile(new Path(newFile.getPathStr() + "_tmp"));
+                newFile = tablet.getNextDataFilename(FilePrefix.MINOR_COMPACTION);
+                tmpFile =
+                    new ReferencedTabletFile(new Path(newFile.getNormalizedPathStr() + "_tmp"));
               }
               /*
                * the purpose of the minor compaction start event is to keep track of the filename...
@@ -128,7 +129,7 @@ class MinorCompactionTask implements Runnable {
         span.end();
       }
 
-      if (tablet.needsSplit()) {
+      if (tablet.needsSplit(tablet.getSplitComputations())) {
         tablet.getTabletServer().executeSplit(tablet);
       }
     } catch (Exception e) {

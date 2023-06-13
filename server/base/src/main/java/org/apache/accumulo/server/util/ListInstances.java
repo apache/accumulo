@@ -171,7 +171,7 @@ public class ListInstances {
       if (sld.isEmpty()) {
         return null;
       }
-      return sld.get().getAddressString(ThriftService.MANAGER);
+      return sld.orElseThrow().getAddressString(ThriftService.MANAGER);
     } catch (Exception e) {
       handleException(e, printErrors);
       return null;

@@ -92,12 +92,12 @@ public class AccumuloUncaughtExceptionHandlerTest {
     Exception e2 = new RuntimeException(new RuntimeException());
     Exception e3 = new IllegalStateException();
 
-    // create a chain of suppressed exceptions that forms a loop
+    // create an infinite loop of suppressed exceptions
     e1.addSuppressed(e2);
     e2.addSuppressed(e3);
     e3.addSuppressed(e1);
 
-    assertFalse(isError(e1));
-    assertFalse(isError(new RuntimeException(e1)));
+    assertTrue(isError(e1));
+    assertTrue(isError(new RuntimeException(e1)));
   }
 }

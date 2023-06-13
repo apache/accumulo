@@ -499,7 +499,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
         wait();
       }
     } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

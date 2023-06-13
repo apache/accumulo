@@ -34,7 +34,7 @@ public enum FateOperation implements org.apache.thrift.TEnum {
   TABLE_OFFLINE(5),
   TABLE_MERGE(6),
   TABLE_DELETE_RANGE(7),
-  TABLE_BULK_IMPORT(8),
+  OBSOLETE_TABLE_BULK_IMPORT(8),
   TABLE_COMPACT(9),
   TABLE_IMPORT(10),
   TABLE_EXPORT(11),
@@ -82,7 +82,7 @@ public enum FateOperation implements org.apache.thrift.TEnum {
       case 7:
         return TABLE_DELETE_RANGE;
       case 8:
-        return TABLE_BULK_IMPORT;
+        return OBSOLETE_TABLE_BULK_IMPORT;
       case 9:
         return TABLE_COMPACT;
       case 10:

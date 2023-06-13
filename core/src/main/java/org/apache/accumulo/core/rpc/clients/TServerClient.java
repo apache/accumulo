@@ -70,7 +70,7 @@ public interface TServerClient<C extends TServiceClient> {
           ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
       Optional<ServiceLockData> sld = zc.getLockData(zLocPath);
       if (sld.isPresent()) {
-        HostAndPort address = sld.get().getAddress(ThriftService.TSERV);
+        HostAndPort address = sld.orElseThrow().getAddress(ThriftService.TSERV);
         if (address != null) {
           servers.add(new ThriftTransportKey(address, rpcTimeout, context));
         }

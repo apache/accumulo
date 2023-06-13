@@ -171,7 +171,7 @@ class CleanUp extends ManagerRepo {
     }
 
     if (refCount == 0) {
-      // delete the map files
+      // delete the data files
       try {
         VolumeManager fs = manager.getVolumeManager();
         for (String dir : manager.getContext().getTablesDirs()) {

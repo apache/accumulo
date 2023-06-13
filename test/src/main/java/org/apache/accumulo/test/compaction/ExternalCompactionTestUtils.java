@@ -248,7 +248,7 @@ public class ExternalCompactionTestUtils {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
     CompactionCoordinatorService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.get(), context);
+        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
     try {
       TExternalCompactionList running =
           client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
@@ -266,7 +266,7 @@ public class ExternalCompactionTestUtils {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
     CompactionCoordinatorService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.get(), context);
+        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
     try {
       TExternalCompactionList completed =
           client.getCompletedCompactions(TraceUtil.traceInfo(), context.rpcCreds());

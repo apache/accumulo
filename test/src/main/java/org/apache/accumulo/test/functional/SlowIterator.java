@@ -18,12 +18,9 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -57,14 +54,24 @@ public class SlowIterator extends WrappingIterator {
 
   @Override
   public void next() throws IOException {
-    sleepUninterruptibly(sleepTime, TimeUnit.MILLISECONDS);
+    try {
+      Thread.sleep(sleepTime);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IOException("interrupted during sleep", ex);
+    }
     super.next();
   }
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
-    sleepUninterruptibly(seekSleepTime, TimeUnit.MILLISECONDS);
+    try {
+      Thread.sleep(seekSleepTime);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IOException("interrupted during sleep", ex);
+    }
     super.seek(range, columnFamilies, inclusive);
   }
 

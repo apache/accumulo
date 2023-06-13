@@ -18,10 +18,9 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.constraints.Constraint;
@@ -35,7 +34,12 @@ public class SlowConstraint implements Constraint {
 
   @Override
   public List<Short> check(Environment env, Mutation mutation) {
-    sleepUninterruptibly(20, TimeUnit.SECONDS);
+    try {
+      Thread.sleep(SECONDS.toMillis(20));
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("interrupted during sleep", ex);
+    }
     return null;
   }
 

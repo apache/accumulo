@@ -47,8 +47,8 @@ public class CustomNonBlockingServer extends THsHaServer {
     try {
       selectAcceptThreadField = TNonblockingServer.class.getDeclaredField("selectAcceptThread_");
       selectAcceptThreadField.setAccessible(true);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to access required field in Thrift code.", e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException("Failed to access required field in Thrift code.", e);
     }
   }
 
@@ -80,7 +80,7 @@ public class CustomNonBlockingServer extends THsHaServer {
       LOGGER.error("Failed to start selector thread!", e);
       return false;
     } catch (IllegalAccessException | IllegalArgumentException e) {
-      throw new RuntimeException("Exception setting customer select thread in Thrift");
+      throw new IllegalStateException("Exception setting customer select thread in Thrift");
     }
   }
 

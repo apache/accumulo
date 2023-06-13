@@ -67,7 +67,7 @@ public class FindMax {
 
     if (ba.length == startOS.size()) {
       if (ba[0] != 0) {
-        throw new RuntimeException();
+        throw new IllegalStateException();
       }
 
       // big int added a zero so it would not be negative, drop it

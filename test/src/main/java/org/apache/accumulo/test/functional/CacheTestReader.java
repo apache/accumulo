@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.File;
@@ -28,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
@@ -88,7 +86,7 @@ public class CacheTestReader {
       fos.close();
       oos.close();
 
-      sleepUninterruptibly(20, TimeUnit.MILLISECONDS);
+      Thread.sleep(20);
     }
 
   }

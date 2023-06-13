@@ -71,7 +71,7 @@ public final class TinyLfuBlockCache implements BlockCache {
           int keyWeight = ClassSize.align(blockName.length()) + ClassSize.STRING;
           return keyWeight + block.weight();
         }).maximumWeight(conf.getMaxSize(type)).recordStats().build();
-    policy = cache.policy().eviction().get();
+    policy = cache.policy().eviction().orElseThrow();
     maxSize = (int) Math.min(Integer.MAX_VALUE, policy.getMaximum());
     ScheduledFuture<?> future = statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC,
         STATS_PERIOD_SEC, SECONDS);

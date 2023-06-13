@@ -223,7 +223,7 @@ SHA512 ($(green "$projName-$ver-$srcQualifier.tar.gz")) = $(yellow "$srcSha")
 $(yellow "$projName-$ver-bin.tar.gz.sha512") will contain:
 SHA512 ($(green "$projName-$ver-bin.tar.gz")) = $(yellow "$binSha")
 
-Release notes (in progress) can be found at: $(green "https://$tlpName.staged.apache.org/release/$projName-$ver")
+Release notes (in progress) can be found at: $(green "https://$tlpName.apache.org/release/$projName-$ver")
 
 Release testing instructions: $relTestingUrl
 

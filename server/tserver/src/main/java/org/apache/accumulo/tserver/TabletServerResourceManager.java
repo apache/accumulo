@@ -147,7 +147,7 @@ public class TabletServerResourceManager {
     } else {
       ScanPrioritizer factory = null;
       try {
-        factory = ConfigurationTypeHelper.getClassInstance(null, sec.prioritizerClass.get(),
+        factory = ConfigurationTypeHelper.getClassInstance(null, sec.prioritizerClass.orElseThrow(),
             ScanPrioritizer.class);
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -258,8 +258,8 @@ public class TabletServerResourceManager {
 
     try {
       cacheManager = BlockCacheManagerFactory.getInstance(acuConf);
-    } catch (Exception e) {
-      throw new RuntimeException("Error creating BlockCacheManager", e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException("Error creating BlockCacheManager", e);
     }
 
     cacheManager.start(tserver.getBlockCacheConfiguration(acuConf));
@@ -657,9 +657,9 @@ public class TabletServerResourceManager {
       return tableConf;
     }
 
-    // BEGIN methods that Tablets call to manage their set of open map files
+    // BEGIN methods that Tablets call to manage their set of open data files
 
-    public void importedMapFiles() {
+    public void importedDataFiles() {
       lastReportedCommitTime = System.currentTimeMillis();
     }
 
@@ -672,7 +672,7 @@ public class TabletServerResourceManager {
           new ScanCacheProvider(tableConf, scanDispatch, _iCache, _dCache));
     }
 
-    // END methods that Tablets call to manage their set of open map files
+    // END methods that Tablets call to manage their set of open data files
 
     // BEGIN methods that Tablets call to manage memory
 
@@ -759,12 +759,6 @@ public class TabletServerResourceManager {
     }
   }
 
-  @SuppressWarnings("deprecation")
-  private static abstract class DispatchParamsImpl implements DispatchParameters,
-      org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters {
-
-  }
-
   public void executeReadAhead(KeyExtent tablet, ScanDispatcher dispatcher, ScanSession scanInfo,
       Runnable task) {
 
@@ -779,7 +773,7 @@ public class TabletServerResourceManager {
       scanInfo.scanParams.setScanDispatch(ScanDispatch.builder().build());
       scanExecutors.get("meta").execute(task);
     } else {
-      DispatchParameters params = new DispatchParamsImpl() {
+      DispatchParameters params = new DispatchParameters() {
 
         // in scan critical path so only create ServiceEnv if needed
         private final Supplier<ServiceEnvironment> senvSupplier =

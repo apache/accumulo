@@ -241,9 +241,8 @@ public class ThreadPools {
    *        pools. Creating lots of short lived thread pools and registering them can lead to out of
    *        memory errors over long time periods.
    * @return ExecutorService impl
-   * @throws RuntimeException if property is not handled
+   * @throws IllegalArgumentException if property is not handled
    */
-  @SuppressWarnings("deprecation")
   public ThreadPoolExecutor createExecutorService(final AccumuloConfiguration conf,
       final Property p, boolean emitThreadPoolMetrics) {
 
@@ -251,12 +250,6 @@ public class ThreadPools {
       case GENERAL_THREADPOOL_SIZE:
         return createScheduledExecutorService(conf.getCount(p), "GeneralExecutor",
             emitThreadPoolMetrics);
-      case MANAGER_BULK_THREADPOOL_SIZE:
-        return createFixedThreadPool(conf.getCount(p),
-            conf.getTimeInMillis(Property.MANAGER_BULK_THREADPOOL_TIMEOUT), MILLISECONDS,
-            "bulk import", emitThreadPoolMetrics);
-      case MANAGER_RENAME_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "bulk move", emitThreadPoolMetrics);
       case MANAGER_FATE_THREADPOOL_SIZE:
         return createFixedThreadPool(conf.getCount(p), "Repo Runner", emitThreadPoolMetrics);
       case MANAGER_STATUS_THREAD_POOL_SIZE:
@@ -291,7 +284,7 @@ public class ThreadPools {
       case GC_DELETE_THREADS:
         return createFixedThreadPool(conf.getCount(p), "deleting", emitThreadPoolMetrics);
       default:
-        throw new RuntimeException("Unhandled thread pool property: " + p);
+        throw new IllegalArgumentException("Unhandled thread pool property: " + p);
     }
   }
 

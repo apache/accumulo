@@ -18,14 +18,13 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -89,7 +88,7 @@ public class SplitCancelsMajCIT extends SharedMiniClusterBase {
       thread.start();
 
       long now = System.currentTimeMillis();
-      sleepUninterruptibly(10, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(10));
       // split the table, interrupts the compaction
       SortedSet<Text> partitionKeys = new TreeSet<>();
       partitionKeys.add(new Text("10"));

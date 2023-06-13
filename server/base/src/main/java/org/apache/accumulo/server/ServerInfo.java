@@ -21,6 +21,7 @@ package org.apache.accumulo.server;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
@@ -67,21 +68,23 @@ public class ServerInfo implements ClientInfo {
     try {
       volumeManager = VolumeManagerImpl.get(siteConfig, hadoopConf);
     } catch (IOException e) {
-      throw new IllegalStateException(e);
+      throw new UncheckedIOException(e);
     }
     zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
     String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
     byte[] iidb = zooCache.get(instanceNamePath);
     if (iidb == null) {
-      throw new RuntimeException("Instance name " + instanceName + " does not exist in zookeeper. "
-          + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+      throw new IllegalStateException(
+          "Instance name " + instanceName + " does not exist in zookeeper. "
+              + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
     }
     instanceID = InstanceId.of(new String(iidb, UTF_8));
     if (zooCache.get(Constants.ZROOT + "/" + instanceID) == null) {
       if (instanceName == null) {
-        throw new RuntimeException("Instance id " + instanceID + " does not exist in zookeeper");
+        throw new IllegalStateException(
+            "Instance id " + instanceID + " does not exist in zookeeper");
       }
-      throw new RuntimeException("Instance id " + instanceID + " pointed to by the name "
+      throw new IllegalStateException("Instance id " + instanceID + " pointed to by the name "
           + instanceName + " does not exist in zookeeper");
     }
     serverDirs = new ServerDirs(siteConfig, hadoopConf);
@@ -95,7 +98,7 @@ public class ServerInfo implements ClientInfo {
     try {
       volumeManager = VolumeManagerImpl.get(siteConfig, hadoopConf);
     } catch (IOException e) {
-      throw new IllegalStateException(e);
+      throw new UncheckedIOException(e);
     }
     serverDirs = new ServerDirs(siteConfig, hadoopConf);
     Path instanceIdPath = serverDirs.getInstanceIdLocation(volumeManager.getFirst());
@@ -114,7 +117,7 @@ public class ServerInfo implements ClientInfo {
     try {
       volumeManager = VolumeManagerImpl.get(siteConfig, hadoopConf);
     } catch (IOException e) {
-      throw new IllegalStateException(e);
+      throw new UncheckedIOException(e);
     }
     this.instanceID = instanceID;
     zooKeepers = config.get(Property.INSTANCE_ZK_HOST);

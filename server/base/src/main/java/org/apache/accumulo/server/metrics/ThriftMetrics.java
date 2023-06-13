@@ -25,15 +25,10 @@ import io.micrometer.core.instrument.MeterRegistry;
 
 public class ThriftMetrics implements MetricsProducer {
 
-  private final String serverName;
-  private final String threadName;
   private DistributionSummary idle;
   private DistributionSummary execute;
 
-  public ThriftMetrics(String serverName, String threadName) {
-    this.serverName = serverName;
-    this.threadName = threadName;
-  }
+  public ThriftMetrics() {}
 
   public void addIdle(long time) {
     idle.record(time);
@@ -45,10 +40,8 @@ public class ThriftMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    idle = DistributionSummary.builder(METRICS_THRIFT_IDLE).baseUnit("ms")
-        .tags("server", serverName, "thread", threadName).register(registry);
-    execute = DistributionSummary.builder(METRICS_THRIFT_EXECUTE).baseUnit("ms")
-        .tags("server", serverName, "thread", threadName).register(registry);
+    idle = DistributionSummary.builder(METRICS_THRIFT_IDLE).baseUnit("ms").register(registry);
+    execute = DistributionSummary.builder(METRICS_THRIFT_EXECUTE).baseUnit("ms").register(registry);
   }
 
 }

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -31,7 +31,6 @@ import java.io.PrintStream;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -186,24 +185,24 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
       try {
         stderrCollector.start();
         stdoutCollector.start();
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(1));
         // don't need the regular tablet server
         cluster.killProcess(ServerType.TABLET_SERVER,
             cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(1));
         client.tableOperations().create("test_ingest");
         assertEquals(1, client.instanceOperations().getTabletServers().size());
         int rows = 100_000;
         ingest =
             cluster.exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--rows", rows + "")
                 .getProcess();
-        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+        Thread.sleep(500);
 
         // block I/O with some side-channel trickiness
         File trickFile = new File(trickFilename);
         try {
           assertTrue(trickFile.createNewFile());
-          sleepUninterruptibly(seconds, TimeUnit.SECONDS);
+          Thread.sleep(SECONDS.toMillis(seconds));
         } finally {
           if (!trickFile.delete()) {
             log.error("Couldn't delete {}", trickFile);
@@ -216,7 +215,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
           params.rows = rows;
           VerifyIngest.verifyIngest(client, params);
         } else {
-          sleepUninterruptibly(5, TimeUnit.SECONDS);
+          Thread.sleep(SECONDS.toMillis(5));
           tserver.waitFor();
           stderrCollector.join();
           stdoutCollector.join();

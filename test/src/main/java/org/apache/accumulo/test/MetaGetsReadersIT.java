@@ -18,14 +18,12 @@
  */
 package org.apache.accumulo.test;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -99,7 +97,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
       t1.start();
       Thread t2 = slowScan(c, tableName, stop);
       t2.start();
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      Thread.sleep(500);
       long now = System.currentTimeMillis();
 
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {

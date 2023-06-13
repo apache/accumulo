@@ -24,6 +24,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -58,10 +59,10 @@ public class GenerateSequentialRFile implements Runnable {
   public void run() {
     try {
       final Configuration conf = new Configuration();
-      Path p = new Path(opts.filePath);
-      final FileSystem fs = p.getFileSystem(conf);
+      final FileSystem fs = FileSystem.get(conf);
+      UnreferencedTabletFile file = UnreferencedTabletFile.of(fs, new Path(opts.filePath));
       FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-          .forFile(opts.filePath, fs, conf, NoCryptoServiceFactory.NONE)
+          .forFile(file, fs, conf, NoCryptoServiceFactory.NONE)
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
 
       writer.startDefaultLocalityGroup();

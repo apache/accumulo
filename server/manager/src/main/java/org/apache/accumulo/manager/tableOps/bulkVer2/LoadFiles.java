@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -42,20 +43,22 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
+import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
@@ -144,7 +147,7 @@ class LoadFiles extends ManagerRepo {
     // Each RPC to a tablet server needs to check in zookeeper to see if the transaction is still
     // active. The purpose of this map is to group load request by tablet servers inorder to do less
     // RPCs. Less RPCs will result in less calls to Zookeeper.
-    Map<HostAndPort,Map<TKeyExtent,Map<String,MapFileInfo>>> loadQueue;
+    Map<HostAndPort,Map<TKeyExtent,Map<String,DataFileInfo>>> loadQueue;
     private int queuedDataSize = 0;
 
     @Override
@@ -187,11 +190,11 @@ class LoadFiles extends ManagerRepo {
     }
 
     private void addToQueue(HostAndPort server, KeyExtent extent,
-        Map<String,MapFileInfo> thriftImports) {
+        Map<String,DataFileInfo> thriftImports) {
       if (!thriftImports.isEmpty()) {
         loadMsgs.increment(server, 1);
 
-        Map<String,MapFileInfo> prev = loadQueue.computeIfAbsent(server, k -> new HashMap<>())
+        Map<String,DataFileInfo> prev = loadQueue.computeIfAbsent(server, k -> new HashMap<>())
             .putIfAbsent(extent.toThrift(), thriftImports);
 
         Preconditions.checkState(prev == null, "Unexpectedly saw extent %s twice", extent);
@@ -209,7 +212,7 @@ class LoadFiles extends ManagerRepo {
         // send files to tablet sever
         // ideally there should only be one tablet location to send all the files
 
-        TabletMetadata.Location location = tablet.getLocation();
+        Location location = tablet.getLocation();
         HostAndPort server = null;
         if (location == null) {
           locationLess++;
@@ -218,16 +221,17 @@ class LoadFiles extends ManagerRepo {
           server = location.getHostAndPort();
         }
 
-        Set<TabletFile> loadedFiles = tablet.getLoaded().keySet();
+        Set<ReferencedTabletFile> loadedFiles = tablet.getLoaded().keySet().stream()
+            .map(StoredTabletFile::getTabletFile).collect(Collectors.toSet());
 
-        Map<String,MapFileInfo> thriftImports = new HashMap<>();
+        Map<String,DataFileInfo> thriftImports = new HashMap<>();
 
         for (final Bulk.FileInfo fileInfo : files) {
           Path fullPath = new Path(bulkDir, fileInfo.getFileName());
-          TabletFile bulkFile = new TabletFile(fullPath);
+          ReferencedTabletFile bulkFile = new ReferencedTabletFile(fullPath);
 
           if (!loadedFiles.contains(bulkFile)) {
-            thriftImports.put(fileInfo.getFileName(), new MapFileInfo(fileInfo.getEstFileSize()));
+            thriftImports.put(fileInfo.getFileName(), new DataFileInfo(fileInfo.getEstFileSize()));
           }
         }
 

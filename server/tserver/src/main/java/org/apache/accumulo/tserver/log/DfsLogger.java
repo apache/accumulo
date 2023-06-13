@@ -172,7 +172,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
         long start = System.currentTimeMillis();
         try {
           if (shouldHSync.isPresent()) {
-            if (shouldHSync.get()) {
+            if (shouldHSync.orElseThrow()) {
               logFile.hsync();
               syncCounter.incrementAndGet();
             } else {

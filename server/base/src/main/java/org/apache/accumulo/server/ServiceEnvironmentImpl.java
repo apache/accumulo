@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -57,14 +56,13 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
   }
 
   @Override
-  public <T> T instantiate(String className, Class<T> base)
-      throws ReflectiveOperationException, IOException {
+  public <T> T instantiate(String className, Class<T> base) throws ReflectiveOperationException {
     return ConfigurationTypeHelper.getClassInstance(null, className, base);
   }
 
   @Override
   public <T> T instantiate(TableId tableId, String className, Class<T> base)
-      throws ReflectiveOperationException, IOException {
+      throws ReflectiveOperationException {
     String ctx = ClassLoaderUtil.tableContext(context.getTableConfiguration(tableId));
     return ConfigurationTypeHelper.getClassInstance(ctx, className, base);
   }

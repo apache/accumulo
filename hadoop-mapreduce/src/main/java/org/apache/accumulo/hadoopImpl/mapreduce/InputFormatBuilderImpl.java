@@ -216,10 +216,12 @@ public class InputFormatBuilderImpl<T>
           config.setScanAuths(c.securityOperations().getUserAuthorizations(principal));
         }
       }
-      InputConfigurator.setScanAuthorizations(callingClass, conf, config.getScanAuths().get());
+      InputConfigurator.setScanAuthorizations(callingClass, conf,
+          config.getScanAuths().orElseThrow());
       // all optional values
       if (config.getContext().isPresent()) {
-        InputConfigurator.setClassLoaderContext(callingClass, conf, config.getContext().get());
+        InputConfigurator.setClassLoaderContext(callingClass, conf,
+            config.getContext().orElseThrow());
       }
       if (!config.getRanges().isEmpty()) {
         InputConfigurator.setRanges(callingClass, conf, config.getRanges());

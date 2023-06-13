@@ -37,7 +37,7 @@ public class CustomThreadedSelectorServer extends TThreadedSelectorServer {
       fbTansportField = FrameBuffer.class.getDeclaredField("trans_");
       fbTansportField.setAccessible(true);
     } catch (SecurityException | NoSuchFieldException e) {
-      throw new RuntimeException("Failed to access required field in Thrift code.", e);
+      throw new IllegalStateException("Failed to access required field in Thrift code.", e);
     }
   }
 
@@ -45,7 +45,7 @@ public class CustomThreadedSelectorServer extends TThreadedSelectorServer {
     try {
       return (TNonblockingTransport) fbTansportField.get(frameBuffer);
     } catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

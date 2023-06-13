@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.test.util;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +29,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -118,7 +119,7 @@ public class SlowOps {
     long startTimestamp = System.nanoTime();
     int count = scanCount();
     log.trace("Scan time for {} rows {} ms", NUM_DATA_ROWS,
-        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTimestamp));
+        NANOSECONDS.toMillis(System.nanoTime() - startTimestamp));
     if (count != NUM_DATA_ROWS) {
       throw new IllegalStateException(
           String.format("Number of rows %1$d does not match expected %2$d", count, NUM_DATA_ROWS));
@@ -198,7 +199,7 @@ public class SlowOps {
       log.debug("Compaction wait is complete");
 
       log.trace("Slow compaction of {} rows took {} ms", NUM_DATA_ROWS,
-          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTimestamp));
+          NANOSECONDS.toMillis(System.nanoTime() - startTimestamp));
 
       // validate that number of rows matches expected.
 
@@ -209,7 +210,7 @@ public class SlowOps {
       int count = scanCount();
 
       log.trace("After compaction, scan time for {} rows {} ms", NUM_DATA_ROWS,
-          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTimestamp));
+          NANOSECONDS.toMillis(System.nanoTime() - startTimestamp));
 
       if (count != NUM_DATA_ROWS) {
         throw new IllegalStateException(
@@ -226,7 +227,7 @@ public class SlowOps {
    */
   private boolean blockUntilCompactionRunning() {
     long startWaitNanos = System.nanoTime();
-    long maxWaitNanos = TimeUnit.MILLISECONDS.toNanos(maxWaitMillis);
+    long maxWaitNanos = MILLISECONDS.toNanos(maxWaitMillis);
 
     /*
      * wait for compaction to start on table - The compaction will acquire a fate transaction lock
@@ -259,11 +260,15 @@ public class SlowOps {
         return true;
       }
 
-      sleepUninterruptibly(3, TimeUnit.SECONDS);
+      try {
+        Thread.sleep(SECONDS.toMillis(3));
+      } catch (InterruptedException ex) {
+        throw new IllegalStateException("interrupted during sleep", ex);
+      }
     } while ((System.nanoTime() - startWaitNanos) < maxWaitNanos);
 
     log.debug("Could not find compaction for {} after {} seconds", tableName,
-        TimeUnit.MILLISECONDS.toSeconds(maxWaitMillis));
+        MILLISECONDS.toSeconds(maxWaitMillis));
     return false;
   }
 

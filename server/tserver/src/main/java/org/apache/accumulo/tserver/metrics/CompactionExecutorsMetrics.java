@@ -63,10 +63,6 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
   }
 
   public CompactionExecutorsMetrics() {
-    startUpdateThread();
-  }
-
-  protected void startUpdateThread() {
     ScheduledExecutorService scheduler = ThreadPools.getServerThreadPools()
         .createScheduledExecutorService(1, "compactionExecutorsMetricsPoller", false);
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));

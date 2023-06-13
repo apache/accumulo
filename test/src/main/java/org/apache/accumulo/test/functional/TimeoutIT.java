@@ -18,12 +18,11 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -59,10 +58,10 @@ public class TimeoutIT extends AccumuloClusterHarness {
     client.tableOperations().addConstraint(tableName, SlowConstraint.class.getName());
 
     // give constraint time to propagate through zookeeper
-    sleepUninterruptibly(1, TimeUnit.SECONDS);
+    Thread.sleep(SECONDS.toMillis(1));
 
-    BatchWriter bw = client.createBatchWriter(tableName,
-        new BatchWriterConfig().setTimeout(3, TimeUnit.SECONDS));
+    BatchWriter bw =
+        client.createBatchWriter(tableName, new BatchWriterConfig().setTimeout(3, SECONDS));
 
     Mutation mut = new Mutation("r1");
     mut.put("cf1", "cq1", "v1");
@@ -94,7 +93,7 @@ public class TimeoutIT extends AccumuloClusterHarness {
       // should not timeout
       bs.forEach((k, v) -> {});
 
-      bs.setTimeout(5, TimeUnit.SECONDS);
+      bs.setTimeout(5, SECONDS);
       IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
       iterSetting.addOption("sleepTime", 2000 + "");
       bs.addScanIterator(iterSetting);

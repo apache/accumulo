@@ -84,7 +84,7 @@ public class ZKAuthorizor implements Authorizor {
           ZKSecurityTool.convertAuthorizations(Authorizations.EMPTY), NodeExistsPolicy.FAIL);
     } catch (KeeperException | InterruptedException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -98,7 +98,7 @@ public class ZKAuthorizor implements Authorizor {
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -112,7 +112,7 @@ public class ZKAuthorizor implements Authorizor {
       }
     } catch (InterruptedException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     } catch (KeeperException e) {
       log.error("{}", e.getMessage(), e);
       if (e.code().equals(KeeperException.Code.NONODE)) {
@@ -137,7 +137,7 @@ public class ZKAuthorizor implements Authorizor {
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

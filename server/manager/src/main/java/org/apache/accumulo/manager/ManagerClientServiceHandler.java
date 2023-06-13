@@ -186,7 +186,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           if ((tablet.hasCurrent() || logs > 0) && tablet.getFlushId().orElse(-1) < flushID) {
             tabletsToWaitFor++;
             if (tablet.hasCurrent()) {
-              serversToFlush.add(tablet.getLocation());
+              serversToFlush.add(tablet.getLocation().getServerInstance());
             }
           }
 

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.monitor.rest.trace;
 
-import org.apache.accumulo.core.master.thrift.RecoveryStatus;
+import org.apache.accumulo.core.manager.thrift.RecoveryStatus;
 
 /**
  * Generates a recovery status

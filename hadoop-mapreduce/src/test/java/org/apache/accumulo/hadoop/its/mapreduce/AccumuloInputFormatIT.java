@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.hadoop.its.mapreduce;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.System.currentTimeMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -33,7 +32,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -125,7 +123,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       splitsToAdd.add(new Text(String.format("%09d", i)));
     }
     client.tableOperations().addSplits(table, splitsToAdd);
-    sleepUninterruptibly(500, TimeUnit.MILLISECONDS); // wait for splits to be propagated
+    Thread.sleep(500); // wait for splits to be propagated
 
     // get splits without setting any range
     // No ranges set on the job so it'll start with -inf

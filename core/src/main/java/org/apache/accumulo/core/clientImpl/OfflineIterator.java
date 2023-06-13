@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -58,7 +59,6 @@ import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -88,12 +88,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       this.sampleConf = samplerConf;
     }
 
-    @Deprecated(since = "2.0.0")
-    @Override
-    public AccumuloConfiguration getConfig() {
-      return conf;
-    }
-
     @Override
     public IteratorScope getIteratorScope() {
       return IteratorScope.scan;
@@ -111,12 +105,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators =
         new ArrayList<>();
-
-    @Deprecated(since = "2.0.0")
-    @Override
-    public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
-      topLevelIterators.add(iter);
-    }
 
     @Override
     public Authorizations getAuthorizations() {
@@ -182,11 +170,10 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
         nextTablet();
       }
 
-    } catch (Exception e) {
-      if (e instanceof RuntimeException) {
-        throw (RuntimeException) e;
-      }
-      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -209,8 +196,10 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       }
 
       return ret;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -306,11 +295,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     if (scannerSamplerConfigImpl != null && !scannerSamplerConfigImpl.equals(samplerConfImpl)) {
       throw new SampleNotPresentException();
     }
-    for (TabletFile file : absFiles) {
+    for (StoredTabletFile file : absFiles) {
       var cs = CryptoFactoryLoader.getServiceForClientWithTable(systemConf, tableConf, tableId);
-      FileSystem fs = VolumeConfiguration.fileSystemForPath(file.getPathStr(), conf);
+      FileSystem fs = VolumeConfiguration.fileSystemForPath(file.getNormalizedPathStr(), conf);
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), fs, conf, cs).withTableConfiguration(tableCC).build();
+          .forFile(file, fs, conf, cs).withTableConfiguration(tableCC).build();
       if (scannerSamplerConfigImpl != null) {
         reader = reader.getSample(scannerSamplerConfigImpl);
         if (reader == null) {

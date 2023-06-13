@@ -127,10 +127,6 @@ public class Admin implements KeywordExecutable {
   @Parameters(commandDescription = "stop the manager")
   static class StopManagerCommand {}
 
-  @Deprecated(since = "2.1.0")
-  @Parameters(commandDescription = "stop the master (DEPRECATED -- use stopManager instead)")
-  static class StopMasterCommand {}
-
   @Parameters(commandDescription = "stop all tablet servers and the manager")
   static class StopAllCommand {}
 
@@ -165,17 +161,6 @@ public class Admin implements KeywordExecutable {
     @Parameter(names = {"-u", "--users"},
         description = "print users and their authorizations and permissions")
     boolean users = false;
-  }
-
-  private static final String RV_DEPRECATION_MSG =
-      "Randomizing tablet directories is deprecated and now does nothing. Accumulo now always"
-          + " calls the volume chooser for each file created by a tablet, so its no longer "
-          + "necessary.";
-
-  @Parameters(commandDescription = RV_DEPRECATION_MSG)
-  static class RandomizeVolumesCommand {
-    @Parameter(names = {"-t"}, description = "table to update", required = true)
-    String tableName = null;
   }
 
   @Parameters(commandDescription = "Verify all Tablets are assigned to tablet servers")
@@ -310,9 +295,6 @@ public class Admin implements KeywordExecutable {
     RestoreZooCommand restoreZooOpts = new RestoreZooCommand();
     cl.addCommand("restoreZoo", restoreZooOpts);
 
-    RandomizeVolumesCommand randomizeVolumesOpts = new RandomizeVolumesCommand();
-    cl.addCommand("randomizeVolumes", randomizeVolumesOpts);
-
     StopCommand stopOpts = new StopCommand();
     cl.addCommand("stop", stopOpts);
 
@@ -321,9 +303,6 @@ public class Admin implements KeywordExecutable {
 
     StopManagerCommand stopManagerOpts = new StopManagerCommand();
     cl.addCommand("stopManager", stopManagerOpts);
-
-    StopMasterCommand stopMasterOpts = new StopMasterCommand();
-    cl.addCommand("stopMaster", stopMasterOpts);
 
     VerifyTabletAssignmentsCommand verifyTabletAssignmentsOpts =
         new VerifyTabletAssignmentsCommand();
@@ -382,8 +361,6 @@ public class Admin implements KeywordExecutable {
         printConfig(context, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(context);
-      } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
-        System.out.println(RV_DEPRECATION_MSG);
       } else if (cl.getParsedCommand().equals("verifyTabletAssigns")) {
         VerifyTabletAssignments.execute(opts.getClientProps(), verifyTabletAssignmentsOpts.verbose);
       } else if (cl.getParsedCommand().equals("changeSecret")) {

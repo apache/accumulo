@@ -87,7 +87,7 @@ public class OutputFormatBuilderImpl<T>
   private void _store(Configuration conf) {
     OutputConfigurator.setClientProperties(callingClass, conf, clientProps, clientPropsPath);
     if (defaultTableName.isPresent()) {
-      OutputConfigurator.setDefaultTableName(callingClass, conf, defaultTableName.get());
+      OutputConfigurator.setDefaultTableName(callingClass, conf, defaultTableName.orElseThrow());
     }
     OutputConfigurator.setCreateTables(callingClass, conf, createTables);
     OutputConfigurator.setSimulationMode(callingClass, conf, simulationMode);

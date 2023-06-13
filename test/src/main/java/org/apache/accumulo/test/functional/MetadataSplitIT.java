@@ -18,13 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -56,7 +55,7 @@ public class MetadataSplitIT extends ConfigurableMacBase {
         c.tableOperations().create("table" + i);
         c.tableOperations().flush(MetadataTable.NAME, null, null, true);
       }
-      sleepUninterruptibly(10, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(10));
       assertTrue(c.tableOperations().listSplits(MetadataTable.NAME).size() > 2);
     }
   }

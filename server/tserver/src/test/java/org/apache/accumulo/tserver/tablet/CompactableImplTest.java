@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
@@ -50,13 +49,13 @@ public class CompactableImplTest {
       Set<StoredTabletFile> nextFiles, CompactionKind kind, boolean propagateDeletes,
       boolean initiallySelectedAll, Long compactionId) {
 
-    TabletFile compactTmpName = newFile("C00000A.rf_tmp");
+    StoredTabletFile compactTmpName = newFile("C00000A.rf_tmp");
     String compactorId = "cid";
     short priority = 9;
     CompactionExecutorId ceid = CompactionExecutorIdImpl.externalId("ecs1");
 
-    return new ExternalCompactionMetadata(jobFiles, nextFiles, compactTmpName, compactorId, kind,
-        priority, ceid, propagateDeletes, initiallySelectedAll, compactionId);
+    return new ExternalCompactionMetadata(jobFiles, nextFiles, compactTmpName.getTabletFile(),
+        compactorId, kind, priority, ceid, propagateDeletes, initiallySelectedAll, compactionId);
   }
 
   ExternalCompactionId newEcid() {
@@ -370,7 +369,7 @@ public class CompactableImplTest {
         newFiles("F00001", "F00002", "F00003", "F00004", "F00005", "F00006"), toRemove);
     assertEquals(Set.of(), toRemove.keySet());
     assertTrue(selInfoOpt.isPresent());
-    var selInfo = selInfoOpt.get();
+    var selInfo = selInfoOpt.orElseThrow();
 
     assertTrue(selInfo.initiallySelectedAll);
     assertEquals(CompactionKind.USER, selInfo.selectKind);

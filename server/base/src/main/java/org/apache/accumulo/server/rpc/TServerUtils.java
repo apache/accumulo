@@ -167,7 +167,7 @@ public class TServerUtils {
     // create the TimedProcessor outside the port search loop so we don't try to
     // register the same
     // metrics mbean more than once
-    TimedProcessor timedProcessor = new TimedProcessor(config, processor, serverName, threadName);
+    TimedProcessor timedProcessor = new TimedProcessor(processor);
 
     HostAndPort[] addresses = getHostAndPorts(hostname, portHint);
     try {
@@ -405,7 +405,7 @@ public class TServerUtils {
       socketEnabledProtocols.retainAll(Arrays.asList(protocols));
       if (socketEnabledProtocols.isEmpty()) {
         // Bad configuration...
-        throw new RuntimeException(
+        throw new IllegalStateException(
             "No available protocols available for secure socket. Available protocols: "
                 + Arrays.toString(sslServerSock.getEnabledProtocols()) + ", allowed protocols: "
                 + Arrays.toString(protocols));
@@ -492,7 +492,7 @@ public class TServerUtils {
           + " the Accumulo hosts files (e.g. managers, tservers) are the FQDN for"
           + " each host when using SASL.", fqdn, hostname);
       transport.close();
-      throw new RuntimeException("SASL requires that the address the thrift"
+      throw new IllegalStateException("SASL requires that the address the thrift"
           + " server listens on is the same as the FQDN for this host");
     }
 
@@ -557,9 +557,9 @@ public class TServerUtils {
     }
 
     try {
-      return startTServer(serverType, new TimedProcessor(conf, processor, serverName, threadName),
-          serverName, threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks,
-          maxMessageSize, sslParams, saslParams, serverSocketTimeout, addresses);
+      return startTServer(serverType, new TimedProcessor(processor), serverName, threadName,
+          numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize, sslParams,
+          saslParams, serverSocketTimeout, addresses);
     } catch (TTransportException e) {
       throw new IllegalStateException(e);
     }

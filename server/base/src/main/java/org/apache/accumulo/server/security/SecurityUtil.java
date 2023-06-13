@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.security;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -71,7 +72,7 @@ public class SecurityUtil {
       }
     }
 
-    throw new RuntimeException(
+    throw new IllegalStateException(
         "Failed to perform Kerberos login for " + principal + " using  " + keyTab);
   }
 
@@ -107,7 +108,7 @@ public class SecurityUtil {
       return org.apache.hadoop.security.SecurityUtil.getServerPrincipal(configuredPrincipal,
           InetAddress.getLocalHost().getCanonicalHostName());
     } catch (IOException e) {
-      throw new RuntimeException(
+      throw new UncheckedIOException(
           "Could not convert configured server principal: " + configuredPrincipal, e);
     }
   }

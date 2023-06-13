@@ -93,7 +93,7 @@ public class CompactionJobImpl implements CompactionJob {
   }
 
   public boolean selectedAll() {
-    return jobSelectedAll.get();
+    return jobSelectedAll.orElseThrow();
   }
 
   @Override

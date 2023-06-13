@@ -49,6 +49,7 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -96,7 +97,7 @@ public class VolumeManagerImpl implements VolumeManager {
       // null chooser handled below
     }
     if (chooser1 == null) {
-      throw new RuntimeException(
+      throw new IllegalStateException(
           "Failed to load volume chooser specified by " + Property.GENERAL_VOLUME_CHOOSER);
     }
     chooser = chooser1;
@@ -220,7 +221,7 @@ public class VolumeManagerImpl implements VolumeManager {
               + " not be configured as false. " + ticketMessage;
           // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
           log.error("FATAL {}", msg);
-          throw new RuntimeException(msg);
+          throw new IllegalStateException(msg);
         }
 
         // Warn if synconclose isn't set
@@ -354,7 +355,10 @@ public class VolumeManagerImpl implements VolumeManager {
   @Override
   public boolean moveToTrash(Path path) throws IOException {
     FileSystem fs = getFileSystemByPath(path);
+    String key = CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY;
+    log.trace("{}: {}", key, fs.getConf().get(key));
     Trash trash = new Trash(fs, fs.getConf());
+    log.trace("Hadoop Trash is enabled for {}: {}", path, trash.isEnabled());
     return trash.moveToTrash(path);
   }
 
@@ -476,7 +480,7 @@ public class VolumeManagerImpl implements VolumeManager {
     if (!options.contains(choice)) {
       String msg = "The configured volume chooser, '" + chooser.getClass()
           + "', or one of its delegates returned a volume not in the set of options provided";
-      throw new RuntimeException(msg);
+      throw new IllegalStateException(msg);
     }
     return choice;
   }
@@ -489,7 +493,7 @@ public class VolumeManagerImpl implements VolumeManager {
       if (!options.contains(choice)) {
         String msg = "The configured volume chooser, '" + chooser.getClass()
             + "', or one of its delegates returned a volume not in the set of options provided";
-        throw new RuntimeException(msg);
+        throw new IllegalStateException(msg);
       }
     }
     return choices;

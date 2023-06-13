@@ -96,7 +96,6 @@ public class MiniAccumuloClusterTest extends WithTestNames {
     assertEquals("dfs.replication", DFSConfigKeys.DFS_REPLICATION_KEY);
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   @Timeout(30)
   public void test() throws Exception {

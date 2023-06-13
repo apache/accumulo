@@ -30,7 +30,8 @@
           <thead>
             <tr>
               <th class="firstcell">Activity&nbsp;</th>
-              <th class="date">Finished&nbsp;</th>
+              <th class="dateStarted">Started&nbsp;</th>
+              <th class="dateFinished">Finished&nbsp;</th>
               <th class="big-num">Candidates&nbsp;</th>
               <th class="big-num">Deleted&nbsp;</th>
               <th class="big-num">In&nbsp;Use&nbsp;</th>

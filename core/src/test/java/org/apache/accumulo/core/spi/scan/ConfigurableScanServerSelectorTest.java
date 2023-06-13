@@ -294,8 +294,10 @@ public class ConfigurableScanServerSelectorTest {
         "{'scanTypeActivations':['mega'],'maxBusyTimeout':'60m','busyTimeoutMultiplier':2, "
             + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]}";
 
+    // Intentionally put the default profile in 2nd position. There was a bug where config parsing
+    // would fail if the default did not come first.
     var opts = Map.of("profiles",
-        "[" + defaultProfile + ", " + profile1 + "," + profile2 + "]".replace('\'', '"'));
+        "[" + profile1 + ", " + defaultProfile + "," + profile2 + "]".replace('\'', '"'));
 
     runBusyTest(1000, 0, 5, 5, opts);
     runBusyTest(1000, 1, 20, 33, opts);
