@@ -66,7 +66,7 @@ public class GarbageCollectorTrashBase extends ConfigurableMacBase {
     // create some files
     for (int i = 0; i < 5; i++) {
       ReadWriteIT.ingest(client, 10, 10, 10, 0, tableName);
-      client.tableOperations().flush(tableName);
+      client.tableOperations().flush(tableName, null, null, true);
     }
     return getFilesForTable(ctx, client, tableName);
   }

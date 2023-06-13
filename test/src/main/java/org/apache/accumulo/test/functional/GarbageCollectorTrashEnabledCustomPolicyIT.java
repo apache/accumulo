@@ -91,7 +91,7 @@ public class GarbageCollectorTrashEnabledCustomPolicyIT extends GarbageCollector
     super.makeTrashDir(fs);
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       ReadWriteIT.ingest(c, 10, 10, 10, 0, table);
-      c.tableOperations().flush(table);
+      c.tableOperations().flush(table, null, null, true);
       ArrayList<StoredTabletFile> files1 = getFilesForTable(super.getServerContext(), c, table);
       assertFalse(files1.isEmpty());
       assertTrue(files1.stream().allMatch(stf -> stf.getPath().getName().startsWith("F")));
