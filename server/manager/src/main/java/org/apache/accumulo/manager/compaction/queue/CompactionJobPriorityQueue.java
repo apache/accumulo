@@ -49,20 +49,20 @@ public class CompactionJobPriorityQueue {
   // ELASTICITY_TODO unit test this class
   private final CompactionExecutorId executorId;
 
-  private class CjqpKey implements Comparable<CjqpKey> {
+  private class CjpqKey implements Comparable<CjpqKey> {
     private final CompactionJob job;
 
     // this exists to make every entry unique even if the job is the same, this is done because a
     // treeset is used as a queue
     private final long seq;
 
-    CjqpKey(CompactionJob job) {
+    CjpqKey(CompactionJob job) {
       this.job = job;
       this.seq = nextSeq++;
     }
 
     @Override
-    public int compareTo(CjqpKey oe) {
+    public int compareTo(CjpqKey oe) {
       int cmp = CompactionJobPrioritizer.JOB_COMPARATOR.compare(this.job, oe.job);
       if (cmp == 0) {
         cmp = Long.compare(seq, oe.seq);
@@ -83,7 +83,7 @@ public class CompactionJobPriorityQueue {
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-      CjqpKey cjqpKey = (CjqpKey) o;
+      CjpqKey cjqpKey = (CjpqKey) o;
       return seq == cjqpKey.seq && job.equals(cjqpKey.job);
     }
   }
@@ -92,12 +92,12 @@ public class CompactionJobPriorityQueue {
   // behavior is not supported with a PriorityQueue. Second a PriorityQueue does not support
   // efficiently removing entries from anywhere in the queue. Efficient removal is needed for the
   // case where tablets decided to issues different compaction jobs than what is currently queued.
-  private final TreeMap<CjqpKey,CompactionJobQueues.MetaJob> jobQueue;
+  private final TreeMap<CjpqKey,CompactionJobQueues.MetaJob> jobQueue;
   private final int maxSize;
 
   // This map tracks what jobs a tablet currently has in the queue. Its used to efficiently remove
   // jobs in the queue when new jobs are queued for a tablet.
-  private final Map<KeyExtent,List<CjqpKey>> tabletJobs;
+  private final Map<KeyExtent,List<CjpqKey>> tabletJobs;
 
   private long nextSeq;
 
@@ -120,10 +120,10 @@ public class CompactionJobPriorityQueue {
 
     removePreviousSubmissions(tabletMetadata.getExtent());
 
-    List<CjqpKey> newEntries = new ArrayList<>(jobs.size());
+    List<CjpqKey> newEntries = new ArrayList<>(jobs.size());
 
     for (CompactionJob job : jobs) {
-      CjqpKey cjqpKey = addJobToQueue(tabletMetadata, job);
+      CjpqKey cjqpKey = addJobToQueue(tabletMetadata, job);
       if (cjqpKey != null) {
         newEntries.add(cjqpKey);
       }
@@ -141,7 +141,7 @@ public class CompactionJobPriorityQueue {
 
     if (first != null) {
       var extent = first.getValue().getTabletMetadata().getExtent();
-      List<CjqpKey> jobs = tabletJobs.get(extent);
+      List<CjpqKey> jobs = tabletJobs.get(extent);
       checkState(jobs.remove(first.getKey()));
       if (jobs.isEmpty()) {
         tabletJobs.remove(extent);
@@ -161,14 +161,14 @@ public class CompactionJobPriorityQueue {
   }
 
   private void removePreviousSubmissions(KeyExtent extent) {
-    List<CjqpKey> prevJobs = tabletJobs.get(extent);
+    List<CjpqKey> prevJobs = tabletJobs.get(extent);
     if (prevJobs != null) {
       prevJobs.forEach(jobQueue::remove);
       tabletJobs.remove(extent);
     }
   }
 
-  private CjqpKey addJobToQueue(TabletMetadata tabletMetadata, CompactionJob job) {
+  private CjpqKey addJobToQueue(TabletMetadata tabletMetadata, CompactionJob job) {
     if (jobQueue.size() >= maxSize) {
       var lastEntry = jobQueue.lastKey();
       if (job.getPriority() <= lastEntry.job.getPriority()) {
@@ -182,7 +182,7 @@ public class CompactionJobPriorityQueue {
 
     }
 
-    var key = new CjqpKey(job);
+    var key = new CjpqKey(job);
     jobQueue.put(key, new CompactionJobQueues.MetaJob(job, tabletMetadata));
     return key;
   }

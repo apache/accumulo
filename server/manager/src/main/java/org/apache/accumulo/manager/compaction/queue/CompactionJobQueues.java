@@ -32,6 +32,12 @@ public class CompactionJobQueues {
 
   private static final Logger log = LoggerFactory.getLogger(CompactionJobQueues.class);
 
+  // The code in this class specifically depends on the behavior of ConcurrentHashMap, behavior that
+  // other ConcurrentMap implementations may not have. The behavior it depended on is that the
+  // compute functions for a key are atomic. This is documented on its javadoc and in the impl it
+  // can be observed that scoped locks are acquired. Other concurrent map impls may run the compute
+  // lambdas concurrently for a given key, which may still be correct but is more difficult to
+  // analyze.
   private final ConcurrentHashMap<CompactionExecutorId,CompactionJobPriorityQueue> priorityQueues =
       new ConcurrentHashMap<>();
 
