@@ -25,16 +25,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.time.Duration;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.rfile.RFile;
+import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -52,11 +57,14 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class SplitIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(SplitIT.class);
@@ -206,4 +214,71 @@ public class SplitIT extends AccumuloClusterHarness {
     }
   }
 
+  private String getDir() throws Exception {
+    var rootPath = getCluster().getTemporaryPath().toString();
+    String dir = rootPath + "/" + getUniqueNames(1)[0];
+    getCluster().getFileSystem().delete(new Path(dir), true);
+    return dir;
+  }
+
+  @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
+      justification = "predictable random with specific seed is intended for this test")
+  @Test
+  public void bulkImportThatCantSplitHangsCompaction() throws Exception {
+
+    /*
+     * There was a bug where a bulk import into a tablet with the following conditions would cause
+     * compactions to hang.
+     *
+     * 1. Tablet where the files sizes indicates its needs to split
+     *
+     * 2. Row with many columns in the tablet that is unsplittable
+     *
+     * This happened because the bulk import plus an attempted split would leave the tablet in a bad
+     * internal state for compactions.
+     */
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+
+      c.tableOperations().create(tableName, new NewTableConfiguration()
+          .setProperties(singletonMap(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K")));
+
+      Random random = new Random();
+      byte[] val = new byte[100];
+
+      String dir = getDir();
+      String file = dir + "/f1.rf";
+
+      // create a file with a single row and lots of columns. The files size will exceed the split
+      // threshold configured above.
+      try (
+          RFileWriter writer = RFile.newWriter().to(file).withFileSystem(getFileSystem()).build()) {
+        writer.startDefaultLocalityGroup();
+        for (int i = 0; i < 1000; i++) {
+          random.nextBytes(val);
+          writer.append(new Key("r1", "f1", String.format("%09d", i)),
+              new Value(Base64.getEncoder().encodeToString(val)));
+        }
+      }
+
+      // import the file
+      c.tableOperations().importDirectory(dir).to(tableName).load();
+
+      // tablet should not be able to split
+      assertEquals(0, c.tableOperations().listSplits(tableName).size());
+
+      Thread.sleep(1000);
+
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+
+      // should have over 100K of data in the values
+      assertTrue(
+          c.createScanner(tableName).stream().mapToLong(entry -> entry.getValue().getSize()).sum()
+              > 100_000);
+
+      // should have 1000 entries
+      assertEquals(1000, c.createScanner(tableName).stream().count());
+    }
+  }
 }
