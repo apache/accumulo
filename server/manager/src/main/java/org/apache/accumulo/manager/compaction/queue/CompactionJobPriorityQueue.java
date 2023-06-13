@@ -101,7 +101,7 @@ public class CompactionJobPriorityQueue {
 
   private long nextSeq;
 
-  private boolean closed = true;
+  private boolean closed = false;
 
   public CompactionJobPriorityQueue(CompactionExecutorId executorId, int maxSize) {
     this.jobQueue = new TreeMap<>();
