@@ -64,6 +64,8 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class SplitIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(SplitIT.class);
 
@@ -219,6 +221,8 @@ public class SplitIT extends AccumuloClusterHarness {
     return dir;
   }
 
+  @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
+      justification = "predictable random with specific seed is intended for this test")
   @Test
   public void bulkImportThatCantSplitHangsCompaction() throws Exception {
 
