@@ -34,17 +34,15 @@ import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.spi.compaction.CompactionServices;
-import org.apache.accumulo.core.spi.compaction.ExecutorManager;
-import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
+import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 
 import com.github.benmanes.caffeine.cache.Cache;
@@ -264,38 +262,8 @@ public class CompactionJobGenerator {
       throw new RuntimeException(e);
     }
 
-    CompactionPlanner.InitParameters initParameters = new CompactionPlanner.InitParameters() {
-      @Override
-      public ServiceEnvironment getServiceEnvironment() {
-        return (ServiceEnvironment) env;
-      }
-
-      @Override
-      public Map<String,String> getOptions() {
-        return servicesConfig.getOptions().get(serviceId.canonical());
-      }
-
-      @Override
-      public String getFullyQualifiedOption(String key) {
-        return Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + serviceId + ".opts." + key;
-      }
-
-      @Override
-      public ExecutorManager getExecutorManager() {
-        return new ExecutorManager() {
-          @Override
-          public CompactionExecutorId createExecutor(String name, int threads) {
-            // ELASTICITY_TODO need to deprecate
-            return CompactionExecutorIdImpl.internalId(serviceId, name);
-          }
-
-          @Override
-          public CompactionExecutorId getExternalExecutor(String name) {
-            return CompactionExecutorIdImpl.externalId(name);
-          }
-        };
-      }
-    };
+    CompactionPlannerInitParams initParameters = new CompactionPlannerInitParams(serviceId,
+        servicesConfig.getOptions().get(serviceId.canonical()), (ServiceEnvironment) env);
 
     planner.init(initParameters);
 
