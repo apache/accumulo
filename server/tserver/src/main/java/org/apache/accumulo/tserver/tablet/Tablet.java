@@ -1203,7 +1203,7 @@ public class Tablet extends TabletBase {
     return true;
   }
 
-  private SplitRowSpec findSplitRow(Optional<SplitComputations> splitComputations) {
+  private synchronized SplitRowSpec findSplitRow(Optional<SplitComputations> splitComputations) {
 
     // never split the root tablet
     // check if we already decided that we can never split
@@ -1512,10 +1512,24 @@ public class Tablet extends TabletBase {
       throw new RuntimeException(msg);
     }
 
-    Optional<SplitComputations> splitComputations = null;
+    SplitRowSpec splitPoint = null;
     if (sp == null) {
       // call this outside of sync block
-      splitComputations = getSplitComputations();
+      var splitComputations = getSplitComputations();
+      splitPoint = findSplitRow(splitComputations);
+      if (splitPoint == null || splitPoint.row == null) {
+        // no reason to log anything here, findSplitRow will log reasons when it returns null
+        return null;
+      }
+    } else {
+      Text tsp = new Text(sp);
+      var fileStrings = FileUtil.toPathStrings(getDatafileManager().getFiles());
+      // This ratio is calculated before that tablet is closed and outside of a lock, so new files
+      // could arrive before the tablet is closed and locked. That is okay as the ratio is an
+      // estimate.
+      var ratio = FileUtil.estimatePercentageLTE(context, tableConfiguration, chooseTabletDir(),
+          extent.prevEndRow(), extent.endRow(), fileStrings, tsp);
+      splitPoint = new SplitRowSpec(ratio, tsp);
     }
 
     try {
@@ -1538,23 +1552,6 @@ public class Tablet extends TabletBase {
       TreeMap<KeyExtent,TabletData> newTablets = new TreeMap<>();
 
       long t1 = System.currentTimeMillis();
-      // choose a split point
-      SplitRowSpec splitPoint;
-      if (sp == null) {
-        splitPoint = findSplitRow(splitComputations);
-      } else {
-        Text tsp = new Text(sp);
-        var fileStrings = FileUtil.toPathStrings(getDatafileManager().getFiles());
-        var ratio = FileUtil.estimatePercentageLTE(context, tableConfiguration, chooseTabletDir(),
-            extent.prevEndRow(), extent.endRow(), fileStrings, tsp);
-        splitPoint = new SplitRowSpec(ratio, tsp);
-      }
-
-      if (splitPoint == null || splitPoint.row == null) {
-        log.info("had to abort split because splitRow was null");
-        closeState = CloseState.OPEN;
-        return null;
-      }
 
       closeState = CloseState.CLOSING;
       completeClose(true, false);
