@@ -326,7 +326,9 @@ public class LiveTServerSet implements Watcher {
     } else {
       locklessServers.remove(zPath);
       HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
+      String resourceGroup = sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
       TServerInstance instance = new TServerInstance(client, stat.getEphemeralOwner());
+      instance.setResourceGroup(resourceGroup);
 
       if (info == null) {
         updates.add(instance);

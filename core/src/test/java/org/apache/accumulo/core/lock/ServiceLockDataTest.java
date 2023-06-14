@@ -40,7 +40,8 @@ public class ServiceLockDataTest {
 
   @Test
   public void testSingleServiceConstructor() throws Exception {
-    ServiceLockData ss = new ServiceLockData(serverUUID, "127.0.0.1", ThriftService.TSERV);
+    ServiceLockData ss = new ServiceLockData(serverUUID, "127.0.0.1", ThriftService.TSERV,
+        ServiceDescriptor.DEFAULT_GROUP_NAME);
     assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
     assertEquals("127.0.0.1", ss.getAddressString(ThriftService.TSERV));
     assertThrows(IllegalArgumentException.class, () -> ss.getAddress(ThriftService.TSERV));
@@ -54,8 +55,10 @@ public class ServiceLockDataTest {
   @Test
   public void testMultipleServiceConstructor() throws Exception {
     ServiceDescriptors sds = new ServiceDescriptors();
-    sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TSERV, "127.0.0.1:9997"));
-    sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TABLET_SCAN, "127.0.0.1:9998"));
+    sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TSERV, "127.0.0.1:9997",
+        ServiceDescriptor.DEFAULT_GROUP_NAME));
+    sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TABLET_SCAN, "127.0.0.1:9998",
+        ServiceDescriptor.DEFAULT_GROUP_NAME));
     ServiceLockData ss = new ServiceLockData(sds);
     assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
     assertEquals("127.0.0.1:9997", ss.getAddressString(ThriftService.TSERV));

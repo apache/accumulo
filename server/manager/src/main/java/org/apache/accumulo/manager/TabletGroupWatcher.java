@@ -276,7 +276,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             return mStats != null ? mStats : new MergeStats(new MergeInfo());
           });
           TabletGoalState goal = manager.getGoalState(tm, mergeStats.getMergeInfo());
-          final TabletState state = tm.getTabletState(currentTServers.keySet());
+          TabletState state = tm.getTabletState(currentTServers.keySet());
 
           final Location location = tm.getLocation();
           Location current = null;
@@ -289,6 +289,35 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           TabletLogger.missassigned(tm.getExtent(), goal.toString(), state.toString(),
               future != null ? future.getServerInstance() : null,
               current != null ? current.getServerInstance() : null, tm.getLogs().size());
+
+          if (current != null && currentTServers.keySet().contains(current.getServerInstance())) {
+            // current comes from the TabletMetadata, which does not populate the resourceGroup
+            // on the TServerInstance. Instead, we need to get the matching TServerInstance from
+            // the set of current tservers, which is populated by LiveTServerSet, which does set
+            // the resource group on the TServerInstance.
+            TServerInstance currentLoc =
+                currentTServers.tailMap(current.getServerInstance()).firstKey();
+            if (currentLoc.equals(current.getServerInstance())) {
+              String tserverResourceGroup = currentLoc.getResourceGroup();
+              String assignmentGroup = tableConf.get(Property.TABLE_ASSIGNMENT_GROUP);
+              if (assignmentGroup != null
+                  && !assignmentGroup.equalsIgnoreCase(tserverResourceGroup)) {
+                LOG.info(
+                    "Tablet {} assigned to resource group {}, but currently hosted by"
+                        + " tserver {} which is part of resource group {}. Unassigning tablet so"
+                        + "that it can be re-assigned to the correct group",
+                    tm.getExtent(), assignmentGroup, current.getServerInstance().getHostPort(),
+                    tserverResourceGroup);
+                // override the TabletState, this tablet is not hosted in a TServer in
+                // the correct resourceGroup
+                state = TabletState.ASSIGNED_TO_WRONG_GROUP;
+                goal = TabletGoalState.UNASSIGNED;
+                if (!actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)) {
+                  actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
+                }
+              }
+            }
+          }
 
           stats.update(tableId, state);
           mergeStats.update(tm.getExtent(), state, tm.hasChopped(), !tm.getLogs().isEmpty());
@@ -349,6 +378,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                   tLists.assigned.add(new Assignment(tm.getExtent(),
                       future != null ? future.getServerInstance() : null, tm.getLast()));
                   break;
+                case ASSIGNED_TO_WRONG_GROUP:
+                  // goal state of HOSTED should not occur with this tablet state
+                  break;
               }
             } else {
               switch (state) {
@@ -363,6 +395,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 case ASSIGNED_TO_DEAD_SERVER:
                   unassignDeadTablet(tLists, tm, wals);
                   break;
+                case ASSIGNED_TO_WRONG_GROUP:
                 case HOSTED:
                   TServerConnection client =
                       manager.tserverSet.getConnection(location.getServerInstance());

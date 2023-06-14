@@ -20,6 +20,8 @@ package org.apache.accumulo.core.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.Objects;
+
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.hadoop.io.Text;
@@ -38,6 +40,7 @@ public class TServerInstance implements Comparable<TServerInstance> {
   private final String hostPort;
   private final String session;
   private final String hostPortSession;
+  private String resourceGroup;
 
   public TServerInstance(HostAndPort address, String session) {
     this.hostAndPort = address;
@@ -80,6 +83,20 @@ public class TServerInstance implements Comparable<TServerInstance> {
   @Override
   public int hashCode() {
     return getHostPortSession().hashCode();
+  }
+
+  public void setResourceGroup(String resourceGroup) {
+    Objects.requireNonNull(resourceGroup, "Resource group cannot be null");
+    this.resourceGroup = resourceGroup;
+  }
+
+  public String getResourceGroup() {
+    // ResourceGroup is set by the LiveTServerSet, so we want to enforce that
+    // users of the ResourceGroup only get their TServerInstance from the LiveTServerSet
+    if (resourceGroup == null) {
+      throw new IllegalStateException("Unexpected call to getResourceGroup");
+    }
+    return resourceGroup;
   }
 
   @Override

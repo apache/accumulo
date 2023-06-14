@@ -1337,7 +1337,7 @@ public class Manager extends AbstractServer
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER,
         ThriftService.COORDINATOR}) {
-      descriptors.addService(new ServiceDescriptor(uuid, svc, address));
+      descriptors.addService(new ServiceDescriptor(uuid, svc, address, this.getResourceGroup()));
     }
 
     sld = new ServiceLockData(descriptors);
@@ -1571,7 +1571,8 @@ public class Manager extends AbstractServer
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER,
         ThriftService.COORDINATOR}) {
-      descriptors.addService(new ServiceDescriptor(zooLockUUID, svc, managerClientAddress));
+      descriptors.addService(
+          new ServiceDescriptor(zooLockUUID, svc, managerClientAddress, this.getResourceGroup()));
     }
 
     ServiceLockData sld = new ServiceLockData(descriptors);
