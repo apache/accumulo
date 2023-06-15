@@ -70,6 +70,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Su
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -77,6 +78,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
@@ -91,7 +94,8 @@ public class TabletMetadata {
   private boolean sawOldPrevEndRow = false;
   private Text endRow;
   private Location location;
-  private Map<StoredTabletFile,DataFileValue> files;
+  private List<Pair<String,String>> rawFiles;
+  private Supplier<Map<StoredTabletFile,DataFileValue>> filesSupplier;
   private List<StoredTabletFile> scans;
   private Map<TabletFile,Long> loadedFiles;
   private EnumSet<ColumnType> fetchedCols;
@@ -300,14 +304,22 @@ public class TabletMetadata {
     return suspend;
   }
 
+  /**
+   * @return the exact column qualifiers and values stored in the metadata table
+   */
+  public List<Pair<String,String>> getRawFiles() {
+    ensureFetched(ColumnType.FILES);
+    return rawFiles;
+  }
+
   public Collection<StoredTabletFile> getFiles() {
     ensureFetched(ColumnType.FILES);
-    return files.keySet();
+    return filesSupplier.get().keySet();
   }
 
   public Map<StoredTabletFile,DataFileValue> getFilesMap() {
     ensureFetched(ColumnType.FILES);
-    return files;
+    return filesSupplier.get();
   }
 
   public Collection<LogEntry> getLogs() {
@@ -394,7 +406,7 @@ public class TabletMetadata {
     final ImmutableSortedMap.Builder<Key,Value> kvBuilder =
         buildKeyValueMap ? ImmutableSortedMap.naturalOrder() : null;
 
-    final var filesBuilder = ImmutableMap.<StoredTabletFile,DataFileValue>builder();
+    final var filesBuilder = ImmutableList.<Pair<String,String>>builder();
     final var scansBuilder = ImmutableList.<StoredTabletFile>builder();
     final var logsBuilder = ImmutableList.<LogEntry>builder();
     final var extCompBuilder =
@@ -458,7 +470,7 @@ public class TabletMetadata {
           }
           break;
         case DataFileColumnFamily.STR_NAME:
-          filesBuilder.put(new StoredTabletFile(qual), new DataFileValue(val));
+          filesBuilder.add(new Pair<>(qual, val));
           break;
         case BulkFileColumnFamily.STR_NAME:
           loadedFilesBuilder.put(new StoredTabletFile(qual),
@@ -497,7 +509,7 @@ public class TabletMetadata {
       }
     }
 
-    te.files = filesBuilder.build();
+    te.rawFiles = filesBuilder.build();
     te.loadedFiles = loadedFilesBuilder.build();
     te.fetchedCols = fetchedColumns;
     te.scans = scansBuilder.build();
@@ -506,6 +518,12 @@ public class TabletMetadata {
     if (buildKeyValueMap) {
       te.keyValues = kvBuilder.build();
     }
+    te.filesSupplier = Suppliers.memoize(() -> {
+      ImmutableMap.Builder<StoredTabletFile,DataFileValue> fb = ImmutableMap.builder();
+      te.rawFiles.forEach(pair -> fb.put(new StoredTabletFile(pair.getFirst()),
+          new DataFileValue((pair.getSecond()))));
+      return fb.build();
+    });
     return te;
   }
 

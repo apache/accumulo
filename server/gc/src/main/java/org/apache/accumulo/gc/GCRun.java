@@ -54,6 +54,7 @@ import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -160,9 +161,13 @@ public class GCRun implements GarbageCollectionEnvironment {
     // there is a lot going on in this "one line" so see below for more info
     var tabletReferences = tabletStream.flatMap(tm -> {
       // combine all the entries read from file and scan columns in the metadata table
-      var fileStream = Stream.concat(tm.getFiles().stream(), tm.getScans().stream());
+      var fileStream = tm.getRawFiles().stream().map(Pair::getFirst);
+      if (!tm.getScans().isEmpty()) {
+        fileStream = Stream.concat(fileStream,
+            tm.getScans().stream().map(StoredTabletFile::getMetaUpdateDelete));
+      }
       // map the files to Reference objects
-      var stream = fileStream.map(f -> new ReferenceFile(tm.getTableId(), f.getMetaUpdateDelete()));
+      var stream = fileStream.map(f -> new ReferenceFile(tm.getTableId(), f));
       // if dirName is populated then we have a tablet directory aka srv:dir
       if (tm.getDirName() != null) {
         // add the tablet directory to the stream
