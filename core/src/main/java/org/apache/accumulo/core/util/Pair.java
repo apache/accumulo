@@ -23,8 +23,8 @@ import java.util.Map.Entry;
 import java.util.Objects;
 
 public class Pair<A,B> {
-  final A first;
-  final B second;
+  protected final A first;
+  protected final B second;
 
   public Pair(A f, B s) {
     this.first = f;
