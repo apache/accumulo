@@ -177,13 +177,16 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     // read only lists of tablet servers
     private final SortedMap<TServerInstance,TabletServerStatus> currentTServers;
     private final SortedMap<TServerInstance,TabletServerStatus> destinations;
+    private final Map<String,Set<TServerInstance>> currentTServerGrouping;
 
-    public TabletLists(Manager m, SortedMap<TServerInstance,TabletServerStatus> curTServers) {
+    public TabletLists(Manager m, SortedMap<TServerInstance,TabletServerStatus> curTServers,
+        Map<String,Set<TServerInstance>> grouping) {
       var destinationsMod = new TreeMap<>(curTServers);
       // Don't move tablets to servers that are shutting down
       destinationsMod.keySet().removeAll(m.serversToShutdown);
       this.destinations = Collections.unmodifiableSortedMap(destinationsMod);
       this.currentTServers = Collections.unmodifiableSortedMap(curTServers);
+      this.currentTServerGrouping = grouping;
     }
 
     public void reset() {
@@ -219,7 +222,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
 
         // Get the current status for the current list of tservers
-        SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<>();
+        final SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<>();
         for (TServerInstance entry : manager.tserverSet.getCurrentServers()) {
           currentTServers.put(entry, manager.tserverStatus.get(entry));
         }
@@ -232,7 +235,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           continue;
         }
 
-        TabletLists tLists = new TabletLists(manager, currentTServers);
+        final Map<String,Set<TServerInstance>> currentTServerGrouping =
+            manager.tserverSet.getCurrentServersGroups();
+
+        TabletLists tLists = new TabletLists(manager, currentTServers, currentTServerGrouping);
 
         ManagerState managerState = manager.getManagerState();
         int[] counts = new int[TabletState.values().length];
@@ -291,30 +297,22 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               current != null ? current.getServerInstance() : null, tm.getLogs().size());
 
           if (current != null && currentTServers.keySet().contains(current.getServerInstance())) {
-            // current comes from the TabletMetadata, which does not populate the resourceGroup
-            // on the TServerInstance. Instead, we need to get the matching TServerInstance from
-            // the set of current tservers, which is populated by LiveTServerSet, which does set
-            // the resource group on the TServerInstance.
-            TServerInstance currentLoc =
-                currentTServers.tailMap(current.getServerInstance()).firstKey();
-            if (currentLoc.equals(current.getServerInstance())) {
-              String tserverResourceGroup = currentLoc.getResourceGroup();
-              String assignmentGroup = tableConf.get(Property.TABLE_ASSIGNMENT_GROUP);
-              if (assignmentGroup != null
-                  && !assignmentGroup.equalsIgnoreCase(tserverResourceGroup)) {
-                LOG.info(
-                    "Tablet {} assigned to resource group {}, but currently hosted by"
-                        + " tserver {} which is part of resource group {}. Unassigning tablet so"
-                        + "that it can be re-assigned to the correct group",
-                    tm.getExtent(), assignmentGroup, current.getServerInstance().getHostPort(),
-                    tserverResourceGroup);
-                // override the TabletState, this tablet is not hosted in a TServer in
-                // the correct resourceGroup
-                state = TabletState.ASSIGNED_TO_WRONG_GROUP;
-                goal = TabletGoalState.UNASSIGNED;
-                if (!actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)) {
-                  actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
-                }
+            // Check to see if the current location is in the set of TServerInstance's
+            // for this tables resource group
+            String assignmentGroup = tableConf.get(Property.TABLE_ASSIGNMENT_GROUP);
+            if (!currentTServerGrouping.get(assignmentGroup)
+                .contains(current.getServerInstance())) {
+              LOG.info(
+                  "Tablet {} assigned to resource group {}, but currently hosted by"
+                      + " tserver {} which is not in of that resource group. Unassigning tablet so"
+                      + "that it can be re-assigned to the correct group",
+                  tm.getExtent(), assignmentGroup, current.getServerInstance().getHostPort());
+              // override the TabletState, this tablet is not hosted in a TServer in
+              // the correct resourceGroup
+              state = TabletState.ASSIGNED_TO_WRONG_GROUP;
+              goal = TabletGoalState.UNASSIGNED;
+              if (!actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)) {
+                actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
               }
             }
           }
@@ -1031,6 +1029,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       Map<KeyExtent,UnassignedTablet> unassigned) {
     if (!tLists.currentTServers.isEmpty()) {
       Map<KeyExtent,TServerInstance> assignedOut = new HashMap<>();
+      // ELASTICITY_TODO: Pass the currentTServerGrouping to the
+      // getAssignments method
       manager.getAssignments(tLists.currentTServers, unassigned, assignedOut);
       for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
         if (unassigned.containsKey(assignment.getKey())) {
