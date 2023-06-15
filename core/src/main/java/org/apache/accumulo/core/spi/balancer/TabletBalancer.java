@@ -69,7 +69,7 @@ public interface TabletBalancer {
     void addAssignment(TabletId tabletId, TabletServerId tabletServerId);
 
     /**
-     * Balancers can use this mapping in conjunction with {@link Property.TABLE_ASSIGNMENT_GROUP} to
+     * Balancers can use this mapping in conjunction with {@link Property#TABLE_ASSIGNMENT_GROUP} to
      * assign tablets to tablet servers within the corresponding resource group
      *
      * @return map of resource group name to set of TServerInstance objects
