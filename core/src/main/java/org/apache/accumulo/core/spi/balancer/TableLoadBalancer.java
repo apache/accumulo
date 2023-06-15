@@ -114,8 +114,8 @@ public class TableLoadBalancer implements TabletBalancer {
         .computeIfAbsent(tid.getTable(), k -> new HashMap<>()).put(tid, lastTserver));
     for (Entry<TableId,Map<TabletId,TabletServerId>> e : groupedUnassigned.entrySet()) {
       Map<TabletId,TabletServerId> newAssignments = new HashMap<>();
-      getBalancerForTable(e.getKey()).getAssignments(
-          new AssignmentParamsImpl(params.currentStatus(), e.getValue(), newAssignments));
+      getBalancerForTable(e.getKey()).getAssignments(new AssignmentParamsImpl(
+          params.currentStatus(), params.currentResourceGroups(), e.getValue(), newAssignments));
       newAssignments.forEach(params::addAssignment);
     }
   }

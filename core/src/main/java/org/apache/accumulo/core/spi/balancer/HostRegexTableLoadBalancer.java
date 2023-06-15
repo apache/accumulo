@@ -358,8 +358,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       }
       LOG.debug("Sending {} tablets to balancer for table {} for assignment within tservers {}",
           e.getValue().size(), tableName, currentView.keySet());
-      getBalancerForTable(e.getKey())
-          .getAssignments(new AssignmentParamsImpl(currentView, e.getValue(), newAssignments));
+      getBalancerForTable(e.getKey()).getAssignments(new AssignmentParamsImpl(currentView,
+          params.currentResourceGroups(), e.getValue(), newAssignments));
       newAssignments.forEach(params::addAssignment);
     }
   }

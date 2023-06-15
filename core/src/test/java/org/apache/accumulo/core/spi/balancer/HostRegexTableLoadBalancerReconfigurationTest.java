@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.TableId;
@@ -81,6 +82,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     }
     this.getAssignments(
         new AssignmentParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
+            Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()),
             Collections.unmodifiableMap(unassigned), assignments));
     assertEquals(15, assignments.size());
     // Ensure unique tservers

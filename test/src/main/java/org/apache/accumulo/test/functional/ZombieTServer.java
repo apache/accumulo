@@ -164,7 +164,7 @@ public class ZombieTServer {
     };
 
     if (zlock.tryLock(lw, new ServiceLockData(UUID.randomUUID(), addressString, ThriftService.TSERV,
-        ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME))) {
+        Constants.DEFAULT_RESOURCE_GROUP_NAME))) {
       log.debug("Obtained tablet server lock {}", zlock.getLockPath());
     }
     // modify metadata

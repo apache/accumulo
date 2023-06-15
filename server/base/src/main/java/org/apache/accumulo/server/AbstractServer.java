@@ -28,7 +28,6 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -77,7 +76,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   }
 
   protected String getResourceGroupPropertyValue(SiteConfiguration conf) {
-    return ServiceDescriptor.DEFAULT_GROUP_NAME;
+    return Constants.DEFAULT_RESOURCE_GROUP_NAME;
   }
 
   public String getResourceGroup() {

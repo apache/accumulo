@@ -25,12 +25,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.data.constraints.NoDeleteConstraint;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
-import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
@@ -725,7 +725,7 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The interval at which the TabletServer will check if on-demand tablets can be unloaded",
       "4.0.0"),
-  TSERV_GROUP_NAME("tserver.group", ServiceDescriptor.DEFAULT_GROUP_NAME, PropertyType.STRING,
+  TSERV_GROUP_NAME("tserver.group", Constants.DEFAULT_RESOURCE_GROUP_NAME, PropertyType.STRING,
       "Optional group name that will be made available to the "
           + "TablerServer plugins. Groups can be used to dedicate resources "
           + " to specific tables (e.g. balancing tablets for table(s) within a group)",
@@ -1075,7 +1075,7 @@ public enum Property {
           + "also consider configuring the `" + NoDeleteConstraint.class.getName() + "` "
           + "constraint.",
       "2.0.0"),
-  TABLE_ASSIGNMENT_GROUP("table.assignment.group", ServiceDescriptor.DEFAULT_GROUP_NAME,
+  TABLE_ASSIGNMENT_GROUP("table.assignment.group", Constants.DEFAULT_RESOURCE_GROUP_NAME,
       PropertyType.STRING,
       "Tablets for this table will be assigned to TabletServers that have a corresponding"
           + " tserver.group property value.",
@@ -1106,8 +1106,8 @@ public enum Property {
   COMPACTOR_MAX_MESSAGE_SIZE("compactor.message.size.max", "10M", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a tablet server.", "2.1.0"),
   @Experimental
-  COMPACTOR_QUEUE_NAME("compactor.queue", ServiceDescriptor.DEFAULT_GROUP_NAME, PropertyType.STRING,
-      "The queue for which this Compactor will perform compactions", "3.0.0"),
+  COMPACTOR_QUEUE_NAME("compactor.queue", Constants.DEFAULT_RESOURCE_GROUP_NAME,
+      PropertyType.STRING, "The queue for which this Compactor will perform compactions", "3.0.0"),
   // CompactionCoordinator properties
   @Experimental
   COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,

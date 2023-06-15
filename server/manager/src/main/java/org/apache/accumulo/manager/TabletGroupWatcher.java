@@ -293,6 +293,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               future != null ? future.getServerInstance() : null,
               current != null ? current.getServerInstance() : null, tm.getLogs().size());
 
+          // ELASTICITY_TODO: Do we remove this code block and just warn in
+          // getAssignmentsFromBalancer
+          // when a tablet is assigned outside of the resource group?
           if (current != null && currentTServers.keySet().contains(current.getServerInstance())) {
             // Check to see if the current location is in the set of TServerInstance's
             // for this tables resource group
@@ -1026,9 +1029,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       Map<KeyExtent,UnassignedTablet> unassigned) {
     if (!tLists.destinations.isEmpty()) {
       Map<KeyExtent,TServerInstance> assignedOut = new HashMap<>();
-      // ELASTICITY_TODO: Pass the currentTServerGrouping to the
-      // getAssignments method
-      manager.getAssignments(tLists.destinations, unassigned, assignedOut);
+      manager.getAssignments(tLists.destinations, tLists.currentTServerGrouping, unassigned,
+          assignedOut);
       for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
         if (unassigned.containsKey(assignment.getKey())) {
           if (assignment.getValue() != null) {
@@ -1037,6 +1039,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                   "balancer assigned {} to a tablet server that is not current {} ignoring",
                   assignment.getKey(), assignment.getValue());
               continue;
+            }
+
+            final String resourceGroup =
+                manager.getConfiguration().get(Property.TABLE_ASSIGNMENT_GROUP);
+            if (!tLists.currentTServerGrouping.get(resourceGroup).contains(assignment.getValue())) {
+              Manager.log.warn(
+                  "balancer assigned {} to tablet server {} that is not in the assigned resource group {}",
+                  assignment.getKey(), assignment.getValue(), resourceGroup);
             }
 
             final UnassignedTablet unassignedTablet = unassigned.get(assignment.getKey());

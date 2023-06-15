@@ -60,11 +60,6 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
    */
   public static class ServiceDescriptor {
 
-    /**
-     * The group name that will be used when one is not specified.
-     */
-    public static final String DEFAULT_GROUP_NAME = "default";
-
     private final UUID uuid;
     private final ThriftService service;
     private final String address;

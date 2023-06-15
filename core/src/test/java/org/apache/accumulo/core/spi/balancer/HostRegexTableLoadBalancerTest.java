@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.regex.Pattern;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.TableId;
@@ -342,6 +343,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     this.getAssignments(
         new AssignmentParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
+            Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()),
             Collections.unmodifiableMap(unassigned), assignments));
     assertEquals(15, assignments.size());
     // Ensure unique tservers
@@ -367,8 +369,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   public void testAllAssigned() {
     init(DEFAULT_TABLE_PROPERTIES);
     Map<TabletId,TabletServerId> assignments = new HashMap<>();
-    this.getAssignments(new AssignmentParamsImpl(
-        Collections.unmodifiableSortedMap(allTabletServers), Map.of(), assignments));
+    this.getAssignments(
+        new AssignmentParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
+            Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()), Map.of(),
+            assignments));
     assertEquals(0, assignments.size());
   }
 
@@ -388,6 +392,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     this.getAssignments(
         new AssignmentParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
+            Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()),
             Collections.unmodifiableMap(unassigned), assignments));
     assertEquals(unassigned.size(), assignments.size());
     // Ensure unique tservers
@@ -432,6 +437,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       current.remove(r);
     }
     this.getAssignments(new AssignmentParamsImpl(Collections.unmodifiableSortedMap(current),
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()),
         Collections.unmodifiableMap(unassigned), assignments));
     assertEquals(unassigned.size(), assignments.size());
     // Ensure assignments are correct
@@ -474,6 +480,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
 
     this.getAssignments(new AssignmentParamsImpl(Collections.unmodifiableSortedMap(current),
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()),
         Collections.unmodifiableMap(unassigned), assignments));
     assertEquals(unassigned.size(), assignments.size());
 
