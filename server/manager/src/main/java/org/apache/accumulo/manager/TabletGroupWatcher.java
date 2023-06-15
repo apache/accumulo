@@ -174,16 +174,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     private final List<TabletMetadata> suspendedToGoneServers = new ArrayList<>();
     private final Map<KeyExtent,UnassignedTablet> unassigned = new HashMap<>();
     private final Map<TServerInstance,List<Path>> logsForDeadServers = new TreeMap<>();
-    // read only lists of tablet servers
-    private final SortedMap<TServerInstance,TabletServerStatus> currentTServers;
+    // read only list of tablet servers that are not shutting down
     private final SortedMap<TServerInstance,TabletServerStatus> destinations;
 
     public TabletLists(Manager m, SortedMap<TServerInstance,TabletServerStatus> curTServers) {
       var destinationsMod = new TreeMap<>(curTServers);
-      // Don't move tablets to servers that are shutting down
       destinationsMod.keySet().removeAll(m.serversToShutdown);
       this.destinations = Collections.unmodifiableSortedMap(destinationsMod);
-      this.currentTServers = Collections.unmodifiableSortedMap(curTServers);
     }
 
     public void reset() {
@@ -996,13 +993,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private void getAssignmentsFromBalancer(TabletLists tLists,
       Map<KeyExtent,UnassignedTablet> unassigned) {
-    if (!tLists.currentTServers.isEmpty()) {
+    if (!tLists.destinations.isEmpty()) {
       Map<KeyExtent,TServerInstance> assignedOut = new HashMap<>();
-      manager.getAssignments(tLists.currentTServers, unassigned, assignedOut);
+      manager.getAssignments(tLists.destinations, unassigned, assignedOut);
       for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
         if (unassigned.containsKey(assignment.getKey())) {
           if (assignment.getValue() != null) {
-            if (!tLists.currentTServers.containsKey(assignment.getValue())) {
+            if (!tLists.destinations.containsKey(assignment.getValue())) {
               Manager.log.warn(
                   "balancer assigned {} to a tablet server that is not current {} ignoring",
                   assignment.getKey(), assignment.getValue());
@@ -1010,16 +1007,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             }
 
             final UnassignedTablet unassignedTablet = unassigned.get(assignment.getKey());
-            final TServerInstance serverInstance =
-                unassignedTablet != null ? unassignedTablet.getServerInstance() : null;
-            if (serverInstance != null
-                && !assignment.getValue().getHostPort().equals(serverInstance.getHostPort())) {
-              Manager.log.warn(
-                  "balancer assigned {} to {} which is not the suggested location of {}",
-                  assignment.getKey(), assignment.getValue().getHostPort(),
-                  serverInstance.getHostPort());
-            }
-
             tLists.assignments.add(new Assignment(assignment.getKey(), assignment.getValue(),
                 unassignedTablet != null ? unassignedTablet.getLastLocation() : null));
           }
