@@ -33,6 +33,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.CreateEmpty;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -90,7 +91,7 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
         boolean foundFile = false;
         for (Entry<Key,Value> entry : meta) {
           foundFile = true;
-          Path rfile = new Path(entry.getKey().getColumnQualifier().toString());
+          Path rfile = StoredTabletFile.of(entry.getKey().getColumnQualifier()).getPath();
           log.debug("Removing rfile '{}'", rfile);
           cluster.getFileSystem().delete(rfile, false);
           Process processInfo = cluster.exec(CreateEmpty.class, rfile.toString()).getProcess();

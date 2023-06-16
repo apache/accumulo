@@ -80,7 +80,7 @@ public class MinorCompactor extends FileCompactor {
 
   @Override
   public CompactionStats call() {
-    final String outputFileName = getOutputFile();
+    final String outputFileName = getOutputFile().getMetadataPath();
     log.trace("Begin minor compaction {} {}", outputFileName, getExtent());
 
     // output to new data file with a temporary name

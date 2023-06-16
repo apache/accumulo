@@ -392,8 +392,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         try (PrintStream newOut = new PrintStream(baos)) {
           System.setOut(newOut);
           List<String> args = new ArrayList<>();
-          args.add(StoredTabletFile.of(entry.getKey().getColumnQualifier().toString())
-              .getMetadataPath());
+          args.add(StoredTabletFile.of(entry.getKey().getColumnQualifier()).getMetadataPath());
           args.add("--props");
           args.add(getCluster().getAccumuloPropertiesPath());
           if (getClusterType() == ClusterType.STANDALONE && saslEnabled()) {
