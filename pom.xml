@@ -297,7 +297,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>31.1-jre</version>
+        <version>32.0.0-jre</version>
       </dependency>
       <dependency>
         <groupId>com.lmax</groupId>
@@ -614,9 +614,10 @@
         <version>2.2.1.Final</version>
       </dependency>
       <dependency>
+        <!-- stay on 3.21.0 for now due to https://github.com/apache/accumulo/issues/3446 -->
         <groupId>org.jline</groupId>
         <artifactId>jline</artifactId>
-        <version>3.23.0</version>
+        <version>3.21.0</version>
       </dependency>
       <dependency>
         <groupId>org.latencyutils</groupId>
@@ -664,7 +665,7 @@
         <!-- version specified to converge transitive dependency of hadoop and curator -->
         <groupId>org.xerial.snappy</groupId>
         <artifactId>snappy-java</artifactId>
-        <version>1.1.9.1</version>
+        <version>1.1.10.1</version>
       </dependency>
       <dependency>
         <groupId>org.yaml</groupId>
