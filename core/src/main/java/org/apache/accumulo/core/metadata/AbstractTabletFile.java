@@ -41,7 +41,6 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
     this.path = Objects.requireNonNull(path);
     this.fileName = path.getName();
     this.range = Objects.requireNonNull(range);
-    ValidationUtil.validateFileName(fileName);
   }
 
   @Override
