@@ -238,10 +238,7 @@ class WriteExportFiles extends ManagerRepo {
       entry.getValue().write(dataOut);
 
       if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-        // TODO: Need to fix this, using the path and not the full metadata causes imports to break
-        // and ShellServerIT#exporttableImporttable() to fail. We should use the full metadata but
-        // then
-        // there are other areas that need fixing to account for this
+        // We need to get the actual path of the file to validate unique files
         String path = ValidationUtil.validate(StoredTabletFile
             .of(entry.getKey().getColumnQualifierData().toString()).getMetadataPath());
         String[] tokens = path.split("/");

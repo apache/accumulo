@@ -135,6 +135,10 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return metadataEntry;
   }
 
+  public static StoredTabletFile of(final Text metadataEntry) {
+    return new StoredTabletFile(Objects.requireNonNull(metadataEntry).toString());
+  }
+
   public static StoredTabletFile of(final String metadataEntry) {
     return new StoredTabletFile(metadataEntry);
   }

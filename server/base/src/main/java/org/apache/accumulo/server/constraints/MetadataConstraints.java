@@ -229,8 +229,8 @@ public class MetadataConstraints implements Constraint {
           // See ACCUMULO-1230.
           boolean isLocationMutation = false;
 
-          HashSet<Text> dataFiles = new HashSet<>();
-          HashSet<Text> loadedFiles = new HashSet<>();
+          HashSet<StoredTabletFile> dataFiles = new HashSet<>();
+          HashSet<StoredTabletFile> loadedFiles = new HashSet<>();
 
           String tidString = new String(columnUpdate.getValue(), UTF_8);
           int otherTidCount = 0;
@@ -242,11 +242,9 @@ public class MetadataConstraints implements Constraint {
                 .equals(CurrentLocationColumnFamily.NAME)) {
               isLocationMutation = true;
             } else if (new Text(update.getColumnFamily()).equals(DataFileColumnFamily.NAME)) {
-              // Todo: should this be just the path or full metadata entry?
-              dataFiles.add(new Text(StoredTabletFile
-                  .of(new String(update.getColumnQualifier(), UTF_8)).getMetadataPath()));
+              dataFiles.add(StoredTabletFile.of(new Text(update.getColumnQualifier())));
             } else if (new Text(update.getColumnFamily()).equals(BulkFileColumnFamily.NAME)) {
-              loadedFiles.add(new Text(update.getColumnQualifier()));
+              loadedFiles.add(StoredTabletFile.of(new Text(update.getColumnQualifier())));
 
               if (!new String(update.getValue(), UTF_8).equals(tidString)) {
                 otherTidCount++;
