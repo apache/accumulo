@@ -47,6 +47,7 @@ public class UnreferencedTabletFile extends AbstractTabletFile<UnreferencedTable
 
   public UnreferencedTabletFile(FileSystem fs, Path path, Range range) {
     super(Objects.requireNonNull(fs).makeQualified(Objects.requireNonNull(path)), range);
+    ValidationUtil.validateFileName(path.getName());
   }
 
   @Override
