@@ -383,9 +383,10 @@ public enum Property {
   @Experimental
   SSERV_GROUP_NAME("sserver.group", ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME,
       PropertyType.STRING,
-      "Optional group name that will be made available to the "
-          + "ScanServerSelector client plugin. Groups support at least two use cases:"
-          + " dedicating resources to scans and/or using different hardware for scans.",
+      "Resource group name for this ScanServer. Resource groups support at least two use cases:"
+          + " dedicating resources to scans and/or using different hardware for scans. Clients can"
+          + " configure the ConfigurableScanServerSelector to specify the resource group to use for"
+          + " eventual consistency scans.",
       "3.0.0"),
   @Experimental
   SSERV_CACHED_TABLET_METADATA_EXPIRATION("sserver.cache.metadata.expiration", "5m",
@@ -726,9 +727,8 @@ public enum Property {
       "The interval at which the TabletServer will check if on-demand tablets can be unloaded",
       "4.0.0"),
   TSERV_GROUP_NAME("tserver.group", Constants.DEFAULT_RESOURCE_GROUP_NAME, PropertyType.STRING,
-      "Optional group name that will be made available to the "
-          + "TablerServer plugins. Groups can be used to dedicate resources "
-          + " to specific tables (e.g. balancing tablets for table(s) within a group)",
+      "Resource group name for this TabletServer. Resource groups can be defined to dedicate resources "
+          + " to specific tables (e.g. balancing tablets for table(s) within a group, see TABLE_ASSIGNMENT_GROUP)",
       "4.0.0"),
 
   // accumulo garbage collector properties
