@@ -16,28 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata;
 
-import org.apache.hadoop.fs.Path;
+package org.apache.accumulo.server.conf.util;
 
-/**
- * An interface that represents different types of file references that are handled by code that
- * processes tablet files.
- */
-public interface TabletFile {
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-  /**
-   * Returns the fileName of the TabletFile. The value return is the name itself and not the entire
-   * path. For example, if the full path for a TabletFile is
-   * 'hdfs://nn1/accumulo/tables/5a/t-0001/F0002.rf', this method returns 'F0002.rf'.
-   */
-  String getFileName();
+import org.junit.jupiter.api.Test;
 
-  /**
-   * Returns the full path for the TabletFile on the file system. The path may be normalized
-   * depending on the specific implementation. For example, a path in hdfs would be returned as
-   * 'hdfs://nn1/accumulo/tables/5a/t-0001/F0002.rf'
-   */
-  Path getPath();
+public class ZooPropEditorTest {
 
+  @Test
+  public void optionsAllDefault() {
+    ZooPropEditor.Opts opts = new ZooPropEditor.Opts();
+    assertTrue(opts.setOpt.isEmpty());
+    assertTrue(opts.deleteOpt.isEmpty());
+  }
+
+  @Test
+  public void invalidSetAndDelete() {
+    ZooPropEditor.Opts opts = new ZooPropEditor.Opts();
+    assertThrows(IllegalArgumentException.class, () -> opts.parseArgs(ZooInfoViewer.class.getName(),
+        new String[] {"-s", "foo=1", "-d", "bar=2"}));
+  }
 }
