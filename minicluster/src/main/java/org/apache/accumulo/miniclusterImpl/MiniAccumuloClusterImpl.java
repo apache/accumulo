@@ -30,6 +30,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
@@ -63,6 +64,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -82,8 +84,8 @@ import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner.ExecutorConfig;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
@@ -119,7 +121,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Suppliers;
-import com.google.gson.Gson;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -623,13 +624,17 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       executor = Executors.newSingleThreadExecutor();
     }
 
-    Set<String> queues = getCompactionQueueNames();
-    if (queues.isEmpty()) {
-      throw new IllegalStateException("No Compactor queues configured.");
-    }
-
-    for (String name : queues) {
-      control.startCompactors(Compactor.class, getConfig().getNumCompactors(), name);
+    Set<String> queues;
+    try {
+      queues = getCompactionQueueNames();
+      if (queues.isEmpty()) {
+        throw new IllegalStateException("No Compactor queues configured.");
+      }
+      for (String name : queues) {
+        control.startCompactors(Compactor.class, getConfig().getNumCompactors(), name);
+      }
+    } catch (ClassNotFoundException e) {
+      throw new IllegalArgumentException("Unable to find declared CompactionPlanner class", e);
     }
 
     verifyUp();
@@ -644,7 +649,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         v.stream().map((pr) -> pr.getProcess().pid()).collect(Collectors.toList())));
   }
 
-  private Set<String> getCompactionQueueNames() {
+  private Set<String> getCompactionQueueNames() throws ClassNotFoundException {
 
     Set<String> queueNames = new HashSet<>();
     AccumuloConfiguration aconf = new ConfigurationCopy(config.getSiteConfig());
@@ -653,17 +658,28 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     for (var entry : csc.getPlanners().entrySet()) {
       String serviceId = entry.getKey();
+      String plannerClass = entry.getValue();
 
-      var initParams = new CompactionPlannerInitParams(CompactionServiceId.of(serviceId),
-          csc.getOptions().get(serviceId), senv);
-
-      ExecutorConfig[] execConfigs =
-          new Gson().fromJson(initParams.getOptions().get("executors"), ExecutorConfig[].class);
-
-      for (ExecutorConfig ec : execConfigs) {
-        if (ec.getQueue() != null) {
-          queueNames.add(ec.getQueue());
-        }
+      @SuppressWarnings("unchecked")
+      Class<CompactionPlanner> cpClass = (Class<CompactionPlanner>) ClassLoaderUtil
+          .loadClass(plannerClass, CompactionPlanner.class);
+      try {
+        CompactionPlanner cp = cpClass.getDeclaredConstructor().newInstance();
+        var initParams = new CompactionPlannerInitParams(CompactionServiceId.of(serviceId),
+            csc.getOptions().get(serviceId), senv);
+        cp.init(initParams);
+        initParams.getRequestedExternalExecutors().forEach(ceid -> {
+          String id = ceid.canonical();
+          if (id.startsWith("e.")) {
+            queueNames.add(id.substring(2));
+          } else {
+            queueNames.add(id);
+          }
+        });
+      } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+          | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+        throw new RuntimeException(
+            "Error creating instance of " + plannerClass + " with no-arg constructor", e);
       }
     }
     return queueNames;
