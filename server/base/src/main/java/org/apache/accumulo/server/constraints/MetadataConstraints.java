@@ -37,6 +37,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -128,6 +129,23 @@ public class MetadataConstraints implements Constraint {
     return lst;
   }
 
+  /*
+   * Validates the data file metadata by creating a StoredTabletFile for the metadata string that
+   * will eagerly load the contained ReferencedTabletFile which performs validation.
+   *
+   * We have to catch a generic Exception as various errors can occur including
+   * NullPointerException, IllegalArgumentException, etc.
+   */
+  private static ArrayList<Short> validateDataFilePath(ArrayList<Short> violations,
+      String metadata) {
+    try {
+      new StoredTabletFile(metadata, true);
+    } catch (Exception e) {
+      violations = addViolation(violations, 9);
+    }
+    return violations;
+  }
+
   @Override
   public List<Short> check(Environment env, Mutation mutation) {
     final ServerContext context = ((SystemEnvironment) env).getServerContext();
@@ -202,6 +220,9 @@ public class MetadataConstraints implements Constraint {
       }
 
       if (columnFamily.equals(DataFileColumnFamily.NAME)) {
+        violations =
+            validateDataFilePath(violations, new String(columnUpdate.getColumnQualifier(), UTF_8));
+
         try {
           DataFileValue dfv = new DataFileValue(columnUpdate.getValue());
 
@@ -212,9 +233,13 @@ public class MetadataConstraints implements Constraint {
           violations = addViolation(violations, 1);
         }
       } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
-
+        violations =
+            validateDataFilePath(violations, new String(columnUpdate.getColumnQualifier(), UTF_8));
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
+          violations = validateDataFilePath(violations,
+              new String(columnUpdate.getColumnQualifier(), UTF_8));
+
           // splits, which also write the time reference, are allowed to write this reference even
           // when
           // the transaction is not running because the other half of the tablet is holding a
@@ -344,6 +369,8 @@ public class MetadataConstraints implements Constraint {
         return "Lock not held in zookeeper by writer";
       case 8:
         return "Bulk load transaction no longer running";
+      case 9:
+        return "Invalid data file metadata format";
     }
     return null;
   }

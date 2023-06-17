@@ -31,6 +31,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.server.ServerContext;
@@ -147,14 +148,17 @@ public class MetadataConstraintsTest {
 
   @Test
   public void testBulkFileCheck() {
+    testFileMetadataValidation(BulkFileColumnFamily.NAME);
+
     MetadataConstraints mc = new TestMetadataConstraints();
     Mutation m;
     List<Short> violations;
 
     // inactive txid
     m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("12345"));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile"),
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
+        new Value("12345"));
+    m.put(DataFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
     assertNotNull(violations);
@@ -163,8 +167,9 @@ public class MetadataConstraintsTest {
 
     // txid that throws exception
     m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("9"));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile"),
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
+        new Value("9"));
+    m.put(DataFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
     assertNotNull(violations);
@@ -173,15 +178,17 @@ public class MetadataConstraintsTest {
 
     // active txid w/ file
     m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("5"));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile"),
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
+        new Value("5"));
+    m.put(DataFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     // active txid w/o file
     m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("5"));
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
+        new Value("5"));
     violations = mc.check(createEnv(), m);
     assertNotNull(violations);
     assertEquals(1, violations.size());
@@ -189,11 +196,13 @@ public class MetadataConstraintsTest {
 
     // two active txids w/ files
     m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("5"));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile"),
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
+        new Value("5"));
+    m.put(DataFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
         new DataFileValue(1, 1).encodeAsValue());
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile2"), new Value("7"));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile2"),
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile2"),
+        new Value("7"));
+    m.put(DataFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile2"),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
     assertNotNull(violations);
@@ -202,21 +211,25 @@ public class MetadataConstraintsTest {
 
     // two files w/ one active txid
     m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("5"));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile"),
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
+        new Value("5"));
+    m.put(DataFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
         new DataFileValue(1, 1).encodeAsValue());
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile2"), new Value("5"));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile2"),
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile2"),
+        new Value("5"));
+    m.put(DataFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile2"),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     // two loaded w/ one active txid and one file
     m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("5"));
-    m.put(DataFileColumnFamily.NAME, new Text("/someFile"),
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
+        new Value("5"));
+    m.put(DataFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
         new DataFileValue(1, 1).encodeAsValue());
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile2"), new Value("5"));
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile2"),
+        new Value("5"));
     violations = mc.check(createEnv(), m);
     assertNotNull(violations);
     assertEquals(1, violations.size());
@@ -224,38 +237,87 @@ public class MetadataConstraintsTest {
 
     // active txid, mutation that looks like split
     m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("5"));
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
+        new Value("5"));
     ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t1"));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     // inactive txid, mutation that looks like split
     m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("12345"));
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
+        new Value("12345"));
     ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t1"));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     // active txid, mutation that looks like a load
     m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("5"));
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
+        new Value("5"));
     m.put(CurrentLocationColumnFamily.NAME, new Text("789"), new Value("127.0.0.1:9997"));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     // inactive txid, mutation that looks like a load
     m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("12345"));
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"),
+        new Value("12345"));
     m.put(CurrentLocationColumnFamily.NAME, new Text("789"), new Value("127.0.0.1:9997"));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
     // deleting a load flag
     m = new Mutation(new Text("0;foo"));
-    m.putDelete(BulkFileColumnFamily.NAME, new Text("/someFile"));
+    m.putDelete(BulkFileColumnFamily.NAME,
+        new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/someFile"));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
+  }
+
+  @Test
+  public void testDataFileCheck() {
+    testFileMetadataValidation(DataFileColumnFamily.NAME);
+  }
+
+  @Test
+  public void testScanFileCheck() {
+    testFileMetadataValidation(ScanFileColumnFamily.NAME);
+  }
+
+  private void testFileMetadataValidation(Text columnFamily) {
+    MetadataConstraints mc = new TestMetadataConstraints();
+    Mutation m;
+    List<Short> violations;
+
+    // Missing beginning of path
+    m = new Mutation(new Text("0;foo"));
+    m.put(DataFileColumnFamily.NAME, new Text("/someFile"),
+        new DataFileValue(1, 1).encodeAsValue());
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 9), violations.get(0));
+    assertNotNull(mc.getViolationDescription(violations.get(0)));
+
+    // Missing tables directory in path
+    m = new Mutation(new Text("0;foo"));
+    m.put(DataFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/2b/t-001/C00.rf"),
+        new DataFileValue(1, 1).encodeAsValue());
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 9), violations.get(0));
+
+    // Should pass validation
+    m = new Mutation(new Text("0;foo"));
+    m.put(DataFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/C00.rf"),
+        new DataFileValue(1, 1).encodeAsValue());
+    violations = mc.check(createEnv(), m);
+    assertNull(violations);
+
+    assertNotNull(mc.getViolationDescription((short) 9));
   }
 
 }
