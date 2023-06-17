@@ -249,7 +249,7 @@ public class GCRun implements GarbageCollectionEnvironment {
         try {
           Path fullPath;
           Path switchedDelete =
-              VolumeUtil.switchVolume(delete, VolumeManager.FileType.TABLE, replacements);
+              VolumeUtil.switchVolume(new Path(delete), VolumeManager.FileType.TABLE, replacements);
           if (switchedDelete != null) {
             // actually replacing the volumes in the metadata table would be tricky because the
             // entries would be different rows. So it could not be

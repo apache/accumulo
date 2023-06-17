@@ -60,14 +60,14 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     this(metadataEntry, deserialize(metadataEntry));
   }
 
-  public StoredTabletFile(TabletFileCq fileCq) {
+  private StoredTabletFile(TabletFileCq fileCq) {
     this(serialize(fileCq), fileCq);
   }
 
   private StoredTabletFile(String metadataEntry, TabletFileCq fileCq) {
-    super(new Path(Objects.requireNonNull(fileCq).path), fileCq.range);
+    super(Objects.requireNonNull(fileCq).path, fileCq.range);
     this.metadataEntry = Objects.requireNonNull(metadataEntry);
-    this.metadataEntryPath = fileCq.path;
+    this.metadataEntryPath = fileCq.path.toString();
     this.referencedTabletFile = Suppliers.memoize(() -> ReferencedTabletFile.of(getPath()));
   }
 
@@ -146,7 +146,11 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   }
 
   public static StoredTabletFile of(final URI path, Range range) {
-    return new StoredTabletFile(serialize(Objects.requireNonNull(path).toString(), range));
+    return of(new Path(Objects.requireNonNull(path)), range);
+  }
+
+  public static StoredTabletFile of(final Path path, Range range) {
+    return new StoredTabletFile(new TabletFileCq(Objects.requireNonNull(path), range));
   }
 
   private static final Gson gson = ByteArrayToBase64TypeAdapter.createBase64Gson();
@@ -155,7 +159,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     final TabletFileCqMetadataGson metadata =
         gson.fromJson(Objects.requireNonNull(json), TabletFileCqMetadataGson.class);
     // If we have previously enforced the inclusive/exclusive of a range then can just set that here
-    return new TabletFileCq(metadata.path,
+    return new TabletFileCq(new Path(metadata.path),
         new Range(decodeRow(metadata.startRow), true, decodeRow(metadata.endRow), false));
   }
 
@@ -214,6 +218,16 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
       return row;
     } catch (IOException e) {
       throw new UncheckedIOException(e);
+    }
+  }
+
+  private static class TabletFileCq {
+    public final Path path;
+    public final Range range;
+
+    public TabletFileCq(Path path, Range range) {
+      this.path = Objects.requireNonNull(path);
+      this.range = Objects.requireNonNull(range);
     }
   }
 

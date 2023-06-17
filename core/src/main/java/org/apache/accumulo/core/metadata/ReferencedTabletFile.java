@@ -132,7 +132,7 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
    * New file was written to metadata so return a StoredTabletFile
    */
   public StoredTabletFile insert() {
-    return new StoredTabletFile(new TabletFileCq(getPath().toString(), getRange()));
+    return StoredTabletFile.of(getPath(), getRange());
   }
 
   @Override

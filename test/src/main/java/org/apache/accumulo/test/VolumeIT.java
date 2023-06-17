@@ -148,8 +148,10 @@ public class VolumeIT extends ConfigurableMacBase {
         int fileCount = 0;
 
         for (Entry<Key,Value> entry : scanner) {
-          boolean inV1 = entry.getKey().getColumnQualifier().toString().contains(v1.toString());
-          boolean inV2 = entry.getKey().getColumnQualifier().toString().contains(v2.toString());
+          boolean inV1 = StoredTabletFile.of(entry.getKey().getColumnQualifier()).getMetadataPath()
+              .contains(v1.toString());
+          boolean inV2 = StoredTabletFile.of(entry.getKey().getColumnQualifier()).getMetadataPath()
+              .contains(v2.toString());
           assertTrue(inV1 || inV2);
           fileCount++;
         }
@@ -297,7 +299,7 @@ public class VolumeIT extends ConfigurableMacBase {
       int[] counts = new int[paths.length];
 
       outer: for (Entry<Key,Value> entry : metaScanner) {
-        String path = entry.getKey().getColumnQualifier().toString();
+        String path = StoredTabletFile.of(entry.getKey().getColumnQualifier()).getMetadataPath();
 
         for (int i = 0; i < paths.length; i++) {
           if (path.contains(paths[i].toString())) {

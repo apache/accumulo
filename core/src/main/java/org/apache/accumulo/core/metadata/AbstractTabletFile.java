@@ -75,13 +75,4 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
    */
   public abstract String getMetadataPath();
 
-  public static class TabletFileCq {
-    public final String path;
-    public final Range range;
-
-    public TabletFileCq(String path, Range range) {
-      this.path = Objects.requireNonNull(path);
-      this.range = Objects.requireNonNull(range);
-    }
-  }
 }
