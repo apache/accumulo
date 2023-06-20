@@ -60,19 +60,7 @@ public class MemoryFreeingIterator extends WrappingIterator {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    // LOG.info("Freeing consumed memory");
-    // MemoryConsumingIterator.freeBuffers();
-    // while (this.isRunningLowOnMemory()) {
-    // System.gc();
-    // // wait for LowMemoryDetector to recognize the memory is free.
-    // try {
-    // Thread.sleep(SECONDS.toMillis(1));
-    // } catch (InterruptedException ex) {
-    // Thread.currentThread().interrupt();
-    // throw new IOException("wait for low memory detector interrupted", ex);
-    // }
-    // }
-    // LOG.info("Consumed memory freed");
+    LOG.info("init call - should free consumed memory");
   }
 
 }
