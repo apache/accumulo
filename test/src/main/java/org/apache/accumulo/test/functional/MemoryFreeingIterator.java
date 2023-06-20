@@ -28,23 +28,51 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class MemoryFreeingIterator extends WrappingIterator {
 
-  @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-      IteratorEnvironment env) throws IOException {
-    super.init(source, options, env);
+  private static final Logger LOG = LoggerFactory.getLogger(MemoryFreeingIterator.class);
+
+  @SuppressFBWarnings(value = "DM_GC", justification = "gc is okay for test")
+  public MemoryFreeingIterator() {
+    super();
+    LOG.info("Freeing consumed memory");
     MemoryConsumingIterator.freeBuffers();
     while (this.isRunningLowOnMemory()) {
+      System.gc();
       // wait for LowMemoryDetector to recognize the memory is free.
       try {
         Thread.sleep(SECONDS.toMillis(1));
       } catch (InterruptedException ex) {
         Thread.currentThread().interrupt();
-        throw new IOException("wait for low memory detector interrupted", ex);
+        throw new RuntimeException("wait for low memory detector interrupted", ex);
       }
     }
+    LOG.info("Consumed memory freed");
+  }
+
+  @Override
+  @SuppressFBWarnings(value = "DM_GC", justification = "gc is okay for test")
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
+    super.init(source, options, env);
+    // LOG.info("Freeing consumed memory");
+    // MemoryConsumingIterator.freeBuffers();
+    // while (this.isRunningLowOnMemory()) {
+    // System.gc();
+    // // wait for LowMemoryDetector to recognize the memory is free.
+    // try {
+    // Thread.sleep(SECONDS.toMillis(1));
+    // } catch (InterruptedException ex) {
+    // Thread.currentThread().interrupt();
+    // throw new IOException("wait for low memory detector interrupted", ex);
+    // }
+    // }
+    // LOG.info("Consumed memory freed");
   }
 
 }

@@ -18,10 +18,6 @@
  */
 package org.apache.accumulo.server.mem;
 
-import java.lang.management.GarbageCollectorMXBean;
-import java.lang.management.ManagementFactory;
-import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -29,12 +25,13 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LowMemoryDetector {
+
+  private static final Logger LOG = LoggerFactory.getLogger(LowMemoryDetector.class);
 
   @FunctionalInterface
   public static interface Action {
@@ -47,9 +44,8 @@ public class LowMemoryDetector {
 
   private static final Logger log = LoggerFactory.getLogger(LowMemoryDetector.class);
 
-  private final HashMap<String,Long> prevGcTime = new HashMap<>();
   private long lastMemorySize = 0;
-  private long gcTimeIncreasedCount = 0;
+  private int lowMemCount = 0;
   private long lastMemoryCheckTime = 0;
   private final Lock memCheckTimeLock = new ReentrantLock();
   private volatile boolean runningLowOnMemory = false;
@@ -105,68 +101,50 @@ public class LowMemoryDetector {
     try {
       final long now = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
 
-      List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
       Runtime rt = Runtime.getRuntime();
 
       StringBuilder sb = new StringBuilder("gc");
 
       boolean sawChange = false;
 
-      long maxIncreaseInCollectionTime = 0;
+      final long maxConfiguredMemory = rt.maxMemory();
+      final long allocatedMemory = rt.totalMemory();
+      final long allocatedFreeMemory = rt.freeMemory();
+      final long freeMemory = maxConfiguredMemory - (allocatedMemory - allocatedFreeMemory);
+      final double lowMemoryThreshold = maxConfiguredMemory * freeMemoryPercentage;
+      log.trace("Memory info: max={}, allocated={}, free={}, free threshold={}",
+          maxConfiguredMemory, allocatedMemory, freeMemory, (long) lowMemoryThreshold);
 
-      for (GarbageCollectorMXBean gcBean : gcmBeans) {
-        Long prevTime = prevGcTime.get(gcBean.getName());
-        long pt = 0;
-        if (prevTime != null) {
-          pt = prevTime;
-        }
-
-        long time = gcBean.getCollectionTime();
-
-        if (time - pt != 0) {
-          sawChange = true;
-        }
-
-        long increaseInCollectionTime = time - pt;
-        sb.append(String.format(" %s=%,.2f(+%,.2f) secs", gcBean.getName(), time / 1000.0,
-            increaseInCollectionTime / 1000.0));
-        maxIncreaseInCollectionTime =
-            Math.max(increaseInCollectionTime, maxIncreaseInCollectionTime);
-        prevGcTime.put(gcBean.getName(), time);
-      }
-
-      long mem = rt.freeMemory();
-      if (maxIncreaseInCollectionTime == 0) {
-        gcTimeIncreasedCount = 0;
-      } else {
-        gcTimeIncreasedCount++;
-        if (gcTimeIncreasedCount > 3 && mem < rt.maxMemory() * freeMemoryPercentage) {
+      if (freeMemory < (long) lowMemoryThreshold) {
+        lowMemCount++;
+        if (lowMemCount > 3 && !runningLowOnMemory) {
           runningLowOnMemory = true;
-          log.warn("Running low on memory");
-          gcTimeIncreasedCount = 0;
-        } else {
-          // If we were running low on memory, but are not any longer, than log at warn
-          // so that it shows up in the logs
-          if (runningLowOnMemory) {
-            log.warn("Recovered from low memory condition");
-          } else {
-            log.trace("Not running low on memory");
-          }
-          runningLowOnMemory = false;
+          log.info("Running low on memory: max={}, allocated={}, free={}, free threshold={}",
+              maxConfiguredMemory, allocatedMemory, freeMemory, (long) lowMemoryThreshold);
         }
+      } else {
+        // If we were running low on memory, but are not any longer, than log at warn
+        // so that it shows up in the logs
+        if (runningLowOnMemory) {
+          log.warn("Recovered from low memory condition");
+        } else {
+          log.trace("Not running low on memory");
+        }
+        runningLowOnMemory = false;
+        lowMemCount = 0;
       }
 
-      if (mem != lastMemorySize) {
+      if (freeMemory != lastMemorySize) {
         sawChange = true;
       }
 
       String sign = "+";
-      if (mem - lastMemorySize <= 0) {
+      if (freeMemory - lastMemorySize <= 0) {
         sign = "";
       }
 
-      sb.append(String.format(" freemem=%,d(%s%,d) totalmem=%,d", mem, sign, (mem - lastMemorySize),
-          rt.totalMemory()));
+      sb.append(String.format(" freemem=%,d(%s%,d) totalmem=%,d", freeMemory, sign,
+          (freeMemory - lastMemorySize), rt.totalMemory()));
 
       if (sawChange) {
         log.debug(sb.toString());
@@ -185,11 +163,11 @@ public class LowMemoryDetector {
         return;
       }
 
-      if (maxIncreaseInCollectionTime > keepAliveTimeout) {
-        Halt.halt("Garbage collection may be interfering with lock keep-alive.  Halting.", -1);
-      }
+      // if (maxIncreaseInCollectionTime > keepAliveTimeout) {
+      // Halt.halt("Garbage collection may be interfering with lock keep-alive. Halting.", -1);
+      // }
 
-      lastMemorySize = mem;
+      lastMemorySize = freeMemory;
       lastMemoryCheckTime = now;
     } finally {
       memCheckTimeLock.unlock();
