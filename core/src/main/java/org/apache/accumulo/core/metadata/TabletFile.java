@@ -90,8 +90,8 @@ public class TabletFile implements Comparable<TabletFile> {
       }
     }
     this.fileName = Objects.requireNonNull(file, "file name is null");
-    tabletDirectory = Objects.requireNonNull(tabletDirectory, "tablet directory is null");
-    tableId = Objects.requireNonNull(tableId, "table id is null");
+    Objects.requireNonNull(tabletDirectory, "tablet directory is null");
+    Objects.requireNonNull(tableId, "table id is null");
 
     final String filePath =
         HDFS_TABLES_DIR + "/" + tableId + "/" + tabletDirectory + "/" + this.fileName;
