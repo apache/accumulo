@@ -45,7 +45,7 @@ public class TabletManagement {
   public static final EnumSet<ColumnType> CONFIGURED_COLUMNS =
       EnumSet.of(ColumnType.PREV_ROW, ColumnType.LOCATION, ColumnType.SUSPEND, ColumnType.LOGS,
           ColumnType.CHOPPED, ColumnType.HOSTING_GOAL, ColumnType.HOSTING_REQUESTED,
-          ColumnType.FILES, ColumnType.LAST, ColumnType.OPID);
+          ColumnType.FILES, ColumnType.LAST, ColumnType.OPID, ColumnType.ECOMP, ColumnType.DIR);
 
   private static final Text REASONS_COLUMN_NAME = new Text("REASONS");
 

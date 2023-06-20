@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,7 +65,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
@@ -83,7 +83,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatch;
 import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -93,15 +92,14 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.tablets.ConditionCheckerContext.ConditionChecker;
+import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.accumulo.server.tablets.TabletTime;
-import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -247,42 +245,39 @@ public class Tablet extends TabletBase {
   }
 
   private String chooseTabletDir() throws IOException {
-    VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(extent.tableId(), extent.endRow(), context);
-    String dirUri = tabletServer.getVolumeManager().choose(chooserEnv, context.getBaseUris())
-        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.tableId() + Path.SEPARATOR + dirName;
-    checkTabletDir(new Path(dirUri));
-    return dirUri;
+    return TabletNameGenerator.chooseTabletDir(context, extent, dirName,
+        dir -> checkTabletDir(new Path(dir)));
   }
 
   ReferencedTabletFile getNextDataFilename(FilePrefix prefix) throws IOException {
-    String extension = FileOperations.getNewFileExtension(tableConfiguration);
-    return new ReferencedTabletFile(new Path(chooseTabletDir() + "/" + prefix.toPrefix()
-        + context.getUniqueNameAllocator().getNextName() + "." + extension));
+    return TabletNameGenerator.getNextDataFilename(prefix, context, extent, dirName,
+        dir -> checkTabletDir(new Path(dir)));
   }
 
   ReferencedTabletFile getNextDataFilenameForMajc(boolean propagateDeletes) throws IOException {
-    String tmpFileName = getNextDataFilename(
-        !propagateDeletes ? FilePrefix.MAJOR_COMPACTION_ALL_FILES : FilePrefix.MAJOR_COMPACTION)
-        .getMetaInsert() + "_tmp";
-    return new ReferencedTabletFile(new Path(tmpFileName));
+    return TabletNameGenerator.getNextDataFilenameForMajc(propagateDeletes, context, extent,
+        dirName, dir -> checkTabletDir(new Path(dir)));
   }
 
-  private void checkTabletDir(Path path) throws IOException {
-    if (!checkedTabletDirs.contains(path)) {
-      FileStatus[] files = null;
-      try {
-        files = getTabletServer().getVolumeManager().listStatus(path);
-      } catch (FileNotFoundException ex) {
-        // ignored
-      }
+  private void checkTabletDir(Path path) {
+    try {
+      if (!checkedTabletDirs.contains(path)) {
+        FileStatus[] files = null;
+        try {
+          files = getTabletServer().getVolumeManager().listStatus(path);
+        } catch (FileNotFoundException ex) {
+          // ignored
+        }
 
-      if (files == null) {
-        log.debug("Tablet {} had no dir, creating {}", extent, path);
+        if (files == null) {
+          log.debug("Tablet {} had no dir, creating {}", extent, path);
 
-        getTabletServer().getVolumeManager().mkdirs(path);
+          getTabletServer().getVolumeManager().mkdirs(path);
+        }
+        checkedTabletDirs.add(path);
       }
-      checkedTabletDirs.add(path);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 
@@ -1555,7 +1550,7 @@ public class Tablet extends TabletBase {
       KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
       KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
 
-      String lowDirectoryName = UniqueNameAllocator.createTabletDirectoryName(context, midRow);
+      String lowDirectoryName = TabletNameGenerator.createTabletDirectoryName(context, midRow);
 
       // write new tablet information to MetadataTable
       SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();

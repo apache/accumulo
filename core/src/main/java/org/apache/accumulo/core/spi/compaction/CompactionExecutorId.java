@@ -28,6 +28,7 @@ import org.apache.accumulo.core.data.AbstractId;
  * @see org.apache.accumulo.core.spi.compaction
  */
 public class CompactionExecutorId extends AbstractId<CompactionExecutorId> {
+  // ELASTICITY_TODO make this cache ids like TableId. This will help save manager memory.
   private static final long serialVersionUID = 1L;
 
   protected CompactionExecutorId(String canonical) {
