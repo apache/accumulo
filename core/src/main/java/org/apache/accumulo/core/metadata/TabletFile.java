@@ -20,7 +20,9 @@ package org.apache.accumulo.core.metadata;
 
 import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
 
+import java.net.URI;
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
@@ -55,27 +57,54 @@ public class TabletFile implements Comparable<TabletFile> {
    */
   public TabletFile(Path metaPath) {
     this.metaPath = Objects.requireNonNull(metaPath);
-    String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
+    final String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
     log.trace("Parsing TabletFile from {}", metaPath);
 
-    // use Path object to step backwards from the filename through all the parts
-    this.fileName = metaPath.getName();
-    ValidationUtil.validateFileName(fileName);
+    // File name construct: <volume>/<tablePath>/<tableId>/<tablet>/<file>
+    // Example: hdfs://namenode:9020/accumulo/tables/1/default_tablet/F00001.rf
+    final String path = this.metaPath.toUri().getPath();
+    final String[] parts = path.split("/");
+    final int numParts = parts.length;
 
-    Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), errorMsg);
+    if (numParts < 4) {
+      throw new IllegalArgumentException(errorMsg);
+    }
 
-    Path tableIdPath = Objects.requireNonNull(tabletDirPath.getParent(), errorMsg);
-    var id = tableIdPath.getName();
+    // step backwards from the filename through all the parts
+    String file = null;
+    String tabletDirectory = null;
+    String tableId = null;
+    for (int i : IntStream.of(numParts - 1, numParts - 2, numParts - 3, numParts - 4).toArray()) {
+      String tmp = Objects.requireNonNull(parts[i], errorMsg);
+      if (i == numParts - 1) {
+        file = tmp;
+        ValidationUtil.validateFileName(file);
+      } else if (i == numParts - 2) {
+        tabletDirectory = tmp;
+      } else if (i == numParts - 3) {
+        tableId = tmp;
+      } else if (i == numParts - 4) {
+        String tablesPath = "/" + tmp;
+        Preconditions.checkArgument(tablesPath.equals(HDFS_TABLES_DIR),
+            "tables path is not " + HDFS_TABLES_DIR + ", is " + tablesPath);
+      }
+    }
+    this.fileName = Objects.requireNonNull(file, "file name is null");
+    tabletDirectory = Objects.requireNonNull(tabletDirectory, "tablet directory is null");
+    tableId = Objects.requireNonNull(tableId, "table id is null");
 
-    Path tablePath = Objects.requireNonNull(tableIdPath.getParent(), errorMsg);
-    String tpString = "/" + tablePath.getName();
-    Preconditions.checkArgument(tpString.equals(HDFS_TABLES_DIR), errorMsg);
+    final String filePath =
+        HDFS_TABLES_DIR + "/" + tableId + "/" + tabletDirectory + "/" + this.fileName;
+    int idx = this.metaPath.toUri().toString().indexOf(filePath);
 
-    Path volumePath = Objects.requireNonNull(tablePath.getParent(), errorMsg);
-    Preconditions.checkArgument(volumePath.toUri().getScheme() != null, errorMsg);
-    var volume = volumePath.toString();
+    if (idx == -1) {
+      throw new IllegalArgumentException(errorMsg);
+    }
 
-    this.tabletDir = new TabletDirectory(volume, TableId.of(id), tabletDirPath.getName());
+    // The volume is the remaining part of the path.
+    String volume = this.metaPath.toUri().toString().substring(0, idx);
+    Preconditions.checkArgument(URI.create(volume).getScheme() != null, errorMsg);
+    this.tabletDir = new TabletDirectory(volume, TableId.of(tableId), tabletDirectory);
     this.normalizedPath = tabletDir.getNormalizedPath() + "/" + fileName;
   }
 
