@@ -258,6 +258,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
                 tm.getExtent().toMetaRow());
           }
+          if (tm.isOperationIdAndCurrentLocationSet()) {
+            throw new BadLocationStateException(tm.getExtent()
+                + " has both operation id and current location, which should never happen: " + this,
+                tm.getExtent().toMetaRow());
+          }
 
           final TableId tableId = tm.getTableId();
           // ignore entries for tables that do not exist in zookeeper
