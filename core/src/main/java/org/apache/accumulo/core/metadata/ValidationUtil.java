@@ -20,8 +20,12 @@ package org.apache.accumulo.core.metadata;
 
 import java.util.Objects;
 
+import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Utility class for validation of tablet file paths.
@@ -52,8 +56,13 @@ public class ValidationUtil {
   }
 
   public static void validateRFileName(String fileName) {
-    Objects.requireNonNull(fileName);
-    // TODO: In 3.0.0 validate that filename starts with FilePrefix
+    Preconditions.checkArgument(!StringUtils.isEmpty(fileName),
+        "Provided filename is null or empty.");
+
+    // This will make sure the prefix is valid and throw an IllegalArgumentException if the prefix
+    // does not match a known value
+    var unused = FilePrefix.fromPrefix(fileName.substring(0, 1));
+
     if (!fileName.endsWith(".rf") && !fileName.endsWith("_tmp")) {
       throw new IllegalArgumentException(
           "Provided filename (" + fileName + ") does not end with '.rf' or '_tmp'");
