@@ -56,7 +56,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   /**
    * Construct a tablet file using the string read from the metadata. Preserve the exact string so
    * the entry can be deleted.
-   * <p/>
+   * <p>
    * The {@link ReferencedTabletFile} contained in this class will not be created and validated
    * until the first time {@link StoredTabletFile#getTabletFile()} is called.
    *
