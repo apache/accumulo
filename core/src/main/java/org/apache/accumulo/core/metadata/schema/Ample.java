@@ -444,6 +444,16 @@ public interface Ample {
     ConditionalTabletMutator requireHostingGoal(TabletHostingGoal tabletHostingGoal);
 
     /**
+     * Requires the tablet to have no external compactions.
+     */
+    ConditionalTabletMutator requireAbsentCompactions();
+
+    /**
+     * Requires the specified external compaction to exists
+     */
+    ConditionalTabletMutator requireCompaction(ExternalCompactionId ecid);
+
+    /**
      * <p>
      * Ample provides the following features on top of the conditional writer to help automate
      * handling of edges cases that arise when using the conditional writer.

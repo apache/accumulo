@@ -30,6 +30,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
@@ -57,10 +58,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -79,13 +83,19 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
+import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
@@ -614,8 +624,65 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       executor = Executors.newSingleThreadExecutor();
     }
 
+    Set<String> queues;
+    try {
+      queues = getCompactionQueueNames();
+      if (queues.isEmpty()) {
+        throw new IllegalStateException("No Compactor queues configured.");
+      }
+      for (String name : queues) {
+        control.startCompactors(Compactor.class, getConfig().getNumCompactors(), name);
+      }
+    } catch (ClassNotFoundException e) {
+      throw new IllegalArgumentException("Unable to find declared CompactionPlanner class", e);
+    }
+
     verifyUp();
 
+    printProcessSummary();
+
+  }
+
+  private void printProcessSummary() {
+    log.info("Process Summary:");
+    getProcesses().forEach((k, v) -> log.info("{}: {}", k,
+        v.stream().map((pr) -> pr.getProcess().pid()).collect(Collectors.toList())));
+  }
+
+  private Set<String> getCompactionQueueNames() throws ClassNotFoundException {
+
+    Set<String> queueNames = new HashSet<>();
+    AccumuloConfiguration aconf = new ConfigurationCopy(config.getSiteConfig());
+    CompactionServicesConfig csc = new CompactionServicesConfig(aconf);
+    ServiceEnvironment senv = new ServiceEnvironmentImpl(getServerContext());
+
+    for (var entry : csc.getPlanners().entrySet()) {
+      String serviceId = entry.getKey();
+      String plannerClass = entry.getValue();
+
+      @SuppressWarnings("unchecked")
+      Class<CompactionPlanner> cpClass = (Class<CompactionPlanner>) ClassLoaderUtil
+          .loadClass(plannerClass, CompactionPlanner.class);
+      try {
+        CompactionPlanner cp = cpClass.getDeclaredConstructor().newInstance();
+        var initParams = new CompactionPlannerInitParams(CompactionServiceId.of(serviceId),
+            csc.getOptions().get(serviceId), senv);
+        cp.init(initParams);
+        initParams.getRequestedExternalExecutors().forEach(ceid -> {
+          String id = ceid.canonical();
+          if (id.startsWith("e.")) {
+            queueNames.add(id.substring(2));
+          } else {
+            queueNames.add(id);
+          }
+        });
+      } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+          | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+        throw new RuntimeException(
+            "Error creating instance of " + plannerClass + " with no-arg constructor", e);
+      }
+    }
+    return queueNames;
   }
 
   // wait up to 10 seconds for the process to start
@@ -645,6 +712,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       tsExpectedCount++;
       requireNonNull(tsp, "Error starting TabletServer " + tsExpectedCount + " - no process");
       waitForProcessStart(tsp, "TabletServer" + tsExpectedCount);
+    }
+
+    int ecExpectedCount = 0;
+    for (Process ecp : getClusterControl().compactorProcesses) {
+      ecExpectedCount++;
+      requireNonNull(ecp, "Error starting compactor " + ecExpectedCount + " - no process");
+      waitForProcessStart(ecp, "Compactor" + ecExpectedCount);
     }
 
     try (ZooKeeper zk = new ZooKeeper(getZooKeepers(), 60000, event -> log.warn("{}", event))) {
@@ -727,6 +801,24 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         throw new IllegalStateException("Unable to read TServer information from zookeeper.", e);
       }
 
+      int ecActualCount = 0;
+      try {
+        while (ecActualCount < ecExpectedCount) {
+          ecActualCount = 0;
+          for (String child : zk.getChildren(rootPath + Constants.ZCOMPACTORS, null)) {
+            if (zk.getChildren(rootPath + Constants.ZCOMPACTORS + "/" + child, null).isEmpty()) {
+              log.info("Compactor " + ecActualCount + " not yet present in ZooKeeper");
+            } else {
+              ecActualCount++;
+              log.info("Compactor " + ecActualCount + " present in ZooKeeper");
+            }
+          }
+          Thread.sleep(500);
+        }
+      } catch (KeeperException e) {
+        throw new IllegalStateException("Unable to read Compactor information from zookeeper.", e);
+      }
+
       try {
         while (zk.getChildren(rootPath + Constants.ZMANAGER_LOCK, null).isEmpty()) {
           log.info("Manager not yet present in ZooKeeper");
@@ -771,11 +863,20 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     result.put(ServerType.MANAGER, references(control.managerProcess));
     result.put(ServerType.TABLET_SERVER,
         references(control.tabletServerProcesses.toArray(new Process[0])));
+    result.put(ServerType.COMPACTOR,
+        references(control.compactorProcesses.toArray(new Process[0])));
+    if (control.scanServerProcesses != null) {
+      result.put(ServerType.SCAN_SERVER,
+          references(control.scanServerProcesses.toArray(new Process[0])));
+    }
     if (control.zooKeeperProcess != null) {
       result.put(ServerType.ZOOKEEPER, references(control.zooKeeperProcess));
     }
     if (control.gcProcess != null) {
       result.put(ServerType.GARBAGE_COLLECTOR, references(control.gcProcess));
+    }
+    if (control.monitor != null) {
+      result.put(ServerType.MONITOR, references(control.monitor));
     }
     return result;
   }

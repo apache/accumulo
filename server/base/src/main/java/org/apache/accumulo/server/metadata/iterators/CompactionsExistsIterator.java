@@ -28,41 +28,25 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.base.Preconditions;
-
-/**
- * A specialized iterator used for conditional mutations to check if a location is present in a
- * tablet.
- */
-public class LocationExistsIterator extends WrappingIterator {
-  private static final Collection<ByteSequence> LOC_FAMS =
-      Set.of(new ArrayByteSequence(FutureLocationColumnFamily.STR_NAME),
-          new ArrayByteSequence(CurrentLocationColumnFamily.STR_NAME));
+public class CompactionsExistsIterator extends WrappingIterator {
+  private static final Collection<ByteSequence> FAMS =
+      Set.of(new ArrayByteSequence(ExternalCompactionColumnFamily.STR_NAME));
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
 
-    Text tabletRow = getTabletRow(range);
-    Key startKey = new Key(tabletRow, FutureLocationColumnFamily.NAME);
+    Text tabletRow = LocationExistsIterator.getTabletRow(range);
+    Key startKey = new Key(tabletRow, ExternalCompactionColumnFamily.NAME);
     Key endKey =
-        new Key(tabletRow, CurrentLocationColumnFamily.NAME).followingKey(PartialKey.ROW_COLFAM);
+        new Key(tabletRow, ExternalCompactionColumnFamily.NAME).followingKey(PartialKey.ROW_COLFAM);
 
     Range r = new Range(startKey, true, endKey, false);
 
-    super.seek(r, LOC_FAMS, true);
+    super.seek(r, FAMS, true);
   }
 
-  static Text getTabletRow(Range range) {
-    var row = range.getStartKey().getRow();
-    // expecting this range to cover a single metadata row, so validate the range meets expectations
-    TabletsSection.validateRow(row);
-    Preconditions.checkArgument(row.equals(range.getEndKey().getRow()));
-    return range.getStartKey().getRow();
-  }
 }

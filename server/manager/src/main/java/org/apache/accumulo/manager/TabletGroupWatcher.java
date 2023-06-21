@@ -90,6 +90,8 @@ import org.apache.accumulo.manager.state.MergeStats;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
+import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.log.WalStateManager;
@@ -100,6 +102,7 @@ import org.apache.accumulo.server.manager.state.ClosableIterator;
 import org.apache.accumulo.server.manager.state.DistributedStoreException;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MergeState;
+import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
 import org.apache.accumulo.server.tablets.TabletTime;
@@ -240,6 +243,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         ManagerState managerState = manager.getManagerState();
         int[] counts = new int[TabletState.values().length];
         stats.begin();
+
+        CompactionJobGenerator compactionGenerator =
+            new CompactionJobGenerator(new ServiceEnvironmentImpl(manager.getContext()));
+
         // Walk through the tablets in our store, and work tablets
         // towards their goal
         iter = store.iterator();
@@ -348,6 +355,18 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             // ELASITICITY_TODO: remove below
             // sendSplitRequest(mergeStats.getMergeInfo(), state, tm);
           }
+
+          if (actions.contains(ManagementAction.NEEDS_COMPACTING)) {
+            var jobs = compactionGenerator.generateJobs(tm,
+                TabletManagementIterator.determineCompactionKinds(actions));
+            LOG.debug("{} may need compacting.", tm.getExtent());
+            manager.getCompactionQueues().add(tm, jobs);
+          }
+
+          // ELASITICITY_TODO the case where a planner generates compactions at time T1 for tablet
+          // and later at time T2 generates nothing for the same tablet is not being handled. At
+          // time T1 something could have been queued. However at time T2 we will not clear those
+          // entries from the queue because we see nothing here for that case.
 
           if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)) {
             if (goal == TabletGoalState.HOSTED) {

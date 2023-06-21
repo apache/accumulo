@@ -459,16 +459,17 @@ gc:
 tserver:
   - localhost
 
+compaction:
+  compactor:
+    - user-small:
+        - localhost
+    - user-large:
+        - localhost
+
 #sserver:
 #  - default:
 #    - localhost
 #
-#compaction:
-#  compactor:
-#    - q1:
-#        - localhost
-#    - q2:
-#        - localhost
 #
 
 #
