@@ -97,9 +97,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     init(DEFAULT_TABLE_PROPERTIES);
     Set<TabletId> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
-    long wait =
-        this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-            migrations, migrationsOut));
+    SortedMap<TabletServerId,TServerStatus> current = createCurrent(15);
+    long wait = this.balance(new BalanceParamsImpl(current,
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current.keySet()), migrations,
+        migrationsOut));
     assertEquals(20000, wait);
     // should balance four tablets in one of the tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -109,8 +110,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       migrations.add(m.getTablet());
     }
     migrationsOut.clear();
-    wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut));
+    SortedMap<TabletServerId,TServerStatus> current2 = createCurrent(15);
+    wait = this.balance(new BalanceParamsImpl(current2,
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current2.keySet()), migrations,
+        migrationsOut));
     assertEquals(20000, wait);
     // should balance four tablets in one of the other tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -120,8 +123,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       migrations.add(m.getTablet());
     }
     migrationsOut.clear();
-    wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut));
+    SortedMap<TabletServerId,TServerStatus> current3 = createCurrent(15);
+    wait = this.balance(new BalanceParamsImpl(current3,
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current3.keySet()), migrations,
+        migrationsOut));
     assertEquals(20000, wait);
     // should balance four tablets in one of the other tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -131,8 +136,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       migrations.add(m.getTablet());
     }
     migrationsOut.clear();
-    wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut));
+    SortedMap<TabletServerId,TServerStatus> current4 = createCurrent(15);
+    wait = this.balance(new BalanceParamsImpl(current4,
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current4.keySet()), migrations,
+        migrationsOut));
     assertEquals(20000, wait);
     // no more balancing to do
     assertEquals(0, migrationsOut.size());
@@ -147,9 +154,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     Set<TabletId> migrations = new HashSet<>();
     migrations.addAll(tableTablets.get(FOO.getTableName()));
     migrations.addAll(tableTablets.get(BAR.getTableName()));
-    long wait =
-        this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-            migrations, migrationsOut));
+    SortedMap<TabletServerId,TServerStatus> current = createCurrent(15);
+    long wait = this.balance(new BalanceParamsImpl(current,
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current.keySet()), migrations,
+        migrationsOut));
     assertEquals(20000, wait);
     // no migrations should have occurred as 10 is the maxOutstandingMigrations
     assertEquals(0, migrationsOut.size());
@@ -500,7 +508,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     UtilWaitThread.sleep(11000);
     Set<TabletId> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
-    this.balance(new BalanceParamsImpl(createCurrent(15), migrations, migrationsOut));
+    SortedMap<TabletServerId,TServerStatus> current = createCurrent(15);
+    this.balance(new BalanceParamsImpl(current,
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current.keySet()), migrations,
+        migrationsOut));
     assertEquals(2, migrationsOut.size());
   }
 

@@ -232,10 +232,12 @@ public class LiveTServerSet implements Watcher {
   static class TServerInfo {
     TServerConnection connection;
     TServerInstance instance;
+    String resourceGroup;
 
-    TServerInfo(TServerInstance instance, TServerConnection connection) {
+    TServerInfo(TServerInstance instance, TServerConnection connection, String resourceGroup) {
       this.connection = connection;
       this.instance = instance;
+      this.resourceGroup = resourceGroup;
     }
   }
 
@@ -316,6 +318,7 @@ public class LiveTServerSet implements Watcher {
         doomed.add(info.instance);
         current.remove(zPath);
         currentInstances.remove(info.instance);
+        currentGroups.get(info.resourceGroup).remove(info.instance);
       }
 
       Long firstSeen = locklessServers.get(zPath);
@@ -333,14 +336,16 @@ public class LiveTServerSet implements Watcher {
 
       if (info == null) {
         updates.add(instance);
-        TServerInfo tServerInfo = new TServerInfo(instance, new TServerConnection(client));
+        TServerInfo tServerInfo =
+            new TServerInfo(instance, new TServerConnection(client), resourceGroup);
         current.put(zPath, tServerInfo);
         currentInstances.put(instance, tServerInfo);
         currentGroups.computeIfAbsent(resourceGroup, rg -> new HashSet<>()).add(instance);
       } else if (!info.instance.equals(instance)) {
         doomed.add(info.instance);
         updates.add(instance);
-        TServerInfo tServerInfo = new TServerInfo(instance, new TServerConnection(client));
+        TServerInfo tServerInfo =
+            new TServerInfo(instance, new TServerConnection(client), resourceGroup);
         current.put(zPath, tServerInfo);
         currentInstances.remove(info.instance);
         currentGroups.getOrDefault(resourceGroup, new HashSet<>()).remove(instance);

@@ -140,8 +140,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     start(server, Collections.emptyMap(), Integer.MAX_VALUE);
   }
 
-  public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit)
-      throws IOException {
+  public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit,
+      String... args) throws IOException {
     if (limit <= 0) {
       return;
     }
@@ -153,13 +153,13 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           for (int i = tabletServerProcesses.size();
               count < limit && i < cluster.getConfig().getNumTservers(); i++, ++count) {
             tabletServerProcesses
-                .add(cluster._exec(TabletServer.class, server, configOverrides).getProcess());
+                .add(cluster._exec(TabletServer.class, server, configOverrides, args).getProcess());
           }
         }
         break;
       case MANAGER:
         if (managerProcess == null) {
-          managerProcess = cluster._exec(Manager.class, server, configOverrides).getProcess();
+          managerProcess = cluster._exec(Manager.class, server, configOverrides, args).getProcess();
         }
         break;
       case ZOOKEEPER:
@@ -170,13 +170,13 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         break;
       case GARBAGE_COLLECTOR:
         if (gcProcess == null) {
-          gcProcess =
-              cluster._exec(SimpleGarbageCollector.class, server, configOverrides).getProcess();
+          gcProcess = cluster._exec(SimpleGarbageCollector.class, server, configOverrides, args)
+              .getProcess();
         }
         break;
       case MONITOR:
         if (monitor == null) {
-          monitor = cluster._exec(Monitor.class, server, configOverrides).getProcess();
+          monitor = cluster._exec(Monitor.class, server, configOverrides, args).getProcess();
         }
         break;
       case SCAN_SERVER:
@@ -185,7 +185,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           for (int i = scanServerProcesses.size();
               count < limit && i < cluster.getConfig().getNumScanServers(); i++, ++count) {
             scanServerProcesses
-                .add(cluster._exec(ScanServer.class, server, configOverrides).getProcess());
+                .add(cluster._exec(ScanServer.class, server, configOverrides, args).getProcess());
           }
         }
         break;

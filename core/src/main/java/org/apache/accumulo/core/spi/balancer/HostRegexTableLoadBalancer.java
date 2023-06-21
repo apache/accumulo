@@ -496,8 +496,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         continue;
       }
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      getBalancerForTable(tableId)
-          .balance(new BalanceParamsImpl(currentView, migrations, newMigrations));
+      getBalancerForTable(tableId).balance(new BalanceParamsImpl(currentView,
+          params.currentResourceGroups(), migrations, newMigrations));
 
       if (newMigrations.isEmpty()) {
         tableToTimeSinceNoMigrations.remove(tableId);

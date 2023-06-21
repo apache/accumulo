@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySortedMap;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -223,6 +224,8 @@ public class Manager extends AbstractServer
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
   volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
+  volatile Map<String,Set<TServerInstance>> tServerGroupingForBalancer = emptyMap();
+
   // ELASTICITY_TODO is this still needed?
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
@@ -945,6 +948,8 @@ public class Manager extends AbstractServer
       TreeMap<TabletServerId,TServerStatus> temp = new TreeMap<>();
       tserverStatus = gatherTableInformation(currentServers, temp);
       tserverStatusForBalancer = Collections.unmodifiableSortedMap(temp);
+      tServerGroupingForBalancer =
+          Collections.unmodifiableMap(tserverSet.getCurrentServersGroups());
       checkForHeldServer(tserverStatus);
 
       if (!badServers.isEmpty()) {
@@ -998,7 +1003,7 @@ public class Manager extends AbstractServer
 
     private long balanceTablets() {
       BalanceParamsImpl params = BalanceParamsImpl.fromThrift(tserverStatusForBalancer,
-          tserverStatus, migrationsSnapshot());
+          tServerGroupingForBalancer, tserverStatus, migrationsSnapshot());
       long wait = tabletBalancer.balance(params);
 
       for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancer.keySet(),

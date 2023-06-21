@@ -159,7 +159,10 @@ public class ChaoticLoadBalancerTest {
     // amount, or even expected amount
     List<TabletMigration> migrationsOut = new ArrayList<>();
     while (!migrationsOut.isEmpty()) {
-      balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut));
+      SortedMap<TabletServerId,TServerStatus> current = getAssignments(servers);
+      balancer.balance(new BalanceParamsImpl(current,
+          Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current.keySet()), migrations,
+          migrationsOut));
     }
   }
 

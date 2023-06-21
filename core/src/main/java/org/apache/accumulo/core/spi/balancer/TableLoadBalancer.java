@@ -23,21 +23,38 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
+import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * TabletBalancer that balances Tablets for a Table using the TabletBalancer defined by
+ * {@link Property#TABLE_LOAD_BALANCER}. This allows for different Tables to specify different
+ * TabletBalancer classes.
+ * <p>
+ * Note that in versions prior to 4.0 this class would pass all known TabletServers to the Table
+ * load balancers. In version 4.0 this changed with the introduction of
+ * {@link Property#TABLE_ASSIGNMENT_GROUP} such that this balancer now only passes the TabletServers
+ * that have the corresponding {@link Property#TSERV_GROUP_NAME} property to the Table load
+ * balancer.
+ *
  * @since 2.1.0
  */
+// ELASTICITY_TODO: Should we deprecate this balancer in 3.0 and rename it
+// in 4.0 due to the behavior change?
 public class TableLoadBalancer implements TabletBalancer {
 
   private static final Logger log = LoggerFactory.getLogger(TableLoadBalancer.class);
@@ -106,6 +123,41 @@ public class TableLoadBalancer implements TabletBalancer {
     return balancer;
   }
 
+  private SortedMap<TabletServerId,TServerStatus> getCurrentSetForTable(
+      SortedMap<TabletServerId,TServerStatus> allTServers,
+      Map<String,Set<TabletServerId>> groupedTServers, String resourceGroup) {
+
+    String groupName =
+        resourceGroup == null ? Constants.DEFAULT_RESOURCE_GROUP_NAME : resourceGroup;
+    Set<TabletServerId> tserversInGroup = groupedTServers.get(groupName);
+    if (tserversInGroup == null || tserversInGroup.isEmpty()) {
+      if (groupName.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME)) {
+        throw new IllegalStateException(
+            "There are no TabletServers in the default resource group!");
+      } else {
+        log.warn("No TabletServers in assignment group {}, using Tablet Servers in default group",
+            groupName);
+        groupName = Constants.DEFAULT_RESOURCE_GROUP_NAME;
+        tserversInGroup = groupedTServers.get(groupName);
+        if (tserversInGroup == null || tserversInGroup.isEmpty()) {
+          throw new IllegalStateException(
+              "There are no TabletServers in the default resource group!");
+        }
+      }
+    }
+    SortedMap<TabletServerId,TServerStatus> group = new TreeMap<>();
+    final String groupNameInUse = groupName;
+    tserversInGroup.forEach(tsid -> {
+      TServerStatus tss = allTServers.get(tsid);
+      if (tss == null) {
+        throw new IllegalStateException("TabletServer " + tsid + " in " + groupNameInUse
+            + " TabletServer group, but not in set of all TabletServers");
+      }
+      group.put(tsid, tss);
+    });
+    return group;
+  }
+
   @Override
   public void getAssignments(AssignmentParameters params) {
     // separate the unassigned into tables
@@ -114,8 +166,12 @@ public class TableLoadBalancer implements TabletBalancer {
         .computeIfAbsent(tid.getTable(), k -> new HashMap<>()).put(tid, lastTserver));
     for (Entry<TableId,Map<TabletId,TabletServerId>> e : groupedUnassigned.entrySet()) {
       Map<TabletId,TabletServerId> newAssignments = new HashMap<>();
-      getBalancerForTable(e.getKey()).getAssignments(new AssignmentParamsImpl(
-          params.currentStatus(), params.currentResourceGroups(), e.getValue(), newAssignments));
+      // get the group of tservers for this table
+      SortedMap<TabletServerId,TServerStatus> groupedTServers = getCurrentSetForTable(
+          params.currentStatus(), params.currentResourceGroups(),
+          environment.getConfiguration(e.getKey()).get(Property.TABLE_ASSIGNMENT_GROUP.getKey()));
+      getBalancerForTable(e.getKey()).getAssignments(new AssignmentParamsImpl(groupedTServers,
+          params.currentResourceGroups(), e.getValue(), newAssignments));
       newAssignments.forEach(params::addAssignment);
     }
   }
@@ -125,9 +181,15 @@ public class TableLoadBalancer implements TabletBalancer {
     long minBalanceTime = 5_000;
     // Iterate over the tables and balance each of them
     for (TableId tableId : environment.getTableIdMap().values()) {
+      // get the group of tservers for this table
+      SortedMap<TabletServerId,
+          TServerStatus> groupedTServers = getCurrentSetForTable(params.currentStatus(),
+              params.currentResourceGroups(),
+              environment.getConfiguration(tableId).get(Property.TABLE_ASSIGNMENT_GROUP.getKey()));
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      long tableBalanceTime = getBalancerForTable(tableId).balance(
-          new BalanceParamsImpl(params.currentStatus(), params.currentMigrations(), newMigrations));
+      long tableBalanceTime =
+          getBalancerForTable(tableId).balance(new BalanceParamsImpl(groupedTServers,
+              params.currentResourceGroups(), params.currentMigrations(), newMigrations));
       if (tableBalanceTime < minBalanceTime) {
         minBalanceTime = tableBalanceTime;
       }

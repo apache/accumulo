@@ -102,6 +102,16 @@ public interface TabletBalancer {
      *         migrations.
      */
     List<TabletMigration> migrationsOut();
+
+    /**
+     * Balancers can use this mapping in conjunction with {@link Property#TABLE_ASSIGNMENT_GROUP} to
+     * assign tablets to tablet servers within the corresponding resource group
+     *
+     * @return map of resource group name to set of TServerInstance objects
+     * @since 4.0.0
+     */
+    Map<String,Set<TabletServerId>> currentResourceGroups();
+
   }
 
   /**
