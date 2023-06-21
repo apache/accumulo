@@ -139,7 +139,7 @@ public class MetadataConstraints implements Constraint {
   private static ArrayList<Short> validateDataFilePath(ArrayList<Short> violations,
       String metadata) {
     try {
-      new StoredTabletFile(metadata, true);
+      new StoredTabletFile(metadata);
     } catch (Exception e) {
       violations = addViolation(violations, 9);
     }

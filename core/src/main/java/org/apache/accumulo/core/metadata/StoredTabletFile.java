@@ -42,34 +42,11 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   /**
    * Construct a tablet file using the string read from the metadata. Preserve the exact string so
    * the entry can be deleted.
-   * <p>
-   * The {@link ReferencedTabletFile} contained in this class will not be created and validated
-   * until the first time {@link StoredTabletFile#getTabletFile()} is called.
    */
   public StoredTabletFile(String metadataEntry) {
-    this(metadataEntry, false);
-  }
-
-  /**
-   * Construct a tablet file using the string read from the metadata. Preserve the exact string so
-   * the entry can be deleted.
-   * <p>
-   * The {@link ReferencedTabletFile} contained in this class will not be created and validated
-   * until the first time {@link StoredTabletFile#getTabletFile()} is called.
-   *
-   * @param metadataEntry Exact string in metadata for the StoredTabletFile
-   * @param eagerLoadRefTabletFile whether to immediately create the {@link ReferencedTabletFile}
-   */
-  public StoredTabletFile(String metadataEntry, boolean eagerLoadRefTabletFile) {
     super(new Path(metadataEntry));
     this.metadataEntry = metadataEntry;
     this.referencedTabletFile = ReferencedTabletFile.of(getPath());
-
-    // Immediately load which will trigger validation
-    if (eagerLoadRefTabletFile) {
-      // Variable here is used to make SpotBugs happy
-      var unused = this.referencedTabletFile.get();
-    }
   }
 
   /**
