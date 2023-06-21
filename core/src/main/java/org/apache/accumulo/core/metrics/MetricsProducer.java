@@ -48,7 +48,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>N/A</td>
  * <td>N/A</td>
  * <td>{@link #METRICS_LOW_MEMORY}</td>
- * <td>Guage</td>
+ * <td>Gauge</td>
  * <td>reports 1 when process memory usage is above threshold, 0 when memory is okay</td>
  * </tr>
  * <tr>
@@ -56,6 +56,41 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>N/A</td>
  * <td>{@link #METRICS_COMPACTOR_MAJC_STUCK}</td>
  * <td>LongTaskTimer</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_COMPACTOR_JOB_PRIORITY_QUEUES}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED}</td>
+ * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
@@ -618,6 +653,15 @@ public interface MetricsProducer {
   String METRICS_LOW_MEMORY = "accumulo.detected.low.memory";
   String METRICS_COMPACTOR_PREFIX = "accumulo.compactor.";
   String METRICS_COMPACTOR_MAJC_STUCK = METRICS_COMPACTOR_PREFIX + "majc.stuck";
+  String METRICS_COMPACTOR_JOB_PRIORITY_QUEUES = METRICS_COMPACTOR_PREFIX + "cjpq.count";
+  String METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH = METRICS_COMPACTOR_PREFIX + "cjpq.length";
+
+  String METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED =
+      METRICS_COMPACTOR_PREFIX + "cjpq.jobs_dequeued";
+  String METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED =
+      METRICS_COMPACTOR_PREFIX + "cjpq.jobs_queued";
+  String METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED =
+      METRICS_COMPACTOR_PREFIX + "cjpq.jobs_rejected";
 
   String METRICS_FATE_PREFIX = "accumulo.fate.";
   String METRICS_FATE_TYPE_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in_progress_by_type";

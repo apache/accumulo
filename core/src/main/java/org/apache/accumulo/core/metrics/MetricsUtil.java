@@ -121,6 +121,15 @@ public class MetricsUtil {
     return commonTags;
   }
 
+  // Centralize any specific string formatting for metric names and/or tags.
+  public static String formatString(String name, boolean replaceDot) {
+    // Ensure strings are not split by the metrics registry naming scheme.
+    if (replaceDot) {
+      return name.replace(".", "_").toLowerCase();
+    }
+    return name.toLowerCase();
+  }
+
   public static void close() {
     if (gc != null) {
       gc.close();

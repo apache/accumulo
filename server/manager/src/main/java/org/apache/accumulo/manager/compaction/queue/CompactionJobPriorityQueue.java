@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -94,6 +95,9 @@ public class CompactionJobPriorityQueue {
   // case where tablets decided to issues different compaction jobs than what is currently queued.
   private final TreeMap<CjpqKey,CompactionJobQueues.MetaJob> jobQueue;
   private final int maxSize;
+  private AtomicLong rejectedJobs;
+  private AtomicLong queuedJobs;
+  private AtomicLong dequeuedJobs;
 
   // This map tracks what jobs a tablet currently has in the queue. Its used to efficiently remove
   // jobs in the queue when new jobs are queued for a tablet.
@@ -108,6 +112,9 @@ public class CompactionJobPriorityQueue {
     this.maxSize = maxSize;
     this.tabletJobs = new HashMap<>();
     this.executorId = executorId;
+    this.rejectedJobs = new AtomicLong(0);
+    this.queuedJobs = new AtomicLong(0);
+    this.dequeuedJobs = new AtomicLong(0);
   }
 
   public synchronized boolean add(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
@@ -136,10 +143,27 @@ public class CompactionJobPriorityQueue {
     return true;
   }
 
+  public long getSize() {
+    return maxSize;
+  }
+
+  public long getRejectedJobs() {
+    return rejectedJobs.get();
+  }
+
+  public long getDequeuedJobs() {
+    return dequeuedJobs.get();
+  }
+
+  public long getQueuedJobs() {
+    return queuedJobs.get();
+  }
+
   public synchronized CompactionJobQueues.MetaJob poll() {
     var first = jobQueue.pollFirstEntry();
 
     if (first != null) {
+      dequeuedJobs.getAndIncrement();
       var extent = first.getValue().getTabletMetadata().getExtent();
       List<CjpqKey> jobs = tabletJobs.get(extent);
       checkState(jobs.remove(first.getKey()));
@@ -147,7 +171,7 @@ public class CompactionJobPriorityQueue {
         tabletJobs.remove(extent);
       }
     }
-
+    queuedJobs.set(jobQueue.size());
     return first == null ? null : first.getValue();
   }
 
@@ -174,6 +198,7 @@ public class CompactionJobPriorityQueue {
       if (job.getPriority() <= lastEntry.job.getPriority()) {
         // the queue is full and this job has a lower or same priority than the lowest job in the
         // queue, so do not add it
+        rejectedJobs.getAndIncrement();
         return null;
       } else {
         // the new job has a higher priority than the lowest job in the queue, so remove the lowest
@@ -184,6 +209,7 @@ public class CompactionJobPriorityQueue {
 
     var key = new CjpqKey(job);
     jobQueue.put(key, new CompactionJobQueues.MetaJob(job, tabletMetadata));
+    queuedJobs.getAndIncrement();
     return key;
   }
 }

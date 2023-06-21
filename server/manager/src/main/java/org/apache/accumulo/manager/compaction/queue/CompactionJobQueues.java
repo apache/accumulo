@@ -19,6 +19,8 @@
 package org.apache.accumulo.manager.compaction.queue;
 
 import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -49,6 +51,14 @@ public class CompactionJobQueues {
       jobs.stream().collect(Collectors.groupingBy(CompactionJob::getExecutor)).forEach(
           ((executorId, compactionJobs) -> add(tabletMetadata, executorId, compactionJobs)));
     }
+  }
+
+  public Set<Map.Entry<CompactionExecutorId,CompactionJobPriorityQueue>> getQueues() {
+    return priorityQueues.entrySet();
+  }
+
+  public long getQueueCount() {
+    return priorityQueues.mappingCount();
   }
 
   public static class MetaJob {
@@ -87,7 +97,6 @@ public class CompactionJobQueues {
         }
       });
     }
-
     return mj;
   }
 
