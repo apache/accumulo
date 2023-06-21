@@ -19,13 +19,10 @@
 package org.apache.accumulo.core.metadata;
 
 import java.util.Objects;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-
-import com.google.common.base.Suppliers;
 
 /**
  * Object representing a tablet file entry stored in the metadata table. Keeps a string of the exact
@@ -40,7 +37,7 @@ import com.google.common.base.Suppliers;
  */
 public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   private final String metadataEntry;
-  private final Supplier<ReferencedTabletFile> referencedTabletFile;
+  private final ReferencedTabletFile referencedTabletFile;
 
   /**
    * Construct a tablet file using the string read from the metadata. Preserve the exact string so
@@ -49,7 +46,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   public StoredTabletFile(String metadataEntry) {
     super(new Path(metadataEntry));
     this.metadataEntry = metadataEntry;
-    this.referencedTabletFile = Suppliers.memoize(() -> ReferencedTabletFile.of(getPath()));
+    this.referencedTabletFile = ReferencedTabletFile.of(getPath());
   }
 
   /**
@@ -69,15 +66,15 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   }
 
   public ReferencedTabletFile getTabletFile() {
-    return referencedTabletFile.get();
+    return referencedTabletFile;
   }
 
   public TableId getTableId() {
-    return referencedTabletFile.get().getTableId();
+    return referencedTabletFile.getTableId();
   }
 
   public String getNormalizedPathStr() {
-    return referencedTabletFile.get().getNormalizedPathStr();
+    return referencedTabletFile.getNormalizedPathStr();
   }
 
   /**
