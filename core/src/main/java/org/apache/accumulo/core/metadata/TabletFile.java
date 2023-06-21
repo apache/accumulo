@@ -24,14 +24,13 @@ import java.net.URI;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-
-import io.micrometer.common.util.StringUtils;
 
 /**
  * Object representing a tablet file that may exist in the metadata table. This class is used for
