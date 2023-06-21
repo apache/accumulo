@@ -72,10 +72,6 @@ function parse_config {
     exit 1
   fi
 
-  if [[ -n $COMPACTION_QUEUES && -z $COORDINATOR_HOSTS ]]; then
-    echo "WARN: External compaction queues configured, but no coordinator configured"
-  fi
-
   for queue in $COMPACTION_QUEUES; do
     Q="COMPACTOR_HOSTS_${queue}"
     if [[ -z ${!Q} ]]; then
@@ -194,10 +190,6 @@ function start_all() {
     done
   done
 
-  for coordinator in $COORDINATOR_HOSTS; do
-    start_service "$coordinator" compaction-coordinator
-  done
-
   for queue in $COMPACTION_QUEUES; do
     Q="COMPACTOR_HOSTS_${queue}"
     for compactor in ${!Q}; do
@@ -255,14 +247,6 @@ function start_here() {
           start_service "$sserver" sserver "-g" "$group"
         fi
       done
-    done
-  done
-
-  for host in $local_hosts; do
-    for coordinator in $COORDINATOR_HOSTS; do
-      if echo "$coordinator" | grep -q "^${host}\$"; then
-        start_service "$coordinator" compaction-coordinator
-      fi
     done
   done
 
@@ -335,10 +319,6 @@ function kill_all() {
     kill_service "$host" tserver
   done
 
-  for coordinator in $COORDINATOR_HOSTS; do
-    kill_service "$coordinator" compaction-coordinator
-  done
-
   for queue in $COMPACTION_QUEUES; do
     Q="COMPACTOR_HOSTS_${queue}"
     for compactor in ${!Q}; do
@@ -347,7 +327,7 @@ function kill_all() {
   done
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compactors -sservers
 }
 
 function stop_all() {
@@ -387,10 +367,6 @@ function stop_all() {
       done
     done
 
-    for coordinator in $COORDINATOR_HOSTS; do
-      end_service $end_cmd "$coordinator" compaction-coordinator
-    done
-
     for queue in $COMPACTION_QUEUES; do
       Q="COMPACTOR_HOSTS_${queue}"
       for compactor in ${!Q}; do
@@ -404,7 +380,7 @@ function stop_all() {
   stop_tservers
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compactors -sservers
 }
 
 function stop_here() {
@@ -425,7 +401,7 @@ function stop_here() {
 
   for host in "${hosts_to_check[@]}"; do
     for end_cmd in "stop" "kill"; do
-      for svc in tserver gc manager monitor compaction-coordinator; do
+      for svc in tserver gc manager monitor; do
         end_service $end_cmd "$host" $svc
       done
       for group in $SSERVER_GROUPS; do
@@ -483,18 +459,17 @@ gc:
 tserver:
   - localhost
 
+compaction:
+  compactor:
+    - user-small:
+        - localhost
+    - user-large:
+        - localhost
+
 #sserver:
 #  - default:
 #    - localhost
 #
-#compaction:
-#  coordinator:
-#    - localhost
-#  compactor:
-#    - q1:
-#        - localhost
-#    - q2:
-#        - localhost
 #
 
 #

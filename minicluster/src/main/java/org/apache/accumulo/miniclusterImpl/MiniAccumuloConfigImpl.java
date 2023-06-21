@@ -164,6 +164,11 @@ public class MiniAccumuloConfigImpl {
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
 
+      mergeProp(Property.TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER.getKey(),
+          Property.TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER.getDefaultValue());
+      mergeProp("tserver.compaction.major.service.default.planner.opts.executors",
+          "[{\"name\":\"all\",\"type\":\"external\",\"queue\":\"defaultQueue\"}]");
+
       if (isUseCredentialProvider()) {
         updateConfigForCredentialProvider();
       }

@@ -110,12 +110,53 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class DefaultCompactionPlanner implements CompactionPlanner {
 
-  private static class ExecutorConfig {
+  public static class ExecutorConfig {
     String type;
     String name;
     String maxSize;
     Integer numThreads;
     String queue;
+
+    public String getType() {
+      return type;
+    }
+
+    public void setType(String type) {
+      this.type = type;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public void setName(String name) {
+      this.name = name;
+    }
+
+    public String getMaxSize() {
+      return maxSize;
+    }
+
+    public void setMaxSize(String maxSize) {
+      this.maxSize = maxSize;
+    }
+
+    public Integer getNumThreads() {
+      return numThreads;
+    }
+
+    public void setNumThreads(Integer numThreads) {
+      this.numThreads = numThreads;
+    }
+
+    public String getQueue() {
+      return queue;
+    }
+
+    public void setQueue(String queue) {
+      this.queue = queue;
+    }
+
   }
 
   private static class Executor {

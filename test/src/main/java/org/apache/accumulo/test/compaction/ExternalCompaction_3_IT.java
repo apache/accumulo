@@ -35,7 +35,6 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
@@ -54,6 +53,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.TException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -81,7 +81,6 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
   @Test
   public void testMergeCancelsExternalCompaction() throws Exception {
 
-    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
     getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE1);
 
     String table1 = this.getUniqueNames(1)[0];
@@ -140,7 +139,6 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
 
   @Test
   public void testCoordinatorRestartsDuringCompaction() throws Exception {
-    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
     getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE2);
 
     String table1 = this.getUniqueNames(1)[0];
@@ -157,16 +155,24 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       Set<ExternalCompactionId> ecids =
           waitForCompactionStartAndReturnEcids(getCluster().getServerContext(), tid);
 
-      // Stop the Coordinator
-      getCluster().getClusterControl().stop(ServerType.COMPACTION_COORDINATOR);
+      // Stop the Manager (Coordinator)
+      getCluster().getClusterControl().stop(ServerType.MANAGER);
 
-      // Restart the coordinator while the compaction is running
-      getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
+      // Restart the Manager while the compaction is running
+      getCluster().getClusterControl().start(ServerType.MANAGER);
 
       // Confirm compaction is still running
       int matches = 0;
       while (matches == 0) {
-        TExternalCompactionList running = getRunningCompactions(getCluster().getServerContext());
+        TExternalCompactionList running = null;
+        while (running == null) {
+          try {
+            running = getRunningCompactions(getCluster().getServerContext());
+          } catch (TException t) {
+            running = null;
+            Thread.sleep(2000);
+          }
+        }
         if (running.getCompactions() != null) {
           for (ExternalCompactionId ecid : ecids) {
             TExternalCompaction tec = running.getCompactions().get(ecid.canonical());

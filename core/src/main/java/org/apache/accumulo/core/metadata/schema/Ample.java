@@ -338,7 +338,7 @@ public interface Ample {
 
     T putBulkFile(ReferencedTabletFile bulkref, long tid);
 
-    T deleteBulkFile(ReferencedTabletFile bulkref);
+    T deleteBulkFile(StoredTabletFile bulkref);
 
     T putChopped();
 
@@ -442,6 +442,16 @@ public interface Ample {
      * Requires the tablet to have the specified hosting goal before any changes are made.
      */
     ConditionalTabletMutator requireHostingGoal(TabletHostingGoal tabletHostingGoal);
+
+    /**
+     * Requires the tablet to have no external compactions.
+     */
+    ConditionalTabletMutator requireAbsentCompactions();
+
+    /**
+     * Requires the specified external compaction to exists
+     */
+    ConditionalTabletMutator requireCompaction(ExternalCompactionId ecid);
 
     /**
      * <p>

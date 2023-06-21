@@ -90,6 +90,8 @@ import org.apache.accumulo.manager.state.MergeStats;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
+import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.log.WalStateManager;
@@ -100,6 +102,7 @@ import org.apache.accumulo.server.manager.state.ClosableIterator;
 import org.apache.accumulo.server.manager.state.DistributedStoreException;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MergeState;
+import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
 import org.apache.accumulo.server.tablets.TabletTime;
@@ -174,16 +177,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     private final List<TabletMetadata> suspendedToGoneServers = new ArrayList<>();
     private final Map<KeyExtent,UnassignedTablet> unassigned = new HashMap<>();
     private final Map<TServerInstance,List<Path>> logsForDeadServers = new TreeMap<>();
-    // read only lists of tablet servers
-    private final SortedMap<TServerInstance,TabletServerStatus> currentTServers;
+    // read only list of tablet servers that are not shutting down
     private final SortedMap<TServerInstance,TabletServerStatus> destinations;
 
     public TabletLists(Manager m, SortedMap<TServerInstance,TabletServerStatus> curTServers) {
       var destinationsMod = new TreeMap<>(curTServers);
-      // Don't move tablets to servers that are shutting down
       destinationsMod.keySet().removeAll(m.serversToShutdown);
       this.destinations = Collections.unmodifiableSortedMap(destinationsMod);
-      this.currentTServers = Collections.unmodifiableSortedMap(curTServers);
     }
 
     public void reset() {
@@ -237,6 +237,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         ManagerState managerState = manager.getManagerState();
         int[] counts = new int[TabletState.values().length];
         stats.begin();
+
+        CompactionJobGenerator compactionGenerator =
+            new CompactionJobGenerator(new ServiceEnvironmentImpl(manager.getContext()));
+
         // Walk through the tablets in our store, and work tablets
         // towards their goal
         iter = store.iterator();
@@ -321,6 +325,18 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             // ELASITICITY_TODO: remove below
             // sendSplitRequest(mergeStats.getMergeInfo(), state, tm);
           }
+
+          if (actions.contains(ManagementAction.NEEDS_COMPACTING)) {
+            var jobs = compactionGenerator.generateJobs(tm,
+                TabletManagementIterator.determineCompactionKinds(actions));
+            LOG.debug("{} may need compacting.", tm.getExtent());
+            manager.getCompactionQueues().add(tm, jobs);
+          }
+
+          // ELASITICITY_TODO the case where a planner generates compactions at time T1 for tablet
+          // and later at time T2 generates nothing for the same tablet is not being handled. At
+          // time T1 something could have been queued. However at time T2 we will not clear those
+          // entries from the queue because we see nothing here for that case.
 
           if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)) {
             if (goal == TabletGoalState.HOSTED) {
@@ -996,13 +1012,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private void getAssignmentsFromBalancer(TabletLists tLists,
       Map<KeyExtent,UnassignedTablet> unassigned) {
-    if (!tLists.currentTServers.isEmpty()) {
+    if (!tLists.destinations.isEmpty()) {
       Map<KeyExtent,TServerInstance> assignedOut = new HashMap<>();
-      manager.getAssignments(tLists.currentTServers, unassigned, assignedOut);
+      manager.getAssignments(tLists.destinations, unassigned, assignedOut);
       for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
         if (unassigned.containsKey(assignment.getKey())) {
           if (assignment.getValue() != null) {
-            if (!tLists.currentTServers.containsKey(assignment.getValue())) {
+            if (!tLists.destinations.containsKey(assignment.getValue())) {
               Manager.log.warn(
                   "balancer assigned {} to a tablet server that is not current {} ignoring",
                   assignment.getKey(), assignment.getValue());
@@ -1010,16 +1026,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             }
 
             final UnassignedTablet unassignedTablet = unassigned.get(assignment.getKey());
-            final TServerInstance serverInstance =
-                unassignedTablet != null ? unassignedTablet.getServerInstance() : null;
-            if (serverInstance != null
-                && !assignment.getValue().getHostPort().equals(serverInstance.getHostPort())) {
-              Manager.log.warn(
-                  "balancer assigned {} to {} which is not the suggested location of {}",
-                  assignment.getKey(), assignment.getValue().getHostPort(),
-                  serverInstance.getHostPort());
-            }
-
             tLists.assignments.add(new Assignment(assignment.getKey(), assignment.getValue(),
                 unassignedTablet != null ? unassignedTablet.getLastLocation() : null));
           }

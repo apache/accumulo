@@ -65,9 +65,6 @@
  * to periodically select files to compact. This supports use cases like periodically compacting all
  * files because there are too many deletes. See
  * {@link org.apache.accumulo.core.client.admin.compaction.CompactionSelector}
- * <li><b>Compaction Strategy</b> A deprecated pluggable component replaced by the Selector and
- * Configurer. See {@code org.apache.accumulo.core.client.admin.CompactionStrategyConfig}'s own
- * documentation for more information about why it was deprecated.
  * </ul>
  * </ul>
  * </ul>

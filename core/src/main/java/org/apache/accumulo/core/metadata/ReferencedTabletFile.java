@@ -56,6 +56,9 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
     String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
     log.trace("Parsing TabletFile from {}", metaPath);
 
+    // Validate characters in file name
+    ValidationUtil.validateFileName(path.getName());
+
     // use Path object to step backwards from the filename through all the parts
     Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), errorMsg);
 

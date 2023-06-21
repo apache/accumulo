@@ -163,17 +163,6 @@ public class Admin implements KeywordExecutable {
     boolean users = false;
   }
 
-  private static final String RV_DEPRECATION_MSG =
-      "Randomizing tablet directories is deprecated and now does nothing. Accumulo now always"
-          + " calls the volume chooser for each file created by a tablet, so its no longer "
-          + "necessary.";
-
-  @Parameters(commandDescription = RV_DEPRECATION_MSG)
-  static class RandomizeVolumesCommand {
-    @Parameter(names = {"-t"}, description = "table to update", required = true)
-    String tableName = null;
-  }
-
   @Parameters(commandDescription = "Verify all Tablets are assigned to tablet servers")
   static class VerifyTabletAssignmentsCommand {
     @Parameter(names = {"-v", "--verbose"},
@@ -306,9 +295,6 @@ public class Admin implements KeywordExecutable {
     RestoreZooCommand restoreZooOpts = new RestoreZooCommand();
     cl.addCommand("restoreZoo", restoreZooOpts);
 
-    RandomizeVolumesCommand randomizeVolumesOpts = new RandomizeVolumesCommand();
-    cl.addCommand("randomizeVolumes", randomizeVolumesOpts);
-
     StopCommand stopOpts = new StopCommand();
     cl.addCommand("stop", stopOpts);
 
@@ -375,8 +361,6 @@ public class Admin implements KeywordExecutable {
         printConfig(context, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(context);
-      } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
-        System.out.println(RV_DEPRECATION_MSG);
       } else if (cl.getParsedCommand().equals("verifyTabletAssigns")) {
         VerifyTabletAssignments.execute(opts.getClientProps(), verifyTabletAssignmentsOpts.verbose);
       } else if (cl.getParsedCommand().equals("changeSecret")) {

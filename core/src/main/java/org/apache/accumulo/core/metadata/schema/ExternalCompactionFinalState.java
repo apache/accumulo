@@ -28,6 +28,7 @@ import org.apache.hadoop.io.Text;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 
+// ELASTICITY_TODO remove this class, remove it from ample, add upgrade code to remove it from metadata table
 public class ExternalCompactionFinalState {
 
   private static final Gson GSON = new Gson();

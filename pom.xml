@@ -88,7 +88,6 @@
     <module>minicluster</module>
     <module>server/base</module>
     <module>server/compactor</module>
-    <module>server/compaction-coordinator</module>
     <module>server/gc</module>
     <module>server/manager</module>
     <module>server/monitor</module>
@@ -143,7 +142,7 @@
     <minimalMavenBuildVersion>3.5.0</minimalMavenBuildVersion>
     <powermock.version>2.0.9</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2023-04-07T20:15:28Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2023-06-14T05:41:08Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <slf4j.version>2.0.7</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
@@ -297,7 +296,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>31.1-jre</version>
+        <version>32.0.0-jre</version>
       </dependency>
       <dependency>
         <groupId>com.lmax</groupId>
@@ -329,11 +328,6 @@
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <version>4.13.2</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-compaction-coordinator</artifactId>
-        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -459,7 +453,7 @@
       <dependency>
         <groupId>org.apache.datasketches</groupId>
         <artifactId>datasketches-java</artifactId>
-        <version>3.3.0</version>
+        <version>4.0.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
@@ -614,9 +608,10 @@
         <version>2.2.1.Final</version>
       </dependency>
       <dependency>
+        <!-- stay on 3.21.0 for now due to https://github.com/apache/accumulo/issues/3446 -->
         <groupId>org.jline</groupId>
         <artifactId>jline</artifactId>
-        <version>3.23.0</version>
+        <version>3.21.0</version>
       </dependency>
       <dependency>
         <groupId>org.latencyutils</groupId>
@@ -664,7 +659,7 @@
         <!-- version specified to converge transitive dependency of hadoop and curator -->
         <groupId>org.xerial.snappy</groupId>
         <artifactId>snappy-java</artifactId>
-        <version>1.1.9.1</version>
+        <version>1.1.10.1</version>
       </dependency>
       <dependency>
         <groupId>org.yaml</groupId>

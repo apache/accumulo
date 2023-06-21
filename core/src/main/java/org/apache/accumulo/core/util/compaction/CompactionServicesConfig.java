@@ -21,7 +21,9 @@ package org.apache.accumulo.core.util.compaction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 
+import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
@@ -49,13 +51,21 @@ public class CompactionServicesConfig {
         .getMemoryAsBytes(Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT.getDefaultValue());
   }
 
-  private Map<String,String> getConfiguration(AccumuloConfiguration aconf) {
+  private static Map<String,String> getConfiguration(AccumuloConfiguration aconf) {
     return aconf.getAllPropertiesWithPrefix(Property.TSERV_COMPACTION_SERVICE_PREFIX);
   }
 
-  public CompactionServicesConfig(AccumuloConfiguration aconf) {
-    Map<String,String> configs = getConfiguration(aconf);
+  public CompactionServicesConfig(PluginEnvironment.Configuration conf) {
+    // TODO will probably not need rate limit eventually and the 2nd param predicate can go away
+    this(conf.getWithPrefix(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey()),
+        property -> conf.isSet(property.getKey()));
+  }
 
+  public CompactionServicesConfig(AccumuloConfiguration aconf) {
+    this(getConfiguration(aconf), aconf::isPropertySet);
+  }
+
+  private CompactionServicesConfig(Map<String,String> configs, Predicate<Property> isSetPredicate) {
     configs.forEach((prop, val) -> {
 
       var suffix = prop.substring(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey().length());
@@ -66,7 +76,7 @@ public class CompactionServicesConfig {
         planners.put(tokens[0], val);
       } else if (tokens.length == 3 && tokens[1].equals("rate") && tokens[2].equals("limit")) {
         var eprop = Property.getPropertyByKey(prop);
-        if (eprop == null || aconf.isPropertySet(eprop)) {
+        if (eprop == null || isSetPredicate.test(eprop)) {
           rateLimits.put(tokens[0], ConfigurationTypeHelper.getFixedMemoryAsBytes(val));
         }
       } else {
@@ -82,7 +92,6 @@ public class CompactionServicesConfig {
       throw new IllegalArgumentException(
           "Incomplete compaction service definitions, missing planner class " + diff);
     }
-
   }
 
   public long getRateLimit(String serviceName) {
