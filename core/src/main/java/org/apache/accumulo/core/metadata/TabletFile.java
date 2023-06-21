@@ -22,7 +22,6 @@ import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
 
 import java.net.URI;
 import java.util.Objects;
-import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
@@ -31,6 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+
+import io.micrometer.common.util.StringUtils;
 
 /**
  * Object representing a tablet file that may exist in the metadata table. This class is used for
@@ -51,6 +52,8 @@ public class TabletFile implements Comparable<TabletFile> {
 
   private static final Logger log = LoggerFactory.getLogger(TabletFile.class);
 
+  private static final String HDFS_TABLES_DIR_NAME = HDFS_TABLES_DIR.substring(1);
+
   /**
    * Construct new tablet file using a Path. Used in the case where we had to use Path object to
    * qualify an absolute path or create a new file.
@@ -62,7 +65,8 @@ public class TabletFile implements Comparable<TabletFile> {
 
     // File name construct: <volume>/<tablePath>/<tableId>/<tablet>/<file>
     // Example: hdfs://namenode:9020/accumulo/tables/1/default_tablet/F00001.rf
-    final String path = this.metaPath.toUri().getPath();
+    final URI uri = this.metaPath.toUri();
+    final String path = uri.getPath();
     final String[] parts = path.split("/");
     final int numParts = parts.length;
 
@@ -70,39 +74,30 @@ public class TabletFile implements Comparable<TabletFile> {
       throw new IllegalArgumentException(errorMsg);
     }
 
-    // step backwards from the filename through all the parts
-    String file = null;
-    String tabletDirectory = null;
-    String tableId = null;
-    for (int i : IntStream.of(numParts - 1, numParts - 2, numParts - 3, numParts - 4).toArray()) {
-      String tmp = Objects.requireNonNull(parts[i], errorMsg);
-      if (i == numParts - 1) {
-        file = tmp;
-        ValidationUtil.validateFileName(file);
-      } else if (i == numParts - 2) {
-        tabletDirectory = tmp;
-      } else if (i == numParts - 3) {
-        tableId = tmp;
-      } else if (i == numParts - 4) {
-        String tablesPath = "/" + tmp;
-        Preconditions.checkArgument(tablesPath.equals(HDFS_TABLES_DIR),
-            "tables path is not " + HDFS_TABLES_DIR + ", is " + tablesPath);
-      }
+    this.fileName = parts[numParts - 1];
+    final String tabletDirectory = parts[numParts - 2];
+    final String tableId = parts[numParts - 3];
+    final String tablesPath = parts[numParts - 4];
+    if (StringUtils.isBlank(fileName) || StringUtils.isBlank(tabletDirectory)
+        || StringUtils.isBlank(tableId) || StringUtils.isBlank(tablesPath)) {
+      throw new IllegalArgumentException(errorMsg);
     }
-    this.fileName = Objects.requireNonNull(file, "file name is null");
-    Objects.requireNonNull(tabletDirectory, "tablet directory is null");
-    Objects.requireNonNull(tableId, "table id is null");
+    ValidationUtil.validateFileName(fileName);
+    Preconditions.checkArgument(tablesPath.equals(HDFS_TABLES_DIR_NAME),
+        "tables directory name is not " + HDFS_TABLES_DIR_NAME + ", is " + tablesPath);
 
+    // determine where file path starts, the rest is the volume
     final String filePath =
         HDFS_TABLES_DIR + "/" + tableId + "/" + tabletDirectory + "/" + this.fileName;
-    int idx = this.metaPath.toUri().toString().indexOf(filePath);
+    final String uriString = uri.toString();
+    int idx = uriString.indexOf(filePath);
 
     if (idx == -1) {
       throw new IllegalArgumentException(errorMsg);
     }
 
     // The volume is the remaining part of the path.
-    String volume = this.metaPath.toUri().toString().substring(0, idx);
+    final String volume = uriString.substring(0, idx);
     Preconditions.checkArgument(URI.create(volume).getScheme() != null, errorMsg);
     this.tabletDir = new TabletDirectory(volume, TableId.of(tableId), tabletDirectory);
     this.normalizedPath = tabletDir.getNormalizedPath() + "/" + fileName;
