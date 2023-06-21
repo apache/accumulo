@@ -58,9 +58,9 @@ public class ReferencedTabletFileTest {
     // 2a< srv:dir
     final String message = "Failed to throw error on bad path";
 
-    assertThrows(NullPointerException.class, () -> test("C0004.rf", "", "2a", "t-0003", "C0004.rf"),
-        message);
-    assertThrows(NullPointerException.class, () -> test("dir", "", "2a", "", ""), message);
+    assertThrows(IllegalArgumentException.class,
+        () -> test("C0004.rf", "", "2a", "t-0003", "C0004.rf"), message);
+    assertThrows(IllegalArgumentException.class, () -> test("dir", "", "2a", "", ""), message);
 
     assertThrows(IllegalArgumentException.class,
         () -> test("hdfs://localhost:8020/accumulo/tablets/2a/default_tablet/F0000070.rf",

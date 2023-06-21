@@ -20,9 +20,11 @@ package org.apache.accumulo.core.metadata;
 
 import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
 
+import java.net.URI;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -41,11 +43,113 @@ import com.google.common.base.Preconditions;
  * in Upgrader9to10.upgradeRelativePaths()
  */
 public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFile> {
-  // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"
-  private final TabletDirectory tabletDir; // hdfs://1.2.3.4/accumulo/tables/2a/t-0003
-  private final String normalizedPath;
+
+  public static class FileParts {
+
+    // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf"
+    // volume: hdfs://1.2.3.4/accumulo
+    // tableId: 2a
+    // tabletDir: t-0003
+    // fileName: C0004.rf
+    // normalizedPath: hdfs://1.2.3.4/accumulo/tables/2a/t-0003/C0004.rf
+    private final String volume;
+    private final TableId tableId;
+    private final String tabletDir;
+    private final String fileName;
+    private final String normalizedPath;
+
+    public FileParts(String volume, TableId tableId, String tabletDir, String fileName,
+        String normalizedPath) {
+      this.volume = volume;
+      this.tableId = tableId;
+      this.tabletDir = tabletDir;
+      this.fileName = fileName;
+      this.normalizedPath = normalizedPath;
+    }
+
+    public String getVolume() {
+      return volume;
+    }
+
+    public TableId getTableId() {
+      return tableId;
+    }
+
+    public String getTabletDir() {
+      return tabletDir;
+    }
+
+    public String getFileName() {
+      return fileName;
+    }
+
+    public String getNormalizedPath() {
+      return normalizedPath;
+    }
+
+  }
+
+  private static String constructErrorMsg(Path filePath) {
+    return "Missing or invalid part of tablet file metadata entry: " + filePath;
+  }
+
+  public static FileParts parsePath(Path filePath) {
+    // File name construct: <volume>/<tablePath>/<tableId>/<tablet>/<file>
+    // Example: hdfs://namenode:9020/accumulo/tables/1/default_tablet/F00001.rf
+    final URI uri = filePath.toUri();
+
+    // validate that this is a fully qualified uri
+    Preconditions.checkArgument(uri.getScheme() != null, constructErrorMsg(filePath));
+
+    final String path = uri.getPath(); // ex: /accumulo/tables/1/default_tablet/F00001.rf
+    final String[] parts = path.split("/");
+    final int numParts = parts.length; // should contain tables, 1, default_tablet, F00001.rf
+
+    if (numParts < 4) {
+      throw new IllegalArgumentException(constructErrorMsg(filePath));
+    }
+
+    final String fileName = parts[numParts - 1];
+    final String tabletDirectory = parts[numParts - 2];
+    final TableId tableId = TableId.of(parts[numParts - 3]);
+    final String tablesPath = parts[numParts - 4];
+
+    // determine where file path starts, the rest is the volume
+    final String computedFilePath =
+        HDFS_TABLES_DIR + "/" + tableId.canonical() + "/" + tabletDirectory + "/" + fileName;
+    final String uriString = uri.toString();
+    int idx = uriString.lastIndexOf(computedFilePath);
+
+    if (idx == -1) {
+      throw new IllegalArgumentException(constructErrorMsg(filePath));
+    }
+
+    // The volume is the beginning portion of the uri up to the start
+    // of the file path.
+    final String volume = uriString.substring(0, idx);
+
+    if (StringUtils.isBlank(fileName) || StringUtils.isBlank(tabletDirectory)
+        || StringUtils.isBlank(tablesPath) || StringUtils.isBlank(volume)) {
+      throw new IllegalArgumentException(constructErrorMsg(filePath));
+    }
+    ValidationUtil.validateFileName(fileName);
+    Preconditions.checkArgument(tablesPath.equals(HDFS_TABLES_DIR_NAME),
+        "tables directory name is not " + HDFS_TABLES_DIR_NAME + ", is " + tablesPath);
+
+    final String normalizedPath = volume + computedFilePath;
+
+    if (!normalizedPath.equals(uriString)) {
+      throw new RuntimeException("Error parsing file path, " + normalizedPath + " != " + uriString);
+    }
+
+    return new FileParts(volume, tableId, tabletDirectory, fileName, normalizedPath);
+
+  }
+
+  private final FileParts parts;
 
   private static final Logger log = LoggerFactory.getLogger(ReferencedTabletFile.class);
+  private static final String HDFS_TABLES_DIR_NAME = HDFS_TABLES_DIR.substring(1);
 
   /**
    * Construct new tablet file using a Path. Used in the case where we had to use Path object to
@@ -53,37 +157,25 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
    */
   public ReferencedTabletFile(Path metaPath) {
     super(Objects.requireNonNull(metaPath));
-    String errorMsg = "Missing or invalid part of tablet file metadata entry: " + metaPath;
     log.trace("Parsing TabletFile from {}", metaPath);
-
-    // use Path object to step backwards from the filename through all the parts
-    Path tabletDirPath = Objects.requireNonNull(metaPath.getParent(), errorMsg);
-
-    Path tableIdPath = Objects.requireNonNull(tabletDirPath.getParent(), errorMsg);
-    var id = tableIdPath.getName();
-
-    Path tablePath = Objects.requireNonNull(tableIdPath.getParent(), errorMsg);
-    String tpString = "/" + tablePath.getName();
-    Preconditions.checkArgument(tpString.equals(HDFS_TABLES_DIR), errorMsg);
-
-    Path volumePath = Objects.requireNonNull(tablePath.getParent(), errorMsg);
-    Preconditions.checkArgument(volumePath.toUri().getScheme() != null, errorMsg);
-    var volume = volumePath.toString();
-
-    this.tabletDir = new TabletDirectory(volume, TableId.of(id), tabletDirPath.getName());
-    this.normalizedPath = tabletDir.getNormalizedPath() + "/" + getFileName();
+    parts = parsePath(metaPath);
   }
 
   public String getVolume() {
-    return tabletDir.getVolume();
+    return parts.getVolume();
   }
 
   public TableId getTableId() {
-    return tabletDir.getTableId();
+    return parts.getTableId();
   }
 
   public String getTabletDir() {
-    return tabletDir.getTabletDir();
+    return parts.getTabletDir();
+  }
+
+  @Override
+  public String getFileName() {
+    return parts.getFileName();
   }
 
   /**
@@ -91,14 +183,14 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
    * metadata.
    */
   public String getNormalizedPathStr() {
-    return normalizedPath;
+    return parts.getNormalizedPath();
   }
 
   /**
    * Return a string for inserting a new tablet file.
    */
   public String getMetaInsert() {
-    return normalizedPath;
+    return parts.getNormalizedPath();
   }
 
   /**
@@ -112,7 +204,7 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
    * New file was written to metadata so return a StoredTabletFile
    */
   public StoredTabletFile insert() {
-    return new StoredTabletFile(normalizedPath);
+    return new StoredTabletFile(parts.getNormalizedPath());
   }
 
   @Override
@@ -120,7 +212,7 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
     if (equals(o)) {
       return 0;
     } else {
-      return normalizedPath.compareTo(o.normalizedPath);
+      return parts.getNormalizedPath().compareTo(o.parts.getNormalizedPath());
     }
   }
 
@@ -128,19 +220,19 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
   public boolean equals(Object obj) {
     if (obj instanceof ReferencedTabletFile) {
       ReferencedTabletFile that = (ReferencedTabletFile) obj;
-      return normalizedPath.equals(that.normalizedPath);
+      return parts.getNormalizedPath().equals(that.parts.getNormalizedPath());
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return normalizedPath.hashCode();
+    return parts.getNormalizedPath().hashCode();
   }
 
   @Override
   public String toString() {
-    return normalizedPath;
+    return parts.getNormalizedPath();
   }
 
   public static ReferencedTabletFile of(final Path path) {
