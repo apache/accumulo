@@ -46,6 +46,7 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
+import org.apache.accumulo.core.util.GsonSingleton;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -55,8 +56,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-
-import com.google.gson.Gson;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -79,7 +78,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     URL url = new URL(uri + "/jmx");
     log.debug("Fetching web page " + url);
     String jsonString = FunctionalTestUtils.readWebPage(url).body();
-    Map<?,?> jsonObject = new Gson().fromJson(jsonString, Map.class);
+    Map<?,?> jsonObject = GsonSingleton.getInstance().fromJson(jsonString, Map.class);
     List<?> beans = (List<?>) jsonObject.get("beans");
     for (Object bean : beans) {
       Map<?,?> map = (Map<?,?>) bean;

@@ -21,9 +21,8 @@ package org.apache.accumulo.manager.tableOps;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.GsonSingleton;
 import org.apache.accumulo.manager.Manager;
-
-import com.google.gson.Gson;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -106,6 +105,6 @@ public class TraceRepo<T> implements Repo<T> {
 
     // Inorder for Gson to work with generic types, the following passes repo.getClass() to Gson.
     // See the Gson javadoc for more info.
-    return repo.getClass() + " " + new Gson().toJson(repo, repo.getClass());
+    return repo.getClass() + " " + GsonSingleton.getInstance().toJson(repo, repo.getClass());
   }
 }

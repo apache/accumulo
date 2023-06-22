@@ -31,10 +31,10 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.util.GsonSingleton;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 
 import com.google.common.base.Preconditions;
-import com.google.gson.Gson;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -145,8 +145,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       justification = "Field is written by Gson")
   @Override
   public void init(InitParameters params) {
-    ExecutorConfig[] execConfigs =
-        new Gson().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
+    ExecutorConfig[] execConfigs = GsonSingleton.getInstance()
+        .fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
 
     List<Executor> tmpExec = new ArrayList<>();
 
