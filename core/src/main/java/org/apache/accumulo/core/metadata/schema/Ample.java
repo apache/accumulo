@@ -324,7 +324,7 @@ public interface Ample {
 
     T deleteLocation(Location location);
 
-    T putZooLock(ServiceLock zooLock);
+    T putZooLock(String zookeeperRoot, ServiceLock zooLock);
 
     T putDirName(String dirName);
 
@@ -359,6 +359,10 @@ public interface Ample {
     T putOperation(TabletOperationId opId);
 
     T deleteOperation();
+
+    T putSelectedFiles(SelectedFiles selectedFiles);
+
+    T deleteSelectedFiles();
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {
@@ -424,16 +428,6 @@ public interface Ample {
     ConditionalTabletMutator requireLocation(Location location);
 
     /**
-     * Require that a tablet currently has the specified file.
-     */
-    ConditionalTabletMutator requireFile(StoredTabletFile path);
-
-    /**
-     * Require that a tablet does not have the specfied bulk load marker.
-     */
-    ConditionalTabletMutator requireAbsentBulkFile(ReferencedTabletFile bulkref);
-
-    /**
      * Require that a tablet has the specified previous end row.
      */
     ConditionalTabletMutator requirePrevEndRow(Text per);
@@ -444,14 +438,16 @@ public interface Ample {
     ConditionalTabletMutator requireHostingGoal(TabletHostingGoal tabletHostingGoal);
 
     /**
-     * Requires the tablet to have no external compactions.
-     */
-    ConditionalTabletMutator requireAbsentCompactions();
-
-    /**
      * Requires the specified external compaction to exists
      */
     ConditionalTabletMutator requireCompaction(ExternalCompactionId ecid);
+
+    /**
+     * For the specified columns, requires the tablets metadata to be the same at the time of update
+     * as what is in the passed in tabletMetadata object.
+     */
+    ConditionalTabletMutator requireSame(TabletMetadata tabletMetadata, ColumnType type,
+        ColumnType... otherTypes);
 
     /**
      * <p>

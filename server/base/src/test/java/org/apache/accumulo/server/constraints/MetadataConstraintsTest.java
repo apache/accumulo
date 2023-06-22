@@ -23,16 +23,19 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
@@ -241,6 +244,29 @@ public class MetadataConstraintsTest {
 
     m = new Mutation(new Text("0;foo"));
     ServerColumnFamily.OPID_COLUMN.put(m, new Value("MERGING:FATE[123abc]"));
+    violations = mc.check(createEnv(), m);
+    assertNull(violations);
+  }
+
+  @Test
+  public void testSelectedFiles() {
+    MetadataConstraints mc = new MetadataConstraints();
+    Mutation m;
+    List<Short> violations;
+
+    m = new Mutation(new Text("0;foo"));
+    ServerColumnFamily.SELECTED_COLUMN.put(m, new Value("bad id"));
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 11), violations.get(0));
+
+    m = new Mutation(new Text("0;foo"));
+    ServerColumnFamily.SELECTED_COLUMN.put(m,
+        new Value(new SelectedFiles(
+            Set.of(StoredTabletFile
+                .of("hdfs://nn.somewhere.com:86753/accumulo/tables/42/t-0000/F00001.rf")),
+            true, 42L).getMetadataValue()));
     violations = mc.check(createEnv(), m);
     assertNull(violations);
   }

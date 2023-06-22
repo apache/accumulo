@@ -51,6 +51,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
@@ -87,8 +88,8 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.COMPACT_COLUMN,
           ServerColumnFamily.OPID_COLUMN,
           HostingColumnFamily.GOAL_COLUMN,
-          HostingColumnFamily.REQUESTED_COLUMN);
-
+          HostingColumnFamily.REQUESTED_COLUMN,
+              ServerColumnFamily.SELECTED_COLUMN);
   private static final Set<Text> validColumnFams =
       Set.of(BulkFileColumnFamily.NAME,
           LogColumnFamily.NAME,
@@ -229,6 +230,12 @@ public class MetadataConstraints implements Constraint {
         } catch (IllegalArgumentException e) {
           violations = addViolation(violations, 9);
         }
+      } else if (ServerColumnFamily.SELECTED_COLUMN.equals(columnFamily, columnQualifier)) {
+        try {
+          SelectedFiles.from(new String(columnUpdate.getValue(), UTF_8));
+        } catch (RuntimeException e) {
+          violations = addViolation(violations, 11);
+        }
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
           // splits, which also write the time reference, are allowed to write this reference even
@@ -359,6 +366,8 @@ public class MetadataConstraints implements Constraint {
         return "Malformed operation id";
       case 10:
         return "Malformed hosting goal";
+      case 11:
+        return "Malformed file selection value";
     }
     return null;
   }

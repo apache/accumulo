@@ -22,8 +22,6 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -55,7 +53,6 @@ import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
-import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.Deriver;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
@@ -90,6 +87,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -116,8 +114,6 @@ import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.scan.ScanParameters;
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -691,46 +687,7 @@ public class Tablet extends TabletBase {
   }
 
   public Pair<Long,CompactionConfig> getCompactionID() throws NoNodeException {
-    try {
-      String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
-          + "/" + extent.tableId() + Constants.ZTABLE_COMPACT_ID;
-
-      String[] tokens =
-          new String(context.getZooReaderWriter().getData(zTablePath), UTF_8).split(",");
-      long compactID = Long.parseLong(tokens[0]);
-
-      CompactionConfig overlappingConfig = null;
-
-      if (tokens.length > 1) {
-        Hex hex = new Hex();
-        ByteArrayInputStream bais =
-            new ByteArrayInputStream(hex.decode(tokens[1].split("=")[1].getBytes(UTF_8)));
-        DataInputStream dis = new DataInputStream(bais);
-
-        var compactionConfig = UserCompactionUtils.decodeCompactionConfig(dis);
-
-        KeyExtent ke = new KeyExtent(extent.tableId(), compactionConfig.getEndRow(),
-            compactionConfig.getStartRow());
-
-        if (ke.overlaps(extent)) {
-          overlappingConfig = compactionConfig;
-        }
-      }
-
-      if (overlappingConfig == null) {
-        overlappingConfig = new CompactionConfig(); // no config present, set to default
-      }
-
-      return new Pair<>(compactID, overlappingConfig);
-    } catch (InterruptedException | DecoderException | NumberFormatException e) {
-      throw new RuntimeException("Exception on " + extent + " getting compaction ID", e);
-    } catch (KeeperException ke) {
-      if (ke instanceof NoNodeException) {
-        throw (NoNodeException) ke;
-      } else {
-        throw new RuntimeException("Exception on " + extent + " getting compaction ID", ke);
-      }
-    }
+    return CompactionConfigStorage.getCompactionID(getContext(), extent);
   }
 
   private synchronized CommitSession finishPreparingMutations(long time) {
@@ -2155,7 +2112,8 @@ public class Tablet extends TabletBase {
       return;
     }
 
-    log.debug("Refreshing metadata for : {}", getExtent());
+    // ELASTICITY_TODO instead of reading the tablet metadata in this method, could just invalidate
+    // it forcing next scan to read it.
 
     // ELASTICITY_TODO this entire method is a hack at the moment with race conditions. Want to
     // move towards the tablet just using a cached TabletMetadata object and have a central orderly
@@ -2166,16 +2124,8 @@ public class Tablet extends TabletBase {
     TabletMetadata tabletMetadata =
         getContext().getAmple().readTablet(getExtent(), ColumnType.FILES);
 
-    Map<StoredTabletFile,DataFileValue> metadataFiles = tabletMetadata.getFilesMap();
-
-    Map<StoredTabletFile,DataFileValue> currentFiles = getDatafileManager().getDatafileSizes();
-
-    // TODO this is racy, it could add files that were just deleted by a compaction. Intentionally
+    // TODO this could have race conditions with minor compactions. Intentionally
     // not being handled ATM.
-    metadataFiles.forEach((f, v) -> {
-      if (!currentFiles.containsKey(f)) {
-        getDatafileManager().addFilesHack(f, v);
-      }
-    });
+    getDatafileManager().setFilesHack(tabletMetadata.getFilesMap());
   }
 }

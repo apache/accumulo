@@ -45,11 +45,11 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -508,9 +508,6 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
   @Test
   public void testManyFiles() throws Exception {
-
-    getCluster().getClusterControl().startCompactors(Compactor.class, 1, "user-small");
-
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String dir = getDir("/testBulkFile-");
       FileSystem fs = getCluster().getFileSystem();
@@ -523,6 +520,10 @@ public class BulkNewIT extends SharedMiniClusterBase {
       }
 
       c.tableOperations().importDirectory(dir).to(tableName).load();
+
+      verifyData(c, tableName, 0, 100 * 100 - 1, false);
+
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
       verifyData(c, tableName, 0, 100 * 100 - 1, false);
     }

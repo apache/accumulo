@@ -30,7 +30,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
@@ -64,7 +63,6 @@ import java.util.stream.Stream;
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -631,7 +629,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         throw new IllegalStateException("No Compactor queues configured.");
       }
       for (String name : queues) {
-        control.startCompactors(Compactor.class, getConfig().getNumCompactors(), name);
+        // ELASTICITY_TODO need to reevalute numCompactors and maybe num scan servers. The following
+        // was calling numCompactors, but it was changed to 1.
+        control.startCompactors(Compactor.class, 1, name);
       }
     } catch (ClassNotFoundException e) {
       throw new IllegalArgumentException("Unable to find declared CompactionPlanner class", e);
@@ -660,11 +660,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       String serviceId = entry.getKey();
       String plannerClass = entry.getValue();
 
-      @SuppressWarnings("unchecked")
-      Class<CompactionPlanner> cpClass = (Class<CompactionPlanner>) ClassLoaderUtil
-          .loadClass(plannerClass, CompactionPlanner.class);
       try {
-        CompactionPlanner cp = cpClass.getDeclaredConstructor().newInstance();
+        CompactionPlanner cp = senv.instantiate(plannerClass, CompactionPlanner.class);
         var initParams = new CompactionPlannerInitParams(CompactionServiceId.of(serviceId),
             csc.getOptions().get(serviceId), senv);
         cp.init(initParams);
@@ -676,12 +673,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
             queueNames.add(id);
           }
         });
-      } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
-          | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+      } catch (IllegalArgumentException | SecurityException | ReflectiveOperationException e) {
         throw new RuntimeException(
             "Error creating instance of " + plannerClass + " with no-arg constructor", e);
       }
     }
+
     return queueNames;
   }
 
@@ -805,14 +802,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       try {
         while (ecActualCount < ecExpectedCount) {
           ecActualCount = 0;
-          for (String child : zk.getChildren(rootPath + Constants.ZCOMPACTORS, null)) {
-            if (zk.getChildren(rootPath + Constants.ZCOMPACTORS + "/" + child, null).isEmpty()) {
-              log.info("Compactor " + ecActualCount + " not yet present in ZooKeeper");
-            } else {
-              ecActualCount++;
-              log.info("Compactor " + ecActualCount + " present in ZooKeeper");
+          for (String queue : zk.getChildren(rootPath + Constants.ZCOMPACTORS, null)) {
+            var qc = zk.getChildren(rootPath + Constants.ZCOMPACTORS + "/" + queue, null);
+            if (qc != null) {
+              ecActualCount += qc.size();
             }
           }
+          log.info(
+              "Compactor " + ecActualCount + " of " + ecExpectedCount + " present in ZooKeeper");
           Thread.sleep(500);
         }
       } catch (KeeperException e) {

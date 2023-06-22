@@ -54,8 +54,12 @@ public class CompactableImplTest {
     short priority = 9;
     CompactionExecutorId ceid = CompactionExecutorIdImpl.externalId("ecs1");
 
-    return new ExternalCompactionMetadata(jobFiles, nextFiles, compactTmpName.getTabletFile(),
-        compactorId, kind, priority, ceid, propagateDeletes, initiallySelectedAll, compactionId);
+    // ELASTICITY_TODO this is probably no longer directly useful so code was commented out below to
+    // make it compile. However, the scenarios this test was testing probably needs to be adapted to
+    // the new compaction code.
+    return new ExternalCompactionMetadata(jobFiles, /* nextFiles, */ compactTmpName.getTabletFile(),
+        compactorId, kind, priority, ceid, propagateDeletes,
+        /* initiallySelectedAll, */ compactionId);
   }
 
   ExternalCompactionId newEcid() {

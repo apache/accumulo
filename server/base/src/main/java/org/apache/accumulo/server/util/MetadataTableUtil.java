@@ -169,7 +169,7 @@ public class MetadataTableUtil {
       ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putFlushId(flushID);
-    tablet.putZooLock(zooLock);
+    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
     tablet.mutate();
   }
 
@@ -177,7 +177,7 @@ public class MetadataTableUtil {
       ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putCompactionId(compactID);
-    tablet.putZooLock(zooLock);
+    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
     tablet.mutate();
   }
 
@@ -193,7 +193,7 @@ public class MetadataTableUtil {
       tablet.putBulkFile(tf, tid);
       newFiles.put(tf.insert(), dfv);
     });
-    tablet.putZooLock(zooLock);
+    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
     tablet.mutate();
     return newFiles;
   }
@@ -204,7 +204,7 @@ public class MetadataTableUtil {
     tablet.putPrevEndRow(extent.prevEndRow());
     tablet.putDirName(path);
     tablet.putTime(new MetadataTime(0, timeType));
-    tablet.putZooLock(zooLock);
+    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
     tablet.mutate();
 
   }
@@ -221,7 +221,7 @@ public class MetadataTableUtil {
     filesToRemove.forEach(tabletMutator::deleteFile);
     filesToAdd.forEach(tabletMutator::putFile);
 
-    tabletMutator.putZooLock(zooLock);
+    tabletMutator.putZooLock(context.getZooKeeperRoot(), zooLock);
 
     tabletMutator.mutate();
   }
@@ -281,7 +281,7 @@ public class MetadataTableUtil {
       ServerContext context, ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     scanFiles.forEach(tablet::deleteScan);
-    tablet.putZooLock(zooLock);
+    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
     tablet.mutate();
   }
 
@@ -422,7 +422,7 @@ public class MetadataTableUtil {
       final List<LogEntry> entries, ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     entries.forEach(tablet::deleteWal);
-    tablet.putZooLock(zooLock);
+    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
     tablet.mutate();
   }
 
@@ -647,7 +647,7 @@ public class MetadataTableUtil {
   public static void chopped(ServerContext context, KeyExtent extent, ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putChopped();
-    tablet.putZooLock(zooLock);
+    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
     tablet.mutate();
   }
 

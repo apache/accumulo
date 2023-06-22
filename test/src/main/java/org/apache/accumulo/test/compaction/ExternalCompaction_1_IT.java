@@ -100,6 +100,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+// ELASTICITY_TODO now that there are only external compactions, could merge some of these ITs that are redundant w/ CompactionIT
 public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
   public static class ExternalCompaction1Config implements MiniClusterConfigurationCallback {
@@ -180,6 +181,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table1);
       writeData(client, table2);
 
+      // ELASTICITIY_TODO do not need to start compactors
       getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
       getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
 
@@ -210,6 +212,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
         }
       });
       // Start our TServer that will not commit the compaction
+      // ELASTICITY_TODO this will likely no longer work now that compactions do not run in the
+      // tserver
       ProcessInfo tserverProcess = getCluster().exec(ExternalCompactionTServer.class);
 
       createTable(client, table1, "cs3", 2);
@@ -258,6 +262,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       writeData(client, table1);
 
+      // ELASTICITY_TODO there is already one compactor started by mini based on config
       getCluster().getClusterControl().startCompactors(Compactor.class, 2, QUEUE4);
 
       compact(client, table1, 3, QUEUE4, true);

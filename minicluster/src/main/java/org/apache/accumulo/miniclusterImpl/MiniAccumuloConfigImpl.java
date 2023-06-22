@@ -164,10 +164,22 @@ public class MiniAccumuloConfigImpl {
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
 
+      mergeProp(Property.COMPACTOR_PORTSEARCH.getKey(), "true");
+
+      mergeProp(Property.TSERV_COMPACTION_SERVICE_ROOT_PLANNER.getKey(),
+          Property.TSERV_COMPACTION_SERVICE_ROOT_PLANNER.getDefaultValue());
+      mergeProp(Property.TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS.getKey(),
+          Property.TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS.getDefaultValue());
+
+      mergeProp(Property.TSERV_COMPACTION_SERVICE_META_PLANNER.getKey(),
+          Property.TSERV_COMPACTION_SERVICE_META_PLANNER.getDefaultValue());
+      mergeProp(Property.TSERV_COMPACTION_SERVICE_META_EXECUTORS.getKey(),
+          Property.TSERV_COMPACTION_SERVICE_META_EXECUTORS.getDefaultValue());
+
       mergeProp(Property.TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER.getKey(),
           Property.TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER.getDefaultValue());
-      mergeProp("tserver.compaction.major.service.default.planner.opts.executors",
-          "[{\"name\":\"all\",\"type\":\"external\",\"queue\":\"defaultQueue\"}]");
+      mergeProp(Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS.getKey(),
+          Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS.getDefaultValue());
 
       if (isUseCredentialProvider()) {
         updateConfigForCredentialProvider();

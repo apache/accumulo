@@ -336,7 +336,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // ELASITICITY_TODO the case where a planner generates compactions at time T1 for tablet
           // and later at time T2 generates nothing for the same tablet is not being handled. At
           // time T1 something could have been queued. However at time T2 we will not clear those
-          // entries from the queue because we see nothing here for that case.
+          // entries from the queue because we see nothing here for that case. After a full
+          // metadata scan could remove any tablets that were not updated during the scan.
 
           if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)) {
             if (goal == TabletGoalState.HOSTED) {

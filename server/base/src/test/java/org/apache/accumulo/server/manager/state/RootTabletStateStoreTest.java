@@ -134,7 +134,7 @@ public class RootTabletStateStoreTest {
       return tm.getSuspend();
     }
 
-    public Collection<StoredTabletFile> getFiles() {
+    public Set<StoredTabletFile> getFiles() {
       return tm.getFiles();
     }
 

@@ -260,6 +260,14 @@ public class MetadataSchema {
        */
       public static final String OPID_QUAL = "opid";
       public static final ColumnFQ OPID_COLUMN = new ColumnFQ(NAME, new Text(OPID_QUAL));
+
+      /**
+       * This column is used to record what files a user compaction has selected for compaction.
+       * These files will be processed by one or more compaction jobs. The value for this column is
+       * managed by {@link SelectedFiles}
+       */
+      public static final String SELECTED_QUAL = "selected";
+      public static final ColumnFQ SELECTED_COLUMN = new ColumnFQ(NAME, new Text(SELECTED_QUAL));
     }
 
     /**

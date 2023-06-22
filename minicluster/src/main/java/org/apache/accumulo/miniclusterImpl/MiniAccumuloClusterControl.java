@@ -120,9 +120,12 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   public synchronized void startCompactors(Class<? extends Compactor> compactor, int limit,
       String queueName) throws IOException {
     synchronized (compactorProcesses) {
-      int count =
-          Math.min(limit, cluster.getConfig().getNumCompactors() - compactorProcesses.size());
-      for (int i = 0; i < count; i++) {
+      // ELASTICITY_TODO the count in following comment out code was used in the for loop and was
+      // causing not all compactors to start
+      //
+      // int count =
+      // Math.min(limit, cluster.getConfig().getNumCompactors() - compactorProcesses.size());
+      for (int i = 0; i < limit; i++) {
         compactorProcesses.add(
             cluster.exec(compactor, "-o", Property.COMPACTOR_QUEUE_NAME.getKey() + "=" + queueName)
                 .getProcess());

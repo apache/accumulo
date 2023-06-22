@@ -274,6 +274,7 @@ public class TabletManagementIterator extends SkippingIterator {
     // TODO so many columns are being fetch it may not make sense to fetch columns
     TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
+    ServerColumnFamily.SELECTED_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
     scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
     scanner.fetchColumnFamily(LastLocationColumnFamily.NAME);
