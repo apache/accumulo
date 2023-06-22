@@ -27,11 +27,8 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
-import com.google.gson.Gson;
 
 public class ExternalCompactionFinalState {
-
-  private static final Gson GSON = GsonSingleton.getInstance();
 
   public enum FinalState {
     FINISHED, FAILED
@@ -124,11 +121,11 @@ public class ExternalCompactionFinalState {
     jd.fileSize = fileSize;
     jd.entries = fileEntries;
     jd.extent = new Extent(extent);
-    return GSON.toJson(jd);
+    return GsonSingleton.getInstance().toJson(jd);
   }
 
   public static ExternalCompactionFinalState fromJson(ExternalCompactionId ecid, String json) {
-    JsonData jd = GSON.fromJson(json, JsonData.class);
+    JsonData jd = GsonSingleton.getInstance().fromJson(json, JsonData.class);
     return new ExternalCompactionFinalState(ecid, jd.extent.toKeyExtent(),
         FinalState.valueOf(jd.state), jd.fileSize, jd.entries);
   }

@@ -47,8 +47,6 @@ import org.apache.logging.log4j.core.config.Property;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginBuilderFactory;
 
-import com.google.gson.Gson;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -76,7 +74,6 @@ public class AccumuloMonitorAppender extends AbstractAppender {
 
   }
 
-  private final Gson gson = GsonSingleton.getInstance();
   private final HttpClient httpClient = HttpClient.newHttpClient();
   private final Supplier<Optional<URI>> monitorLocator;
 
@@ -119,7 +116,7 @@ public class AccumuloMonitorAppender extends AbstractAppender {
         pojo.message = event.getMessage().getFormattedMessage();
         pojo.stacktrace = throwableToStacktrace(event.getThrown());
 
-        String jsonEvent = gson.toJson(pojo);
+        String jsonEvent = GsonSingleton.getInstance().toJson(pojo);
 
         var req = HttpRequest.newBuilder(uri).POST(BodyPublishers.ofString(jsonEvent, UTF_8))
             .setHeader("Content-Type", "application/json").build();

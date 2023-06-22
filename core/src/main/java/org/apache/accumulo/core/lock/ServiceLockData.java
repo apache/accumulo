@@ -32,11 +32,8 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.GsonSingleton;
 
 import com.google.common.net.HostAndPort;
-import com.google.gson.Gson;
 
 public class ServiceLockData implements Comparable<ServiceLockData> {
-
-  private static final Gson gson = GsonSingleton.getInstance();
 
   /**
    * Thrift Service list
@@ -120,7 +117,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
 
     @Override
     public String toString() {
-      return gson.toJson(this);
+      return GsonSingleton.getInstance().toJson(this);
     }
 
   }
@@ -196,7 +193,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
   public byte[] serialize() {
     ServiceDescriptors sd = new ServiceDescriptors();
     services.values().forEach(s -> sd.addService(s));
-    return gson.toJson(sd).getBytes(UTF_8);
+    return GsonSingleton.getInstance().toJson(sd).getBytes(UTF_8);
   }
 
   @Override
@@ -230,7 +227,8 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     if (data.isBlank()) {
       return Optional.empty();
     }
-    return Optional.of(new ServiceLockData(gson.fromJson(data, ServiceDescriptors.class)));
+    return Optional.of(
+        new ServiceLockData(GsonSingleton.getInstance().fromJson(data, ServiceDescriptors.class)));
   }
 
 }
