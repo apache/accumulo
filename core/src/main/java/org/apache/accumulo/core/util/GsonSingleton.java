@@ -21,7 +21,7 @@ package org.apache.accumulo.core.util;
 import com.google.gson.Gson;
 
 /**
- * Singleton utility for Gson.
+ * This class provides access to a shared instance of Gson that uses its default configuration. If you need to use a Gson instance that is configured differently, you want to configure TypeAdapters for example, then you should not use this. You should construct your own instance of Gson.
  * <p>
  * Gson is thread-safe, so it should be safe to create and reuse a single instance of Gson.
  * </p>
