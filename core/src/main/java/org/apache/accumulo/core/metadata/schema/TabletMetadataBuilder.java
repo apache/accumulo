@@ -263,7 +263,6 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
    *        fetched set. However, for the case where something was not put and it needs to be
    *        fetched it can be passed here. For example to simulate a tablet w/o a location it, no
    *        location will be put and LOCATION would be passed in via this argument.
-   * @return
    */
   public TabletMetadata build(TabletMetadata.ColumnType... extraFetched) {
     var mutation = internalBuilder.getMutation();

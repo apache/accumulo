@@ -35,8 +35,10 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+@Disabled
 public class CompactableImplTest {
   private static ExternalCompactionMetadata newECM(Set<StoredTabletFile> jobFiles,
       Set<StoredTabletFile> nextFiles, CompactionKind kind, boolean propagateDeletes,

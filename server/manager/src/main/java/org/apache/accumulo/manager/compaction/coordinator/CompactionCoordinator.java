@@ -620,12 +620,13 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
   // ELASTICITY_TODO unit test this method
   private boolean canCommitCompaction(ExternalCompactionId ecid, TabletMetadata tabletMetadata) {
-    var extent = tabletMetadata.getExtent();
 
     if (tabletMetadata == null) {
-      LOG.debug("Received completion notification for nonexistent tablet {} {}", ecid, extent);
+      LOG.debug("Received completion notification for nonexistent tablet {}", ecid);
       return false;
     }
+
+    var extent = tabletMetadata.getExtent();
 
     if (tabletMetadata.getOperationId() != null) {
       // split, merge, and delete tablet should delete the compaction entry in the tablet
