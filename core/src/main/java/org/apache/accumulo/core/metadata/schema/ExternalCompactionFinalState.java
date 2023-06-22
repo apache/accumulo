@@ -22,6 +22,7 @@ import java.util.Base64;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.util.GsonSingleton;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
@@ -30,7 +31,7 @@ import com.google.gson.Gson;
 
 public class ExternalCompactionFinalState {
 
-  private static final Gson GSON = new Gson();
+  private static final Gson GSON = GsonSingleton.getInstance();
 
   public enum FinalState {
     FINISHED, FAILED

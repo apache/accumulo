@@ -29,13 +29,14 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.GsonSingleton;
 
 import com.google.common.net.HostAndPort;
 import com.google.gson.Gson;
 
 public class ServiceLockData implements Comparable<ServiceLockData> {
 
-  private static final Gson gson = new Gson();
+  private static final Gson gson = GsonSingleton.getInstance();
 
   /**
    * Thrift Service list

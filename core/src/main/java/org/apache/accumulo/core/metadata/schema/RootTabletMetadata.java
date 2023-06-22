@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.util.GsonSingleton;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,7 +94,7 @@ public class RootTabletMetadata {
     }
   }
 
-  private final Gson gson = new Gson();
+  private final Gson gson = GsonSingleton.getInstance();
   private final Data data;
 
   public RootTabletMetadata(String json) {

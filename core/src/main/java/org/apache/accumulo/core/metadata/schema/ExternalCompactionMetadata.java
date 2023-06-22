@@ -29,6 +29,7 @@ import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.util.GsonSingleton;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.hadoop.fs.Path;
 
@@ -36,7 +37,7 @@ import com.google.gson.Gson;
 
 public class ExternalCompactionMetadata {
 
-  private static final Gson GSON = new Gson();
+  private static final Gson GSON = GsonSingleton.getInstance();
 
   private final Set<StoredTabletFile> jobFiles;
   private final Set<StoredTabletFile> nextFiles;

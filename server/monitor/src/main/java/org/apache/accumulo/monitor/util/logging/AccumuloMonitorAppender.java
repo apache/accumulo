@@ -33,6 +33,7 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
+import org.apache.accumulo.core.util.GsonSingleton;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.monitor.rest.logs.LogResource;
 import org.apache.accumulo.monitor.rest.logs.SingleLogEvent;
@@ -75,7 +76,7 @@ public class AccumuloMonitorAppender extends AbstractAppender {
 
   }
 
-  private final Gson gson = new Gson();
+  private final Gson gson = GsonSingleton.getInstance();
   private final HttpClient httpClient = HttpClient.newHttpClient();
   private final Supplier<Optional<URI>> monitorLocator;
 
