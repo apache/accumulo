@@ -139,16 +139,16 @@ public class LowMemoryDetector {
       final long allocatedMemory = rt.totalMemory();
       final long allocatedFreeMemory = rt.freeMemory();
       final long freeMemory = maxConfiguredMemory - (allocatedMemory - allocatedFreeMemory);
-      final double lowMemoryThreshold = maxConfiguredMemory * freeMemoryPercentage;
+      final long lowMemoryThreshold = (long) (maxConfiguredMemory * freeMemoryPercentage);
       LOG.trace("Memory info: max={}, allocated={}, free={}, free threshold={}",
-          maxConfiguredMemory, allocatedMemory, freeMemory, (long) lowMemoryThreshold);
+          maxConfiguredMemory, allocatedMemory, freeMemory, lowMemoryThreshold);
 
-      if (freeMemory < (long) lowMemoryThreshold) {
+      if (freeMemory < lowMemoryThreshold) {
         lowMemCount++;
         if (lowMemCount > 3 && !runningLowOnMemory) {
           runningLowOnMemory = true;
           LOG.warn("Running low on memory: max={}, allocated={}, free={}, free threshold={}",
-              maxConfiguredMemory, allocatedMemory, freeMemory, (long) lowMemoryThreshold);
+              maxConfiguredMemory, allocatedMemory, freeMemory, lowMemoryThreshold);
         }
       } else {
         // If we were running low on memory, but are not any longer, than log at warn
@@ -166,12 +166,7 @@ public class LowMemoryDetector {
         sawChange = true;
       }
 
-      String sign = "+";
-      if (freeMemory - lastMemorySize <= 0) {
-        sign = "";
-      }
-
-      sb.append(String.format(" freemem=%,d(%s%,d) totalmem=%,d", freeMemory, sign,
+      sb.append(String.format(" freemem=%,d(%+,d) totalmem=%,d", freeMemory,
           (freeMemory - lastMemorySize), rt.totalMemory()));
 
       if (sawChange) {

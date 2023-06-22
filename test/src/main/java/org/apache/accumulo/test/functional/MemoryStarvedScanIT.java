@@ -492,10 +492,10 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
 
         // check across multiple low memory checks and metric updates that low memory detected
         // remains set
-        int checkCount = 6;
-        while (checkCount-- > 0) {
+        int checkCount = 0;
+        while (checkCount++ < 5) {
           Thread.sleep(5_000);
-          LOG.debug("Check low memory still set. Low Memeory Flag: {}, Check count: {}",
+          LOG.debug("Check low memory still set. Low Memory Flag: {}, Check count: {}",
               LOW_MEM_DETECTED.get(), checkCount);
           assertEquals(1, LOW_MEM_DETECTED.get());
         }
