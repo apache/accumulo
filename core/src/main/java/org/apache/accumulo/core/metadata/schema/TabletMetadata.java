@@ -597,6 +597,15 @@ public class TabletMetadata {
     return te;
   }
 
+  /**
+   * Sets a location only once.
+   *
+   * @param val server to set for Location object
+   * @param qual session to set for Location object
+   * @param lt location type to use to construct Location object
+   * @param suppressError set to true to suppress an exception being thrown, else false
+   * @throws IllegalStateException if an operation id or location is already set
+   */
   private void setLocationOnce(String val, String qual, LocationType lt, boolean suppressError) {
     if (location != null) {
       if (!suppressError) {
@@ -605,15 +614,38 @@ public class TabletMetadata {
       }
       futureAndCurrentLocationSet = true;
     }
+    if (operationId != null) {
+      if (!suppressError) {
+        throw new IllegalStateException(
+            "Attempted to set location for tablet with an operation id. table ID: " + tableId
+                + " endrow: " + endRow + " -- operation id: " + operationId);
+      }
+    }
     location = new Location(val, qual, lt);
   }
 
+  /**
+   * Sets an operation ID only once.
+   *
+   * @param val operation id to set
+   * @param suppressError set to true to suppress an exception being thrown, else false
+   * @throws IllegalStateException if an operation id or location is already set
+   */
   private void setOperationIdOnce(String val, boolean suppressError) {
-    if (location != null || operationId != null) {
+    // make sure there is not already an operation ID
+    if (operationId != null) {
+      if (!suppressError) {
+        throw new IllegalStateException(
+            "Attempted to set operation id for tablet that already has one. table ID: " + tableId
+                + " endrow: " + endRow + " -- operation id: " + operationId);
+      }
+    }
+    // make sure there is not already a current location set
+    if (location != null) {
       if (!suppressError) {
         throw new IllegalStateException(
             "Attempted to set operation id for tablet with current location. table ID: " + tableId
-                + " endrow: " + endRow + " -- " + location);
+                + " endrow: " + endRow + " -- location: " + location);
       }
       operationIdAndCurrentLocationSet = true;
     }
