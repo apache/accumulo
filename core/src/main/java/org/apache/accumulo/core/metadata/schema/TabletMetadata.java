@@ -620,6 +620,7 @@ public class TabletMetadata {
             "Attempted to set location for tablet with an operation id. table ID: " + tableId
                 + " endrow: " + endRow + " -- operation id: " + operationId);
       }
+      operationIdAndCurrentLocationSet = true;
     }
     location = new Location(val, qual, lt);
   }
@@ -632,14 +633,7 @@ public class TabletMetadata {
    * @throws IllegalStateException if an operation id or location is already set
    */
   private void setOperationIdOnce(String val, boolean suppressError) {
-    // make sure there is not already an operation ID
-    if (operationId != null) {
-      if (!suppressError) {
-        throw new IllegalStateException(
-            "Attempted to set operation id for tablet that already has one. table ID: " + tableId
-                + " endrow: " + endRow + " -- operation id: " + operationId);
-      }
-    }
+    Preconditions.checkState(operationId == null);
     // make sure there is not already a current location set
     if (location != null) {
       if (!suppressError) {
