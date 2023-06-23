@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -80,7 +81,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.bouncycastle.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -418,15 +418,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       client.tableOperations().create(tableName, ntc);
 
       byte[] data = new byte[100000];
-      Arrays.fill(data, (byte) 65);
-      try (var writer = client.createBatchWriter(tableName)) {
-        for (int row = 0; row < 10; row++) {
-          Mutation m = new Mutation(row + "");
-          m.at().family("big").qualifier("stuff").put(data);
-          writer.addMutation(m);
-        }
-      }
-      client.tableOperations().flush(tableName, null, null, true);
+      generateConfigurerTestData(tableName, client, data);
 
       // without compression, expect file to be large
       long sizes = CompactionExecutorIT.getFileSizes(client, tableName);
@@ -452,6 +444,55 @@ public class CompactionIT extends AccumuloClusterHarness {
           "Unexpected files sizes : " + sizes);
 
     }
+  }
+
+  @Test
+  public void testConfigurerSetOnTable() throws Exception {
+    String tableName = this.getUniqueNames(1)[0];
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      byte[] data = new byte[100000];
+
+      Map<String,
+          String> props = Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none",
+              Property.TABLE_COMPACTION_CONFIGURER.getKey(), CompressionConfigurer.class.getName(),
+              Property.TABLE_COMPACTION_CONFIGURER_OPTS.getKey()
+                  + CompressionConfigurer.LARGE_FILE_COMPRESSION_TYPE,
+              "gz", Property.TABLE_COMPACTION_CONFIGURER_OPTS.getKey()
+                  + CompressionConfigurer.LARGE_FILE_COMPRESSION_THRESHOLD,
+              "" + data.length);
+      NewTableConfiguration ntc = new NewTableConfiguration().setProperties(props);
+      client.tableOperations().create(tableName, ntc);
+
+      generateConfigurerTestData(tableName, client, data);
+
+      // without compression, expect file to be large
+      long sizes = CompactionExecutorIT.getFileSizes(client, tableName);
+      assertTrue(sizes > data.length * 10 && sizes < data.length * 11,
+          "Unexpected files sizes : " + sizes);
+
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+
+      // after compacting with compression, expect small file
+      sizes = CompactionExecutorIT.getFileSizes(client, tableName);
+      assertTrue(sizes < data.length,
+          "Unexpected files sizes: data: " + data.length + ", file:" + sizes);
+
+    }
+  }
+
+  private static void generateConfigurerTestData(String tableName, AccumuloClient client,
+      byte[] data) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    Arrays.fill(data, (byte) 65);
+    try (var writer = client.createBatchWriter(tableName)) {
+      for (int row = 0; row < 10; row++) {
+        Mutation m = new Mutation(row + "");
+        m.at().family("big").qualifier("stuff").put(data);
+        writer.addMutation(m);
+      }
+    }
+    client.tableOperations().flush(tableName, null, null, true);
   }
 
   @Test
