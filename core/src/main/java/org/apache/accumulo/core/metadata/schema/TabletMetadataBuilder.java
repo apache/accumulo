@@ -59,6 +59,7 @@ public class TabletMetadataBuilder implements Ample.TabletUpdates<TabletMetadata
       super(extent);
     }
 
+    @Override
     public Mutation getMutation() {
       return super.getMutation();
     }

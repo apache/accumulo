@@ -94,6 +94,7 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
 
   }
 
+  @Override
   public Key getTopKey() {
     if (startKey == null) {
       throw new IllegalStateException("never been seeked");
