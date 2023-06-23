@@ -622,10 +622,10 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   // split, verify that the new splits contain the appropriate hosting goal of the tablet from
   // which they wre split. Steps are as follows:
   // - create table
-  // - add split 'm'
-  // - set goal ALWAYS on last tablet
-  // - add splits 'd' and 's'
-  // - verify the first two tablets have ONDEMAND and two remaining tablets have ALWAYS goal
+  // - add two splits; leave first tablet to default ONDEMAND, seconds to NEVER, third to ALWAYS
+  // - add an additional split within each of the three existing tablets
+  // - verify the newly created tablets are set with the hostingGoals of the tablet from which they
+  // are split.
   @Test
   public void testGetHostingGoals_StaggeredSplits() throws AccumuloException, TableExistsException,
       AccumuloSecurityException, TableNotFoundException {
@@ -636,34 +636,40 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       accumuloClient.tableOperations().create(tableName);
       String tableId = accumuloClient.tableOperations().tableIdMap().get(tableName);
 
-      // add split 'm' and set last tablet to ALWAYS
-      SortedSet<Text> splits = Sets.newTreeSet(List.of(new Text("m")));
+      // add split 'h' and 'q'. Leave first as ONDEMAND, set second to NEVER, and third to ALWAYS
+      SortedSet<Text> splits = Sets.newTreeSet(Arrays.asList(new Text("h"), new Text("q")));
       accumuloClient.tableOperations().addSplits(tableName, splits);
-      Range range = new Range(new Text("m"), false, null, true);
+      Range range = new Range(new Text("h"), false, new Text("q"), true);
+      accumuloClient.tableOperations().setTabletHostingGoal(tableName, range,
+          TabletHostingGoal.NEVER);
+      range = new Range(new Text("q"), false, null, true);
       accumuloClient.tableOperations().setTabletHostingGoal(tableName, range,
           TabletHostingGoal.ALWAYS);
 
       // verify
       List<HostingGoalForTablet> expectedGoals = new ArrayList<>();
-      setExpectedGoal(expectedGoals, tableId, "m", null, TabletHostingGoal.ONDEMAND);
-      setExpectedGoal(expectedGoals, tableId, null, "m", TabletHostingGoal.ALWAYS);
+      setExpectedGoal(expectedGoals, tableId, "h", null, TabletHostingGoal.ONDEMAND);
+      setExpectedGoal(expectedGoals, tableId, "q", "h", TabletHostingGoal.NEVER);
+      setExpectedGoal(expectedGoals, tableId, null, "q", TabletHostingGoal.ALWAYS);
 
       List<HostingGoalForTablet> hostingInfo = accumuloClient.tableOperations()
           .getTabletHostingGoal(tableName, new Range()).collect(Collectors.toList());
 
       assertEquals(expectedGoals, hostingInfo);
 
-      // Add two additional splits, 'd' and 's'
-      splits = Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("s")));
+      // Add a split within each of the existing tablets. Adding 'd', 'm', and 'v'
+      splits = Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("v")));
       accumuloClient.tableOperations().addSplits(tableName, splits);
 
       // verify results
       expectedGoals.clear();
       hostingInfo.clear();
       setExpectedGoal(expectedGoals, tableId, "d", null, TabletHostingGoal.ONDEMAND);
-      setExpectedGoal(expectedGoals, tableId, "m", "d", TabletHostingGoal.ONDEMAND);
-      setExpectedGoal(expectedGoals, tableId, "s", "m", TabletHostingGoal.ALWAYS);
-      setExpectedGoal(expectedGoals, tableId, null, "s", TabletHostingGoal.ALWAYS);
+      setExpectedGoal(expectedGoals, tableId, "h", "d", TabletHostingGoal.ONDEMAND);
+      setExpectedGoal(expectedGoals, tableId, "m", "h", TabletHostingGoal.NEVER);
+      setExpectedGoal(expectedGoals, tableId, "q", "m", TabletHostingGoal.NEVER);
+      setExpectedGoal(expectedGoals, tableId, "v", "q", TabletHostingGoal.ALWAYS);
+      setExpectedGoal(expectedGoals, tableId, null, "v", TabletHostingGoal.ALWAYS);
 
       hostingInfo = accumuloClient.tableOperations().getTabletHostingGoal(tableName, new Range())
           .collect(Collectors.toList());
