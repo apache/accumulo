@@ -608,7 +608,7 @@ public enum Property {
       "The maximum number of files a compaction will open", "2.1.0"),
   TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
       "tserver.compaction.major.service.default.planner.opts.executors",
-      ("[{'name':'small','type':'external','maxSize':'128M','queue':'user-small'}, {'name':'large','type':'external','queue':'user-large'}]")
+      ("[{'name':'small','type':'external','maxSize':'128M','group':'user-small'}, {'name':'large','type':'external','group':'user-large'}]")
           .replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} ",
@@ -1106,8 +1106,8 @@ public enum Property {
   COMPACTOR_MAX_MESSAGE_SIZE("compactor.message.size.max", "10M", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a tablet server.", "2.1.0"),
   @Experimental
-  COMPACTOR_QUEUE_NAME("compactor.queue", Constants.DEFAULT_RESOURCE_GROUP_NAME,
-      PropertyType.STRING, "The queue for which this Compactor will perform compactions", "3.0.0"),
+  COMPACTOR_GROUP_NAME("compactor.group", Constants.DEFAULT_RESOURCE_GROUP_NAME,
+      PropertyType.STRING, "Resource group name for this Compactor.", "3.0.0"),
   // CompactionCoordinator properties
   @Experimental
   COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,

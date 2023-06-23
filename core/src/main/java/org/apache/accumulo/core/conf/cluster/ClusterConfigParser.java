@@ -118,7 +118,7 @@ public class ClusterConfigParser {
             .map(k -> k.substring(compactorPrefix.length())).collect(Collectors.toSet());
 
     if (!compactorQueues.isEmpty()) {
-      out.printf(PROPERTY_FORMAT, "COMPACTION_QUEUES",
+      out.printf(PROPERTY_FORMAT, "COMPACTION_GROUPS",
           compactorQueues.stream().collect(Collectors.joining(" ")));
       for (String queue : compactorQueues) {
         out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + queue,

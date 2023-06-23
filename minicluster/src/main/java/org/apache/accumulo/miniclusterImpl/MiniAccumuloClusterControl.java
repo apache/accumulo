@@ -233,7 +233,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
             int count = 0;
             for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
               processes.add(cluster._exec(classToUse, server, configOverrides, "-o",
-                  Property.COMPACTOR_QUEUE_NAME.getKey() + "=" + e.getKey()).getProcess());
+                  Property.COMPACTOR_GROUP_NAME.getKey() + "=" + e.getKey()).getProcess());
             }
           }
         }

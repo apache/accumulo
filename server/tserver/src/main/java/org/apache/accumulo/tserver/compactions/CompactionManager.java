@@ -302,12 +302,12 @@ public class CompactionManager {
             .mapToInt(ee -> ee.getCompactionsQueued(CType.EXTERNAL)).sum();
   }
 
-  public ExternalCompactionJob reserveExternalCompaction(String queueName, long priority,
+  public ExternalCompactionJob reserveExternalCompaction(String groupName, long priority,
       String compactorId, ExternalCompactionId externalCompactionId) {
-    log.debug("Attempting to reserve external compaction, queue:{} priority:{} compactor:{}",
-        queueName, priority, compactorId);
+    log.debug("Attempting to reserve external compaction, group:{} priority:{} compactor:{}",
+        groupName, priority, compactorId);
 
-    ExternalCompactionExecutor extCE = getExternalExecutor(queueName);
+    ExternalCompactionExecutor extCE = getExternalExecutor(groupName);
     var ecJob = extCE.reserveExternalCompaction(priority, compactorId, externalCompactionId);
     if (ecJob != null) {
       runningExternalCompactions.put(ecJob.getExternalCompactionId(),
@@ -321,8 +321,8 @@ public class CompactionManager {
     return externalExecutors.computeIfAbsent(ceid, id -> new ExternalCompactionExecutor(id));
   }
 
-  ExternalCompactionExecutor getExternalExecutor(String queueName) {
-    return getExternalExecutor(CompactionExecutorIdImpl.externalId(queueName));
+  ExternalCompactionExecutor getExternalExecutor(String groupName) {
+    return getExternalExecutor(CompactionExecutorIdImpl.externalId(groupName));
   }
 
   public void registerExternalCompaction(ExternalCompactionId ecid, KeyExtent extent,

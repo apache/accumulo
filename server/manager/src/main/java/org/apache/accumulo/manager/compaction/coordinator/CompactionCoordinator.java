@@ -110,8 +110,8 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   private static final Cache<ExternalCompactionId,RunningCompaction> COMPLETED =
       Caffeine.newBuilder().maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
-  /* Map of queue name to last time compactor called to get a compaction job */
-  // ELASTICITY_TODO need to clean out queues that are no longer configured..
+  /* Map of group name to last time compactor called to get a compaction job */
+  // ELASTICITY_TODO need to clean out groups that are no longer configured..
   private static final Map<String,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
 
   private final ServerContext ctx;
@@ -174,7 +174,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
     startDeadCompactionDetector();
 
-    // ELASTICITY_TODO the main function of the following loop was getting queue summaries from
+    // ELASTICITY_TODO the main function of the following loop was getting group summaries from
     // tservers. Its no longer doing that. May be best to remove the loop and make the remaining
     // task a scheduled one.
 
@@ -185,9 +185,9 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
       long now = System.currentTimeMillis();
       TIME_COMPACTOR_LAST_CHECKED.forEach((k, v) -> {
         if ((now - v) > getMissingCompactorWarningTime()) {
-          // ELASTICITY_TODO may want to consider of the queue has any jobs queued OR if the queue
+          // ELASTICITY_TODO may want to consider of the group has any jobs queued OR if the group
           // still exist in configuration
-          LOG.warn("No compactors have checked in with coordinator for queue {} in {}ms", k,
+          LOG.warn("No compactors have checked in with coordinator for group {} in {}ms", k,
               getMissingCompactorWarningTime());
         }
       });
@@ -195,7 +195,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
       long checkInterval = getTServerCheckInterval();
       long duration = (System.currentTimeMillis() - start);
       if (checkInterval - duration > 0) {
-        LOG.debug("Waiting {}ms for next queue check", (checkInterval - duration));
+        LOG.debug("Waiting {}ms for next group check", (checkInterval - duration));
         UtilWaitThread.sleep(checkInterval - duration);
       }
     }
@@ -232,14 +232,14 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   /**
    * Return the next compaction job from the queue to a Compactor
    *
-   * @param queueName queue
+   * @param groupName group
    * @param compactorAddress compactor address
    * @throws ThriftSecurityException when permission error
    * @return compaction job
    */
   @Override
   public TExternalCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
-      String queueName, String compactorAddress, String externalCompactionId)
+      String groupName, String compactorAddress, String externalCompactionId)
       throws ThriftSecurityException {
 
     // do not expect users to call this directly, expect compactors to call this method
@@ -247,14 +247,14 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    final String queue = queueName.intern();
-    LOG.trace("getCompactionJob called for queue {} by compactor {}", queue, compactorAddress);
-    TIME_COMPACTOR_LAST_CHECKED.put(queue, System.currentTimeMillis());
+    final String group = groupName.intern();
+    LOG.trace("getCompactionJob called for group {} by compactor {}", group, compactorAddress);
+    TIME_COMPACTOR_LAST_CHECKED.put(group, System.currentTimeMillis());
 
     TExternalCompactionJob result = null;
 
     CompactionJobQueues.MetaJob metaJob =
-        jobQueues.poll(CompactionExecutorIdImpl.externalId(queueName));
+        jobQueues.poll(CompactionExecutorIdImpl.externalId(groupName));
 
     if (metaJob != null) {
       ExternalCompactionMetadata ecm =
@@ -265,7 +265,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
         // It is possible that by the time this added that the the compactor that made this request
         // is dead. In this cases the compaction is not actually running.
         RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
-            new RunningCompaction(result, compactorAddress, queue));
+            new RunningCompaction(result, compactorAddress, group));
         LOG.debug("Returning external job {} to {} with {} files", result.externalCompactionId,
             compactorAddress, ecm.getJobFiles().size());
       } else {
@@ -273,11 +273,11 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
       }
       // create TExternalCompactionJob if above is successful and return it
     } else {
-      LOG.debug("No jobs found in queue {} ", queue);
+      LOG.debug("No jobs found in group {} ", group);
     }
 
     if (result == null) {
-      LOG.trace("No tservers found for queue {}, returning empty job to compactor {}", queue,
+      LOG.trace("No tservers found for group {}, returning empty job to compactor {}", group,
           compactorAddress);
       result = new TExternalCompactionJob();
     }
@@ -617,7 +617,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     final TExternalCompactionList result = new TExternalCompactionList();
     RUNNING_CACHE.forEach((ecid, rc) -> {
       TExternalCompaction trc = new TExternalCompaction();
-      trc.setQueueName(rc.getQueueName());
+      trc.setGroupName(rc.getGroupName());
       trc.setCompactor(rc.getCompactorAddress());
       trc.setUpdates(rc.getUpdates());
       trc.setJob(rc.getJob());
@@ -645,7 +645,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     final TExternalCompactionList result = new TExternalCompactionList();
     COMPLETED.asMap().forEach((ecid, rc) -> {
       TExternalCompaction trc = new TExternalCompaction();
-      trc.setQueueName(rc.getQueueName());
+      trc.setGroupName(rc.getGroupName());
       trc.setCompactor(rc.getCompactorAddress());
       trc.setJob(rc.getJob());
       trc.setUpdates(rc.getUpdates());
@@ -710,10 +710,10 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     var zoorw = this.ctx.getZooReaderWriter();
 
     try {
-      var queues = zoorw.getChildren(compactorQueuesPath);
+      var groups = zoorw.getChildren(compactorQueuesPath);
 
-      for (String queue : queues) {
-        String qpath = compactorQueuesPath + "/" + queue;
+      for (String group : groups) {
+        String qpath = compactorQueuesPath + "/" + group;
 
         var compactors = zoorw.getChildren(qpath);
 
@@ -722,8 +722,8 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
         }
 
         for (String compactor : compactors) {
-          String cpath = compactorQueuesPath + "/" + queue + "/" + compactor;
-          var lockNodes = zoorw.getChildren(compactorQueuesPath + "/" + queue + "/" + compactor);
+          String cpath = compactorQueuesPath + "/" + group + "/" + compactor;
+          var lockNodes = zoorw.getChildren(compactorQueuesPath + "/" + group + "/" + compactor);
           if (lockNodes.isEmpty()) {
             deleteEmpty(zoorw, cpath);
           }

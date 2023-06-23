@@ -1322,7 +1322,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   @Override
   public TExternalCompactionJob reserveCompactionJob(TInfo tinfo, TCredentials credentials,
-      String queueName, long priority, String compactor, String externalCompactionId)
+      String groupName, long priority, String compactor, String externalCompactionId)
       throws ThriftSecurityException, TException {
 
     if (!security.canPerformSystemActions(credentials)) {
@@ -1332,7 +1332,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     ExternalCompactionId eci = ExternalCompactionId.of(externalCompactionId);
 
-    var extCompaction = server.getCompactionManager().reserveExternalCompaction(queueName, priority,
+    var extCompaction = server.getCompactionManager().reserveExternalCompaction(groupName, priority,
         compactor, eci);
 
     if (extCompaction != null) {

@@ -72,7 +72,7 @@ function parse_config {
     exit 1
   fi
 
-  for queue in $COMPACTION_QUEUES; do
+  for queue in $COMPACTION_GROUPS; do
     Q="COMPACTOR_HOSTS_${queue}"
     if [[ -z ${!Q} ]]; then
       echo "WARN: External compaction queue $queue configured, but no compactors configured for it"
@@ -190,10 +190,10 @@ function start_all() {
     done
   done
 
-  for queue in $COMPACTION_QUEUES; do
+  for queue in $COMPACTION_GROUPS; do
     Q="COMPACTOR_HOSTS_${queue}"
     for compactor in ${!Q}; do
-      start_service "$compactor" compactor "-o" "compactor.queue=$queue"
+      start_service "$compactor" compactor "-o" "compactor.group=$queue"
     done
   done
 
@@ -250,7 +250,7 @@ function start_here() {
     done
   done
 
-  for queue in $COMPACTION_QUEUES; do
+  for queue in $COMPACTION_GROUPS; do
     for host in $local_hosts; do
       Q="COMPACTOR_HOSTS_${queue}"
       for compactor in ${!Q}; do
@@ -319,10 +319,10 @@ function kill_all() {
     kill_service "$host" tserver
   done
 
-  for queue in $COMPACTION_QUEUES; do
+  for queue in $COMPACTION_GROUPS; do
     Q="COMPACTOR_HOSTS_${queue}"
     for compactor in ${!Q}; do
-      kill_service "$compactor" compactor "-o" "compactor.queue=$queue"
+      kill_service "$compactor" compactor "-o" "compactor.group=$queue"
     done
   done
 
@@ -367,10 +367,10 @@ function stop_all() {
       done
     done
 
-    for queue in $COMPACTION_QUEUES; do
+    for queue in $COMPACTION_GROUPS; do
       Q="COMPACTOR_HOSTS_${queue}"
       for compactor in ${!Q}; do
-        end_service $end_cmd "$compactor" compactor "-o" "compactor.queue=$queue"
+        end_service $end_cmd "$compactor" compactor "-o" "compactor.group=$queue"
       done
     done
 
@@ -410,10 +410,10 @@ function stop_here() {
           end_service $end_cmd "$sserver" sserver "-o" "sserver.group=$group"
         done
       done
-      for queue in $COMPACTION_QUEUES; do
+      for queue in $COMPACTION_GROUPS; do
         Q="COMPACTOR_HOSTS_${queue}"
         for compactor in ${!Q}; do
-          end_service $end_cmd "$host" compactor "-o" "compactor.queue=$queue"
+          end_service $end_cmd "$host" compactor "-o" "compactor.group=$queue"
         done
       done
     done

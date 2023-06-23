@@ -215,7 +215,7 @@ public class ClusterConfigParserTest {
     expected.put("MONITOR_HOSTS", "localhost1 localhost2");
     expected.put("GC_HOSTS", "localhost");
     expected.put("TSERVER_HOSTS", "localhost1 localhost2 localhost3 localhost4");
-    expected.put("COMPACTION_QUEUES", "q1 q2");
+    expected.put("COMPACTION_GROUPS", "q1 q2");
     expected.put("COMPACTOR_HOSTS_q1", "localhost1 localhost2");
     expected.put("COMPACTOR_HOSTS_q2", "localhost3 localhost4");
     expected.put("SSERVER_GROUPS", "default highmem cheap");

@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionCompleted;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
@@ -82,7 +82,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
   @Test
   public void testMergeCancelsExternalCompaction() throws Exception {
 
-    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP1, 1);
     getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
         ExternalDoNothingCompactor.class);
 
@@ -143,7 +143,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
   @Test
   public void testCoordinatorRestartsDuringCompaction() throws Exception {
 
-    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE2, 1);
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP2, 1);
     getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
         ExternalDoNothingCompactor.class);
 
@@ -153,7 +153,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
 
       createTable(client, table1, "cs2", 2);
       writeData(client, table1);
-      compact(client, table1, 2, QUEUE2, false);
+      compact(client, table1, 2, GROUP2, false);
 
       TableId tid = getCluster().getServerContext().getTableId(table1);
 

@@ -72,7 +72,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
         + "tserver.compaction.major.service.cs2.planner.opts.executors=\\\n"
         + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':7},\\\n"
         + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':5},\\\n"
-        + "{'name':'large','type':'external','queue':'DCQ1'}]").replaceAll("'", "\"");
+        + "{'name':'large','type':'external','group':'DCQ1'}]").replaceAll("'", "\"");
 
     String filePath = writeToFileAndReturnPath(inputString);
 
