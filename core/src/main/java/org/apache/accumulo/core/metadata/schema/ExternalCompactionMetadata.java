@@ -130,7 +130,7 @@ public class ExternalCompactionMetadata {
 
     jData.inputs = jobFiles.stream().map(StoredTabletFile::getMetadata).collect(toList());
     jData.nextFiles = nextFiles.stream().map(StoredTabletFile::getMetadata).collect(toList());
-    jData.tmp = compactTmpName.getMetadata();
+    jData.tmp = compactTmpName.insert().getMetadata();
     jData.compactor = compactorId;
     jData.kind = kind.name();
     jData.executorId = ((CompactionExecutorIdImpl) ceid).getExternalName();

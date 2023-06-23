@@ -83,7 +83,8 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putFile(ReferencedTabletFile path, DataFileValue dfv) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(DataFileColumnFamily.NAME, path.getMetadataText(), new Value(dfv.encode()));
+    mutation.put(DataFileColumnFamily.NAME, path.insert().getMetadataText(),
+        new Value(dfv.encode()));
     return this;
   }
 
@@ -196,7 +197,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putBulkFile(ReferencedTabletFile bulkref, long tid) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(BulkFileColumnFamily.NAME, bulkref.getMetadataText(),
+    mutation.put(BulkFileColumnFamily.NAME, bulkref.insert().getMetadataText(),
         new Value(FateTxId.formatTid(tid)));
     return this;
   }

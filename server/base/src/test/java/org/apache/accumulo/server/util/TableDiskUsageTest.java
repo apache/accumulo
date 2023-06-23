@@ -279,9 +279,8 @@ public class TableDiskUsageTest {
 
   private static void appendFileMetadata(Map<Key,Value> tableEntries, ReferencedTabletFile file,
       long size) {
-    tableEntries.put(
-        new Key(new Text(file.getTableId() + "<"),
-            MetadataSchema.TabletsSection.DataFileColumnFamily.NAME, file.getMetadataText()),
+    tableEntries.put(new Key(new Text(file.getTableId() + "<"),
+        MetadataSchema.TabletsSection.DataFileColumnFamily.NAME, file.insert().getMetadataText()),
         new DataFileValue(size, 1).encodeAsValue());
   }
 

@@ -76,12 +76,13 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
    * and deleting metadata entries. If the exact string is not used, erroneous entries can pollute
    * the metadata table.
    */
-  @Override
   public String getMetadata() {
     return metadataEntry;
   }
 
-  @Override
+  /**
+   * Returns just the Path portion of the metadata, not the full Json.
+   */
   public String getMetadataPath() {
     return metadataEntryPath;
   }
@@ -89,7 +90,6 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   /**
    * Return a new Text object of {@link #getMetadata()}
    */
-  @Override
   public Text getMetadataText() {
     return new Text(getMetadata());
   }

@@ -24,7 +24,6 @@ import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
@@ -93,7 +92,7 @@ public interface VolumeManager extends AutoCloseable {
     }
 
     public Path removeVolume(Path path) {
-      String pathString = Objects.requireNonNull(path).toString();
+      String pathString = path.toString();
 
       int eopi = endOfVolumeIndex(pathString, dir);
       if (eopi != -1) {

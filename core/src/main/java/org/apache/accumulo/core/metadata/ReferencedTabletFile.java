@@ -26,7 +26,6 @@ import java.util.Objects;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,27 +104,6 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
    */
   public String getNormalizedPathStr() {
     return normalizedPath;
-  }
-
-  /**
-   * Return a string for inserting a new tablet file.
-   */
-  @Override
-  public String getMetadata() {
-    return insert().getMetadata();
-  }
-
-  @Override
-  public String getMetadataPath() {
-    return insert().getMetadataPath();
-  }
-
-  /**
-   * Return a new Text object of {@link #getMetadata()}
-   */
-  @Override
-  public Text getMetadataText() {
-    return insert().getMetadataText();
   }
 
   /**

@@ -22,7 +22,6 @@ import java.util.Objects;
 
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 
 /**
  * A base class used to represent file references that are handled by code that processes tablet
@@ -62,17 +61,5 @@ public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
   public boolean hasRange() {
     return !range.isInfiniteStartKey() || !range.isInfiniteStopKey();
   }
-
-  /**
-   * Return the exact string (full Json with range) that is stored in the metadata table.
-   */
-  public abstract String getMetadata();
-
-  public abstract Text getMetadataText();
-
-  /**
-   * Returns just the Path portion of the metadata, not the full Json.
-   */
-  public abstract String getMetadataPath();
 
 }
