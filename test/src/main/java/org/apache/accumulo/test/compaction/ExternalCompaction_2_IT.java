@@ -20,7 +20,6 @@ package org.apache.accumulo.test.compaction;
 
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE3;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE4;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE5;
@@ -44,7 +43,6 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
@@ -87,12 +85,15 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
   public void tearDown() throws Exception {
     // The ExternalDoNothingCompactor needs to be restarted between tests
     getCluster().getClusterControl().stop(ServerType.COMPACTOR);
+    getCluster().getConfig().getClusterServerConfiguration().clearCompactorResourceGroups();
   }
 
   @Test
   public void testSplitCancelsExternalCompaction() throws Exception {
 
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE1);
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);
+    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+        ExternalDoNothingCompactor.class);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
@@ -184,7 +185,8 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       t.start();
 
       // Start the compactor
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
       // Wait for the compaction to start by waiting for 1 external compaction column
       Set<ExternalCompactionId> ecids = ExternalCompactionTestUtils
@@ -230,7 +232,9 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
   @Test
   public void testUserCompactionCancellation() throws Exception {
 
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE3);
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE3, 1);
+    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+        ExternalDoNothingCompactor.class);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
@@ -265,7 +269,9 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
   @Test
   public void testDeleteTableCancelsUserExternalCompaction() throws Exception {
 
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE4);
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE4, 1);
+    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+        ExternalDoNothingCompactor.class);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
@@ -294,7 +300,10 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
 
   @Test
   public void testDeleteTableCancelsExternalCompaction() throws Exception {
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE5);
+
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE5, 1);
+    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+        ExternalDoNothingCompactor.class);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =

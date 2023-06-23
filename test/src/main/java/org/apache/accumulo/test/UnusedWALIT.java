@@ -63,7 +63,7 @@ public class UnusedWALIT extends ConfigurableMacBase {
     final long logSize = 1024 * 1024 * 10;
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, Long.toString(logSize));
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     hadoopCoreSite.set("fs.namenode.fs-limits.min-block-size", Long.toString(logSize));

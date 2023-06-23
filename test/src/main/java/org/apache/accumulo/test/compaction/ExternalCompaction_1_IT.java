@@ -52,7 +52,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.compactor.ExtCEnv.CompactorIterEnv;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -107,7 +106,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
-      cfg.setNumCompactors(2);
     }
   }
 
@@ -122,6 +120,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   public void tearDown() throws Exception {
     // The ExternalDoNothingCompactor needs to be restarted between tests
     getCluster().getClusterControl().stop(ServerType.COMPACTOR);
+    getCluster().getConfig().getClusterServerConfiguration().clearCompactorResourceGroups();
   }
 
   public static class TestFilter extends Filter {
@@ -181,9 +180,9 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table1);
       writeData(client, table2);
 
-      // ELASTICITIY_TODO do not need to start compactors
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE2, 1);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
       compact(client, table1, 2, QUEUE1, true);
       verify(client, table1, 2);
@@ -214,12 +213,16 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // Start our TServer that will not commit the compaction
       // ELASTICITY_TODO this will likely no longer work now that compactions do not run in the
       // tserver
-      ProcessInfo tserverProcess = getCluster().exec(ExternalCompactionTServer.class);
+      getCluster().getClusterControl().start(TABLET_SERVER, null, 1,
+          ExternalCompactionTServer.class);
+      getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
       createTable(client, table1, "cs3", 2);
       writeData(client, table1);
 
-      getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE3);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE3, 1);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+          ExternalDoNothingCompactor.class);
 
       compact(client, table1, 2, QUEUE3, false);
       TableId tid = getCluster().getServerContext().getTableId(table1);
@@ -243,7 +246,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // compaction above in the test. Even though the external compaction was cancelled
       // because we split the table, FaTE will continue to queue up a compaction
       client.tableOperations().cancelCompaction(table1);
-      getCluster().stopProcessWithTimeout(tserverProcess.getProcess(), 30, TimeUnit.SECONDS);
       getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
     } finally {
       // We stopped the TServer and started our own, restart the original TabletServers
@@ -263,7 +265,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table1);
 
       // ELASTICITY_TODO there is already one compactor started by mini based on config
-      getCluster().getClusterControl().startCompactors(Compactor.class, 2, QUEUE4);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE4, 2);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
       compact(client, table1, 3, QUEUE4, true);
 
@@ -275,7 +278,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   public void testConfigurer() throws Exception {
     String tableName = this.getUniqueNames(1)[0];
 
-    getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE5);
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE5, 1);
+    getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
@@ -350,7 +354,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       createTable(client, table1, "cs6");
       writeData(client, table1);
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE6);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE6, 1);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
       compact(client, table1, 2, QUEUE6, true);
       verify(client, table1, 2);
 
@@ -388,7 +393,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       createTable(client, table3, "cs7");
       writeData(client, table3);
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE7);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE7, 1);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
       compact(client, table3, 2, QUEUE7, false);
 
       // ExternalCompactionTServer will not commit the compaction. Wait for the
@@ -468,7 +474,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     try (final AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE8);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE8, 1);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
       createTable(client, tableName, "cs8");
 

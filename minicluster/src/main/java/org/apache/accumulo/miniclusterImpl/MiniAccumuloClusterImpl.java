@@ -61,7 +61,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
-import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -600,6 +599,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         config.getZooKeepers());
 
     control.start(ServerType.TABLET_SERVER);
+    control.start(ServerType.SCAN_SERVER);
 
     int ret = 0;
     for (int i = 0; i < 5; i++) {
@@ -629,13 +629,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         throw new IllegalStateException("No Compactor queues configured.");
       }
       for (String name : queues) {
-        // ELASTICITY_TODO need to reevalute numCompactors and maybe num scan servers. The following
-        // was calling numCompactors, but it was changed to 1.
-        control.startCompactors(Compactor.class, 1, name);
+        config.getClusterServerConfiguration().addCompactorResourceGroup(name, 1);
       }
     } catch (ClassNotFoundException e) {
       throw new IllegalArgumentException("Unable to find declared CompactionPlanner class", e);
     }
+    control.start(ServerType.COMPACTOR);
 
     verifyUp();
 
@@ -705,17 +704,30 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     waitForProcessStart(getClusterControl().gcProcess, "GC");
 
     int tsExpectedCount = 0;
-    for (Process tsp : getClusterControl().tabletServerProcesses) {
-      tsExpectedCount++;
-      requireNonNull(tsp, "Error starting TabletServer " + tsExpectedCount + " - no process");
-      waitForProcessStart(tsp, "TabletServer" + tsExpectedCount);
+    for (List<Process> tabletServerProcesses : getClusterControl().tabletServerProcesses.values()) {
+      for (Process tsp : tabletServerProcesses) {
+        tsExpectedCount++;
+        requireNonNull(tsp, "Error starting TabletServer " + tsExpectedCount + " - no process");
+        waitForProcessStart(tsp, "TabletServer" + tsExpectedCount);
+      }
+    }
+
+    int ssExpectedCount = 0;
+    for (List<Process> scanServerProcesses : getClusterControl().scanServerProcesses.values()) {
+      for (Process tsp : scanServerProcesses) {
+        ssExpectedCount++;
+        requireNonNull(tsp, "Error starting ScanServer " + ssExpectedCount + " - no process");
+        waitForProcessStart(tsp, "ScanServer" + ssExpectedCount);
+      }
     }
 
     int ecExpectedCount = 0;
-    for (Process ecp : getClusterControl().compactorProcesses) {
-      ecExpectedCount++;
-      requireNonNull(ecp, "Error starting compactor " + ecExpectedCount + " - no process");
-      waitForProcessStart(ecp, "Compactor" + ecExpectedCount);
+    for (List<Process> compactorProcesses : getClusterControl().compactorProcesses.values()) {
+      for (Process ecp : compactorProcesses) {
+        ecExpectedCount++;
+        requireNonNull(ecp, "Error starting compactor " + ecExpectedCount + " - no process");
+        waitForProcessStart(ecp, "Compactor" + ecExpectedCount);
+      }
     }
 
     try (ZooKeeper zk = new ZooKeeper(getZooKeepers(), 60000, event -> log.warn("{}", event))) {
@@ -782,7 +794,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       String rootPath = Constants.ZROOT + "/" + instanceId;
       int tsActualCount = 0;
       try {
-        while (tsActualCount < tsExpectedCount) {
+        while (tsActualCount < ssExpectedCount) {
           tsActualCount = 0;
           for (String child : zk.getChildren(rootPath + Constants.ZTSERVERS, null)) {
             if (zk.getChildren(rootPath + Constants.ZTSERVERS + "/" + child, null).isEmpty()) {
@@ -858,13 +870,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
     result.put(ServerType.MANAGER, references(control.managerProcess));
-    result.put(ServerType.TABLET_SERVER,
-        references(control.tabletServerProcesses.toArray(new Process[0])));
-    result.put(ServerType.COMPACTOR,
-        references(control.compactorProcesses.toArray(new Process[0])));
+    result.put(ServerType.TABLET_SERVER, references(control.tabletServerProcesses.values().stream()
+        .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
+    result.put(ServerType.COMPACTOR, references(control.compactorProcesses.values().stream()
+        .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
     if (control.scanServerProcesses != null) {
-      result.put(ServerType.SCAN_SERVER,
-          references(control.scanServerProcesses.toArray(new Process[0])));
+      result.put(ServerType.SCAN_SERVER, references(control.scanServerProcesses.values().stream()
+          .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
     }
     if (control.zooKeeperProcess != null) {
       result.put(ServerType.ZOOKEEPER, references(control.zooKeeperProcess));

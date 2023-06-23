@@ -145,7 +145,7 @@ public class KerberosIT extends AccumuloITBase {
 
         });
 
-    mac.getConfig().setNumTservers(1);
+    mac.getConfig().getClusterServerConfiguration().setNumDefaultTabletServers(1);
     mac.start();
     // Enabled kerberos auth
     Configuration conf = new Configuration(false);
