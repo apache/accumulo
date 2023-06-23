@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.util.Objects;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -33,7 +32,6 @@ import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.base.Suppliers;
 import com.google.gson.Gson;
 
 /**
@@ -49,7 +47,7 @@ import com.google.gson.Gson;
  */
 public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   private final String metadataEntry;
-  private final Supplier<ReferencedTabletFile> referencedTabletFile;
+  private final ReferencedTabletFile referencedTabletFile;
   private final String metadataEntryPath;
 
   /**
@@ -68,7 +66,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     super(Objects.requireNonNull(fileCq).path, fileCq.range);
     this.metadataEntry = Objects.requireNonNull(metadataEntry);
     this.metadataEntryPath = fileCq.path.toString();
-    this.referencedTabletFile = Suppliers.memoize(() -> ReferencedTabletFile.of(getPath()));
+    this.referencedTabletFile = ReferencedTabletFile.of(getPath());
   }
 
   /**
@@ -95,15 +93,20 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   }
 
   public ReferencedTabletFile getTabletFile() {
-    return referencedTabletFile.get();
+    return referencedTabletFile;
   }
 
   public TableId getTableId() {
-    return referencedTabletFile.get().getTableId();
+    return referencedTabletFile.getTableId();
+  }
+
+  @Override
+  public String getFileName() {
+    return referencedTabletFile.getFileName();
   }
 
   public String getNormalizedPathStr() {
-    return referencedTabletFile.get().getNormalizedPathStr();
+    return referencedTabletFile.getNormalizedPathStr();
   }
 
   @Override

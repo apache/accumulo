@@ -37,11 +37,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.util.GsonSingleton;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.gson.Gson;
 
 /**
  * This class is used to serialize and deserialize root tablet metadata using GSon. The only data
@@ -93,12 +92,11 @@ public class RootTabletMetadata {
     }
   }
 
-  private final Gson gson = new Gson();
   private final Data data;
 
   public RootTabletMetadata(String json) {
     log.trace("Creating root tablet metadata from stored JSON: {}", json);
-    this.data = gson.fromJson(json, Data.class);
+    this.data = GsonSingleton.getInstance().fromJson(json, Data.class);
     checkArgument(data.version == VERSION, "Invalid Root Table Metadata JSON version %s",
         data.version);
     data.columnValues.forEach((fam, qualVals) -> {
@@ -164,7 +162,7 @@ public class RootTabletMetadata {
    * @return a JSON representation of the root tablet's data.
    */
   public String toJson() {
-    return gson.toJson(data);
+    return GsonSingleton.getInstance().toJson(data);
   }
 
 }
