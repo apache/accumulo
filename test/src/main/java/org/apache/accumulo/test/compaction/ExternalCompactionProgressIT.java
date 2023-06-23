@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -73,6 +72,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
     ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
+    cfg.getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);
   }
 
   @Test
@@ -82,8 +82,6 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       createTable(client, table1, "cs1");
       writeData(client, table1, ROWS);
-
-      cluster.getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
 
       Thread checkerThread = startChecker();
       checkerThread.start();

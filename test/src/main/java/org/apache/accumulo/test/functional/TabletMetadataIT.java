@@ -50,7 +50,7 @@ public class TabletMetadataIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration conf) {
-    cfg.setNumTservers(NUM_TSERVERS);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(NUM_TSERVERS);
   }
 
   @Test

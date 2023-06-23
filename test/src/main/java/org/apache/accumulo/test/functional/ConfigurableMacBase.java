@@ -36,6 +36,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.miniclusterImpl.ClusterServerConfiguration;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ZooKeeperBindException;
@@ -145,6 +146,10 @@ public class ConfigurableMacBase extends AccumuloITBase {
     }
     throw new RuntimeException("Failed to start MiniAccumuloCluster after three attempts",
         lastException);
+  }
+
+  public ClusterServerConfiguration getMiniClusterDescription() {
+    return new ClusterServerConfiguration();
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")

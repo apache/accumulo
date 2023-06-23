@@ -100,7 +100,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "5s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     // Start with 1 tserver, we'll increase that later
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     // config custom balancer to keep all metadata on one server
     cfg.setProperty(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "1ms");
     cfg.setProperty(Property.MANAGER_TABLET_BALANCER.getKey(),
@@ -146,7 +146,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     metadataTserverProcess = procs.iterator().next();
 
     // Update the number of tservers and start the new tservers.
-    getCluster().getConfig().setNumTservers(TSERVERS);
+    getCluster().getConfig().getClusterServerConfiguration().setNumDefaultTabletServers(TSERVERS);
     getCluster().start();
   }
 
