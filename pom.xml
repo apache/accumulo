@@ -1145,6 +1145,10 @@
                   <property name="message" value="Use JUnit4+ @Test annotation instead of TestCase" />
                 </module>
                 <module name="RegexpSinglelineJava">
+                  <property name="format" value="import org[.]apache[.]accumulo[.]core[.]util[.]LazySingletons;" />
+                  <property name="message" value="Use static imports for LazySingletons for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
                   <property name="format" value="import org[.]junit[.]Assert;" />
                   <property name="message" value="Use static imports for Assert.* methods for consistency" />
                 </module>
