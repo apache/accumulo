@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test.util;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.util.concurrent.TimeUnit;
 
 public class Wait {
@@ -49,14 +47,5 @@ public class Wait {
       conditionSatisfied = condition.isSatisfied();
     }
     return conditionSatisfied;
-  }
-
-  /**
-   * A retry for use in junit tests when testing asynchronous conditions that are expected to
-   * eventually meet the condition or fail the test. Using this method should be used instead of an
-   * arbitrary sleep and hoping to catch the condition in the expected state.
-   */
-  public static void assertTrueWithRetry(final Wait.Condition condition) throws Exception {
-    assertTrue(waitFor(condition));
   }
 }
