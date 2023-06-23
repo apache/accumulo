@@ -147,7 +147,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     throw new RuntimeException("Failed to start MiniAccumuloCluster after three attempts",
         lastException);
   }
-  
+
   public ClusterServerConfiguration getMiniClusterDescription() {
     return new ClusterServerConfiguration();
   }
@@ -156,7 +156,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
   private void createMiniAccumulo() throws Exception {
     // createTestDir will give us a empty directory, we don't need to clean it up ourselves
     File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName());
-    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, ROOT_PASSWORD, getMiniClusterDescription());
+    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, ROOT_PASSWORD);
     File nativePathInDevTree = NativeMapIT.nativeMapLocation();
     File nativePathInMapReduce = new File(System.getProperty("user.dir"));
     cfg.setNativeLibPaths(nativePathInDevTree.getAbsolutePath(), nativePathInMapReduce.toString());

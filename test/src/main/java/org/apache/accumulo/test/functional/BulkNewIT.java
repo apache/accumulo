@@ -45,7 +45,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -508,8 +507,6 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
   @Test
   public void testManyFiles() throws Exception {
-
-    getCluster().getClusterControl().startCompactors(Compactor.class, 1, "user-small");
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String dir = getDir("/testBulkFile-");

@@ -125,72 +125,116 @@ public class MiniAccumuloClusterControl implements ClusterControl {
 
   @Override
   public synchronized void start(ServerType server, String hostname) throws IOException {
-    start(server, Collections.emptyMap(), Integer.MAX_VALUE);
+    start(server, Collections.emptyMap(), Integer.MAX_VALUE, null);
   }
 
   public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit)
       throws IOException {
+    start(server, configOverrides, limit, null);
+  }
+
+  public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit,
+      Class<?> classOverride) throws IOException {
     if (limit <= 0) {
       return;
+    }
+
+    Class<?> classToUse;
+    if (classOverride != null) {
+      classToUse = classOverride;
+    } else {
+      switch (server) {
+        case COMPACTOR:
+          classToUse = Compactor.class;
+          break;
+        case SCAN_SERVER:
+          classToUse = ScanServer.class;
+          break;
+        case TABLET_SERVER:
+          classToUse = TabletServer.class;
+          break;
+        case GARBAGE_COLLECTOR:
+          classToUse = SimpleGarbageCollector.class;
+          break;
+        case MANAGER:
+          classToUse = Manager.class;
+          break;
+        case MONITOR:
+          classToUse = Monitor.class;
+          break;
+        case ZOOKEEPER:
+          classToUse = ZooKeeperServerMain.class;
+          break;
+        default:
+          throw new IllegalArgumentException("Unhandled server type: " + server);
+      }
     }
 
     switch (server) {
       case TABLET_SERVER:
         synchronized (tabletServerProcesses) {
-          Map<String, Integer> tserverGroups = cluster.getConfig().getClusterServerConfiguration().getTabletServerConfiguration();
+          Map<String,Integer> tserverGroups =
+              cluster.getConfig().getClusterServerConfiguration().getTabletServerConfiguration();
           for (Entry<String,Integer> e : tserverGroups.entrySet()) {
-            List<Process> processes = tabletServerProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
+            List<Process> processes =
+                tabletServerProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
             int count = 0;
             for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
-              processes.add(cluster._exec(TabletServer.class, server, configOverrides).getProcess());
+              processes.add(cluster._exec(classToUse, server, configOverrides).getProcess());
             }
-          }          
+          }
         }
         break;
       case MANAGER:
         if (managerProcess == null) {
-          managerProcess = cluster._exec(Manager.class, server, configOverrides).getProcess();
+          managerProcess = cluster._exec(classToUse, server, configOverrides).getProcess();
         }
         break;
       case ZOOKEEPER:
         if (zooKeeperProcess == null) {
-          zooKeeperProcess = cluster._exec(ZooKeeperServerMain.class, server, configOverrides,
-              cluster.getZooCfgFile().getAbsolutePath()).getProcess();
+          zooKeeperProcess = cluster
+              ._exec(classToUse, server, configOverrides, cluster.getZooCfgFile().getAbsolutePath())
+              .getProcess();
         }
         break;
       case GARBAGE_COLLECTOR:
         if (gcProcess == null) {
-          gcProcess =
-              cluster._exec(SimpleGarbageCollector.class, server, configOverrides).getProcess();
+          gcProcess = cluster._exec(classToUse, server, configOverrides).getProcess();
         }
         break;
       case MONITOR:
         if (monitor == null) {
-          monitor = cluster._exec(Monitor.class, server, configOverrides).getProcess();
+          monitor = cluster._exec(classToUse, server, configOverrides).getProcess();
         }
         break;
       case SCAN_SERVER:
         synchronized (scanServerProcesses) {
-          Map<String, Integer> sserverGroups = cluster.getConfig().getClusterServerConfiguration().getScanServerConfiguration();
+          Map<String,Integer> sserverGroups =
+              cluster.getConfig().getClusterServerConfiguration().getScanServerConfiguration();
           for (Entry<String,Integer> e : sserverGroups.entrySet()) {
-            List<Process> processes = scanServerProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
+            List<Process> processes =
+                scanServerProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
             int count = 0;
             for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
-              processes.add(cluster._exec(ScanServer.class, server, configOverrides).getProcess());
+              processes.add(cluster._exec(classToUse, server, configOverrides).getProcess());
             }
-          }          
+          }
         }
         break;
       case COMPACTOR:
         synchronized (compactorProcesses) {
-          Map<String, Integer> compactorGroups = cluster.getConfig().getClusterServerConfiguration().getCompactorConfiguration();
+          Map<String,Integer> compactorGroups =
+              cluster.getConfig().getClusterServerConfiguration().getCompactorConfiguration();
           for (Entry<String,Integer> e : compactorGroups.entrySet()) {
-            List<Process> processes = compactorProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
+            List<Process> processes =
+                compactorProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
             int count = 0;
             for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
-              processes.add(cluster.exec(Compactor.class, "-o", Property.COMPACTOR_QUEUE_NAME.getKey() + "=" + e.getKey()).getProcess());
+              processes.add(cluster
+                  .exec(classToUse, "-o", Property.COMPACTOR_QUEUE_NAME.getKey() + "=" + e.getKey())
+                  .getProcess());
             }
-          }   
+          }
         }
         break;
       default:

@@ -98,7 +98,7 @@ public class MiniAccumuloConfigImpl {
   private SiteConfiguration accumuloConf;
 
   private Consumer<MiniAccumuloConfigImpl> preStartConfigProcessor;
-  
+
   private final ClusterServerConfiguration serverConfiguration;
 
   /**
@@ -497,7 +497,7 @@ public class MiniAccumuloConfigImpl {
   public String getRootPassword() {
     return rootPassword;
   }
-  
+
   /**
    * @return ClusterServerConfiguration
    */

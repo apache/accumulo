@@ -72,7 +72,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
     cfg.setSiteConfig(siteConfig);
     // ensure we have two tservers
-    if (cfg.getClusterServerConfiguration().getTabletServerConfiguration().get(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME) < 2) {
+    if (cfg.getClusterServerConfiguration().getTabletServerConfiguration()
+        .get(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME) < 2) {
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
     }
   }

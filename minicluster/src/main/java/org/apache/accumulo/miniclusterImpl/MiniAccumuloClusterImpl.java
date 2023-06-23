@@ -601,6 +601,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         config.getZooKeepers());
 
     control.start(ServerType.TABLET_SERVER);
+    control.start(ServerType.SCAN_SERVER);
 
     int ret = 0;
     for (int i = 0; i < 5; i++) {
@@ -724,7 +725,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         waitForProcessStart(tsp, "ScanServer" + ssExpectedCount);
       }
     }
-    
+
     int ecExpectedCount = 0;
     for (List<Process> compactorProcesses : getClusterControl().compactorProcesses.values()) {
       for (Process ecp : compactorProcesses) {
@@ -874,19 +875,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
     result.put(ServerType.MANAGER, references(control.managerProcess));
-    result.put(ServerType.TABLET_SERVER,
-        references(control.tabletServerProcesses.values().stream()
-            .flatMap(List::stream).collect(Collectors.toList())
-            .toArray(new Process[0])));
-    result.put(ServerType.COMPACTOR,
-        references(control.compactorProcesses.values().stream()
-            .flatMap(List::stream).collect(Collectors.toList())
-            .toArray(new Process[0])));
+    result.put(ServerType.TABLET_SERVER, references(control.tabletServerProcesses.values().stream()
+        .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
+    result.put(ServerType.COMPACTOR, references(control.compactorProcesses.values().stream()
+        .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
     if (control.scanServerProcesses != null) {
-      result.put(ServerType.SCAN_SERVER,
-          references(control.scanServerProcesses.values().stream()
-              .flatMap(List::stream).collect(Collectors.toList())
-              .toArray(new Process[0])));
+      result.put(ServerType.SCAN_SERVER, references(control.scanServerProcesses.values().stream()
+          .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
     }
     if (control.zooKeeperProcess != null) {
       result.put(ServerType.ZOOKEEPER, references(control.zooKeeperProcess));

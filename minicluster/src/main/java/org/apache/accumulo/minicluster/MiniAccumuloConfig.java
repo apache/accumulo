@@ -58,7 +58,7 @@ public class MiniAccumuloConfig {
    */
   // ELASTICITY_TODO: Deprecate in 3.0.0 and remove in elasticity on the merge
   public MiniAccumuloConfig setNumTservers(int numTservers) {
-    //impl.setNumTservers(numTservers);
+    // impl.setNumTservers(numTservers);
     return this;
   }
 
@@ -70,7 +70,7 @@ public class MiniAccumuloConfig {
    */
   // ELASTICITY_TODO: Deprecate in 3.0.0 and remove in elasticity on the merge
   public MiniAccumuloConfig setNumScanServers(int numScanServers) {
-    //impl.setNumScanServers(numScanServers);
+    // impl.setNumScanServers(numScanServers);
     return this;
   }
 
@@ -228,7 +228,8 @@ public class MiniAccumuloConfig {
    */
   // ELASTICITY_TODO: Deprecate in 3.0.0 and remove in elasticity on the merge
   public int getNumTservers() {
-    return impl.getClusterServerConfiguration().getTabletServerConfiguration().values().stream().reduce(0, Integer::sum);
+    return impl.getClusterServerConfiguration().getTabletServerConfiguration().values().stream()
+        .reduce(0, Integer::sum);
   }
 
   /**

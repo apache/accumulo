@@ -1,7 +1,26 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.accumulo.miniclusterImpl;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.accumulo.core.lock.ServiceLockData;
@@ -11,16 +30,15 @@ public class ClusterServerConfiguration {
   private final Map<String,Integer> compactors;
   private final Map<String,Integer> sservers;
   private final Map<String,Integer> tservers;
-  
+
   /**
-   * Creates the default configuration with 1 each of
-   * Compactor and ScanServer and 2 TabletServers in the default
-   * resource group
+   * Creates the default configuration with 1 each of Compactor and ScanServer and 2 TabletServers
+   * in the default resource group
    */
   public ClusterServerConfiguration() {
     this(1, 1, 2);
   }
-  
+
   /**
    * Creates the default Configuration using the parameters
    *
@@ -36,11 +54,11 @@ public class ClusterServerConfiguration {
     tservers = new HashMap<>();
     tservers.put(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME, numTServers);
   }
-  
+
   public void setNumDefaultCompactors(int numCompactors) {
     compactors.put(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME, numCompactors);
   }
-  
+
   public void setNumDefaultScanServers(int numSServers) {
     sservers.put(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME, numSServers);
   }
@@ -48,7 +66,7 @@ public class ClusterServerConfiguration {
   public void setNumDefaultTabletServers(int numTServers) {
     tservers.put(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME, numTServers);
   }
-  
+
   public void addCompactorResourceGroup(String resourceGroupName, int numCompactors) {
     compactors.put(resourceGroupName, numCompactors);
   }
@@ -56,11 +74,11 @@ public class ClusterServerConfiguration {
   public void addScanServerResourceGroup(String resourceGroupName, int numScanServers) {
     sservers.put(resourceGroupName, numScanServers);
   }
-  
+
   public void addTabletServerResourceGroup(String resourceGroupName, int numTabletServers) {
     tservers.put(resourceGroupName, numTabletServers);
   }
-  
+
   public Map<String,Integer> getCompactorConfiguration() {
     return Collections.unmodifiableMap(compactors);
   }
@@ -71,6 +89,16 @@ public class ClusterServerConfiguration {
 
   public Map<String,Integer> getTabletServerConfiguration() {
     return Collections.unmodifiableMap(tservers);
+  }
+
+  public void clearCompactorResourceGroups() {
+    Iterator<String> iter = compactors.keySet().iterator();
+    while (iter.hasNext()) {
+      String resourceGroup = iter.next();
+      if (!resourceGroup.equals(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME)) {
+        compactors.remove(resourceGroup);
+      }
+    }
   }
 
 }
