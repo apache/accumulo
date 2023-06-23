@@ -32,19 +32,12 @@ import org.apache.hadoop.fs.Path;
 public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
     implements TabletFile, Comparable<T> {
 
-  private final String fileName; // C0004.rf
   protected final Path path;
   protected final Range range;
 
   protected AbstractTabletFile(Path path, Range range) {
     this.path = Objects.requireNonNull(path);
-    this.fileName = path.getName();
     this.range = Objects.requireNonNull(range);
-  }
-
-  @Override
-  public String getFileName() {
-    return fileName;
   }
 
   @Override

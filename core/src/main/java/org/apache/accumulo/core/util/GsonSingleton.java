@@ -18,21 +18,27 @@
  */
 package org.apache.accumulo.core.util;
 
-public final class ComparablePair<A extends Comparable<A>,B extends Comparable<B>> extends Pair<A,B>
-    implements Comparable<ComparablePair<A,B>> {
+import com.google.gson.Gson;
 
-  public ComparablePair(A f, B s) {
-    super(f, s);
+/**
+ * This class provides access to a shared instance of Gson that uses its default configuration. Gson
+ * is thread-safe, so it should be safe to create and reuse a single instance.
+ * <p>
+ * If you need to use a Gson instance that is configured differently, if you want to configure
+ * TypeAdapters for example, then you should not use this. You should construct your own instance of
+ * Gson.
+ */
+public class GsonSingleton {
+  private static Gson gsonInstance = null;
+
+  private GsonSingleton() {
+    // private to prevent direct instantiation
   }
 
-  @Override
-  public int compareTo(ComparablePair<A,B> abPair) {
-    int cmp = getFirst().compareTo(abPair.getFirst());
-    if (cmp == 0) {
-      cmp = getSecond().compareTo(abPair.getSecond());
+  public static Gson getInstance() {
+    if (gsonInstance == null) {
+      gsonInstance = new Gson();
     }
-
-    return cmp;
+    return gsonInstance;
   }
-
 }

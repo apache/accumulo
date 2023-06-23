@@ -27,15 +27,13 @@ import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.util.GsonSingleton;
 import org.apache.hadoop.fs.Path;
-
-import com.google.gson.Gson;
 
 public class RootGcCandidates {
   // Version 1. Released with Accumulo version 2.1.0
   private static final int VERSION = 1;
 
-  private final Gson gson = new Gson();
   private final Data data;
 
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
@@ -63,7 +61,7 @@ public class RootGcCandidates {
   }
 
   public RootGcCandidates(String jsonString) {
-    this.data = gson.fromJson(jsonString, Data.class);
+    this.data = GsonSingleton.getInstance().fromJson(jsonString, Data.class);
     checkArgument(data.version == VERSION, "Invalid Root Table GC Candidates JSON version %s",
         data.version);
     data.candidates.forEach((parent, files) -> {
@@ -95,7 +93,7 @@ public class RootGcCandidates {
   }
 
   public String toJson() {
-    return gson.toJson(data);
+    return GsonSingleton.getInstance().toJson(data);
   }
 
 }

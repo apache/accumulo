@@ -41,13 +41,21 @@ import org.apache.hadoop.fs.Path;
  */
 public class UnreferencedTabletFile extends AbstractTabletFile<UnreferencedTabletFile> {
 
+  private final String fileName; // C0004.rf
+
   public UnreferencedTabletFile(FileSystem fs, Path path) {
     this(fs, path, new Range());
   }
 
   public UnreferencedTabletFile(FileSystem fs, Path path, Range range) {
     super(Objects.requireNonNull(fs).makeQualified(Objects.requireNonNull(path)), range);
-    ValidationUtil.validateFileName(path.getName());
+    this.fileName = path.getName();
+    ValidationUtil.validateFileName(fileName);
+  }
+
+  @Override
+  public String getFileName() {
+    return fileName;
   }
 
   @Override
