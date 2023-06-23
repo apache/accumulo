@@ -18,27 +18,23 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.util.function.Supplier;
+
+import com.google.common.base.Suppliers;
 import com.google.gson.Gson;
 
 /**
- * This class provides access to a shared instance of Gson that uses its default configuration. Gson
- * is thread-safe, so it should be safe to create and reuse a single instance.
- * <p>
- * If you need to use a Gson instance that is configured differently, if you want to configure
- * TypeAdapters for example, then you should not use this. You should construct your own instance of
- * Gson.
+ * This class provides easy access to global, immutable, lazily-instantiated, and thread-safe
+ * singleton resources. These should be used with static imports.
  */
-public class GsonSingleton {
-  private static Gson gsonInstance = null;
+public class LazySingletons {
 
-  private GsonSingleton() {
-    // private to prevent direct instantiation
-  }
+  // prevent instantiating this utility class
+  private LazySingletons() {}
 
-  public static Gson getInstance() {
-    if (gsonInstance == null) {
-      gsonInstance = new Gson();
-    }
-    return gsonInstance;
-  }
+  /**
+   * A Gson instance constructed with defaults. Construct your own if you need custom settings.
+   */
+  public static final Supplier<Gson> GSON = Suppliers.memoize(Gson::new);
+
 }

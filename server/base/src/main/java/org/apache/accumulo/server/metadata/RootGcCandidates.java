@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.metadata;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -27,7 +28,6 @@ import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.util.GsonSingleton;
 import org.apache.hadoop.fs.Path;
 
 public class RootGcCandidates {
@@ -61,7 +61,7 @@ public class RootGcCandidates {
   }
 
   public RootGcCandidates(String jsonString) {
-    this.data = GsonSingleton.getInstance().fromJson(jsonString, Data.class);
+    this.data = GSON.get().fromJson(jsonString, Data.class);
     checkArgument(data.version == VERSION, "Invalid Root Table GC Candidates JSON version %s",
         data.version);
     data.candidates.forEach((parent, files) -> {
@@ -93,7 +93,7 @@ public class RootGcCandidates {
   }
 
   public String toJson() {
-    return GsonSingleton.getInstance().toJson(data);
+    return GSON.get().toJson(data);
   }
 
 }

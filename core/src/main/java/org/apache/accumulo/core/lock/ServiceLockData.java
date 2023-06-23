@@ -20,6 +20,7 @@ package org.apache.accumulo.core.lock;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.Collections;
 import java.util.EnumMap;
@@ -29,7 +30,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.GsonSingleton;
 
 import com.google.common.net.HostAndPort;
 
@@ -117,7 +117,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
 
     @Override
     public String toString() {
-      return GsonSingleton.getInstance().toJson(this);
+      return GSON.get().toJson(this);
     }
 
   }
@@ -193,7 +193,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
   public byte[] serialize() {
     ServiceDescriptors sd = new ServiceDescriptors();
     services.values().forEach(s -> sd.addService(s));
-    return GsonSingleton.getInstance().toJson(sd).getBytes(UTF_8);
+    return GSON.get().toJson(sd).getBytes(UTF_8);
   }
 
   @Override
@@ -227,8 +227,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     if (data.isBlank()) {
       return Optional.empty();
     }
-    return Optional.of(
-        new ServiceLockData(GsonSingleton.getInstance().fromJson(data, ServiceDescriptors.class)));
+    return Optional.of(new ServiceLockData(GSON.get().fromJson(data, ServiceDescriptors.class)));
   }
 
 }

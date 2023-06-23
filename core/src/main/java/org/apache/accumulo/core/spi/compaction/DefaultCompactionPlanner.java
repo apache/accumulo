@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -31,7 +33,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.util.GsonSingleton;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 
 import com.google.common.base.Preconditions;
@@ -145,8 +146,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       justification = "Field is written by Gson")
   @Override
   public void init(InitParameters params) {
-    ExecutorConfig[] execConfigs = GsonSingleton.getInstance()
-        .fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
+    ExecutorConfig[] execConfigs =
+        GSON.get().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
 
     List<Executor> tmpExec = new ArrayList<>();
 
