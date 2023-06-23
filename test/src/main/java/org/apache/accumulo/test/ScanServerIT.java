@@ -77,7 +77,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
         org.apache.hadoop.conf.Configuration coreSite) {
-      cfg.setNumScanServers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultScanServers(1);
 
       // Timeout scan sessions after being idle for 3 seconds
       cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");

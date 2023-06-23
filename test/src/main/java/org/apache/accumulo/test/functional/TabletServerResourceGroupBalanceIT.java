@@ -46,7 +46,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -56,25 +55,23 @@ import org.junit.jupiter.api.Test;
 
 import com.google.common.net.HostAndPort;
 
-public class ResourceGroupBalanceIT extends SharedMiniClusterBase {
+public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
 
-  public static class ResourceGroupBalanceITConfig implements MiniClusterConfigurationCallback {
+  public static class TSRGBalanceITConfig implements MiniClusterConfigurationCallback {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      cfg.setNumTservers(1);
       cfg.setProperty(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT, "2");
       cfg.setProperty(Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT, "10s");
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
+      cfg.getClusterServerConfiguration().addTabletServerResourceGroup("GROUP1", 1);
     }
 
   }
 
   @BeforeAll
   public static void beforeAll() throws Exception {
-    SharedMiniClusterBase.startMiniClusterWithConfig(new ResourceGroupBalanceITConfig());
-    SharedMiniClusterBase.getCluster().getConfig().setNumTservers(2);
-    SharedMiniClusterBase.getCluster().getClusterControl().start(ServerType.TABLET_SERVER, Map.of(),
-        1, "-o", Property.TSERV_GROUP_NAME.getKey() + "=GROUP1");
+    SharedMiniClusterBase.startMiniClusterWithConfig(new TSRGBalanceITConfig());
   }
 
   @AfterAll

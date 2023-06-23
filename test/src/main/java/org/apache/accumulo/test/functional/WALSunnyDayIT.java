@@ -83,7 +83,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     cfg.setProperty(TSERV_WAL_MAX_SIZE, "1M");
     cfg.setProperty(TSERV_WAL_REPLICATION, "1");
     cfg.setProperty(INSTANCE_ZK_TIMEOUT, "15s");
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 

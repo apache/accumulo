@@ -62,7 +62,7 @@ public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // this bug only shows up when not using native maps
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, "false");
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
   }
 
   @Test

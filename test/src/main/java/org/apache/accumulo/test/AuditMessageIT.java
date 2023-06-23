@@ -91,7 +91,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
   @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) {
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
   }
 
   // Must be static to survive Junit re-initialising the class every time.

@@ -76,12 +76,15 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
   public void tearDown() throws Exception {
     // The ExternalDoNothingCompactor needs to be restarted between tests
     getCluster().getClusterControl().stop(ServerType.COMPACTOR);
+    getCluster().getConfig().getClusterServerConfiguration().clearCompactorResourceGroups();
   }
 
   @Test
   public void testMergeCancelsExternalCompaction() throws Exception {
 
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE1);
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);
+    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+        ExternalDoNothingCompactor.class);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
@@ -139,7 +142,10 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
 
   @Test
   public void testCoordinatorRestartsDuringCompaction() throws Exception {
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE2);
+
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE2, 1);
+    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+        ExternalDoNothingCompactor.class);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =

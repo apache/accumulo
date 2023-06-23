@@ -79,7 +79,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
         org.apache.hadoop.conf.Configuration coreSite) {
-      cfg.setNumScanServers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultScanServers(1);
       cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
       cfg.setProperty(Property.SSERVER_SCAN_REFERENCE_EXPIRATION_TIME, "5s");
     }

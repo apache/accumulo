@@ -59,7 +59,7 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
 
   @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) {
-    cfg.setNumTservers(4);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(4);
   }
 
   @Test

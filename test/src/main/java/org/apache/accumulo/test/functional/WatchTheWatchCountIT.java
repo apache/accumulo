@@ -48,7 +48,7 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(3);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(3);
   }
 
   @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET",

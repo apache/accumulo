@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
@@ -62,9 +61,9 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
-      cfg.setNumCompactors(2);
+      cfg.getClusterServerConfiguration().setNumDefaultCompactors(2);
       // use one tserver so that queue metrics are not spread across tservers
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
 
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
       // to push all metrics to the sink we started.
@@ -142,8 +141,9 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
         sawDCQ2_10 |= match(qm, "DCQ2", "10");
       }
 
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE2, 1);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
       boolean sawDCQ1_0 = false;
       boolean sawDCQ2_0 = false;

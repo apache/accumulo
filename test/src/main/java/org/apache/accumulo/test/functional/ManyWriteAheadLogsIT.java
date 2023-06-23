@@ -68,7 +68,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     // lots of closed WALs for all write patterns. This test ensures code that directly handles many
     // tablets referencing many different WALs is working.
     cfg.setProperty(Property.TABLE_MINC_COMPACT_IDLETIME, "1h");
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
