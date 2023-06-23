@@ -63,7 +63,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
         org.apache.hadoop.conf.Configuration coreSite) {
-      cfg.setNumScanServers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultScanServers(1);
       cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
       cfg.setProperty(Property.SSERV_MINTHREADS, "4");
     }

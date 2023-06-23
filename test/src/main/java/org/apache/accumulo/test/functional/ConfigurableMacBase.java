@@ -36,6 +36,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.miniclusterImpl.ClusterServerConfiguration;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ZooKeeperBindException;
@@ -146,12 +147,16 @@ public class ConfigurableMacBase extends AccumuloITBase {
     throw new RuntimeException("Failed to start MiniAccumuloCluster after three attempts",
         lastException);
   }
+  
+  public ClusterServerConfiguration getMiniClusterDescription() {
+    return new ClusterServerConfiguration();
+  }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   private void createMiniAccumulo() throws Exception {
     // createTestDir will give us a empty directory, we don't need to clean it up ourselves
     File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName());
-    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, ROOT_PASSWORD);
+    MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, ROOT_PASSWORD, getMiniClusterDescription());
     File nativePathInDevTree = NativeMapIT.nativeMapLocation();
     File nativePathInMapReduce = new File(System.getProperty("user.dir"));
     cfg.setNativeLibPaths(nativePathInDevTree.getAbsolutePath(), nativePathInMapReduce.toString());

@@ -106,7 +106,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
-      cfg.setNumCompactors(2);
     }
   }
 

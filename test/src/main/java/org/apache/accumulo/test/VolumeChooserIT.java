@@ -96,7 +96,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Get 2 tablet servers
-    cfg.setNumTservers(2);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
     namespace1 = "ns_" + getUniqueNames(2)[0];
     namespace2 = "ns_" + getUniqueNames(2)[1];
 

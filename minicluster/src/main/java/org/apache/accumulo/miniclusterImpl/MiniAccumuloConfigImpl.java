@@ -58,9 +58,6 @@ public class MiniAccumuloConfigImpl {
   private Map<String,String> siteConfig = new HashMap<>();
   private Map<String,String> configuredSiteConig = new HashMap<>();
   private Map<String,String> clientProps = new HashMap<>();
-  private int numTservers = 2;
-  private int numScanServers = 0;
-  private int numCompactors = 1;
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
   private boolean jdwpEnabled = false;
   private Map<String,String> systemProperties = new HashMap<>();
@@ -101,16 +98,20 @@ public class MiniAccumuloConfigImpl {
   private SiteConfiguration accumuloConf;
 
   private Consumer<MiniAccumuloConfigImpl> preStartConfigProcessor;
+  
+  private final ClusterServerConfiguration serverConfiguration;
 
   /**
    * @param dir An empty or nonexistent directory that Accumulo and Zookeeper can store data in.
    *        Creating the directory is left to the user. Java 7, Guava, and Junit provide methods for
    *        creating temporary directories.
    * @param rootPassword The initial password for the Accumulo root user
+   * @param description cluster description instance
    */
   public MiniAccumuloConfigImpl(File dir, String rootPassword) {
     this.dir = dir;
     this.rootPassword = rootPassword;
+    this.serverConfiguration = new ClusterServerConfiguration();
   }
 
   /**
@@ -248,32 +249,6 @@ public class MiniAccumuloConfigImpl {
     if (!siteConfig.containsKey(key)) {
       siteConfig.put(key, "0");
     }
-  }
-
-  /**
-   * Calling this method is optional. If not set, it defaults to two.
-   *
-   * @param numTservers the number of tablet servers that mini accumulo cluster should start
-   */
-  public MiniAccumuloConfigImpl setNumTservers(int numTservers) {
-    if (numTservers < 1) {
-      throw new IllegalArgumentException("Must have at least one tablet server");
-    }
-    this.numTservers = numTservers;
-    return this;
-  }
-
-  /**
-   * Calling this method is optional. If not set, it defaults to two.
-   *
-   * @param numScanServers the number of tablet servers that mini accumulo cluster should start
-   */
-  public MiniAccumuloConfigImpl setNumScanServers(int numScanServers) {
-    if (numScanServers < 0) {
-      throw new IllegalArgumentException("Must have zero or more scan servers");
-    }
-    this.numScanServers = numScanServers;
-    return this;
   }
 
   /**
@@ -522,19 +497,12 @@ public class MiniAccumuloConfigImpl {
   public String getRootPassword() {
     return rootPassword;
   }
-
+  
   /**
-   * @return the number of tservers configured for this cluster
+   * @return ClusterServerConfiguration
    */
-  public int getNumTservers() {
-    return numTservers;
-  }
-
-  /**
-   * @return the number of scan servers configured for this cluster
-   */
-  public int getNumScanServers() {
-    return numScanServers;
+  public ClusterServerConfiguration getClusterServerConfiguration() {
+    return serverConfiguration;
   }
 
   /**
@@ -781,24 +749,6 @@ public class MiniAccumuloConfigImpl {
    */
   public void setRootUserName(String rootUserName) {
     this.rootUserName = rootUserName;
-  }
-
-  /**
-   * @return number of Compactors
-   * @since 2.1.0
-   */
-  public int getNumCompactors() {
-    return numCompactors;
-  }
-
-  /**
-   * Set number of Compactors
-   *
-   * @param numCompactors number of compactors
-   * @since 2.1.0
-   */
-  public void setNumCompactors(int numCompactors) {
-    this.numCompactors = numCompactors;
   }
 
   /**
