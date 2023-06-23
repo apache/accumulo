@@ -73,24 +73,25 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
 
     source.seek(r, Set.of(), false);
 
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    DataOutputStream dos = new DataOutputStream(baos);
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos)) {
 
-    int count = 0;
+      int count = 0;
 
-    while (source.hasTop()) {
-      byte[] ba = source.getTopKey().getColumnQualifierData().toArray();
-      dos.writeInt(ba.length);
-      dos.write(ba, 0, ba.length);
-      source.next();
-      count++;
+      while (source.hasTop()) {
+        byte[] ba = source.getTopKey().getColumnQualifierData().toArray();
+        dos.writeInt(ba.length);
+        dos.write(ba, 0, ba.length);
+        source.next();
+        count++;
+      }
+
+      // The lenght is written last so that buffering can be avoided in this iterator.
+      dos.writeInt(count);
+
+      topValue = new Value(baos.toByteArray());
     }
 
-    dos.writeInt(count);
-
-    dos.close();
-
-    topValue = new Value(baos.toByteArray());
   }
 
   public Key getTopKey() {
@@ -152,10 +153,8 @@ public class SetEqualityIterator implements SortedKeyValueIterator<Key,Value> {
    * should be equal.
    */
   private static <T> byte[] encode(Set<T> set, Function<T,byte[]> encoder) {
-    try {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      DataOutputStream dos = new DataOutputStream(baos);
-
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos)) {
       set.stream().map(encoder).sorted(Arrays::compare).forEach(ba -> {
         try {
           dos.writeInt(ba.length);

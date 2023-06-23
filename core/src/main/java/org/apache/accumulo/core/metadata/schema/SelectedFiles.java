@@ -53,7 +53,7 @@ public class SelectedFiles {
 
   public SelectedFiles(Set<StoredTabletFile> files, boolean initiallySelectedAll, long fateTxId) {
     Preconditions.checkArgument(files != null && !files.isEmpty());
-    this.files = files;
+    this.files = Set.copyOf(files);
     this.initiallySelectedAll = initiallySelectedAll;
     this.fateTxId = fateTxId;
 
