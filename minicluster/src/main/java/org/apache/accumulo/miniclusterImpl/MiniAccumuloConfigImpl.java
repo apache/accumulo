@@ -106,7 +106,6 @@ public class MiniAccumuloConfigImpl {
    *        Creating the directory is left to the user. Java 7, Guava, and Junit provide methods for
    *        creating temporary directories.
    * @param rootPassword The initial password for the Accumulo root user
-   * @param description cluster description instance
    */
   public MiniAccumuloConfigImpl(File dir, String rootPassword) {
     this.dir = dir;
