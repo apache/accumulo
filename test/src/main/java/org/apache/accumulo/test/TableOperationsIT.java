@@ -617,6 +617,63 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     }
   }
 
+  // This test checks that tablets are correct when staggered splits are added to a table, i.e.,
+  // a table is split and assigned differing goals. Later when the two existing tablets are
+  // split, verify that the new splits contain the appropriate hosting goal of the tablet from
+  // which they wre split. Steps are as follows:
+  // - create table
+  // - add split 'm'
+  // - set goal ALWAYS on last tablet
+  // - add splits 'd' and 's'
+  // - verify the first two tablets have ONDEMAND and two remaining tablets have ALWAYS goal
+  @Test
+  public void testGetHostingGoals_StaggeredSplits() throws AccumuloException, TableExistsException,
+      AccumuloSecurityException, TableNotFoundException {
+
+    String tableName = getUniqueNames(1)[0];
+
+    try {
+      accumuloClient.tableOperations().create(tableName);
+      String tableId = accumuloClient.tableOperations().tableIdMap().get(tableName);
+
+      // add split 'm' and set last tablet to ALWAYS
+      SortedSet<Text> splits = Sets.newTreeSet(List.of(new Text("m")));
+      accumuloClient.tableOperations().addSplits(tableName, splits);
+      Range range = new Range(new Text("m"), false, null, true);
+      accumuloClient.tableOperations().setTabletHostingGoal(tableName, range,
+          TabletHostingGoal.ALWAYS);
+
+      // verify
+      List<HostingGoalForTablet> expectedGoals = new ArrayList<>();
+      setExpectedGoal(expectedGoals, tableId, "m", null, TabletHostingGoal.ONDEMAND);
+      setExpectedGoal(expectedGoals, tableId, null, "m", TabletHostingGoal.ALWAYS);
+
+      List<HostingGoalForTablet> hostingInfo = accumuloClient.tableOperations()
+          .getTabletHostingGoal(tableName, new Range()).collect(Collectors.toList());
+
+      assertEquals(expectedGoals, hostingInfo);
+
+      // Add two additional splits, 'd' and 's'
+      splits = Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("s")));
+      accumuloClient.tableOperations().addSplits(tableName, splits);
+
+      // verify results
+      expectedGoals.clear();
+      hostingInfo.clear();
+      setExpectedGoal(expectedGoals, tableId, "d", null, TabletHostingGoal.ONDEMAND);
+      setExpectedGoal(expectedGoals, tableId, "m", "d", TabletHostingGoal.ONDEMAND);
+      setExpectedGoal(expectedGoals, tableId, "s", "m", TabletHostingGoal.ALWAYS);
+      setExpectedGoal(expectedGoals, tableId, null, "s", TabletHostingGoal.ALWAYS);
+
+      hostingInfo = accumuloClient.tableOperations().getTabletHostingGoal(tableName, new Range())
+          .collect(Collectors.toList());
+
+      assertEquals(expectedGoals, hostingInfo);
+    } finally {
+      accumuloClient.tableOperations().delete(tableName);
+    }
+  }
+
   private void verifyTablesWithSplits(String tableName, Map<String,String> idMap,
       SortedSet<Text> splits, TabletHostingGoal goal) throws TableNotFoundException {
 
