@@ -19,6 +19,8 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -66,6 +68,8 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -75,6 +79,7 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.accumulo.test.compaction.CompactionExecutorIT;
 import org.apache.accumulo.test.compaction.ExternalCompaction_1_IT.FSelector;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -619,6 +624,68 @@ public class CompactionIT extends AccumuloClusterHarness {
           fail("Expected compaction to fail because another concurrent compaction set iterators");
         }
       } catch (AccumuloException e) {}
+    }
+  }
+
+  @Test
+  public void testMetadataCompactions() throws Exception {
+    // The metadata and root table have default config that causes them to compact down to one
+    // tablet. This test verifies that both tables compact to one file after a flush.
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String[] tableNames = getUniqueNames(2);
+
+      // creating a user table should cause a write to the metadata table
+      c.tableOperations().create(tableNames[0]);
+
+      var mfiles1 = getServerContext().getAmple().readTablets().forTable(MetadataTable.ID).build()
+          .iterator().next().getFiles();
+      var rootFiles1 = getServerContext().getAmple().readTablet(RootTable.EXTENT).getFiles();
+
+      log.debug("mfiles1 {}",
+          mfiles1.stream().map(StoredTabletFile::getFileName).collect(toList()));
+      log.debug("rootFiles1 {}",
+          rootFiles1.stream().map(StoredTabletFile::getFileName).collect(toList()));
+
+      c.tableOperations().flush(MetadataTable.NAME, null, null, true);
+      c.tableOperations().flush(RootTable.NAME, null, null, true);
+
+      // create another table to cause more metadata writes
+      c.tableOperations().create(tableNames[1]);
+      try (var writer = c.createBatchWriter(tableNames[1])) {
+        var m = new Mutation("r1");
+        m.put("f1", "q1", "v1");
+        writer.addMutation(m);
+      }
+      c.tableOperations().flush(tableNames[1], null, null, true);
+
+      // create another metadata file
+      c.tableOperations().flush(MetadataTable.NAME, null, null, true);
+      c.tableOperations().flush(RootTable.NAME, null, null, true);
+
+      // The multiple flushes should create multiple files. We expect the file sets to changes and
+      // eventually equal one.
+
+      Wait.waitFor(() -> {
+        var mfiles2 = getServerContext().getAmple().readTablets().forTable(MetadataTable.ID).build()
+            .iterator().next().getFiles();
+        log.debug("mfiles2 {}",
+            mfiles2.stream().map(StoredTabletFile::getFileName).collect(toList()));
+        return mfiles2.size() == 1 && !mfiles2.equals(mfiles1);
+      });
+
+      Wait.waitFor(() -> {
+        var rootFiles2 = getServerContext().getAmple().readTablet(RootTable.EXTENT).getFiles();
+        log.debug("rootFiles2 {}",
+            rootFiles2.stream().map(StoredTabletFile::getFileName).collect(toList()));
+        return rootFiles2.size() == 1 && !rootFiles2.equals(rootFiles1);
+      });
+
+      var entries = c.createScanner(tableNames[1]).stream()
+          .map(e -> e.getKey().getRow() + ":" + e.getKey().getColumnFamily() + ":"
+              + e.getKey().getColumnQualifier() + ":" + e.getValue())
+          .collect(toSet());
+
+      assertEquals(Set.of("r1:f1:q1:v1"), entries);
     }
   }
 
