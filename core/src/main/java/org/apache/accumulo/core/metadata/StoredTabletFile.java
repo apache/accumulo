@@ -73,6 +73,11 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return referencedTabletFile.getTableId();
   }
 
+  @Override
+  public String getFileName() {
+    return referencedTabletFile.getFileName();
+  }
+
   public String getNormalizedPathStr() {
     return referencedTabletFile.getNormalizedPathStr();
   }

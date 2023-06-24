@@ -53,6 +53,7 @@ public class ValidationUtil {
 
   public static void validateRFileName(String fileName) {
     Objects.requireNonNull(fileName);
+    // TODO: In 3.0.0 validate that filename starts with FilePrefix
     if (!fileName.endsWith(".rf") && !fileName.endsWith("_tmp")) {
       throw new IllegalArgumentException(
           "Provided filename (" + fileName + ") does not end with '.rf' or '_tmp'");

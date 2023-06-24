@@ -81,20 +81,6 @@ public class TableConfiguration extends ZooBasedConfiguration {
   }
 
   @Override
-  public boolean isPropertySet(Property prop) {
-    if (_isPropertySet(prop)) {
-      return true;
-    }
-
-    return getParent().isPropertySet(prop);
-  }
-
-  private boolean _isPropertySet(Property property) {
-    Map<String,String> propMap = getSnapshot();
-    return propMap.get(property.getKey()) != null;
-  }
-
-  @Override
   public String get(Property property) {
     String value = _get(property);
     if (value != null) {

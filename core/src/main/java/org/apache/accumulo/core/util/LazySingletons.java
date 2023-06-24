@@ -16,30 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metadata;
+package org.apache.accumulo.core.util;
 
-import java.util.Objects;
+import java.util.function.Supplier;
 
-import org.apache.hadoop.fs.Path;
+import com.google.common.base.Suppliers;
+import com.google.gson.Gson;
 
 /**
- * A base class used to represent file references that are handled by code that processes tablet
- * files.
- *
- * @since 3.0.0
+ * This class provides easy access to global, immutable, lazily-instantiated, and thread-safe
+ * singleton resources. These should be used with static imports.
  */
-public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
-    implements TabletFile, Comparable<T> {
+public class LazySingletons {
 
-  protected final Path path;
+  // prevent instantiating this utility class
+  private LazySingletons() {}
 
-  protected AbstractTabletFile(Path path) {
-    this.path = Objects.requireNonNull(path);
-  }
-
-  @Override
-  public Path getPath() {
-    return path;
-  }
+  /**
+   * A Gson instance constructed with defaults. Construct your own if you need custom settings.
+   */
+  public static final Supplier<Gson> GSON = Suppliers.memoize(Gson::new);
 
 }
