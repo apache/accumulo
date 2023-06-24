@@ -132,15 +132,12 @@ public class MetadataConstraints implements Constraint {
   /*
    * Validates the data file metadata by creating a StoredTabletFile for the metadata string that
    * will eagerly load the contained ReferencedTabletFile which performs validation.
-   *
-   * We have to catch a generic Exception as various errors can occur including
-   * NullPointerException, IllegalArgumentException, etc.
    */
   private static ArrayList<Short> validateDataFilePath(ArrayList<Short> violations,
       String metadata) {
     try {
       new StoredTabletFile(metadata);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       violations = addViolation(violations, 9);
     }
     return violations;
