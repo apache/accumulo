@@ -115,7 +115,7 @@ function control_service() {
   control_cmd="$1"
   host="$2"
   service="$3"
-  
+
   # Find the group parameter if any
   GROUP_PATTERN="^(compactor.group|sserver.group|tserver.group)=(.*)$"
   group="default"
