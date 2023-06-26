@@ -311,6 +311,9 @@ public enum Property {
       "The balancer class that accumulo will use to make tablet assignment and "
           + "migration decisions.",
       "1.3.5"),
+  MANAGER_TABLET_GROUP_WATCHER_INTERVAL("manager.tablet.watcher.interval", "60s",
+      PropertyType.TIMEDURATION,
+      "Time to wait between scanning tablet states to determine migrations, etc.", "2.1.2"),
   MANAGER_BULK_RETRIES("manager.bulk.retries", "3", PropertyType.COUNT,
       "The number of attempts to bulk import a RFile before giving up.", "1.4.0"),
   MANAGER_BULK_THREADPOOL_SIZE("manager.bulk.threadpool.size", "5", PropertyType.COUNT,

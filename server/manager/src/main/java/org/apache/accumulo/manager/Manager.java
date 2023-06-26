@@ -173,9 +173,6 @@ public class Manager extends AbstractServer
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
   static final int ONE_SECOND = 1000;
-  static final long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
-  // made this less than TIME_TO_WAIT_BETWEEN_SCANS, so that the cache is cleared between cycles
-  static final long TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE = TIME_TO_WAIT_BETWEEN_SCANS / 4;
   private static final long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
   static final long WAIT_BETWEEN_ERRORS = ONE_SECOND;
   private static final long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
@@ -225,6 +222,8 @@ public class Manager extends AbstractServer
 
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
   private final AtomicBoolean managerUpgrading = new AtomicBoolean(false);
+  private final long waitTimeBetweenScans;
+  private final long timeToCacheRecoveryWalExistence;
 
   @Override
   public synchronized ManagerState getManagerState() {
@@ -449,6 +448,13 @@ public class Manager extends AbstractServer
       log.info("SASL is not enabled, delegation tokens will not be available");
       delegationTokensAvailable = false;
     }
+    this.waitTimeBetweenScans =
+        aconf.getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
+    this.timeToCacheRecoveryWalExistence = this.waitTimeBetweenScans / 4;
+  }
+
+  public long getWaitTimeBetweenScans() {
+    return this.waitTimeBetweenScans;
   }
 
   public InstanceId getInstanceID() {
@@ -1101,7 +1107,7 @@ public class Manager extends AbstractServer
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
-    recoveryManager = new RecoveryManager(this, TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE);
+    recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
     context.getTableManager().addObserver(this);
 
