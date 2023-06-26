@@ -67,7 +67,7 @@ function parse_config {
     exit 1
   fi
 
-  for group in $COMPACTION_GROUPS; do
+  for group in $COMPACTOR_GROUPS; do
     Q="COMPACTOR_HOSTS_${group}"
     if [[ -z ${!Q} ]]; then
       echo "WARN: External compaction group $group configured, but no compactors configured for it"
@@ -115,6 +115,15 @@ function control_service() {
   control_cmd="$1"
   host="$2"
   service="$3"
+  
+    # Find the group parameter if any
+  GROUP_PATTERN="^(compactor.group|sserver.group|tserver.group)=(.*)$"
+  group="default"
+  for param in "$@"; do
+    if [[ $param =~ $GROUP_PATTERN ]]; then
+      group="${BASH_REMATCH[2]}"
+    fi
+  done
 
   local last_instance_id
   last_instance_id=1
@@ -123,9 +132,9 @@ function control_service() {
 
   for ((inst_id = 1; inst_id <= last_instance_id; inst_id++)); do
     ACCUMULO_SERVICE_INSTANCE=""
-    [[ $service == "tserver" && ${NUM_TSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
-    [[ $service == "compactor" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
-    [[ $service == "sserver" && ${NUM_SSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
+    [[ $service == "tserver" && ${NUM_TSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE="_${group}_${inst_id}"
+    [[ $service == "compactor" ]] && ACCUMULO_SERVICE_INSTANCE="_${group}_${inst_id}"
+    [[ $service == "sserver" && ${NUM_SSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE="_${group}_${inst_id}"
 
     if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || "$(hostname -I)" =~ $host ]]; then
       #
@@ -153,7 +162,7 @@ function start_service() {
 }
 
 function start_tservers() {
-  echo -n "Starting tablet servers ..."
+  echo "Starting tablet servers ..."
   for group in $TSERVER_GROUPS; do
     echo "Starting tablet servers for group $group"
     count=1
@@ -190,13 +199,15 @@ function start_all() {
   done
 
   for group in $SSERVER_GROUPS; do
+    echo "Starting scan servers for group $group"
     G="SSERVER_HOSTS_${group}"
     for sserver in ${!G}; do
       start_service "$sserver" sserver "-o" "sserver.group=$group"
     done
   done
 
-  for group in $COMPACTION_GROUPS; do
+  for group in $COMPACTOR_GROUPS; do
+    echo "Starting compactors for group $group"
     Q="COMPACTOR_HOSTS_${group}"
     for compactor in ${!Q}; do
       start_service "$compactor" compactor "-o" "compactor.group=$group"
@@ -210,6 +221,7 @@ function start_here() {
   local_hosts="$(hostname -a 2>/dev/null) $(hostname) localhost 127.0.0.1 $(hostname -I)"
 
   for group in $TSERVER_GROUPS; do
+    echo "Starting tablet servers for group $group"
     for host in $local_hosts; do
       G="TSERVER_HOSTS_${group}"
       for tserver in ${!G}; do
@@ -248,6 +260,7 @@ function start_here() {
   done
 
   for group in $SSERVER_GROUPS; do
+    echo "Starting scan servers for group $group"
     for host in $local_hosts; do
       G="SSERVER_HOSTS_${group}"
       for sserver in ${!G}; do
@@ -258,7 +271,8 @@ function start_here() {
     done
   done
 
-  for group in $COMPACTION_GROUPS; do
+  for group in $COMPACTOR_GROUPS; do
+    echo "Starting compactors for group $group"
     for host in $local_hosts; do
       Q="COMPACTOR_HOSTS_${group}"
       for compactor in ${!Q}; do
@@ -288,6 +302,7 @@ function stop_tservers() {
   echo "Stopping unresponsive tablet servers (if any)..."
 
   for group in $TSERVER_GROUPS; do
+    echo "Stopping tablet servers for group $group"
     G="TSERVER_HOSTS_${group}"
     for tserver in ${!G}; do
       stop_service "$tserver" tserver &
@@ -324,6 +339,7 @@ function kill_all() {
   done
 
   for group in $SSERVER_GROUPS; do
+    echo "Killing scan servers for group $group"
     G="SSERVER_HOSTS_${group}"
     for sserver in ${!G}; do
       kill_service "$sserver" sserver
@@ -331,13 +347,15 @@ function kill_all() {
   done
 
   for group in $TSERVER_GROUPS; do
+    echo "Killing tablet servers for group $group"
     G="TSERVER_HOSTS_${group}"
     for tserver in ${!G}; do
       kill_service "$tserver" tserver
     done
   done
 
-  for group in $COMPACTION_GROUPS; do
+  for group in $COMPACTOR_GROUPS; do
+    echo "Killing compactors for group $group"
     Q="COMPACTOR_HOSTS_${group}"
     for compactor in ${!Q}; do
       kill_service "$compactor" compactor
@@ -379,13 +397,15 @@ function stop_all() {
     done
 
     for group in $SSERVER_GROUPS; do
+      echo "Stopping scan servers for group $group"
       G="SSERVER_HOSTS_${group}"
       for sserver in ${!G}; do
         end_service $end_cmd "$sserver" sserver
       done
     done
 
-    for group in $COMPACTION_GROUPS; do
+    for group in $COMPACTOR_GROUPS; do
+      echo "Stopping compactors for group $group"
       Q="COMPACTOR_HOSTS_${group}"
       for compactor in ${!Q}; do
         end_service $end_cmd "$compactor" compactor
@@ -437,7 +457,7 @@ function stop_here() {
           end_service $end_cmd "$sserver" sserver
         done
       done
-      for group in $COMPACTION_GROUPS; do
+      for group in $COMPACTOR_GROUPS; do
         Q="COMPACTOR_HOSTS_${group}"
         for compactor in ${!Q}; do
           end_service $end_cmd "$host" compactor
@@ -488,9 +508,9 @@ tserver:
     - localhost
 
 compactor:
-  user-small:
+  user_small:
     - localhost
-  user-large:
+  user_large:
     - localhost
 
 sserver:
