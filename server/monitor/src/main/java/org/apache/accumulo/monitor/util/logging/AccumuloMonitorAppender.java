@@ -19,6 +19,7 @@
 package org.apache.accumulo.monitor.util.logging;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -33,7 +34,6 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
-import org.apache.accumulo.core.util.GsonSingleton;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.monitor.rest.logs.LogResource;
 import org.apache.accumulo.monitor.rest.logs.SingleLogEvent;
@@ -116,7 +116,7 @@ public class AccumuloMonitorAppender extends AbstractAppender {
         pojo.message = event.getMessage().getFormattedMessage();
         pojo.stacktrace = throwableToStacktrace(event.getThrown());
 
-        String jsonEvent = GsonSingleton.getInstance().toJson(pojo);
+        String jsonEvent = GSON.get().toJson(pojo);
 
         var req = HttpRequest.newBuilder(uri).POST(BodyPublishers.ofString(jsonEvent, UTF_8))
             .setHeader("Content-Type", "application/json").build();

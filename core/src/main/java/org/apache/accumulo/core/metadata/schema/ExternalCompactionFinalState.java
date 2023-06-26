@@ -18,11 +18,12 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.util.Base64;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.util.GsonSingleton;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
@@ -121,11 +122,11 @@ public class ExternalCompactionFinalState {
     jd.fileSize = fileSize;
     jd.entries = fileEntries;
     jd.extent = new Extent(extent);
-    return GsonSingleton.getInstance().toJson(jd);
+    return GSON.get().toJson(jd);
   }
 
   public static ExternalCompactionFinalState fromJson(ExternalCompactionId ecid, String json) {
-    JsonData jd = GsonSingleton.getInstance().fromJson(json, JsonData.class);
+    JsonData jd = GSON.get().fromJson(json, JsonData.class);
     return new ExternalCompactionFinalState(ecid, jd.extent.toKeyExtent(),
         FinalState.valueOf(jd.state), jd.fileSize, jd.entries);
   }
