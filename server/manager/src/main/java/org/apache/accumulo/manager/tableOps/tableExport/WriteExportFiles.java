@@ -204,10 +204,7 @@ class WriteExportFiles extends ManagerRepo {
             throw new RuntimeException(e);
           }
           if (vol.containsPath(p)) {
-            if (volumeFileMap.get(vol) == null) {
-              volumeFileMap.put(vol, new HashSet<String>());
-            }
-            volumeFileMap.get(vol).add(file);
+            volumeFileMap.computeIfAbsent(vol, k -> new HashSet<>()).add(file);
           }
         });
       });
