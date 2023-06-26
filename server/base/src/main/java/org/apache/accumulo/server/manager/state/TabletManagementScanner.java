@@ -20,15 +20,21 @@ package org.apache.accumulo.server.manager.state;
 
 import java.io.IOException;
 import java.lang.ref.Cleaner.Cleanable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -41,6 +47,7 @@ import org.slf4j.LoggerFactory;
 public class TabletManagementScanner implements ClosableIterator<TabletManagement> {
 
   private static final Logger log = LoggerFactory.getLogger(TabletManagementScanner.class);
+  private static final Collection<Range> ALL_TABLETS_RANGE = List.of(new Range());
 
   private final Cleanable cleanable;
   private final BatchScanner mdScanner;
@@ -52,9 +59,16 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
     // scan over metadata table, looking for tablets in the wrong state based on the live servers
     // and online tables
     try {
-      mdScanner = context.createBatchScanner(tableName, Authorizations.EMPTY, 8);
+      Locations locs = context.tableOperations().locate(tableName, ALL_TABLETS_RANGE);
+      Long numLocations =
+          locs.groupByTablet().keySet().stream().map(locs::getTabletLocation).distinct().count();
+      int numThreads = Math.min(numLocations.intValue(),
+          context.getConfiguration().getCount(Property.MANAGER_TABLET_GROUP_WATCHER_SCAN_THREADS));
+      mdScanner = context.createBatchScanner(tableName, Authorizations.EMPTY, numThreads);
     } catch (TableNotFoundException e) {
       throw new IllegalStateException("Metadata table " + tableName + " should exist", e);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new RuntimeException("Error obtaining locations for table: " + tableName);
     }
     cleanable = CleanerUtil.unclosed(this, TabletManagementScanner.class, closed, log, mdScanner);
     TabletManagementIterator.configureScanner(mdScanner, state);
