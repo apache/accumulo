@@ -20,9 +20,9 @@ package org.apache.accumulo.core.spi.scan;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 
 import java.lang.reflect.Type;
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -149,7 +149,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 public class ConfigurableScanServerSelector implements ScanServerSelector {
 
-  private static final SecureRandom RANDOM = new SecureRandom();
   public static final String PROFILES_DEFAULT = "[{'isDefault':true,'maxBusyTimeout':'5m',"
       + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], "
       + "'attemptPlans':[{'servers':'3', 'busyTimeout':'33ms', 'salt':'one'},"
@@ -364,8 +363,8 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
       var hashCode = hashTablet(tablet, profile.getSalt(attempts));
 
-      int serverIndex =
-          (Math.abs(hashCode.asInt()) + RANDOM.nextInt(numServers)) % orderedScanServers.size();
+      int serverIndex = (Math.abs(hashCode.asInt()) + SECURE_RANDOM.get().nextInt(numServers))
+          % orderedScanServers.size();
 
       serverToUse = orderedScanServers.get(serverIndex);
 

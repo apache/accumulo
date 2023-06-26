@@ -21,11 +21,11 @@ package org.apache.accumulo.compactor;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -118,8 +118,6 @@ import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class Compactor extends AbstractServer implements MetricsProducer, CompactorService.Iface {
-
-  private static final SecureRandom random = new SecureRandom();
 
   private static final Logger LOG = LoggerFactory.getLogger(Compactor.class);
   private static final long TIME_BETWEEN_CANCEL_CHECKS = MINUTES.toMillis(5);
@@ -575,7 +573,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     sleepTime = Math.min(300_000L, sleepTime);
     // Add some random jitter to the sleep time, that averages out to sleep time. This will spread
     // compactors out evenly over time.
-    sleepTime = (long) (.9 * sleepTime + sleepTime * .2 * random.nextDouble());
+    sleepTime = (long) (.9 * sleepTime + sleepTime * .2 * SECURE_RANDOM.get().nextDouble());
     LOG.trace("Sleeping {}ms based on {} compactors", sleepTime, numCompactors);
     return sleepTime;
   }

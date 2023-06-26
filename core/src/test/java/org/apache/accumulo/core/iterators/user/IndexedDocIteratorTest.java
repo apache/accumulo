@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -46,7 +46,6 @@ import org.junit.jupiter.api.Test;
 
 public class IndexedDocIteratorTest {
 
-  private static final SecureRandom random = new SecureRandom();
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static final byte[] nullByte = {0};
 
@@ -93,7 +92,7 @@ public class IndexedDocIteratorTest {
         doc.append(nullByte, 0, 1);
         doc.append(String.format("%010d", docid).getBytes(), 0, 10);
         for (int j = 0; j < columnFamilies.length; j++) {
-          if (random.nextFloat() < hitRatio) {
+          if (SECURE_RANDOM.get().nextFloat() < hitRatio) {
             Text colq = new Text(columnFamilies[j]);
             colq.append(nullByte, 0, 1);
             colq.append(doc.getBytes(), 0, doc.getLength());
@@ -116,7 +115,7 @@ public class IndexedDocIteratorTest {
           docs.add(doc);
         }
         for (Text cf : otherColumnFamilies) {
-          if (random.nextFloat() < hitRatio) {
+          if (SECURE_RANDOM.get().nextFloat() < hitRatio) {
             Text colq = new Text(cf);
             colq.append(nullByte, 0, 1);
             colq.append(doc.getBytes(), 0, doc.getLength());

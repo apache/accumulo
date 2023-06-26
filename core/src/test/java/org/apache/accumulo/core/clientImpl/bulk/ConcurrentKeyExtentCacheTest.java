@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.clientImpl.bulk;
 
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -36,8 +36,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class ConcurrentKeyExtentCacheTest {
-
-  private static final SecureRandom random = new SecureRandom();
 
   private static List<KeyExtent> extents = new ArrayList<>();
   private static Set<KeyExtent> extentsSet = new HashSet<>();
@@ -100,14 +98,14 @@ public class ConcurrentKeyExtentCacheTest {
 
     TestCache tc = new TestCache();
 
-    random.ints(20000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i))).sequential()
-        .forEach(lookupRow -> testLookup(tc, lookupRow));
+    SECURE_RANDOM.get().ints(20000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i)))
+        .sequential().forEach(lookupRow -> testLookup(tc, lookupRow));
     assertEquals(extentsSet, tc.seen);
 
     // try parallel
     TestCache tc2 = new TestCache();
-    random.ints(20000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i))).parallel()
-        .forEach(lookupRow -> testLookup(tc2, lookupRow));
+    SECURE_RANDOM.get().ints(20000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i)))
+        .parallel().forEach(lookupRow -> testLookup(tc2, lookupRow));
     assertEquals(extentsSet, tc.seen);
   }
 
@@ -115,13 +113,13 @@ public class ConcurrentKeyExtentCacheTest {
   public void testRandom() {
     TestCache tc = new TestCache();
 
-    random.ints(20000).mapToObj(i -> new Text(String.format("%08x", i))).sequential()
+    SECURE_RANDOM.get().ints(20000).mapToObj(i -> new Text(String.format("%08x", i))).sequential()
         .forEach(lookupRow -> testLookup(tc, lookupRow));
     assertEquals(extentsSet, tc.seen);
 
     // try parallel
     TestCache tc2 = new TestCache();
-    random.ints(20000).mapToObj(i -> new Text(String.format("%08x", i))).parallel()
+    SECURE_RANDOM.get().ints(20000).mapToObj(i -> new Text(String.format("%08x", i))).parallel()
         .forEach(lookupRow -> testLookup(tc2, lookupRow));
     assertEquals(extentsSet, tc2.seen);
   }

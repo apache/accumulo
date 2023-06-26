@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.core.spi.fs;
 
-import java.security.SecureRandom;
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+
 import java.util.Set;
 
 /**
@@ -27,7 +28,6 @@ import java.util.Set;
  * @since 2.1.0
  */
 public class RandomVolumeChooser implements VolumeChooser {
-  private static final SecureRandom random = new SecureRandom();
 
   /**
    * Selects a volume at random from the provided set of volumes. The environment scope is not
@@ -36,7 +36,7 @@ public class RandomVolumeChooser implements VolumeChooser {
   @Override
   public String choose(VolumeChooserEnvironment env, Set<String> options) {
     String[] optionsArray = options.toArray(new String[0]);
-    return optionsArray[random.nextInt(optionsArray.length)];
+    return optionsArray[SECURE_RANDOM.get().nextInt(optionsArray.length)];
   }
 
   /**

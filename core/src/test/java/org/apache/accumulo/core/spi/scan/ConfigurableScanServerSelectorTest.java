@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
@@ -253,12 +253,11 @@ public class ConfigurableScanServerSelectorTest {
 
     Map<String,Long> allServersSeen = new HashMap<>();
 
-    SecureRandom rand = new SecureRandom();
-
     for (int t = 0; t < 10000; t++) {
       Set<String> serversSeen = new HashSet<>();
 
-      String endRow = Long.toString(Math.abs(Math.max(rand.nextLong(), Long.MIN_VALUE + 1)), 36);
+      String endRow =
+          Long.toString(Math.abs(Math.max(SECURE_RANDOM.get().nextLong(), Long.MIN_VALUE + 1)), 36);
 
       var tabletId = t % 1000 == 0 ? nti("" + t, null) : nti("" + t, endRow);
 

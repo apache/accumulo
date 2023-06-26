@@ -19,8 +19,8 @@
 package org.apache.accumulo.shell.commands;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 
-import java.security.SecureRandom;
 import java.util.Base64;
 
 import org.apache.accumulo.shell.Shell;
@@ -31,7 +31,6 @@ import org.apache.commons.cli.CommandLine;
 import org.jline.utils.InfoCmp;
 
 public class HiddenCommand extends Command {
-  private static final SecureRandom random = new SecureRandom();
 
   @Override
   public String description() {
@@ -41,7 +40,7 @@ public class HiddenCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
-    if (random.nextInt(10) == 0) {
+    if (SECURE_RANDOM.get().nextInt(10) == 0) {
       shellState.getTerminal().puts(InfoCmp.Capability.bell);
       shellState.getWriter().println();
       shellState.getWriter()

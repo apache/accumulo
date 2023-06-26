@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.security;
 
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.security.SecureRandom;
 import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -32,14 +32,12 @@ import org.junit.jupiter.api.Test;
 
 public class AuthenticationTokenTest {
 
-  private static final SecureRandom random = new SecureRandom();
-
   @Test
   public void testSerializeDeserializeToken() {
     byte[] randomBytes = new byte[12];
     do {
       // random fill, but avoid all zeros case
-      random.nextBytes(randomBytes);
+      SECURE_RANDOM.get().nextBytes(randomBytes);
     } while (IntStream.range(0, randomBytes.length).allMatch(i -> randomBytes[i] == 0));
 
     byte[] serialized = AuthenticationTokenSerializer.serialize(new PasswordToken(randomBytes));

@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.cli;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -28,7 +29,6 @@ import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
-import java.security.SecureRandom;
 import java.util.Scanner;
 
 import org.junit.jupiter.api.AfterEach;
@@ -41,8 +41,6 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 
 public class PasswordConverterTest {
-
-  private static final SecureRandom random = new SecureRandom();
 
   private class Password {
     @Parameter(names = "--password", converter = ClientOpts.PasswordConverter.class)
@@ -79,7 +77,7 @@ public class PasswordConverterTest {
 
   @Test
   public void testPass() {
-    String expected = String.valueOf(random.nextDouble());
+    String expected = String.valueOf(SECURE_RANDOM.get().nextDouble());
     argv[1] = "pass:" + expected;
     new JCommander(password).parse(argv);
     assertEquals(expected, password.password);

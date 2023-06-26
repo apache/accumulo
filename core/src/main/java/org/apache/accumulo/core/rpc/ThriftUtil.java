@@ -18,13 +18,14 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.nio.channels.ClosedByInterruptException;
 import java.security.KeyStore;
-import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -70,7 +71,6 @@ public class ThriftUtil {
 
   public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
 
-  private static final SecureRandom random = new SecureRandom();
   private static final int RELOGIN_MAX_BACKOFF = 5000;
 
   /**
@@ -385,7 +385,7 @@ public class ThriftUtil {
 
         // Avoid the replay attack protection, sleep 1 to 5000ms
         try {
-          Thread.sleep(random.nextInt(RELOGIN_MAX_BACKOFF) + 1);
+          Thread.sleep(SECURE_RANDOM.get().nextInt(RELOGIN_MAX_BACKOFF) + 1);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           return;
