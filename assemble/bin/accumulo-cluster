@@ -116,7 +116,7 @@ function control_service() {
   host="$2"
   service="$3"
   
-    # Find the group parameter if any
+  # Find the group parameter if any
   GROUP_PATTERN="^(compactor.group|sserver.group|tserver.group)=(.*)$"
   group="default"
   for param in "$@"; do
