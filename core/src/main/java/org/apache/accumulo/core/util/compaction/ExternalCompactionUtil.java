@@ -115,26 +115,26 @@ public class ExternalCompactionUtil {
   }
 
   /**
-   * @return map of queue names to compactor addresses
+   * @return map of group names to compactor addresses
    */
   public static Map<String,List<HostAndPort>> getCompactorAddrs(ClientContext context) {
     try {
-      final Map<String,List<HostAndPort>> queuesAndAddresses = new HashMap<>();
-      final String compactorQueuesPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
+      final Map<String,List<HostAndPort>> groupsAndAddresses = new HashMap<>();
+      final String compactorGroupsPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
       ZooReader zooReader = context.getZooReader();
-      List<String> queues = zooReader.getChildren(compactorQueuesPath);
-      for (String queue : queues) {
-        queuesAndAddresses.putIfAbsent(queue, new ArrayList<HostAndPort>());
+      List<String> groups = zooReader.getChildren(compactorGroupsPath);
+      for (String group : groups) {
+        groupsAndAddresses.putIfAbsent(group, new ArrayList<HostAndPort>());
         try {
-          List<String> compactors = zooReader.getChildren(compactorQueuesPath + "/" + queue);
+          List<String> compactors = zooReader.getChildren(compactorGroupsPath + "/" + group);
           for (String compactor : compactors) {
             // compactor is the address, we are checking to see if there is a child node which
             // represents the compactor's lock as a check that it's alive.
             List<String> children =
-                zooReader.getChildren(compactorQueuesPath + "/" + queue + "/" + compactor);
+                zooReader.getChildren(compactorGroupsPath + "/" + group + "/" + compactor);
             if (!children.isEmpty()) {
               LOG.trace("Found live compactor {} ", compactor);
-              queuesAndAddresses.get(queue).add(HostAndPort.fromString(compactor));
+              groupsAndAddresses.get(group).add(HostAndPort.fromString(compactor));
             }
           }
         } catch (NoNodeException e) {
@@ -142,7 +142,7 @@ public class ExternalCompactionUtil {
         }
       }
 
-      return queuesAndAddresses;
+      return groupsAndAddresses;
     } catch (KeeperException e) {
       throw new IllegalStateException(e);
     } catch (InterruptedException e) {
@@ -231,9 +231,9 @@ public class ExternalCompactionUtil {
     final ExecutorService executor = ThreadPools.getServerThreadPools().createFixedThreadPool(16,
         "CompactorRunningCompactions", false);
 
-    getCompactorAddrs(context).forEach((q, hp) -> {
+    getCompactorAddrs(context).forEach((group, hp) -> {
       hp.forEach(hostAndPort -> {
-        rcFutures.add(new RunningCompactionFuture(q, hostAndPort,
+        rcFutures.add(new RunningCompactionFuture(group, hostAndPort,
             executor.submit(() -> getRunningCompaction(hostAndPort, context))));
       });
     });

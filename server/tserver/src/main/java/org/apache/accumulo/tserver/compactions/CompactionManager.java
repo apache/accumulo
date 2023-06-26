@@ -41,7 +41,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.spi.compaction.CompactionServices;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
+import org.apache.accumulo.core.tabletserver.thrift.TCompactionGroupSummary;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
@@ -361,7 +361,7 @@ public class CompactionManager {
     }
   }
 
-  public List<TCompactionQueueSummary> getCompactionQueueSummaries() {
+  public List<TCompactionGroupSummary> getCompactionGroupSummaries() {
     return externalExecutors.values().stream().flatMap(ece -> ece.summarize())
         .collect(Collectors.toList());
   }

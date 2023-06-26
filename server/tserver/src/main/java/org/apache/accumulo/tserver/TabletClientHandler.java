@@ -95,7 +95,7 @@ import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
+import org.apache.accumulo.core.tabletserver.thrift.TCompactionGroupSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
@@ -1309,7 +1309,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public List<TCompactionQueueSummary> getCompactionQueueInfo(TInfo tinfo, TCredentials credentials)
+  public List<TCompactionGroupSummary> getCompactionGroupInfo(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
 
     if (!security.canPerformSystemActions(credentials)) {
@@ -1317,7 +1317,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    return server.getCompactionManager().getCompactionQueueSummaries();
+    return server.getCompactionManager().getCompactionGroupSummaries();
   }
 
   @Override

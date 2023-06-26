@@ -35,7 +35,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
+import org.apache.accumulo.core.tabletserver.thrift.TCompactionGroupSummary;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.tserver.compactions.SubmittedJob.Status;
 
@@ -191,7 +191,7 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
     return found;
   }
 
-  public Stream<TCompactionQueueSummary> summarize() {
+  public Stream<TCompactionGroupSummary> summarize() {
     HashSet<Short> uniqPrios = new HashSet<Short>();
     queuedJob.forEach(job -> uniqPrios.add(job.getJob().getPriority()));
 
@@ -205,7 +205,7 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
 
     String queueName = ((CompactionExecutorIdImpl) ceid).getExternalName();
 
-    return prioStream.map(prio -> new TCompactionQueueSummary(queueName, prio));
+    return prioStream.map(prio -> new TCompactionGroupSummary(queueName, prio));
   }
 
   public CompactionExecutorId getId() {

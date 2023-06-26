@@ -69,7 +69,7 @@ import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletscan.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
+import org.apache.accumulo.core.tabletserver.thrift.TCompactionGroupSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
@@ -275,7 +275,7 @@ public class NullTserver {
     }
 
     @Override
-    public List<TCompactionQueueSummary> getCompactionQueueInfo(TInfo tinfo,
+    public List<TCompactionGroupSummary> getCompactionGroupInfo(TInfo tinfo,
         TCredentials credentials) throws ThriftSecurityException, TException {
       return null;
     }

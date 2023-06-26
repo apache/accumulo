@@ -122,16 +122,16 @@ public class ClusterConfigParser {
       }
     }
 
-    List<String> compactorQueues =
+    List<String> compactorGroups =
         config.keySet().stream().filter(k -> k.startsWith(COMPACTOR_PREFIX))
             .map(k -> k.substring(COMPACTOR_PREFIX.length())).sorted().collect(Collectors.toList());
 
-    if (!compactorQueues.isEmpty()) {
+    if (!compactorGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "COMPACTOR_GROUPS",
-          compactorQueues.stream().collect(Collectors.joining(" ")));
-      for (String queue : compactorQueues) {
-        out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + queue,
-            config.get(COMPACTOR_PREFIX + queue));
+          compactorGroups.stream().collect(Collectors.joining(" ")));
+      for (String group : compactorGroups) {
+        out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + group,
+            config.get(COMPACTOR_PREFIX + group));
       }
     }
 

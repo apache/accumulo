@@ -122,8 +122,8 @@ enum TCompactionKind {
   USER
 }
 
-struct TCompactionQueueSummary {
-  1:string queue
+struct TCompactionGroupSummary {
+  1:string group
   2:i16 priority
 }
 
@@ -242,7 +242,7 @@ service TabletServerClientService {
     1:NoSuchScanIDException nssi
   )
   
-  list<TCompactionQueueSummary> getCompactionQueueInfo(
+  list<TCompactionGroupSummary> getCompactionGroupInfo(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
@@ -252,7 +252,7 @@ service TabletServerClientService {
   TExternalCompactionJob reserveCompactionJob(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
-    3:string queueName
+    3:string groupName
     4:i64 priority
     5:string compactor
     6:string externalCompactionId
