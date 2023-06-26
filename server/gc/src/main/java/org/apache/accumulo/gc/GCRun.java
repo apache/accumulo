@@ -162,10 +162,10 @@ public class GCRun implements GarbageCollectionEnvironment {
     var tabletReferences = tabletStream.flatMap(tm -> {
       // combine all the entries read from file and scan columns in the metadata table
       Stream<StoredTabletFile> fileStream = tm.getFiles().stream();
-      if (!tm.getScans().isEmpty()) {
-        // scans are normally empty so only introduce a layer of indirection when it actually
-        // exists.
-        fileStream = Stream.concat(fileStream, tm.getScans().stream());
+      // scans are normally empty, so only introduce a layer of indirection when needed
+      final var tmScans = tm.getScans();
+      if (!tmScans.isEmpty()) {
+        fileStream = Stream.concat(fileStream, tmScans.stream());
       }
       // map the files to Reference objects
       var stream = fileStream.map(f -> new ReferenceFile(tm.getTableId(), f.getMetaUpdateDelete()));
