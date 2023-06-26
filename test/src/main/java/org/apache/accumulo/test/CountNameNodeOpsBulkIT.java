@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.net.URL;
@@ -46,7 +47,6 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
-import org.apache.accumulo.core.util.GsonSingleton;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -78,7 +78,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     URL url = new URL(uri + "/jmx");
     log.debug("Fetching web page " + url);
     String jsonString = FunctionalTestUtils.readWebPage(url).body();
-    Map<?,?> jsonObject = GsonSingleton.getInstance().fromJson(jsonString, Map.class);
+    Map<?,?> jsonObject = GSON.get().fromJson(jsonString, Map.class);
     List<?> beans = (List<?>) jsonObject.get("beans");
     for (Object bean : beans) {
       Map<?,?> map = (Map<?,?>) bean;
