@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -57,7 +58,7 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
   public static byte[] randomHex(int n) {
     byte[] binary = new byte[n];
     byte[] hex = new byte[n * 2];
-    random.nextBytes(binary);
+    SECURE_RANDOM.get().nextBytes(binary);
     int count = 0;
     for (byte x : binary) {
       hex[count++] = HEXCHARS[(x >> 4) & 0xf];

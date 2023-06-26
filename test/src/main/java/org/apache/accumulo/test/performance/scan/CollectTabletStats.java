@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.performance.scan;
 
-import static org.apache.accumulo.harness.AccumuloITBase.random;
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -382,7 +382,7 @@ public class CollectTabletStats {
     List<KeyExtent> tabletsToTest = new ArrayList<>();
 
     for (int i = 0; i < numThreads; i++) {
-      int rindex = random.nextInt(candidates.size());
+      int rindex = SECURE_RANDOM.get().nextInt(candidates.size());
       tabletsToTest.add(candidates.get(rindex));
       Collections.swap(candidates, rindex, candidates.size() - 1);
       candidates = candidates.subList(0, candidates.size() - 1);

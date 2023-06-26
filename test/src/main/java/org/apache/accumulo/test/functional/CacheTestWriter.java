@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.harness.AccumuloITBase.random;
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -69,15 +69,15 @@ public class CacheTestWriter {
       Map<String,String> expectedData = null;
       // change children in dir
 
-      for (int u = 0; u < random.nextInt(4) + 1; u++) {
+      for (int u = 0; u < SECURE_RANDOM.get().nextInt(4) + 1; u++) {
         expectedData = new TreeMap<>();
 
-        if (random.nextFloat() < .5) {
+        if (SECURE_RANDOM.get().nextFloat() < .5) {
           String child = UUID.randomUUID().toString();
           zk.putPersistentData(rootDir + "/dir/" + child, new byte[0], NodeExistsPolicy.SKIP);
           children.add(child);
         } else if (!children.isEmpty()) {
-          int index = random.nextInt(children.size());
+          int index = SECURE_RANDOM.get().nextInt(children.size());
           String child = children.remove(index);
           zk.recursiveDelete(rootDir + "/dir/" + child, NodeMissingPolicy.FAIL);
         }
@@ -88,15 +88,15 @@ public class CacheTestWriter {
 
         // change values
         for (int i = 0; i < numData; i++) {
-          byte[] data = Long.toString(random.nextLong(), 16).getBytes(UTF_8);
+          byte[] data = Long.toString(SECURE_RANDOM.get().nextLong(), 16).getBytes(UTF_8);
           zk.putPersistentData(rootDir + "/data" + i, data, NodeExistsPolicy.OVERWRITE);
           expectedData.put(rootDir + "/data" + i, new String(data, UTF_8));
         }
 
         // test a data node that does not always exists...
-        if (random.nextFloat() < .5) {
+        if (SECURE_RANDOM.get().nextFloat() < .5) {
 
-          byte[] data = Long.toString(random.nextLong(), 16).getBytes(UTF_8);
+          byte[] data = Long.toString(SECURE_RANDOM.get().nextLong(), 16).getBytes(UTF_8);
 
           if (dataSExists) {
             zk.putPersistentData(rootDir + "/dataS", data, NodeExistsPolicy.OVERWRITE);

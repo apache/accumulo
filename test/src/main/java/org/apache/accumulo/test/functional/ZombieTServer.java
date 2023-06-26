@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.DAYS;
-import static org.apache.accumulo.harness.AccumuloITBase.random;
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 
 import java.util.HashMap;
 import java.util.UUID;
@@ -106,7 +106,7 @@ public class ZombieTServer {
   private static final Logger log = LoggerFactory.getLogger(ZombieTServer.class);
 
   public static void main(String[] args) throws Exception {
-    int port = random.nextInt(30000) + 2000;
+    int port = SECURE_RANDOM.get().nextInt(30000) + 2000;
     var context = new ServerContext(SiteConfiguration.auto());
     final ClientServiceHandler csh =
         new ClientServiceHandler(context, new TransactionWatcher(context));

@@ -19,7 +19,7 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.harness.AccumuloITBase.random;
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -166,7 +166,7 @@ public class TestBinaryRows {
       long t1 = System.currentTimeMillis();
 
       for (int i = 0; i < numLookups; i++) {
-        long row = ((random.nextLong() & 0x7fffffffffffffffL) % opts.num) + opts.start;
+        long row = ((SECURE_RANDOM.get().nextLong() & 0x7fffffffffffffffL) % opts.num) + opts.start;
 
         try (Scanner s = accumuloClient.createScanner(opts.tableName, opts.auths)) {
           Key startKey = new Key(encodeLong(row), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);

@@ -19,6 +19,7 @@
 package org.apache.accumulo.harness;
 
 import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -124,7 +125,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
         StackWalker.getInstance(RETAIN_CLASS_REFERENCE).walk(findCallerITClass).map(Class::getName);
     // use the calling class name, or default to a unique name if IT class can't be found
     return callerClassName.orElse(String.format("UnknownITClass-%d-%d", System.currentTimeMillis(),
-        random.nextInt(Short.MAX_VALUE)));
+        SECURE_RANDOM.get().nextInt(Short.MAX_VALUE)));
   }
 
   /**

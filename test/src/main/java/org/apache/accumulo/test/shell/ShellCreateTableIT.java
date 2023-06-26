@@ -21,6 +21,7 @@ package org.apache.accumulo.test.shell;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.newBufferedReader;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -694,7 +695,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     Set<Text> splits = new HashSet<>();
     for (int i = 0; i < numItems; i++) {
       byte[] split = new byte[len];
-      random.nextBytes(split);
+      SECURE_RANDOM.get().nextBytes(split);
       splits.add(new Text(split));
     }
     return splits;

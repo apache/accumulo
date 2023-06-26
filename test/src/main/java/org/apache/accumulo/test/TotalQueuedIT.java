@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -79,7 +80,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       long bytesSent = 0;
       try (BatchWriter bw = c.createBatchWriter(tableName, cfg)) {
         for (int i = 0; i < N; i++) {
-          random.nextBytes(row);
+          SECURE_RANDOM.get().nextBytes(row);
           Mutation m = new Mutation(row);
           m.put("", "", "");
           bw.addMutation(m);
@@ -105,7 +106,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
         now = System.currentTimeMillis();
         bytesSent = 0;
         for (int i = 0; i < N; i++) {
-          random.nextBytes(row);
+          SECURE_RANDOM.get().nextBytes(row);
           Mutation m = new Mutation(row);
           m.put("", "", "");
           bw.addMutation(m);

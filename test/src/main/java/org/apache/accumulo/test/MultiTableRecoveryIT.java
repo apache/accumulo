@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -84,7 +85,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
       System.out.println("writing");
       for (i = 0; i < 1_000_000; i++) {
         // make non-negative avoiding Math.abs, because that can still be negative
-        long randomRow = random.nextLong() & Long.MAX_VALUE;
+        long randomRow = SECURE_RANDOM.get().nextLong() & Long.MAX_VALUE;
         assertTrue(randomRow >= 0);
         final int table = (int) (randomRow % N);
         final Mutation m = new Mutation(Long.toHexString(randomRow));
