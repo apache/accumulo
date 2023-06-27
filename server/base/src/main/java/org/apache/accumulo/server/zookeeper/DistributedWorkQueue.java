@@ -21,7 +21,7 @@ package org.apache.accumulo.server.zookeeper;
 import static java.lang.Math.toIntExact;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -74,7 +74,7 @@ public class DistributedWorkQueue {
       return;
     }
 
-    Collections.shuffle(children, SECURE_RANDOM.get());
+    Collections.shuffle(children, RANDOM.get());
     try {
       for (final String child : children) {
 
@@ -169,7 +169,7 @@ public class DistributedWorkQueue {
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context) {
     // Preserve the old delay and period
-    this(path, config, context, SECURE_RANDOM.get().nextInt(toIntExact(MINUTES.toMillis(1))),
+    this(path, config, context, RANDOM.get().nextInt(toIntExact(MINUTES.toMillis(1))),
         MINUTES.toMillis(1));
   }
 

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -64,7 +64,7 @@ public class MonitorSslIT extends ConfigurableMacBase {
   public static void initHttps() throws NoSuchAlgorithmException, KeyManagementException {
     SSLContext ctx = SSLContext.getInstance("TLSv1.2");
     TrustManager[] tm = {new TestTrustManager()};
-    ctx.init(new KeyManager[0], tm, SECURE_RANDOM.get());
+    ctx.init(new KeyManager[0], tm, RANDOM.get());
     SSLContext.setDefault(ctx);
     HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
     HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());

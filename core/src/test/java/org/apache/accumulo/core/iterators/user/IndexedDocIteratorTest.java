@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -92,7 +92,7 @@ public class IndexedDocIteratorTest {
         doc.append(nullByte, 0, 1);
         doc.append(String.format("%010d", docid).getBytes(), 0, 10);
         for (int j = 0; j < columnFamilies.length; j++) {
-          if (SECURE_RANDOM.get().nextFloat() < hitRatio) {
+          if (RANDOM.get().nextFloat() < hitRatio) {
             Text colq = new Text(columnFamilies[j]);
             colq.append(nullByte, 0, 1);
             colq.append(doc.getBytes(), 0, doc.getLength());
@@ -115,7 +115,7 @@ public class IndexedDocIteratorTest {
           docs.add(doc);
         }
         for (Text cf : otherColumnFamilies) {
-          if (SECURE_RANDOM.get().nextFloat() < hitRatio) {
+          if (RANDOM.get().nextFloat() < hitRatio) {
             Text colq = new Text(cf);
             colq.append(nullByte, 0, 1);
             colq.append(doc.getBytes(), 0, doc.getLength());

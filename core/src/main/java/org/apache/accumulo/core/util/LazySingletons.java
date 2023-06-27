@@ -41,6 +41,6 @@ public class LazySingletons {
   /**
    * A SecureRandom instance created with the default constructor.
    */
-  public static final Supplier<SecureRandom> SECURE_RANDOM = Suppliers.memoize(SecureRandom::new);
+  public static final Supplier<SecureRandom> RANDOM = Suppliers.memoize(SecureRandom::new);
 
 }

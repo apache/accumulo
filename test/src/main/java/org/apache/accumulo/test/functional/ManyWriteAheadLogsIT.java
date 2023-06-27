@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Base64;
@@ -152,7 +152,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
           for (int j = 0; j < 10; j++) {
             int row = startRow + j;
             Mutation m = new Mutation(String.format("%05x", row));
-            SECURE_RANDOM.get().nextBytes(val);
+            RANDOM.get().nextBytes(val);
             m.put("f", "q", "v");
 
             manyWALsWriter.addMutation(m);
@@ -162,7 +162,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
           // write a lot of data to second table to forces the logs to roll
           for (int j = 0; j < 1000; j++) {
             Mutation m = new Mutation(String.format("%03d", j));
-            SECURE_RANDOM.get().nextBytes(val);
+            RANDOM.get().nextBytes(val);
 
             m.put("f", "q", Base64.getEncoder().encodeToString(val));
 

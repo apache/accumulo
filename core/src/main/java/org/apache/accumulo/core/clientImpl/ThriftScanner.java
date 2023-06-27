@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -276,7 +276,7 @@ public class ThriftScanner {
       Thread.sleep(millis);
     }
     // wait 2 * last time, with +-10% random jitter
-    return (long) (Math.min(millis * 2, maxSleep) * (.9 + SECURE_RANDOM.get().nextDouble() / 5));
+    return (long) (Math.min(millis * 2, maxSleep) * (.9 + RANDOM.get().nextDouble() / 5));
   }
 
   public static List<KeyValue> scan(ClientContext context, ScanState scanState, long timeOut)

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.rpc;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -385,7 +385,7 @@ public class ThriftUtil {
 
         // Avoid the replay attack protection, sleep 1 to 5000ms
         try {
-          Thread.sleep(SECURE_RANDOM.get().nextInt(RELOGIN_MAX_BACKOFF) + 1);
+          Thread.sleep(RANDOM.get().nextInt(RELOGIN_MAX_BACKOFF) + 1);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           return;

@@ -26,7 +26,7 @@ import static org.apache.accumulo.core.client.summary.CountingSummarizer.EMITTED
 import static org.apache.accumulo.core.client.summary.CountingSummarizer.SEEN_STAT;
 import static org.apache.accumulo.core.client.summary.CountingSummarizer.TOO_LONG_STAT;
 import static org.apache.accumulo.core.client.summary.CountingSummarizer.TOO_MANY_STAT;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.test.functional.BasicSummarizer.DELETES_STAT;
 import static org.apache.accumulo.test.functional.BasicSummarizer.MAX_TIMESTAMP_STAT;
 import static org.apache.accumulo.test.functional.BasicSummarizer.MIN_TIMESTAMP_STAT;
@@ -832,8 +832,8 @@ public class SummaryIT extends SharedMiniClusterBase {
         // this loop should cause a varying number of files and compactions
         try (BatchWriter bw = c.createBatchWriter(table)) {
           for (int i = 0; i < 10000; i++) {
-            String row = String.format("%06d", SECURE_RANDOM.get().nextInt(1_000_000));
-            String fam = String.format("%03d", SECURE_RANDOM.get().nextInt(100));
+            String row = String.format("%06d", RANDOM.get().nextInt(1_000_000));
+            String fam = String.format("%03d", RANDOM.get().nextInt(100));
             String qual = String.format("%06d", q++);
             write(bw, row, fam, qual, "val");
             famCounts.merge(fam, 1L, Long::sum);

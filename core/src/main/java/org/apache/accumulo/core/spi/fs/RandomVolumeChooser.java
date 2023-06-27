@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.spi.fs;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.Set;
 
@@ -36,7 +36,7 @@ public class RandomVolumeChooser implements VolumeChooser {
   @Override
   public String choose(VolumeChooserEnvironment env, Set<String> options) {
     String[] optionsArray = options.toArray(new String[0]);
-    return optionsArray[SECURE_RANDOM.get().nextInt(optionsArray.length)];
+    return optionsArray[RANDOM.get().nextInt(optionsArray.length)];
   }
 
   /**

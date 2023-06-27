@@ -19,7 +19,7 @@
 package org.apache.accumulo.tserver.tablet;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -131,7 +131,7 @@ public class MinorCompactor extends FileCompactor {
           throw new IllegalStateException(e);
         }
 
-        int sleep = sleepTime + SECURE_RANDOM.get().nextInt(sleepTime);
+        int sleep = sleepTime + RANDOM.get().nextInt(sleepTime);
         log.debug("MinC failed sleeping {} ms before retrying", sleep);
         sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
         sleepTime = (int) Math.round(Math.min(maxSleepTime, sleepTime * growthFactor));

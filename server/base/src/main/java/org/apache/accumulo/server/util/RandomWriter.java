@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.util;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.Iterator;
 import java.util.Properties;
@@ -62,13 +62,13 @@ public class RandomWriter {
 
     @Override
     public Mutation next() {
-      Text row_value = new Text(Long.toString(
-          ((SECURE_RANDOM.get().nextLong() & 0x7fffffffffffffffL) / 177) % 100000000000L));
+      Text row_value = new Text(
+          Long.toString(((RANDOM.get().nextLong() & 0x7fffffffffffffffL) / 177) % 100000000000L));
       Mutation m = new Mutation(row_value);
       for (int column = 0; column < num_columns_per_row; column++) {
         Text column_fam = new Text("col_fam");
         byte[] bytes = new byte[num_payload_bytes];
-        SECURE_RANDOM.get().nextBytes(bytes);
+        RANDOM.get().nextBytes(bytes);
         m.put(column_fam, new Text("" + column), new Value(bytes));
       }
       mutations_so_far++;

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.spi.balancer;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -325,7 +325,7 @@ public class GroupBalancerTest {
     for (int g = 1; g <= 60; g++) {
       for (int t = 1; t <= 241; t++) {
         tservers.addTablet(String.format("%02d:%d", g, t),
-            "192.168.1." + (SECURE_RANDOM.get().nextInt(249) + 1), 9997);
+            "192.168.1." + (RANDOM.get().nextInt(249) + 1), 9997);
       }
     }
 
@@ -341,9 +341,9 @@ public class GroupBalancerTest {
     TabletServers tservers = new TabletServers();
 
     for (int g = 1; g <= 60; g++) {
-      for (int t = 1; t <= SECURE_RANDOM.get().nextInt(1000); t++) {
+      for (int t = 1; t <= RANDOM.get().nextInt(1000); t++) {
         tservers.addTablet(String.format("%02d:%d", g, t),
-            "192.168.1." + (SECURE_RANDOM.get().nextInt(249) + 1), 9997);
+            "192.168.1." + (RANDOM.get().nextInt(249) + 1), 9997);
       }
     }
 

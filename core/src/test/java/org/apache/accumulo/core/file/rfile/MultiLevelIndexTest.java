@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -119,7 +119,7 @@ public class MultiLevelIndexTest {
     liter = reader.lookup(new Key(String.format("%05d000", num + 1)));
     assertFalse(liter.hasNext());
 
-    SECURE_RANDOM.get().ints(100, 0, num * 1_000).forEach(k -> {
+    RANDOM.get().ints(100, 0, num * 1_000).forEach(k -> {
       int expected;
       if (k % 1000 == 0) {
         expected = k / 1000; // end key is inclusive

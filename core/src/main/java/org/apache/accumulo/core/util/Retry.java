@@ -20,7 +20,7 @@ package org.apache.accumulo.core.util;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.concurrent.TimeUnit;
 
@@ -170,8 +170,7 @@ public class Retry {
   public void waitForNextAttempt(Logger log, String operationDescription)
       throws InterruptedException {
 
-    double waitFactor =
-        (1 + (SECURE_RANDOM.get().nextDouble() - 0.5) / 10.0) * currentBackOffFactor;
+    double waitFactor = (1 + (RANDOM.get().nextDouble() - 0.5) / 10.0) * currentBackOffFactor;
     if (!doTimeJitter) {
       waitFactor = currentBackOffFactor;
     }

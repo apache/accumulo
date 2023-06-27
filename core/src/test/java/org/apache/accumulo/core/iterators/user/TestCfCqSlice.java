@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.iterators.user;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -380,7 +380,7 @@ public abstract class TestCfCqSlice {
       assertFalse(foundKvs[row][cf][cq], "Duplicate " + row + " " + cf + " " + cq);
       foundKvs[row][cf][cq] = true;
 
-      if (SECURE_RANDOM.get().nextInt(100) == 0) {
+      if (RANDOM.get().nextInt(100) == 0) {
         skvi.seek(new Range(k, false, range.getEndKey(), range.isEndKeyInclusive()), EMPTY_CF_SET,
             false);
       } else {

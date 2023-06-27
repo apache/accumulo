@@ -21,7 +21,7 @@ package org.apache.accumulo.core.fate;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -123,7 +123,7 @@ public class ZooStore<T> implements TStore<T> {
     while (true) {
       try {
         // looking at the code for SecureRandom, it appears to be thread safe
-        long tid = SECURE_RANDOM.get().nextLong() & 0x7fffffffffffffffL;
+        long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
         zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF_8),
             NodeExistsPolicy.FAIL);
         return tid;

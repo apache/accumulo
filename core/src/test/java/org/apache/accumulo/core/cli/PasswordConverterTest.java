@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.cli;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -77,7 +77,7 @@ public class PasswordConverterTest {
 
   @Test
   public void testPass() {
-    String expected = String.valueOf(SECURE_RANDOM.get().nextDouble());
+    String expected = String.valueOf(RANDOM.get().nextDouble());
     argv[1] = "pass:" + expected;
     new JCommander(password).parse(argv);
     assertEquals(expected, password.password);

@@ -23,7 +23,7 @@ import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_FACTORY;
 import static org.apache.accumulo.core.crypto.CryptoUtils.getFileDecrypter;
 import static org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope.TABLE;
 import static org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope.WAL;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -409,11 +409,11 @@ public class CryptoTest {
       NoSuchProviderException, NoSuchPaddingException, InvalidKeyException {
     // verify valid key sizes (corresponds to 128, 192, and 256 bits)
     for (int i : new int[] {16, 24, 32}) {
-      verifyKeySizeForCBC(SECURE_RANDOM.get(), i);
+      verifyKeySizeForCBC(RANDOM.get(), i);
     }
     // verify invalid key sizes
     for (int i : new int[] {1, 2, 8, 11, 15, 64, 128}) {
-      assertThrows(InvalidKeyException.class, () -> verifyKeySizeForCBC(SECURE_RANDOM.get(), i));
+      assertThrows(InvalidKeyException.class, () -> verifyKeySizeForCBC(RANDOM.get(), i));
     }
   }
 
@@ -429,8 +429,8 @@ public class CryptoTest {
   @Test
   public void testAESKeyUtilsWrapAndUnwrap()
       throws NoSuchAlgorithmException, NoSuchProviderException {
-    java.security.Key kek = AESCryptoService.generateKey(SECURE_RANDOM.get(), 16);
-    java.security.Key fek = AESCryptoService.generateKey(SECURE_RANDOM.get(), 16);
+    java.security.Key kek = AESCryptoService.generateKey(RANDOM.get(), 16);
+    java.security.Key fek = AESCryptoService.generateKey(RANDOM.get(), 16);
     byte[] wrapped = AESCryptoService.wrapKey(fek, kek);
     assertFalse(Arrays.equals(fek.getEncoded(), wrapped));
     java.security.Key unwrapped = AESCryptoService.unwrapKey(wrapped, kek);
@@ -440,8 +440,8 @@ public class CryptoTest {
   @Test
   public void testAESKeyUtilsFailUnwrapWithWrongKEK()
       throws NoSuchAlgorithmException, NoSuchProviderException {
-    java.security.Key kek = AESCryptoService.generateKey(SECURE_RANDOM.get(), 16);
-    java.security.Key fek = AESCryptoService.generateKey(SECURE_RANDOM.get(), 16);
+    java.security.Key kek = AESCryptoService.generateKey(RANDOM.get(), 16);
+    java.security.Key fek = AESCryptoService.generateKey(RANDOM.get(), 16);
     byte[] wrongBytes = kek.getEncoded();
     wrongBytes[0]++;
     java.security.Key wrongKek = new SecretKeySpec(wrongBytes, "AES");

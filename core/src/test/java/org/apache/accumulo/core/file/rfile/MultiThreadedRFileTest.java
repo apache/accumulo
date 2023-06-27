@@ -20,7 +20,7 @@ package org.apache.accumulo.core.file.rfile;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -285,7 +285,7 @@ public class MultiThreadedRFileTest {
   }
 
   private void validate(TestRFile trf) throws IOException {
-    SECURE_RANDOM.get().ints(10, 0, 4).forEach(part -> {
+    RANDOM.get().ints(10, 0, 4).forEach(part -> {
       try {
         Range range = new Range(getKey(part, 0, 0), true, getKey(part, 4, 2048), true);
         trf.iter.seek(range, EMPTY_COL_FAMS, false);

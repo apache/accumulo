@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.function.IntSupplier;
@@ -79,7 +79,7 @@ public class RollingStatsTest {
       rsp.addValue(v);
       checkAgreement(ds, rs);
 
-      if (SECURE_RANDOM.get().nextDouble() < 0.001) {
+      if (RANDOM.get().nextDouble() < 0.001) {
         checkAgreement(ds, rsp);
       }
     }
@@ -94,7 +94,7 @@ public class RollingStatsTest {
     StatTester st = new StatTester(1019);
     int[] keySizes = {103, 113, 123, 2345};
     for (int i = 0; i < 10000; i++) {
-      st.addValue(keySizes[SECURE_RANDOM.get().nextInt(keySizes.length)]);
+      st.addValue(keySizes[RANDOM.get().nextInt(keySizes.length)]);
     }
     st.check();
   }
@@ -119,7 +119,7 @@ public class RollingStatsTest {
       StatTester st = new StatTester(windowSize);
 
       for (int i = 0; i < 1000; i++) {
-        int v = 200 + SECURE_RANDOM.get().nextInt(50);
+        int v = 200 + RANDOM.get().nextInt(50);
 
         st.addValue(v);
       }
@@ -176,9 +176,9 @@ public class RollingStatsTest {
     for (int i = 0; i < 13; i++) {
 
       // write small keys
-      int numSmall = 1000 + SECURE_RANDOM.get().nextInt(1000);
+      int numSmall = 1000 + RANDOM.get().nextInt(1000);
       for (int s = 0; s < numSmall; s++) {
-        int sks = 50 + SECURE_RANDOM.get().nextInt(100);
+        int sks = 50 + RANDOM.get().nextInt(100);
         // simulate row with multiple cols
         for (int c = 0; c < 3; c++) {
           st.addValue(sks);
@@ -186,9 +186,9 @@ public class RollingStatsTest {
       }
 
       // write a few large keys
-      int numLarge = 1 + SECURE_RANDOM.get().nextInt(1);
+      int numLarge = 1 + RANDOM.get().nextInt(1);
       for (int l = 0; l < numLarge; l++) {
-        int lks = 500000 + SECURE_RANDOM.get().nextInt(1000000);
+        int lks = 500000 + RANDOM.get().nextInt(1000000);
         for (int c = 0; c < 3; c++) {
           st.addValue(lks);
         }

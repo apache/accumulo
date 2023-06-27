@@ -19,7 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -153,7 +153,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       while ((line = reader.readLine()) != null) {
         Path p = new Path(line.substring(5));
         assertTrue(fs.exists(p), "File doesn't exist: " + p);
-        Path importDir = importDirAry[SECURE_RANDOM.get().nextInt(importDirAry.length)];
+        Path importDir = importDirAry[RANDOM.get().nextInt(importDirAry.length)];
         Path dest = new Path(importDir, p.getName());
         assertFalse(fs.exists(dest), "Did not expect " + dest + " to exist");
         FileUtil.copy(fs, p, fs, dest, false, fs.getConf());
@@ -271,7 +271,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       while ((line = reader.readLine()) != null) {
         Path p = new Path(line.substring(5));
         assertTrue(fs.exists(p), "File doesn't exist: " + p);
-        Path importDir = importDirAry[SECURE_RANDOM.get().nextInt(importDirAry.length)];
+        Path importDir = importDirAry[RANDOM.get().nextInt(importDirAry.length)];
         Path dest = new Path(importDir, p.getName());
         assertFalse(fs.exists(dest), "Did not expect " + dest + " to exist");
         FileUtil.copy(fs, p, fs, dest, false, fs.getConf());

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -125,7 +125,7 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
 
       String t = Thread.currentThread().getName() + " ";
       try {
-        SECURE_RANDOM.get().ints(iterations, 0, randMax).forEach(choice -> {
+        RANDOM.get().ints(iterations, 0, randMax).forEach(choice -> {
           if (choice < 1) {
             tableConf.invalidateCache();
           } else {

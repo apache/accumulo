@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.util;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -88,7 +88,7 @@ public class FileUtil {
     Path result = null;
     while (result == null) {
       result = new Path(tabletDirectory + Path.SEPARATOR + "tmp/idxReduce_"
-          + String.format("%09d", SECURE_RANDOM.get().nextInt(Integer.MAX_VALUE)));
+          + String.format("%09d", RANDOM.get().nextInt(Integer.MAX_VALUE)));
       try {
         fs.getFileStatus(result);
         result = null;

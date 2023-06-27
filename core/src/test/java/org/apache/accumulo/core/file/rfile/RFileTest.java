@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -551,7 +551,7 @@ public class RFileTest {
     // test seeking to random location and reading all data from that point
     // there was an off by one bug with this in the transient index
     for (int i = 0; i < 12; i++) {
-      index = SECURE_RANDOM.get().nextInt(expectedKeys.size());
+      index = RANDOM.get().nextInt(expectedKeys.size());
       trf.seek(expectedKeys.get(index));
       for (; index < expectedKeys.size(); index++) {
         assertTrue(trf.iter.hasTop());
@@ -1644,13 +1644,13 @@ public class RFileTest {
 
     for (int count = 0; count < 100; count++) {
 
-      int start = SECURE_RANDOM.get().nextInt(2300);
+      int start = RANDOM.get().nextInt(2300);
       Range range = new Range(newKey(formatString("r_", start), "cf1", "cq1", "L1", 42),
           newKey(formatString("r_", start + 100), "cf1", "cq1", "L1", 42));
 
       trf.reader.seek(range, cfs, false);
 
-      int numToScan = SECURE_RANDOM.get().nextInt(100);
+      int numToScan = RANDOM.get().nextInt(100);
 
       for (int j = 0; j < numToScan; j++) {
         assertTrue(trf.reader.hasTop());
@@ -1666,8 +1666,8 @@ public class RFileTest {
       // seek a little forward from the last range and read a few keys within the unconsumed portion
       // of the last range
 
-      int start2 = start + numToScan + SECURE_RANDOM.get().nextInt(3);
-      int end2 = start2 + SECURE_RANDOM.get().nextInt(3);
+      int start2 = start + numToScan + RANDOM.get().nextInt(3);
+      int end2 = start2 + RANDOM.get().nextInt(3);
 
       range = new Range(newKey(formatString("r_", start2), "cf1", "cq1", "L1", 42),
           newKey(formatString("r_", end2), "cf1", "cq1", "L1", 42));
@@ -2003,24 +2003,24 @@ public class RFileTest {
       boolean endInclusive = false;
       int endIndex = sampleData.size();
 
-      if (SECURE_RANDOM.get().nextBoolean()) {
-        startIndex = SECURE_RANDOM.get().nextInt(sampleData.size());
+      if (RANDOM.get().nextBoolean()) {
+        startIndex = RANDOM.get().nextInt(sampleData.size());
         startKey = sampleData.get(startIndex).getKey();
-        startInclusive = SECURE_RANDOM.get().nextBoolean();
+        startInclusive = RANDOM.get().nextBoolean();
         if (!startInclusive) {
           startIndex++;
         }
       }
 
-      if (startIndex < endIndex && SECURE_RANDOM.get().nextBoolean()) {
-        endIndex -= SECURE_RANDOM.get().nextInt(endIndex - startIndex);
+      if (startIndex < endIndex && RANDOM.get().nextBoolean()) {
+        endIndex -= RANDOM.get().nextInt(endIndex - startIndex);
         endKey = sampleData.get(endIndex - 1).getKey();
-        endInclusive = SECURE_RANDOM.get().nextBoolean();
+        endInclusive = RANDOM.get().nextBoolean();
         if (!endInclusive) {
           endIndex--;
         }
       } else if (startIndex == endIndex) {
-        endInclusive = SECURE_RANDOM.get().nextBoolean();
+        endInclusive = RANDOM.get().nextBoolean();
       }
 
       sample.seek(new Range(startKey, startInclusive, endKey, endInclusive), columnFamilies,

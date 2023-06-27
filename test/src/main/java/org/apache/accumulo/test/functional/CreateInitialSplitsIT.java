@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -211,7 +211,7 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < numItems; i++) {
       byte[] split = new byte[len];
-      SECURE_RANDOM.get().nextBytes(split);
+      RANDOM.get().nextBytes(split);
       splits.add(encode(new Text(split), useB64));
     }
     return splits;

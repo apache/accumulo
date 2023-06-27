@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -59,8 +59,8 @@ public class FateStarvationIT extends AccumuloClusterHarness {
       List<Text> splits = new ArrayList<>(TestIngest.getSplitPoints(0, 100000, 67));
 
       for (int i = 0; i < 100; i++) {
-        int idx1 = SECURE_RANDOM.get().nextInt(splits.size() - 1);
-        int idx2 = SECURE_RANDOM.get().nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
+        int idx1 = RANDOM.get().nextInt(splits.size() - 1);
+        int idx2 = RANDOM.get().nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
 
         c.tableOperations().compact(tableName, splits.get(idx1), splits.get(idx2), false, false);
       }

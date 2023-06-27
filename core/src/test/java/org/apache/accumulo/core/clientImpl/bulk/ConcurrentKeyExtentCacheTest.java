@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl.bulk;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -98,14 +98,14 @@ public class ConcurrentKeyExtentCacheTest {
 
     TestCache tc = new TestCache();
 
-    SECURE_RANDOM.get().ints(20000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i)))
-        .sequential().forEach(lookupRow -> testLookup(tc, lookupRow));
+    RANDOM.get().ints(20000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i))).sequential()
+        .forEach(lookupRow -> testLookup(tc, lookupRow));
     assertEquals(extentsSet, tc.seen);
 
     // try parallel
     TestCache tc2 = new TestCache();
-    SECURE_RANDOM.get().ints(20000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i)))
-        .parallel().forEach(lookupRow -> testLookup(tc2, lookupRow));
+    RANDOM.get().ints(20000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i))).parallel()
+        .forEach(lookupRow -> testLookup(tc2, lookupRow));
     assertEquals(extentsSet, tc.seen);
   }
 
@@ -113,13 +113,13 @@ public class ConcurrentKeyExtentCacheTest {
   public void testRandom() {
     TestCache tc = new TestCache();
 
-    SECURE_RANDOM.get().ints(20000).mapToObj(i -> new Text(String.format("%08x", i))).sequential()
+    RANDOM.get().ints(20000).mapToObj(i -> new Text(String.format("%08x", i))).sequential()
         .forEach(lookupRow -> testLookup(tc, lookupRow));
     assertEquals(extentsSet, tc.seen);
 
     // try parallel
     TestCache tc2 = new TestCache();
-    SECURE_RANDOM.get().ints(20000).mapToObj(i -> new Text(String.format("%08x", i))).parallel()
+    RANDOM.get().ints(20000).mapToObj(i -> new Text(String.format("%08x", i))).parallel()
         .forEach(lookupRow -> testLookup(tc2, lookupRow));
     assertEquals(extentsSet, tc2.seen);
   }

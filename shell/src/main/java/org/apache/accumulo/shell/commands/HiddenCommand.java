@@ -19,7 +19,7 @@
 package org.apache.accumulo.shell.commands;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.Base64;
 
@@ -40,7 +40,7 @@ public class HiddenCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
-    if (SECURE_RANDOM.get().nextInt(10) == 0) {
+    if (RANDOM.get().nextInt(10) == 0) {
       shellState.getTerminal().puts(InfoCmp.Capability.bell);
       shellState.getWriter().println();
       shellState.getWriter()

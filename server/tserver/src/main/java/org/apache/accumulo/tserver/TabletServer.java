@@ -23,7 +23,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalFixedDelay;
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalScheduledTask;
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchNonCriticalScheduledTask;
@@ -370,7 +370,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private static long jitter() {
     // add a random 10% wait
-    return (long) ((1. + (SECURE_RANDOM.get().nextDouble() / 10))
+    return (long) ((1. + (RANDOM.get().nextDouble() / 10))
         * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
   }
 

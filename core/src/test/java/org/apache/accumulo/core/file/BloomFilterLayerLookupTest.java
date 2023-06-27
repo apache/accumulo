@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.file;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -62,7 +62,7 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
   public void test() throws IOException {
     HashSet<Integer> valsSet = new HashSet<>();
     for (int i = 0; i < 100000; i++) {
-      valsSet.add(SECURE_RANDOM.get().nextInt(Integer.MAX_VALUE));
+      valsSet.add(RANDOM.get().nextInt(Integer.MAX_VALUE));
     }
 
     ArrayList<Integer> vals = new ArrayList<>(valsSet);
@@ -110,7 +110,7 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
     int hits = 0;
     t1 = System.currentTimeMillis();
     for (int i = 0; i < 5000; i++) {
-      int row = SECURE_RANDOM.get().nextInt(Integer.MAX_VALUE);
+      int row = RANDOM.get().nextInt(Integer.MAX_VALUE);
       seek(bmfr, row);
       if (valsSet.contains(row)) {
         hits++;

@@ -20,7 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -137,7 +137,7 @@ public class ThriftTransportPool {
 
       if (!serversSet.isEmpty()) {
         ArrayList<ThriftTransportKey> cachedServers = new ArrayList<>(serversSet);
-        Collections.shuffle(cachedServers, SECURE_RANDOM.get());
+        Collections.shuffle(cachedServers, RANDOM.get());
 
         for (ThriftTransportKey ttk : cachedServers) {
           CachedConnection connection = connectionPool.reserveAny(ttk);
@@ -154,7 +154,7 @@ public class ThriftTransportPool {
     int retryCount = 0;
     while (!servers.isEmpty() && retryCount < 10) {
 
-      int index = SECURE_RANDOM.get().nextInt(servers.size());
+      int index = RANDOM.get().nextInt(servers.size());
       ThriftTransportKey ttk = servers.get(index);
 
       if (preferCachedConnection) {

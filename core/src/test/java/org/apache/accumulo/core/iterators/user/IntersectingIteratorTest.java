@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -77,7 +77,7 @@ public class IntersectingIteratorTest {
         boolean docHits = true;
         Text doc = new Text(String.format("%010d", docid));
         for (int j = 0; j < columnFamilies.length; j++) {
-          if (SECURE_RANDOM.get().nextFloat() < hitRatio) {
+          if (RANDOM.get().nextFloat() < hitRatio) {
             Key k = new Key(row, columnFamilies[j], doc);
             map.put(k, v);
             if (negateMask[j]) {
@@ -93,7 +93,7 @@ public class IntersectingIteratorTest {
           docs.add(doc);
         }
         for (Text cf : otherColumnFamilies) {
-          if (SECURE_RANDOM.get().nextFloat() < hitRatio) {
+          if (RANDOM.get().nextFloat() < hitRatio) {
             Key k = new Key(row, cf, doc);
             map.put(k, v);
           }

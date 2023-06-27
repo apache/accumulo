@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -503,7 +503,7 @@ public class TestLruBlockCache {
   private Block[] generateRandomBlocks(int numBlocks, long maxSize) {
     Block[] blocks = new Block[numBlocks];
     for (int i = 0; i < numBlocks; i++) {
-      blocks[i] = new Block("block" + i, SECURE_RANDOM.get().nextInt((int) maxSize) + 1);
+      blocks[i] = new Block("block" + i, RANDOM.get().nextInt((int) maxSize) + 1);
     }
     return blocks;
   }

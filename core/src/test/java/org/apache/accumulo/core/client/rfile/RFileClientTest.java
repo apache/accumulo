@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.client.rfile;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -519,7 +519,7 @@ public class RFileClientTest {
     Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs)
         .withIndexCache(1000000).withDataCache(10000000).build();
 
-    SECURE_RANDOM.get().ints(100, 0, 10_000).forEach(r -> {
+    RANDOM.get().ints(100, 0, 10_000).forEach(r -> {
       scanner.setRange(new Range(rowStr(r)));
       String actual = scanner.stream().collect(onlyElement()).getKey().getRow().toString();
       assertEquals(rowStr(r), actual);

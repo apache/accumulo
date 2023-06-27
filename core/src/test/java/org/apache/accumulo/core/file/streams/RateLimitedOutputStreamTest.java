@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.file.streams;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.OutputStream;
@@ -50,7 +50,7 @@ public class RateLimitedOutputStreamTest {
     try (RateLimitedOutputStream os =
         new RateLimitedOutputStream(new NullOutputStream(), rateLimiter)) {
       for (int i = 0; i < 100; ++i) {
-        byte[] bytes = new byte[Math.abs(SECURE_RANDOM.get().nextInt() % 65536)];
+        byte[] bytes = new byte[Math.abs(RANDOM.get().nextInt() % 65536)];
         os.write(bytes);
         bytesWritten += bytes.length;
       }

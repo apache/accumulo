@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.tserver.session;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -79,7 +79,7 @@ public class SessionManager {
   }
 
   public long createSession(Session session, boolean reserve) {
-    long sid = SECURE_RANDOM.get().nextLong();
+    long sid = RANDOM.get().nextLong();
 
     synchronized (session) {
       Preconditions.checkArgument(session.state == State.NEW);
@@ -88,7 +88,7 @@ public class SessionManager {
     }
 
     while (sessions.putIfAbsent(sid, session) != null) {
-      sid = SECURE_RANDOM.get().nextLong();
+      sid = RANDOM.get().nextLong();
     }
 
     return sid;

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.conf.codec;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -216,7 +216,7 @@ public class VersionedPropEncryptCodec extends VersionedPropCodec {
     // utils
     public static GCMParameterSpec buildGCMParameterSpec() {
       byte[] iv = new byte[16];
-      SECURE_RANDOM.get().nextBytes(iv);
+      RANDOM.get().nextBytes(iv);
       return new GCMParameterSpec(128, iv);
     }
 

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -87,7 +87,7 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
       HashMap<Text,Value> expected = new HashMap<>();
       ArrayList<Range> ranges = new ArrayList<>();
       for (int i = 0; i < 100; i++) {
-        int r = SECURE_RANDOM.get().nextInt(numRows);
+        int r = RANDOM.get().nextInt(numRows);
         Text row = new Text(String.format("%09x", r));
         expected.put(row, new Value(String.format("%016x", numRows - r)));
         ranges.add(new Range(row));

@@ -20,7 +20,7 @@ package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -169,7 +169,7 @@ public class ZooSession {
         }
         UtilWaitThread.sleep(sleepTime);
         if (sleepTime < 10000) {
-          sleepTime = sleepTime + (long) (sleepTime * SECURE_RANDOM.get().nextDouble());
+          sleepTime = sleepTime + (long) (sleepTime * RANDOM.get().nextDouble());
         }
       }
     }

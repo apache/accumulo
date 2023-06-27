@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.file;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -456,7 +456,7 @@ public class BloomFilterLayer {
     HashSet<Integer> valsSet = new HashSet<>();
 
     for (int i = 0; i < 100000; i++) {
-      valsSet.add(SECURE_RANDOM.get().nextInt(Integer.MAX_VALUE));
+      valsSet.add(RANDOM.get().nextInt(Integer.MAX_VALUE));
     }
 
     ArrayList<Integer> vals = new ArrayList<>(valsSet);
@@ -508,7 +508,7 @@ public class BloomFilterLayer {
 
     int hits = 0;
     for (int i = 0; i < 5000; i++) {
-      int row = SECURE_RANDOM.get().nextInt(Integer.MAX_VALUE);
+      int row = RANDOM.get().nextInt(Integer.MAX_VALUE);
       String fi = String.format("%010d", row);
       // bmfr.seek(new Range(new Text("r"+fi)));
       org.apache.accumulo.core.data.Key k1 =

@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.spi.crypto;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -358,8 +358,8 @@ public class AESCryptoService implements CryptoService {
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
           throw new CryptoException("Error obtaining cipher for transform " + transformation, e);
         }
-        this.fek = generateKey(SECURE_RANDOM.get(), KEY_LENGTH_IN_BYTES);
-        SECURE_RANDOM.get().nextBytes(this.initVector);
+        this.fek = generateKey(RANDOM.get(), KEY_LENGTH_IN_BYTES);
+        RANDOM.get().nextBytes(this.initVector);
         this.firstInitVector = Arrays.copyOf(this.initVector, this.initVector.length);
         this.decryptionParameters =
             createCryptoParameters(VERSION, encryptingKek, keyLocation, keyManager, fek);
@@ -499,14 +499,14 @@ public class AESCryptoService implements CryptoService {
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
           throw new CryptoException("Error obtaining cipher for transform " + transformation, e);
         }
-        this.fek = generateKey(SECURE_RANDOM.get(), KEY_LENGTH_IN_BYTES);
+        this.fek = generateKey(RANDOM.get(), KEY_LENGTH_IN_BYTES);
         this.decryptionParameters =
             createCryptoParameters(VERSION, encryptingKek, keyLocation, keyManager, fek);
       }
 
       @Override
       public OutputStream encryptStream(OutputStream outputStream) throws CryptoException {
-        SECURE_RANDOM.get().nextBytes(initVector);
+        RANDOM.get().nextBytes(initVector);
         try {
           outputStream.write(initVector);
         } catch (IOException e) {

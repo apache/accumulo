@@ -20,7 +20,7 @@ package org.apache.accumulo.core.spi.scan;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.lang.reflect.Type;
 import java.time.Duration;
@@ -363,7 +363,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
       var hashCode = hashTablet(tablet, profile.getSalt(attempts));
 
-      int serverIndex = (Math.abs(hashCode.asInt()) + SECURE_RANDOM.get().nextInt(numServers))
+      int serverIndex = (Math.abs(hashCode.asInt()) + RANDOM.get().nextInt(numServers))
           % orderedScanServers.size();
 
       serverToUse = orderedScanServers.get(serverIndex);

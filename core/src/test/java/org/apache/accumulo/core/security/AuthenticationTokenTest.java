@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.security;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -37,7 +37,7 @@ public class AuthenticationTokenTest {
     byte[] randomBytes = new byte[12];
     do {
       // random fill, but avoid all zeros case
-      SECURE_RANDOM.get().nextBytes(randomBytes);
+      RANDOM.get().nextBytes(randomBytes);
     } while (IntStream.range(0, randomBytes.length).allMatch(i -> randomBytes[i] == 0));
 
     byte[] serialized = AuthenticationTokenSerializer.serialize(new PasswordToken(randomBytes));

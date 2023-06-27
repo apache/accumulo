@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -411,10 +411,10 @@ public class NativeMapIT {
 
   // random length random field
   private static byte[] getRandomBytes(int maxLen) {
-    int len = SECURE_RANDOM.get().nextInt(maxLen);
+    int len = RANDOM.get().nextInt(maxLen);
 
     byte[] f = new byte[len];
-    SECURE_RANDOM.get().nextBytes(f);
+    RANDOM.get().nextBytes(f);
 
     return f;
   }
@@ -431,7 +431,7 @@ public class NativeMapIT {
     for (int i = 0; i < 100000; i++) {
 
       Key k = new Key(getRandomBytes(97), getRandomBytes(13), getRandomBytes(31),
-          getRandomBytes(11), (SECURE_RANDOM.get().nextLong() & 0x7fffffffffffffffL), false, false);
+          getRandomBytes(11), (RANDOM.get().nextLong() & 0x7fffffffffffffffL), false, false);
       Value v = new Value(getRandomBytes(511));
 
       testData.add(new Pair<>(k, v));
@@ -475,7 +475,7 @@ public class NativeMapIT {
       System.out.println("test 11 nm mem " + nm.getMemoryUsed());
 
       // insert data again w/ different value
-      Collections.shuffle(testData, SECURE_RANDOM.get());
+      Collections.shuffle(testData, RANDOM.get());
       // insert unsorted data
       for (Pair<Key,Value> pair : testData) {
         pair.getSecond().set(getRandomBytes(511));

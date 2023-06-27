@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -86,7 +86,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 50000; i++) {
           byte[] row = new byte[100];
-          SECURE_RANDOM.get().nextBytes(row);
+          RANDOM.get().nextBytes(row);
           Mutation m = new Mutation(row);
           m.put("", "", "");
           bw.addMutation(m);

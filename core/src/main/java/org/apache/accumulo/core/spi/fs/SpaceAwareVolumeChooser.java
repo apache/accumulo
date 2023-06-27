@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.spi.fs;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.util.NavigableMap;
@@ -121,7 +121,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
     }
 
     public String next() {
-      double value = SECURE_RANDOM.get().nextDouble() * total;
+      double value = RANDOM.get().nextDouble() * total;
       return map.higherEntry(value).getValue();
     }
   }

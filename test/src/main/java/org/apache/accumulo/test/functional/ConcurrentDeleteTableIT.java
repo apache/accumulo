@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -268,7 +268,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
       throws TableNotFoundException, MutationsRejectedException {
     try (BatchWriter bw = c.createBatchWriter(table)) {
       for (int i = 0; i < 1_000; i++) {
-        Mutation m = new Mutation(String.format("%09x", SECURE_RANDOM.get().nextInt(100_000_000)));
+        Mutation m = new Mutation(String.format("%09x", RANDOM.get().nextInt(100_000_000)));
         m.put("m", "order", "" + i);
         bw.addMutation(m);
       }

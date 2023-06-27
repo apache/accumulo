@@ -20,7 +20,7 @@ package org.apache.accumulo.test.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.util.LazySingletons.SECURE_RANDOM;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -794,7 +794,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // create two large files
     StringBuilder sb = new StringBuilder("insert b v q ");
-    SECURE_RANDOM.get().ints(10_000, 0, 26).forEach(i -> sb.append('a' + i));
+    RANDOM.get().ints(10_000, 0, 26).forEach(i -> sb.append('a' + i));
 
     ts.exec(sb.toString());
     ts.exec("flush -w");
