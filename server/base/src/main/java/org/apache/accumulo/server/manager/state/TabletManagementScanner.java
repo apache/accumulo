@@ -20,25 +20,30 @@ package org.apache.accumulo.server.manager.state;
 
 import java.io.IOException;
 import java.lang.ref.Cleaner.Cleanable;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.manager.state.TabletManagement;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.slf4j.Logger;
@@ -47,7 +52,7 @@ import org.slf4j.LoggerFactory;
 public class TabletManagementScanner implements ClosableIterator<TabletManagement> {
 
   private static final Logger log = LoggerFactory.getLogger(TabletManagementScanner.class);
-  private static final Collection<Range> ALL_TABLETS_RANGE = List.of(new Range());
+  private static final List<Range> ALL_TABLETS_RANGE = List.of(TabletsSection.getRange());
 
   private final Cleanable cleanable;
   private final BatchScanner mdScanner;
@@ -59,10 +64,23 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
     // scan over metadata table, looking for tablets in the wrong state based on the live servers
     // and online tables
     try {
-      Locations locs = context.tableOperations().locate(tableName, ALL_TABLETS_RANGE);
-      Long numLocations =
-          locs.groupByTablet().keySet().stream().map(locs::getTabletLocation).distinct().count();
-      int numThreads = Math.min(numLocations.intValue(),
+      int numLocations = 0;
+      try {
+        final TableId tid = context.getTableId(tableName);
+        final ClientTabletCache locator = ClientTabletCache.getInstance(context, tid);
+        final Set<String> locations = new HashSet<>();
+        final List<Range> failures = locator.findTablets(context, ALL_TABLETS_RANGE, (ct, r) -> {
+          locations.add(ct.getTserverLocation().orElseThrow());
+        }, LocationNeed.NOT_REQUIRED);
+        // If failures is not empty, then there are tablets that we don't know the location of.
+        // In this case, add an extra thread.
+        numLocations = (failures.isEmpty()) ? locations.size() : locations.size() + 1;
+      } catch (InvalidTabletHostingRequestException e) {
+        // this should not happen as we are using NOT_REQUIRED
+        throw new IllegalStateException(
+            "InvalidTabletHostingRequestException raised when using LocationNeed.NOT_REQUIRED");
+      }
+      int numThreads = Math.min(numLocations,
           context.getConfiguration().getCount(Property.MANAGER_TABLET_GROUP_WATCHER_SCAN_THREADS));
       mdScanner = context.createBatchScanner(tableName, Authorizations.EMPTY, numThreads);
     } catch (TableNotFoundException e) {
