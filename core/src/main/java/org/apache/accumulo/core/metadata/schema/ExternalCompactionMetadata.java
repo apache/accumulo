@@ -20,6 +20,7 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.List;
 import java.util.Objects;
@@ -32,11 +33,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.hadoop.fs.Path;
 
-import com.google.gson.Gson;
-
 public class ExternalCompactionMetadata {
-
-  private static final Gson GSON = new Gson();
 
   private final Set<StoredTabletFile> jobFiles;
   private final Set<StoredTabletFile> nextFiles;
@@ -140,11 +137,11 @@ public class ExternalCompactionMetadata {
     jData.propDels = propagateDeletes;
     jData.selectedAll = initiallySelectedAll;
     jData.compactionId = compactionId;
-    return GSON.toJson(jData);
+    return GSON.get().toJson(jData);
   }
 
   public static ExternalCompactionMetadata fromJson(String json) {
-    GSonData jData = GSON.fromJson(json, GSonData.class);
+    GSonData jData = GSON.get().fromJson(json, GSonData.class);
 
     return new ExternalCompactionMetadata(
         jData.inputs.stream().map(StoredTabletFile::new).collect(toSet()),

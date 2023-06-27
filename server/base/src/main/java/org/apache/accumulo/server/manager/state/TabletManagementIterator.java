@@ -403,7 +403,7 @@ public class TabletManagementIterator extends SkippingIterator {
   private void computeTabletManagementActions(final TabletMetadata tm,
       final Set<ManagementAction> reasonsToReturnThisTablet) {
 
-    if (tm.isFutureAndCurrentLocationSet()) {
+    if (tm.isFutureAndCurrentLocationSet() || tm.isOperationIdAndCurrentLocationSet()) {
       // no need to check everything, we are in a known state where we want to return everything.
       reasonsToReturnThisTablet.add(ManagementAction.BAD_STATE);
       return;

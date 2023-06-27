@@ -75,6 +75,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,6 +120,7 @@ public class TabletMetadata {
   protected boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
   protected boolean futureAndCurrentLocationSet = false;
+  protected boolean operationIdAndCurrentLocationSet = false;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -384,16 +387,20 @@ public class TabletMetadata {
 
   @Override
   public String toString() {
-    return "TabletMetadata [tableId=" + tableId + ", prevEndRow=" + prevEndRow + ", sawPrevEndRow="
-        + sawPrevEndRow + ", oldPrevEndRow=" + oldPrevEndRow + ", sawOldPrevEndRow="
-        + sawOldPrevEndRow + ", endRow=" + endRow + ", location=" + location + ", files=" + files
-        + ", scans=" + scans + ", loadedFiles=" + loadedFiles + ", fetchedCols=" + fetchedCols
-        + ", extent=" + extent + ", last=" + last + ", suspend=" + suspend + ", dirName=" + dirName
-        + ", time=" + time + ", cloned=" + cloned + ", flush=" + flush + ", logs=" + logs
-        + ", compact=" + compact + ", splitRatio=" + splitRatio + ", extCompactions="
-        + extCompactions + ", chopped=" + chopped + ", goal=" + goal + ", onDemandHostingRequested="
-        + onDemandHostingRequested + ", operationId=" + operationId
-        + ", futureAndCurrentLocationSet=" + futureAndCurrentLocationSet + "]";
+    return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("tableId", tableId)
+        .append("prevEndRow", prevEndRow).append("sawPrevEndRow", sawPrevEndRow)
+        .append("oldPrevEndRow", oldPrevEndRow).append("sawOldPrevEndRow", sawOldPrevEndRow)
+        .append("endRow", endRow).append("location", location).append("files", files)
+        .append("scans", scans).append("loadedFiles", loadedFiles)
+        .append("fetchedCols", fetchedCols).append("extent", extent).append("last", last)
+        .append("suspend", suspend).append("dirName", dirName).append("time", time)
+        .append("cloned", cloned).append("flush", flush).append("logs", logs)
+        .append("compact", compact).append("splitRatio", splitRatio)
+        .append("extCompactions", extCompactions).append("chopped", chopped).append("goal", goal)
+        .append("onDemandHostingRequested", onDemandHostingRequested)
+        .append("operationId", operationId)
+        .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet)
+        .append("operationIdAndCurrentLocationSet", operationIdAndCurrentLocationSet).toString();
   }
 
   public SortedMap<Key,Value> getKeyValues() {
@@ -441,6 +448,10 @@ public class TabletMetadata {
 
   public boolean isFutureAndCurrentLocationSet() {
     return futureAndCurrentLocationSet;
+  }
+
+  public boolean isOperationIdAndCurrentLocationSet() {
+    return operationIdAndCurrentLocationSet;
   }
 
   @VisibleForTesting
@@ -515,7 +526,7 @@ public class TabletMetadata {
               te.compact = OptionalLong.of(Long.parseLong(val));
               break;
             case OPID_QUAL:
-              te.operationId = TabletOperationId.from(val);
+              te.setOperationIdOnce(val, suppressLocationError);
               break;
           }
           break;
@@ -586,6 +597,15 @@ public class TabletMetadata {
     return te;
   }
 
+  /**
+   * Sets a location only once.
+   *
+   * @param val server to set for Location object
+   * @param qual session to set for Location object
+   * @param lt location type to use to construct Location object
+   * @param suppressError set to true to suppress an exception being thrown, else false
+   * @throws IllegalStateException if an operation id or location is already set
+   */
   private void setLocationOnce(String val, String qual, LocationType lt, boolean suppressError) {
     if (location != null) {
       if (!suppressError) {
@@ -594,7 +614,36 @@ public class TabletMetadata {
       }
       futureAndCurrentLocationSet = true;
     }
+    if (operationId != null) {
+      if (!suppressError) {
+        throw new IllegalStateException(
+            "Attempted to set location for tablet with an operation id. table ID: " + tableId
+                + " endrow: " + endRow + " -- operation id: " + operationId);
+      }
+      operationIdAndCurrentLocationSet = true;
+    }
     location = new Location(val, qual, lt);
+  }
+
+  /**
+   * Sets an operation ID only once.
+   *
+   * @param val operation id to set
+   * @param suppressError set to true to suppress an exception being thrown, else false
+   * @throws IllegalStateException if an operation id or location is already set
+   */
+  private void setOperationIdOnce(String val, boolean suppressError) {
+    Preconditions.checkState(operationId == null);
+    // make sure there is not already a current location set
+    if (location != null) {
+      if (!suppressError) {
+        throw new IllegalStateException(
+            "Attempted to set operation id for tablet with current location. table ID: " + tableId
+                + " endrow: " + endRow + " -- location: " + location);
+      }
+      operationIdAndCurrentLocationSet = true;
+    }
+    operationId = TabletOperationId.from(val);
   }
 
   @VisibleForTesting

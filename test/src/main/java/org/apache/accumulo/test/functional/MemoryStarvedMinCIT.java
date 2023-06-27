@@ -153,7 +153,7 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
           paused = MINC_PAUSED.intValue();
         }
 
-        MemoryStarvedScanIT.freeServerMemory(client, table);
+        MemoryStarvedScanIT.freeServerMemory(client);
         ingestThread.interrupt();
         ingestThread.join();
         assertNull(error.get());
