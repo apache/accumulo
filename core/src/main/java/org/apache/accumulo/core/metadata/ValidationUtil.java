@@ -62,9 +62,12 @@ public class ValidationUtil {
 
   public static void validateFileName(String fileName) {
     Objects.requireNonNull(fileName);
-    if (!fileName.matches("[\\dA-Za-z._-]+")) {
-      throw new IllegalArgumentException(
-          "Provided filename (" + fileName + ") contains invalid characters.");
+    for (int i = 0; i < fileName.length(); i++) {
+      final char ch = fileName.charAt(i);
+      if (!(Character.isLetterOrDigit(ch) || ch == '-' || ch == '.' || ch == '_')) {
+        throw new IllegalArgumentException(
+            "Provided filename (" + fileName + ") contains invalid characters.");
+      }
     }
   }
 }

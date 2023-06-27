@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import java.net.URI;
+
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
@@ -40,7 +42,7 @@ public class StoredTabletFile extends TabletFile {
    * the entry can be deleted.
    */
   public StoredTabletFile(String metadataEntry) {
-    super(new Path(metadataEntry));
+    super(new Path(URI.create(metadataEntry)));
     this.metadataEntry = metadataEntry;
   }
 
