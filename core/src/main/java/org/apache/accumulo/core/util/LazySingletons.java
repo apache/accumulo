@@ -38,6 +38,9 @@ public class LazySingletons {
    */
   public static final Supplier<Gson> GSON = Suppliers.memoize(Gson::new);
 
+  /**
+   * A SecureRandom instance created with the default constructor.
+   */
   public static final Supplier<SecureRandom> SECURE_RANDOM = Suppliers.memoize(SecureRandom::new);
 
 }
