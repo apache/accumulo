@@ -616,7 +616,7 @@ public interface MetricsProducer {
   Logger LOG = LoggerFactory.getLogger(MetricsProducer.class);
 
   String METRICS_LOW_MEMORY = "accumulo.detected.low.memory";
-  String METRICS_COMPACTOR_PREFIX = "accumulo.compactor";
+  String METRICS_COMPACTOR_PREFIX = "accumulo.compactor.";
   String METRICS_COMPACTOR_MAJC_STUCK = METRICS_COMPACTOR_PREFIX + "majc.stuck";
 
   String METRICS_FATE_PREFIX = "accumulo.fate.";
