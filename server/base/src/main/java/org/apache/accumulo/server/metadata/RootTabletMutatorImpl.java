@@ -29,6 +29,7 @@ import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
@@ -72,7 +73,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
   }
 
   RootTabletMutatorImpl(ServerContext context) {
-    super(context, RootTable.EXTENT);
+    super(RootTable.EXTENT);
     this.context = context;
   }
 

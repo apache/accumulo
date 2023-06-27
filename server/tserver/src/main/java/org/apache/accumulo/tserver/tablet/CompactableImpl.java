@@ -1333,10 +1333,11 @@ public class CompactableImpl implements Compactable {
 
       ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
 
+      // the following were commented out as this code should not be called anymore more
       ecInfo.meta = new ExternalCompactionMetadata(cInfo.jobFiles,
-          Sets.difference(cInfo.selectedFiles, cInfo.jobFiles), compactTmpName, compactorId,
+          /* Sets.difference(cInfo.selectedFiles, cInfo.jobFiles), */ compactTmpName, compactorId,
           job.getKind(), job.getPriority(), job.getExecutor(), cInfo.propagateDeletes,
-          cInfo.initiallySelectedAll, cInfo.checkCompactionId);
+          /* cInfo.initiallySelectedAll, */ cInfo.checkCompactionId);
 
       tablet.getContext().getAmple().mutateTablet(getExtent())
           .putExternalCompaction(externalCompactionId, ecInfo.meta).mutate();

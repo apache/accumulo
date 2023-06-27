@@ -352,7 +352,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           bw.addMutation(m);
         }
       }
-      client.tableOperations().flush(tableName);
+      client.tableOperations().flush(tableName, null, null, true);
       IteratorSetting iterSetting = new IteratorSetting(100, TestFilter.class);
       // make sure iterator options make it to compactor process
       iterSetting.addOption("modulus", 17 + "");
@@ -369,7 +369,9 @@ public class CompactionIT extends AccumuloClusterHarness {
         }
       }
       // this should create an F file
-      client.tableOperations().flush(tableName);
+      client.tableOperations().flush(tableName, null, null, true);
+
+      // TODO compactions flush tablets, needs to evaluate this behavior
 
       // run a compaction that only compacts F files
       iterSetting = new IteratorSetting(100, TestFilter.class);

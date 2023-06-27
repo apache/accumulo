@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.OLD_PREV_ROW_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
@@ -102,6 +103,7 @@ public class TabletMetadata {
   private Map<StoredTabletFile,DataFileValue> files;
   private List<StoredTabletFile> scans;
   private Map<StoredTabletFile,Long> loadedFiles;
+  private SelectedFiles selectedFiles;
   protected EnumSet<ColumnType> fetchedCols;
   protected KeyExtent extent;
   protected Location last;
@@ -121,6 +123,10 @@ public class TabletMetadata {
   private TabletOperationId operationId;
   protected boolean futureAndCurrentLocationSet = false;
   protected boolean operationIdAndCurrentLocationSet = false;
+
+  public static TabletMetadataBuilder builder(KeyExtent extent) {
+    return new TabletMetadataBuilder(extent);
+  }
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -146,7 +152,8 @@ public class TabletMetadata {
     ECOMP,
     HOSTING_GOAL,
     HOSTING_REQUESTED,
-    OPID
+    OPID,
+    SELECTED
   }
 
   public static class Location {
@@ -316,7 +323,7 @@ public class TabletMetadata {
     return suspend;
   }
 
-  public Collection<StoredTabletFile> getFiles() {
+  public Set<StoredTabletFile> getFiles() {
     ensureFetched(ColumnType.FILES);
     return files.keySet();
   }
@@ -324,6 +331,11 @@ public class TabletMetadata {
   public Map<StoredTabletFile,DataFileValue> getFilesMap() {
     ensureFetched(ColumnType.FILES);
     return files;
+  }
+
+  public SelectedFiles getSelectedFiles() {
+    ensureFetched(ColumnType.SELECTED);
+    return selectedFiles;
   }
 
   public Collection<LogEntry> getLogs() {
@@ -398,7 +410,7 @@ public class TabletMetadata {
         .append("compact", compact).append("splitRatio", splitRatio)
         .append("extCompactions", extCompactions).append("chopped", chopped).append("goal", goal)
         .append("onDemandHostingRequested", onDemandHostingRequested)
-        .append("operationId", operationId)
+        .append("operationId", operationId).append("selectedFiles", selectedFiles)
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet)
         .append("operationIdAndCurrentLocationSet", operationIdAndCurrentLocationSet).toString();
   }
@@ -470,7 +482,6 @@ public class TabletMetadata {
         ImmutableMap.<ExternalCompactionId,ExternalCompactionMetadata>builder();
     final var loadedFilesBuilder = ImmutableMap.<StoredTabletFile,Long>builder();
     ByteSequence row = null;
-    final var requestIdsBuilder = ImmutableMap.<Long,TServerInstance>builder();
 
     while (rowIter.hasNext()) {
       final Entry<Key,Value> kv = rowIter.next();
@@ -527,6 +538,9 @@ public class TabletMetadata {
               break;
             case OPID_QUAL:
               te.setOperationIdOnce(val, suppressLocationError);
+              break;
+            case SELECTED_QUAL:
+              te.selectedFiles = SelectedFiles.from(val);
               break;
           }
           break;
