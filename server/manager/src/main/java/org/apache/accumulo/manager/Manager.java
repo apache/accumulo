@@ -451,10 +451,6 @@ public class Manager extends AbstractServer
         aconf.getTimeInMillis(Property.MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
   }
 
-  public long getWaitTimeBetweenScans() {
-    return this.getConfiguration().getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
-  }
-
   public InstanceId getInstanceID() {
     return getContext().getInstanceID();
   }

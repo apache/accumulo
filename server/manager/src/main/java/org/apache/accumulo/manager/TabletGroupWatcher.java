@@ -178,7 +178,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
 
-      final long waitTimeBetweenScans = manager.getWaitTimeBetweenScans();
+      final long waitTimeBetweenScans = manager.getConfiguration()
+          .getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
 
       int totalUnloaded = 0;
       int unloaded = 0;
