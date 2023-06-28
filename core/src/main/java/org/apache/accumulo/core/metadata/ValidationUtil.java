@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata;
 
 import java.util.Objects;
+import java.util.function.IntPredicate;
 
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.hadoop.fs.Path;
@@ -62,12 +63,11 @@ public class ValidationUtil {
 
   public static void validateFileName(String fileName) {
     Objects.requireNonNull(fileName);
-    for (int i = 0; i < fileName.length(); i++) {
-      final char ch = fileName.charAt(i);
-      if (!(Character.isLetterOrDigit(ch) || ch == '-' || ch == '.' || ch == '_')) {
-        throw new IllegalArgumentException(
-            "Provided filename (" + fileName + ") contains invalid characters.");
-      }
+    IntPredicate validFileCheck =
+        ch -> Character.isLetterOrDigit(ch) || ch == '-' || ch == '.' || ch == '_';
+    if (!fileName.codePoints().allMatch(validFileCheck)) {
+      throw new IllegalArgumentException(
+          "Provided filename (" + fileName + ") contains invalid characters.");
     }
   }
 }
