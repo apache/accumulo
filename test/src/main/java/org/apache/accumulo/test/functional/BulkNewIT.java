@@ -552,8 +552,6 @@ public class BulkNewIT extends SharedMiniClusterBase {
     });
     thread.start();
 
-    getCluster().getClusterControl().startCompactors(Compactor.class, 1, "user-small");
-
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String dir = getDir("/testBulkFile-");
       FileSystem fs = getCluster().getFileSystem();
