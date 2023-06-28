@@ -204,7 +204,7 @@
           <configuration>
             <licenseSets>
               <licenseSet>
-                <header>${session.executionRootDirectory}/contrib/license-header.txt</header>
+                <header>${rootlocation}/src/build/license-header.txt</header>
                 <excludes>
                   <exclude>src/main/resources/org/apache/accumulo/monitor/resources/external/**/*</exclude>
                 </excludes>
