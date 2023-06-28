@@ -22,23 +22,25 @@ import static org.apache.accumulo.core.metadata.ValidationUtil.validateFileName;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Set;
+
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 public class ValidationUtilTest {
-  @ParameterizedTest
-  @ValueSource(strings = {"F0001acd.rf", "F0001acd.rf_tmp"})
-  public void testValidateFileNameSuccess(String value) {
-    validateFileName(value);
+  @Test
+  public void testValidateFileNameSuccess() {
+    Set.of("F0001acd.rf", "F0001acd.rf_tmp").forEach(value -> validateFileName(value));
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"hdfs://nn:8020/accumulo/tables/2/default_tablet/F0001acd.rf",
-      "./F0001acd.rf", "/F0001acd.rf"})
-  public void testValidateFileNameException(String value) {
-    Exception ex = assertThrows(IllegalArgumentException.class, () -> validateFileName(value));
-    assertEquals("Provided filename (" + value + ") contains invalid characters.", ex.getMessage());
+  @Test
+  public void testValidateFileNameException() {
+    String[] values = {"hdfs://nn:8020/accumulo/tables/2/default_tablet/F0001acd.rf",
+        "./F0001acd.rf", "/F0001acd.rf"};
+    Set.of(values).forEach(value -> {
+      String expectedMessage = "Provided filename (" + value + ") contains invalid characters.";
+      Exception ex = assertThrows(IllegalArgumentException.class, () -> validateFileName(value));
+      assertEquals(expectedMessage, ex.getMessage());
+    });
   }
 
   @Test
