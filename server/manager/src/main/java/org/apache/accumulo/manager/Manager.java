@@ -447,9 +447,8 @@ public class Manager extends AbstractServer
       log.info("SASL is not enabled, delegation tokens will not be available");
       delegationTokensAvailable = false;
     }
-    long waitTimeBetweenScans =
-        aconf.getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
-    this.timeToCacheRecoveryWalExistence = waitTimeBetweenScans / 4;
+    this.timeToCacheRecoveryWalExistence =
+        aconf.getTimeInMillis(Property.MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
   }
 
   public long getWaitTimeBetweenScans() {
