@@ -72,7 +72,7 @@ public class CreateTableCommand extends Command {
       TableNotFoundException, IOException {
 
     final String tableName = cl.getArgs()[0];
-    final NewTableConfiguration ntc = new NewTableConfiguration();
+    var ntc = new NewTableConfiguration();
 
     NEW_TABLE_NAME.validate(tableName);
 
