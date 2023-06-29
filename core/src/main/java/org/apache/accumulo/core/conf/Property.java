@@ -311,6 +311,10 @@ public enum Property {
       "The balancer class that accumulo will use to make tablet assignment and "
           + "migration decisions.",
       "1.3.5"),
+  MANAGER_TABLET_GROUP_WATCHER_INTERVAL("manager.tablet.watcher.interval", "60s",
+      PropertyType.TIMEDURATION,
+      "Time to wait between scanning tablet states to identify tablets that need to be assigned, un-assigned, migrated, etc.",
+      "2.1.2"),
   MANAGER_BULK_RETRIES("manager.bulk.retries", "3", PropertyType.COUNT,
       "The number of attempts to bulk import a RFile before giving up.", "1.4.0"),
   MANAGER_BULK_THREADPOOL_SIZE("manager.bulk.threadpool.size", "5", PropertyType.COUNT,
@@ -344,6 +348,9 @@ public enum Property {
       "When a tablet server's lock is deleted, it takes time for it to "
           + "completely quit. This delay gives it time before log recoveries begin.",
       "1.5.0"),
+  MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME("manager.recovery.wal.cache.time", "15s",
+      PropertyType.TIMEDURATION,
+      "Amount of time that the existence of recovery write-ahead logs is cached.", "2.1.2"),
   MANAGER_LEASE_RECOVERY_WAITING_PERIOD("manager.lease.recovery.interval", "5s",
       PropertyType.TIMEDURATION,
       "The amount of time to wait after requesting a write-ahead log to be recovered", "1.5.0"),
@@ -1796,7 +1803,7 @@ public enum Property {
       TSERV_SUMMARYCACHE_SIZE,
 
       // others
-      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES);
+      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart

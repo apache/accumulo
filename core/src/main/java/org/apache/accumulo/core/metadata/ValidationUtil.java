@@ -19,10 +19,12 @@
 package org.apache.accumulo.core.metadata;
 
 import java.util.Objects;
-import java.util.function.IntPredicate;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.hadoop.fs.Path;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Utility class for validation of tablet file paths.
@@ -46,28 +48,22 @@ public class ValidationUtil {
   }
 
   public static Path validate(Path path) {
-    if (path.toUri().getScheme() == null) {
-      throw new IllegalArgumentException("Invalid path provided, no scheme in " + path);
-    }
+    Preconditions.checkArgument(path.toUri().getScheme() != null,
+        "Invalid path provided, no scheme in %s", path);
     return path;
   }
 
   public static void validateRFileName(String fileName) {
     Objects.requireNonNull(fileName);
-    // TODO: In 3.0.0 validate that filename starts with FilePrefix
-    if (!fileName.endsWith(".rf") && !fileName.endsWith("_tmp")) {
-      throw new IllegalArgumentException(
-          "Provided filename (" + fileName + ") does not end with '.rf' or '_tmp'");
-    }
+    Preconditions.checkArgument(fileName.endsWith(".rf") || fileName.endsWith("_tmp"),
+        "Provided filename (%s) does not end with '.rf' or '_tmp'", fileName);
   }
+
+  private static final Pattern VALID_FILE_NAME_MATCH_PATTERN = Pattern.compile("[\\dA-Za-z._-]+");
 
   public static void validateFileName(String fileName) {
     Objects.requireNonNull(fileName);
-    IntPredicate validFileCheck =
-        ch -> Character.isLetterOrDigit(ch) || ch == '-' || ch == '.' || ch == '_';
-    if (!fileName.codePoints().allMatch(validFileCheck)) {
-      throw new IllegalArgumentException(
-          "Provided filename (" + fileName + ") contains invalid characters.");
-    }
+    Preconditions.checkArgument(VALID_FILE_NAME_MATCH_PATTERN.matcher(fileName).matches(),
+        "Provided filename (%s) is empty or contains invalid characters", fileName);
   }
 }
