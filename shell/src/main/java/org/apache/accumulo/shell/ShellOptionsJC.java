@@ -50,7 +50,7 @@ public class ShellOptionsJC {
           + " 'file:<local file containing the password>', 'env:<variable containing"
           + " the pass>', or stdin)",
       converter = ClientOpts.PasswordConverter.class)
-  private String password;
+  private String authenticationString;
 
   @DynamicParameter(names = {"-l"},
       description = "command line properties in the format key=value. Reuse -l for each property")
@@ -59,10 +59,6 @@ public class ShellOptionsJC {
   @Parameter(names = "--disable-tab-completion",
       description = "disables tab completion (for less overhead when scripting)")
   private boolean tabCompletionDisabled;
-
-  @Parameter(names = "--debug", description = "enables client debugging"
-      + "; deprecated, configure debugging through your logging configuration file")
-  private boolean debugEnabled;
 
   @Parameter(names = {"-?", "--help"}, help = true, description = "display this help")
   private boolean helpEnabled;
@@ -145,15 +141,11 @@ public class ShellOptionsJC {
   }
 
   public String getPassword() {
-    return password;
+    return authenticationString;
   }
 
   public boolean isTabCompletionDisabled() {
     return tabCompletionDisabled;
-  }
-
-  public boolean isDebugEnabled() {
-    return debugEnabled;
   }
 
   public boolean isHelpEnabled() {
@@ -239,7 +231,7 @@ public class ShellOptionsJC {
     return props;
   }
 
-  static class PositiveInteger implements IParameterValidator {
+  public static class PositiveInteger implements IParameterValidator {
     @Override
     public void validate(String name, String value) throws ParameterException {
       int n = -1;

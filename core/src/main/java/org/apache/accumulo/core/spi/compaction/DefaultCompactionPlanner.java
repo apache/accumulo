@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -34,7 +36,6 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 
 import com.google.common.base.Preconditions;
-import com.google.gson.Gson;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -146,7 +147,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   @Override
   public void init(InitParameters params) {
     ExecutorConfig[] execConfigs =
-        new Gson().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
+        GSON.get().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
 
     List<Executor> tmpExec = new ArrayList<>();
 

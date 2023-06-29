@@ -26,8 +26,8 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -41,7 +41,7 @@ public class ExternalCompactionJob {
 
   private Map<StoredTabletFile,DataFileValue> jobFiles;
   private boolean propagateDeletes;
-  private TabletFile compactTmpName;
+  private ReferencedTabletFile compactTmpName;
   private KeyExtent extent;
   private ExternalCompactionId externalCompactionId;
   private CompactionKind kind;
@@ -52,7 +52,7 @@ public class ExternalCompactionJob {
   public ExternalCompactionJob() {}
 
   public ExternalCompactionJob(Map<StoredTabletFile,DataFileValue> jobFiles,
-      boolean propagateDeletes, TabletFile compactTmpName, KeyExtent extent,
+      boolean propagateDeletes, ReferencedTabletFile compactTmpName, KeyExtent extent,
       ExternalCompactionId externalCompactionId, CompactionKind kind, List<IteratorSetting> iters,
       Long userCompactionId, Map<String,String> overrides) {
     this.jobFiles = Objects.requireNonNull(jobFiles);
@@ -76,12 +76,12 @@ public class ExternalCompactionJob {
 
     List<InputFile> files = jobFiles.entrySet().stream().map(e -> {
       var dfv = e.getValue();
-      return new InputFile(e.getKey().getPathStr(), dfv.getSize(), dfv.getNumEntries(),
+      return new InputFile(e.getKey().getNormalizedPathStr(), dfv.getSize(), dfv.getNumEntries(),
           dfv.getTime());
     }).collect(Collectors.toList());
 
     return new TExternalCompactionJob(externalCompactionId.toString(), extent.toThrift(), files,
-        iteratorSettings, compactTmpName.getPathStr(), propagateDeletes,
+        iteratorSettings, compactTmpName.getNormalizedPathStr(), propagateDeletes,
         org.apache.accumulo.core.tabletserver.thrift.TCompactionKind.valueOf(kind.name()),
         userCompactionId, overrides);
   }

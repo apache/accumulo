@@ -26,8 +26,8 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
@@ -47,7 +47,7 @@ public class TabletData {
   private long flushID = -1;
   private long compactID = -1;
   private Location lastLocation = null;
-  private Map<Long,List<TabletFile>> bulkImported = new HashMap<>();
+  private Map<Long,List<ReferencedTabletFile>> bulkImported = new HashMap<>();
   private long splitTime = 0;
   private String directoryName = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
@@ -69,7 +69,7 @@ public class TabletData {
     dataFiles.putAll(meta.getFilesMap());
 
     meta.getLoaded().forEach((path, txid) -> {
-      bulkImported.computeIfAbsent(txid, k -> new ArrayList<>()).add(path);
+      bulkImported.computeIfAbsent(txid, k -> new ArrayList<>()).add(path.getTabletFile());
     });
 
     this.extCompactions = meta.getExternalCompactions();
@@ -78,7 +78,7 @@ public class TabletData {
   // Data pulled from an existing tablet to make a split
   public TabletData(String dirName, SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes,
       MetadataTime time, long lastFlushID, long lastCompactID, Location lastLocation,
-      Map<Long,List<TabletFile>> bulkIngestedFiles) {
+      Map<Long,List<ReferencedTabletFile>> bulkIngestedFiles) {
     this.directoryName = dirName;
     this.dataFiles = highDatafileSizes;
     this.time = time;
@@ -118,7 +118,7 @@ public class TabletData {
     return lastLocation;
   }
 
-  public Map<Long,List<TabletFile>> getBulkImported() {
+  public Map<Long,List<ReferencedTabletFile>> getBulkImported() {
     return bulkImported;
   }
 

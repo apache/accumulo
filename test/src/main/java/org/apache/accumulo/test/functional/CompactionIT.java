@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -564,7 +565,6 @@ public class CompactionIT extends AccumuloClusterHarness {
   @Test
   public void testSelectNoFiles() throws Exception {
 
-    // Adapted from the now removed UserCompactionStrategyIT class
     // Test a compaction selector that selects no files. In this case there is no work to,
     // so we want to ensure it does not hang
 
@@ -631,10 +631,10 @@ public class CompactionIT extends AccumuloClusterHarness {
 
   private void writeRandomValue(AccumuloClient c, String tableName, int size) throws Exception {
     byte[] data1 = new byte[size];
-    random.nextBytes(data1);
+    RANDOM.get().nextBytes(data1);
 
     try (BatchWriter bw = c.createBatchWriter(tableName)) {
-      Mutation m1 = new Mutation("r" + random.nextInt(909090));
+      Mutation m1 = new Mutation("r" + RANDOM.get().nextInt(909090));
       m1.put("data", "bl0b", new Value(data1));
       bw.addMutation(m1);
     }

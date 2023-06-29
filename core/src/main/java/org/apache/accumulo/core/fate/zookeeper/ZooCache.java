@@ -19,8 +19,8 @@
 package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
-import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
@@ -65,7 +65,6 @@ public class ZooCache {
   private final HashMap<String,List<String>> childrenCache;
 
   private final ZooReader zReader;
-  private static final SecureRandom random = new SecureRandom();
 
   private volatile boolean closed = false;
 
@@ -273,7 +272,7 @@ public class ZooCache {
         }
         LockSupport.parkNanos(sleepTime);
         if (sleepTime < 10_000) {
-          sleepTime = (int) (sleepTime + sleepTime * random.nextDouble());
+          sleepTime = (int) (sleepTime + sleepTime * RANDOM.get().nextDouble());
         }
       }
     }

@@ -1,4 +1,3 @@
-#! /usr/bin/env bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -18,14 +17,38 @@
 # under the License.
 #
 
-# Download the correct version of Thrift to do CI checks
+manager:
+  - localhost1
+  - localhost2
 
-set -e
+monitor:
+  - localhost1
+  - localhost2
 
-thriftdefault="0.16.0"
-rootDir=$(git rev-parse --show-toplevel 2>/dev/null) || ver=$thriftdefault
-ver=$({ xmllint --shell "$rootDir/pom.xml" <<<'xpath /*[local-name()="project"]/*[local-name()="properties"]/*[local-name()="thrift.version"]/text()' | grep content= | cut -f2 -d=; } 2>/dev/null || echo "$thriftdefault")
-ver=${ver%%-*}
+gc:
+  - localhost
 
-sudo wget "https://dist.apache.org/repos/dist/dev/accumulo/devtools/thrift-$ver/thrift" -O /usr/local/bin/thrift &&
-  sudo chmod +x /usr/local/bin/thrift
+tserver:
+  - localhost1
+  - localhost2
+  - localhost3
+  - localhost4
+
+# The following section name is not valid and should cause an error.
+vserver:
+  - localhost5
+  - localhost6
+  - localhost7
+  - localhost8
+
+#compaction:
+#  coordinator:
+#    - localhost1
+#    - localhost2
+#  compactor:
+#    - q1:
+#        - localhost1
+#        - localhost2
+#    - q2:
+#        - localhost1
+#        - localhost2

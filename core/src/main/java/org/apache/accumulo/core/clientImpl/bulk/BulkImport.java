@@ -278,17 +278,14 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     Text row = new Text();
 
-    FileSKVIterator index =
+    try (FileSKVIterator index =
         FileOperations.getInstance().newIndexReaderBuilder().forFile(dataFile, ns, ns.getConf(), cs)
-            .withTableConfiguration(acuConf).withFileLenCache(fileLenCache).build();
-
-    try {
+            .withTableConfiguration(acuConf).withFileLenCache(fileLenCache).build()) {
       while (index.hasTop()) {
         Key key = index.getTopKey();
         totalIndexEntries++;
         key.getRow(row);
 
-        // TODO this could use a binary search
         for (Entry<KeyExtent,MLong> entry : counts.entrySet()) {
           if (entry.getKey().contains(row)) {
             entry.getValue().l++;
@@ -296,14 +293,6 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         }
 
         index.next();
-      }
-    } finally {
-      try {
-        if (index != null) {
-          index.close();
-        }
-      } catch (IOException e) {
-        log.debug("Failed to close " + dataFile, e);
       }
     }
 

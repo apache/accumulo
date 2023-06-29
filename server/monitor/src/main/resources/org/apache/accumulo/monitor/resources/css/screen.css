@@ -73,7 +73,6 @@ body {
 
 h1 {
   font-size: 2.2em;
-  font-variant: small-caps;
   text-align: center;
 }
 
@@ -164,7 +163,6 @@ th {
   border-left: 1px #333333 dotted;
   border-right: 0;
   text-align: center;
-  font-variant: small-caps;
   padding-left: 0.5em;
   padding-right: 0.5em;
   padding-top: 0.2em;
@@ -235,7 +233,6 @@ pre.logevent {
 
 .table-caption {
   font-size: 2em;
-  font-variant: small-caps;
   text-align: center;
 }
 

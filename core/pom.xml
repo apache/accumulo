@@ -188,7 +188,7 @@
           <configuration>
             <licenseSets>
               <licenseSet>
-                <header>${session.executionRootDirectory}/contrib/license-header.txt</header>
+                <header>${rootlocation}/src/build/license-header.txt</header>
                 <excludes>
                   <exclude>src/main/java/org/apache/accumulo/core/bloomfilter/*.java</exclude>
                   <exclude>src/main/java/org/apache/accumulo/core/util/HostAndPort.java</exclude>
@@ -334,9 +334,8 @@
             </goals>
             <phase>prepare-package</phase>
             <configuration>
-              <executable>mkdir</executable>
+              <executable>${basedir}/src/main/scripts/mkdirs.sh</executable>
               <arguments>
-                <argument>-p</argument>
                 <argument>${project.build.directory}/generated-docs</argument>
               </arguments>
             </configuration>

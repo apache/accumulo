@@ -20,6 +20,7 @@ package org.apache.accumulo.test.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -793,7 +794,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // create two large files
     StringBuilder sb = new StringBuilder("insert b v q ");
-    random.ints(10_000, 0, 26).forEach(i -> sb.append('a' + i));
+    RANDOM.get().ints(10_000, 0, 26).forEach(i -> sb.append('a' + i));
 
     ts.exec(sb.toString());
     ts.exec("flush -w");
@@ -2086,61 +2087,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertNotContains(output, "c:f3");
     // check that there are two files, with none having extra summary info
     assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]0.*$.*");
-  }
-
-  @Test
-  public void testFateCommandWithSlowCompaction() throws Exception {
-    final String table = getUniqueNames(1)[0];
-
-    String orgProps = System.getProperty("accumulo.properties");
-
-    System.setProperty("accumulo.properties",
-        "file://" + getCluster().getConfig().getAccumuloPropsFile().getCanonicalPath());
-    // compact
-    ts.exec("createtable " + table);
-
-    // setup SlowIterator to sleep for 10 seconds
-    ts.exec("config -t " + table
-        + " -s table.iterator.majc.slow=1,org.apache.accumulo.test.functional.SlowIterator");
-    ts.exec("config -t " + table + " -s table.iterator.majc.slow.opt.sleepTime=10000");
-
-    // make two files
-    ts.exec("insert a1 b c v_a1");
-    ts.exec("insert a2 b c v_a2");
-    ts.exec("flush -w");
-    ts.exec("insert x1 b c v_x1");
-    ts.exec("insert x2 b c v_x2");
-    ts.exec("flush -w");
-
-    // no transactions running
-    ts.exec("fate -print", true, "0 transactions", true);
-
-    // merge two files into one
-    ts.exec("compact -t " + table);
-    Thread.sleep(1_000);
-    // start 2nd transaction
-    ts.exec("compact -t " + table);
-    Thread.sleep(3_000);
-
-    // 2 compactions should be running so parse the output to get one of the transaction ids
-    log.info("Calling fate print for table = {}", table);
-    String result = ts.exec("fate -print", true, "txid:", true);
-    String[] resultParts = result.split("txid: ");
-    String[] parts = resultParts[1].split(" ");
-    String txid = parts[0];
-    // test filters
-    ts.exec("fate -print -t IN_PROGRESS", true, "2 transactions", true);
-    ts.exec("fate -print " + txid + " -t IN_PROGRESS", true, "1 transactions", true);
-    ts.exec("fate -print " + txid + " -t FAILED", true, "0 transactions", true);
-    ts.exec("fate -print -t NEW", true, "0 transactions", true);
-    ts.exec("fate -print 1234", true, "0 transactions", true);
-    ts.exec("fate -print FATE[aaa] 1 2 3", true, "0 transactions", true);
-
-    ts.exec("deletetable -f " + table);
-
-    if (orgProps != null) {
-      System.setProperty("accumulo.properties", orgProps);
-    }
   }
 
 }

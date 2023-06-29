@@ -22,18 +22,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.junit.jupiter.api.Test;
 
-public class TabletFileTest {
+public class ReferencedTabletFileTest {
 
-  private TabletFile test(String metadataEntry, String volume, String tableId, String tabletDir,
-      String fileName) {
-    StoredTabletFile tabletFile = new StoredTabletFile(metadataEntry);
+  private ReferencedTabletFile test(String metadataEntry, String volume, String tableId,
+      String tabletDir, String fileName) {
+    StoredTabletFile storedTabletFile = new StoredTabletFile(metadataEntry);
+    ReferencedTabletFile tabletFile = storedTabletFile.getTabletFile();
 
     assertEquals(volume, tabletFile.getVolume());
-    assertEquals(metadataEntry, tabletFile.getMetaUpdateDelete());
+    assertEquals(metadataEntry, storedTabletFile.getMetaUpdateDelete());
     assertEquals(TableId.of(tableId), tabletFile.getTableId());
     assertEquals(tabletDir, tabletFile.getTabletDir());
     assertEquals(fileName, tabletFile.getFileName());
@@ -57,9 +58,9 @@ public class TabletFileTest {
     // 2a< srv:dir
     final String message = "Failed to throw error on bad path";
 
-    assertThrows(NullPointerException.class, () -> test("C0004.rf", "", "2a", "t-0003", "C0004.rf"),
-        message);
-    assertThrows(NullPointerException.class, () -> test("dir", "", "2a", "", ""), message);
+    assertThrows(IllegalArgumentException.class,
+        () -> test("C0004.rf", "", "2a", "t-0003", "C0004.rf"), message);
+    assertThrows(IllegalArgumentException.class, () -> test("dir", "", "2a", "", ""), message);
 
     assertThrows(IllegalArgumentException.class,
         () -> test("hdfs://localhost:8020/accumulo/tablets/2a/default_tablet/F0000070.rf",
@@ -99,10 +100,11 @@ public class TabletFileTest {
   public void testNormalizePath() {
     String uglyVolume = "hdfs://nn.somewhere.com:86753/accumulo/blah/.././/bad/bad2/../.././/////";
     String metadataEntry = uglyVolume + "/tables/" + id + "/" + dir + "/" + filename;
-    TabletFile uglyFile =
+    ReferencedTabletFile uglyFile =
         test(metadataEntry, "hdfs://nn.somewhere.com:86753/accumulo", id, dir, filename);
-    TabletFile niceFile = new StoredTabletFile(
-        "hdfs://nn.somewhere.com:86753/accumulo/tables/" + id + "/" + dir + "/" + filename);
+    ReferencedTabletFile niceFile = StoredTabletFile
+        .of("hdfs://nn.somewhere.com:86753/accumulo/tables/" + id + "/" + dir + "/" + filename)
+        .getTabletFile();
     assertEquals(niceFile, uglyFile);
     assertEquals(niceFile.hashCode(), uglyFile.hashCode());
   }

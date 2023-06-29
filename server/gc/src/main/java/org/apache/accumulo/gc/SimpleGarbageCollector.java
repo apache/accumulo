@@ -112,15 +112,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   /**
-   * Checks if the volume manager should move files to the trash rather than delete them.
-   *
-   * @return true if trash is used
-   */
-  boolean isUsingTrash() {
-    return !getConfiguration().getBoolean(Property.GC_TRASH_IGNORE);
-  }
-
-  /**
    * Gets the number of threads used for deleting files.
    *
    * @return number of delete threads
@@ -242,7 +233,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           Span walSpan = TraceUtil.startSpan(this.getClass(), "walogs");
           try (Scope walScope = walSpan.makeCurrent()) {
             GarbageCollectWriteAheadLogs walogCollector =
-                new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet, isUsingTrash());
+                new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet);
             log.info("Beginning garbage collection of write-ahead logs");
             walogCollector.collect(status);
             gcCycleMetrics.setLastWalCollect(status.lastLog);
@@ -336,9 +327,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
    */
   boolean moveToTrash(Path path) throws IOException {
     final VolumeManager fs = getContext().getVolumeManager();
-    if (!isUsingTrash()) {
-      return false;
-    }
     try {
       return fs.moveToTrash(path);
     } catch (FileNotFoundException ex) {

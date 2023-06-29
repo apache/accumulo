@@ -30,6 +30,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.compaction.CompactionSettings;
+import org.apache.accumulo.core.compaction.ShellCompactCommandConfigurer;
+import org.apache.accumulo.core.compaction.ShellCompactCommandSelector;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellUtil;
 import org.apache.commons.cli.CommandLine;
@@ -124,16 +126,12 @@ public class CompactCommand extends TableOperation {
     }
 
     if (!sopts.isEmpty()) {
-      PluginConfig selectorCfg = new PluginConfig(
-          "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy",
-          sopts);
+      var selectorCfg = new PluginConfig(ShellCompactCommandSelector.class.getName(), sopts);
       compactionConfig.setSelector(selectorCfg);
     }
 
     if (!copts.isEmpty()) {
-      PluginConfig configurerConfig = new PluginConfig(
-          "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy",
-          copts);
+      var configurerConfig = new PluginConfig(ShellCompactCommandConfigurer.class.getName(), copts);
       compactionConfig.setConfigurer(configurerConfig);
     }
   }
