@@ -39,6 +39,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -629,9 +630,11 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
     expected.put("table.custom.D", iterations * 7 + "");
     expected.put("table.custom.E", iterations * 19 + "");
 
+    final var IS_NOT_CUSTOM_TABLE_PROP =
+        Pattern.compile("table[.]custom[.][ABCDEF]").asMatchPredicate().negate();
     assertTrue(Wait.waitFor(() -> {
       var tableProps = new HashMap<>(propShim.getProperties());
-      tableProps.keySet().removeIf(key -> !key.matches("table[.]custom[.][ABCDEF]"));
+      tableProps.keySet().removeIf(IS_NOT_CUSTOM_TABLE_PROP);
       boolean equal = expected.equals(tableProps);
       if (!equal) {
         log.info(
