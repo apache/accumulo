@@ -281,6 +281,27 @@ public class CompactionIT extends AccumuloClusterHarness {
   }
 
   @Test
+  public void testFileReadErrorDuringUserCompaction() throws Exception {
+    final String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table1);
+      try (BatchWriter bw = client.createBatchWriter(table1)) {
+        for (int i = 1; i <= MAX_DATA; i++) {
+          Mutation m = new Mutation(Integer.toString(i));
+          m.put("cf", "cq", new Value());
+          bw.addMutation(m);
+          bw.flush();
+          client.tableOperations().flush(table1, null, null, true);
+        }
+      }
+      IteratorSetting setting = new IteratorSetting(50, "error", ErrorThrowingIterator.class);
+      client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
+      client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
+
+    }
+  }
+
+  @Test
   public void testTableDeletedDuringUserCompaction() throws Exception {
     final String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
