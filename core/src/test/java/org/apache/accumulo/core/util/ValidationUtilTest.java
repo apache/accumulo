@@ -27,20 +27,20 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 public class ValidationUtilTest {
+
   @Test
   public void testValidateFileNameSuccess() {
-    Set.of("F0001acd.rf", "F0001acd.rf_tmp").forEach(value -> validateFileName(value));
+    Set.of("F0001acd.rf", "F0001acd.rf_tmp").forEach(f -> validateFileName(f));
   }
 
   @Test
   public void testValidateFileNameException() {
-    String[] values = {"hdfs://nn:8020/accumulo/tables/2/default_tablet/F0001acd.rf",
-        "./F0001acd.rf", "/F0001acd.rf"};
-    Set.of(values).forEach(value -> {
-      String expectedMessage = "Provided filename (" + value + ") contains invalid characters.";
-      Exception ex = assertThrows(IllegalArgumentException.class, () -> validateFileName(value));
-      assertEquals(expectedMessage, ex.getMessage());
-    });
+    Set.of("", "hdfs://nn:8020/accumulo/tables/2/default_tablet/F0001acd.rf", "./F0001acd.rf",
+        "/F0001acd.rf").forEach(f -> {
+          var e = assertThrows(IllegalArgumentException.class, () -> validateFileName(f));
+          assertEquals("Provided filename (" + f + ") is empty or contains invalid characters",
+              e.getMessage());
+        });
   }
 
   @Test
