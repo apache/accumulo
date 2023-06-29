@@ -99,6 +99,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
       } catch (Exception e) {
         log.warn("Compaction failed for {} on {}", compactable.getExtent(), getJob(), e);
         status.compareAndSet(Status.RUNNING, Status.FAILED);
+        completionCallback.accept(compactable);
       } finally {
         status.compareAndSet(Status.RUNNING, Status.COMPLETE);
       }

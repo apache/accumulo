@@ -281,7 +281,7 @@ public class CompactionIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testFileReadErrorDuringUserCompaction() throws Exception {
+  public void testErrorDuringUserCompaction() throws Exception {
     final String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table1);
@@ -295,9 +295,9 @@ public class CompactionIT extends AccumuloClusterHarness {
         }
       }
       IteratorSetting setting = new IteratorSetting(50, "error", ErrorThrowingIterator.class);
+      setting.addOption(ErrorThrowingIterator.TIMES, "3");
       client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
       client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
-
     }
   }
 

@@ -20,43 +20,77 @@ package org.apache.accumulo.test.functional;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 
 public class ErrorThrowingIterator extends WrappingIterator {
 
-  private static final String MESSAGE = "Exception thrown from ErrorThrowingIterator";
+  public static final String TIMES = "error.throwing.iterator.times";
 
+  private static final String MESSAGE = "Exception thrown from ErrorThrowingIterator";
   private static final RuntimeException ERROR = new RuntimeException(MESSAGE);
+  private static final AtomicInteger timesThrown = new AtomicInteger(0);
+
+  private static int threshold = 0;
+
+  @Override
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
+    super.init(source, options, env);
+    threshold = Integer.parseInt(options.get(TIMES));
+  }
+
+  private void incrementAndThrow(RuntimeException t) {
+    if (timesThrown.get() < threshold) {
+      timesThrown.incrementAndGet();
+      throw t;
+    }
+  }
+
+  private void incrementAndThrowIOE() throws IOException {
+    if (timesThrown.get() < threshold) {
+      timesThrown.incrementAndGet();
+      throw new IOException(MESSAGE);
+    }
+  }
 
   @Override
   public Key getTopKey() {
-    throw ERROR;
+    incrementAndThrow(ERROR);
+    return super.getTopKey();
   }
 
   @Override
   public Value getTopValue() {
-    throw ERROR;
+    incrementAndThrow(ERROR);
+    return super.getTopValue();
   }
 
   @Override
   public boolean hasTop() {
-    throw ERROR;
+    incrementAndThrow(ERROR);
+    return super.hasTop();
   }
 
   @Override
   public void next() throws IOException {
-    throw new IOException(MESSAGE);
+    incrementAndThrowIOE();
+    super.next();
   }
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
-    throw new IOException(MESSAGE);
+    incrementAndThrowIOE();
+    super.seek(range, columnFamilies, inclusive);
   }
 
 }
