@@ -41,6 +41,7 @@ import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.tserver.compactions.SubmittedJob.Status;
 import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
+import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics.CeMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +65,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   // not have constant time size operations.
   private final Set<InternalJob> queuedJob = Collections.synchronizedSet(new HashSet<>());
 
-  private final AutoCloseable metricCloser;
+  private final CeMetrics metricCloser;
 
   private final RateLimiter readLimiter;
   private final RateLimiter writeLimiter;
@@ -96,7 +97,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
           compactable.compact(csid, getJob(), readLimiter, writeLimiter, queuedTime);
           completionCallback.accept(compactable);
         }
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         log.warn("Compaction failed for {} on {}", compactable.getExtent(), getJob(), e);
         status.compareAndSet(Status.RUNNING, Status.FAILED);
       } finally {
@@ -208,11 +209,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   public void stop() {
     threadPool.shutdownNow();
     log.debug("Stopped compaction executor {}", ceid);
-    try {
-      metricCloser.close();
-    } catch (Exception e) {
-      log.warn("Failed to close metrics {}", ceid, e);
-    }
+    metricCloser.close();
   }
 
   @Override
