@@ -31,15 +31,14 @@
         </div>
         <div class="collapse navbar-collapse" id="nav-items">
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <span id="statusNotification" class="icon-dot normal"></span>&nbspServers
-              </a>
-              <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="/manager"><span id="managerStatusNotification" class="icon-dot normal"></span>&nbsp;Manager&nbsp;Server&nbsp;</a></li>
-                <li><a class="dropdown-item" href="/tservers"><span id="serverStatusNotification" class="icon-dot normal"></span>&nbsp;Tablet&nbsp;Servers&nbsp;</a></li>
-                <li><a class="dropdown-item" href="/gc"><span id="gcStatusNotification" class="icon-dot normal"></span>&nbsp;Garbage&nbsp;collector&nbsp;</a></li>
-              </ul>
+            <li class="nav-item">
+              <a class="nav-link" href="/manager">&nbsp;Manager Server&nbsp;<span id="managerStatusNotification" class="icon-dot normal"></span></a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/tservers">&nbsp;Tablet Servers&nbsp;<span id="serverStatusNotification" class="icon-dot normal"></span></a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/gc">&nbsp;Garbage Collector&nbsp;<span id="gcStatusNotification" class="icon-dot normal"></span></a>
             </li>
             <li>
               <a class="nav-link" aria-current="page" href="/tables">Tables</a>
