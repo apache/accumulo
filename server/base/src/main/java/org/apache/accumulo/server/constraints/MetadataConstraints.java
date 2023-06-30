@@ -136,7 +136,7 @@ public class MetadataConstraints implements Constraint {
   private static ArrayList<Short> validateDataFilePath(ArrayList<Short> violations,
       String metadata) {
     try {
-      new StoredTabletFile(metadata);
+      StoredTabletFile.validate(metadata);
     } catch (RuntimeException e) {
       violations = addViolation(violations, 9);
     }
