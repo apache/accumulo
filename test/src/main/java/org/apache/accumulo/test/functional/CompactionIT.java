@@ -185,6 +185,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           m.put("cf", "cq", new Value());
           bw.addMutation(m);
           bw.flush();
+          // flush often to create multiple files to compact
           c.tableOperations().flush(tableName, null, null, true);
         }
       }
@@ -225,6 +226,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           m.put("cf", "cq", new Value());
           bw.addMutation(m);
           bw.flush();
+          // flush often to create multiple files to compact
           client.tableOperations().flush(table1, null, null, true);
         }
       }
@@ -250,6 +252,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           m.put("cf", "cq", new Value());
           bw.addMutation(m);
           bw.flush();
+          // flush often to create multiple files to compact
           client.tableOperations().flush(table1, null, null, true);
         }
       }
@@ -291,6 +294,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           m.put("cf", "cq", new Value());
           bw.addMutation(m);
           bw.flush();
+          // flush often to create multiple files to compact
           client.tableOperations().flush(table1, null, null, true);
         }
       }
@@ -312,6 +316,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           m.put("cf", "cq", new Value());
           bw.addMutation(m);
           bw.flush();
+          // flush often to create multiple files to compact
           client.tableOperations().flush(table1, null, null, true);
         }
       }
@@ -537,6 +542,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           m.put("f1", "q1", "v" + i);
           writer.addMutation(m);
           writer.flush();
+          // flush often to create multiple files to compact
           c.tableOperations().flush(tableName, null, null, true);
         }
       }
