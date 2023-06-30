@@ -1089,7 +1089,8 @@ public class CompactableImpl implements Compactable {
       return Optional.empty();
     }
 
-    if (!getExtent().isRootTablet() && !getExtent().isMeta() && kind == CompactionKind.SYSTEM) {
+    if (kind == CompactionKind.SYSTEM || kind == CompactionKind.USER
+        || kind == CompactionKind.SELECTOR || kind == CompactionKind.CHOP) {
       // ELASTICITY_TODO a hack added to disable system compactions for user tablets
       return Optional.empty();
     }
