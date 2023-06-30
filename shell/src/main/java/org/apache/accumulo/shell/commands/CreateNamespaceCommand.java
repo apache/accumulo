@@ -37,6 +37,7 @@ import org.apache.commons.cli.Options;
 
 public class CreateNamespaceCommand extends Command {
   private Option createNamespaceOptCopyConfig;
+  private Option createNamespaceOptCopyProperties;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -44,26 +45,34 @@ public class CreateNamespaceCommand extends Command {
       TableNotFoundException, IOException, ClassNotFoundException, NamespaceExistsException,
       NamespaceNotFoundException {
 
-    if (createNamespaceOptCopyConfig == null) {
-      getOptions();
-    }
+    getOptions();
 
     String namespace = cl.getArgs()[0];
 
     shellState.getAccumuloClient().namespaceOperations().create(namespace);
 
-    // Copy options if flag was set
-    Map<String,String> configuration = null;
+    Map<String,String> propsToSet = null;
+
+    // Copy configuration options if flag was set
     if (cl.hasOption(createNamespaceOptCopyConfig.getOpt())) {
-      String copy = cl.getOptionValue(createNamespaceOptCopyConfig.getOpt());
+      String srcNs = cl.getOptionValue(createNamespaceOptCopyConfig.getOpt());
       if (shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
-        configuration = shellState.getAccumuloClient().namespaceOperations().getConfiguration(copy);
+        propsToSet = shellState.getAccumuloClient().namespaceOperations().getConfiguration(srcNs);
       }
     }
-    if (configuration != null) {
-      final Map<String,String> config = configuration;
+
+    if (cl.hasOption(createNamespaceOptCopyProperties.getOpt())) {
+      String srcNs = cl.getOptionValue(createNamespaceOptCopyProperties.getOpt());
+      if (shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
+        propsToSet =
+            shellState.getAccumuloClient().namespaceOperations().getNamespaceProperties(srcNs);
+      }
+    }
+
+    if (propsToSet != null) {
+      final Map<String,String> props = propsToSet;
       shellState.getAccumuloClient().namespaceOperations().modifyProperties(namespace,
-          properties -> config.entrySet().stream()
+          properties -> props.entrySet().stream()
               .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
               .forEach(entry -> properties.put(entry.getKey(), entry.getValue())));
     }
@@ -87,11 +96,13 @@ public class CreateNamespaceCommand extends Command {
 
     createNamespaceOptCopyConfig =
         new Option("cc", "copy-config", true, "namespace to copy configuration from");
+    createNamespaceOptCopyProperties = new Option("cp", "copy-properties", true,
+        "namespace to copy properties from (only namespace properties are copied)");
     createNamespaceOptCopyConfig.setArgName("namespace");
-
+    createNamespaceOptCopyProperties.setArgName("namespace");
     OptionGroup ogp = new OptionGroup();
     ogp.addOption(createNamespaceOptCopyConfig);
-
+    ogp.addOption(createNamespaceOptCopyProperties);
     o.addOptionGroup(ogp);
 
     return o;
