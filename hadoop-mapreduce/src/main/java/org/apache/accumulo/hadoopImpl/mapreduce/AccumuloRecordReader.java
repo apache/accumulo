@@ -19,10 +19,10 @@
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -72,7 +72,6 @@ import org.slf4j.LoggerFactory;
  * the user's K/V types.
  */
 public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
-  private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(AccumuloRecordReader.class);
   // class to serialize configuration under in the job
   private final Class<?> CLASS;
@@ -369,7 +368,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
             while (binnedRanges == null) {
               // Some tablets were still online, try again
               // sleep randomly between 100 and 200 ms
-              sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
+              sleepUninterruptibly(100 + RANDOM.get().nextInt(100), TimeUnit.MILLISECONDS);
               binnedRanges = binOfflineTable(context, tableId, ranges, callingClass);
 
             }
@@ -386,7 +385,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
               binnedRanges.clear();
               log.warn("Unable to locate bins for specified ranges. Retrying.");
               // sleep randomly between 100 and 200 ms
-              sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
+              sleepUninterruptibly(100 + RANDOM.get().nextInt(100), TimeUnit.MILLISECONDS);
               tl.invalidateCache();
             }
           }

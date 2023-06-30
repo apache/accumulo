@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -33,7 +34,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.SecureRandom;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -98,8 +98,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class RFileTest extends AbstractRFileTest {
-
-  private static final SecureRandom random = new SecureRandom();
 
   public static class SampleIE implements IteratorEnvironment {
 
@@ -395,7 +393,7 @@ public class RFileTest extends AbstractRFileTest {
     // test seeking to random location and reading all data from that point
     // there was an off by one bug with this in the transient index
     for (int i = 0; i < 12; i++) {
-      index = random.nextInt(expectedKeys.size());
+      index = RANDOM.get().nextInt(expectedKeys.size());
       trf.seek(expectedKeys.get(index));
       for (; index < expectedKeys.size(); index++) {
         assertTrue(trf.iter.hasTop());
@@ -1472,13 +1470,13 @@ public class RFileTest extends AbstractRFileTest {
 
     for (int count = 0; count < 100; count++) {
 
-      int start = random.nextInt(2300);
+      int start = RANDOM.get().nextInt(2300);
       Range range = new Range(newKey(formatString("r_", start), "cf1", "cq1", "L1", 42),
           newKey(formatString("r_", start + 100), "cf1", "cq1", "L1", 42));
 
       trf.reader.seek(range, cfs, false);
 
-      int numToScan = random.nextInt(100);
+      int numToScan = RANDOM.get().nextInt(100);
 
       for (int j = 0; j < numToScan; j++) {
         assertTrue(trf.reader.hasTop());
@@ -1494,8 +1492,8 @@ public class RFileTest extends AbstractRFileTest {
       // seek a little forward from the last range and read a few keys within the unconsumed portion
       // of the last range
 
-      int start2 = start + numToScan + random.nextInt(3);
-      int end2 = start2 + random.nextInt(3);
+      int start2 = start + numToScan + RANDOM.get().nextInt(3);
+      int end2 = start2 + RANDOM.get().nextInt(3);
 
       range = new Range(newKey(formatString("r_", start2), "cf1", "cq1", "L1", 42),
           newKey(formatString("r_", end2), "cf1", "cq1", "L1", 42));
@@ -1831,24 +1829,24 @@ public class RFileTest extends AbstractRFileTest {
       boolean endInclusive = false;
       int endIndex = sampleData.size();
 
-      if (random.nextBoolean()) {
-        startIndex = random.nextInt(sampleData.size());
+      if (RANDOM.get().nextBoolean()) {
+        startIndex = RANDOM.get().nextInt(sampleData.size());
         startKey = sampleData.get(startIndex).getKey();
-        startInclusive = random.nextBoolean();
+        startInclusive = RANDOM.get().nextBoolean();
         if (!startInclusive) {
           startIndex++;
         }
       }
 
-      if (startIndex < endIndex && random.nextBoolean()) {
-        endIndex -= random.nextInt(endIndex - startIndex);
+      if (startIndex < endIndex && RANDOM.get().nextBoolean()) {
+        endIndex -= RANDOM.get().nextInt(endIndex - startIndex);
         endKey = sampleData.get(endIndex - 1).getKey();
-        endInclusive = random.nextBoolean();
+        endInclusive = RANDOM.get().nextBoolean();
         if (!endInclusive) {
           endIndex--;
         }
       } else if (startIndex == endIndex) {
-        endInclusive = random.nextBoolean();
+        endInclusive = RANDOM.get().nextBoolean();
       }
 
       sample.seek(new Range(startKey, startInclusive, endKey, endInclusive), columnFamilies,

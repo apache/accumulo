@@ -72,7 +72,7 @@ public class CreateTableCommand extends Command {
       TableNotFoundException, IOException {
 
     final String tableName = cl.getArgs()[0];
-    NewTableConfiguration ntc = new NewTableConfiguration();
+    var ntc = new NewTableConfiguration();
 
     NEW_TABLE_NAME.validate(tableName);
 
@@ -86,14 +86,14 @@ public class CreateTableCommand extends Command {
     // and then the addSplits method was called. Starting with 2.0, the splits will be
     // stored on the file system and created before the table is brought online.
     if (cl.hasOption(createTableOptSplit.getOpt())) {
-      ntc = ntc.withSplits(new TreeSet<>(
+      ntc.withSplits(new TreeSet<>(
           ShellUtil.scanFile(cl.getOptionValue(createTableOptSplit.getOpt()), decode)));
     } else if (cl.hasOption(createTableOptCopySplits.getOpt())) {
       final String oldTable = cl.getOptionValue(createTableOptCopySplits.getOpt());
       if (!shellState.getAccumuloClient().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
       }
-      ntc = ntc.withSplits(
+      ntc.withSplits(
           new TreeSet<>(shellState.getAccumuloClient().tableOperations().listSplits(oldTable)));
     }
 
@@ -113,17 +113,17 @@ public class CreateTableCommand extends Command {
 
     // Set iterator if supplied
     if (cl.hasOption(createTableOptIteratorProps.getOpt())) {
-      ntc = attachIteratorToNewTable(cl, shellState, ntc);
+      attachIteratorToNewTable(cl, shellState, ntc);
     }
 
     // Set up locality groups, if supplied
     if (cl.hasOption(createTableOptLocalityProps.getOpt())) {
-      ntc = setLocalityForNewTable(cl, ntc);
+      setLocalityForNewTable(cl, ntc);
     }
 
     // set offline table creation property
     if (cl.hasOption(createTableOptOffline.getOpt())) {
-      ntc = ntc.createOffline();
+      ntc.createOffline();
     }
 
     // create table.
@@ -173,11 +173,11 @@ public class CreateTableCommand extends Command {
 
   /**
    * Add supplied locality groups information to a NewTableConfiguration object.
-   *
+   * <p>
    * Used in conjunction with createtable shell command to allow locality groups to be configured
    * upon table creation.
    */
-  private NewTableConfiguration setLocalityForNewTable(CommandLine cl, NewTableConfiguration ntc) {
+  private void setLocalityForNewTable(CommandLine cl, NewTableConfiguration ntc) {
     HashMap<String,Set<Text>> localityGroupMap = new HashMap<>();
     String[] options = cl.getOptionValues(createTableOptLocalityProps.getOpt());
     for (String localityInfo : options) {
@@ -197,17 +197,16 @@ public class CreateTableCommand extends Command {
       }
     }
     ntc.setLocalityGroups(localityGroupMap);
-    return ntc;
   }
 
   /**
    * Add supplied iterator information to NewTableConfiguration object.
-   *
+   * <p>
    * Used in conjunction with createtable shell command to allow an iterator to be configured upon
    * table creation.
    */
-  private NewTableConfiguration attachIteratorToNewTable(final CommandLine cl,
-      final Shell shellState, NewTableConfiguration ntc) {
+  private void attachIteratorToNewTable(final CommandLine cl, final Shell shellState,
+      NewTableConfiguration ntc) {
     EnumSet<IteratorScope> scopeEnumSet;
     IteratorSetting iteratorSetting;
     if (shellState.iteratorProfiles.isEmpty()) {
@@ -254,13 +253,12 @@ public class CreateTableCommand extends Command {
       }
       ntc.attachIterator(iteratorSetting, scopeEnumSet);
     }
-    return ntc;
   }
 
   /**
    * Validate that the provided scope arguments are valid iterator scope settings. Checking for
    * duplicate entries and invalid scope values.
-   *
+   * <p>
    * Returns an EnumSet of scopes to be set.
    */
   private EnumSet<IteratorScope> validateScopes(final List<String> scopeList) {

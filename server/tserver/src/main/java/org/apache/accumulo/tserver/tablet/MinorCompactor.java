@@ -19,9 +19,9 @@
 package org.apache.accumulo.tserver.tablet;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +47,6 @@ import org.slf4j.LoggerFactory;
 
 public class MinorCompactor extends FileCompactor {
 
-  private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(MinorCompactor.class);
 
   private final TabletServer tabletServer;
@@ -132,7 +131,7 @@ public class MinorCompactor extends FileCompactor {
           throw new IllegalStateException(e);
         }
 
-        int sleep = sleepTime + random.nextInt(sleepTime);
+        int sleep = sleepTime + RANDOM.get().nextInt(sleepTime);
         log.debug("MinC failed sleeping {} ms before retrying", sleep);
         sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
         sleepTime = (int) Math.round(Math.min(maxSleepTime, sleepTime * growthFactor));

@@ -162,7 +162,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     final TabletFileCqMetadataGson metadata =
         gson.fromJson(Objects.requireNonNull(json), TabletFileCqMetadataGson.class);
     // If we have previously enforced the inclusive/exclusive of a range then can just set that here
-    return new TabletFileCq(new Path(metadata.path),
+    return new TabletFileCq(new Path(URI.create(metadata.path)),
         new Range(decodeRow(metadata.startRow), true, decodeRow(metadata.endRow), false));
   }
 
