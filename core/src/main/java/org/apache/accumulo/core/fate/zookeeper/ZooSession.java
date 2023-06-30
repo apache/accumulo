@@ -20,10 +20,10 @@ package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -62,8 +62,6 @@ public class ZooSession {
   }
 
   private static Map<String,ZooSessionInfo> sessions = new HashMap<>();
-
-  private static final SecureRandom random = new SecureRandom();
 
   static {
     SingletonManager.register(new SingletonService() {
@@ -171,7 +169,7 @@ public class ZooSession {
         }
         UtilWaitThread.sleep(sleepTime);
         if (sleepTime < 10000) {
-          sleepTime = sleepTime + (long) (sleepTime * random.nextDouble());
+          sleepTime = sleepTime + (long) (sleepTime * RANDOM.get().nextDouble());
         }
       }
     }

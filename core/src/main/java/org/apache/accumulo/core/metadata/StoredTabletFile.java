@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import java.net.URI;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.Range;
@@ -47,7 +48,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   public StoredTabletFile(String metadataEntry) {
     // TODO: Future version of metadataEntry will contains the path
     // and the range so we will need to parse the string here
-    super(new Path(metadataEntry), new Range());
+    super(new Path(URI.create(metadataEntry)), new Range());
     this.metadataEntry = metadataEntry;
     this.referencedTabletFile = ReferencedTabletFile.of(getPath());
   }

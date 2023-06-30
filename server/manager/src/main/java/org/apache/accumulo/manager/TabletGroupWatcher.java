@@ -178,6 +178,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
 
+      final long waitTimeBetweenScans = manager.getConfiguration()
+          .getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
+
       int totalUnloaded = 0;
       int unloaded = 0;
       ClosableIterator<TabletLocationState> iter = null;
@@ -197,7 +200,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
 
         if (currentTServers.isEmpty()) {
-          eventListener.waitForEvents(Manager.TIME_TO_WAIT_BETWEEN_SCANS);
+          eventListener.waitForEvents(waitTimeBetweenScans);
           synchronized (this) {
             lastScanServers = Collections.emptySortedSet();
           }
@@ -229,7 +232,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             flushChanges(tLists, wals);
             tLists.reset();
             unloaded = 0;
-            eventListener.waitForEvents(Manager.TIME_TO_WAIT_BETWEEN_SCANS);
+            eventListener.waitForEvents(waitTimeBetweenScans);
           }
           TableId tableId = tls.extent.tableId();
           TableConfiguration tableConf = manager.getContext().getTableConfiguration(tableId);
@@ -347,8 +350,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
         if (manager.tserverSet.getCurrentServers().equals(currentTServers.keySet())) {
           Manager.log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(),
-              Manager.TIME_TO_WAIT_BETWEEN_SCANS / 1000.));
-          eventListener.waitForEvents(Manager.TIME_TO_WAIT_BETWEEN_SCANS);
+              waitTimeBetweenScans / 1000.));
+          eventListener.waitForEvents(waitTimeBetweenScans);
         } else {
           Manager.log.info("Detected change in current tserver set, re-running state machine.");
         }

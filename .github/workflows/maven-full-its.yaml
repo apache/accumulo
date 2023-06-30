@@ -80,7 +80,7 @@ jobs:
         ref: ${{ github.event.inputs.buildRef }}
     - id: set-matrix
       name: Create the IT build matrix
-      run: contrib/ci/it-matrix.sh ${{ github.event.inputs.numITsPerTask }}
+      run: src/build/ci/it-matrix.sh ${{ github.event.inputs.numITsPerTask }}
   # targeted builds that tests groups of ITs
   mvn:
     needs: creatematrix
