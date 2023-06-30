@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map.Entry;
@@ -43,7 +42,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Methods, setup and/or infrastructure which are common to any Accumulo integration test.
  */
 public class AccumuloITBase extends WithTestNames {
-  public static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(AccumuloITBase.class);
 
   public static final String STANDALONE_CAPABLE_CLUSTER = "StandaloneCapableCluster";
@@ -137,7 +135,7 @@ public class AccumuloITBase extends WithTestNames {
   });
 
   /**
-   * Time to wait per-method before declaring a timeout, in seconds.
+   * Time to wait per-method before declaring a timeout.
    */
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(10);

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.security.SecureRandom;
 import java.util.function.Supplier;
 
 import com.google.common.base.Suppliers;
@@ -36,5 +37,10 @@ public class LazySingletons {
    * A Gson instance constructed with defaults. Construct your own if you need custom settings.
    */
   public static final Supplier<Gson> GSON = Suppliers.memoize(Gson::new);
+
+  /**
+   * A SecureRandom instance created with the default constructor.
+   */
+  public static final Supplier<SecureRandom> RANDOM = Suppliers.memoize(SecureRandom::new);
 
 }

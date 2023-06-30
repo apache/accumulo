@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.conf.codec;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -27,7 +29,6 @@ import java.io.OutputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.util.Map;
@@ -53,8 +54,6 @@ import javax.crypto.spec.SecretKeySpec;
  * stored in the external store.
  */
 public class VersionedPropEncryptCodec extends VersionedPropCodec {
-
-  private static final SecureRandom random = new SecureRandom();
 
   // testing version (999 or higher)
   public static final int EXPERIMENTAL_CIPHER_ENCODING_1_0 = 999;
@@ -217,7 +216,7 @@ public class VersionedPropEncryptCodec extends VersionedPropCodec {
     // utils
     public static GCMParameterSpec buildGCMParameterSpec() {
       byte[] iv = new byte[16];
-      random.nextBytes(iv);
+      RANDOM.get().nextBytes(iv);
       return new GCMParameterSpec(128, iv);
     }
 

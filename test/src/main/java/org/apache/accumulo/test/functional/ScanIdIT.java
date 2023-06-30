@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -364,7 +365,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
       for (int i = 0; i < NUM_DATA_ROWS; i++) {
 
-        Text rowId = new Text(String.format("%d", ((random.nextInt(10) * 100) + i)));
+        Text rowId = new Text(String.format("%d", ((RANDOM.get().nextInt(10) * 100) + i)));
 
         Mutation m = new Mutation(rowId);
         m.put("fam1", "count", Integer.toString(i));
