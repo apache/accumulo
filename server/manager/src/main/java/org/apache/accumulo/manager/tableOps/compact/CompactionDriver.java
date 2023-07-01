@@ -49,7 +49,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
@@ -247,10 +246,7 @@ class CompactionDriver extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager env) throws Exception {
-    CompactRange.removeIterators(env, tid, tableId);
-    Utils.getReadLock(env, tableId, tid).unlock();
-    Utils.getReadLock(env, namespaceId, tid).unlock();
-    return null;
+    return new RefreshTablets(tableId, namespaceId, startRow, endRow);
   }
 
   @Override

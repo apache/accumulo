@@ -2105,7 +2105,7 @@ public class Tablet extends TabletBase {
     return goal == TabletHostingGoal.ONDEMAND;
   }
 
-  public void refresh() {
+  public void refresh(List<StoredTabletFile> scanEntries) {
     if (isClosing() || isClosed()) {
       // TODO this is just a best effort could close after this check, its a race condition.
       // Intentionally not being handled ATM.
@@ -2127,5 +2127,15 @@ public class Tablet extends TabletBase {
     // TODO this could have race conditions with minor compactions. Intentionally
     // not being handled ATM.
     getDatafileManager().setFilesHack(tabletMetadata.getFilesMap());
+
+    if (!scanEntries.isEmpty()) {
+      // ELASTICITY_TODO this is a temporary hack. Should not always remove scan entries added by a
+      // compaction, need to check and see if they are actually in use by a scan. If in use need to
+      // add to a set to remove later. Also should use a conditional mutation to update, did not
+      // bother using conditional mutation as this is temporary.
+      var tabletMutator = getContext().getAmple().mutateTablet(extent);
+      scanEntries.forEach(tabletMutator::deleteScan);
+      tabletMutator.mutate();
+    }
   }
 }

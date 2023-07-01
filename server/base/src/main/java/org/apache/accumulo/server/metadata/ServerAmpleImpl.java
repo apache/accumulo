@@ -97,6 +97,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {
     String zpath = context.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES;
     try {
+      // TODO calling create seems unnecessary and is possibly racy and inefficient
       context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
         RootGcCandidates rgcc = new RootGcCandidates(currJson);
@@ -360,6 +361,11 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  @Override
+  public Refreshes refreshes(DataLevel dataLevel) {
+    return new RefreshesImpl(context, dataLevel);
   }
 
 }
