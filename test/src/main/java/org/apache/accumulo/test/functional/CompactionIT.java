@@ -323,7 +323,7 @@ public class CompactionIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testSuccessfulCompactionNoOutput() throws Exception {
+  public void testErrorDuringCompactionNoOutput() throws Exception {
     final String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table1);
@@ -342,6 +342,12 @@ public class CompactionIT extends AccumuloClusterHarness {
       setting.addOption("ttl", "0");
       setting.addOption("currentTime", Long.toString(System.currentTimeMillis() + 86400));
       client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
+
+      // Since this iterator is on the top, it will throw an error 3 times, then allow the
+      // ageoff iterator to do its work.
+      IteratorSetting setting2 = new IteratorSetting(51, "error", ErrorThrowingIterator.class);
+      setting2.addOption(ErrorThrowingIterator.TIMES, "3");
+      client.tableOperations().attachIterator(table1, setting2, EnumSet.of(IteratorScope.majc));
       client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
 
       assertThrows(NoSuchElementException.class, () -> ample.readTablets().forTable(tid)

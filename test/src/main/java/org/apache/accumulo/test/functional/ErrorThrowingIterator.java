@@ -41,9 +41,9 @@ public class ErrorThrowingIterator extends WrappingIterator {
 
   private static final String MESSAGE = "Exception thrown from ErrorThrowingIterator";
   private static final RuntimeException ERROR = new RuntimeException(MESSAGE);
-  private static final AtomicInteger timesThrown = new AtomicInteger(0);
+  private static final AtomicInteger TIMES_THROWN = new AtomicInteger(0);
 
-  private static int threshold = 0;
+  private int threshold = 0;
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
@@ -53,15 +53,15 @@ public class ErrorThrowingIterator extends WrappingIterator {
   }
 
   private void incrementAndThrow(RuntimeException t) {
-    if (timesThrown.get() < threshold) {
-      timesThrown.incrementAndGet();
+    if (TIMES_THROWN.get() < threshold) {
+      TIMES_THROWN.incrementAndGet();
       throw t;
     }
   }
 
   private void incrementAndThrowIOE() throws IOException {
-    if (timesThrown.get() < threshold) {
-      timesThrown.incrementAndGet();
+    if (TIMES_THROWN.get() < threshold) {
+      TIMES_THROWN.incrementAndGet();
       throw new IOException(MESSAGE);
     }
   }
