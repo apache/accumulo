@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -68,9 +69,13 @@ public class RefreshesImpl implements Ample.Refreshes {
     return toJson(Map.of());
   }
 
+  // the expected version of serialized data
+  private static final int CURRENT_VERSION = 1;
+
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
   private static class Data {
+
     final int version;
 
     final Map<String,String> entries;
@@ -82,13 +87,14 @@ public class RefreshesImpl implements Ample.Refreshes {
   }
 
   private static String toJson(Map<String,String> entries) {
-    var data = new Data(1, Objects.requireNonNull(entries));
+    var data = new Data(CURRENT_VERSION, Objects.requireNonNull(entries));
     return GSON.get().toJson(data, Data.class);
   }
 
   private Map<String,String> fromJson(String json) {
     Data data = GSON.get().fromJson(json, Data.class);
-    Preconditions.checkArgument(data.version == 1);
+    Preconditions.checkArgument(data.version == CURRENT_VERSION, "Expected version %s saw %s",
+        CURRENT_VERSION, data.version);
     Objects.requireNonNull(data.entries);
     return data.entries;
   }
@@ -146,15 +152,28 @@ public class RefreshesImpl implements Ample.Refreshes {
     return m;
   }
 
+  private void requireRootTablets(Collection<RefreshEntry> entries) {
+    if (!entries.stream().allMatch(e -> e.getExtent().isRootTablet())) {
+      var nonRootTablets = entries.stream().map(RefreshEntry::getExtent)
+          .filter(e -> !e.isRootTablet()).collect(Collectors.toSet());
+      throw new IllegalArgumentException("Expected only root tablet but saw " + nonRootTablets);
+    }
+  }
+
   private RefreshEntry decode(Map.Entry<Key,Value> entry) {
     String row = entry.getKey().getRowData().toString();
-    Preconditions.checkArgument(row.startsWith(RefreshSection.getRowPrefix()));
-    Preconditions.checkArgument(entry.getKey().getColumnFamilyData().length() == 0);
-    Preconditions.checkArgument(entry.getKey().getColumnQualifierData().length() == 0);
+    Preconditions.checkArgument(row.startsWith(RefreshSection.getRowPrefix()),
+        "Row %s did not start with %s", row, RefreshSection.getRowPrefix());
+    Preconditions.checkArgument(entry.getKey().getColumnFamilyData().length() == 0,
+        "Expected empty family but saw %s", entry.getKey().getColumnFamilyData());
+    Preconditions.checkArgument(entry.getKey().getColumnQualifierData().length() == 0,
+        "Expected empty qualifier but saw %s", entry.getKey().getColumnQualifierData());
 
     try (ByteArrayInputStream bais = new ByteArrayInputStream(entry.getValue().get());
         DataInputStream dis = new DataInputStream(bais)) {
-      Preconditions.checkArgument(dis.readInt() == 1);
+      var version = dis.readInt();
+      Preconditions.checkArgument(version == CURRENT_VERSION, "Expected version %s saw %s",
+          CURRENT_VERSION, version);
       var extent = KeyExtent.readFrom(dis);
       var tserver = new TServerInstance(dis.readUTF());
       return new RefreshEntry(
@@ -170,8 +189,7 @@ public class RefreshesImpl implements Ample.Refreshes {
     Objects.requireNonNull(entries);
     if (dataLevel == Ample.DataLevel.ROOT) {
       // expect all of these to be the root tablet, verifying because its not stored
-      Preconditions
-          .checkArgument(entries.stream().allMatch(e -> e.getExtent().equals(RootTable.EXTENT)));
+      requireRootTablets(entries);
       Consumer<Map<String,String>> mutator = map -> entries.forEach(refreshEntry -> map
           .put(refreshEntry.getEcid().canonical(), refreshEntry.getTserver().getHostPortSession()));
       mutateRootRefreshes(mutator);
@@ -191,8 +209,7 @@ public class RefreshesImpl implements Ample.Refreshes {
     Objects.requireNonNull(entries);
     if (dataLevel == Ample.DataLevel.ROOT) {
       // expect all of these to be the root tablet, verifying because its not stored
-      Preconditions
-          .checkArgument(entries.stream().allMatch(e -> e.getExtent().equals(RootTable.EXTENT)));
+      requireRootTablets(entries);
       Consumer<Map<String,String>> mutator =
           map -> entries.forEach(refreshEntry -> map.remove(refreshEntry.getEcid().canonical()));
       mutateRootRefreshes(mutator);
@@ -208,7 +225,7 @@ public class RefreshesImpl implements Ample.Refreshes {
   }
 
   @Override
-  public Stream<RefreshEntry> list() {
+  public Stream<RefreshEntry> stream() {
     if (dataLevel == Ample.DataLevel.ROOT) {
       var zooReader = context.getZooReader();
       byte[] jsonBytes;
@@ -231,7 +248,7 @@ public class RefreshesImpl implements Ample.Refreshes {
         throw new IllegalStateException(e);
       }
       scanner.setRange(range);
-      return scanner.stream().map(this::decode);
+      return scanner.stream().onClose(scanner::close).map(this::decode);
     }
   }
 }

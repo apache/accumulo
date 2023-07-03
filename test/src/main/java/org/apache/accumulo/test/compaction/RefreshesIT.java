@@ -45,7 +45,7 @@ public class RefreshesIT extends ConfigurableMacBase {
   private void testRefreshes(Ample.DataLevel level, KeyExtent extent1, KeyExtent extent2) {
     var refreshes = getServerContext().getAmple().refreshes(level);
 
-    assertEquals(0, refreshes.list().count());
+    assertEquals(0, refreshes.stream().count());
 
     var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
     var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
@@ -57,29 +57,29 @@ public class RefreshesIT extends ConfigurableMacBase {
     refreshes.add(List.of(new RefreshEntry(ecid1, extent1, tserver1)));
 
     assertEquals(Map.of(ecid1, extent1),
-        refreshes.list().collect(toMap(RefreshEntry::getEcid, RefreshEntry::getExtent)));
+        refreshes.stream().collect(toMap(RefreshEntry::getEcid, RefreshEntry::getExtent)));
     assertEquals(Map.of(ecid1, tserver1),
-        refreshes.list().collect(toMap(RefreshEntry::getEcid, RefreshEntry::getTserver)));
+        refreshes.stream().collect(toMap(RefreshEntry::getEcid, RefreshEntry::getTserver)));
 
     refreshes.add(List.of(new RefreshEntry(ecid2, extent2, tserver1),
         new RefreshEntry(ecid3, extent2, tserver2)));
 
     assertEquals(Map.of(ecid1, extent1, ecid2, extent2, ecid3, extent2),
-        refreshes.list().collect(toMap(RefreshEntry::getEcid, RefreshEntry::getExtent)));
+        refreshes.stream().collect(toMap(RefreshEntry::getEcid, RefreshEntry::getExtent)));
     assertEquals(Map.of(ecid1, tserver1, ecid2, tserver1, ecid3, tserver2),
-        refreshes.list().collect(toMap(RefreshEntry::getEcid, RefreshEntry::getTserver)));
+        refreshes.stream().collect(toMap(RefreshEntry::getEcid, RefreshEntry::getTserver)));
 
     refreshes.delete(List.of(new RefreshEntry(ecid2, extent2, tserver1)));
 
     assertEquals(Map.of(ecid1, extent1, ecid3, extent2),
-        refreshes.list().collect(toMap(RefreshEntry::getEcid, RefreshEntry::getExtent)));
+        refreshes.stream().collect(toMap(RefreshEntry::getEcid, RefreshEntry::getExtent)));
     assertEquals(Map.of(ecid1, tserver1, ecid3, tserver2),
-        refreshes.list().collect(toMap(RefreshEntry::getEcid, RefreshEntry::getTserver)));
+        refreshes.stream().collect(toMap(RefreshEntry::getEcid, RefreshEntry::getTserver)));
 
     refreshes.delete(List.of(new RefreshEntry(ecid3, extent2, tserver2),
         new RefreshEntry(ecid1, extent1, tserver1)));
 
-    assertEquals(0, refreshes.list().count());
+    assertEquals(0, refreshes.stream().count());
   }
 
   @Test

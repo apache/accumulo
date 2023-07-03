@@ -625,7 +625,7 @@ public interface Ample {
 
     void delete(Collection<RefreshEntry> entries);
 
-    Stream<RefreshEntry> list();
+    Stream<RefreshEntry> stream();
   }
 
   /**

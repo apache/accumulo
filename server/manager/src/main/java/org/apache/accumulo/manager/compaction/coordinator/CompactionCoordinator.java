@@ -199,47 +199,47 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   }
 
   private void processRefreshes(Ample.DataLevel dataLevel) {
+    try (var refreshStream = ctx.getAmple().refreshes(dataLevel).stream()) {
+      // process batches of refresh entries to avoid reading all into memory at once
+      Iterators.partition(refreshStream.iterator(), 10000).forEachRemaining(refreshEntries -> {
+        LOG.info("Processing {} tablet refreshes for {}", refreshEntries.size(), dataLevel);
 
-    // process batches of refresh entries to avoid reading all into memory at once
-    Iterators.partition(ctx.getAmple().refreshes(dataLevel).list().iterator(), 10000)
-        .forEachRemaining(refreshEntries -> {
-          LOG.info("Processing {} tablet refreshes for {}", refreshEntries.size(), dataLevel);
+        var extents =
+            refreshEntries.stream().map(RefreshEntry::getExtent).collect(Collectors.toList());
+        var tabletsMeta = new HashMap<KeyExtent,TabletMetadata>();
+        try (var tablets = ctx.getAmple().readTablets().forTablets(extents, Optional.empty())
+            .fetch(PREV_ROW, LOCATION, SCANS).build()) {
+          tablets.stream().forEach(tm -> tabletsMeta.put(tm.getExtent(), tm));
+        }
 
-          var extents =
-              refreshEntries.stream().map(RefreshEntry::getExtent).collect(Collectors.toList());
-          var tabletsMeta = new HashMap<KeyExtent,TabletMetadata>();
-          ctx.getAmple().readTablets().forTablets(extents, Optional.empty())
-              .fetch(PREV_ROW, LOCATION, SCANS).build().stream()
-              .forEach(tm -> tabletsMeta.put(tm.getExtent(), tm));
+        var tserverRefreshes = new HashMap<TabletMetadata.Location,List<TTabletRefresh>>();
 
-          var tserverRefreshes = new HashMap<TabletMetadata.Location,List<TTabletRefresh>>();
+        refreshEntries.forEach(refreshEntry -> {
+          var tm = tabletsMeta.get(refreshEntry.getExtent());
 
-          refreshEntries.forEach(refreshEntry -> {
-            var tm = tabletsMeta.get(refreshEntry.getExtent());
-
-            // only need to refresh if the tablet is still on the same tserver instance
-            if (tm != null && tm.getLocation() != null
-                && tm.getLocation().getServerInstance().equals(refreshEntry.getTserver())) {
-              KeyExtent extent = tm.getExtent();
-              Collection<StoredTabletFile> scanfiles = tm.getScans();
-              var ttr = TabletRefresher.createThriftRefresh(extent, scanfiles);
-              tserverRefreshes.computeIfAbsent(tm.getLocation(), k -> new ArrayList<>()).add(ttr);
-            }
-          });
-
-          String logId = "Coordinator:" + dataLevel;
-          ThreadPoolExecutor threadPool =
-              ctx.threadPools().createFixedThreadPool(10, "Tablet refresh " + logId, false);
-          try {
-            TabletRefresher.refreshTablets(threadPool, logId, ctx, tserverSet::getCurrentServers,
-                tserverRefreshes);
-          } finally {
-            threadPool.shutdownNow();
+          // only need to refresh if the tablet is still on the same tserver instance
+          if (tm != null && tm.getLocation() != null
+              && tm.getLocation().getServerInstance().equals(refreshEntry.getTserver())) {
+            KeyExtent extent = tm.getExtent();
+            Collection<StoredTabletFile> scanfiles = tm.getScans();
+            var ttr = TabletRefresher.createThriftRefresh(extent, scanfiles);
+            tserverRefreshes.computeIfAbsent(tm.getLocation(), k -> new ArrayList<>()).add(ttr);
           }
-
-          ctx.getAmple().refreshes(dataLevel).delete(refreshEntries);
         });
 
+        String logId = "Coordinator:" + dataLevel;
+        ThreadPoolExecutor threadPool =
+            ctx.threadPools().createFixedThreadPool(10, "Tablet refresh " + logId, false);
+        try {
+          TabletRefresher.refreshTablets(threadPool, logId, ctx, tserverSet::getCurrentServers,
+              tserverRefreshes);
+        } finally {
+          threadPool.shutdownNow();
+        }
+
+        ctx.getAmple().refreshes(dataLevel).delete(refreshEntries);
+      });
+    }
     // allow new refreshes to be written now that all preexisting ones are processed
     refreshLatches.get(dataLevel).countDown();
   }
