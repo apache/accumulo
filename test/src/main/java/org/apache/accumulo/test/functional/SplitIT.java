@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -334,8 +335,8 @@ public class SplitIT extends AccumuloClusterHarness {
   private Pair<Integer,Integer> getRandomSplitBounds(int upperBound) {
     Preconditions.checkArgument(upperBound > 1, "upperBound must be greater than 1");
 
-    int start = random.nextInt(upperBound);
-    int end = random.nextInt(upperBound - 1);
+    int start = RANDOM.get().nextInt(upperBound);
+    int end = RANDOM.get().nextInt(upperBound - 1);
 
     // ensure start is less than end and that end is not equal to start
     if (end >= start) {

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.STANDALONE_CAPABLE_CLUSTER;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -154,7 +155,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
               "Using HTTPS since monitor ssl keystore configuration was observed in accumulo configuration");
           SSLContext ctx = SSLContext.getInstance("TLSv1.2");
           TrustManager[] tm = {new TestTrustManager()};
-          ctx.init(new KeyManager[0], tm, random);
+          ctx.init(new KeyManager[0], tm, RANDOM.get());
           SSLContext.setDefault(ctx);
           HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
           HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());

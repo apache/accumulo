@@ -128,12 +128,9 @@ class LoadFiles extends ManagerRepo {
         if (!filesToLoad.isEmpty()) {
           // ELASTICITY_TODO lets automatically call require prev end row
           var tabletMutator = conditionalMutator.mutateTablet(tablet.getExtent())
-              .requireAbsentOperation().requirePrevEndRow(tablet.getExtent().prevEndRow());
+              .requireAbsentOperation().requireSame(tablet, PREV_ROW, LOADED);
 
           filesToLoad.forEach((f, v) -> {
-            // ELASTICITY_TODO should not expect to see the bulk files there (as long there is only
-            // a single thread running this), not sure if the following require absent is needed
-            tabletMutator.requireAbsentBulkFile(f);
             tabletMutator.putBulkFile(f, tid);
             tabletMutator.putFile(f, v);
           });

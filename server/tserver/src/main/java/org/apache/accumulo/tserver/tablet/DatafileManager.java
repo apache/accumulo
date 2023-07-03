@@ -513,9 +513,10 @@ class DatafileManager {
   }
 
   // ELASTICITY_TODO remove this method
-  public void addFilesHack(StoredTabletFile file, DataFileValue dfv) {
+  public void setFilesHack(Map<StoredTabletFile,DataFileValue> files) {
     synchronized (tablet) {
-      datafileSizes.put(file, dfv);
+      datafileSizes.clear();
+      datafileSizes.putAll(files);
     }
   }
 }

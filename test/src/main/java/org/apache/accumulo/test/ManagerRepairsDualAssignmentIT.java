@@ -88,7 +88,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       // scan the metadata table and get the two table location states
       Set<TabletMetadata.Location> states = new HashSet<>();
       Set<TabletMetadata> oldLocations = new HashSet<>();
-      TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
+      TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, serverContext);
       while (states.size() < 2) {
         UtilWaitThread.sleep(250);
         oldLocations.clear();
@@ -140,7 +140,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
           serverContext.getAmple().mutateTablet(new KeyExtent(MetadataTable.ID, null, null));
       tabletMutator.putLocation(moved.getLocation());
       tabletMutator.mutate();
-      waitForCleanStore(TabletStateStore.getStoreForLevel(DataLevel.METADATA, context));
+      waitForCleanStore(TabletStateStore.getStoreForLevel(DataLevel.METADATA, serverContext));
     }
   }
 

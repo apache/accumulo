@@ -49,10 +49,6 @@
       <artifactId>guava</artifactId>
     </dependency>
     <dependency>
-      <groupId>commons-codec</groupId>
-      <artifactId>commons-codec</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-core</artifactId>
     </dependency>
@@ -150,7 +146,7 @@
           <configuration>
             <licenseSets>
               <licenseSet>
-                <header>${session.executionRootDirectory}/contrib/license-header.txt</header>
+                <header>${rootlocation}/src/build/license-header.txt</header>
                 <excludes>
                   <exclude>src/test/resources/*.walog</exclude>
                   <exclude>src/test/resources/walog-from-14/*</exclude>

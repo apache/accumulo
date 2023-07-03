@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.metadata;
+package org.apache.accumulo.core.metadata.schema;
 
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
@@ -29,10 +29,6 @@ import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -46,12 +42,9 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
-import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -60,8 +53,6 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     implements Ample.TabletUpdates<T> {
 
   private static final Value EMPTY_VALUE = new Value();
-
-  private final ServerContext context;
 
   protected final Mutation mutation;
   protected AutoCloseable closeAfterMutate;
@@ -72,13 +63,11 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     return (T) this;
   }
 
-  protected TabletMutatorBase(ServerContext context, KeyExtent extent) {
-    this.context = context;
+  protected TabletMutatorBase(KeyExtent extent) {
     mutation = new Mutation(extent.toMetaRow());
   }
 
-  protected TabletMutatorBase(ServerContext context, Mutation mutation) {
-    this.context = context;
+  protected TabletMutatorBase(Mutation mutation) {
     this.mutation = mutation;
   }
 
@@ -183,10 +172,10 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   @Override
-  public T putZooLock(ServiceLock zooLock) {
+  public T putZooLock(String zookeeperRoot, ServiceLock zooLock) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     ServerColumnFamily.LOCK_COLUMN.put(mutation,
-        new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
+        new Value(zooLock.getLockID().serialize(zookeeperRoot + "/")));
     return getThis();
   }
 
@@ -223,6 +212,23 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   public T deleteBulkFile(StoredTabletFile bulkref) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.putDelete(BulkFileColumnFamily.NAME, bulkref.getMetaUpdateDeleteText());
+    return getThis();
+  }
+
+  @Override
+  public T putSelectedFiles(SelectedFiles selectedFiles) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    mutation.put(ServerColumnFamily.SELECTED_COLUMN.getColumnFamily(),
+        ServerColumnFamily.SELECTED_COLUMN.getColumnQualifier(),
+        new Value(selectedFiles.getMetadataValue()));
+    return getThis();
+  }
+
+  @Override
+  public T deleteSelectedFiles() {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    mutation.putDelete(ServerColumnFamily.SELECTED_COLUMN.getColumnFamily(),
+        ServerColumnFamily.SELECTED_COLUMN.getColumnQualifier());
     return getThis();
   }
 

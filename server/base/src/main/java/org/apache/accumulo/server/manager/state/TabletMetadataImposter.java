@@ -18,6 +18,15 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.CHOPPED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
+
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -30,6 +39,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 
 public class TabletMetadataImposter extends TabletMetadata {
 
+  // ELASTICITY_TODO replace existing usage of this with builder
   public TabletMetadataImposter(KeyExtent extent, Location future, Location current, Location last,
       SuspendingTServer suspend, List<LogEntry> walogs, boolean chopped, TabletHostingGoal goal,
       boolean onDemandHostingRequested) {
@@ -50,7 +60,7 @@ public class TabletMetadataImposter extends TabletMetadata {
     super.chopped = chopped;
     super.goal = goal;
     super.onDemandHostingRequested = onDemandHostingRequested;
-    super.fetchedCols = EnumSet.allOf(ColumnType.class);
+    super.fetchedCols = EnumSet.of(PREV_ROW, LOCATION, LAST, SUSPEND, LOGS, CHOPPED, HOSTING_GOAL,
+        HOSTING_REQUESTED);
   }
-
 }
