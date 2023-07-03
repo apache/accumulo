@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import java.net.URI;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.TableId;
@@ -44,7 +45,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
    * the entry can be deleted.
    */
   public StoredTabletFile(String metadataEntry) {
-    super(new Path(metadataEntry));
+    super(new Path(URI.create(metadataEntry)));
     this.metadataEntry = metadataEntry;
     this.referencedTabletFile = ReferencedTabletFile.of(getPath());
   }
@@ -111,6 +112,13 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   @Override
   public String toString() {
     return metadataEntry;
+  }
+
+  /**
+   * Validates that the provided metadata string for the StoredTabletFile is valid.
+   */
+  public static void validate(String metadataEntry) {
+    ReferencedTabletFile.parsePath(new Path(URI.create(metadataEntry)));
   }
 
   public static StoredTabletFile of(final String metadataEntry) {

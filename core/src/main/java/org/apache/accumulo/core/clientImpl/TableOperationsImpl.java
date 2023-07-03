@@ -25,12 +25,12 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_TABLE;
@@ -40,7 +40,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -169,8 +168,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 
 public class TableOperationsImpl extends TableOperationsHelper {
-
-  private static final SecureRandom random = new SecureRandom();
 
   public static final String PROPERTY_EXCLUDE_PREFIX = "!";
   public static final String COMPACTION_CANCELED_MSG = "Compaction canceled";
@@ -1195,7 +1192,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         log.warn("Unable to locate bins for specified range. Retrying.");
         // sleep randomly between 100 and 200ms
-        sleepUninterruptibly(100 + random.nextInt(100), MILLISECONDS);
+        sleepUninterruptibly(100 + RANDOM.get().nextInt(100), MILLISECONDS);
         unmergedExtents.clear();
         tl.invalidateCache();
       }

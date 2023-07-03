@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.spi.balancer;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,8 +48,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public class GroupBalancerTest {
-
-  private static final SecureRandom random = new SecureRandom();
 
   private static final Function<TabletId,String> partitioner =
       input -> (input == null || input.getEndRow() == null) ? null
@@ -326,8 +324,8 @@ public class GroupBalancerTest {
 
     for (int g = 1; g <= 60; g++) {
       for (int t = 1; t <= 241; t++) {
-        tservers.addTablet(String.format("%02d:%d", g, t), "192.168.1." + (random.nextInt(249) + 1),
-            9997);
+        tservers.addTablet(String.format("%02d:%d", g, t),
+            "192.168.1." + (RANDOM.get().nextInt(249) + 1), 9997);
       }
     }
 
@@ -343,9 +341,9 @@ public class GroupBalancerTest {
     TabletServers tservers = new TabletServers();
 
     for (int g = 1; g <= 60; g++) {
-      for (int t = 1; t <= random.nextInt(1000); t++) {
-        tservers.addTablet(String.format("%02d:%d", g, t), "192.168.1." + (random.nextInt(249) + 1),
-            9997);
+      for (int t = 1; t <= RANDOM.get().nextInt(1000); t++) {
+        tservers.addTablet(String.format("%02d:%d", g, t),
+            "192.168.1." + (RANDOM.get().nextInt(249) + 1), 9997);
       }
     }
 

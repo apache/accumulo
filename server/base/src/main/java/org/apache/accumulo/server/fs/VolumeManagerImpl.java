@@ -441,16 +441,21 @@ public class VolumeManagerImpl implements VolumeManager {
     return new VolumeManagerImpl(volumes, conf, hadoopConf);
   }
 
+  @SuppressWarnings("deprecation")
+  private static boolean inSafeMode(DistributedFileSystem dfs) throws IOException {
+    // Returns true when safemode is on; this version of setSafeMode was deprecated in Hadoop 3.3.6,
+    // because SafeModeAction enum was moved to a new package, and this deprecated method was
+    // overloaded with a version of the method that accepts the new enum. However, we can't use that
+    // replacement method if we want to continue working with versions less than 3.3.6, so we just
+    // suppress the deprecation warning.
+    return dfs.setSafeMode(SafeModeAction.SAFEMODE_GET);
+  }
+
   @Override
   public boolean isReady() throws IOException {
     for (Volume volume : volumesByName.values()) {
       final FileSystem fs = volume.getFileSystem();
-      if (!(fs instanceof DistributedFileSystem)) {
-        continue;
-      }
-      final DistributedFileSystem dfs = (DistributedFileSystem) fs;
-      // Returns true when safemode is on
-      if (dfs.setSafeMode(SafeModeAction.SAFEMODE_GET)) {
+      if (fs instanceof DistributedFileSystem && inSafeMode((DistributedFileSystem) fs)) {
         return false;
       }
     }

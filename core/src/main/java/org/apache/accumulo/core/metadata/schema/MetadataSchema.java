@@ -20,6 +20,8 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.regex.Pattern;
+
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -210,6 +212,8 @@ public class MetadataSchema {
        */
       public static final String DEFAULT_TABLET_DIR_NAME = "default_tablet";
 
+      private static final Pattern DIRCOL_MATCH_PATTERN = Pattern.compile("[\\dA-Za-z_-]+");
+
       /**
        * Matches regex for a tablet directory like "default_tablet" or "t-000009x"
        *
@@ -217,7 +221,7 @@ public class MetadataSchema {
        *         table. Returns false otherwise.
        */
       public static boolean isValidDirCol(String dirName) {
-        return dirName.matches("[\\dA-Za-z_-]+");
+        return DIRCOL_MATCH_PATTERN.matcher(dirName).matches();
       }
 
       /**

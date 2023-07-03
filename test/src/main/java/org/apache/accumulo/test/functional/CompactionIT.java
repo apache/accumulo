@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -740,10 +741,10 @@ public class CompactionIT extends AccumuloClusterHarness {
 
   private void writeRandomValue(AccumuloClient c, String tableName, int size) throws Exception {
     byte[] data1 = new byte[size];
-    random.nextBytes(data1);
+    RANDOM.get().nextBytes(data1);
 
     try (BatchWriter bw = c.createBatchWriter(tableName)) {
-      Mutation m1 = new Mutation("r" + random.nextInt(909090));
+      Mutation m1 = new Mutation("r" + RANDOM.get().nextInt(909090));
       m1.put("data", "bl0b", new Value(data1));
       bw.addMutation(m1);
     }
