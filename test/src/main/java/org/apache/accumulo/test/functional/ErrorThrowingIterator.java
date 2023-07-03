@@ -31,6 +31,8 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Iterator used in tests *and* the test class must spawn a new MAC instance for each test since the
  * timesThrown variable is static.
@@ -50,6 +52,10 @@ public class ErrorThrowingIterator extends WrappingIterator {
       IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     threshold = Integer.parseInt(options.get(TIMES));
+    Preconditions.checkState(TIMES_THROWN.get() <= threshold,
+        "This iterator does not"
+            + " support reuse within the same VM. If using in an IT, then be sure to use"
+            + " a different MAC instance between tests.");
   }
 
   private void incrementAndThrow(RuntimeException t) {
