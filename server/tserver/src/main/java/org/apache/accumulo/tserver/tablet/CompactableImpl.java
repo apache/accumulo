@@ -579,14 +579,15 @@ public class CompactableImpl implements Compactable {
      * @param newFile The file produced by a compaction. If the compaction failed, this can be null.
      */
     void completed(CompactionJob job, Set<StoredTabletFile> jobFiles,
-        Optional<StoredTabletFile> newFile) {
+        Optional<StoredTabletFile> newFile, boolean successful) {
       Preconditions.checkArgument(!jobFiles.isEmpty());
       Preconditions.checkState(allCompactingFiles.removeAll(jobFiles));
       if (newFile.isPresent()) {
         choppedFiles.add(newFile.orElseThrow());
       }
 
-      if ((job.getKind() == CompactionKind.USER || job.getKind() == CompactionKind.SELECTOR)) {
+      if (successful
+          && (job.getKind() == CompactionKind.USER || job.getKind() == CompactionKind.SELECTOR)) {
         selectedCompactionCompleted(job, jobFiles, newFile);
       }
     }
@@ -1247,7 +1248,7 @@ public class CompactableImpl implements Compactable {
     // check is done after the file are exclusively reserved in this class to avoid race conditions.
     if (!tablet.getDatafiles().keySet().containsAll(cInfo.jobFiles)) {
       // The tablet does not know of all these files, so unreserve them.
-      completeCompaction(job, cInfo.jobFiles, Optional.empty());
+      completeCompaction(job, cInfo.jobFiles, Optional.empty(), true);
       return Optional.empty();
     }
 
@@ -1255,13 +1256,10 @@ public class CompactableImpl implements Compactable {
   }
 
   private void completeCompaction(CompactionJob job, Set<StoredTabletFile> jobFiles,
-      Optional<StoredTabletFile> metaFile) {
+      Optional<StoredTabletFile> metaFile, boolean successful) {
     synchronized (this) {
       Preconditions.checkState(removeJob(job));
-      // If the compaction failed, then metaFile will be null.
-      // This is expected and the set of files for the compaction
-      // will be released so that it can be retried.
-      fileMgr.completed(job, jobFiles, metaFile);
+      fileMgr.completed(job, jobFiles, metaFile, successful);
 
       if (!compactionRunning) {
         notifyAll();
@@ -1288,6 +1286,7 @@ public class CompactableImpl implements Compactable {
 
     CompactionStats stats = new CompactionStats();
 
+    boolean successful = false;
     try {
       TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg);
       tablet.incrementStatusMajor();
@@ -1305,14 +1304,14 @@ public class CompactableImpl implements Compactable {
           compactFiles, allFiles, kind, tmpFileName);
 
       TabletLogger.compacted(getExtent(), job, newFile.orElse(null));
-
+      successful = true;
     } catch (CompactionCanceledException cce) {
       log.debug("Compaction canceled {} ", getExtent());
     } catch (Exception e) {
       newFile = Optional.empty();
       throw new RuntimeException(e);
     } finally {
-      completeCompaction(job, cInfo.jobFiles, newFile);
+      completeCompaction(job, cInfo.jobFiles, newFile, successful);
       tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), newFile == null);
     }
   }
@@ -1362,7 +1361,7 @@ public class CompactableImpl implements Compactable {
 
     } catch (Exception e) {
       externalCompactions.remove(externalCompactionId);
-      completeCompaction(job, cInfo.jobFiles, Optional.empty());
+      completeCompaction(job, cInfo.jobFiles, Optional.empty(), false);
       throw new RuntimeException(e);
     }
   }
@@ -1389,6 +1388,7 @@ public class CompactableImpl implements Compactable {
       if (ecInfo != null) {
         log.debug("Attempting to commit external compaction {}", extCompactionId);
         Optional<StoredTabletFile> metaFile = Optional.empty();
+        boolean successful = false;
         try {
           metaFile =
               tablet.getDatafileManager().bringMajorCompactionOnline(ecInfo.meta.getJobFiles(),
@@ -1396,12 +1396,13 @@ public class CompactableImpl implements Compactable {
                   Sets.union(ecInfo.meta.getJobFiles(), ecInfo.meta.getNextFiles()),
                   new DataFileValue(fileSize, entries), Optional.of(extCompactionId));
           TabletLogger.compacted(getExtent(), ecInfo.job, metaFile.orElse(null));
+          successful = true;
         } catch (Exception e) {
           metaFile = Optional.empty();
           log.error("Error committing external compaction {}", extCompactionId, e);
           throw new RuntimeException(e);
         } finally {
-          completeCompaction(ecInfo.job, ecInfo.meta.getJobFiles(), metaFile);
+          completeCompaction(ecInfo.job, ecInfo.meta.getJobFiles(), metaFile, successful);
           externalCompactions.remove(extCompactionId);
           log.debug("Completed commit of external compaction {}", extCompactionId);
         }
@@ -1438,7 +1439,7 @@ public class CompactableImpl implements Compactable {
       if (ecInfo != null) {
         tablet.getContext().getAmple().mutateTablet(getExtent()).deleteExternalCompaction(ecid)
             .mutate();
-        completeCompaction(ecInfo.job, ecInfo.meta.getJobFiles(), Optional.empty());
+        completeCompaction(ecInfo.job, ecInfo.meta.getJobFiles(), Optional.empty(), false);
         externalCompactions.remove(ecid);
         log.debug("Processed external compaction failure {}", ecid);
       } else {

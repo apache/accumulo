@@ -194,12 +194,18 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   public static void ingest(AccumuloClient accumuloClient, int rows, int cols, int width,
       int offset, String colf, String tableName) throws Exception {
+    ingest(accumuloClient, rows, cols, width, offset, colf, tableName, 0);
+  }
+
+  public static void ingest(AccumuloClient accumuloClient, int rows, int cols, int width,
+      int offset, String colf, String tableName, int flushAfterRows) throws Exception {
     IngestParams params = new IngestParams(accumuloClient.properties(), tableName, rows);
     params.cols = cols;
     params.dataSize = width;
     params.startRow = offset;
     params.columnFamily = colf;
     params.createTable = true;
+    params.flushAfterRows = flushAfterRows;
     TestIngest.ingest(accumuloClient, params);
   }
 

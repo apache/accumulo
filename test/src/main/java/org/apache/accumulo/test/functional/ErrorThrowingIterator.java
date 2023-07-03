@@ -31,6 +31,10 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 
+/**
+ * Iterator used in tests *and* the test class must spawn a new MAC instance for each test since the
+ * timesThrown variable is static.
+ */
 public class ErrorThrowingIterator extends WrappingIterator {
 
   public static final String TIMES = "error.throwing.iterator.times";
