@@ -311,6 +311,11 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "Time to wait between scanning tablet states to identify tablets that need to be assigned, un-assigned, migrated, etc.",
       "2.1.2"),
+  MANAGER_TABLET_GROUP_WATCHER_SCAN_THREADS("manager.tablet.watcher.scan.threads.max", "16",
+      PropertyType.COUNT,
+      "Maximum number of threads the TabletGroupWatcher will use in its BatchScanner to"
+          + " look for tablets that need maintenance",
+      "4.0.0"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request", "1.4.3"),
   MANAGER_RENAME_THREADS("manager.rename.threadpool.size", "20", PropertyType.COUNT,
