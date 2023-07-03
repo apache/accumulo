@@ -19,9 +19,9 @@
 package org.apache.accumulo.core.spi.fs;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
@@ -45,8 +45,6 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
  * @since 2.1.0
  */
 public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
-
-  private static final SecureRandom random = new SecureRandom();
 
   public static final String RECOMPUTE_INTERVAL = "spaceaware.volume.chooser.recompute.interval";
 
@@ -123,7 +121,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
     }
 
     public String next() {
-      double value = random.nextDouble() * total;
+      double value = RANDOM.get().nextDouble() * total;
       return map.higherEntry(value).getValue();
     }
   }

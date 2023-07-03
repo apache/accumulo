@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.server.compaction;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -73,18 +74,36 @@ public class CompactionJobGenerator {
     // report something
     // back to the manager so it can log.
 
+    Collection<CompactionJob> systemJobs = Set.of();
+
     if (kinds.contains(CompactionKind.SYSTEM)) {
       CompactionServiceId serviceId = dispatch(CompactionKind.SYSTEM, tablet);
+      systemJobs = planCompactions(serviceId, CompactionKind.SYSTEM, tablet);
+    }
 
-      return planCompactions(serviceId, CompactionKind.SYSTEM, tablet);
+    Collection<CompactionJob> userJobs = Set.of();
+
+    if (kinds.contains(CompactionKind.USER) && tablet.getSelectedFiles() != null) {
+      CompactionServiceId serviceId = dispatch(CompactionKind.USER, tablet);
+      userJobs = planCompactions(serviceId, CompactionKind.USER, tablet);
+    }
+
+    if (userJobs.isEmpty()) {
+      return systemJobs;
+    } else if (systemJobs.isEmpty()) {
+      return userJobs;
     } else {
-      return Set.of();
+      var all = new ArrayList<CompactionJob>(systemJobs.size() + userJobs.size());
+      all.addAll(systemJobs);
+      all.addAll(userJobs);
+      return all;
     }
   }
 
   private CompactionServiceId dispatch(CompactionKind kind, TabletMetadata tablet) {
 
-    CompactionDispatcher dispatcher = dispatchers.get(tablet.getTableId(), this::createDispatcher);
+    CompactionDispatcher dispatcher = dispatchers.get(tablet.getTableId(),
+        tableId -> CompactionPluginUtils.createDispatcher((ServiceEnvironment) env, tableId));
 
     CompactionDispatcher.DispatchParameters dispatchParams =
         new CompactionDispatcher.DispatchParameters() {
@@ -105,7 +124,8 @@ public class CompactionJobGenerator {
 
           @Override
           public Map<String,String> getExecutionHints() {
-            // ELASTICITY_TODO do for user compactions
+            // ELASTICITY_TODO do for user compactions. Best to do this after per user compaction
+            // config storage is changed in ZK so that it can be cached.
             return Map.of();
           }
         };
@@ -113,54 +133,11 @@ public class CompactionJobGenerator {
     return dispatcher.dispatch(dispatchParams).getService();
   }
 
-  private CompactionDispatcher createDispatcher(TableId tableId) {
-
-    var conf = env.getConfiguration();
-
-    var className = conf.get(Property.TABLE_COMPACTION_DISPATCHER.getKey());
-
-    Map<String,String> opts = new HashMap<>();
-
-    conf.getWithPrefix(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey()).forEach((k, v) -> {
-      opts.put(k.substring(Property.TABLE_COMPACTION_DISPATCHER.getKey().length()), v);
-    });
-
-    var finalOpts = Collections.unmodifiableMap(opts);
-
-    CompactionDispatcher.InitParameters initParameters = new CompactionDispatcher.InitParameters() {
-      @Override
-      public Map<String,String> getOptions() {
-        return finalOpts;
-      }
-
-      @Override
-      public TableId getTableId() {
-        return tableId;
-      }
-
-      @Override
-      public ServiceEnvironment getServiceEnv() {
-        return (ServiceEnvironment) env;
-      }
-    };
-
-    CompactionDispatcher dispatcher = null;
-    try {
-      dispatcher = env.instantiate(className, CompactionDispatcher.class);
-    } catch (ReflectiveOperationException e) {
-      throw new RuntimeException(e);
-    }
-
-    dispatcher.init(initParameters);
-
-    return dispatcher;
-  }
-
   private Collection<CompactionJob> planCompactions(CompactionServiceId serviceId,
       CompactionKind kind, TabletMetadata tablet) {
 
     CompactionPlanner planner =
-        planners.computeIfAbsent(serviceId, sid -> createPlanner(serviceId));
+        planners.computeIfAbsent(serviceId, sid -> createPlanner(tablet.getTableId(), serviceId));
 
     // selecting indicator
     // selected files
@@ -179,18 +156,35 @@ public class CompactionJobGenerator {
     Set<CompactableFile> candidates;
 
     if (kind == CompactionKind.SYSTEM) {
-      if (tablet.getExternalCompactions().isEmpty()) {
+      if (tablet.getExternalCompactions().isEmpty() && tablet.getSelectedFiles() == null) {
         candidates = allFiles;
       } else {
         var tmpFiles = new HashMap<>(tablet.getFilesMap());
+        // remove any files that are in active compactions
         tablet.getExternalCompactions().values().stream().flatMap(ecm -> ecm.getJobFiles().stream())
             .forEach(tmpFiles::remove);
+        // remove any files that are selected
+        if (tablet.getSelectedFiles() != null) {
+          tmpFiles.keySet().removeAll(tablet.getSelectedFiles().getFiles());
+        }
         candidates = tmpFiles.entrySet().stream()
             .map(entry -> new CompactableFileImpl(entry.getKey(), entry.getValue()))
             .collect(Collectors.toUnmodifiableSet());
       }
+    } else if (kind == CompactionKind.USER) {
+      var selectedFiles = new HashSet<>(tablet.getSelectedFiles().getFiles());
+      tablet.getExternalCompactions().values().stream().flatMap(ecm -> ecm.getJobFiles().stream())
+          .forEach(selectedFiles::remove);
+      candidates = selectedFiles.stream()
+          .map(file -> new CompactableFileImpl(file, tablet.getFilesMap().get(file)))
+          .collect(Collectors.toUnmodifiableSet());
     } else {
       throw new UnsupportedOperationException();
+    }
+
+    if (candidates.isEmpty()) {
+      // there are not candidate files for compaction, so no reason to call the planner
+      return Set.of();
     }
 
     CompactionPlanner.PlanningParameters params = new CompactionPlanner.PlanningParameters() {
@@ -233,7 +227,7 @@ public class CompactionJobGenerator {
           CompactionJob job = new CompactionJobImpl(ecMeta.getPriority(),
               ecMeta.getCompactionExecutorId(), files, ecMeta.getKind(), Optional.empty());
           return job;
-        }).collect(Collectors.toList());
+        }).collect(Collectors.toUnmodifiableList());
       }
 
       @Override
@@ -251,13 +245,13 @@ public class CompactionJobGenerator {
     return planner.makePlan(params).getJobs();
   }
 
-  private CompactionPlanner createPlanner(CompactionServiceId serviceId) {
+  private CompactionPlanner createPlanner(TableId tableId, CompactionServiceId serviceId) {
 
     String plannerClassName = servicesConfig.getPlanners().get(serviceId.canonical());
 
     CompactionPlanner planner = null;
     try {
-      planner = env.instantiate(plannerClassName, CompactionPlanner.class);
+      planner = env.instantiate(tableId, plannerClassName, CompactionPlanner.class);
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }

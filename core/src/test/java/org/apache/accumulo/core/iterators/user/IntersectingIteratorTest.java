@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -43,7 +43,6 @@ import org.junit.jupiter.api.Test;
 
 public class IntersectingIteratorTest {
 
-  private static final SecureRandom random = new SecureRandom();
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static IteratorEnvironment env = new DefaultIteratorEnvironment();
 
@@ -78,7 +77,7 @@ public class IntersectingIteratorTest {
         boolean docHits = true;
         Text doc = new Text(String.format("%010d", docid));
         for (int j = 0; j < columnFamilies.length; j++) {
-          if (random.nextFloat() < hitRatio) {
+          if (RANDOM.get().nextFloat() < hitRatio) {
             Key k = new Key(row, columnFamilies[j], doc);
             map.put(k, v);
             if (negateMask[j]) {
@@ -94,7 +93,7 @@ public class IntersectingIteratorTest {
           docs.add(doc);
         }
         for (Text cf : otherColumnFamilies) {
-          if (random.nextFloat() < hitRatio) {
+          if (RANDOM.get().nextFloat() < hitRatio) {
             Key k = new Key(row, cf, doc);
             map.put(k, v);
           }

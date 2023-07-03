@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.iteratortest.testcases;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Key;
@@ -39,8 +40,6 @@ import org.apache.accumulo.iteratortest.IteratorTestOutput;
  */
 public class MultipleHasTopCalls implements IteratorTestCase {
 
-  private static final SecureRandom random = new SecureRandom();
-
   @Override
   public IteratorTestOutput test(IteratorTestInput testInput) {
     final SortedKeyValueIterator<Key,Value> skvi = IteratorTestUtil.instantiateIterator(testInput);
@@ -59,7 +58,7 @@ public class MultipleHasTopCalls implements IteratorTestCase {
     TreeMap<Key,Value> data = new TreeMap<>();
     while (skvi.hasTop()) {
       // Check 1 to 5 times. If hasTop returned true, it should continue to return true.
-      for (int i = 0; i < random.nextInt(5) + 1; i++) {
+      for (int i = 0; i < RANDOM.get().nextInt(5) + 1; i++) {
         if (!skvi.hasTop()) {
           throw badStateException(true);
         }
@@ -70,7 +69,7 @@ public class MultipleHasTopCalls implements IteratorTestCase {
     }
 
     // Check 1 to 5 times. Once hasTop returned false, it should continue to return false
-    for (int i = 0; i < random.nextInt(5) + 1; i++) {
+    for (int i = 0; i < RANDOM.get().nextInt(5) + 1; i++) {
       if (skvi.hasTop()) {
         throw badStateException(false);
       }

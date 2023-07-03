@@ -81,7 +81,7 @@ public class ManagerMetadataUtil {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putPrevEndRow(extent.prevEndRow());
-    tablet.putZooLock(zooLock);
+    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
     tablet.putDirName(dirName);
     tablet.putTime(time);
 
@@ -220,7 +220,7 @@ public class ManagerMetadataUtil {
       tablet.deleteExternalCompaction(ecid.orElseThrow());
     }
 
-    tablet.putZooLock(zooLock);
+    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
 
     tablet.mutate();
   }
@@ -249,7 +249,7 @@ public class ManagerMetadataUtil {
 
     unusedWalLogs.forEach(tablet::deleteWal);
 
-    tablet.putZooLock(zooLock);
+    tablet.putZooLock(context.getZooKeeperRoot(), zooLock);
 
     tablet.mutate();
     return newFile;
