@@ -98,7 +98,7 @@ public class DeadCompactionDetector {
 
     running.forEach((ecid) -> {
       if (tabletCompactions.remove(ecid) != null) {
-        log.debug("Removed compaction {} running on a compactor", ecid);
+        log.debug("Ignoring compaction {} that is running on a compactor", ecid);
       }
       if (this.deadCompactions.remove(ecid) != null) {
         log.debug("Removed {} from the dead compaction map, it's running on a compactor", ecid);

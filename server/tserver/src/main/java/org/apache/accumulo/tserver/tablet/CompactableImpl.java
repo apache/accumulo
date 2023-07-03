@@ -1410,7 +1410,9 @@ public class CompactableImpl implements Compactable {
             extCompactionId);
       }
 
-      tablet.getContext().getAmple().deleteExternalCompactionFinalStates(List.of(extCompactionId));
+      throw new UnsupportedOperationException(
+          "This code no longer functions properly and needs to be removed");
+      // tablet.getContext().getAmple().deleteExternalCompactionFinalStates(List.of(extCompactionId));
     } finally {
       synchronized (this) {
         Preconditions.checkState(externalCompactionsCommitting.remove(extCompactionId));
@@ -1445,7 +1447,9 @@ public class CompactableImpl implements Compactable {
         log.debug("Ignoring request to fail external compaction that is unknown {}", ecid);
       }
 
-      tablet.getContext().getAmple().deleteExternalCompactionFinalStates(List.of(ecid));
+      throw new UnsupportedOperationException(
+          "This code no longer functions properly and needs to be removed");
+      // tablet.getContext().getAmple().deleteExternalCompactionFinalStates(List.of(ecid));
     } finally {
       synchronized (this) {
         Preconditions.checkState(externalCompactionsCommitting.remove(ecid));

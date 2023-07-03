@@ -214,20 +214,6 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
-  default void
-      putExternalCompactionFinalStates(Collection<ExternalCompactionFinalState> finalStates) {
-    throw new UnsupportedOperationException();
-  }
-
-  default Stream<ExternalCompactionFinalState> getExternalCompactionFinalStates() {
-    throw new UnsupportedOperationException();
-  }
-
-  default void
-      deleteExternalCompactionFinalStates(Collection<ExternalCompactionId> statusesToDelete) {
-    throw new UnsupportedOperationException();
-  }
-
   /**
    * Return an encoded delete marker Mutation to delete the specified TabletFile path. A
    * ReferenceFile is used for the parameter because the Garbage Collector is optimized to store a
