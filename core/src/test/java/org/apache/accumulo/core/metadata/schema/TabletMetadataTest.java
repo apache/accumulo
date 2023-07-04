@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_GOAL;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
@@ -38,16 +39,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 
+import org.apache.accumulo.core.client.admin.TabletHostingGoal;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -62,8 +68,12 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -300,4 +310,91 @@ public class TabletMetadataTest {
     });
     return rowMap;
   }
+
+  @Test
+  public void testBuilder() {
+    TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
+
+    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
+
+    StoredTabletFile sf1 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/sf1.rf");
+    DataFileValue dfv1 = new DataFileValue(89, 67);
+
+    StoredTabletFile sf2 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/sf2.rf");
+    DataFileValue dfv2 = new DataFileValue(890, 670);
+
+    ReferencedTabletFile rf1 =
+        new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/imp1.rf"));
+    ReferencedTabletFile rf2 =
+        new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-0001/imp2.rf"));
+
+    StoredTabletFile sf3 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/sf3.rf");
+    StoredTabletFile sf4 = new StoredTabletFile("hdfs://nn1/acc/tables/1/t-0001/sf4.rf");
+
+    TabletMetadata tm = TabletMetadata.builder(extent).putHostingGoal(TabletHostingGoal.NEVER)
+        .putLocation(Location.future(ser1)).putFile(sf1, dfv1).putFile(sf2, dfv2)
+        .putCompactionId(23).putBulkFile(rf1, 25).putBulkFile(rf2, 35).putFlushId(27)
+        .putDirName("dir1").putScan(sf3).putScan(sf4).build(ECOMP, HOSTING_REQUESTED);
+
+    assertEquals(extent, tm.getExtent());
+    assertEquals(TabletHostingGoal.NEVER, tm.getHostingGoal());
+    assertEquals(Location.future(ser1), tm.getLocation());
+    assertEquals(23L, tm.getCompactId().orElse(-1));
+    assertEquals(27L, tm.getFlushId().orElse(-1));
+    assertEquals(Map.of(sf1, dfv1, sf2, dfv2), tm.getFilesMap());
+    assertEquals(Map.of(rf1.insert(), 25L, rf2.insert(), 35L), tm.getLoaded());
+    assertEquals("dir1", tm.getDirName());
+    assertEquals(Set.of(sf3, sf4), Set.copyOf(tm.getScans()));
+    assertEquals(Set.of(), tm.getExternalCompactions().keySet());
+    assertFalse(tm.getHostingRequested());
+    assertThrows(IllegalStateException.class, tm::getOperationId);
+    assertThrows(IllegalStateException.class, tm::getSuspend);
+    assertThrows(IllegalStateException.class, tm::getTime);
+
+    TabletOperationId opid1 = TabletOperationId.from(TabletOperationType.SPLITTING, 55);
+    TabletMetadata tm2 = TabletMetadata.builder(extent).putOperation(opid1).build(LOCATION);
+
+    assertEquals(extent, tm2.getExtent());
+    assertEquals(opid1, tm2.getOperationId());
+    assertNull(tm2.getLocation());
+    assertThrows(IllegalStateException.class, tm2::getFiles);
+    assertThrows(IllegalStateException.class, tm2::getHostingGoal);
+    assertThrows(IllegalStateException.class, tm2::getCompactId);
+    assertThrows(IllegalStateException.class, tm2::getFlushId);
+    assertThrows(IllegalStateException.class, tm2::getFiles);
+    assertThrows(IllegalStateException.class, tm2::getLogs);
+    assertThrows(IllegalStateException.class, tm2::getLoaded);
+    assertThrows(IllegalStateException.class, tm2::getDirName);
+    assertThrows(IllegalStateException.class, tm2::getScans);
+    assertThrows(IllegalStateException.class, tm2::getExternalCompactions);
+    assertThrows(IllegalStateException.class, tm2::getHostingRequested);
+    assertThrows(IllegalStateException.class, tm2::getSelectedFiles);
+
+    var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
+    ExternalCompactionMetadata ecm = new ExternalCompactionMetadata(Set.of(sf1, sf2), rf1, "cid1",
+        CompactionKind.USER, (short) 3, CompactionExecutorIdImpl.externalId("Q1"), true, 99L);
+
+    LogEntry le1 = new LogEntry(extent, 55, "lf1");
+    LogEntry le2 = new LogEntry(extent, 57, "lf2");
+
+    SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, 159L);
+
+    TabletMetadata tm3 = TabletMetadata.builder(extent).putExternalCompaction(ecid1, ecm)
+        .putSuspension(ser1, 45L).putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1)
+        .putWal(le2).setHostingRequested().putSelectedFiles(selFiles).build();
+
+    assertEquals(Set.of(ecid1), tm3.getExternalCompactions().keySet());
+    assertEquals(Set.of(sf1, sf2), tm3.getExternalCompactions().get(ecid1).getJobFiles());
+    assertEquals(ser1.getHostAndPort(), tm3.getSuspend().server);
+    assertEquals(45L, tm3.getSuspend().suspensionTime);
+    assertEquals(new MetadataTime(479, TimeType.LOGICAL), tm3.getTime());
+    assertTrue(tm3.getHostingRequested());
+    assertEquals(List.of(le1, le2).stream().map(LogEntry::toString).collect(toSet()),
+        tm3.getLogs().stream().map(LogEntry::toString).collect(toSet()));
+    assertEquals(Set.of(sf1, sf4), tm3.getSelectedFiles().getFiles());
+    assertEquals(159L, tm3.getSelectedFiles().getFateTxId());
+    assertFalse(tm3.getSelectedFiles().initiallySelectedAll());
+    assertEquals(selFiles.getMetadataValue(), tm3.getSelectedFiles().getMetadataValue());
+  }
+
 }
