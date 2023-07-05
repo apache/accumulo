@@ -775,7 +775,7 @@ public class CompactionIT extends AccumuloClusterHarness {
 
       client.tableOperations().flush(tableName, null, null, true);
 
-      // there should be no system copmactions yet and no data should be filtered, so should see all
+      // there should be no system compactions yet and no data should be filtered, so should see all
       // data that was written
       try (Scanner scanner = client.createScanner(tableName)) {
         assertEquals(MAX_DATA, scanner.stream().count());
