@@ -27,18 +27,27 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SCANS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -70,6 +79,7 @@ import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.Refreshes.RefreshEntry;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
@@ -85,8 +95,8 @@ import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
+import org.apache.accumulo.core.tabletserver.thrift.TTabletRefresh;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -95,6 +105,7 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
+import org.apache.accumulo.manager.tableOps.bulkVer2.TabletRefresher;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
@@ -111,8 +122,10 @@ import org.slf4j.LoggerFactory;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.MoreExecutors;
 
 public class CompactionCoordinator implements CompactionCoordinatorService.Iface, Runnable {
 
@@ -128,6 +141,13 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
    */
   protected static final Map<ExternalCompactionId,RunningCompaction> RUNNING_CACHE =
       new ConcurrentHashMap<>();
+
+  /*
+   * When the manager starts up any refreshes that were in progress when the last manager process
+   * died must be completed before new refresh entries are written. This map of countdown latches
+   * helps achieve that goal.
+   */
+  private final Map<Ample.DataLevel,CountDownLatch> refreshLatches;
 
   private static final Cache<ExternalCompactionId,RunningCompaction> COMPLETED =
       Caffeine.newBuilder().maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
@@ -152,8 +172,14 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     this.schedExecutor = this.ctx.getScheduledExecutor();
     this.security = security;
     this.jobQueues = jobQueues;
-    startCompactionCleaner(schedExecutor);
-    startRunningCleaner(schedExecutor);
+
+    var refreshLatches = new EnumMap<Ample.DataLevel,CountDownLatch>(Ample.DataLevel.class);
+    refreshLatches.put(Ample.DataLevel.ROOT, new CountDownLatch(1));
+    refreshLatches.put(Ample.DataLevel.METADATA, new CountDownLatch(1));
+    refreshLatches.put(Ample.DataLevel.USER, new CountDownLatch(1));
+    this.refreshLatches = Collections.unmodifiableMap(refreshLatches);
+
+    // At this point the manager does not have its lock so no actions should be taken yet
   }
 
   public void shutdown() {
@@ -172,8 +198,61 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
+  private void processRefreshes(Ample.DataLevel dataLevel) {
+    try (var refreshStream = ctx.getAmple().refreshes(dataLevel).stream()) {
+      // process batches of refresh entries to avoid reading all into memory at once
+      Iterators.partition(refreshStream.iterator(), 10000).forEachRemaining(refreshEntries -> {
+        LOG.info("Processing {} tablet refreshes for {}", refreshEntries.size(), dataLevel);
+
+        var extents =
+            refreshEntries.stream().map(RefreshEntry::getExtent).collect(Collectors.toList());
+        var tabletsMeta = new HashMap<KeyExtent,TabletMetadata>();
+        try (var tablets = ctx.getAmple().readTablets().forTablets(extents, Optional.empty())
+            .fetch(PREV_ROW, LOCATION, SCANS).build()) {
+          tablets.stream().forEach(tm -> tabletsMeta.put(tm.getExtent(), tm));
+        }
+
+        var tserverRefreshes = new HashMap<TabletMetadata.Location,List<TTabletRefresh>>();
+
+        refreshEntries.forEach(refreshEntry -> {
+          var tm = tabletsMeta.get(refreshEntry.getExtent());
+
+          // only need to refresh if the tablet is still on the same tserver instance
+          if (tm != null && tm.getLocation() != null
+              && tm.getLocation().getServerInstance().equals(refreshEntry.getTserver())) {
+            KeyExtent extent = tm.getExtent();
+            Collection<StoredTabletFile> scanfiles = tm.getScans();
+            var ttr = TabletRefresher.createThriftRefresh(extent, scanfiles);
+            tserverRefreshes.computeIfAbsent(tm.getLocation(), k -> new ArrayList<>()).add(ttr);
+          }
+        });
+
+        String logId = "Coordinator:" + dataLevel;
+        ThreadPoolExecutor threadPool =
+            ctx.threadPools().createFixedThreadPool(10, "Tablet refresh " + logId, false);
+        try {
+          TabletRefresher.refreshTablets(threadPool, logId, ctx, tserverSet::getCurrentServers,
+              tserverRefreshes);
+        } finally {
+          threadPool.shutdownNow();
+        }
+
+        ctx.getAmple().refreshes(dataLevel).delete(refreshEntries);
+      });
+    }
+    // allow new refreshes to be written now that all preexisting ones are processed
+    refreshLatches.get(dataLevel).countDown();
+  }
+
   @Override
   public void run() {
+
+    processRefreshes(Ample.DataLevel.ROOT);
+    processRefreshes(Ample.DataLevel.METADATA);
+    processRefreshes(Ample.DataLevel.USER);
+
+    startCompactionCleaner(schedExecutor);
+    startRunningCleaner(schedExecutor);
 
     // On a re-start of the coordinator it's possible that external compactions are in-progress.
     // Attempt to get the running compactions on the compactors and then resolve which tserver
@@ -491,6 +570,58 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
         ecm.getCompactionId() == null ? 0 : ecm.getCompactionId(), overrides);
   }
 
+  class RefreshWriter {
+
+    private final ExternalCompactionId ecid;
+    private final KeyExtent extent;
+
+    private RefreshEntry writtenEntry;
+
+    RefreshWriter(ExternalCompactionId ecid, KeyExtent extent) {
+      this.ecid = ecid;
+      this.extent = extent;
+
+      var dataLevel = Ample.DataLevel.of(extent.tableId());
+      try {
+        // Wait for any refresh entries from the previous manager process to be processed before
+        // writing new ones.
+        refreshLatches.get(dataLevel).await();
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    public void writeRefresh(TabletMetadata.Location location) {
+      Objects.requireNonNull(location);
+
+      if (writtenEntry != null) {
+        if (location.getServerInstance().equals(writtenEntry.getTserver())) {
+          // the location was already written so nothing to do
+          return;
+        } else {
+          deleteRefresh();
+        }
+      }
+
+      var entry = new RefreshEntry(ecid, extent, location.getServerInstance());
+
+      ctx.getAmple().refreshes(Ample.DataLevel.of(extent.tableId())).add(List.of(entry));
+
+      LOG.debug("wrote refresh entry for {}", ecid);
+
+      writtenEntry = entry;
+    }
+
+    public void deleteRefresh() {
+      if (writtenEntry != null) {
+        ctx.getAmple().refreshes(Ample.DataLevel.of(extent.tableId()))
+            .delete(List.of(writtenEntry));
+        LOG.debug("deleted refresh entry for {}", ecid);
+        writtenEntry = null;
+      }
+    }
+  }
+
   private Optional<CompactionConfig> getCompactionConfig(CompactionJobQueues.MetaJob metaJob) {
     Optional<CompactionConfig> compactionConfig = Optional.empty();
 
@@ -510,7 +641,51 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   }
 
   /**
-   * Compactor calls compactionCompleted passing in the CompactionStats
+   * Compactors calls this method when they have finished a compaction. This method does the
+   * following.
+   *
+   * <ol>
+   * <li>Reads the tablets metadata and determines if the compaction can commit. Its possible that
+   * things changed while the compaction was running and it can no longer commit.</li>
+   * <li>If the compaction can commit then a ~refresh entry may be written to the metadata table.
+   * This is done before attempting to commit to cover the case of process failure after commit. If
+   * the manager dies after commit then when it restarts it will see the ~refresh entry and refresh
+   * that tablet. The ~refresh entry is only written when its a system compaction on a tablet with a
+   * location.</li>
+   * <li>Commit the compaction using a conditional mutation. If the tablets files or location
+   * changed since reading the tablets metadata, then conditional mutation will fail. When this
+   * happens it will reread the metadata and go back to step 1 conceptually. When committing a
+   * compaction the compacted files are removed and scan entries are added to the tablet in case the
+   * files are in use, this prevents GC from deleting the files between updating tablet metadata and
+   * refreshing the tablet. The scan entries are only added when a tablet has a location.</li>
+   * <li>After successful commit a refresh request is sent to the tablet if it has a location. This
+   * will cause the tablet to start using the newly compacted files for future scans. Also the
+   * tablet can delete the scan entries if there are no active scans using them.</li>
+   * <li>If a ~refresh entry was written, delete it since the refresh was successful.</li>
+   * </ol>
+   *
+   * <p>
+   * User compactions will be refreshed as part of the fate operation. The user compaction fate
+   * operation will see the compaction was committed after this code updates the tablet metadata,
+   * however if it were to rely on this code to do the refresh it would not be able to know when the
+   * refresh was actually done. Therefore, user compactions will refresh as part of the fate
+   * operation so that it's known to be done before the fate operation returns. Since the fate
+   * operation will do it, there is no need to do it here for user compactions.
+   * </p>
+   *
+   * <p>
+   * The ~refresh entries serve a similar purpose to FATE operations, it ensures that code executes
+   * even when a process dies. FATE was intentionally not used for compaction commit because FATE
+   * stores its data in zookeeper. The refresh entry is stored in the metadata table, which is much
+   * more scalable than zookeeper. The number of system compactions of small files could be large
+   * and this would be a large number of writes to zookeeper. Zookeeper scales somewhat with reads,
+   * but not with writes.
+   * </p>
+   *
+   * <p>
+   * Issue #3559 was opened to explore the possibility of making compaction commit a fate operation
+   * which would remove the need for the ~refresh section.
+   * </p>
    *
    * @param tinfo trace info
    * @param credentials tcredentials object
@@ -558,15 +733,21 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
       return;
     }
 
+    RefreshWriter refreshWriter = new RefreshWriter(ecid, extent);
+
     try {
-      tabletMeta = commitCompaction(stats, ecid, tabletMeta, optionalNewFile);
+      tabletMeta = commitCompaction(stats, ecid, tabletMeta, optionalNewFile, refreshWriter);
     } catch (RuntimeException e) {
       LOG.warn("Failed to commit complete compaction {} {}", ecid, extent, e);
       compactionFailed(Map.of(ecid, extent));
     }
 
-    // ELASTICITY_TODO, how will user compactions handle refresh
-    refreshTablet(tabletMeta);
+    if (ecm.getKind() != CompactionKind.USER) {
+      refreshTablet(tabletMeta, ecm.getJobFiles());
+    }
+
+    // if a refresh entry was written, it can be removed after the tablet was refreshed
+    refreshWriter.deleteRefresh();
 
     // It's possible that RUNNING might not have an entry for this ecid in the case
     // of a coordinator restart when the Coordinator can't find the TServer for the
@@ -594,18 +775,21 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     }
   }
 
-  private void refreshTablet(TabletMetadata metadata) {
+  private void refreshTablet(TabletMetadata metadata, Collection<StoredTabletFile> scanfiles) {
     var location = metadata.getLocation();
     if (location != null) {
-      TabletServerClientService.Client client = null;
+      KeyExtent extent = metadata.getExtent();
+      TTabletRefresh tTabletRefresh = TabletRefresher.createThriftRefresh(extent, scanfiles);
+
+      // there is a single tserver and single tablet, do not need a thread pool. The direct executor
+      // will run everything in the current thread
+      ExecutorService executorService = MoreExecutors.newDirectExecutorService();
       try {
-        client = getTabletServerConnection(location.getServerInstance());
-        client.refreshTablets(TraceUtil.traceInfo(), ctx.rpcCreds(),
-            List.of(metadata.getExtent().toThrift()));
-      } catch (TException e) {
-        throw new RuntimeException(e);
+        TabletRefresher.refreshTablets(executorService,
+            "compaction:" + metadata.getExtent().toString(), ctx, tserverSet::getCurrentServers,
+            Map.of(metadata.getLocation(), List.of(tTabletRefresh)));
       } finally {
-        returnTServerClient(client);
+        executorService.shutdownNow();
       }
     }
   }
@@ -665,7 +849,8 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
   }
 
   private TabletMetadata commitCompaction(TCompactionStats stats, ExternalCompactionId ecid,
-      TabletMetadata tablet, Optional<ReferencedTabletFile> newDatafile) {
+      TabletMetadata tablet, Optional<ReferencedTabletFile> newDatafile,
+      RefreshWriter refreshWriter) {
 
     KeyExtent extent = tablet.getExtent();
 
@@ -676,9 +861,18 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
     while (canCommitCompaction(ecid, tablet)) {
       ExternalCompactionMetadata ecm = tablet.getExternalCompactions().get(ecid);
 
+      if (tablet.getLocation() != null
+          && tablet.getExternalCompactions().get(ecid).getKind() != CompactionKind.USER) {
+        // Write the refresh entry before attempting to update tablet metadata, this ensures that
+        // refresh will happen even if this process dies. In the case where this process does not
+        // die refresh will happen after commit. User compactions will make refresh calls in their
+        // fate operation, so it does not need to be done here.
+        refreshWriter.writeRefresh(tablet.getLocation());
+      }
+
       try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
         var tabletMutator = tabletsMutator.mutateTablet(extent).requireAbsentOperation()
-            .requireCompaction(ecid).requireSame(tablet, PREV_ROW, FILES);
+            .requireCompaction(ecid).requireSame(tablet, PREV_ROW, FILES, LOCATION);
 
         if (ecm.getKind() == CompactionKind.USER || ecm.getKind() == CompactionKind.SELECTOR) {
           tabletMutator.requireSame(tablet, SELECTED, COMPACT_ID);
@@ -764,6 +958,11 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
       }
     }
 
+    if (tablet.getLocation() != null) {
+      // add scan entries to prevent GC in case the hosted tablet is currently using the files for
+      // scan
+      ecm.getJobFiles().forEach(tabletMutator::putScan);
+    }
     ecm.getJobFiles().forEach(tabletMutator::deleteFile);
     tabletMutator.deleteExternalCompaction(ecid);
 
