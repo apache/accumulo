@@ -70,7 +70,9 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
         final ClientTabletCache locator = ClientTabletCache.getInstance(context, tid);
         final Set<String> locations = new HashSet<>();
         final List<Range> failures = locator.findTablets(context, ALL_TABLETS_RANGE, (ct, r) -> {
-          locations.add(ct.getTserverLocation().orElse("UNASSIGNED"));
+          if (ct.getTserverLocation().isPresent()) {
+            locations.add(ct.getTserverLocation().orElseThrow());
+          }
         }, LocationNeed.NOT_REQUIRED);
         // If failures is not empty, then there are tablets that we don't know the location of.
         // In this case, add an extra thread.
