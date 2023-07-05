@@ -18,32 +18,29 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
-import static org.apache.accumulo.harness.AccumuloITBase.random;
+import static java.util.concurrent.TimeUnit.DAYS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.HashMap;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
+import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
+import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -56,6 +53,8 @@ import org.apache.thrift.TMultiplexedProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.net.HostAndPort;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -66,7 +65,7 @@ public class ZombieTServer {
 
   public static class ZombieTServerThriftClientHandler
       extends org.apache.accumulo.test.performance.NullTserver.NullTServerTabletClientHandler
-      implements TabletClientService.Iface, TabletScanClientService.Iface {
+      implements TabletServerClientService.Iface, TabletScanClientService.Iface {
 
     int statusCount = 0;
 
@@ -87,7 +86,12 @@ public class ZombieTServer {
           return result;
         }
       }
-      sleepUninterruptibly(Integer.MAX_VALUE, TimeUnit.DAYS);
+      try {
+        Thread.sleep(DAYS.toMillis(Integer.MAX_VALUE));
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        log.info("probably received shutdown, interrupted during infinite sleep", ex);
+      }
       return null;
     }
 
@@ -102,7 +106,7 @@ public class ZombieTServer {
   private static final Logger log = LoggerFactory.getLogger(ZombieTServer.class);
 
   public static void main(String[] args) throws Exception {
-    int port = random.nextInt(30000) + 2000;
+    int port = RANDOM.get().nextInt(30000) + 2000;
     var context = new ServerContext(SiteConfiguration.auto());
     final ClientServiceHandler csh =
         new ClientServiceHandler(context, new TransactionWatcher(context));
@@ -113,12 +117,11 @@ public class ZombieTServer {
         ThriftProcessorTypes.CLIENT.getTProcessor(ClientService.Processor.class,
             ClientService.Iface.class, csh, context));
     muxProcessor.registerProcessor(ThriftClientTypes.TABLET_SERVER.getServiceName(),
-        ThriftProcessorTypes.TABLET_SERVER.getTProcessor(TabletClientService.Processor.class,
-            TabletClientService.Iface.class, tch, context));
-    muxProcessor.registerProcessor(ThriftProcessorTypes.TABLET_SERVER_SCAN.getServiceName(),
-        ThriftProcessorTypes.TABLET_SERVER_SCAN.getTProcessor(
-            TabletScanClientService.Processor.class, TabletScanClientService.Iface.class, tch,
-            context));
+        ThriftProcessorTypes.TABLET_SERVER.getTProcessor(TabletServerClientService.Processor.class,
+            TabletServerClientService.Iface.class, tch, context));
+    muxProcessor.registerProcessor(ThriftProcessorTypes.TABLET_SCAN.getServiceName(),
+        ThriftProcessorTypes.TABLET_SCAN.getTProcessor(TabletScanClientService.Processor.class,
+            TabletScanClientService.Iface.class, tch, context));
 
     ServerAddress serverPort =
         TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,
@@ -160,9 +163,8 @@ public class ZombieTServer {
       }
     };
 
-    byte[] lockContent =
-        new ServerServices(addressString, Service.TSERV_CLIENT).toString().getBytes(UTF_8);
-    if (zlock.tryLock(lw, lockContent)) {
+    if (zlock.tryLock(lw, new ServiceLockData(UUID.randomUUID(), addressString, ThriftService.TSERV,
+        ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME))) {
       log.debug("Obtained tablet server lock {}", zlock.getLockPath());
     }
     // modify metadata

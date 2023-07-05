@@ -58,8 +58,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.AdminUtil.FateStatus;
 import org.apache.accumulo.core.fate.ZooStore;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -134,7 +134,7 @@ public class FunctionalTestUtils {
       for (Entry<Text,Integer> entry : es) {
         if (entry.getValue() > maxRFiles || entry.getValue() < minRFiles) {
           throw new Exception(
-              "tablet " + entry.getKey() + " has " + entry.getValue() + " map files");
+              "tablet " + entry.getKey() + " has " + entry.getValue() + " data files");
         }
       }
     }

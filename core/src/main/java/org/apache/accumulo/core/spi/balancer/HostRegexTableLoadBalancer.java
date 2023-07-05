@@ -19,10 +19,10 @@
 package org.apache.accumulo.core.spi.balancer;
 
 import static java.util.concurrent.TimeUnit.HOURS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -59,9 +59,8 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -93,7 +92,6 @@ import com.google.common.collect.Multimap;
  */
 public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
-  private static final SecureRandom random = new SecureRandom();
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
 
   private static final Logger LOG = LoggerFactory.getLogger(HostRegexTableLoadBalancer.class);
@@ -262,7 +260,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   }
 
   private void checkTableConfig(TableId tableId) {
-    Map<String,String> tableRegexes = tablesRegExCache.getUnchecked(tableId).get();
+    Map<String,String> tableRegexes = tablesRegExCache.get(tableId).get();
 
     if (!hrtlbConf.get().regexes.equals(tableRegexes)) {
       LoggerFactory.getLogger(HostRegexTableLoadBalancer.class).warn(
@@ -322,13 +320,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     this.hrtlbConf = balancerEnvironment.getConfiguration().getDerived(HrtlbConf::new);
 
     tablesRegExCache =
-        CacheBuilder.newBuilder().expireAfterAccess(1, HOURS).build(new CacheLoader<>() {
-          @Override
-          public Supplier<Map<String,String>> load(TableId key) {
-            return balancerEnvironment.getConfiguration(key)
-                .getDerived(HostRegexTableLoadBalancer::getRegexes);
-          }
-        });
+        Caffeine.newBuilder().expireAfterAccess(1, HOURS).build(key -> balancerEnvironment
+            .getConfiguration(key).getDerived(HostRegexTableLoadBalancer::getRegexes));
 
     LOG.info("{}", this);
   }
@@ -422,7 +415,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
                 String poolName = getPoolNameForTable(table);
                 SortedMap<TabletServerId,TServerStatus> currentView = currentGrouped.get(poolName);
                 if (currentView != null) {
-                  int skip = random.nextInt(currentView.size());
+                  int skip = RANDOM.get().nextInt(currentView.size());
                   Iterator<TabletServerId> iter = currentView.keySet().iterator();
                   for (int i = 0; i < skip; i++) {
                     iter.next();

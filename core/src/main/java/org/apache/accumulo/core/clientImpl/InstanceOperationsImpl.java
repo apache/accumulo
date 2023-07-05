@@ -56,11 +56,10 @@ import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
-import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
+import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.Retry;
@@ -68,6 +67,8 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * Provides a class for administering the accumulo instance
@@ -360,7 +361,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
           client -> client.waitForBalance(TraceUtil.traceInfo()));
     } catch (AccumuloSecurityException ex) {
       // should never happen
-      throw new RuntimeException("Unexpected exception thrown", ex);
+      throw new IllegalStateException("Unexpected exception thrown", ex);
     }
 
   }
@@ -379,12 +380,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
       }
     }
     return null;
-  }
-
-  @Override
-  @Deprecated(since = "2.1.0")
-  public String getInstanceID() {
-    return getInstanceId().canonical();
   }
 
   @Override

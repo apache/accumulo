@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.core.file;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -37,9 +37,11 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -52,7 +54,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class BloomFilterLayerLookupTest extends WithTestNames {
 
   private static final Logger log = LoggerFactory.getLogger(BloomFilterLayerLookupTest.class);
-  private static final SecureRandom random = new SecureRandom();
 
   @TempDir
   private static File tempDir;
@@ -61,7 +62,7 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
   public void test() throws IOException {
     HashSet<Integer> valsSet = new HashSet<>();
     for (int i = 0; i < 100000; i++) {
-      valsSet.add(random.nextInt(Integer.MAX_VALUE));
+      valsSet.add(RANDOM.get().nextInt(Integer.MAX_VALUE));
     }
 
     ArrayList<Integer> vals = new ArrayList<>(valsSet);
@@ -81,8 +82,9 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
     String suffix = FileOperations.getNewFileExtension(acuconf);
     String fname = new File(tempDir, testName() + "." + suffix).getAbsolutePath();
     FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fname, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(acuconf)
-        .build();
+        .forFile(UnreferencedTabletFile.of(fs, new Path(fname)), fs, conf,
+            NoCryptoServiceFactory.NONE)
+        .withTableConfiguration(acuconf).build();
 
     // write data to file
     long t1 = System.currentTimeMillis();
@@ -99,15 +101,16 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
 
     t1 = System.currentTimeMillis();
     FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder()
-        .forFile(fname, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(acuconf)
-        .build();
+        .forFile(UnreferencedTabletFile.of(fs, new Path(fname)), fs, conf,
+            NoCryptoServiceFactory.NONE)
+        .withTableConfiguration(acuconf).build();
     t2 = System.currentTimeMillis();
     log.debug("Opened {} in {}", fname, (t2 - t1));
 
     int hits = 0;
     t1 = System.currentTimeMillis();
     for (int i = 0; i < 5000; i++) {
-      int row = random.nextInt(Integer.MAX_VALUE);
+      int row = RANDOM.get().nextInt(Integer.MAX_VALUE);
       seek(bmfr, row);
       if (valsSet.contains(row)) {
         hits++;

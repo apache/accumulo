@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -47,7 +48,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
@@ -119,7 +120,7 @@ public class CompactionFinalizer {
 
   private void notifyTserver(Location loc, ExternalCompactionFinalState ecfs) {
 
-    TabletClientService.Client client = null;
+    Client client = null;
     try {
       client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, loc.getHostAndPort(), context);
       if (ecfs.getFinalState() == FinalState.FINISHED) {
@@ -155,8 +156,9 @@ public class CompactionFinalizer {
 
         Map<KeyExtent,TabletMetadata> tabletsMetadata;
         var extents = batch.stream().map(ExternalCompactionFinalState::getExtent).collect(toList());
-        try (TabletsMetadata tablets = context.getAmple().readTablets().forTablets(extents)
-            .fetch(ColumnType.LOCATION, ColumnType.PREV_ROW, ColumnType.ECOMP).build()) {
+        try (TabletsMetadata tablets =
+            context.getAmple().readTablets().forTablets(extents, Optional.empty())
+                .fetch(ColumnType.LOCATION, ColumnType.PREV_ROW, ColumnType.ECOMP).build()) {
           tabletsMetadata = tablets.stream().collect(toMap(TabletMetadata::getExtent, identity()));
         }
 
@@ -200,7 +202,7 @@ public class CompactionFinalizer {
 
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       } catch (RuntimeException e) {
         LOG.warn("Failed to process pending notifications", e);
       }
@@ -219,7 +221,7 @@ public class CompactionFinalizer {
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     } catch (RuntimeException e) {
       LOG.warn("Failed to notify tservers", e);
     }

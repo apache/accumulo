@@ -115,12 +115,13 @@ public class ServerContextTest {
       }).anyTimes();
 
       expect(siteConfig.iterator()).andAnswer(conf::iterator).anyTimes();
+      expect(siteConfig.stream()).andAnswer(conf::stream).anyTimes();
 
       replay(factory, context, siteConfig);
 
       assertEquals(ThriftServerType.SASL, context.getThriftServerType());
       SaslServerConnectionParams saslParams = context.getSaslParams();
-      assertEquals(new SaslServerConnectionParams(conf, token), saslParams);
+      assertEquals(new SaslServerConnectionParams(conf, token, null), saslParams);
       assertEquals(username, saslParams.getPrincipal());
 
       verify(factory, context, siteConfig);
@@ -134,9 +135,9 @@ public class ServerContextTest {
     // ensure this fails with older versions; the oldest supported version is hard-coded here
     // to ensure we don't unintentionally break upgrade support; changing this should be a conscious
     // decision and this check will ensure we don't overlook it
-    final int oldestSupported = 8;
+    final int oldestSupported = AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
     final int currentVersion = AccumuloDataVersion.get();
-    IntConsumer shouldPass = v -> ServerContext.ensureDataVersionCompatible(v);
+    IntConsumer shouldPass = ServerContext::ensureDataVersionCompatible;
     IntConsumer shouldFail = v -> assertThrows(IllegalStateException.class,
         () -> ServerContext.ensureDataVersionCompatible(v));
     IntStream.rangeClosed(oldestSupported, currentVersion).forEach(shouldPass);

@@ -52,14 +52,14 @@ public class GuavaRateLimiter implements RateLimiter {
   }
 
   @Override
-  public void acquire(long permits) {
+  public void acquire(long numPermits) {
     if (this.currentRate > 0) {
-      while (permits > Integer.MAX_VALUE) {
+      while (numPermits > Integer.MAX_VALUE) {
         rateLimiter.acquire(Integer.MAX_VALUE);
-        permits -= Integer.MAX_VALUE;
+        numPermits -= Integer.MAX_VALUE;
       }
-      if (permits > 0) {
-        rateLimiter.acquire((int) permits);
+      if (numPermits > 0) {
+        rateLimiter.acquire((int) numPermits);
       }
     }
   }

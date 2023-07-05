@@ -39,7 +39,7 @@ import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
-import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -54,8 +54,8 @@ public class ChaoticLoadBalancerTest {
     List<TabletId> tablets = new ArrayList<>();
 
     TServerStatus getStatus() {
-      org.apache.accumulo.core.master.thrift.TabletServerStatus thriftStatus =
-          new org.apache.accumulo.core.master.thrift.TabletServerStatus();
+      org.apache.accumulo.core.manager.thrift.TabletServerStatus thriftStatus =
+          new org.apache.accumulo.core.manager.thrift.TabletServerStatus();
       thriftStatus.tableMap = new HashMap<>();
       for (TabletId extent : tablets) {
         TableId table = extent.getTable();

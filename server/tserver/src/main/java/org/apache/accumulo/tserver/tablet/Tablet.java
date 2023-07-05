@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -63,16 +63,16 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
+import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
@@ -81,11 +81,11 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatch;
+import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -93,19 +93,18 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionStats;
+import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MinorCompactionReason;
@@ -215,21 +214,22 @@ public class Tablet extends TabletBase {
   private final Rate scannedRate = new Rate(0.95);
 
   private long lastMinorCompactionFinishTime = 0;
-  private long lastMapFileImportTime = 0;
+  private long lastDataFileImportTime = 0;
 
   private volatile long numEntries = 0;
   private volatile long numEntriesInMemory = 0;
 
   // Files that are currently in the process of bulk importing. Access to this is protected by the
   // tablet lock.
-  private final Set<TabletFile> bulkImporting = new HashSet<>();
+  private final Set<ReferencedTabletFile> bulkImporting = new HashSet<>();
 
   // Files that were successfully bulk imported. Using a concurrent map supports non-locking
   // operations on the key set which is useful for the periodic task that cleans up completed bulk
   // imports for all tablets. However the values of this map are ArrayList which do not support
   // concurrency. This is ok because all operations on the values are done while the tablet lock is
   // held.
-  private final ConcurrentHashMap<Long,List<TabletFile>> bulkImported = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Long,List<ReferencedTabletFile>> bulkImported =
+      new ConcurrentHashMap<>();
 
   private final int logId;
 
@@ -253,15 +253,17 @@ public class Tablet extends TabletBase {
     return dirUri;
   }
 
-  TabletFile getNextMapFilename(String prefix) throws IOException {
+  ReferencedTabletFile getNextDataFilename(FilePrefix prefix) throws IOException {
     String extension = FileOperations.getNewFileExtension(tableConfiguration);
-    return new TabletFile(new Path(chooseTabletDir() + "/" + prefix
+    return new ReferencedTabletFile(new Path(chooseTabletDir() + "/" + prefix.toPrefix()
         + context.getUniqueNameAllocator().getNextName() + "." + extension));
   }
 
-  TabletFile getNextMapFilenameForMajc(boolean propagateDeletes) throws IOException {
-    String tmpFileName = getNextMapFilename(!propagateDeletes ? "A" : "C").getMetaInsert() + "_tmp";
-    return new TabletFile(new Path(tmpFileName));
+  ReferencedTabletFile getNextDataFilenameForMajc(boolean propagateDeletes) throws IOException {
+    String tmpFileName = getNextDataFilename(
+        !propagateDeletes ? FilePrefix.MAJOR_COMPACTION_ALL_FILES : FilePrefix.MAJOR_COMPACTION)
+        .getMetaInsert() + "_tmp";
+    return new ReferencedTabletFile(new Path(tmpFileName));
   }
 
   private void checkTabletDir(Path path) throws IOException {
@@ -299,17 +301,14 @@ public class Tablet extends TabletBase {
     this.logId = tabletServer.createLogId();
 
     // translate any volume changes
-    @SuppressWarnings("deprecation")
-    boolean replicationEnabled = org.apache.accumulo.core.replication.ReplicationConfigurationUtil
-        .isEnabled(extent, this.tableConfiguration);
     TabletFiles tabletPaths =
         new TabletFiles(data.getDirectoryName(), data.getLogEntries(), data.getDataFiles());
     tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(),
-        extent, tabletPaths, replicationEnabled);
+        extent, tabletPaths);
 
     this.dirName = data.getDirectoryName();
 
-    for (Entry<Long,List<TabletFile>> entry : data.getBulkImported().entrySet()) {
+    for (Entry<Long,List<ReferencedTabletFile>> entry : data.getBulkImported().entrySet()) {
       this.bulkImported.put(entry.getKey(), new ArrayList<>(entry.getValue()));
     }
 
@@ -329,8 +328,8 @@ public class Tablet extends TabletBase {
       final CommitSession commitSession = getTabletMemory().getCommitSession();
       try {
         Set<String> absPaths = new HashSet<>();
-        for (TabletFile ref : datafiles.keySet()) {
-          absPaths.add(ref.getPathStr());
+        for (StoredTabletFile ref : datafiles.keySet()) {
+          absPaths.add(ref.getNormalizedPathStr());
         }
 
         tabletServer.recover(this.getTabletServer().getVolumeManager(), extent, logEntries,
@@ -352,25 +351,11 @@ public class Tablet extends TabletBase {
         }
         commitSession.updateMaxCommittedTime(tabletTime.getTime());
 
-        @SuppressWarnings("deprecation")
-        boolean replicationEnabledForTable =
-            org.apache.accumulo.core.replication.ReplicationConfigurationUtil.isEnabled(extent,
-                tabletServer.getTableConfiguration(extent));
         if (entriesUsedOnTablet.get() == 0) {
           log.debug("No replayed mutations applied, removing unused entries for {}", extent);
           MetadataTableUtil.removeUnusedWALEntries(getTabletServer().getContext(), extent,
               logEntries, tabletServer.getLock());
           logEntries.clear();
-        } else if (replicationEnabledForTable) {
-          // record that logs may have data for this extent
-          @SuppressWarnings("deprecation")
-          Status status = org.apache.accumulo.server.replication.StatusUtil.openWithUnknownLength();
-          for (LogEntry logEntry : logEntries) {
-            log.debug("Writing updated status to metadata table for {} {}", logEntry.filename,
-                ProtobufUtil.toString(status));
-            ReplicationTableUtil.updateFiles(tabletServer.getContext(), extent, logEntry.filename,
-                status);
-          }
         }
 
       } catch (Exception t) {
@@ -460,13 +445,14 @@ public class Tablet extends TabletBase {
       throw ioe;
     } finally {
       // code in finally block because always want
-      // to return mapfiles, even when exception is thrown
+      // to return data files, even when exception is thrown
       dataSource.close(false);
     }
   }
 
-  DataFileValue minorCompact(InMemoryMap memTable, TabletFile tmpDatafile, TabletFile newDatafile,
-      long queued, CommitSession commitSession, long flushId, MinorCompactionReason mincReason) {
+  DataFileValue minorCompact(InMemoryMap memTable, ReferencedTabletFile tmpDatafile,
+      ReferencedTabletFile newDatafile, long queued, CommitSession commitSession, long flushId,
+      MinorCompactionReason mincReason) {
     boolean failed = false;
     long start = System.currentTimeMillis();
     timer.incrementStatusMinor();
@@ -887,7 +873,7 @@ public class Tablet extends TabletBase {
   }
 
   /**
-   * Closes the mapfiles associated with a Tablet. If saveState is true, a minor compaction is
+   * Closes the data files associated with a Tablet. If saveState is true, a minor compaction is
    * performed.
    */
   @Override
@@ -1027,7 +1013,7 @@ public class Tablet extends TabletBase {
 
     getTabletMemory().close();
 
-    // close map files
+    // close data files
     getTabletResources().close();
 
     if (completeClose) {
@@ -1306,8 +1292,8 @@ public class Tablet extends TabletBase {
   private boolean isFindSplitsSuppressed() {
     if (supressFindSplits) {
       if (timeOfLastMinCWhenFindSplitsWasSupressed != lastMinorCompactionFinishTime
-          || timeOfLastImportWhenFindSplitsWasSupressed != lastMapFileImportTime) {
-        // a minor compaction or map file import has occurred... check again
+          || timeOfLastImportWhenFindSplitsWasSupressed != lastDataFileImportTime) {
+        // a minor compaction or data file import has occurred... check again
         supressFindSplits = false;
       } else {
         // nothing changed, do not split
@@ -1324,7 +1310,7 @@ public class Tablet extends TabletBase {
   private void suppressFindSplits() {
     supressFindSplits = true;
     timeOfLastMinCWhenFindSplitsWasSupressed = lastMinorCompactionFinishTime;
-    timeOfLastImportWhenFindSplitsWasSupressed = lastMapFileImportTime;
+    timeOfLastImportWhenFindSplitsWasSupressed = lastDataFileImportTime;
   }
 
   private static int longestCommonLength(Text text, Text beforeMid) {
@@ -1338,7 +1324,7 @@ public class Tablet extends TabletBase {
 
   // encapsulates results of computations needed to make determinations about splits
   private static class SplitComputations {
-    final Set<TabletFile> inputFiles;
+    final Set<StoredTabletFile> inputFiles;
 
     // cached result of calling FileUtil.findMidpoint
     final SortedMap<Double,Key> midPoint;
@@ -1346,7 +1332,7 @@ public class Tablet extends TabletBase {
     // the last row seen in the files, only set for the default tablet
     final Text lastRowForDefaultTablet;
 
-    private SplitComputations(Set<TabletFile> inputFiles, SortedMap<Double,Key> midPoint,
+    private SplitComputations(Set<StoredTabletFile> inputFiles, SortedMap<Double,Key> midPoint,
         Text lastRowForDefaultTablet) {
       this.inputFiles = inputFiles;
       this.midPoint = midPoint;
@@ -1372,7 +1358,7 @@ public class Tablet extends TabletBase {
       return Optional.empty();
     }
 
-    Set<TabletFile> files = getDatafileManager().getFiles();
+    Set<StoredTabletFile> files = getDatafileManager().getFiles();
     SplitComputations lastComputation = lastSplitComputation.get();
     if (lastComputation != null && lastComputation.inputFiles.equals(files)) {
       // the last computation is still relevant
@@ -1392,9 +1378,8 @@ public class Tablet extends TabletBase {
     // Only want one thread doing this computation at time for a tablet.
     if (splitComputationLock.tryLock()) {
       try {
-        SortedMap<Double,Key> midpoint =
-            FileUtil.findMidPoint(context, tableConfiguration, chooseTabletDir(),
-                extent.prevEndRow(), extent.endRow(), FileUtil.toPathStrings(files), .25, true);
+        SortedMap<Double,Key> midpoint = FileUtil.findMidPoint(context, tableConfiguration,
+            chooseTabletDir(), extent.prevEndRow(), extent.endRow(), files, .25, true);
 
         Text lastRow = null;
 
@@ -1523,12 +1508,11 @@ public class Tablet extends TabletBase {
       }
     } else {
       Text tsp = new Text(sp);
-      var fileStrings = FileUtil.toPathStrings(getDatafileManager().getFiles());
       // This ratio is calculated before that tablet is closed and outside of a lock, so new files
       // could arrive before the tablet is closed and locked. That is okay as the ratio is an
       // estimate.
       var ratio = FileUtil.estimatePercentageLTE(context, tableConfiguration, chooseTabletDir(),
-          extent.prevEndRow(), extent.endRow(), fileStrings, tsp);
+          extent.prevEndRow(), extent.endRow(), getDatafileManager().getFiles(), tsp);
       splitPoint = new SplitRowSpec(ratio, tsp);
     }
 
@@ -1540,12 +1524,12 @@ public class Tablet extends TabletBase {
     }
 
     // obtain this info outside of synch block since it will involve opening
-    // the map files... it is ok if the set of map files changes, because
-    // this info is used for optimization... it is ok if map files are missing
+    // the data files... it is ok if the set of data files changes, because
+    // this info is used for optimization... it is ok if data files are missing
     // from the set... can still query and insert into the tablet while this
-    // map file operation is happening
-    Map<TabletFile,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(context,
-        tableConfiguration, getDatafileManager().getFiles());
+    // data file operation is happening
+    Map<StoredTabletFile,FileUtil.FileInfo> firstAndLastRows = FileUtil
+        .tryToGetFirstAndLastRows(context, tableConfiguration, getDatafileManager().getFiles());
 
     synchronized (this) {
       // java needs tuples ...
@@ -1672,14 +1656,14 @@ public class Tablet extends TabletBase {
     return splitCreationTime;
   }
 
-  public void importMapFiles(long tid, Map<TabletFile,MapFileInfo> fileMap, boolean setTime)
-      throws IOException {
-    Map<TabletFile,DataFileValue> entries = new HashMap<>(fileMap.size());
+  public void importDataFiles(long tid, Map<ReferencedTabletFile,DataFileInfo> fileMap,
+      boolean setTime) throws IOException {
+    Map<ReferencedTabletFile,DataFileValue> entries = new HashMap<>(fileMap.size());
     List<String> files = new ArrayList<>();
 
-    for (Entry<TabletFile,MapFileInfo> entry : fileMap.entrySet()) {
+    for (Entry<ReferencedTabletFile,DataFileInfo> entry : fileMap.entrySet()) {
       entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0L));
-      files.add(entry.getKey().getPathStr());
+      files.add(entry.getKey().getNormalizedPathStr());
     }
 
     // Clients timeout and will think that this operation failed.
@@ -1698,9 +1682,9 @@ public class Tablet extends TabletBase {
             "Timeout waiting " + (lockWait / 1000.) + " seconds to get tablet lock for " + extent);
       }
 
-      List<TabletFile> alreadyImported = bulkImported.get(tid);
+      List<ReferencedTabletFile> alreadyImported = bulkImported.get(tid);
       if (alreadyImported != null) {
-        for (TabletFile entry : alreadyImported) {
+        for (ReferencedTabletFile entry : alreadyImported) {
           if (fileMap.remove(entry) != null) {
             log.trace("Ignoring import of bulk file already imported: {}", entry);
           }
@@ -1727,8 +1711,8 @@ public class Tablet extends TabletBase {
     try {
       tabletServer.updateBulkImportState(files, BulkImportState.LOADING);
 
-      var storedTabletFile = getDatafileManager().importMapFiles(tid, entries, setTime);
-      lastMapFileImportTime = System.currentTimeMillis();
+      var storedTabletFile = getDatafileManager().importDataFiles(tid, entries, setTime);
+      lastDataFileImportTime = System.currentTimeMillis();
 
       if (isSplitPossible()) {
         getTabletServer().executeSplit(this);
@@ -1797,10 +1781,7 @@ public class Tablet extends TabletBase {
   public void checkIfMinorCompactionNeededForLogs(List<DfsLogger> closedLogs) {
 
     // grab this outside of tablet lock.
-    @SuppressWarnings("deprecation")
-    Property prop = tableConfiguration.resolve(Property.TSERV_WAL_MAX_REFERENCED,
-        Property.TSERV_WALOG_MAX_REFERENCED, Property.TABLE_MINC_LOGS_MAX);
-    int maxLogs = tableConfiguration.getCount(prop);
+    int maxLogs = tableConfiguration.getCount(Property.TSERV_WAL_MAX_REFERENCED);
 
     String reason = null;
     synchronized (this) {
@@ -2026,7 +2007,7 @@ public class Tablet extends TabletBase {
   }
 
   public Map<StoredTabletFile,DataFileValue> updatePersistedTime(long bulkTime,
-      Map<TabletFile,DataFileValue> paths, long tid) {
+      Map<ReferencedTabletFile,DataFileValue> paths, long tid) {
     synchronized (timeLock) {
       if (bulkTime > persistedTime) {
         persistedTime = bulkTime;
@@ -2043,7 +2024,8 @@ public class Tablet extends TabletBase {
    * Update tablet file data from flush. Returns a StoredTabletFile if there are data entries.
    */
   public Optional<StoredTabletFile> updateTabletDataFile(long maxCommittedTime,
-      TabletFile newDatafile, DataFileValue dfv, Set<String> unusedWalLogs, long flushId) {
+      ReferencedTabletFile newDatafile, DataFileValue dfv, Set<String> unusedWalLogs,
+      long flushId) {
     synchronized (timeLock) {
       if (maxCommittedTime > persistedTime) {
         persistedTime = maxCommittedTime;
@@ -2067,12 +2049,16 @@ public class Tablet extends TabletBase {
     return getTabletServer().getScanMetrics();
   }
 
+  public PausedCompactionMetrics getPausedCompactionMetrics() {
+    return getTabletServer().getPausedCompactionMetrics();
+  }
+
   DatafileManager getDatafileManager() {
     return datafileManager;
   }
 
   @Override
-  public Pair<Long,Map<TabletFile,DataFileValue>> reserveFilesForScan() {
+  public Pair<Long,Map<StoredTabletFile,DataFileValue>> reserveFilesForScan() {
     return getDatafileManager().reserveFilesForScan();
   }
 

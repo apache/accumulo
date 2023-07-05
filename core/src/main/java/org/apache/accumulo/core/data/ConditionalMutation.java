@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.hadoop.io.Text;
 
@@ -105,10 +104,4 @@ public class ConditionalMutation extends Mutation {
     return result;
   }
 
-  @Deprecated
-  @Override
-  public void setReplicationSources(Set<String> sources) {
-    throw new UnsupportedOperationException(
-        "Conditional Mutations are not supported for replication");
-  }
 }

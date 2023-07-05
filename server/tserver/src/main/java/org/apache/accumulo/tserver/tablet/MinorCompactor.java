@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.FileCompactor;
@@ -47,17 +47,17 @@ import org.slf4j.LoggerFactory;
 
 public class MinorCompactor extends FileCompactor {
 
-  private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(MinorCompactor.class);
 
   private final TabletServer tabletServer;
   private final MinorCompactionReason mincReason;
 
   public MinorCompactor(TabletServer tabletServer, Tablet tablet, InMemoryMap imm,
-      TabletFile outputFile, MinorCompactionReason mincReason, TableConfiguration tableConfig) {
+      ReferencedTabletFile outputFile, MinorCompactionReason mincReason,
+      TableConfiguration tableConfig) {
     super(tabletServer.getContext(), tablet.getExtent(), Collections.emptyMap(), outputFile, true,
         new MinCEnv(mincReason, imm.compactionIterator()), Collections.emptyList(), tableConfig,
-        tableConfig.getCryptoService());
+        tableConfig.getCryptoService(), tabletServer.getPausedCompactionMetrics());
     this.tabletServer = tabletServer;
     this.mincReason = mincReason;
   }
@@ -82,7 +82,7 @@ public class MinorCompactor extends FileCompactor {
     final String outputFileName = getOutputFile();
     log.trace("Begin minor compaction {} {}", outputFileName, getExtent());
 
-    // output to new MapFile with a temporary name
+    // output to new data file with a temporary name
     int sleepTime = 100;
     double growthFactor = 4;
     int maxSleepTime = 1000 * 60 * 3; // 3 minutes
@@ -131,7 +131,7 @@ public class MinorCompactor extends FileCompactor {
           throw new IllegalStateException(e);
         }
 
-        int sleep = sleepTime + random.nextInt(sleepTime);
+        int sleep = sleepTime + RANDOM.get().nextInt(sleepTime);
         log.debug("MinC failed sleeping {} ms before retrying", sleep);
         sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
         sleepTime = (int) Math.round(Math.min(maxSleepTime, sleepTime * growthFactor));
@@ -146,7 +146,7 @@ public class MinorCompactor extends FileCompactor {
         }
 
         if (isTableDeleting()) {
-          return new CompactionStats(0, 0);
+          return new CompactionStats(0, 0, 0);
         }
 
       } while (true);

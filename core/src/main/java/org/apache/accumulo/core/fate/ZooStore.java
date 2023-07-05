@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.core.fate;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,7 +29,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.security.SecureRandom;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -62,7 +63,6 @@ public class ZooStore<T> implements TStore<T> {
   private String lastReserved = "";
   private Set<Long> reserved;
   private Map<Long,Long> defered;
-  private static final SecureRandom random = new SecureRandom();
   private long statusChangeEvents = 0;
   private int reservationsWaiting = 0;
 
@@ -76,7 +76,7 @@ public class ZooStore<T> implements TStore<T> {
 
       return baos.toByteArray();
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
   }
 
@@ -88,8 +88,10 @@ public class ZooStore<T> implements TStore<T> {
       ByteArrayInputStream bais = new ByteArrayInputStream(ser);
       ObjectInputStream ois = new ObjectInputStream(bais);
       return ois.readObject();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -121,14 +123,14 @@ public class ZooStore<T> implements TStore<T> {
     while (true) {
       try {
         // looking at the code for SecureRandom, it appears to be thread safe
-        long tid = random.nextLong() & 0x7fffffffffffffffL;
+        long tid = RANDOM.get().nextLong() & 0x7fffffffffffffffL;
         zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF_8),
             NodeExistsPolicy.FAIL);
         return tid;
       } catch (NodeExistsException nee) {
         // exist, so just try another random #
-      } catch (Exception e) {
-        throw new RuntimeException(e);
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException(e);
       }
     }
   }
@@ -191,7 +193,7 @@ public class ZooStore<T> implements TStore<T> {
           } catch (NoNodeException nne) {
             // node deleted after we got the list of children, its ok
             unreserve(tid);
-          } catch (Exception e) {
+          } catch (KeeperException | InterruptedException | RuntimeException e) {
             unreserve(tid);
             throw e;
           }
@@ -212,8 +214,8 @@ public class ZooStore<T> implements TStore<T> {
           }
         }
       }
-    } catch (InterruptedException | KeeperException e) {
-      throw new RuntimeException(e);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -226,7 +228,7 @@ public class ZooStore<T> implements TStore<T> {
           try {
             this.wait(1000);
           } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
           }
         }
 
@@ -317,7 +319,7 @@ public class ZooStore<T> implements TStore<T> {
             return null;
           }
         } catch (KeeperException.NoNodeException ex) {
-          throw new RuntimeException(ex);
+          throw new IllegalStateException(ex);
         }
 
         byte[] ser = zk.getData(txpath + "/" + top);
@@ -328,8 +330,8 @@ public class ZooStore<T> implements TStore<T> {
         log.debug("zookeeper error reading " + txpath + ": " + ex, ex);
         sleepUninterruptibly(100, MILLISECONDS);
         continue;
-      } catch (Exception e) {
-        throw new RuntimeException(e);
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException(e);
       }
     }
     return null;
@@ -369,8 +371,8 @@ public class ZooStore<T> implements TStore<T> {
       zk.putPersistentSequential(txpath + "/repo_", serialize(repo));
     } catch (StackOverflowException soe) {
       throw soe;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -385,8 +387,8 @@ public class ZooStore<T> implements TStore<T> {
         throw new IllegalStateException("Tried to pop when empty " + FateTxId.formatTid(tid));
       }
       zk.recursiveDelete(txpath + "/" + top, NodeMissingPolicy.SKIP);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -395,8 +397,8 @@ public class ZooStore<T> implements TStore<T> {
       return TStatus.valueOf(new String(zk.getData(getTXPath(tid)), UTF_8));
     } catch (NoNodeException nne) {
       return TStatus.UNKNOWN;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -425,7 +427,7 @@ public class ZooStore<T> implements TStore<T> {
           try {
             this.wait(5000);
           } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
           }
         }
       }
@@ -439,8 +441,8 @@ public class ZooStore<T> implements TStore<T> {
     try {
       zk.putPersistentData(getTXPath(tid), status.name().getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
     }
 
     synchronized (this) {
@@ -455,8 +457,8 @@ public class ZooStore<T> implements TStore<T> {
 
     try {
       zk.recursiveDelete(getTXPath(tid), NodeMissingPolicy.SKIP);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -476,8 +478,8 @@ public class ZooStore<T> implements TStore<T> {
         data[1] = ' ';
         zk.putPersistentData(getTXPath(tid) + "/" + txInfo, data, NodeExistsPolicy.OVERWRITE);
       }
-    } catch (Exception e2) {
-      throw new RuntimeException(e2);
+    } catch (KeeperException | InterruptedException e2) {
+      throw new IllegalStateException(e2);
     }
   }
 
@@ -499,8 +501,8 @@ public class ZooStore<T> implements TStore<T> {
       }
     } catch (NoNodeException nne) {
       return null;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -513,8 +515,8 @@ public class ZooStore<T> implements TStore<T> {
         l.add(parseTid(txid));
       }
       return l;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -541,7 +543,7 @@ public class ZooStore<T> implements TStore<T> {
       } catch (KeeperException.NoNodeException e) {
         return Collections.emptyList();
       } catch (KeeperException | InterruptedException e1) {
-        throw new RuntimeException(e1);
+        throw new IllegalStateException(e1);
       }
 
       ops = new ArrayList<>(ops);
@@ -561,7 +563,7 @@ public class ZooStore<T> implements TStore<T> {
             // children changed so start over
             continue outer;
           } catch (KeeperException | InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
           }
         }
       }

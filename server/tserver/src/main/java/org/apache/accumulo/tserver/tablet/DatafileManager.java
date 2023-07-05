@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -38,8 +38,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -47,10 +47,8 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +84,7 @@ class DatafileManager {
         new AtomicReference<>(new MetadataUpdateCount(tablet.getExtent(), 0L, 0L));
   }
 
-  private final Set<TabletFile> filesToDeleteAfterScan = new HashSet<>();
+  private final Set<StoredTabletFile> filesToDeleteAfterScan = new HashSet<>();
   private final Map<Long,Set<StoredTabletFile>> scanFileReservations = new HashMap<>();
   private final MapCounter<StoredTabletFile> fileScanReferenceCounts = new MapCounter<>();
   private long nextScanReservationId = 0;
@@ -97,7 +95,7 @@ class DatafileManager {
     }
   }
 
-  Pair<Long,Map<TabletFile,DataFileValue>> reserveFilesForScan() {
+  Pair<Long,Map<StoredTabletFile,DataFileValue>> reserveFilesForScan() {
     synchronized (tablet) {
 
       Set<StoredTabletFile> absFilePaths = new HashSet<>(datafileSizes.keySet());
@@ -106,7 +104,7 @@ class DatafileManager {
 
       scanFileReservations.put(rid, absFilePaths);
 
-      Map<TabletFile,DataFileValue> ret = new HashMap<>();
+      Map<StoredTabletFile,DataFileValue> ret = new HashMap<>();
 
       for (StoredTabletFile path : absFilePaths) {
         fileScanReferenceCounts.increment(path, 1);
@@ -211,14 +209,14 @@ class DatafileManager {
     return inUse;
   }
 
-  public Collection<StoredTabletFile> importMapFiles(long tid, Map<TabletFile,DataFileValue> paths,
-      boolean setTime) throws IOException {
+  public Collection<StoredTabletFile> importDataFiles(long tid,
+      Map<ReferencedTabletFile,DataFileValue> paths, boolean setTime) throws IOException {
 
     String bulkDir = null;
     // once tablet files are inserted into the metadata they will become StoredTabletFiles
     Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>(paths.size());
 
-    for (TabletFile tpath : paths.keySet()) {
+    for (ReferencedTabletFile tpath : paths.keySet()) {
       boolean inTheRightDirectory = false;
       Path parent = tpath.getPath().getParent().getParent();
       for (String tablesDir : tablet.getContext().getTablesDirs()) {
@@ -274,7 +272,7 @@ class DatafileManager {
           datafileSizes.put(tpath.getKey(), tpath.getValue());
         }
 
-        tablet.getTabletResources().importedMapFiles();
+        tablet.getTabletResources().importedDataFiles();
 
         tablet.computeNumEntries();
       }
@@ -295,8 +293,9 @@ class DatafileManager {
    * entries so was not inserted into the metadata. In this case empty is returned. If the file was
    * stored in the metadata table, then StoredTableFile will be returned.
    */
-  Optional<StoredTabletFile> bringMinorCompactionOnline(TabletFile tmpDatafile,
-      TabletFile newDatafile, DataFileValue dfv, CommitSession commitSession, long flushId) {
+  Optional<StoredTabletFile> bringMinorCompactionOnline(ReferencedTabletFile tmpDatafile,
+      ReferencedTabletFile newDatafile, DataFileValue dfv, CommitSession commitSession,
+      long flushId) {
     Optional<StoredTabletFile> newFile;
     // rename before putting in metadata table, so files in metadata table should
     // always exist
@@ -309,7 +308,7 @@ class DatafileManager {
           vm.deleteRecursively(tmpDatafile.getPath());
         } else {
           if (!attemptedRename && vm.exists(newDatafile.getPath())) {
-            log.warn("Target map file already exist {}", newDatafile);
+            log.warn("Target data file already exist {}", newDatafile);
             throw new RuntimeException("File unexpectedly exists " + newDatafile.getPath());
           }
           // the following checks for spurious rename failures that succeeded but gave an IoE
@@ -331,29 +330,11 @@ class DatafileManager {
 
     long t1, t2;
 
-    Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
-    @SuppressWarnings("deprecation")
-    boolean replicate = org.apache.accumulo.core.replication.ReplicationConfigurationUtil
-        .isEnabled(tablet.getExtent(), tablet.getTableConfiguration());
-    Set<String> logFileOnly = null;
-    if (replicate) {
-      // unusedWalLogs is of the form host/fileURI, need to strip off the host portion
-      logFileOnly = new HashSet<>();
-      for (String unusedWalLog : unusedWalLogs) {
-        int index = unusedWalLog.indexOf('/');
-        if (index == -1) {
-          log.warn("Could not find host component to strip from DFSLogger representation of WAL");
-        } else {
-          unusedWalLog = unusedWalLog.substring(index + 1);
-        }
-        logFileOnly.add(unusedWalLog);
-      }
-    }
-
     // increment start count before metadata update AND updating in memory map of files
     metadataUpdateCount.updateAndGet(MetadataUpdateCount::incrementStart);
     // do not place any code here between above stmt and try{}finally
     try {
+      Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
       try {
         // the order of writing to metadata and walog is important in the face of machine/process
         // failures need to write to metadata before writing to walog, when things are done in the
@@ -361,28 +342,6 @@ class DatafileManager {
         // before the following metadata write is made
         newFile = tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
             unusedWalLogs, flushId);
-
-        // Mark that we have data we want to replicate
-        // This WAL could still be in use by other Tablets *from the same table*, so we can only
-        // mark
-        // that there is data to replicate,
-        // but it is *not* closed. We know it is not closed by the fact that this MinC triggered. A
-        // MinC cannot happen unless the
-        // tablet is online and thus these WALs are referenced by that tablet. Therefore, the WAL
-        // replication status cannot be 'closed'.
-        if (replicate) {
-          if (log.isDebugEnabled()) {
-            log.debug("Recording that data has been ingested into {} using {}", tablet.getExtent(),
-                logFileOnly);
-          }
-          for (String logFile : logFileOnly) {
-            @SuppressWarnings("deprecation")
-            Status status =
-                org.apache.accumulo.server.replication.StatusUtil.openWithUnknownLength();
-            ReplicationTableUtil.updateFiles(tablet.getContext(), tablet.getExtent(), logFile,
-                status);
-          }
-        }
       } finally {
         tablet.finishClearingUnusedLogs();
       }
@@ -437,17 +396,17 @@ class DatafileManager {
   }
 
   Optional<StoredTabletFile> bringMajorCompactionOnline(Set<StoredTabletFile> oldDatafiles,
-      TabletFile tmpDatafile, Long compactionId, Set<StoredTabletFile> selectedFiles,
+      ReferencedTabletFile tmpDatafile, Long compactionId, Set<StoredTabletFile> selectedFiles,
       DataFileValue dfv, Optional<ExternalCompactionId> ecid) throws IOException {
     final KeyExtent extent = tablet.getExtent();
     VolumeManager vm = tablet.getTabletServer().getContext().getVolumeManager();
     long t1, t2;
 
-    TabletFile newDatafile = CompactableUtils.computeCompactionFileDest(tmpDatafile);
+    ReferencedTabletFile newDatafile = CompactableUtils.computeCompactionFileDest(tmpDatafile);
 
     if (vm.exists(newDatafile.getPath())) {
-      log.error("Target map file already exist " + newDatafile, new Exception());
-      throw new IllegalStateException("Target map file already exist " + newDatafile);
+      log.error("Target data file already exist " + newDatafile, new Exception());
+      throw new IllegalStateException("Target data file already exist " + newDatafile);
     }
 
     if (dfv.getNumEntries() == 0) {
@@ -537,9 +496,9 @@ class DatafileManager {
     }
   }
 
-  public Set<TabletFile> getFiles() {
+  public Set<StoredTabletFile> getFiles() {
     synchronized (tablet) {
-      HashSet<TabletFile> files = new HashSet<>(datafileSizes.keySet());
+      HashSet<StoredTabletFile> files = new HashSet<>(datafileSizes.keySet());
       return Collections.unmodifiableSet(files);
     }
   }

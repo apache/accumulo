@@ -27,7 +27,6 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
@@ -41,6 +40,7 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
+import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -138,7 +138,7 @@ public class ECAdmin implements KeywordExecutable {
       coordinatorClient.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
       System.out.println("Cancel sent to coordinator for " + ecid);
     } catch (Exception e) {
-      throw new RuntimeException("Exception calling cancel compaction for " + ecid, e);
+      throw new IllegalStateException("Exception calling cancel compaction for " + ecid, e);
     } finally {
       ThriftUtil.returnClient(coordinatorClient, context);
     }
@@ -189,7 +189,7 @@ public class ECAdmin implements KeywordExecutable {
         }
       });
     } catch (Exception e) {
-      throw new RuntimeException("Unable to get running compactions.", e);
+      throw new IllegalStateException("Unable to get running compactions.", e);
     } finally {
       ThriftUtil.returnClient(coordinatorClient, context);
     }

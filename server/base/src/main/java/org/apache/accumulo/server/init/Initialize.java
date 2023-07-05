@@ -39,7 +39,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -84,8 +83,6 @@ public class Initialize implements KeywordExecutable {
 
   private static final Logger log = LoggerFactory.getLogger(Initialize.class);
   private static final String DEFAULT_ROOT_USER = "root";
-  @SuppressWarnings("deprecation")
-  static final TableId REPL_TABLE_ID = org.apache.accumulo.core.replication.ReplicationTable.ID;
 
   static void checkInit(ZooReaderWriter zoo, VolumeManager fs, InitialConfiguration initConfig)
       throws IOException {

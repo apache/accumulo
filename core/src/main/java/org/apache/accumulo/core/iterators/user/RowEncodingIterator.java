@@ -90,8 +90,8 @@ public abstract class RowEncodingIterator
     RowEncodingIterator newInstance;
     try {
       newInstance = this.getClass().getDeclaredConstructor().newInstance();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException(e);
     }
     newInstance.sourceIter = sourceIter.deepCopy(env);
     newInstance.maxBufferSize = maxBufferSize;

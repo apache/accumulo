@@ -113,7 +113,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         return newJson.getBytes(UTF_8);
       });
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -130,7 +130,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         writer.addMutation(createDeleteMutation(file));
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -149,7 +149,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         writer.addMutation(createDeleteMutation(fileOrDir));
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -164,7 +164,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
       bw.addMutation(m);
     } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -179,7 +179,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
       bw.addMutation(m);
     } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -205,7 +205,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         }
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -224,7 +224,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         writer.addMutation(m);
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -237,7 +237,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         jsonBytes =
             zooReader.getData(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_GC_CANDIDATES);
       } catch (KeeperException | InterruptedException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
       return new RootGcCandidates(new String(jsonBytes, UTF_8)).sortedStream().iterator();
     } else if (level == DataLevel.METADATA || level == DataLevel.USER) {
@@ -247,7 +247,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       try {
         scanner = context.createScanner(level.metaTable(), Authorizations.EMPTY);
       } catch (TableNotFoundException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
       scanner.setRange(range);
       return scanner.stream().filter(entry -> entry.getValue().equals(SkewedKeyValue.NAME))
@@ -283,7 +283,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         writer.addMutation(m);
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -293,7 +293,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     try {
       scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY);
     } catch (TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
 
     scanner.setRange(ExternalCompactionSection.getRange());
@@ -317,7 +317,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       log.debug("Deleted external compaction final state entries for external compactions: {}",
           statusesToDelete);
     } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -384,7 +384,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       }
       log.debug("Deleted scan server file reference entries for files: {}", refsToDelete);
     } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

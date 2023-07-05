@@ -25,18 +25,15 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,7 +133,7 @@ public class VolumeUtil {
    * for use it chooses a new tablet directory.
    */
   public static TabletFiles updateTabletVolumes(ServerContext context, ServiceLock zooLock,
-      KeyExtent extent, TabletFiles tabletFiles, boolean replicate) {
+      KeyExtent extent, TabletFiles tabletFiles) {
     List<Pair<Path,Path>> replacements = context.getVolumeReplacements();
     if (replacements.isEmpty()) {
       return tabletFiles;
@@ -147,7 +144,7 @@ public class VolumeUtil {
     List<LogEntry> logsToAdd = new ArrayList<>();
 
     List<StoredTabletFile> filesToRemove = new ArrayList<>();
-    SortedMap<TabletFile,DataFileValue> filesToAdd = new TreeMap<>();
+    SortedMap<ReferencedTabletFile,DataFileValue> filesToAdd = new TreeMap<>();
 
     TabletFiles ret = new TabletFiles();
 
@@ -169,7 +166,7 @@ public class VolumeUtil {
       Path switchedPath = switchVolume(metaPath, FileType.TABLE, replacements);
       if (switchedPath != null) {
         filesToRemove.add(entry.getKey());
-        TabletFile switchedFile = new TabletFile(switchedPath);
+        ReferencedTabletFile switchedFile = new ReferencedTabletFile(switchedPath);
         filesToAdd.put(switchedFile, entry.getValue());
         ret.datafiles.put(switchedFile.insert(), entry.getValue());
         log.debug("Replacing volume {} : {} -> {}", extent, metaPath, switchedPath);
@@ -181,16 +178,6 @@ public class VolumeUtil {
     if (logsToRemove.size() + filesToRemove.size() > 0) {
       MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove,
           filesToAdd, zooLock, context);
-      if (replicate) {
-        @SuppressWarnings("deprecation")
-        Status status = org.apache.accumulo.server.replication.StatusUtil.fileClosed();
-        log.debug("Tablet directory switched, need to record old log files {} {}", logsToRemove,
-            ProtobufUtil.toString(status));
-        // Before deleting these logs, we need to mark them for replication
-        for (LogEntry logEntry : logsToRemove) {
-          ReplicationTableUtil.updateFiles(context, extent, logEntry.filename, status);
-        }
-      }
     }
 
     // method this should return the exact strings that are in the metadata table

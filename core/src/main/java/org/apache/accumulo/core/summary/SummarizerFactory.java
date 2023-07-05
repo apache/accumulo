@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.summary;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.summary.Summarizer;
@@ -55,8 +56,10 @@ public class SummarizerFactory {
   public Summarizer getSummarizer(SummarizerConfiguration conf) {
     try {
       return newSummarizer(conf.getClassName());
-    } catch (ReflectiveOperationException | IOException e) {
-      throw new RuntimeException(e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 }

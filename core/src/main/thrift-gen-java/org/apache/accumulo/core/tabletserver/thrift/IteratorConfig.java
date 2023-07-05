@@ -354,14 +354,14 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
           case 1: // ITERATORS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list98 = iprot.readListBegin();
-                struct.iterators = new java.util.ArrayList<TIteratorSetting>(_list98.size);
-                @org.apache.thrift.annotation.Nullable TIteratorSetting _elem99;
-                for (int _i100 = 0; _i100 < _list98.size; ++_i100)
+                org.apache.thrift.protocol.TList _list46 = iprot.readListBegin();
+                struct.iterators = new java.util.ArrayList<TIteratorSetting>(_list46.size);
+                @org.apache.thrift.annotation.Nullable TIteratorSetting _elem47;
+                for (int _i48 = 0; _i48 < _list46.size; ++_i48)
                 {
-                  _elem99 = new TIteratorSetting();
-                  _elem99.read(iprot);
-                  struct.iterators.add(_elem99);
+                  _elem47 = new TIteratorSetting();
+                  _elem47.read(iprot);
+                  struct.iterators.add(_elem47);
                 }
                 iprot.readListEnd();
               }
@@ -390,9 +390,9 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
         oprot.writeFieldBegin(ITERATORS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.iterators.size()));
-          for (TIteratorSetting _iter101 : struct.iterators)
+          for (TIteratorSetting _iter49 : struct.iterators)
           {
-            _iter101.write(oprot);
+            _iter49.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -424,9 +424,9 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
       if (struct.isSetIterators()) {
         {
           oprot.writeI32(struct.iterators.size());
-          for (TIteratorSetting _iter102 : struct.iterators)
+          for (TIteratorSetting _iter50 : struct.iterators)
           {
-            _iter102.write(oprot);
+            _iter50.write(oprot);
           }
         }
       }
@@ -438,14 +438,14 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
       java.util.BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list103 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.iterators = new java.util.ArrayList<TIteratorSetting>(_list103.size);
-          @org.apache.thrift.annotation.Nullable TIteratorSetting _elem104;
-          for (int _i105 = 0; _i105 < _list103.size; ++_i105)
+          org.apache.thrift.protocol.TList _list51 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.iterators = new java.util.ArrayList<TIteratorSetting>(_list51.size);
+          @org.apache.thrift.annotation.Nullable TIteratorSetting _elem52;
+          for (int _i53 = 0; _i53 < _list51.size; ++_i53)
           {
-            _elem104 = new TIteratorSetting();
-            _elem104.read(iprot);
-            struct.iterators.add(_elem104);
+            _elem52 = new TIteratorSetting();
+            _elem52.read(iprot);
+            struct.iterators.add(_elem52);
           }
         }
         struct.setIteratorsIsSet(true);

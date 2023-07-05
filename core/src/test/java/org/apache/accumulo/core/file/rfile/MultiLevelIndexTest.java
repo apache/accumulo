@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.security.SecureRandom;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -47,7 +47,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.junit.jupiter.api.Test;
 
 public class MultiLevelIndexTest {
-  private static final SecureRandom random = new SecureRandom();
   private Configuration hadoopConf = new Configuration();
 
   @Test
@@ -120,7 +119,7 @@ public class MultiLevelIndexTest {
     liter = reader.lookup(new Key(String.format("%05d000", num + 1)));
     assertFalse(liter.hasNext());
 
-    random.ints(100, 0, num * 1_000).forEach(k -> {
+    RANDOM.get().ints(100, 0, num * 1_000).forEach(k -> {
       int expected;
       if (k % 1000 == 0) {
         expected = k / 1000; // end key is inclusive

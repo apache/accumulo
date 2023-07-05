@@ -50,6 +50,7 @@ import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.TabletType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -59,7 +60,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TCMResult;
 import org.apache.accumulo.core.dataImpl.thrift.TCMStatus;
 import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
@@ -70,15 +70,15 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.TabletLogger;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.BulkImportState;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -86,18 +86,20 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.Gatherer.FileSystemResolver;
 import org.apache.accumulo.core.summary.SummaryCollection;
+import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
+import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
+import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
+import org.apache.accumulo.core.tabletingest.thrift.TDurability;
+import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
-import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
-import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
@@ -131,12 +133,13 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class TabletClientHandler implements TabletClientService.Iface {
+public class TabletClientHandler implements TabletServerClientService.Iface,
+    TabletIngestClientService.Iface, TabletManagementClientService.Iface {
 
   private static final Logger log = LoggerFactory.getLogger(TabletClientHandler.class);
   private final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS;
@@ -161,56 +164,8 @@ public class TabletClientHandler implements TabletClientService.Iface {
   }
 
   @Override
-  public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, final long tid,
-      final Map<TKeyExtent,Map<String,MapFileInfo>> files, final boolean setTime)
-      throws ThriftSecurityException {
-
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    try {
-      return watcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
-        List<TKeyExtent> failures = new ArrayList<>();
-
-        for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
-          TKeyExtent tke = entry.getKey();
-          Map<String,MapFileInfo> fileMap = entry.getValue();
-          Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
-          for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
-            Path path = new Path(mapping.getKey());
-            FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
-            path = ns.makeQualified(path);
-            fileRefMap.put(new TabletFile(path), mapping.getValue());
-          }
-
-          Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));
-
-          if (importTablet == null) {
-            failures.add(tke);
-          } else {
-            try {
-              importTablet.importMapFiles(tid, fileRefMap, setTime);
-            } catch (IOException ioe) {
-              log.info("files {} not imported to {}: {}", fileMap.keySet(),
-                  KeyExtent.fromThrift(tke), ioe.getMessage());
-              failures.add(tke);
-            }
-          }
-        }
-        return failures;
-      });
-    } catch (RuntimeException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  @Override
   public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
-      Map<TKeyExtent,Map<String,MapFileInfo>> tabletImports, boolean setTime)
+      Map<TKeyExtent,Map<String,DataFileInfo>> tabletImports, boolean setTime)
       throws ThriftSecurityException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -219,15 +174,16 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
     watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
       tabletImports.forEach((tke, fileMap) -> {
-        Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>();
+        Map<ReferencedTabletFile,DataFileInfo> newFileMap = new HashMap<>();
 
-        for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
+        for (Entry<String,DataFileInfo> mapping : fileMap.entrySet()) {
           Path path = new Path(dir, mapping.getKey());
           FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
           path = ns.makeQualified(path);
-          newFileMap.put(new TabletFile(path), mapping.getValue());
+          newFileMap.put(new ReferencedTabletFile(path), mapping.getValue());
         }
-        var files = newFileMap.keySet().stream().map(TabletFile::getPathStr).collect(toList());
+        var files = newFileMap.keySet().stream().map(ReferencedTabletFile::getNormalizedPathStr)
+            .collect(toList());
         server.updateBulkImportState(files, BulkImportState.INITIAL);
 
         Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));
@@ -235,7 +191,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
         if (importTablet != null) {
           try {
             server.updateBulkImportState(files, BulkImportState.PROCESSING);
-            importTablet.importMapFiles(tid, newFileMap, setTime);
+            importTablet.importDataFiles(tid, newFileMap, setTime);
           } catch (IOException ioe) {
             log.debug("files {} not imported to {}: {}", fileMap.keySet(),
                 KeyExtent.fromThrift(tke), ioe.getMessage());
@@ -1069,7 +1025,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
       Halt.halt(1, () -> {
         log.info("Tablet server no longer holds lock during checkPermission() : {}, exiting",
             request);
-        server.getGcLogger().logGCInfo(server.getConfiguration());
+        context.getLowMemoryDetector().logGCInfo(server.getConfiguration());
       });
     }
 
@@ -1257,7 +1213,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
     Halt.halt(0, () -> {
       log.info("Manager requested tablet server halt");
-      server.gcLogger.logGCInfo(server.getConfiguration());
+      context.getLowMemoryDetector().logGCInfo(server.getConfiguration());
       server.requestStop();
       try {
         server.getLock().unlock();

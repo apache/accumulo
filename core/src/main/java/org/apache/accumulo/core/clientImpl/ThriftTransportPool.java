@@ -20,8 +20,8 @@ package org.apache.accumulo.core.clientImpl;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
-import java.security.SecureRandom;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,7 +41,6 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.TConfiguration;
@@ -52,13 +51,13 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ThriftTransportPool {
 
   private static final Logger log = LoggerFactory.getLogger(ThriftTransportPool.class);
-  private static final SecureRandom random = new SecureRandom();
   private static final long ERROR_THRESHOLD = 20L;
   private static final long STUCK_THRESHOLD = MINUTES.toMillis(2);
 
@@ -138,7 +137,7 @@ public class ThriftTransportPool {
 
       if (!serversSet.isEmpty()) {
         ArrayList<ThriftTransportKey> cachedServers = new ArrayList<>(serversSet);
-        Collections.shuffle(cachedServers, random);
+        Collections.shuffle(cachedServers, RANDOM.get());
 
         for (ThriftTransportKey ttk : cachedServers) {
           CachedConnection connection = connectionPool.reserveAny(ttk);
@@ -155,7 +154,7 @@ public class ThriftTransportPool {
     int retryCount = 0;
     while (!servers.isEmpty() && retryCount < 10) {
 
-      int index = random.nextInt(servers.size());
+      int index = RANDOM.get().nextInt(servers.size());
       ThriftTransportKey ttk = servers.get(index);
 
       if (preferCachedConnection) {
@@ -275,7 +274,7 @@ public class ThriftTransportPool {
     try {
       checkThread.join();
     } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

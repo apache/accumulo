@@ -25,13 +25,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.LiveTServerSet.Listener;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerInfo;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.net.HostAndPort;
 
 public class LiveTServerSetTest {
 

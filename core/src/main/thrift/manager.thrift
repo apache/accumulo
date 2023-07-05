@@ -22,8 +22,6 @@ namespace cpp org.apache.accumulo.core.manager.thrift
 include "data.thrift"
 include "security.thrift"
 include "client.thrift"
-include "trace.thrift"
-include "master.thrift"
 
 struct DeadServer {
   1:string server
@@ -40,10 +38,6 @@ exception ThriftPropertyException {
   1:string property
   2:string value
   3:string description
-}
-
-exception RecoveryException {
-  1:string why
 }
 
 enum TabletLoadState {
@@ -64,7 +58,7 @@ enum FateOperation {
   TABLE_OFFLINE
   TABLE_MERGE
   TABLE_DELETE_RANGE
-  TABLE_BULK_IMPORT
+  OBSOLETE_TABLE_BULK_IMPORT
   TABLE_COMPACT
   TABLE_IMPORT
   TABLE_EXPORT
@@ -91,23 +85,91 @@ enum ManagerGoalState {
   NORMAL
 }
 
+struct Compacting {
+  1:i32 running
+  2:i32 queued
+}
+
+struct TableInfo {
+  1:i64 recs
+  2:i64 recsInMemory
+  3:i32 tablets
+  4:i32 onlineTablets
+  5:double ingestRate
+  6:double ingestByteRate
+  7:double queryRate
+  8:double queryByteRate
+  9:Compacting minors
+  10:Compacting majors
+  11:Compacting scans
+  12:double scanRate
+}
+
+struct RecoveryStatus {
+  2:string name
+  // in millis
+  5:i32 runtime
+  6:double progress
+}
+
+enum BulkImportState {
+  INITIAL
+  // manager moves the files into the accumulo area
+  MOVING
+  // tserver examines the index of the file
+  PROCESSING
+  // tserver assigns the file to tablets
+  ASSIGNING
+  // tserver incorporates file into tablet
+  LOADING
+  // manager moves error files into the error directory
+  COPY_FILES
+  // flags and locks removed
+  CLEANUP
+}
+
+struct BulkImportStatus {
+  1:i64 startTime
+  2:string filename
+  3:BulkImportState state
+}
+
+struct TabletServerStatus {
+  1:map<string, TableInfo> tableMap
+  2:i64 lastContact
+  3:string name
+  5:double osLoad
+  7:i64 holdTime
+  8:i64 lookups
+  10:i64 indexCacheHits
+  11:i64 indexCacheRequest
+  12:i64 dataCacheHits
+  13:i64 dataCacheRequest
+  14:list<RecoveryStatus> logSorts
+  15:i64 flushs
+  16:i64 syncs
+  17:list<BulkImportStatus> bulkImports
+  19:string version
+  18:i64 responseTime
+}
+
 struct ManagerMonitorInfo {
-  1:map<string, master.TableInfo> tableMap
-  2:list<master.TabletServerStatus> tServerInfo
+  1:map<string, TableInfo> tableMap
+  2:list<TabletServerStatus> tServerInfo
   3:map<string, i8> badTServers
   4:ManagerState state
   5:ManagerGoalState goalState
   6:i32 unassignedTablets
   7:set<string> serversShuttingDown
   8:list<DeadServer> deadTabletServers
-  9:list<master.BulkImportStatus> bulkImports
+  9:list<BulkImportStatus> bulkImports
 }
 
 service FateService {
 
   // register a fate operation by reserving an opid
   i64 beginFateOperation(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
@@ -116,7 +178,7 @@ service FateService {
 
   // initiate execution of the fate operation; set autoClean to true if not waiting for completion
   void executeFateOperation(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:i64 opid
     4:FateOperation op
@@ -131,7 +193,7 @@ service FateService {
 
   // wait for completion of the operation and get the returned exception, if any
   string waitForFateOperation(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:i64 opid
   ) throws (
@@ -142,7 +204,7 @@ service FateService {
 
   // clean up fate operation if autoClean was not set, after waiting
   void finishFateOperation(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:i64 opid
   ) throws (
@@ -152,7 +214,7 @@ service FateService {
 
   // cancel a fate operation
   bool cancelFateOperation(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:i64 opid
   ) throws (
@@ -166,7 +228,7 @@ service ManagerClientService {
 
   // table management methods
   i64 initiateFlush(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
   ) throws (
@@ -176,7 +238,7 @@ service ManagerClientService {
   )
 
   void waitForFlush(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
     4:binary startRow
@@ -190,7 +252,7 @@ service ManagerClientService {
   )
 
   void setTableProperty(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
     4:string property
@@ -203,7 +265,7 @@ service ManagerClientService {
   )
 
   void modifyTableProperties(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
     4:client.TVersionedProperties vProperties
@@ -216,7 +278,7 @@ service ManagerClientService {
   )
 
   void removeTableProperty(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
     4:string property
@@ -227,7 +289,7 @@ service ManagerClientService {
   )
 
   void setNamespaceProperty(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
     4:string property
@@ -240,7 +302,7 @@ service ManagerClientService {
   )
 
   void modifyNamespaceProperties(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
     4:client.TVersionedProperties vProperties
@@ -252,7 +314,7 @@ service ManagerClientService {
   )
 
   void removeNamespaceProperty(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
     4:string property
@@ -264,7 +326,7 @@ service ManagerClientService {
 
   // system management methods
   void setManagerGoalState(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:ManagerGoalState state
   ) throws (
@@ -273,7 +335,7 @@ service ManagerClientService {
   )
 
   void shutdown(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:bool stopTabletServers
   ) throws (
@@ -282,7 +344,7 @@ service ManagerClientService {
   )
 
   void shutdownTabletServer(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tabletServer
     4:bool force
@@ -292,7 +354,7 @@ service ManagerClientService {
   )
 
   void setSystemProperty(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string property
     4:string value
@@ -303,7 +365,7 @@ service ManagerClientService {
   )
  
   void modifySystemProperties(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:client.TVersionedProperties vProperties
   ) throws (
@@ -314,7 +376,7 @@ service ManagerClientService {
   )
 
   void removeSystemProperty(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string property
   ) throws (
@@ -324,7 +386,7 @@ service ManagerClientService {
 
   // system monitoring methods
   ManagerMonitorInfo getManagerStats(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
@@ -332,21 +394,21 @@ service ManagerClientService {
   )
 
   void waitForBalance(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
   ) throws (
     1:client.ThriftNotActiveServiceException tnase
   )
 
   // tablet server reporting
   oneway void reportSplitExtent(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string serverName
     4:TabletSplit split
   )
 
   oneway void reportTabletStatus(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string serverName
     4:TabletLoadState status
@@ -354,7 +416,7 @@ service ManagerClientService {
   )
 
   list<string> getActiveTservers(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
@@ -363,22 +425,12 @@ service ManagerClientService {
 
   // Delegation token request
   security.TDelegationToken getDelegationToken(
-    1:trace.TInfo tinfo
+    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:security.TDelegationTokenConfig cfg
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
-  )
-
-  // Determine when all provided logs are replicated
-  bool drainReplicationTable(
-    1:trace.TInfo tfino
-    2:security.TCredentials credentials
-    3:string tableName
-    4:set<string> logsToWatch
-  ) throws (
-    1:client.ThriftNotActiveServiceException tnase
   )
 
 }

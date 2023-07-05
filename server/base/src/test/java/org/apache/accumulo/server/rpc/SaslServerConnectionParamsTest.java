@@ -80,7 +80,7 @@ public class SaslServerConnectionParamsTest {
       SystemToken token = new SystemToken();
       token.readFields(new DataInputStream(new ByteArrayInputStream(baos.toByteArray())));
 
-      final SaslConnectionParams saslParams = new SaslServerConnectionParams(rpcConf, token);
+      final SaslConnectionParams saslParams = new SaslServerConnectionParams(rpcConf, token, null);
       assertEquals(primary, saslParams.getKerberosServerPrimary());
       assertEquals(SaslMechanism.GSSAPI, saslParams.getMechanism());
       assertNull(saslParams.getCallbackHandler());

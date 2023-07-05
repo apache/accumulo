@@ -86,14 +86,14 @@ public class Credentials {
    *
    * @param instanceID Accumulo instance ID
    * @return Thrift credentials
-   * @throws RuntimeException if the authentication token has been destroyed (expired)
+   * @throws IllegalStateException if the authentication token has been destroyed (expired)
    */
   public TCredentials toThrift(InstanceId instanceID) {
     TCredentials tCreds = new TCredentials(getPrincipal(), getToken().getClass().getName(),
         ByteBuffer.wrap(AuthenticationTokenSerializer.serialize(getToken())),
         instanceID.canonical());
     if (getToken().isDestroyed()) {
-      throw new RuntimeException("Token has been destroyed",
+      throw new IllegalStateException("Token has been destroyed",
           new AccumuloSecurityException(getPrincipal(), SecurityErrorCode.TOKEN_EXPIRED));
     }
     return tCreds;

@@ -25,6 +25,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Set;
 
@@ -107,8 +108,10 @@ public class KerberosToken implements AuthenticationToken {
       clone.principal = principal;
       clone.keytab = keytab == null ? keytab : keytab.getCanonicalFile();
       return clone;
-    } catch (CloneNotSupportedException | IOException e) {
-      throw new RuntimeException(e);
+    } catch (CloneNotSupportedException e) {
+      throw new IllegalStateException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 

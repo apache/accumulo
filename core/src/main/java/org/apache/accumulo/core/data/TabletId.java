@@ -31,12 +31,6 @@ public interface TabletId extends Comparable<TabletId> {
    */
   TableId getTable();
 
-  /**
-   * @deprecated use {@link #getTable()} and {@link TableId#canonical()} instead
-   */
-  @Deprecated(since = "2.1.0")
-  Text getTableId();
-
   Text getEndRow();
 
   Text getPrevEndRow();

@@ -52,8 +52,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
@@ -138,10 +138,8 @@ public class CompactableImpl implements Compactable {
   // This interface exists for two purposes. First it allows abstraction of new and old
   // implementations for user pluggable file selection code. Second it facilitates placing code
   // outside of this class.
-  public static interface CompactionHelper {
+  public interface CompactionHelper {
     Set<StoredTabletFile> selectFiles(SortedMap<StoredTabletFile,DataFileValue> allFiles);
-
-    Set<StoredTabletFile> getFilesToDrop();
 
     Map<String,String> getConfigOverrides(Set<CompactableFile> files);
 
@@ -380,8 +378,7 @@ public class CompactableImpl implements Compactable {
     /**
      * @return The set of tablet files that are candidates for compaction
      */
-    Set<StoredTabletFile> getCandidates(Set<StoredTabletFile> currFiles, CompactionKind kind,
-        boolean isCompactionStratConfigured) {
+    Set<StoredTabletFile> getCandidates(Set<StoredTabletFile> currFiles, CompactionKind kind) {
 
       if (!currFiles.containsAll(allCompactingFiles)) {
         log.trace("Ignoring because compacting not a subset {}", getExtent());
@@ -393,10 +390,6 @@ public class CompactableImpl implements Compactable {
 
       switch (kind) {
         case SYSTEM: {
-          if (isCompactionStratConfigured) {
-            return Set.of();
-          }
-
           return handleSystemCompaction(currFiles);
         }
         case SELECTOR:
@@ -1055,8 +1048,7 @@ public class CompactableImpl implements Compactable {
           fileMgr.cancelSelection();
         }
       } else {
-        var allSelected =
-            allFiles.keySet().equals(Sets.union(selectingFiles, localHelper.getFilesToDrop()));
+        var allSelected = allFiles.keySet().equals(selectingFiles);
         synchronized (this) {
           fileMgr.finishSelection(selectingFiles, allSelected);
         }
@@ -1090,11 +1082,6 @@ public class CompactableImpl implements Compactable {
     return tablet.getExtent();
   }
 
-  @SuppressWarnings("removal")
-  private boolean isCompactionStratConfigured() {
-    return tablet.getTableConfiguration().isPropertySet(Property.TABLE_COMPACTION_STRATEGY);
-  }
-
   @Override
   public Optional<Files> getFiles(CompactionServiceId service, CompactionKind kind) {
 
@@ -1121,8 +1108,8 @@ public class CompactableImpl implements Compactable {
 
       var runningJobsCopy = Set.copyOf(runningJobs);
 
-      Set<StoredTabletFile> candidates = fileMgr.getCandidates(
-          Collections.unmodifiableSet(files.keySet()), kind, isCompactionStratConfigured());
+      Set<StoredTabletFile> candidates =
+          fileMgr.getCandidates(Collections.unmodifiableSet(files.keySet()), kind);
 
       if (candidates.isEmpty()) {
         return Optional.empty();
@@ -1293,7 +1280,7 @@ public class CompactableImpl implements Compactable {
       TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg);
       tablet.incrementStatusMajor();
       var check = new CompactionCheck(service, kind, cInfo.checkCompactionId);
-      TabletFile tmpFileName = tablet.getNextMapFilenameForMajc(cInfo.propagateDeletes);
+      ReferencedTabletFile tmpFileName = tablet.getNextDataFilenameForMajc(cInfo.propagateDeletes);
       var compactEnv = new MajCEnv(kind, check, readLimiter, writeLimiter, cInfo.propagateDeletes);
 
       SortedMap<StoredTabletFile,DataFileValue> allFiles = tablet.getDatafiles();
@@ -1303,7 +1290,7 @@ public class CompactableImpl implements Compactable {
       stats = CompactableUtils.compact(tablet, job, cInfo, compactEnv, compactFiles, tmpFileName);
 
       newFile = CompactableUtils.bringOnline(tablet.getDatafileManager(), cInfo, stats,
-          compactFiles, allFiles, kind, tmpFileName);
+          compactFiles, tmpFileName);
 
       TabletLogger.compacted(getExtent(), job, newFile.orElse(null));
 
@@ -1336,7 +1323,8 @@ public class CompactableImpl implements Compactable {
       Map<String,String> overrides =
           CompactableUtils.getOverrides(job.getKind(), tablet, cInfo.localHelper, job.getFiles());
 
-      TabletFile compactTmpName = tablet.getNextMapFilenameForMajc(cInfo.propagateDeletes);
+      ReferencedTabletFile compactTmpName =
+          tablet.getNextDataFilenameForMajc(cInfo.propagateDeletes);
 
       ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
 

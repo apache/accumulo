@@ -19,13 +19,12 @@
 package org.apache.accumulo.core.spi.fs;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -35,9 +34,8 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 
 /**
  * A {@link PreferredVolumeChooser} that takes remaining HDFS space into account when making a
@@ -47,8 +45,6 @@ import com.google.common.cache.LoadingCache;
  * @since 2.1.0
  */
 public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
-
-  private static final SecureRandom random = new SecureRandom();
 
   public static final String RECOMPUTE_INTERVAL = "spaceaware.volume.chooser.recompute.interval";
 
@@ -68,11 +64,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
 
   @Override
   public String choose(VolumeChooserEnvironment env, Set<String> options) {
-    try {
-      return getCache(env).get(getPreferredVolumes(env, options)).next();
-    } catch (ExecutionException e) {
-      throw new IllegalStateException("Execution exception when attempting to cache choice", e);
-    }
+    return getCache(env).get(getPreferredVolumes(env, options)).next();
   }
 
   private synchronized LoadingCache<Set<String>,WeightedRandomCollection>
@@ -84,13 +76,8 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
       long computationCacheDuration = StringUtils.isNotBlank(propertyValue)
           ? Long.parseLong(propertyValue) : defaultComputationCacheDuration;
 
-      choiceCache = CacheBuilder.newBuilder()
-          .expireAfterWrite(computationCacheDuration, MILLISECONDS).build(new CacheLoader<>() {
-            @Override
-            public WeightedRandomCollection load(Set<String> key) {
-              return new WeightedRandomCollection(key, env);
-            }
-          });
+      choiceCache = Caffeine.newBuilder().expireAfterWrite(computationCacheDuration, MILLISECONDS)
+          .build(key -> new WeightedRandomCollection(key, env));
     }
 
     return choiceCache;
@@ -134,7 +121,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
     }
 
     public String next() {
-      double value = random.nextDouble() * total;
+      double value = RANDOM.get().nextDouble() * total;
       return map.higherEntry(value).getValue();
     }
   }

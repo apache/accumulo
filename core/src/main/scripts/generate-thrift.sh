@@ -32,7 +32,7 @@
 [[ -z $REQUIRED_THRIFT_VERSION ]] && REQUIRED_THRIFT_VERSION='0.17.0'
 [[ -z $INCLUDED_MODULES ]] && INCLUDED_MODULES=()
 [[ -z $BASE_OUTPUT_PACKAGE ]] && BASE_OUTPUT_PACKAGE='org.apache.accumulo.core'
-[[ -z $PACKAGES_TO_GENERATE ]] && PACKAGES_TO_GENERATE=(gc master manager tabletserver securityImpl clientImpl dataImpl replication trace compaction)
+[[ -z $PACKAGES_TO_GENERATE ]] && PACKAGES_TO_GENERATE=(gc manager tabletserver securityImpl clientImpl dataImpl compaction tabletingest tablet tabletscan)
 [[ -z $BUILD_DIR ]] && BUILD_DIR='target'
 [[ -z $LANGUAGES_TO_GENERATE ]] && LANGUAGES_TO_GENERATE=(java)
 [[ -z $FINAL_DIR ]] && FINAL_DIR='src/main'
@@ -78,7 +78,7 @@ done
 # add dummy method to suppress "unnecessary suppress warnings" for classes which don't have any unused variables
 # this only affects classes, enums aren't affected
 #shellcheck disable=SC1004
-find $BUILD_DIR/gen-java -name '*.java' -exec grep -Zl '^public class ' {} + | xargs -0 sed -i -e 's/^[}]$/  private static void unusedMethod() {}\
+find "$BUILD_DIR/gen-java" -name '*.java' -exec grep -Zl '^public class ' {} + | xargs -0 sed -i -e 's/^[}]$/  private static void unusedMethod() {}\
 }/'
 
 for lang in "${LANGUAGES_TO_GENERATE[@]}"; do

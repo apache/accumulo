@@ -45,7 +45,7 @@ public class SaslServerDigestCallbackHandler extends SaslDigestCallbackHandler {
   private static final Logger log = LoggerFactory.getLogger(SaslServerDigestCallbackHandler.class);
   private static final String NAME = SaslServerDigestCallbackHandler.class.getSimpleName();
 
-  private AuthenticationTokenSecretManager secretManager;
+  private final AuthenticationTokenSecretManager secretManager;
 
   public SaslServerDigestCallbackHandler(AuthenticationTokenSecretManager secretManager) {
     this.secretManager = secretManager;

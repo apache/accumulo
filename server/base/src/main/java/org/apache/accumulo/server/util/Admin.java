@@ -57,9 +57,9 @@ import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.ReadOnlyTStore;
 import org.apache.accumulo.core.fate.ZooStore;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -72,7 +72,6 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.tables.TableMap;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -89,6 +88,7 @@ import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
+import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -127,10 +127,6 @@ public class Admin implements KeywordExecutable {
   @Parameters(commandDescription = "stop the manager")
   static class StopManagerCommand {}
 
-  @Deprecated(since = "2.1.0")
-  @Parameters(commandDescription = "stop the master (DEPRECATED -- use stopManager instead)")
-  static class StopMasterCommand {}
-
   @Parameters(commandDescription = "stop all tablet servers and the manager")
   static class StopAllCommand {}
 
@@ -165,17 +161,6 @@ public class Admin implements KeywordExecutable {
     @Parameter(names = {"-u", "--users"},
         description = "print users and their authorizations and permissions")
     boolean users = false;
-  }
-
-  private static final String RV_DEPRECATION_MSG =
-      "Randomizing tablet directories is deprecated and now does nothing. Accumulo now always"
-          + " calls the volume chooser for each file created by a tablet, so its no longer "
-          + "necessary.";
-
-  @Parameters(commandDescription = RV_DEPRECATION_MSG)
-  static class RandomizeVolumesCommand {
-    @Parameter(names = {"-t"}, description = "table to update", required = true)
-    String tableName = null;
   }
 
   @Parameters(commandDescription = "Verify all Tablets are assigned to tablet servers")
@@ -310,9 +295,6 @@ public class Admin implements KeywordExecutable {
     RestoreZooCommand restoreZooOpts = new RestoreZooCommand();
     cl.addCommand("restoreZoo", restoreZooOpts);
 
-    RandomizeVolumesCommand randomizeVolumesOpts = new RandomizeVolumesCommand();
-    cl.addCommand("randomizeVolumes", randomizeVolumesOpts);
-
     StopCommand stopOpts = new StopCommand();
     cl.addCommand("stop", stopOpts);
 
@@ -321,9 +303,6 @@ public class Admin implements KeywordExecutable {
 
     StopManagerCommand stopManagerOpts = new StopManagerCommand();
     cl.addCommand("stopManager", stopManagerOpts);
-
-    StopMasterCommand stopMasterOpts = new StopMasterCommand();
-    cl.addCommand("stopMaster", stopMasterOpts);
 
     VerifyTabletAssignmentsCommand verifyTabletAssignmentsOpts =
         new VerifyTabletAssignmentsCommand();
@@ -382,8 +361,6 @@ public class Admin implements KeywordExecutable {
         printConfig(context, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(context);
-      } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
-        System.out.println(RV_DEPRECATION_MSG);
       } else if (cl.getParsedCommand().equals("verifyTabletAssigns")) {
         VerifyTabletAssignments.execute(opts.getClientProps(), verifyTabletAssignmentsOpts.verbose);
       } else if (cl.getParsedCommand().equals("changeSecret")) {

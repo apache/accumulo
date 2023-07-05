@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>2.1.2-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <artifactId>accumulo-monitor</artifactId>
@@ -43,6 +43,10 @@
     <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
     </dependency>
     <dependency>
       <groupId>jakarta.inject</groupId>
@@ -91,6 +95,10 @@
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.thrift</groupId>
+      <artifactId>libthrift</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
@@ -200,7 +208,7 @@
           <configuration>
             <licenseSets>
               <licenseSet>
-                <header>${session.executionRootDirectory}/contrib/license-header.txt</header>
+                <header>${rootlocation}/src/build/license-header.txt</header>
                 <excludes>
                   <exclude>src/main/resources/org/apache/accumulo/monitor/resources/external/**/*</exclude>
                 </excludes>

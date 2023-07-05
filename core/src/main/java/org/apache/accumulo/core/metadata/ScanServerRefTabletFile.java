@@ -26,7 +26,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
-public class ScanServerRefTabletFile extends TabletFile {
+public class ScanServerRefTabletFile extends ReferencedTabletFile {
 
   private final Value NULL_VALUE = new Value(new byte[0]);
   private final Text colf;
@@ -45,7 +45,7 @@ public class ScanServerRefTabletFile extends TabletFile {
   }
 
   public String getRowSuffix() {
-    return this.getPathStr();
+    return this.getNormalizedPathStr();
   }
 
   public Text getServerAddress() {

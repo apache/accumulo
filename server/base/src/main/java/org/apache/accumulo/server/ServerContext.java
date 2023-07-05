@@ -20,15 +20,16 @@ package org.apache.accumulo.server;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Suppliers.memoize;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
@@ -66,6 +67,7 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
@@ -92,6 +94,7 @@ public class ServerContext extends ClientContext {
   private final ZooReaderWriter zooReaderWriter;
   private final ServerDirs serverDirs;
   private final Supplier<ZooPropStore> propStore;
+  private final Supplier<String> zkUserPath;
 
   // lazily loaded resources, only loaded when needed
   private final Supplier<TableManager> tableManager;
@@ -101,6 +104,7 @@ public class ServerContext extends ClientContext {
   private final Supplier<ScheduledThreadPoolExecutor> sharedScheduledThreadPool;
   private final Supplier<AuditedSecurityOperation> securityOperation;
   private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
+  private final Supplier<LowMemoryDetector> lowMemoryDetector;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -113,6 +117,7 @@ public class ServerContext extends ClientContext {
     serverDirs = info.getServerDirs();
 
     propStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooReaderWriter()));
+    zkUserPath = memoize(() -> Constants.ZROOT + "/" + getInstanceID() + Constants.ZUSERS);
 
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
@@ -125,6 +130,7 @@ public class ServerContext extends ClientContext {
     securityOperation =
         memoize(() -> new AuditedSecurityOperation(this, SecurityOperation.getAuthorizor(this),
             SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
+    lowMemoryDetector = memoize(() -> new LowMemoryDetector());
   }
 
   /**
@@ -190,7 +196,7 @@ public class ServerContext extends ClientContext {
       // currentUser() like KerberosToken
       loginUser = UserGroupInformation.getLoginUser();
     } catch (IOException e) {
-      throw new RuntimeException("Could not get login user", e);
+      throw new UncheckedIOException("Could not get login user", e);
     }
 
     checkArgument(loginUser.hasKerberosCredentials(), "Server does not have Kerberos credentials");
@@ -298,7 +304,9 @@ public class ServerContext extends ClientContext {
   public static void ensureDataVersionCompatible(int dataVersion) {
     if (!AccumuloDataVersion.CAN_RUN.contains(dataVersion)) {
       throw new IllegalStateException("This version of accumulo (" + Constants.VERSION
-          + ") is not compatible with files stored using data version " + dataVersion);
+          + ") is not compatible with files stored using data version " + dataVersion
+          + ". Please upgrade from " + AccumuloDataVersion.oldestUpgradeableVersionName()
+          + " or later.");
     }
   }
 
@@ -443,6 +451,14 @@ public class ServerContext extends ClientContext {
 
   public AuditedSecurityOperation getSecurityOperation() {
     return securityOperation.get();
+  }
+
+  public String zkUserPath() {
+    return zkUserPath.get();
+  }
+
+  public LowMemoryDetector getLowMemoryDetector() {
+    return lowMemoryDetector.get();
   }
 
 }

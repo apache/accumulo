@@ -26,8 +26,9 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.fs.Path;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * Wraps a tablet state store and logs important events.

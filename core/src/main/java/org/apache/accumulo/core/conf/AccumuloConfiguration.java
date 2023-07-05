@@ -45,7 +45,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
-import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -411,11 +410,6 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
      * Re-reads the max threads from the configuration that created this class
      */
     public int getCurrentMaxThreads() {
-      Integer depThreads = getDeprecatedScanThreads(name, isScanServer);
-      if (depThreads != null) {
-        return depThreads;
-      }
-
       if (isScanServer) {
         String prop =
             Property.SSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
@@ -431,43 +425,6 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   public abstract boolean isPropertySet(Property prop);
-
-  // deprecation property warning could get spammy in tserver so only warn once
-  boolean depPropWarned = false;
-
-  @SuppressWarnings("deprecation")
-  Integer getDeprecatedScanThreads(String name, boolean isScanServer) {
-
-    Property prop;
-    Property deprecatedProp;
-
-    if (name.equals(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME)) {
-      prop = isScanServer ? Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS
-          : Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS;
-      deprecatedProp = Property.TSERV_READ_AHEAD_MAXCONCURRENT;
-    } else if (name.equals("meta")) {
-      prop = isScanServer ? Property.SSERV_SCAN_EXECUTORS_META_THREADS
-          : Property.TSERV_SCAN_EXECUTORS_META_THREADS;
-      deprecatedProp = Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT;
-    } else {
-      return null;
-    }
-
-    if (!isPropertySet(prop) && isPropertySet(deprecatedProp)) {
-      if (!depPropWarned) {
-        depPropWarned = true;
-        log.warn("Property {} is deprecated, use {} instead.", deprecatedProp.getKey(),
-            prop.getKey());
-      }
-      return Integer.valueOf(get(deprecatedProp));
-    } else if (isPropertySet(prop) && isPropertySet(deprecatedProp) && !depPropWarned) {
-      depPropWarned = true;
-      log.warn("Deprecated property {} ignored because {} is set", deprecatedProp.getKey(),
-          prop.getKey());
-    }
-
-    return null;
-  }
 
   private static class RefCount<T> {
     T obj;
@@ -587,12 +544,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
         String val = subEntry.getValue();
 
         if (opt.equals(SCAN_EXEC_THREADS)) {
-          Integer depThreads = getDeprecatedScanThreads(name, isScanServer);
-          if (depThreads == null) {
-            threads = Integer.parseInt(val);
-          } else {
-            threads = depThreads;
-          }
+          threads = Integer.parseInt(val);
         } else if (opt.equals(SCAN_EXEC_PRIORITY)) {
           prio = Integer.parseInt(val);
         } else if (opt.equals(SCAN_EXEC_PRIORITIZER)) {

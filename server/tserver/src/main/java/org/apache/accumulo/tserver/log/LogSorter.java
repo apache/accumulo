@@ -38,7 +38,8 @@ import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.master.thrift.RecoveryStatus;
+import org.apache.accumulo.core.manager.thrift.RecoveryStatus;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.Pair;
@@ -165,10 +166,7 @@ public class LogSorter {
         return;
       }
 
-      @SuppressWarnings("deprecation")
-      Property prop = sortedLogConf.resolve(Property.TSERV_WAL_SORT_BUFFER_SIZE,
-          Property.TSERV_SORT_BUFFER_SIZE);
-      final long bufferSize = sortedLogConf.getAsBytes(prop);
+      final long bufferSize = sortedLogConf.getAsBytes(Property.TSERV_WAL_SORT_BUFFER_SIZE);
       Thread.currentThread().setName("Sorting " + name + " for recovery");
       while (true) {
         final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
@@ -229,9 +227,8 @@ public class LogSorter {
   public LogSorter(ServerContext context, AccumuloConfiguration conf) {
     this.context = context;
     this.sortedLogConf = extractSortedLogConfig(conf);
-    @SuppressWarnings("deprecation")
-    int threadPoolSize = conf.getCount(conf.resolve(Property.TSERV_WAL_SORT_MAX_CONCURRENT,
-        Property.TSERV_RECOVERY_MAX_CONCURRENT));
+
+    int threadPoolSize = conf.getCount(Property.TSERV_WAL_SORT_MAX_CONCURRENT);
     this.threadPool = ThreadPools.getServerThreadPools().createFixedThreadPool(threadPoolSize,
         this.getClass().getName(), true);
     this.walBlockSize = DfsLogger.getWalBlockSize(conf);
@@ -282,7 +279,7 @@ public class LogSorter {
     }
 
     try (var writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fullPath.toString(), fs, fs.getConf(), cryptoService)
+        .forFile(UnreferencedTabletFile.of(fs, fullPath), fs, fs.getConf(), cryptoService)
         .withTableConfiguration(sortedLogConf).build()) {
       writer.startDefaultLocalityGroup();
       for (var entry : keyListMap.entrySet()) {

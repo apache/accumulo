@@ -18,21 +18,21 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import java.io.File;
 import java.io.PrintWriter;
+import java.util.Arrays;
 
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 
 public class ClasspathCommand extends Command {
-  @SuppressWarnings("deprecation")
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) {
 
     final PrintWriter writer = shellState.getWriter();
-    org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.printClassPath(s -> {
-      writer.print(s);
-    }, true);
+    printClassPath(writer);
     return 0;
   }
 
@@ -44,5 +44,17 @@ public class ClasspathCommand extends Command {
   @Override
   public int numArgs() {
     return 0;
+  }
+
+  public static void printClassPath(PrintWriter writer) {
+    writer.println("Accumulo Shell Classpath:");
+
+    final String javaClassPath = System.getProperty("java.class.path");
+    if (javaClassPath == null) {
+      throw new IllegalStateException("java.class.path is not set");
+    }
+    Arrays.stream(javaClassPath.split(File.pathSeparator)).forEach(writer::println);
+
+    writer.println();
   }
 }

@@ -22,7 +22,8 @@ import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
-import org.apache.accumulo.core.util.HostAndPort;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * @since 2.1.0

@@ -27,10 +27,12 @@ import org.apache.accumulo.core.singletons.SingletonService;
 /**
  * A factory for {@link ZooCache} instances.
  * <p>
- * Implementation note: We are using the instances map to track all the instances that have been
- * created, so we can explicitly close them when the last legacy client has gone away. This is part
- * of the "SingletonManager" code, and it is likely that ZooCacheFactory and ZooKeeperInstance can
- * be removed when legacy client code support is no longer required.
+ * Implementation note: We were using the instances map to track all the instances that have been
+ * created, so we could explicitly close them when the SingletonManager detected that the last
+ * legacy client (using Connector/ZooKeeperInstance) has gone away. This class may no longer be
+ * needed, since the legacy client code has been removed, so long as the ZooCache instances it is
+ * tracking are managed as resources within ClientContext or ServerContext, and explicitly closed
+ * when those are closed.
  */
 public class ZooCacheFactory {
 

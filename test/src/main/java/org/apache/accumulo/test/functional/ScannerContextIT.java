@@ -52,13 +52,8 @@ import org.junit.jupiter.api.Test;
 
 public class ScannerContextIT extends AccumuloClusterHarness {
 
-  private static final String CONTEXT = ScannerContextIT.class.getSimpleName();
-  @SuppressWarnings("removal")
-  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
-      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
-  private static final String CONTEXT_PROPERTY = VFS_CONTEXT_CLASSPATH_PROPERTY + CONTEXT;
   private static final String CONTEXT_DIR = "file://" + System.getProperty("user.dir") + "/target";
-  private static final String CONTEXT_CLASSPATH = CONTEXT_DIR + "/Test.jar";
+  private static final String CONTEXT = CONTEXT_DIR + "/Test.jar";
   private static int ITERATIONS = 10;
   private static final long WAIT = 7000;
 
@@ -92,8 +87,6 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     Path dstPath = copyTestIteratorsJarToTmp();
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      // Set the classloader context property on the table to point to the test iterators jar file.
-      c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
 
       // Insert rows with the word "Test" in the value.
       String tableName = getUniqueNames(1)[0];
@@ -136,19 +129,18 @@ public class ScannerContextIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       // Create two contexts FOO and ScanContextIT. The FOO context will point to a classpath
       // that contains nothing. The ScanContextIT context will point to the test iterators jar
-      String tableContext = "FOO";
-      String tableContextProperty = VFS_CONTEXT_CLASSPATH_PROPERTY + tableContext;
+      String tableContextProperty = Property.TABLE_CLASSLOADER_CONTEXT.getKey();
       String tableContextDir = "file://" + System.getProperty("user.dir") + "/target";
       String tableContextClasspath = tableContextDir + "/TestFoo.jar";
-      // Define both contexts
-      c.instanceOperations().setProperty(tableContextProperty, tableContextClasspath);
-      c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
+
+      // Set the ScanContextIT context on the instance
+      c.instanceOperations().setProperty(tableContextProperty, CONTEXT);
 
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       // Set the FOO context on the table
       c.tableOperations().setProperty(tableName, Property.TABLE_CLASSLOADER_CONTEXT.getKey(),
-          tableContext);
+          tableContextClasspath);
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < ITERATIONS; i++) {
           Mutation m = new Mutation("row" + i);
@@ -184,8 +176,6 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   public void testOneScannerDoesntInterfereWithAnother() throws Exception {
     Path dstPath = copyTestIteratorsJarToTmp();
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      // Set the classloader context property on the table to point to the test iterators jar file.
-      c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
 
       // Insert rows with the word "Test" in the value.
       String tableName = getUniqueNames(1)[0];
@@ -230,8 +220,6 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   public void testClearContext() throws Exception {
     Path dstPath = copyTestIteratorsJarToTmp();
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      // Set the classloader context property on the table to point to the test iterators jar file.
-      c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
 
       // Insert rows with the word "Test" in the value.
       String tableName = getUniqueNames(1)[0];

@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.io.IOException;
-
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -62,15 +60,14 @@ public class ClientServiceEnvironmentImpl implements ServiceEnvironment {
   }
 
   @Override
-  public <T> T instantiate(String className, Class<T> base)
-      throws ReflectiveOperationException, IOException {
+  public <T> T instantiate(String className, Class<T> base) throws ReflectiveOperationException {
     return ClientServiceEnvironmentImpl.class.getClassLoader().loadClass(className).asSubclass(base)
         .getDeclaredConstructor().newInstance();
   }
 
   @Override
   public <T> T instantiate(TableId tableId, String className, Class<T> base)
-      throws ReflectiveOperationException, IOException {
+      throws ReflectiveOperationException {
     return instantiate(className, base);
   }
 }

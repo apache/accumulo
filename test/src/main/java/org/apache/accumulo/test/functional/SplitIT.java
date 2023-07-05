@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -146,7 +145,7 @@ public class SplitIT extends AccumuloClusterHarness {
       TestIngest.ingest(c, params);
       VerifyIngest.verifyIngest(c, params);
       while (c.tableOperations().listSplits(table).size() < 10) {
-        sleepUninterruptibly(15, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(15));
       }
       TableId id = TableId.of(c.tableOperations().tableIdMap().get(table));
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
@@ -183,9 +182,9 @@ public class SplitIT extends AccumuloClusterHarness {
 
       c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props));
 
-      sleepUninterruptibly(5, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(5));
       ReadWriteIT.interleaveTest(c, tableName);
-      sleepUninterruptibly(5, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(5));
       int numSplits = c.tableOperations().listSplits(tableName).size();
       while (numSplits <= 20) {
         log.info("Waiting for splits to happen");
@@ -205,7 +204,7 @@ public class SplitIT extends AccumuloClusterHarness {
       DeleteIT.deleteTest(c, getCluster(), tableName);
       c.tableOperations().flush(tableName, null, null, true);
       for (int i = 0; i < 5; i++) {
-        sleepUninterruptibly(10, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(10));
         if (c.tableOperations().listSplits(tableName).size() > 20) {
           break;
         }

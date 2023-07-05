@@ -18,32 +18,21 @@
  */
 package org.apache.accumulo.server.init;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.iterators.Combiner;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
-import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
-import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
-
-import com.google.common.base.Joiner;
 
 class InitialConfiguration {
 
@@ -53,7 +42,6 @@ class InitialConfiguration {
   private final HashMap<String,String> initialRootMetaConf = new HashMap<>();
   // config for only metadata table
   private final HashMap<String,String> initialMetaConf = new HashMap<>();
-  private final HashMap<String,String> initialReplicationTableConf = new HashMap<>();
   private final Configuration hadoopConf;
   private final SiteConfiguration siteConf;
 
@@ -103,64 +91,6 @@ class InitialConfiguration {
         SimpleCompactionDispatcher.class.getName());
     initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
 
-    // ACCUMULO-3077 Set the combiner on accumulo.metadata during init to reduce the likelihood of a
-    // race condition where a tserver compacts away Status updates because it didn't see the
-    // Combiner
-    // configured
-    @SuppressWarnings("deprecation")
-    var statusCombinerClass = org.apache.accumulo.server.replication.StatusCombiner.class;
-    IteratorSetting setting =
-        new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, statusCombinerClass);
-    Combiner.setColumns(setting, Collections
-        .singletonList(new IteratorSetting.Column(MetadataSchema.ReplicationSection.COLF)));
-    for (IteratorUtil.IteratorScope scope : IteratorUtil.IteratorScope.values()) {
-      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
-          scope.name().toLowerCase(), setting.getName());
-      for (Map.Entry<String,String> prop : setting.getOptions().entrySet()) {
-        initialMetaConf.put(root + ".opt." + prop.getKey(), prop.getValue());
-      }
-      initialMetaConf.put(root, setting.getPriority() + "," + setting.getIteratorClass());
-    }
-
-    // add combiners to replication table
-    @SuppressWarnings("deprecation")
-    String replicationCombinerName =
-        org.apache.accumulo.core.replication.ReplicationTable.COMBINER_NAME;
-    setting = new IteratorSetting(30, replicationCombinerName, statusCombinerClass);
-    setting.setPriority(30);
-    @SuppressWarnings("deprecation")
-    Text statusSectionName =
-        org.apache.accumulo.core.replication.ReplicationSchema.StatusSection.NAME;
-    @SuppressWarnings("deprecation")
-    Text workSectionName = org.apache.accumulo.core.replication.ReplicationSchema.WorkSection.NAME;
-    Combiner.setColumns(setting, Arrays.asList(new IteratorSetting.Column(statusSectionName),
-        new IteratorSetting.Column(workSectionName)));
-    for (IteratorUtil.IteratorScope scope : EnumSet.allOf(IteratorUtil.IteratorScope.class)) {
-      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
-          scope.name().toLowerCase(), setting.getName());
-      for (Map.Entry<String,String> prop : setting.getOptions().entrySet()) {
-        initialReplicationTableConf.put(root + ".opt." + prop.getKey(), prop.getValue());
-      }
-      initialReplicationTableConf.put(root,
-          setting.getPriority() + "," + setting.getIteratorClass());
-    }
-    // add locality groups to replication table
-    @SuppressWarnings("deprecation")
-    Map<String,Set<Text>> replicationLocalityGroups =
-        org.apache.accumulo.core.replication.ReplicationTable.LOCALITY_GROUPS;
-    for (Map.Entry<String,Set<Text>> g : replicationLocalityGroups.entrySet()) {
-      initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX + g.getKey(),
-          LocalityGroupUtil.encodeColumnFamilies(g.getValue()));
-    }
-    initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(),
-        Joiner.on(",").join(replicationLocalityGroups.keySet()));
-    // add formatter to replication table
-    @SuppressWarnings("deprecation")
-    String replicationFormatterClassName =
-        org.apache.accumulo.server.replication.ReplicationUtil.STATUS_FORMATTER_CLASS_NAME;
-    initialReplicationTableConf.put(Property.TABLE_FORMATTER_CLASS.getKey(),
-        replicationFormatterClassName);
-
     int max = hadoopConf.getInt("dfs.replication.max", 512);
     // Hadoop 0.23 switched the min value configuration name
     int min = Math.max(hadoopConf.getInt("dfs.replication.min", 1),
@@ -197,10 +127,6 @@ class InitialConfiguration {
 
   HashMap<String,String> getMetaTableConf() {
     return initialMetaConf;
-  }
-
-  HashMap<String,String> getReplTableConf() {
-    return initialReplicationTableConf;
   }
 
   Configuration getHadoopConf() {

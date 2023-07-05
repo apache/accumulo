@@ -46,7 +46,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.manager.state.MergeStats;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.state.Assignment;
@@ -57,6 +56,8 @@ import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.net.HostAndPort;
 
 public class MergeStateIT extends ConfigurableMacBase {
 

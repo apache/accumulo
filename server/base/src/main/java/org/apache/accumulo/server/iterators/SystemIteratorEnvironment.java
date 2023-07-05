@@ -30,4 +30,9 @@ public interface SystemIteratorEnvironment extends IteratorEnvironment {
 
   SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter);
 
+  @Override
+  default boolean isRunningLowOnMemory() {
+    return getServerContext().getLowMemoryDetector().isRunningLowOnMemory();
+  }
+
 }

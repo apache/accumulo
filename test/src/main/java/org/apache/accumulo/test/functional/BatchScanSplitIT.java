@@ -18,14 +18,13 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -79,7 +78,7 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
 
       Collection<Text> splits = c.tableOperations().listSplits(tableName);
       while (splits.size() < 2) {
-        sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
+        Thread.sleep(1);
         splits = c.tableOperations().listSplits(tableName);
       }
 
@@ -88,7 +87,7 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
       HashMap<Text,Value> expected = new HashMap<>();
       ArrayList<Range> ranges = new ArrayList<>();
       for (int i = 0; i < 100; i++) {
-        int r = random.nextInt(numRows);
+        int r = RANDOM.get().nextInt(numRows);
         Text row = new Text(String.format("%09x", r));
         expected.put(row, new Value(String.format("%016x", numRows - r)));
         ranges.add(new Range(row));

@@ -30,8 +30,7 @@ public enum CompactionKind {
    */
   SYSTEM,
   /**
-   * Set of files selected by a {@link CompactionSelector} or CompactionStrategy configured for a
-   * table.
+   * Set of files selected by a {@link CompactionSelector} configured for a table.
    */
   SELECTOR,
   /**

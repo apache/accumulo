@@ -35,7 +35,6 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <a href="https://micrometer.io/">Micrometer</a>. Micrometer suggests using a particular
  * <a href="https://micrometer.io/docs/concepts#_naming_meters">naming convention</a> for the
  * metrics. The table below contains a mapping of the old to new metric names.
- *
  * <table border="1">
  * <caption>Summary of Metric Changes</caption> <!-- fate -->
  * <tr>
@@ -44,6 +43,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <th>New Name</th>
  * <th>Micrometer Type</th>
  * <th>Notes</th>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_LOW_MEMORY}</td>
+ * <td>Guage</td>
+ * <td>reports 1 when process memory usage is above threshold, 0 when memory is okay</td>
  * </tr>
  * <tr>
  * <td>N/A</td>
@@ -425,6 +431,20 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Counter</td>
  * <td></td>
  * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_SCAN_PAUSED_FOR_MEM}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_SCAN_RETURN_FOR_MEM}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
  * <!-- major compactions -->
  * <tr>
  * <td>{i|e}_{compactionServiceName}_{executor_name}_queued</td>
@@ -442,6 +462,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>The compaction service information is in a tag:
  * id={i|e}_{compactionServiceName}_{executor_name}</td>
  * </tr>
+ * <tr>
+ * <td></td>
+ * <td></td>
+ * <td>{@link #METRICS_MAJC_PAUSED}</td>
+ * <td>Counter</td>
+ * <td></td>
+ * </tr>
  * <!-- minor compactions -->
  * <tr>
  * <td>Queue</td>
@@ -457,40 +484,11 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Timer</td>
  * <td></td>
  * </tr>
- * <!-- replication -->
  * <tr>
- * <td>ReplicationQueue</td>
- * <td>Stat</td>
- * <td>{@link #METRICS_REPLICATION_QUEUE}</td>
- * <td>Timer</td>
  * <td></td>
- * </tr>
- * <tr>
- * <td>ReplicationQueue10m</td>
- * <td>Quantiles</td>
- * <td>N/A</td>
- * <td>N/A</td>
  * <td></td>
- * </tr>
- * <tr>
- * <td>filesPendingReplication</td>
- * <td>Stat</td>
- * <td>{@link #METRICS_REPLICATION_PENDING_FILES}</td>
- * <td>Gauge</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>maxReplicationThreads</td>
- * <td>Stat</td>
- * <td>{@link #METRICS_REPLICATION_THREADS}</td>
- * <td>Gauge</td>
- * <td></td>
- * </tr>
- * <tr>
- * <td>numPeers</td>
- * <td>Stat</td>
- * <td>{@link #METRICS_REPLICATION_PEERS}</td>
- * <td>Gauge</td>
+ * <td>{@link #METRICS_MINC_PAUSED}</td>
+ * <td>Counter</td>
  * <td></td>
  * </tr>
  * <!-- Updates (ingest) -->
@@ -602,6 +600,7 @@ public interface MetricsProducer {
 
   Logger LOG = LoggerFactory.getLogger(MetricsProducer.class);
 
+  String METRICS_LOW_MEMORY = "accumulo.detected.low.memory";
   String METRICS_COMPACTOR_PREFIX = "accumulo.compactor.";
   String METRICS_COMPACTOR_MAJC_STUCK = METRICS_COMPACTOR_PREFIX + "majc.stuck";
 
@@ -631,16 +630,12 @@ public interface MetricsProducer {
   String METRICS_MAJC_PREFIX = "accumulo.tserver.compactions.majc.";
   String METRICS_MAJC_QUEUED = METRICS_MAJC_PREFIX + "queued";
   String METRICS_MAJC_RUNNING = METRICS_MAJC_PREFIX + "running";
+  String METRICS_MAJC_PAUSED = METRICS_MAJC_PREFIX + "paused";
 
   String METRICS_MINC_PREFIX = "accumulo.tserver.compactions.minc.";
   String METRICS_MINC_QUEUED = METRICS_MINC_PREFIX + "queued";
   String METRICS_MINC_RUNNING = METRICS_MINC_PREFIX + "running";
-
-  String METRICS_REPLICATION_PREFIX = "accumulo.replication.";
-  String METRICS_REPLICATION_QUEUE = METRICS_REPLICATION_PREFIX + "queue";
-  String METRICS_REPLICATION_PENDING_FILES = METRICS_REPLICATION_PREFIX + "files.pending";
-  String METRICS_REPLICATION_PEERS = METRICS_REPLICATION_PREFIX + "peers";
-  String METRICS_REPLICATION_THREADS = METRICS_REPLICATION_PREFIX + "threads";
+  String METRICS_MINC_PAUSED = METRICS_MINC_PREFIX + "paused";
 
   String METRICS_SCAN = "accumulo.tserver.scans";
   String METRICS_SCAN_OPEN_FILES = METRICS_SCAN + ".files.open";
@@ -650,6 +645,8 @@ public interface MetricsProducer {
   String METRICS_SCAN_CONTINUE = METRICS_SCAN + ".continue";
   String METRICS_SCAN_CLOSE = METRICS_SCAN + ".close";
   String METRICS_SCAN_BUSY_TIMEOUT = METRICS_SCAN + ".busy_timeout";
+  String METRICS_SCAN_PAUSED_FOR_MEM = METRICS_SCAN + ".paused.for.memory";
+  String METRICS_SCAN_RETURN_FOR_MEM = METRICS_SCAN + ".return.early.for.memory";
 
   String METRICS_TSERVER_PREFIX = "accumulo.tserver.";
   String METRICS_TSERVER_ENTRIES = METRICS_TSERVER_PREFIX + "entries";

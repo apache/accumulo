@@ -19,8 +19,6 @@
 package org.apache.accumulo.core.clientImpl;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Predicate;
@@ -38,121 +36,74 @@ import org.slf4j.LoggerFactory;
 public class ClientConfConverter {
 
   private static final Logger log = LoggerFactory.getLogger(ClientConfConverter.class);
-  private static Map<String,String> confProps = new HashMap<>();
-  private static Map<String,String> propsConf = new HashMap<>();
-
-  @SuppressWarnings("deprecation")
-  private static void init() {
-    propsConf.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(),
-        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST
-            .getKey());
-    propsConf.put(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(),
-        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT
-            .getKey());
-    propsConf.put(ClientProperty.SSL_ENABLED.getKey(),
-        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_ENABLED
-            .getKey());
-    propsConf.put(ClientProperty.SSL_KEYSTORE_PATH.getKey(),
-        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_PATH
-            .getKey());
-    propsConf.put(ClientProperty.SSL_KEYSTORE_TYPE.getKey(),
-        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_TYPE
-            .getKey());
-    propsConf.put(ClientProperty.SSL_KEYSTORE_PASSWORD.getKey(),
-        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.RPC_SSL_KEYSTORE_PASSWORD
-            .getKey());
-    propsConf.put(ClientProperty.SSL_TRUSTSTORE_PATH.getKey(),
-        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_PATH
-            .getKey());
-    propsConf.put(ClientProperty.SSL_TRUSTSTORE_TYPE.getKey(),
-        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_TYPE
-            .getKey());
-    propsConf.put(ClientProperty.SSL_TRUSTSTORE_PASSWORD.getKey(),
-        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_PASSWORD
-            .getKey());
-    propsConf.put(ClientProperty.SSL_USE_JSSE.getKey(),
-        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.RPC_USE_JSSE.getKey());
-    propsConf.put(ClientProperty.SASL_ENABLED.getKey(),
-        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_RPC_SASL_ENABLED
-            .getKey());
-    propsConf.put(ClientProperty.SASL_QOP.getKey(),
-        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.RPC_SASL_QOP.getKey());
-    propsConf.put(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(),
-        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-            .getKey());
-
-    for (Map.Entry<String,String> entry : propsConf.entrySet()) {
-      confProps.put(entry.getValue(), entry.getKey());
-    }
-  }
+  private static final Map<String,String> accumuloConfToClientProps = new HashMap<>();
+  private static final Map<String,String> clientPropsToAccumuloConf = new HashMap<>();
 
   static {
-    init();
-  }
+    // mapping of ClientProperty equivalents in AccumuloConfiguration
+    Map<ClientProperty,Property> conversions = new HashMap<>();
+    conversions.put(ClientProperty.INSTANCE_ZOOKEEPERS, Property.INSTANCE_ZK_HOST);
+    conversions.put(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, Property.INSTANCE_ZK_TIMEOUT);
 
-  @SuppressWarnings("deprecation")
-  public static org.apache.accumulo.core.client.ClientConfiguration
-      toClientConf(Properties properties) {
-    org.apache.accumulo.core.client.ClientConfiguration config =
-        org.apache.accumulo.core.client.ClientConfiguration.create();
-    for (Object keyObj : properties.keySet()) {
-      String propKey = (String) keyObj;
-      String val = properties.getProperty(propKey);
-      String confKey = propsConf.get(propKey);
-      if (confKey == null) {
-        config.setProperty(propKey, val);
-      } else {
-        config.setProperty(confKey, val);
-      }
-      if (propKey.equals(ClientProperty.SSL_KEYSTORE_PATH.getKey())) {
-        config.setProperty(
-            org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH,
-            "true");
-      }
-    }
-    return config;
-  }
+    conversions.put(ClientProperty.SASL_ENABLED, Property.INSTANCE_RPC_SASL_ENABLED);
+    conversions.put(ClientProperty.SASL_QOP, Property.RPC_SASL_QOP);
 
-  @SuppressWarnings("deprecation")
-  public static Properties
-      toProperties(org.apache.accumulo.core.client.ClientConfiguration clientConf) {
-    Properties props = new Properties();
-    Iterator<String> clientConfIter = clientConf.getKeys();
-    while (clientConfIter.hasNext()) {
-      String confKey = clientConfIter.next();
-      String val = clientConf.getString(confKey);
-      String propKey = confProps.get(confKey);
-      if (propKey == null) {
-        if (!confKey.equals(
-            org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_CLIENT_AUTH
-                .getKey())) {
-          props.setProperty(confKey, val);
-        }
-      } else {
-        props.setProperty(propKey, val);
-      }
+    conversions.put(ClientProperty.SSL_ENABLED, Property.INSTANCE_RPC_SSL_ENABLED);
+    conversions.put(ClientProperty.SSL_KEYSTORE_PASSWORD, Property.RPC_SSL_KEYSTORE_PASSWORD);
+    conversions.put(ClientProperty.SSL_KEYSTORE_PATH, Property.RPC_SSL_KEYSTORE_PATH);
+    conversions.put(ClientProperty.SSL_KEYSTORE_TYPE, Property.RPC_SSL_KEYSTORE_TYPE);
+    conversions.put(ClientProperty.SSL_TRUSTSTORE_PASSWORD, Property.RPC_SSL_TRUSTSTORE_PASSWORD);
+    conversions.put(ClientProperty.SSL_TRUSTSTORE_PATH, Property.RPC_SSL_TRUSTSTORE_PATH);
+    conversions.put(ClientProperty.SSL_TRUSTSTORE_TYPE, Property.RPC_SSL_TRUSTSTORE_TYPE);
+    conversions.put(ClientProperty.SSL_USE_JSSE, Property.RPC_USE_JSSE);
+
+    for (Map.Entry<ClientProperty,Property> entry : conversions.entrySet()) {
+      accumuloConfToClientProps.put(entry.getValue().getKey(), entry.getKey().getKey());
+      clientPropsToAccumuloConf.put(entry.getKey().getKey(), entry.getValue().getKey());
     }
-    return props;
   }
 
   public static Properties toProperties(AccumuloConfiguration config) {
-    return toProperties(toClientConf(config));
+    final var propsExtractedFromConfig = new Properties();
+
+    // Extract kerberos primary from the config
+    final String serverPrincipal = config.get(Property.GENERAL_KERBEROS_PRINCIPAL);
+    if (serverPrincipal != null && !serverPrincipal.isEmpty()) {
+      var krbName = new KerberosName(serverPrincipal);
+      propsExtractedFromConfig.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(),
+          krbName.getServiceName());
+    }
+
+    // Extract the remaining properties from the config
+    config.stream().filter(e -> accumuloConfToClientProps.keySet().contains(e.getKey()))
+        .forEach(e -> propsExtractedFromConfig.setProperty(e.getKey(), e.getValue()));
+
+    // For all the extracted properties, convert them to their ClientProperty names
+    final var convertedProps = new Properties();
+    propsExtractedFromConfig.forEach((k, v) -> {
+      String confKey = String.valueOf(k);
+      String val = String.valueOf(v);
+      String propKey = accumuloConfToClientProps.get(confKey);
+      convertedProps.setProperty(propKey == null ? confKey : propKey, val);
+    });
+    return convertedProps;
   }
 
   public static AccumuloConfiguration toAccumuloConf(Properties properties) {
-    return toAccumuloConf(toClientConf(properties));
-  }
-
-  /**
-   * A utility method for converting client configuration to a standard configuration object for use
-   * internally.
-   *
-   * @param config the original config
-   * @return the client configuration presented in the form of an {@link AccumuloConfiguration}
-   */
-  @SuppressWarnings("deprecation")
-  public static AccumuloConfiguration
-      toAccumuloConf(final org.apache.accumulo.core.client.ClientConfiguration config) {
+    final var convertedProps = new Properties();
+    for (String propKey : properties.stringPropertyNames()) {
+      String val = properties.getProperty(propKey);
+      String confKey = clientPropsToAccumuloConf.get(propKey);
+      if (propKey.equals(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey())) {
+        confKey = Property.GENERAL_KERBEROS_PRINCIPAL.getKey();
+        // Avoid providing a realm since we don't know what it is...
+        val += "/_HOST@" + SaslConnectionParams.getDefaultRealm();
+      }
+      convertedProps.setProperty(confKey == null ? propKey : confKey, val);
+      if (propKey.equals(ClientProperty.SSL_KEYSTORE_PATH.getKey())) {
+        convertedProps.setProperty(Property.INSTANCE_RPC_SSL_CLIENT_AUTH.getKey(), "true");
+      }
+    }
 
     final AccumuloConfiguration defaults = DefaultConfiguration.getInstance();
 
@@ -160,7 +111,7 @@ public class ClientConfConverter {
 
       @Override
       public boolean isPropertySet(Property prop) {
-        return config.containsKey(prop.getKey());
+        return convertedProps.containsKey(prop.getKey());
       }
 
       @Override
@@ -181,51 +132,15 @@ public class ClientConfConverter {
             }
           }
         }
-
-        if (config.containsKey(key)) {
-          return config.getString(key);
-        } else {
-          // Reconstitute the server kerberos property from the client config
-          if (property == Property.GENERAL_KERBEROS_PRINCIPAL) {
-            if (config.containsKey(
-                org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-                    .getKey())) {
-              // Avoid providing a realm since we don't know what it is...
-              return config.getString(
-                  org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-                      .getKey())
-                  + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
-            }
-          }
-          return defaults.get(property);
-        }
+        return convertedProps.getProperty(key, defaults.get(property));
       }
 
       @Override
       public void getProperties(Map<String,String> props, Predicate<String> filter) {
         defaults.getProperties(props, filter);
-
-        Iterator<String> keyIter = config.getKeys();
-        while (keyIter.hasNext()) {
-          String key = keyIter.next();
+        for (String key : convertedProps.stringPropertyNames()) {
           if (filter.test(key)) {
-            props.put(key, config.getString(key));
-          }
-        }
-
-        // Two client props that don't exist on the server config. Client doesn't need to know about
-        // the Kerberos instance from the principle, but servers do
-        // Automatically reconstruct the server property when converting a client config.
-        if (props.containsKey(
-            org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-                .getKey())) {
-          final String serverPrimary = props.remove(
-              org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-                  .getKey());
-          if (filter.test(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
-            // Use the _HOST expansion. It should be unnecessary in "client land".
-            props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(),
-                serverPrimary + "/_HOST@" + SaslConnectionParams.getDefaultRealm());
+            props.put(key, convertedProps.getProperty(key));
           }
         }
 
@@ -247,8 +162,8 @@ public class ClientConfConverter {
       }
 
       private org.apache.hadoop.conf.Configuration getHadoopConfiguration() {
-        String credProviderPaths =
-            config.getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+        String credProviderPaths = convertedProps
+            .getProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
         if (credProviderPaths != null && !credProviderPaths.isEmpty()) {
           org.apache.hadoop.conf.Configuration hConf = new org.apache.hadoop.conf.Configuration();
           HadoopCredentialProvider.setPath(hConf, credProviderPaths);
@@ -259,40 +174,7 @@ public class ClientConfConverter {
 
         return null;
       }
+
     };
-  }
-
-  @SuppressWarnings("deprecation")
-  public static org.apache.accumulo.core.client.ClientConfiguration
-      toClientConf(AccumuloConfiguration conf) {
-    org.apache.accumulo.core.client.ClientConfiguration clientConf =
-        org.apache.accumulo.core.client.ClientConfiguration.create();
-
-    // Servers will only have the full principal in their configuration -- parse the
-    // primary and realm from it.
-    final String serverPrincipal = conf.get(Property.GENERAL_KERBEROS_PRINCIPAL);
-
-    final KerberosName krbName;
-    if (serverPrincipal != null && !serverPrincipal.isEmpty()) {
-      krbName = new KerberosName(serverPrincipal);
-      clientConf.setProperty(
-          org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY,
-          krbName.getServiceName());
-    }
-
-    HashSet<String> clientKeys = new HashSet<>();
-    for (org.apache.accumulo.core.client.ClientConfiguration.ClientProperty prop : org.apache.accumulo.core.client.ClientConfiguration.ClientProperty
-        .values()) {
-      clientKeys.add(prop.getKey());
-    }
-
-    String key;
-    for (Map.Entry<String,String> entry : conf) {
-      key = entry.getKey();
-      if (clientKeys.contains(key)) {
-        clientConf.setProperty(key, entry.getValue());
-      }
-    }
-    return clientConf;
   }
 }

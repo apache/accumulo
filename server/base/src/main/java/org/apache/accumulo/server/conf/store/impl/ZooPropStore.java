@@ -38,8 +38,6 @@ import org.apache.accumulo.server.conf.store.PropCache;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
-import org.apache.accumulo.server.conf.store.SystemPropKey;
-import org.apache.accumulo.server.conf.util.ConfigTransformer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -178,11 +176,6 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     var props = cache.get(propStoreKey);
     if (props != null) {
       return props;
-    }
-
-    if (propStoreKey instanceof SystemPropKey) {
-      return new ConfigTransformer(zrw, codec, propStoreWatcher).transform(propStoreKey,
-          propStoreKey.getPath(), false);
     }
 
     throw new IllegalStateException(

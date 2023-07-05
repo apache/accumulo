@@ -19,8 +19,7 @@
 package org.apache.accumulo.server.tablets;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-
-import java.security.SecureRandom;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.FastFormat;
@@ -38,7 +37,6 @@ public class UniqueNameAllocator {
   private long next = 0;
   private long maxAllocated = 0;
   private String nextNamePath;
-  private static final SecureRandom random = new SecureRandom();
 
   public UniqueNameAllocator(ServerContext context) {
     this.context = context;
@@ -48,7 +46,7 @@ public class UniqueNameAllocator {
   public synchronized String getNextName() {
 
     while (next >= maxAllocated) {
-      final int allocate = 100 + random.nextInt(100);
+      final int allocate = 100 + RANDOM.get().nextInt(100);
 
       try {
         byte[] max = context.getZooReaderWriter().mutateExisting(nextNamePath, currentValue -> {
@@ -60,7 +58,7 @@ public class UniqueNameAllocator {
         next = maxAllocated - allocate;
 
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
 

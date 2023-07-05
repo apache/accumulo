@@ -24,9 +24,9 @@ import java.util.Objects;
 
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
-import org.apache.accumulo.core.util.HostAndPort;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.net.HostAndPort;
 
 @VisibleForTesting
 public class ThriftTransportKey {
@@ -54,7 +54,7 @@ public class ThriftTransportKey {
     this.saslParams = saslParams;
     if (saslParams != null && sslParams != null) {
       // TSasl and TSSL transport factories don't play nicely together
-      throw new RuntimeException("Cannot use both SSL and SASL thrift transports");
+      throw new IllegalArgumentException("Cannot use both SSL and SASL thrift transports");
     }
     this.hash = Objects.hash(server, timeout, sslParams, saslParams);
   }

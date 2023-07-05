@@ -46,7 +46,6 @@ import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -69,6 +68,7 @@ import org.apache.thrift.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.net.HostAndPort;
 import com.google.common.primitives.Ints;
 
 /**
@@ -405,7 +405,7 @@ public class TServerUtils {
       socketEnabledProtocols.retainAll(Arrays.asList(protocols));
       if (socketEnabledProtocols.isEmpty()) {
         // Bad configuration...
-        throw new RuntimeException(
+        throw new IllegalStateException(
             "No available protocols available for secure socket. Available protocols: "
                 + Arrays.toString(sslServerSock.getEnabledProtocols()) + ", allowed protocols: "
                 + Arrays.toString(protocols));
@@ -492,7 +492,7 @@ public class TServerUtils {
           + " the Accumulo hosts files (e.g. managers, tservers) are the FQDN for"
           + " each host when using SASL.", fqdn, hostname);
       transport.close();
-      throw new RuntimeException("SASL requires that the address the thrift"
+      throw new IllegalStateException("SASL requires that the address the thrift"
           + " server listens on is the same as the FQDN for this host");
     }
 

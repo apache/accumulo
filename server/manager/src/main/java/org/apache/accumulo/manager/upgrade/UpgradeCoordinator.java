@@ -18,9 +18,12 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
+import static org.apache.accumulo.server.AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -51,7 +54,7 @@ public class UpgradeCoordinator {
 
   public enum UpgradeStatus {
     /**
-     * This signifies the upgrade status is in the process of being determined. Its best to assume
+     * This signifies the upgrade status is in the process of being determined. It is best to assume
      * nothing is upgraded when seeing this.
      */
     INITIAL {
@@ -104,15 +107,13 @@ public class UpgradeCoordinator {
     public abstract boolean isParentLevelUpgraded(KeyExtent extent);
   }
 
-  private static Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);
+  private static final Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);
 
   private int currentVersion;
-
-  // unmodifiable map of "current version" -> upgrader to next version.
+  // map of "current version" -> upgrader to next version.
   // Sorted so upgrades execute in order from the oldest supported data version to current
-  private Map<Integer,Upgrader> upgraders =
-      Collections.unmodifiableMap(new TreeMap<>(Map.of(AccumuloDataVersion.SHORTEN_RFILE_KEYS,
-          new Upgrader8to9(), AccumuloDataVersion.CRYPTO_CHANGES, new Upgrader9to10())));
+  private final Map<Integer,Upgrader> upgraders = Collections
+      .unmodifiableMap(new TreeMap<>(Map.of(ROOT_TABLET_META_CHANGES, new Upgrader10to11())));
 
   private volatile UpgradeStatus status;
 
@@ -144,9 +145,7 @@ public class UpgradeCoordinator {
         "Not currently in a suitable state to do zookeeper upgrade %s", status);
 
     try {
-      int cv = context.getServerDirs()
-          .getAccumuloPersistentVersion(context.getVolumeManager().getFirst());
-      ServerContext.ensureDataVersionCompatible(cv);
+      int cv = AccumuloDataVersion.getCurrentVersion(context);
       this.currentVersion = cv;
 
       if (cv == AccumuloDataVersion.get()) {
@@ -158,8 +157,12 @@ public class UpgradeCoordinator {
         abortIfFateTransactions(context);
 
         for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
-          log.info("Upgrading Zookeeper from data version {}", v);
-          upgraders.get(v).upgradeZookeeper(context);
+          log.info("Upgrading Zookeeper - current version {} as step towards target version {}", v,
+              AccumuloDataVersion.get());
+          var upgrader = upgraders.get(v);
+          Objects.requireNonNull(upgrader,
+              "upgrade ZooKeeper: failed to find upgrader for version " + currentVersion);
+          upgrader.upgradeZookeeper(context);
         }
       }
 
@@ -185,14 +188,23 @@ public class UpgradeCoordinator {
           .submit(() -> {
             try {
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
-                log.info("Upgrading Root from data version {}", v);
+                log.info("Upgrading Root - current version {} as step towards target version {}", v,
+                    AccumuloDataVersion.get());
+                var upgrader = upgraders.get(v);
+                Objects.requireNonNull(upgrader,
+                    "upgrade root: failed to find root upgrader for version " + currentVersion);
                 upgraders.get(v).upgradeRoot(context);
               }
 
               setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
-                log.info("Upgrading Metadata from data version {}", v);
+                log.info(
+                    "Upgrading Metadata - current version {} as step towards target version {}", v,
+                    AccumuloDataVersion.get());
+                var upgrader = upgraders.get(v);
+                Objects.requireNonNull(upgrader,
+                    "upgrade metadata: failed to find upgrader for version " + currentVersion);
                 upgraders.get(v).upgradeMetadata(context);
               }
 
@@ -243,13 +255,13 @@ public class UpgradeCoordinator {
    * need to make sure there are no queued transactions from a previous version before continuing an
    * upgrade. The status of the operations is irrelevant; those in SUCCESSFUL status cause the same
    * problem as those just queued.
-   *
+   * <p>
    * Note that the Manager should not allow write access to Fate until after all upgrade steps are
    * complete.
-   *
+   * <p>
    * Should be called as a guard before performing any upgrade steps, after determining that an
    * upgrade is needed.
-   *
+   * <p>
    * see ACCUMULO-2519
    */
   @SuppressFBWarnings(value = "DM_EXIT",
@@ -262,7 +274,7 @@ public class UpgradeCoordinator {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."
             + " You can start the tservers and then use the shell to delete completed "
-            + " transactions. If there are uncomplete transactions, you will need to roll"
+            + " transactions. If there are incomplete transactions, you will need to roll"
             + " back and fix those issues. Please see the following page for more information: "
             + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
       }

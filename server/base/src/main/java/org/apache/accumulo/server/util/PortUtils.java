@@ -49,6 +49,6 @@ public class PortUtils {
       count++;
     }
 
-    throw new RuntimeException("Unable to find port");
+    throw new IllegalStateException("Unable to find port");
   }
 }

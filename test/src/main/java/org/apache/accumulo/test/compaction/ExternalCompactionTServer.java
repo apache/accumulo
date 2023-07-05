@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import org.apache.accumulo.server.ServerOpts;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.TabletClientHandler;
 import org.apache.accumulo.tserver.TabletServer;
@@ -26,7 +26,7 @@ import org.apache.accumulo.tserver.WriteTracker;
 
 public class ExternalCompactionTServer extends TabletServer {
 
-  ExternalCompactionTServer(ServerOpts opts, String[] args) {
+  ExternalCompactionTServer(ConfigOpts opts, String[] args) {
     super(opts, args);
   }
 
@@ -38,7 +38,7 @@ public class ExternalCompactionTServer extends TabletServer {
 
   public static void main(String[] args) throws Exception {
     try (
-        ExternalCompactionTServer tserver = new ExternalCompactionTServer(new ServerOpts(), args)) {
+        ExternalCompactionTServer tserver = new ExternalCompactionTServer(new ConfigOpts(), args)) {
       tserver.runServer();
     }
 

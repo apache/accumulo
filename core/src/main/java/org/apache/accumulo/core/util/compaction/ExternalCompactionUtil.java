@@ -33,22 +33,25 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooSession;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 public class ExternalCompactionUtil {
 
@@ -101,13 +104,13 @@ public class ExternalCompactionUtil {
     try {
       var zk = ZooSession.getAnonymousSession(context.getZooKeepers(),
           context.getZooKeepersSessionTimeOut());
-      byte[] address = ServiceLock.getLockData(zk, ServiceLock.path(lockPath));
-      if (null == address) {
+      Optional<ServiceLockData> sld = ServiceLock.getLockData(zk, ServiceLock.path(lockPath));
+      if (sld.isEmpty()) {
         return Optional.empty();
       }
-      return Optional.of(HostAndPort.fromString(new String(address)));
+      return Optional.ofNullable(sld.orElseThrow().getAddress(ThriftService.COORDINATOR));
     } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -141,10 +144,10 @@ public class ExternalCompactionUtil {
 
       return queuesAndAddresses;
     } catch (KeeperException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -245,7 +248,7 @@ public class ExternalCompactionUtil {
           results.add(new RunningCompaction(job, compactorAddress, rcf.getQueue()));
         }
       } catch (InterruptedException | ExecutionException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     });
     return results;
@@ -274,7 +277,7 @@ public class ExternalCompactionUtil {
           runningIds.add(ceid);
         }
       } catch (InterruptedException | ExecutionException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     });
 

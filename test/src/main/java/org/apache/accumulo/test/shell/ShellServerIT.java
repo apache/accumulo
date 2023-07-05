@@ -19,7 +19,8 @@
 package org.apache.accumulo.test.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,7 +45,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
@@ -69,6 +69,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
@@ -77,7 +78,6 @@ import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.compaction.TestCompactionStrategy;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
@@ -102,10 +102,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Tag(MINI_CLUSTER_ONLY)
 @Tag(SUNNY_DAY)
 public class ShellServerIT extends SharedMiniClusterBase {
-
-  @SuppressWarnings("removal")
-  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
-      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
 
   private static final Logger log = LoggerFactory.getLogger(ShellServerIT.class);
 
@@ -256,24 +252,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  @Test
-  public void setscaniterDeletescaniter() throws Exception {
-    final String table = getUniqueNames(1)[0];
-
-    // setscaniter, deletescaniter
-    ts.exec("createtable " + table);
-    ts.exec("insert a cf cq 1");
-    ts.exec("insert a cf cq 1");
-    ts.exec("insert a cf cq 1");
-    ts.input.set("true\n\n\n\nSTRING");
-    ts.exec("setscaniter -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -n name", true);
-    ts.exec("scan", true, "3", true);
-    ts.exec("deletescaniter -n name", true);
-    ts.exec("scan", true, "1", true);
-    ts.exec("deletetable -f " + table);
-
-  }
-
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void execfile() throws Exception {
@@ -320,22 +298,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // for some reason, there's a bit of fluctuation
     assertMatches(o, ".*[1-9][0-9][0-9]\\s\\[" + table + "]\\n");
     ts.exec("deletetable -f " + table);
-  }
-
-  /*
-   * This test should be deleted when the debug command is removed
-   */
-  @Deprecated(since = "2.0.0")
-  @Test
-  public void debug() throws Exception {
-    String expectMsg = "The debug command is deprecated";
-    ts.exec("debug", false, expectMsg);
-    ts.exec("debug on", false, expectMsg);
-    ts.exec("debug", false, expectMsg);
-    ts.exec("debug off", false, expectMsg);
-    ts.exec("debug", false, expectMsg);
-    ts.exec("debug debug", false, expectMsg);
-    ts.exec("debug debug debug", false, expectMsg);
   }
 
   @Test
@@ -575,7 +537,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         ts.exec("getauths", true, "bar", true);
         passed = true;
       } catch (AssertionError | Exception e) {
-        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+        Thread.sleep(500);
       }
     }
     assertTrue(passed, "Could not successfully see updated authoriations");
@@ -642,10 +604,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void classpath() throws Exception {
-    // classpath
-    ts.exec("classpath", true,
-        "Level: 2, Name: app, class: jdk.internal.loader.ClassLoaders$AppClassLoader: configuration not inspectable",
-        true);
+    final String javaClassPath = System.getProperty("java.class.path");
+
+    // capture classpath from the shell command
+    final String result = ts.exec("classpath", true);
+
+    // for unit tests the classpath should match what the shell returned
+    Arrays.stream(javaClassPath.split(File.pathSeparator))
+        .forEach(classPathUri -> assertTrue(result.contains(classPathUri)));
   }
 
   @Test
@@ -786,14 +752,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("compact -w");
     assertEquals(1, countFiles(tableId));
 
-    // test compaction strategy
-    ts.exec("insert z 1 2 v900");
-    ts.exec("compact -w -s " + TestCompactionStrategy.class.getName()
-        + " -sc inputPrefix=F,dropPrefix=A");
-    assertEquals(1, countFiles(tableId));
-    ts.exec("scan", true, "v900", true);
-    ts.exec("scan", true, "v901", false);
-
     ts.exec("deletetable -f " + table);
   }
 
@@ -836,7 +794,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // create two large files
     StringBuilder sb = new StringBuilder("insert b v q ");
-    random.ints(10_000, 0, 26).forEach(i -> sb.append('a' + i));
+    RANDOM.get().ints(10_000, 0, 26).forEach(i -> sb.append('a' + i));
 
     ts.exec(sb.toString());
     ts.exec("flush -w");
@@ -908,18 +866,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("compact -t " + clone2 + " -w --sf-no-sample");
 
     assertEquals(3, countFiles(clone2Id));
-  }
-
-  @Test
-  public void testCompactionSelectionAndStrategy() throws Exception {
-
-    final String table = getUniqueNames(1)[0];
-
-    ts.exec("createtable " + table);
-
-    // expect this to fail
-    ts.exec("compact -t " + table + " -w --sf-ename F.* -s "
-        + TestCompactionStrategy.class.getName() + " -sc inputPrefix=F,dropPrefix=A", false);
   }
 
   @Test
@@ -1060,7 +1006,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("constraint -l -t " + table, true, "VisibilityConstraint=2", true);
     ts.exec("constraint -t " + table + " -d 2", true, "Removed constraint 2 from table " + table);
     // wait for zookeeper updates to propagate
-    sleepUninterruptibly(1, TimeUnit.SECONDS);
+    Thread.sleep(SECONDS.toMillis(1));
     ts.exec("constraint -l -t " + table, true, "VisibilityConstraint=2", false);
     ts.exec("deletetable -f " + table);
   }
@@ -1326,23 +1272,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("history", true, "deletetable -f " + table, true);
   }
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
-  @Test
-  public void importDirectoryOld() throws Exception {
-    final String table = getUniqueNames(1)[0];
-    Configuration conf = new Configuration();
-    FileSystem fs = FileSystem.get(conf);
-    File errorsDir = new File(rootPath, "errors_" + table);
-    assertTrue(errorsDir.mkdir());
-    fs.mkdirs(new Path(errorsDir.toString()));
-    File importDir = createRFiles(conf, fs, table);
-    ts.exec("createtable " + table, true);
-    ts.exec("importdirectory " + importDir + " " + errorsDir + " true", true);
-    ts.exec("scan -r 00000000", true, "00000000", true);
-    ts.exec("scan -r 00000099", true, "00000099", true);
-    ts.exec("deletetable -f " + table);
-  }
-
   @Test
   public void importDirectory() throws Exception {
     final String table = getUniqueNames(1)[0];
@@ -1386,10 +1315,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String odd = new File(importDir, "odd.rf").toString();
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(even, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(aconf).build();
+        .forFile(UnreferencedTabletFile.of(fs, new Path(even)), fs, conf,
+            NoCryptoServiceFactory.NONE)
+        .withTableConfiguration(aconf).build();
     evenWriter.startDefaultLocalityGroup();
     FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(odd, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(aconf).build();
+        .forFile(UnreferencedTabletFile.of(fs, new Path(odd)), fs, conf,
+            NoCryptoServiceFactory.NONE)
+        .withTableConfiguration(aconf).build();
     oddWriter.startDefaultLocalityGroup();
     long timestamp = System.currentTimeMillis();
     Text cf = new Text("cf");
@@ -1410,23 +1343,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void info() throws Exception {
     ts.exec("info", true, Constants.VERSION, true);
-  }
-
-  @Test
-  public void interpreter() throws Exception {
-    final String table = getUniqueNames(1)[0];
-
-    ts.exec("createtable " + table, true);
-    ts.exec("interpreter -l", true, "HexScan", false);
-    ts.exec("insert \\x02 cf cq value", true);
-    ts.exec("scan -b 02", true, "value", false);
-    ts.exec("interpreter -i org.apache.accumulo.core.util.interpret.HexScanInterpreter", true);
-    // Need to allow time for this to propagate through zoocache/zookeeper
-    sleepUninterruptibly(3, TimeUnit.SECONDS);
-
-    ts.exec("interpreter -l", true, "HexScan", true);
-    ts.exec("scan -b 02", true, "value", true);
-    ts.exec("deletetable -f " + table, true);
   }
 
   @Test
@@ -1495,7 +1411,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       if (ts.output.get().split("\n").length == 3) {
         break;
       }
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(1));
 
     }
     assertEquals(2, ts.output.get().split("\n").length);
@@ -1576,7 +1492,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
             log.info("Ignoring scan because of wrong table: {}", currentScan);
           }
         }
-        sleepUninterruptibly(300, TimeUnit.MILLISECONDS);
+        Thread.sleep(300);
       }
       thread.join();
 
@@ -1607,14 +1523,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testPerTableClasspathLegacyJar() throws Exception {
-    final String table = getUniqueNames(1)[0];
-    File fooConstraintJar =
-        initJar("/org/apache/accumulo/test/FooConstraint.jar", "FooContraint", rootPath);
-    verifyPerTableClasspath(table, fooConstraintJar);
-  }
-
-  @Test
   public void testPerTableClasspath_2_1_Jar() throws Exception {
     final String table = getUniqueNames(1)[0];
     File fooConstraintJar =
@@ -1623,18 +1531,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   public void verifyPerTableClasspath(final String table, final File fooConstraintJar)
-      throws IOException {
+      throws IOException, InterruptedException {
 
     File fooFilterJar = initJar("/org/apache/accumulo/test/FooFilter.jar", "FooFilter", rootPath);
 
-    ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI()
-        + "," + fooConstraintJar.toURI(), true);
+    String context = fooFilterJar.toURI() + "," + fooConstraintJar.toURI();
 
     ts.exec("createtable " + table, true);
-    ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=cx1",
+    ts.exec(
+        "config -t " + table + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=" + context,
         true);
 
-    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+    Thread.sleep(250);
 
     // We can't use the setiter command as Filter implements OptionDescriber which
     // forces us to enter more input that I don't know how to input
@@ -1642,11 +1550,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("config -t " + table + " -s " + Property.TABLE_ITERATOR_PREFIX.getKey()
         + "scan.foo=10,org.apache.accumulo.test.FooFilter");
 
-    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+    Thread.sleep(250);
 
     ts.exec("insert foo f q v", true);
 
-    sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+    Thread.sleep(250);
 
     ts.exec("scan -np", true, "foo", false);
 
@@ -1660,7 +1568,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert ok foo q v", true);
 
     ts.exec("deletetable -f " + table, true);
-    ts.exec("config -d " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
 
   }
 
@@ -1807,11 +1714,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.contains("class not found"));
     make10();
     setupFakeContextPath();
-    // Add the context to the table so that setiter works.
-    result = ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "="
-        + FAKE_CONTEXT_CLASSPATH);
-    assertEquals("root@miniInstance " + tableName + "> config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY
-        + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH + "\n", result);
 
     result = ts.exec("config -t " + tableName + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey()
         + "=" + FAKE_CONTEXT);
@@ -1842,11 +1744,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.contains("value"));
 
     setupRealContextPath();
-    // Define a new classloader context, but don't set it on the table
-    result = ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "="
-        + REAL_CONTEXT_CLASSPATH);
-    assertEquals("root@miniInstance " + tableName + "> config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY
-        + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH + "\n", result);
+
     // Override the table classloader context with the REAL implementation of
     // ValueReversingIterator, which does reverse the value.
     result = ts.exec("scan -pn baz -np -b row1 -e row1 -cc " + REAL_CONTEXT);
@@ -1942,12 +1840,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     ts.exec("createtable " + table, true);
 
-    // validate -t option is used.
-    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), true);
-
-    // validate -t option is used.
-    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), true);
-
     // validate -t and -i option is used with new bulk import.
     // This will fail as there are no files in the import directory
     ts.exec(String.format("importdirectory -t %s %s false", table, importDir), false);
@@ -1956,12 +1848,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // This should pass even if no files in import directory. Empty import dir is ignored.
     ts.exec(String.format("importdirectory -t %s %s false -i", table, importDir), true);
 
-    // validate original cmd format.
-    ts.exec(String.format("table %s", table), true);
-    ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), true);
-
     // expect fail - invalid command,
-    ts.exec("importdirectory false", false, "Expected 2 or 3 arguments. There was 1.");
+    ts.exec("importdirectory false", false, "Expected 2 arguments. There was 1.");
 
     // expect fail - original cmd without a table.
     ts.exec("notable", true);
@@ -1969,12 +1857,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
         "java.lang.IllegalStateException: Not in a table context.");
   }
 
-  private static final String FAKE_CONTEXT = "FAKE";
-  private static final String FAKE_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir")
-      + "/target/" + ShellServerIT.class.getSimpleName() + "-fake-iterators.jar";
-  private static final String REAL_CONTEXT = "REAL";
-  private static final String REAL_CONTEXT_CLASSPATH = "file://" + System.getProperty("user.dir")
-      + "/target/" + ShellServerIT.class.getSimpleName() + "-real-iterators.jar";
+  private static final String FAKE_CONTEXT = "file://" + System.getProperty("user.dir") + "/target/"
+      + ShellServerIT.class.getSimpleName() + "-fake-iterators.jar";
+  private static final String REAL_CONTEXT = "file://" + System.getProperty("user.dir") + "/target/"
+      + ShellServerIT.class.getSimpleName() + "-real-iterators.jar";
   private static final String VALUE_REVERSING_ITERATOR =
       "org.apache.accumulo.test.functional.ValueReversingIterator";
   private static final String SUMMING_COMBINER_ITERATOR =
@@ -1987,7 +1873,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Path baseDir = new Path(System.getProperty("user.dir"));
     Path targetDir = new Path(baseDir, "target");
     Path jarPath = new Path(targetDir, "TestJar-Iterators.jar");
-    Path dstPath = new Path(REAL_CONTEXT_CLASSPATH);
+    Path dstPath = new Path(REAL_CONTEXT);
     FileSystem fs = SharedMiniClusterBase.getCluster().getFileSystem();
     fs.copyFromLocalFile(jarPath, dstPath);
   }
@@ -1997,7 +1883,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Path baseDir = new Path(System.getProperty("user.dir"));
     Path jarPath = new Path(baseDir + "/target/classes/org/apache/accumulo/test",
         "ShellServerIT-iterators.jar");
-    Path dstPath = new Path(FAKE_CONTEXT_CLASSPATH);
+    Path dstPath = new Path(FAKE_CONTEXT);
     FileSystem fs = SharedMiniClusterBase.getCluster().getFileSystem();
     fs.copyFromLocalFile(jarPath, dstPath);
   }
@@ -2201,61 +2087,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertNotContains(output, "c:f3");
     // check that there are two files, with none having extra summary info
     assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]0.*$.*");
-  }
-
-  @Test
-  public void testFateCommandWithSlowCompaction() throws Exception {
-    final String table = getUniqueNames(1)[0];
-
-    String orgProps = System.getProperty("accumulo.properties");
-
-    System.setProperty("accumulo.properties",
-        "file://" + getCluster().getConfig().getAccumuloPropsFile().getCanonicalPath());
-    // compact
-    ts.exec("createtable " + table);
-
-    // setup SlowIterator to sleep for 10 seconds
-    ts.exec("config -t " + table
-        + " -s table.iterator.majc.slow=1,org.apache.accumulo.test.functional.SlowIterator");
-    ts.exec("config -t " + table + " -s table.iterator.majc.slow.opt.sleepTime=10000");
-
-    // make two files
-    ts.exec("insert a1 b c v_a1");
-    ts.exec("insert a2 b c v_a2");
-    ts.exec("flush -w");
-    ts.exec("insert x1 b c v_x1");
-    ts.exec("insert x2 b c v_x2");
-    ts.exec("flush -w");
-
-    // no transactions running
-    ts.exec("fate -print", true, "0 transactions", true);
-
-    // merge two files into one
-    ts.exec("compact -t " + table);
-    Thread.sleep(1_000);
-    // start 2nd transaction
-    ts.exec("compact -t " + table);
-    Thread.sleep(3_000);
-
-    // 2 compactions should be running so parse the output to get one of the transaction ids
-    log.info("Calling fate print for table = {}", table);
-    String result = ts.exec("fate -print", true, "txid:", true);
-    String[] resultParts = result.split("txid: ");
-    String[] parts = resultParts[1].split(" ");
-    String txid = parts[0];
-    // test filters
-    ts.exec("fate -print -t IN_PROGRESS", true, "2 transactions", true);
-    ts.exec("fate -print " + txid + " -t IN_PROGRESS", true, "1 transactions", true);
-    ts.exec("fate -print " + txid + " -t FAILED", true, "0 transactions", true);
-    ts.exec("fate -print -t NEW", true, "0 transactions", true);
-    ts.exec("fate -print 1234", true, "0 transactions", true);
-    ts.exec("fate -print FATE[aaa] 1 2 3", true, "0 transactions", true);
-
-    ts.exec("deletetable -f " + table);
-
-    if (orgProps != null) {
-      System.setProperty("accumulo.properties", orgProps);
-    }
   }
 
 }

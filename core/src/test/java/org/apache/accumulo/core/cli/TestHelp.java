@@ -31,7 +31,7 @@ public class TestHelp {
 
     @Override
     public void exit(int status) {
-      throw new RuntimeException(Integer.toString(status));
+      throw new IllegalStateException(Integer.toString(status));
     }
   }
 

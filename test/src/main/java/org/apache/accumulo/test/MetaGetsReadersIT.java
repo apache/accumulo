@@ -18,14 +18,13 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -87,7 +86,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 50000; i++) {
           byte[] row = new byte[100];
-          random.nextBytes(row);
+          RANDOM.get().nextBytes(row);
           Mutation m = new Mutation(row);
           m.put("", "", "");
           bw.addMutation(m);
@@ -99,7 +98,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
       t1.start();
       Thread t2 = slowScan(c, tableName, stop);
       t2.start();
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      Thread.sleep(500);
       long now = System.currentTimeMillis();
 
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {

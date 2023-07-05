@@ -71,13 +71,12 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.scan.ScanServerAttempt;
 import org.apache.accumulo.core.spi.scan.ScanServerSelections;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
+import org.apache.accumulo.core.tabletscan.thrift.ScanServerBusyException;
+import org.apache.accumulo.core.tabletscan.thrift.TSampleNotPresentException;
+import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
-import org.apache.accumulo.core.tabletserver.thrift.ScanServerBusyException;
-import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
-import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.thrift.TApplicationException;
@@ -85,6 +84,8 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value>> {
 
@@ -158,17 +159,15 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           log.warn("Failed to add Batch Scan result", e);
         }
         fatalException = e;
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
 
       }
     };
 
     try {
       lookup(ranges, rr);
-    } catch (RuntimeException re) {
-      throw re;
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to create iterator", e);
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+      throw new IllegalStateException("Failed to create iterator", e);
     }
   }
 
@@ -194,7 +193,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           if (fatalException instanceof RuntimeException) {
             throw (RuntimeException) fatalException;
           } else {
-            throw new RuntimeException(fatalException);
+            throw new IllegalStateException(fatalException);
           }
         }
 
@@ -205,13 +204,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               + " so that it can be closed when this Iterator is exhausted. Not"
               + " retaining a reference to the BatchScanner guarantees that you are"
               + " leaking threads in your client JVM.", shortMsg);
-          throw new RuntimeException(shortMsg + " Ensure proper handling of the BatchScanner.");
+          throw new IllegalStateException(
+              shortMsg + " Ensure proper handling of the BatchScanner.");
         }
 
         batchIterator = batch.iterator();
         return batch != LAST_BATCH;
       } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
   }
@@ -284,7 +284,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         try {
           retry.waitForNextAttempt(log, "binRanges retry failures");
         } catch (InterruptedException e) {
-          throw new RuntimeException(e);
+          throw new IllegalStateException(e);
         }
 
       }

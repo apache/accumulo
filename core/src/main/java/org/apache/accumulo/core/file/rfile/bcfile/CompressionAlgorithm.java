@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map.Entry;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.spi.file.rfile.compression.CompressionAlgorithmConfiguration;
@@ -41,9 +40,8 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Maps;
 
 /**
@@ -113,12 +111,8 @@ public class CompressionAlgorithm extends Configured {
    * Guava cache to have a limited factory pattern defined in the Algorithm enum.
    */
   private static LoadingCache<Entry<CompressionAlgorithm,Integer>,CompressionCodec> codecCache =
-      CacheBuilder.newBuilder().maximumSize(25).build(new CacheLoader<>() {
-        @Override
-        public CompressionCodec load(Entry<CompressionAlgorithm,Integer> key) {
-          return key.getKey().createNewCodec(key.getValue());
-        }
-      });
+      Caffeine.newBuilder().maximumSize(25)
+          .build(key -> key.getKey().createNewCodec(key.getValue()));
 
   // Data input buffer size to absorb small reads from application.
   protected static final int DATA_IBUF_SIZE = 1024;
@@ -170,11 +164,7 @@ public class CompressionAlgorithm extends Configured {
     // If the default buffer size is not being used, pull from the loading cache.
     if (bufferSize != defaultBufferSize) {
       Entry<CompressionAlgorithm,Integer> sizeOpt = Maps.immutableEntry(algorithm, bufferSize);
-      try {
-        codec = codecCache.get(sizeOpt);
-      } catch (ExecutionException e) {
-        throw new IOException(e);
-      }
+      codec = codecCache.get(sizeOpt);
     }
     CompressionInputStream cis = codec.createInputStream(stream, decompressor);
     return new BufferedInputStream(cis, DATA_IBUF_SIZE);

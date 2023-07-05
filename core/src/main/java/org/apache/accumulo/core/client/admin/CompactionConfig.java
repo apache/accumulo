@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.client.admin;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.accumulo.core.clientImpl.CompactionStrategyConfigUtil.DEFAULT_STRATEGY;
 
 import java.util.Collections;
 import java.util.List;
@@ -29,7 +28,6 @@ import java.util.function.BooleanSupplier;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
-import org.apache.accumulo.core.clientImpl.CompactionStrategyConfigUtil;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.hadoop.io.Text;
 
@@ -40,7 +38,6 @@ import com.google.common.base.Preconditions;
  *
  * @since 1.7.0
  */
-@SuppressWarnings("removal")
 public class CompactionConfig {
 
   private Text start = null;
@@ -48,7 +45,6 @@ public class CompactionConfig {
   private boolean flush = true;
   private boolean wait = true;
   private List<IteratorSetting> iterators = Collections.emptyList();
-  private CompactionStrategyConfig compactionStrategy = DEFAULT_STRATEGY;
   private Map<String,String> hints = Map.of();
   private PluginConfig selectorConfig = UserCompactionUtils.DEFAULT_SELECTOR;
   private PluginConfig configurerConfig = UserCompactionUtils.DEFAULT_CONFIGURER;
@@ -144,35 +140,6 @@ public class CompactionConfig {
   }
 
   /**
-   * @param csConfig configures the strategy that will be used by each tablet to select files. If no
-   *        strategy is set, then all files will be compacted.
-   * @return this
-   * @deprecated since 2.1.0 use {@link #setSelector(PluginConfig)} and
-   *             {@link #setConfigurer(PluginConfig)} instead. See {@link CompactionStrategyConfig}
-   *             for details about why this was deprecated.
-   */
-  @Deprecated(since = "2.1.0", forRemoval = true)
-  public CompactionConfig setCompactionStrategy(CompactionStrategyConfig csConfig) {
-    requireNonNull(csConfig);
-    Preconditions.checkArgument(!csConfig.getClassName().isBlank());
-    Preconditions.checkState(
-        selectorConfig.getClassName().isEmpty() && configurerConfig.getClassName().isEmpty());
-    this.compactionStrategy = csConfig;
-    return this;
-  }
-
-  /**
-   * @return The previously set compaction strategy. Defaults to a configuration of
-   *         org.apache.accumulo.tserver.compaction.EverythingCompactionStrategy which always
-   *         compacts all files.
-   * @deprecated since 2.1.0
-   */
-  @Deprecated(since = "2.1.0", forRemoval = true)
-  public CompactionStrategyConfig getCompactionStrategy() {
-    return compactionStrategy;
-  }
-
-  /**
    * Configure a {@link CompactionSelector} plugin to run for this compaction. Specify the class
    * name and options here.
    *
@@ -180,7 +147,6 @@ public class CompactionConfig {
    * @since 2.1.0
    */
   public CompactionConfig setSelector(PluginConfig selectorConfig) {
-    Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
     Preconditions.checkArgument(!selectorConfig.getClassName().isBlank());
     this.selectorConfig = requireNonNull(selectorConfig);
     return this;
@@ -197,9 +163,6 @@ public class CompactionConfig {
    * @since 2.1.0
    */
   public CompactionConfig setExecutionHints(Map<String,String> hints) {
-    if (!hints.isEmpty()) {
-      Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
-    }
     this.hints = Map.copyOf(hints);
     return this;
   }
@@ -218,7 +181,6 @@ public class CompactionConfig {
    * @since 2.1.0
    */
   public CompactionConfig setConfigurer(PluginConfig configurerConfig) {
-    Preconditions.checkState(compactionStrategy.getClassName().isEmpty());
     this.configurerConfig = configurerConfig;
     return this;
   }
@@ -251,8 +213,6 @@ public class CompactionConfig {
     prefix = append(sb, prefix, () -> !flush, "flush", flush);
     prefix = append(sb, prefix, () -> !wait, "wait", wait);
     prefix = append(sb, prefix, () -> !iterators.isEmpty(), "iterators", iterators);
-    prefix = append(sb, prefix, () -> !CompactionStrategyConfigUtil.isDefault(compactionStrategy),
-        "strategy", compactionStrategy);
     prefix = append(sb, prefix, () -> !UserCompactionUtils.isDefault(selectorConfig), "selector",
         selectorConfig);
     prefix = append(sb, prefix, () -> !UserCompactionUtils.isDefault(configurerConfig),

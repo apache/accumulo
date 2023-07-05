@@ -20,6 +20,7 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -40,8 +41,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.gson.Gson;
 
 /**
  * This class is used to serialize and deserialize root tablet metadata using GSon. The only data
@@ -93,12 +92,11 @@ public class RootTabletMetadata {
     }
   }
 
-  private final Gson gson = new Gson();
   private final Data data;
 
   public RootTabletMetadata(String json) {
     log.trace("Creating root tablet metadata from stored JSON: {}", json);
-    this.data = gson.fromJson(json, Data.class);
+    this.data = GSON.get().fromJson(json, Data.class);
     checkArgument(data.version == VERSION, "Invalid Root Table Metadata JSON version %s",
         data.version);
     data.columnValues.forEach((fam, qualVals) -> {
@@ -164,7 +162,7 @@ public class RootTabletMetadata {
    * @return a JSON representation of the root tablet's data.
    */
   public String toJson() {
-    return gson.toJson(data);
+    return GSON.get().toJson(data);
   }
 
 }

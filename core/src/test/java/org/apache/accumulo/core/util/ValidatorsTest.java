@@ -35,13 +35,6 @@ import org.junit.jupiter.api.Test;
 
 public class ValidatorsTest {
 
-  @SuppressWarnings("deprecation")
-  private static final TableId REPL_TABLE_ID =
-      org.apache.accumulo.core.replication.ReplicationTable.ID;
-  @SuppressWarnings("deprecation")
-  private static final String REPL_TABLE_NAME =
-      org.apache.accumulo.core.replication.ReplicationTable.NAME;
-
   private static <T> void checkNull(Consumer<T> nullConsumer) {
     var e = assertThrows(IllegalArgumentException.class, () -> nullConsumer.accept(null));
     assertTrue(e.getMessage().endsWith("must not be null"));
@@ -62,7 +55,7 @@ public class ValidatorsTest {
   public void test_CAN_CLONE_TABLE() {
     Validator<TableId> v = Validators.CAN_CLONE_TABLE;
     checkNull(v::validate);
-    assertAllValidate(v, List.of(REPL_TABLE_ID, TableId.of("id1")));
+    assertAllValidate(v, List.of(TableId.of("id1")));
     assertAllThrow(v, List.of(RootTable.ID, MetadataTable.ID));
   }
 
@@ -124,14 +117,14 @@ public class ValidatorsTest {
     Validator<String> v = Validators.NOT_BUILTIN_TABLE;
     checkNull(v::validate);
     assertAllValidate(v, List.of("root", "metadata", "user", "ns1.table2"));
-    assertAllThrow(v, List.of(RootTable.NAME, MetadataTable.NAME, REPL_TABLE_NAME));
+    assertAllThrow(v, List.of(RootTable.NAME, MetadataTable.NAME));
   }
 
   @Test
   public void test_NOT_METADATA_TABLE() {
     Validator<String> v = Validators.NOT_METADATA_TABLE;
     checkNull(v::validate);
-    assertAllValidate(v, List.of("root", "metadata", "user", "ns1.table2", REPL_TABLE_NAME));
+    assertAllValidate(v, List.of("root", "metadata", "user", "ns1.table2"));
     assertAllThrow(v, List.of(RootTable.NAME, MetadataTable.NAME));
   }
 
@@ -139,8 +132,7 @@ public class ValidatorsTest {
   public void test_NOT_ROOT_TABLE_ID() {
     Validator<TableId> v = Validators.NOT_ROOT_TABLE_ID;
     checkNull(v::validate);
-    assertAllValidate(v,
-        List.of(TableId.of(""), MetadataTable.ID, REPL_TABLE_ID, TableId.of(" #0(U!$. ")));
+    assertAllValidate(v, List.of(TableId.of(""), MetadataTable.ID, TableId.of(" #0(U!$. ")));
     assertAllThrow(v, List.of(RootTable.ID));
   }
 
@@ -148,7 +140,7 @@ public class ValidatorsTest {
   public void test_VALID_TABLE_ID() {
     Validator<TableId> v = Validators.VALID_TABLE_ID;
     checkNull(v::validate);
-    assertAllValidate(v, List.of(RootTable.ID, MetadataTable.ID, REPL_TABLE_ID, TableId.of("111"),
+    assertAllValidate(v, List.of(RootTable.ID, MetadataTable.ID, TableId.of("111"),
         TableId.of("aaaa"), TableId.of("r2d2")));
     assertAllThrow(v, List.of(TableId.of(""), TableId.of("#0(U!$"), TableId.of(" #0(U!$. "),
         TableId.of("."), TableId.of(" "), TableId.of("C3P0")));

@@ -105,7 +105,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
         context.getPropStore().registerAsListener(TablePropKey.of(context, tableId), changeWatcher);
         var conf =
             new TableConfiguration(context, tableId, getNamespaceConfigurationForTable(tableId));
-        ConfigCheckUtil.validate(conf);
+        ConfigCheckUtil.validate(conf, "table id: " + tableId.toString());
+
         return conf;
       }
       return null;
@@ -117,7 +118,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     try {
       namespaceId = context.getNamespaceId(tableId);
     } catch (TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
     return tableParentConfigs.computeIfAbsent(tableId,
         key -> getNamespaceConfiguration(namespaceId));
@@ -129,7 +130,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       context.getPropStore().registerAsListener(NamespacePropKey.of(context, namespaceId),
           changeWatcher);
       var conf = new NamespaceConfiguration(context, namespaceId, getSystemConfiguration());
-      ConfigCheckUtil.validate(conf);
+      ConfigCheckUtil.validate(conf, "namespace id: " + namespaceId.toString());
       return conf;
     });
   }

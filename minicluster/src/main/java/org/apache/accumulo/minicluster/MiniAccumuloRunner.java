@@ -71,8 +71,6 @@ public class MiniAccumuloRunner {
   private static final String ROOT_PASSWORD_PROP = "rootPassword";
   private static final String SHUTDOWN_PORT_PROP = "shutdownPort";
   private static final String DEFAULT_MEMORY_PROP = "defaultMemory";
-  @Deprecated(since = "2.1.0")
-  private static final String MASTER_MEMORY_PROP = "masterMemory";
   private static final String MANAGER_MEMORY_PROP = "managerMemory";
   private static final String TSERVER_MEMORY_PROP = "tserverMemory";
   private static final String ZOO_KEEPER_MEMORY_PROP = "zooKeeperMemory";
@@ -205,10 +203,6 @@ public class MiniAccumuloRunner {
     if (opts.prop.containsKey(TSERVER_MEMORY_PROP)) {
       setMemoryOnConfig(config, opts.prop.getProperty(TSERVER_MEMORY_PROP),
           ServerType.TABLET_SERVER);
-    }
-    if (opts.prop.containsKey(MASTER_MEMORY_PROP)) {
-      log.warn("{} is deprecated. Use {} instead.", MASTER_MEMORY_PROP, MANAGER_MEMORY_PROP);
-      setMemoryOnConfig(config, opts.prop.getProperty(MASTER_MEMORY_PROP), ServerType.MANAGER);
     }
     if (opts.prop.containsKey(MANAGER_MEMORY_PROP)) {
       setMemoryOnConfig(config, opts.prop.getProperty(MANAGER_MEMORY_PROP), ServerType.MANAGER);

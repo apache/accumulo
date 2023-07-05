@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.STANDALONE_CAPABLE_CLUSTER;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
@@ -70,10 +72,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -152,7 +155,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
               "Using HTTPS since monitor ssl keystore configuration was observed in accumulo configuration");
           SSLContext ctx = SSLContext.getInstance("TLSv1.2");
           TrustManager[] tm = {new TestTrustManager()};
-          ctx.init(new KeyManager[0], tm, random);
+          ctx.init(new KeyManager[0], tm, RANDOM.get());
           SSLContext.setDefault(ctx);
           HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
           HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
@@ -169,14 +172,14 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       var zLockPath =
           ServiceLock.path(ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceId())
               + Constants.ZMANAGER_LOCK);
-      byte[] managerLockData;
+      Optional<ServiceLockData> managerLockData;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
-        if (managerLockData != null) {
+        if (managerLockData.isPresent()) {
           log.info("Manager lock is still held");
           Thread.sleep(1000);
         }
-      } while (managerLockData != null);
+      } while (managerLockData.isPresent());
       control.stopAllServers(ServerType.MANAGER);
       control.stopAllServers(ServerType.TABLET_SERVER);
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);

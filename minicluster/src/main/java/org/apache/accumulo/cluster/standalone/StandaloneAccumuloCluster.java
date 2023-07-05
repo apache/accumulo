@@ -33,7 +33,6 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -141,12 +140,6 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @Override
   public AccumuloClient createAccumuloClient(String user, AuthenticationToken token) {
     return Accumulo.newClient().to(getInstanceName(), getZooKeepers()).as(user, token).build();
-  }
-
-  @Override
-  @Deprecated(since = "2.0.0")
-  public org.apache.accumulo.core.client.ClientConfiguration getClientConfig() {
-    return ClientConfConverter.toClientConf(info.getProperties());
   }
 
   @Override

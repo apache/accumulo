@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.net.URL;
@@ -31,7 +33,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -44,6 +45,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -54,8 +56,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-
-import com.google.gson.Gson;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -78,7 +78,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     URL url = new URL(uri + "/jmx");
     log.debug("Fetching web page " + url);
     String jsonString = FunctionalTestUtils.readWebPage(url).body();
-    Map<?,?> jsonObject = new Gson().fromJson(jsonString, Map.class);
+    Map<?,?> jsonObject = GSON.get().fromJson(jsonString, Map.class);
     List<?> beans = (List<?>) jsonObject.get("beans");
     for (Object bean : beans) {
       Map<?,?> map = (Map<?,?>) bean;
@@ -132,8 +132,10 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
           fs.mkdirs(files);
           for (int i1 = 0; i1 < 100; i1++) {
             FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-                .forFile(files + "/bulk_" + i1 + "." + RFile.EXTENSION, fs, fs.getConf(),
-                    NoCryptoServiceFactory.NONE)
+                .forFile(
+                    UnreferencedTabletFile.of(fs,
+                        new Path(files + "/bulk_" + i1 + "." + RFile.EXTENSION)),
+                    fs, fs.getConf(), NoCryptoServiceFactory.NONE)
                 .withTableConfiguration(DefaultConfiguration.getInstance()).build();
             writer.startDefaultLocalityGroup();
             for (int j = 0x100; j < 0xfff; j += 3) {
@@ -162,10 +164,10 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
         err.get();
       }
       es.shutdown();
-      es.awaitTermination(2, TimeUnit.MINUTES);
+      es.awaitTermination(2, MINUTES);
       log.info(
           String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
-      sleepUninterruptibly(30, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(30));
       Map<?,?> map = getStats();
       map.forEach((k, v) -> {
         try {

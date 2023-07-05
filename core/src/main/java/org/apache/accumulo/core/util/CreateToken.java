@@ -86,34 +86,35 @@ public class CreateToken implements KeywordExecutable {
       pass = opts.securePassword;
     }
 
-    try {
-      String principal = opts.principal;
-      if (principal == null) {
-        principal = getConsoleReader().readLine("Username (aka principal): ");
-      }
-
-      AuthenticationToken token = Class.forName(opts.tokenClassName)
-          .asSubclass(AuthenticationToken.class).getDeclaredConstructor().newInstance();
-      Properties props = new Properties();
-      for (TokenProperty tp : token.getProperties()) {
-        String input;
-        if (pass != null && tp.getKey().equals("password")) {
-          input = pass;
-        } else {
-          if (tp.getMask()) {
-            input = getConsoleReader().readLine(tp.getDescription() + ": ", '*');
-          } else {
-            input = getConsoleReader().readLine(tp.getDescription() + ": ");
-          }
-        }
-        props.put(tp.getKey(), input);
-        token.init(props);
-      }
-      System.out.println("auth.type = " + opts.tokenClassName);
-      System.out.println("auth.principal = " + principal);
-      System.out.println("auth.token = " + ClientProperty.encodeToken(token));
-    } catch (ReflectiveOperationException e) {
-      throw new RuntimeException(e);
+    String principal = opts.principal;
+    if (principal == null) {
+      principal = getConsoleReader().readLine("Username (aka principal): ");
     }
+
+    AuthenticationToken token;
+    try {
+      token = Class.forName(opts.tokenClassName).asSubclass(AuthenticationToken.class)
+          .getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException(e);
+    }
+    Properties props = new Properties();
+    for (TokenProperty tp : token.getProperties()) {
+      String input;
+      if (pass != null && tp.getKey().equals("password")) {
+        input = pass;
+      } else {
+        if (tp.getMask()) {
+          input = getConsoleReader().readLine(tp.getDescription() + ": ", '*');
+        } else {
+          input = getConsoleReader().readLine(tp.getDescription() + ": ");
+        }
+      }
+      props.put(tp.getKey(), input);
+      token.init(props);
+    }
+    System.out.println("auth.type = " + opts.tokenClassName);
+    System.out.println("auth.principal = " + principal);
+    System.out.println("auth.token = " + ClientProperty.encodeToken(token));
   }
 }

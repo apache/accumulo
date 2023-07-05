@@ -32,7 +32,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
+import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -105,9 +105,7 @@ class BulkImportMove extends ManagerRepo {
     manager.getContext().getAmple().addBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);
     AccumuloConfiguration aConf = manager.getConfiguration();
-    @SuppressWarnings("deprecation")
-    int workerCount = aConf.getCount(
-        aConf.resolve(Property.MANAGER_RENAME_THREADS, Property.MANAGER_BULK_RENAME_THREADS));
+    int workerCount = aConf.getCount(Property.MANAGER_RENAME_THREADS);
     Map<Path,Path> oldToNewMap = new HashMap<>();
     String fmtTid = FateTxId.formatTid(tid);
 

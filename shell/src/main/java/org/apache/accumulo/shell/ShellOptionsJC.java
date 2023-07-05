@@ -60,10 +60,6 @@ public class ShellOptionsJC {
       description = "disables tab completion (for less overhead when scripting)")
   private boolean tabCompletionDisabled;
 
-  @Parameter(names = "--debug", description = "enables client debugging"
-      + "; deprecated, configure debugging through your logging configuration file")
-  private boolean debugEnabled;
-
   @Parameter(names = {"-?", "--help"}, help = true, description = "display this help")
   private boolean helpEnabled;
 
@@ -150,10 +146,6 @@ public class ShellOptionsJC {
 
   public boolean isTabCompletionDisabled() {
     return tabCompletionDisabled;
-  }
-
-  public boolean isDebugEnabled() {
-    return debugEnabled;
   }
 
   public boolean isHelpEnabled() {

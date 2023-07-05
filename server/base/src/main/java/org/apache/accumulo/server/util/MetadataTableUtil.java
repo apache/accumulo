@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.util;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.CLONED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -26,7 +27,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -61,12 +61,12 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -85,8 +85,8 @@ import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
@@ -154,7 +154,7 @@ public class MetadataTableUtil {
       } catch (ConstraintViolationException e) {
         logUpdateFailure(m, extent, e);
         // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
@@ -181,7 +181,7 @@ public class MetadataTableUtil {
   }
 
   public static Map<StoredTabletFile,DataFileValue> updateTabletDataFile(long tid, KeyExtent extent,
-      Map<TabletFile,DataFileValue> estSizes, MetadataTime time, ServerContext context,
+      Map<ReferencedTabletFile,DataFileValue> estSizes, MetadataTime time, ServerContext context,
       ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putTime(time);
@@ -210,7 +210,8 @@ public class MetadataTableUtil {
 
   public static void updateTabletVolumes(KeyExtent extent, List<LogEntry> logsToRemove,
       List<LogEntry> logsToAdd, List<StoredTabletFile> filesToRemove,
-      SortedMap<TabletFile,DataFileValue> filesToAdd, ServiceLock zooLock, ServerContext context) {
+      SortedMap<ReferencedTabletFile,DataFileValue> filesToAdd, ServiceLock zooLock,
+      ServerContext context) {
 
     TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
     logsToRemove.forEach(tabletMutator::deleteWal);
@@ -284,7 +285,7 @@ public class MetadataTableUtil {
   }
 
   public static void splitDatafiles(Text midRow, double splitRatio,
-      Map<TabletFile,FileUtil.FileInfo> firstAndLastRows,
+      Map<StoredTabletFile,FileUtil.FileInfo> firstAndLastRows,
       SortedMap<StoredTabletFile,DataFileValue> datafiles,
       SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes,
       SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes,
@@ -406,7 +407,7 @@ public class MetadataTableUtil {
     TabletMetadata tablet = context.getAmple().readTablet(extent, FILES, LOGS, PREV_ROW, DIR);
 
     if (tablet == null) {
-      throw new RuntimeException("Tablet " + extent + " not found in metadata");
+      throw new IllegalStateException("Tablet " + extent + " not found in metadata");
     }
 
     result.addAll(tablet.getLogs());
@@ -478,7 +479,7 @@ public class MetadataTableUtil {
     Iterator<TabletMetadata> ti = createCloneScanner(testTableName, srcTableId, client).iterator();
 
     if (!ti.hasNext()) {
-      throw new RuntimeException(" table deleted during clone?  srcTableId = " + srcTableId);
+      throw new IllegalStateException(" table deleted during clone?  srcTableId = " + srcTableId);
     }
 
     while (ti.hasNext()) {
@@ -504,7 +505,7 @@ public class MetadataTableUtil {
         createCloneScanner(testTableName, tableId, client).iterator();
 
     if (!cloneIter.hasNext() || !srcIter.hasNext()) {
-      throw new RuntimeException(
+      throw new IllegalStateException(
           " table deleted during clone?  srcTableId = " + srcTableId + " tableId=" + tableId);
     }
 
@@ -513,7 +514,7 @@ public class MetadataTableUtil {
     while (cloneIter.hasNext()) {
       TabletMetadata cloneTablet = cloneIter.next();
       Text cloneEndRow = cloneTablet.getEndRow();
-      HashSet<TabletFile> cloneFiles = new HashSet<>();
+      HashSet<StoredTabletFile> cloneFiles = new HashSet<>();
 
       boolean cloneSuccessful = cloneTablet.getCloned() != null;
 
@@ -532,7 +533,7 @@ public class MetadataTableUtil {
             "Tablets deleted from src during clone : " + cloneEndRow + " " + srcEndRow);
       }
 
-      HashSet<TabletFile> srcFiles = new HashSet<>();
+      HashSet<StoredTabletFile> srcFiles = new HashSet<>();
       if (!cloneSuccessful) {
         srcFiles.addAll(srcTablet.getFiles());
       }

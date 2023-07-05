@@ -23,13 +23,13 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.coordinator.CompactionFinalizer;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState.FinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerOpts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +62,7 @@ public class TestCompactionCoordinatorForOfflineTable extends CompactionCoordina
 
   }
 
-  protected TestCompactionCoordinatorForOfflineTable(ServerOpts opts, String[] args) {
+  protected TestCompactionCoordinatorForOfflineTable(ConfigOpts opts, String[] args) {
     super(opts, args);
   }
 
@@ -73,7 +73,7 @@ public class TestCompactionCoordinatorForOfflineTable extends CompactionCoordina
 
   public static void main(String[] args) throws Exception {
     try (TestCompactionCoordinatorForOfflineTable coordinator =
-        new TestCompactionCoordinatorForOfflineTable(new ServerOpts(), args)) {
+        new TestCompactionCoordinatorForOfflineTable(new ConfigOpts(), args)) {
       coordinator.runServer();
     }
   }

@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,7 +45,9 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -56,8 +59,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileUtil {
-
-  private static final SecureRandom random = new SecureRandom();
 
   public static class FileInfo {
     Key firstKey = new Key();
@@ -87,7 +88,7 @@ public class FileUtil {
     Path result = null;
     while (result == null) {
       result = new Path(tabletDirectory + Path.SEPARATOR + "tmp/idxReduce_"
-          + String.format("%09d", random.nextInt(Integer.MAX_VALUE)));
+          + String.format("%09d", RANDOM.get().nextInt(Integer.MAX_VALUE)));
       try {
         fs.getFileStatus(result);
         result = null;
@@ -110,45 +111,47 @@ public class FileUtil {
     return result;
   }
 
-  public static Collection<String> reduceFiles(ServerContext context, TableConfiguration tableConf,
-      Text prevEndRow, Text endRow, Collection<String> mapFiles, int maxFiles, Path tmpDir,
-      int pass) throws IOException {
+  public static Collection<? extends TabletFile> reduceFiles(ServerContext context,
+      TableConfiguration tableConf, Text prevEndRow, Text endRow,
+      Collection<? extends TabletFile> dataFiles, int maxFiles, Path tmpDir, int pass)
+      throws IOException {
 
-    ArrayList<String> paths = new ArrayList<>(mapFiles);
+    ArrayList<? extends TabletFile> files = new ArrayList<>(dataFiles);
 
-    if (paths.size() <= maxFiles) {
-      return paths;
+    if (files.size() <= maxFiles) {
+      return files;
     }
 
     String newDir = String.format("%s/pass_%04d", tmpDir, pass);
 
     int start = 0;
 
-    ArrayList<String> outFiles = new ArrayList<>();
+    ArrayList<UnreferencedTabletFile> outFiles = new ArrayList<>();
 
     int count = 0;
 
-    while (start < paths.size()) {
-      int end = Math.min(maxFiles + start, paths.size());
-      List<String> inFiles = paths.subList(start, end);
+    while (start < files.size()) {
+      int end = Math.min(maxFiles + start, files.size());
+      List<? extends TabletFile> inFiles = files.subList(start, end);
 
       start = end;
 
       // temporary tablet file does not conform to typical path verified in TabletFile
-      String newMapFile = String.format("%s/%04d.%s", newDir, count++, RFile.EXTENSION);
+      Path newPath = new Path(String.format("%s/%04d.%s", newDir, count++, RFile.EXTENSION));
+      FileSystem ns = context.getVolumeManager().getFileSystemByPath(newPath);
+      UnreferencedTabletFile newDataFile = UnreferencedTabletFile.of(ns, newPath);
 
-      outFiles.add(newMapFile);
-      FileSystem ns = context.getVolumeManager().getFileSystemByPath(new Path(newMapFile));
+      outFiles.add(newDataFile);
       FileSKVWriter writer = new RFileOperations().newWriterBuilder()
-          .forFile(newMapFile, ns, ns.getConf(), tableConf.getCryptoService())
+          .forFile(newDataFile, ns, ns.getConf(), tableConf.getCryptoService())
           .withTableConfiguration(tableConf).build();
       writer.startDefaultLocalityGroup();
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(inFiles.size());
 
       FileSKVIterator reader = null;
       try {
-        for (String file : inFiles) {
-          ns = context.getVolumeManager().getFileSystemByPath(new Path(file));
+        for (TabletFile file : inFiles) {
+          ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
           reader = FileOperations.getInstance().newIndexReaderBuilder()
               .forFile(file, ns, ns.getConf(), tableConf.getCryptoService())
               .withTableConfiguration(tableConf).build();
@@ -207,25 +210,25 @@ public class FileUtil {
   }
 
   public static double estimatePercentageLTE(ServerContext context, TableConfiguration tableConf,
-      String tabletDir, Text prevEndRow, Text endRow, Collection<String> mapFiles, Text splitRow)
-      throws IOException {
+      String tabletDir, Text prevEndRow, Text endRow, Collection<? extends TabletFile> dataFiles,
+      Text splitRow) throws IOException {
 
     Path tmpDir = null;
 
     int maxToOpen =
         context.getConfiguration().getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
-    ArrayList<FileSKVIterator> readers = new ArrayList<>(mapFiles.size());
+    ArrayList<FileSKVIterator> readers = new ArrayList<>(dataFiles.size());
 
     try {
-      if (mapFiles.size() > maxToOpen) {
+      if (dataFiles.size() > maxToOpen) {
         tmpDir = createTmpDir(context, tabletDir);
 
         log.debug("Too many indexes ({}) to open at once for {} {}, reducing in tmpDir = {}",
-            mapFiles.size(), endRow, prevEndRow, tmpDir);
+            dataFiles.size(), endRow, prevEndRow, tmpDir);
 
         long t1 = System.currentTimeMillis();
-        mapFiles =
-            reduceFiles(context, tableConf, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir, 0);
+        dataFiles =
+            reduceFiles(context, tableConf, prevEndRow, endRow, dataFiles, maxToOpen, tmpDir, 0);
         long t2 = System.currentTimeMillis();
 
         log.debug("Finished reducing indexes for {} {} in {}", endRow, prevEndRow,
@@ -237,7 +240,7 @@ public class FileUtil {
       }
 
       long numKeys =
-          countIndexEntries(context, tableConf, prevEndRow, endRow, mapFiles, true, readers);
+          countIndexEntries(context, tableConf, prevEndRow, endRow, dataFiles, true, readers);
 
       if (numKeys == 0) {
         // not enough info in the index to answer the question, so instead of going to
@@ -262,8 +265,8 @@ public class FileUtil {
 
       if (numLte > numKeys) {
         // something went wrong
-        throw new RuntimeException("numLte > numKeys " + numLte + " " + numKeys + " " + prevEndRow
-            + " " + endRow + " " + splitRow + " " + mapFiles);
+        throw new IllegalStateException("numLte > numKeys " + numLte + " " + numKeys + " "
+            + prevEndRow + " " + endRow + " " + splitRow + " " + dataFiles);
       }
 
       // do not want to return 0% or 100%, so add 1 and 2 below
@@ -276,39 +279,40 @@ public class FileUtil {
 
   /**
    *
-   * @param mapFiles - list MapFiles to find the mid point key
+   * @param dataFiles - list of data files to find the mid point key
    *
-   *        ISSUES : This method used the index files to find the mid point. If the map files have
+   *        ISSUES : This method used the index files to find the mid point. If the data files have
    *        different index intervals this method will not return an accurate mid point. Also, it
    *        would be tricky to use this method in conjunction with an in memory map because the
    *        indexing interval is unknown.
    */
   public static SortedMap<Double,Key> findMidPoint(ServerContext context,
       TableConfiguration tableConf, String tabletDirectory, Text prevEndRow, Text endRow,
-      Collection<String> mapFiles, double minSplit, boolean useIndex) throws IOException {
+      Collection<? extends TabletFile> dataFiles, double minSplit, boolean useIndex)
+      throws IOException {
 
-    Collection<String> origMapFiles = mapFiles;
+    Collection<? extends TabletFile> origDataFiles = dataFiles;
 
     Path tmpDir = null;
 
     int maxToOpen =
         context.getConfiguration().getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
-    ArrayList<FileSKVIterator> readers = new ArrayList<>(mapFiles.size());
+    ArrayList<FileSKVIterator> readers = new ArrayList<>(dataFiles.size());
 
     try {
-      if (mapFiles.size() > maxToOpen) {
+      if (dataFiles.size() > maxToOpen) {
         if (!useIndex) {
           throw new IOException(
-              "Cannot find mid point using data files, too many " + mapFiles.size());
+              "Cannot find mid point using data files, too many " + dataFiles.size());
         }
         tmpDir = createTmpDir(context, tabletDirectory);
 
         log.debug("Too many indexes ({}) to open at once for {} {}, reducing in tmpDir = {}",
-            mapFiles.size(), endRow, prevEndRow, tmpDir);
+            dataFiles.size(), endRow, prevEndRow, tmpDir);
 
         long t1 = System.currentTimeMillis();
-        mapFiles =
-            reduceFiles(context, tableConf, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir, 0);
+        dataFiles =
+            reduceFiles(context, tableConf, prevEndRow, endRow, dataFiles, maxToOpen, tmpDir, 0);
         long t2 = System.currentTimeMillis();
 
         log.debug("Finished reducing indexes for {} {} in {}", endRow, prevEndRow,
@@ -321,7 +325,7 @@ public class FileUtil {
 
       long t1 = System.currentTimeMillis();
 
-      long numKeys = countIndexEntries(context, tableConf, prevEndRow, endRow, mapFiles,
+      long numKeys = countIndexEntries(context, tableConf, prevEndRow, endRow, dataFiles,
           tmpDir == null ? useIndex : false, readers);
 
       if (numKeys == 0) {
@@ -329,10 +333,10 @@ public class FileUtil {
           log.warn(
               "Failed to find mid point using indexes, falling back to"
                   + " data files which is slower. No entries between {} and {} for {}",
-              prevEndRow, endRow, mapFiles);
-          // need to pass original map files, not possibly reduced indexes
-          return findMidPoint(context, tableConf, tabletDirectory, prevEndRow, endRow, origMapFiles,
-              minSplit, false);
+              prevEndRow, endRow, dataFiles);
+          // need to pass original data files, not possibly reduced indexes
+          return findMidPoint(context, tableConf, tabletDirectory, prevEndRow, endRow,
+              origDataFiles, minSplit, false);
         }
         return Collections.emptySortedMap();
       }
@@ -389,7 +393,7 @@ public class FileUtil {
             (key.compareRow(prevEndRow) > 0 && (endRow == null || key.compareRow(endRow) < 1));
         if (!inRange) {
           throw new IOException("Found mid point is not in range " + key + " " + prevEndRow + " "
-              + endRow + " " + mapFiles);
+              + endRow + " " + dataFiles);
         }
       }
 
@@ -425,23 +429,22 @@ public class FileUtil {
   }
 
   private static long countIndexEntries(ServerContext context, TableConfiguration tableConf,
-      Text prevEndRow, Text endRow, Collection<String> mapFiles, boolean useIndex,
+      Text prevEndRow, Text endRow, Collection<? extends TabletFile> dataFiles, boolean useIndex,
       ArrayList<FileSKVIterator> readers) throws IOException {
     long numKeys = 0;
 
     // count the total number of index entries
-    for (String file : mapFiles) {
+    for (TabletFile file : dataFiles) {
       FileSKVIterator reader = null;
-      Path path = new Path(file);
-      FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
+      FileSystem ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
       try {
         if (useIndex) {
           reader = FileOperations.getInstance().newIndexReaderBuilder()
-              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+              .forFile(file, ns, ns.getConf(), tableConf.getCryptoService())
               .withTableConfiguration(tableConf).build();
         } else {
           reader = FileOperations.getInstance().newScanReaderBuilder()
-              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+              .forFile(file, ns, ns.getConf(), tableConf.getCryptoService())
               .withTableConfiguration(tableConf)
               .overRange(new Range(prevEndRow, false, null, true), Set.of(), false).build();
         }
@@ -468,11 +471,11 @@ public class FileUtil {
 
       if (useIndex) {
         readers.add(FileOperations.getInstance().newIndexReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+            .forFile(file, ns, ns.getConf(), tableConf.getCryptoService())
             .withTableConfiguration(tableConf).build());
       } else {
         readers.add(FileOperations.getInstance().newScanReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+            .forFile(file, ns, ns.getConf(), tableConf.getCryptoService())
             .withTableConfiguration(tableConf)
             .overRange(new Range(prevEndRow, false, null, true), Set.of(), false).build());
       }
@@ -481,35 +484,35 @@ public class FileUtil {
     return numKeys;
   }
 
-  public static Map<TabletFile,FileInfo> tryToGetFirstAndLastRows(ServerContext context,
-      TableConfiguration tableConf, Set<TabletFile> mapfiles) {
+  public static <T extends TabletFile> Map<T,FileInfo> tryToGetFirstAndLastRows(
+      ServerContext context, TableConfiguration tableConf, Set<T> dataFiles) {
 
-    HashMap<TabletFile,FileInfo> mapFilesInfo = new HashMap<>();
+    HashMap<T,FileInfo> dataFilesInfo = new HashMap<>();
 
     long t1 = System.currentTimeMillis();
 
-    for (TabletFile mapfile : mapfiles) {
+    for (T dataFile : dataFiles) {
 
       FileSKVIterator reader = null;
-      FileSystem ns = context.getVolumeManager().getFileSystemByPath(mapfile.getPath());
+      FileSystem ns = context.getVolumeManager().getFileSystemByPath(dataFile.getPath());
       try {
         reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(mapfile.getPathStr(), ns, ns.getConf(), tableConf.getCryptoService())
+            .forFile(dataFile, ns, ns.getConf(), tableConf.getCryptoService())
             .withTableConfiguration(tableConf).build();
 
         Key firstKey = reader.getFirstKey();
         if (firstKey != null) {
-          mapFilesInfo.put(mapfile, new FileInfo(firstKey, reader.getLastKey()));
+          dataFilesInfo.put(dataFile, new FileInfo(firstKey, reader.getLastKey()));
         }
 
       } catch (IOException ioe) {
-        log.warn("Failed to read map file to determine first and last key : " + mapfile, ioe);
+        log.warn("Failed to read data file to determine first and last key : " + dataFile, ioe);
       } finally {
         if (reader != null) {
           try {
             reader.close();
           } catch (IOException ioe) {
-            log.warn("failed to close " + mapfile, ioe);
+            log.warn("failed to close " + dataFile, ioe);
           }
         }
       }
@@ -518,21 +521,21 @@ public class FileUtil {
 
     long t2 = System.currentTimeMillis();
 
-    log.debug(String.format("Found first and last keys for %d map files in %6.2f secs",
-        mapfiles.size(), (t2 - t1) / 1000.0));
+    log.debug(String.format("Found first and last keys for %d data files in %6.2f secs",
+        dataFiles.size(), (t2 - t1) / 1000.0));
 
-    return mapFilesInfo;
+    return dataFilesInfo;
   }
 
-  public static WritableComparable<Key> findLastKey(ServerContext context,
-      TableConfiguration tableConf, Collection<TabletFile> mapFiles) throws IOException {
+  public static <T extends TabletFile> WritableComparable<Key> findLastKey(ServerContext context,
+      TableConfiguration tableConf, Collection<T> dataFiles) throws IOException {
 
     Key lastKey = null;
 
-    for (TabletFile file : mapFiles) {
+    for (T file : dataFiles) {
       FileSystem ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), ns, ns.getConf(), tableConf.getCryptoService())
+          .forFile(file, ns, ns.getConf(), tableConf.getCryptoService())
           .withTableConfiguration(tableConf).seekToBeginning().build();
 
       try {
@@ -565,7 +568,8 @@ public class FileUtil {
    * Convert TabletFiles to Strings in case we need to reduce number of files. The temporary files
    * used will have irregular paths that don't conform to TabletFile verification.
    */
-  public static Collection<String> toPathStrings(Collection<TabletFile> files) {
-    return files.stream().map(TabletFile::getPathStr).collect(Collectors.toList());
+  public static Collection<String> toPathStrings(Collection<ReferencedTabletFile> files) {
+    return files.stream().map(ReferencedTabletFile::getNormalizedPathStr)
+        .collect(Collectors.toList());
   }
 }

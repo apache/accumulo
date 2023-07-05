@@ -55,12 +55,10 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.MonitorExecutable;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.CheckServerConfig;
-import org.apache.accumulo.server.conf.util.ConfigPropertyUpgrader;
 import org.apache.accumulo.server.conf.util.ZooInfoViewer;
 import org.apache.accumulo.server.conf.util.ZooPropEditor;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
-import org.apache.accumulo.server.util.ConvertConfig;
 import org.apache.accumulo.server.util.DumpZookeeper;
 import org.apache.accumulo.server.util.ECAdmin;
 import org.apache.accumulo.server.util.Info;
@@ -133,8 +131,6 @@ public class KeywordStartIT {
     expectSet.put("check-server-config", CheckServerConfig.class);
     expectSet.put("compaction-coordinator", CoordinatorExecutable.class);
     expectSet.put("compactor", CompactorExecutable.class);
-    expectSet.put("config-upgrade", ConfigPropertyUpgrader.class);
-    expectSet.put("convert-config", ConvertConfig.class);
     expectSet.put("create-empty", CreateEmpty.class);
     expectSet.put("create-token", CreateToken.class);
     expectSet.put("dump-zoo", DumpZookeeper.class);
@@ -159,10 +155,6 @@ public class KeywordStartIT {
     expectSet.put("zoo-prop-editor", ZooPropEditor.class);
     expectSet.put("zoo-zap", ZooZap.class);
     expectSet.put("zookeeper", ZooKeeperMain.class);
-
-    @SuppressWarnings("deprecation")
-    var masterExecutableClass = org.apache.accumulo.manager.MasterExecutable.class;
-    expectSet.put("master", masterExecutableClass);
 
     Iterator<Entry<String,Class<? extends KeywordExecutable>>> expectIter =
         expectSet.entrySet().iterator();
@@ -206,8 +198,6 @@ public class KeywordStartIT {
     expectSet.add(Admin.class);
     expectSet.add(CheckCompactionConfig.class);
     expectSet.add(CheckServerConfig.class);
-    expectSet.add(ConfigPropertyUpgrader.class);
-    expectSet.add(ConvertConfig.class);
     expectSet.add(CreateEmpty.class);
     expectSet.add(CreateToken.class);
     expectSet.add(DumpZookeeper.class);
@@ -226,11 +216,6 @@ public class KeywordStartIT {
     expectSet.add(TabletServer.class);
     expectSet.add(ZooKeeperMain.class);
     expectSet.add(ZooZap.class);
-
-    // not a KeywordExecutable, but this is known to have a main method
-    @SuppressWarnings("deprecation")
-    var masterClass = org.apache.accumulo.master.Master.class;
-    expectSet.add(masterClass);
 
     // check that classes in the expected set contain a main
     // not all have them; these do because they always have, and we don't want to break things

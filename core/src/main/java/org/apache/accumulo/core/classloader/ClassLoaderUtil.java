@@ -45,7 +45,7 @@ public class ClassLoaderUtil {
         // load the default implementation
         LOG.info("Using default {}, which is subject to change in a future release",
             ContextClassLoaderFactory.class.getName());
-        FACTORY = new DefaultContextClassLoaderFactory(conf);
+        FACTORY = new URLContextClassLoaderFactory();
       } else {
         // load user's selected implementation and provide it with the service environment
         try {
@@ -73,12 +73,15 @@ public class ClassLoaderUtil {
     FACTORY = null;
   }
 
-  @SuppressWarnings("deprecation")
+  public static ClassLoader getClassLoader() {
+    return getClassLoader(null);
+  }
+
   public static ClassLoader getClassLoader(String context) {
     if (context != null && !context.isEmpty()) {
       return FACTORY.getClassLoader(context);
     } else {
-      return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.getClassLoader();
+      return ClassLoader.getSystemClassLoader();
     }
   }
 
@@ -95,9 +98,8 @@ public class ClassLoaderUtil {
   /**
    * Retrieve the classloader context from a table's configuration.
    */
-  @SuppressWarnings("removal")
   public static String tableContext(AccumuloConfiguration conf) {
-    return conf.get(conf.resolve(Property.TABLE_CLASSLOADER_CONTEXT, Property.TABLE_CLASSPATH));
+    return conf.get(Property.TABLE_CLASSLOADER_CONTEXT);
   }
 
 }

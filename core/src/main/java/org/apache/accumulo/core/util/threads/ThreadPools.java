@@ -85,27 +85,24 @@ public class ThreadPools {
   private static final ConcurrentLinkedQueue<ScheduledFuture<?>> NON_CRITICAL_RUNNING_TASKS =
       new ConcurrentLinkedQueue<>();
 
-  private static Runnable TASK_CHECKER = new Runnable() {
-    @Override
-    public void run() {
-      final List<ConcurrentLinkedQueue<ScheduledFuture<?>>> queues =
-          List.of(CRITICAL_RUNNING_TASKS, NON_CRITICAL_RUNNING_TASKS);
-      while (true) {
-        queues.forEach(q -> {
-          Iterator<ScheduledFuture<?>> tasks = q.iterator();
-          while (tasks.hasNext()) {
-            if (checkTaskFailed(tasks.next(), q)) {
-              tasks.remove();
-            }
+  private static Runnable TASK_CHECKER = () -> {
+    final List<ConcurrentLinkedQueue<ScheduledFuture<?>>> queues =
+        List.of(CRITICAL_RUNNING_TASKS, NON_CRITICAL_RUNNING_TASKS);
+    while (true) {
+      queues.forEach(q -> {
+        Iterator<ScheduledFuture<?>> tasks = q.iterator();
+        while (tasks.hasNext()) {
+          if (checkTaskFailed(tasks.next(), q)) {
+            tasks.remove();
           }
-        });
-        try {
-          TimeUnit.MINUTES.sleep(1);
-        } catch (InterruptedException ie) {
-          // This thread was interrupted by something while sleeping. We don't want to exit
-          // this thread, so reset the interrupt state on this thread and keep going.
-          Thread.interrupted();
         }
+      });
+      try {
+        TimeUnit.MINUTES.sleep(1);
+      } catch (InterruptedException ie) {
+        // This thread was interrupted by something while sleeping. We don't want to exit
+        // this thread, so reset the interrupt state on this thread and keep going.
+        Thread.interrupted();
       }
     }
   };
@@ -244,25 +241,15 @@ public class ThreadPools {
    *        pools. Creating lots of short lived thread pools and registering them can lead to out of
    *        memory errors over long time periods.
    * @return ExecutorService impl
-   * @throws RuntimeException if property is not handled
+   * @throws IllegalArgumentException if property is not handled
    */
-  @SuppressWarnings("deprecation")
   public ThreadPoolExecutor createExecutorService(final AccumuloConfiguration conf,
       final Property p, boolean emitThreadPoolMetrics) {
 
     switch (p) {
-      case GENERAL_SIMPLETIMER_THREADPOOL_SIZE:
-        return createScheduledExecutorService(conf.getCount(p), "SimpleTimer",
-            emitThreadPoolMetrics);
       case GENERAL_THREADPOOL_SIZE:
         return createScheduledExecutorService(conf.getCount(p), "GeneralExecutor",
             emitThreadPoolMetrics);
-      case MANAGER_BULK_THREADPOOL_SIZE:
-        return createFixedThreadPool(conf.getCount(p),
-            conf.getTimeInMillis(Property.MANAGER_BULK_THREADPOOL_TIMEOUT), MILLISECONDS,
-            "bulk import", emitThreadPoolMetrics);
-      case MANAGER_RENAME_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "bulk move", emitThreadPoolMetrics);
       case MANAGER_FATE_THREADPOOL_SIZE:
         return createFixedThreadPool(conf.getCount(p), "Repo Runner", emitThreadPoolMetrics);
       case MANAGER_STATUS_THREAD_POOL_SIZE:
@@ -296,10 +283,8 @@ public class ThreadPools {
             "summary partition", emitThreadPoolMetrics);
       case GC_DELETE_THREADS:
         return createFixedThreadPool(conf.getCount(p), "deleting", emitThreadPoolMetrics);
-      case REPLICATION_WORKER_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "replication task", emitThreadPoolMetrics);
       default:
-        throw new RuntimeException("Unhandled thread pool property: " + p);
+        throw new IllegalArgumentException("Unhandled thread pool property: " + p);
     }
   }
 
@@ -475,10 +460,8 @@ public class ThreadPools {
    */
   public ScheduledThreadPoolExecutor
       createGeneralScheduledExecutorService(AccumuloConfiguration conf) {
-    @SuppressWarnings("deprecation")
-    Property oldProp = Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE;
-    Property prop = conf.resolve(Property.GENERAL_THREADPOOL_SIZE, oldProp);
-    return (ScheduledThreadPoolExecutor) createExecutorService(conf, prop, true);
+    return (ScheduledThreadPoolExecutor) createExecutorService(conf,
+        Property.GENERAL_THREADPOOL_SIZE, true);
   }
 
   /**

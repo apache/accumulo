@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -34,6 +35,8 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
@@ -55,7 +58,7 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
   public static byte[] randomHex(int n) {
     byte[] binary = new byte[n];
     byte[] hex = new byte[n * 2];
-    random.nextBytes(binary);
+    RANDOM.get().nextBytes(binary);
     int count = 0;
     for (byte x : binary) {
       hex[count++] = HEXCHARS[(x >> 4) & 0xf];
@@ -125,7 +128,8 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
           Pattern.compile(".*recovered \\d+ mutations creating \\d+ entries from \\d+ walogs.*");
       for (String line : result.split("\n")) {
         // ignore metadata tables
-        if (line.contains("!0") || line.contains("+r")) {
+        if (line.contains(MetadataTable.ID.canonical())
+            || line.contains(RootTable.ID.canonical())) {
           continue;
         }
         if (line.contains("recovering data from walogs")) {

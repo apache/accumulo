@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.rpc.clients;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -46,17 +46,17 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
 
   public static final ManagerThriftClient MANAGER = new ManagerThriftClient("mgr");
 
-  public static final ReplicationCoordinatorThriftClient REPLICATION_COORDINATOR =
-      new ReplicationCoordinatorThriftClient("replCoord");
-
-  public static final ReplicationServicerThriftClient REPLICATION_SERVICER =
-      new ReplicationServicerThriftClient("replServ");
-
   public static final TabletServerThriftClient TABLET_SERVER =
-      new TabletServerThriftClient("tablet");
+      new TabletServerThriftClient("tserver");
 
   public static final TabletScanClientServiceThriftClient TABLET_SCAN =
       new TabletScanClientServiceThriftClient("scan");
+
+  public static final TabletIngestClientServiceThriftClient TABLET_INGEST =
+      new TabletIngestClientServiceThriftClient("ingest");
+
+  public static final TabletManagementClientServiceThriftClient TABLET_MGMT =
+      new TabletManagementClientServiceThriftClient("tablet");
 
   /**
    * execute method with supplied client returning object of type R

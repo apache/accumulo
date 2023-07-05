@@ -22,8 +22,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * A tablet is assigned to a tablet server at the given address as long as it is alive and well.

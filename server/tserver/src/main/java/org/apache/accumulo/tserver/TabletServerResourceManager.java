@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.tserver;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toUnmodifiableMap;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -79,10 +79,10 @@ import org.apache.accumulo.tserver.tablet.Tablet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -258,8 +258,8 @@ public class TabletServerResourceManager {
 
     try {
       cacheManager = BlockCacheManagerFactory.getInstance(acuConf);
-    } catch (Exception e) {
-      throw new RuntimeException("Error creating BlockCacheManager", e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException("Error creating BlockCacheManager", e);
     }
 
     cacheManager.start(tserver.getBlockCacheConfiguration(acuConf));
@@ -365,7 +365,7 @@ public class TabletServerResourceManager {
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
     fileLenCache =
-        CacheBuilder.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
+        Caffeine.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
 
     fileManager = new FileManager(context, maxOpenFiles, fileLenCache);
 
@@ -657,9 +657,9 @@ public class TabletServerResourceManager {
       return tableConf;
     }
 
-    // BEGIN methods that Tablets call to manage their set of open map files
+    // BEGIN methods that Tablets call to manage their set of open data files
 
-    public void importedMapFiles() {
+    public void importedDataFiles() {
       lastReportedCommitTime = System.currentTimeMillis();
     }
 
@@ -672,7 +672,7 @@ public class TabletServerResourceManager {
           new ScanCacheProvider(tableConf, scanDispatch, _iCache, _dCache));
     }
 
-    // END methods that Tablets call to manage their set of open map files
+    // END methods that Tablets call to manage their set of open data files
 
     // BEGIN methods that Tablets call to manage memory
 
@@ -759,12 +759,6 @@ public class TabletServerResourceManager {
     }
   }
 
-  @SuppressWarnings("deprecation")
-  private static abstract class DispatchParamsImpl implements DispatchParameters,
-      org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters {
-
-  }
-
   public void executeReadAhead(KeyExtent tablet, ScanDispatcher dispatcher, ScanSession scanInfo,
       Runnable task) {
 
@@ -779,7 +773,7 @@ public class TabletServerResourceManager {
       scanInfo.scanParams.setScanDispatch(ScanDispatch.builder().build());
       scanExecutors.get("meta").execute(task);
     } else {
-      DispatchParameters params = new DispatchParamsImpl() {
+      DispatchParameters params = new DispatchParameters() {
 
         // in scan critical path so only create ServiceEnv if needed
         private final Supplier<ServiceEnvironment> senvSupplier =

@@ -43,6 +43,7 @@ import org.apache.accumulo.core.data.Value;
 public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Value> {
 
   private SortedKeyValueIterator<Key,Value> source = null;
+  private IteratorEnvironment env = null;
   boolean seenSeek = false;
 
   protected void setSource(SortedKeyValueIterator<Key,Value> source) {
@@ -89,7 +90,7 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     this.setSource(source);
-
+    this.env = env;
   }
 
   @Override
@@ -105,6 +106,14 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
       throws IOException {
     getSource().seek(range, columnFamilies, inclusive);
     seenSeek = true;
+  }
+
+  @Override
+  public boolean isRunningLowOnMemory() {
+    if (env == null) {
+      return SortedKeyValueIterator.super.isRunningLowOnMemory();
+    }
+    return env.isRunningLowOnMemory();
   }
 
 }

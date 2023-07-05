@@ -26,7 +26,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
-import org.apache.accumulo.manager.upgrade.RenameMasterDirInZK;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SecurityUtil;
 
@@ -45,12 +44,12 @@ public class SetGoalState {
     try {
       var siteConfig = SiteConfiguration.auto();
       SecurityUtil.serverLogin(siteConfig);
-      var context = new ServerContext(siteConfig);
-      RenameMasterDirInZK.renameMasterDirInZK(context);
-      context.waitForZookeeperAndHdfs();
-      context.getZooReaderWriter().putPersistentData(
-          context.getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE, args[0].getBytes(UTF_8),
-          NodeExistsPolicy.OVERWRITE);
+      try (var context = new ServerContext(siteConfig)) {
+        context.waitForZookeeperAndHdfs();
+        context.getZooReaderWriter().putPersistentData(
+            context.getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE, args[0].getBytes(UTF_8),
+            NodeExistsPolicy.OVERWRITE);
+      }
     } finally {
       SingletonManager.setMode(Mode.CLOSED);
     }

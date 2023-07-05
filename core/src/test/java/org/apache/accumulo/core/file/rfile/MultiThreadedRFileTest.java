@@ -20,6 +20,7 @@ package org.apache.accumulo.core.file.rfile;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,7 +30,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -71,7 +71,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MultiThreadedRFileTest {
 
-  private static final SecureRandom random = new SecureRandom();
   private static final Logger LOG = LoggerFactory.getLogger(MultiThreadedRFileTest.class);
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
@@ -82,7 +81,7 @@ public class MultiThreadedRFileTest {
       Key lastKey = new Key(indexIter.getTopKey());
 
       if (reader.getFirstKey().compareTo(lastKey) > 0) {
-        throw new RuntimeException(
+        throw new IllegalStateException(
             "First key out of order " + reader.getFirstKey() + " " + lastKey);
       }
 
@@ -90,7 +89,7 @@ public class MultiThreadedRFileTest {
 
       while (indexIter.hasTop()) {
         if (lastKey.compareTo(indexIter.getTopKey()) > 0) {
-          throw new RuntimeException(
+          throw new IllegalStateException(
               "Indext out of order " + lastKey + " " + indexIter.getTopKey());
         }
 
@@ -100,7 +99,8 @@ public class MultiThreadedRFileTest {
       }
 
       if (!reader.getLastKey().equals(lastKey)) {
-        throw new RuntimeException("Last key out of order " + reader.getLastKey() + " " + lastKey);
+        throw new IllegalStateException(
+            "Last key out of order " + reader.getLastKey() + " " + lastKey);
       }
     }
   }
@@ -285,7 +285,7 @@ public class MultiThreadedRFileTest {
   }
 
   private void validate(TestRFile trf) throws IOException {
-    random.ints(10, 0, 4).forEach(part -> {
+    RANDOM.get().ints(10, 0, 4).forEach(part -> {
       try {
         Range range = new Range(getKey(part, 0, 0), true, getKey(part, 4, 2048), true);
         trf.iter.seek(range, EMPTY_COL_FAMS, false);

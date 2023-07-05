@@ -34,12 +34,12 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Collections2;
+import com.google.common.net.HostAndPort;
 
 /**
  * This class contains source for logs messages about a tablets internal state, like its location,
@@ -122,9 +122,9 @@ public class TabletLogger {
   }
 
   public static void selected(KeyExtent extent, CompactionKind kind,
-      Collection<? extends TabletFile> inputs) {
+      Collection<StoredTabletFile> inputs) {
     fileLog.trace("{} changed compaction selection set for {} new set {}", extent, kind,
-        Collections2.transform(inputs, TabletFile::getFileName));
+        Collections2.transform(inputs, StoredTabletFile::getFileName));
   }
 
   public static void compacting(KeyExtent extent, CompactionJob job, CompactionConfig config) {
@@ -140,7 +140,7 @@ public class TabletLogger {
     }
   }
 
-  public static void compacted(KeyExtent extent, CompactionJob job, TabletFile output) {
+  public static void compacted(KeyExtent extent, CompactionJob job, StoredTabletFile output) {
     fileLog.debug("Compacted {} for {} created {} from {}", extent, job.getKind(), output,
         asFileNames(job.getFiles()));
   }

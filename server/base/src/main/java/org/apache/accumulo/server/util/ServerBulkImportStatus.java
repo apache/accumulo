@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.apache.accumulo.core.master.thrift.BulkImportState;
-import org.apache.accumulo.core.master.thrift.BulkImportStatus;
+import org.apache.accumulo.core.manager.thrift.BulkImportState;
+import org.apache.accumulo.core.manager.thrift.BulkImportStatus;
 
 // A little class to hold bulk import status information in the Manager
 // and two places in the tablet server.

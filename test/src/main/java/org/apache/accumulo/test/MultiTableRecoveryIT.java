@@ -18,14 +18,14 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -85,7 +85,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
       System.out.println("writing");
       for (i = 0; i < 1_000_000; i++) {
         // make non-negative avoiding Math.abs, because that can still be negative
-        long randomRow = random.nextLong() & Long.MAX_VALUE;
+        long randomRow = RANDOM.get().nextLong() & Long.MAX_VALUE;
         assertTrue(randomRow >= 0);
         final int table = (int) (randomRow % N);
         final Mutation m = new Mutation(Long.toHexString(randomRow));
@@ -125,7 +125,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
         int i = 0;
         while (!stop.get()) {
-          sleepUninterruptibly(10, TimeUnit.SECONDS);
+          Thread.sleep(SECONDS.toMillis(10));
           System.out.println("Restarting");
           getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
           getCluster().start();

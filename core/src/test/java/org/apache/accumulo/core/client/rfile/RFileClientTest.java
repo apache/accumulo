@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.client.rfile;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,6 +62,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -73,8 +74,6 @@ import org.junit.jupiter.api.Test;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class RFileClientTest {
-
-  private static final SecureRandom random = new SecureRandom();
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path is set by test, not user")
   private String createTmpTestFile() throws IOException {
@@ -520,7 +519,7 @@ public class RFileClientTest {
     Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs)
         .withIndexCache(1000000).withDataCache(10000000).build();
 
-    random.ints(100, 0, 10_000).forEach(r -> {
+    RANDOM.get().ints(100, 0, 10_000).forEach(r -> {
       scanner.setRange(new Range(rowStr(r)));
       String actual = scanner.stream().collect(onlyElement()).getKey().getRow().toString();
       assertEquals(rowStr(r), actual);
@@ -810,9 +809,11 @@ public class RFileClientTest {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path is set by test, not user")
   private Reader getReader(LocalFileSystem localFs, String testFile) throws IOException {
     return (Reader) FileOperations.getInstance().newReaderBuilder()
-        .forFile(testFile, localFs, localFs.getConf(), NoCryptoServiceFactory.NONE)
+        .forFile(UnreferencedTabletFile.of(localFs, new File(testFile)), localFs, localFs.getConf(),
+            NoCryptoServiceFactory.NONE)
         .withTableConfiguration(DefaultConfiguration.getInstance()).build();
   }
 

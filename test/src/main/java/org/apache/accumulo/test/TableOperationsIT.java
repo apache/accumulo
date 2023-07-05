@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -60,6 +59,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -286,15 +287,17 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   /** Test recovery from bad majc iterator via compaction cancel. */
   @Test
   public void testCompactEmptyTablesWithBadIterator_FailsAndCancel() throws TableExistsException,
-      AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      AccumuloException, AccumuloSecurityException, TableNotFoundException, InterruptedException {
     String tableName = getUniqueNames(1)[0];
     accumuloClient.tableOperations().create(tableName);
 
     List<IteratorSetting> list = new ArrayList<>();
     list.add(new IteratorSetting(15, BadIterator.class));
-    accumuloClient.tableOperations().compact(tableName, null, null, list, true, false); // don't
-                                                                                        // block
-    sleepUninterruptibly(2, TimeUnit.SECONDS); // start compaction
+    // don't block
+    accumuloClient.tableOperations().compact(tableName, null, null, list, true, false);
+
+    Thread.sleep(SECONDS.toMillis(2)); // start compaction
+
     accumuloClient.tableOperations().cancelCompaction(tableName);
 
     try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
@@ -353,13 +356,10 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(TimeType.LOGICAL, timeType);
 
     // check system tables
-    timeType = accumuloClient.tableOperations().getTimeType("accumulo.metadata");
+    timeType = accumuloClient.tableOperations().getTimeType(MetadataTable.NAME);
     assertEquals(TimeType.LOGICAL, timeType);
 
-    timeType = accumuloClient.tableOperations().getTimeType("accumulo.replication");
-    assertEquals(TimeType.LOGICAL, timeType);
-
-    timeType = accumuloClient.tableOperations().getTimeType("accumulo.root");
+    timeType = accumuloClient.tableOperations().getTimeType(RootTable.NAME);
     assertEquals(TimeType.LOGICAL, timeType);
 
     // test non-existent table

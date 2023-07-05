@@ -25,5 +25,5 @@ public interface RateLimiter {
   long getRate();
 
   /** Sleep until the specified number of queries are available. */
-  void acquire(long permits);
+  void acquire(long numPermits);
 }

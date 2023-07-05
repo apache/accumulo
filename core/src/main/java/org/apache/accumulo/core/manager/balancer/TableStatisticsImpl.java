@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.manager.balancer;
 
-import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.spi.balancer.data.TableStatistics;
 
 public class TableStatisticsImpl implements TableStatistics {

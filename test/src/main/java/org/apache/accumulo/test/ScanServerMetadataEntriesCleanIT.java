@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.ScanServerMetadataEntries;
@@ -36,6 +35,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.net.HostAndPort;
 
 @Tag(MINI_CLUSTER_ONLY)
 public class ScanServerMetadataEntriesCleanIT extends SharedMiniClusterBase {

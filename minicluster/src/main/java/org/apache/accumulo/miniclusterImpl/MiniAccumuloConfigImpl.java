@@ -157,24 +157,12 @@ public class MiniAccumuloConfigImpl {
       // since there is a small amount of memory, check more frequently for majc... setting may not
       // be needed in 1.5
       mergeProp(Property.TSERV_MAJC_DELAY.getKey(), "3");
-      @SuppressWarnings("deprecation")
-      Property generalClasspaths = Property.GENERAL_CLASSPATHS;
-      mergeProp(generalClasspaths.getKey(), libDir.getAbsolutePath() + "/[^.].*[.]jar");
-      @SuppressWarnings("deprecation")
-      Property generalDynamicClasspaths = Property.GENERAL_DYNAMIC_CLASSPATHS;
-      mergeProp(generalDynamicClasspaths.getKey(), libExtDir.getAbsolutePath() + "/[^.].*[.]jar");
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
       mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
       mergePropWithRandomPort(Property.MANAGER_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
-      @SuppressWarnings("deprecation")
-      Property p = Property.REPLICATION_RECEIPT_SERVICE_PORT;
-      mergePropWithRandomPort(p.getKey());
-      @SuppressWarnings("deprecation")
-      Property p2 = Property.MANAGER_REPLICATION_COORDINATOR_PORT;
-      mergePropWithRandomPort(p2.getKey());
 
       if (isUseCredentialProvider()) {
         updateConfigForCredentialProvider();
@@ -576,16 +564,6 @@ public class MiniAccumuloConfigImpl {
    */
   public void useMiniDFS(boolean useMiniDFS) {
     this.useMiniDFS = useMiniDFS;
-  }
-
-  /**
-   * @return location of client conf file containing connection parameters for connecting to this
-   *         minicluster
-   *
-   * @since 1.6.0
-   */
-  public File getClientConfFile() {
-    return new File(getConfDir(), "client.conf");
   }
 
   public File getAccumuloPropsFile() {

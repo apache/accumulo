@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -37,7 +38,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -136,7 +136,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
         if (resultsByWorker.size() < NUM_SCANNERS) {
           log.trace("Results reported {}", resultsByWorker.size());
-          sleepUninterruptibly(750, TimeUnit.MILLISECONDS);
+          Thread.sleep(750);
         } else {
           // each worker has reported at least one result.
           testInProgress.set(false);
@@ -144,7 +144,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
           log.debug("Final result count {}", resultsByWorker.size());
 
           // delay to allow scanners to react to end of test and cleanly close.
-          sleepUninterruptibly(1, TimeUnit.SECONDS);
+          Thread.sleep(SECONDS.toMillis(1));
         }
 
       }
@@ -306,7 +306,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
    *
    * @param client Accumulo client to test cluster or MAC instance.
    */
-  private void addSplits(final AccumuloClient client, final String tableName) {
+  private void addSplits(final AccumuloClient client, final String tableName)
+      throws InterruptedException {
 
     SortedSet<Text> splits = createSplits();
 
@@ -316,7 +317,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
       client.tableOperations().offline(tableName, true);
 
-      sleepUninterruptibly(2, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(2));
+
       client.tableOperations().online(tableName, true);
 
       for (Text split : client.tableOperations().listSplits(tableName)) {
@@ -363,7 +365,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
       for (int i = 0; i < NUM_DATA_ROWS; i++) {
 
-        Text rowId = new Text(String.format("%d", ((random.nextInt(10) * 100) + i)));
+        Text rowId = new Text(String.format("%d", ((RANDOM.get().nextInt(10) * 100) + i)));
 
         Mutation m = new Mutation(rowId);
         m.put("fam1", "count", Integer.toString(i));

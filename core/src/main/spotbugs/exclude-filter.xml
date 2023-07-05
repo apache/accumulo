@@ -22,6 +22,7 @@
   <!--
     DO NOT exclude anything other than generated files here. Other files
     can be excluded inline by adding the @SuppressFBWarnings annotation.
+    Exceptions can be made if the bug is particularly spammy or trivial.
   -->
   <Match>
     <!-- ignore thrift-generated files -->
@@ -31,9 +32,10 @@
       <Package name="org.apache.accumulo.core.dataImpl.thrift" />
       <Package name="org.apache.accumulo.core.gc.thrift" />
       <Package name="org.apache.accumulo.core.manager.thrift" />
-      <Package name="org.apache.accumulo.core.master.thrift" />
-      <Package name="org.apache.accumulo.core.replication.thrift" />
       <Package name="org.apache.accumulo.core.securityImpl.thrift" />
+      <Package name="org.apache.accumulo.core.tablet.thrift" />
+      <Package name="org.apache.accumulo.core.tabletingest.thrift" />
+      <Package name="org.apache.accumulo.core.tabletscan.thrift" />
       <Package name="org.apache.accumulo.core.tabletserver.thrift" />
       <Package name="org.apache.accumulo.core.trace.thrift" />
     </Or>

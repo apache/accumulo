@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -33,7 +34,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.SecureRandom;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -104,8 +104,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class RFileTest {
-
-  private static final SecureRandom random = new SecureRandom();
 
   public static class SampleIE implements IteratorEnvironment {
 
@@ -205,7 +203,7 @@ public class RFileTest {
       Key lastKey = new Key(indexIter.getTopKey());
 
       if (reader.getFirstKey().compareTo(lastKey) > 0) {
-        throw new RuntimeException(
+        throw new IllegalStateException(
             "First key out of order " + reader.getFirstKey() + " " + lastKey);
       }
 
@@ -213,7 +211,7 @@ public class RFileTest {
 
       while (indexIter.hasTop()) {
         if (lastKey.compareTo(indexIter.getTopKey()) > 0) {
-          throw new RuntimeException(
+          throw new IllegalStateException(
               "Indext out of order " + lastKey + " " + indexIter.getTopKey());
         }
 
@@ -223,7 +221,8 @@ public class RFileTest {
       }
 
       if (!reader.getLastKey().equals(lastKey)) {
-        throw new RuntimeException("Last key out of order " + reader.getLastKey() + " " + lastKey);
+        throw new IllegalStateException(
+            "Last key out of order " + reader.getLastKey() + " " + lastKey);
       }
     }
   }
@@ -310,8 +309,8 @@ public class RFileTest {
       cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
       try {
         manager = BlockCacheManagerFactory.getInstance(cc);
-      } catch (Exception e) {
-        throw new RuntimeException("Error creating BlockCacheManager", e);
+      } catch (ReflectiveOperationException e) {
+        throw new IllegalStateException("Error creating BlockCacheManager", e);
       }
       cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(100000));
       cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(100000000));
@@ -552,7 +551,7 @@ public class RFileTest {
     // test seeking to random location and reading all data from that point
     // there was an off by one bug with this in the transient index
     for (int i = 0; i < 12; i++) {
-      index = random.nextInt(expectedKeys.size());
+      index = RANDOM.get().nextInt(expectedKeys.size());
       trf.seek(expectedKeys.get(index));
       for (; index < expectedKeys.size(); index++) {
         assertTrue(trf.iter.hasTop());
@@ -1645,13 +1644,13 @@ public class RFileTest {
 
     for (int count = 0; count < 100; count++) {
 
-      int start = random.nextInt(2300);
+      int start = RANDOM.get().nextInt(2300);
       Range range = new Range(newKey(formatString("r_", start), "cf1", "cq1", "L1", 42),
           newKey(formatString("r_", start + 100), "cf1", "cq1", "L1", 42));
 
       trf.reader.seek(range, cfs, false);
 
-      int numToScan = random.nextInt(100);
+      int numToScan = RANDOM.get().nextInt(100);
 
       for (int j = 0; j < numToScan; j++) {
         assertTrue(trf.reader.hasTop());
@@ -1667,8 +1666,8 @@ public class RFileTest {
       // seek a little forward from the last range and read a few keys within the unconsumed portion
       // of the last range
 
-      int start2 = start + numToScan + random.nextInt(3);
-      int end2 = start2 + random.nextInt(3);
+      int start2 = start + numToScan + RANDOM.get().nextInt(3);
+      int end2 = start2 + RANDOM.get().nextInt(3);
 
       range = new Range(newKey(formatString("r_", start2), "cf1", "cq1", "L1", 42),
           newKey(formatString("r_", end2), "cf1", "cq1", "L1", 42));
@@ -2004,24 +2003,24 @@ public class RFileTest {
       boolean endInclusive = false;
       int endIndex = sampleData.size();
 
-      if (random.nextBoolean()) {
-        startIndex = random.nextInt(sampleData.size());
+      if (RANDOM.get().nextBoolean()) {
+        startIndex = RANDOM.get().nextInt(sampleData.size());
         startKey = sampleData.get(startIndex).getKey();
-        startInclusive = random.nextBoolean();
+        startInclusive = RANDOM.get().nextBoolean();
         if (!startInclusive) {
           startIndex++;
         }
       }
 
-      if (startIndex < endIndex && random.nextBoolean()) {
-        endIndex -= random.nextInt(endIndex - startIndex);
+      if (startIndex < endIndex && RANDOM.get().nextBoolean()) {
+        endIndex -= RANDOM.get().nextInt(endIndex - startIndex);
         endKey = sampleData.get(endIndex - 1).getKey();
-        endInclusive = random.nextBoolean();
+        endInclusive = RANDOM.get().nextBoolean();
         if (!endInclusive) {
           endIndex--;
         }
       } else if (startIndex == endIndex) {
-        endInclusive = random.nextBoolean();
+        endInclusive = RANDOM.get().nextBoolean();
       }
 
       sample.seek(new Range(startKey, startInclusive, endKey, endInclusive), columnFamilies,

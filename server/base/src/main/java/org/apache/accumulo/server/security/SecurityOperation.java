@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -106,7 +105,7 @@ public class SecurityOperation {
   protected SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
       PermissionHandler pm) {
     this.context = context;
-    zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
+    zkUserPath = context.zkUserPath();
     zooCache = new ZooCache(context.getZooReader(), null);
     rootUserName = Suppliers.memoize(() -> new String(zooCache.get(zkUserPath), UTF_8));
     authorizor = author;
@@ -116,7 +115,7 @@ public class SecurityOperation {
     if (!authorizor.validSecurityHandlers(authenticator, pm)
         || !authenticator.validSecurityHandlers()
         || !permHandle.validSecurityHandlers(authent, author)) {
-      throw new RuntimeException(authorizor + ", " + authenticator + ", and " + pm
+      throw new IllegalStateException(authorizor + ", " + authenticator + ", and " + pm
           + " do not play nice with each other. Please choose authentication and"
           + " authorization mechanisms that are compatible with one another.");
     }
@@ -139,7 +138,7 @@ public class SecurityOperation {
           TablePermission.ALTER_TABLE);
     } catch (TableNotFoundException e) {
       // Shouldn't happen
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -365,11 +364,8 @@ public class SecurityOperation {
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
-    @SuppressWarnings("deprecation")
-    TableId replicationTableId = org.apache.accumulo.core.replication.ReplicationTable.ID;
-
-    if ((table.equals(MetadataTable.ID) || table.equals(RootTable.ID)
-        || table.equals(replicationTableId)) && permission.equals(TablePermission.READ)) {
+    if ((table.equals(MetadataTable.ID) || table.equals(RootTable.ID))
+        && permission.equals(TablePermission.READ)) {
       return true;
     }
 
@@ -955,12 +951,5 @@ public class SecurityOperation {
     authenticate(credentials);
     return hasTablePermission(credentials, tableId, namespaceId, TablePermission.GET_SUMMARIES,
         false);
-  }
-
-  public boolean validateStoredUserCreditentials() {
-    if (authenticator instanceof ZKAuthenticator) {
-      return !((ZKAuthenticator) authenticator).hasOutdatedHashes();
-    }
-    return true;
   }
 }

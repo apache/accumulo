@@ -614,15 +614,15 @@ public class TIteratorSetting implements org.apache.thrift.TBase<TIteratorSettin
           case 4: // PROPERTIES
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map88 = iprot.readMapBegin();
-                struct.properties = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map88.size);
-                @org.apache.thrift.annotation.Nullable java.lang.String _key89;
-                @org.apache.thrift.annotation.Nullable java.lang.String _val90;
-                for (int _i91 = 0; _i91 < _map88.size; ++_i91)
+                org.apache.thrift.protocol.TMap _map36 = iprot.readMapBegin();
+                struct.properties = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map36.size);
+                @org.apache.thrift.annotation.Nullable java.lang.String _key37;
+                @org.apache.thrift.annotation.Nullable java.lang.String _val38;
+                for (int _i39 = 0; _i39 < _map36.size; ++_i39)
                 {
-                  _key89 = iprot.readString();
-                  _val90 = iprot.readString();
-                  struct.properties.put(_key89, _val90);
+                  _key37 = iprot.readString();
+                  _val38 = iprot.readString();
+                  struct.properties.put(_key37, _val38);
                 }
                 iprot.readMapEnd();
               }
@@ -664,10 +664,10 @@ public class TIteratorSetting implements org.apache.thrift.TBase<TIteratorSettin
         oprot.writeFieldBegin(PROPERTIES_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.properties.size()));
-          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter92 : struct.properties.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter40 : struct.properties.entrySet())
           {
-            oprot.writeString(_iter92.getKey());
-            oprot.writeString(_iter92.getValue());
+            oprot.writeString(_iter40.getKey());
+            oprot.writeString(_iter40.getValue());
           }
           oprot.writeMapEnd();
         }
@@ -717,10 +717,10 @@ public class TIteratorSetting implements org.apache.thrift.TBase<TIteratorSettin
       if (struct.isSetProperties()) {
         {
           oprot.writeI32(struct.properties.size());
-          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter93 : struct.properties.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter41 : struct.properties.entrySet())
           {
-            oprot.writeString(_iter93.getKey());
-            oprot.writeString(_iter93.getValue());
+            oprot.writeString(_iter41.getKey());
+            oprot.writeString(_iter41.getValue());
           }
         }
       }
@@ -744,15 +744,15 @@ public class TIteratorSetting implements org.apache.thrift.TBase<TIteratorSettin
       }
       if (incoming.get(3)) {
         {
-          org.apache.thrift.protocol.TMap _map94 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
-          struct.properties = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map94.size);
-          @org.apache.thrift.annotation.Nullable java.lang.String _key95;
-          @org.apache.thrift.annotation.Nullable java.lang.String _val96;
-          for (int _i97 = 0; _i97 < _map94.size; ++_i97)
+          org.apache.thrift.protocol.TMap _map42 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+          struct.properties = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map42.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _key43;
+          @org.apache.thrift.annotation.Nullable java.lang.String _val44;
+          for (int _i45 = 0; _i45 < _map42.size; ++_i45)
           {
-            _key95 = iprot.readString();
-            _val96 = iprot.readString();
-            struct.properties.put(_key95, _val96);
+            _key43 = iprot.readString();
+            _val44 = iprot.readString();
+            struct.properties.put(_key43, _val44);
           }
         }
         struct.setPropertiesIsSet(true);

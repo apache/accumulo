@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.SortedSet;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -44,6 +43,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
+import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -53,14 +53,12 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
-import org.apache.accumulo.core.master.thrift.BulkImportStatus;
+import org.apache.accumulo.core.manager.thrift.BulkImportStatus;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
@@ -357,7 +355,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       case DEFAULT:
         return conf(credentials, context.getDefaultConfiguration());
     }
-    throw new RuntimeException("Unexpected configuration type " + type);
+    throw new IllegalArgumentException("Unexpected configuration type " + type);
   }
 
   @Override
@@ -402,31 +400,6 @@ public class ClientServiceHandler implements ClientService.Iface {
     return Optional.of(context.getPropStore().get(TablePropKey.of(context, tableId)))
         .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
         .orElseThrow();
-  }
-
-  @Override
-  public List<String> bulkImportFiles(TInfo tinfo, final TCredentials credentials, final long tid,
-      final String tableId, final List<String> files, final String errorDir, final boolean setTime)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {
-    try {
-      if (!security.canPerformSystemActions(credentials)) {
-        throw new AccumuloSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED);
-      }
-      bulkImportStatus.updateBulkImportStatus(files, BulkImportState.INITIAL);
-      log.debug("Got request to bulk import files to table({}): {}", tableId, files);
-
-      bulkImportStatus.updateBulkImportStatus(files, BulkImportState.PROCESSING);
-      try {
-        return BulkImporter.bulkLoad(context, tid, tableId, files, setTime);
-      } finally {
-        bulkImportStatus.removeBulkImportStatus(files);
-      }
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    } catch (Exception ex) {
-      throw new TException(ex);
-    }
   }
 
   @Override

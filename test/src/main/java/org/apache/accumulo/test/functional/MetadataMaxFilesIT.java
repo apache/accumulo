@@ -18,13 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.time.Duration;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -32,8 +31,8 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.master.thrift.TableInfo;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -69,7 +68,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
           "10000");
       // propagation time
-      sleepUninterruptibly(5, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(5));
       for (int i = 0; i < 2; i++) {
         String tableName = "table" + i;
         log.info("Creating {} with splits", tableName);
@@ -97,7 +96,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
         if (tablets == 2002) {
           break;
         }
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(1));
       }
     }
   }

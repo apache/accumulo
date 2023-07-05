@@ -18,13 +18,14 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.nio.channels.ClosedByInterruptException;
 import java.security.KeyStore;
-import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,7 +38,6 @@ import javax.net.ssl.TrustManagerFactory;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
 import org.apache.thrift.TException;
@@ -52,6 +52,8 @@ import org.apache.thrift.transport.TTransportFactory;
 import org.apache.thrift.transport.layered.TFramedTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -69,7 +71,6 @@ public class ThriftUtil {
 
   public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
 
-  private static final SecureRandom random = new SecureRandom();
   private static final int RELOGIN_MAX_BACKOFF = 5000;
 
   /**
@@ -365,7 +366,7 @@ public class ThriftUtil {
       if (loginUser == null || !loginUser.hasKerberosCredentials()) {
         // We should have already checked that we're logged in and have credentials. A
         // precondition-like check.
-        throw new RuntimeException("Expected to find Kerberos UGI credentials, but did not");
+        throw new IllegalStateException("Expected to find Kerberos UGI credentials, but did not");
       }
       UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
       // A Proxy user is the "effective user" (in name only), riding on top of the "real user"'s Krb
@@ -384,7 +385,7 @@ public class ThriftUtil {
 
         // Avoid the replay attack protection, sleep 1 to 5000ms
         try {
-          Thread.sleep(random.nextInt(RELOGIN_MAX_BACKOFF) + 1);
+          Thread.sleep(RANDOM.get().nextInt(RELOGIN_MAX_BACKOFF) + 1);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           return;
@@ -397,7 +398,7 @@ public class ThriftUtil {
       // The inability to check is worrisome and deserves a RuntimeException instead of a propagated
       // IO-like Exception.
       log.warn("Failed to check (and/or perform) Kerberos client re-login", e);
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
   }
 

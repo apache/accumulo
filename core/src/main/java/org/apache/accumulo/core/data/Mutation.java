@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.data;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.requireNonNull;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -28,9 +27,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -108,9 +105,6 @@ public class Mutation implements Writable {
   private UnsynchronizedBuffer.Writer buffer;
 
   private List<ColumnUpdate> updates;
-
-  private static final Set<String> EMPTY = Collections.emptySet();
-  private Set<String> replicationSources = EMPTY;
 
   private static final byte[] EMPTY_BYTES = new byte[0];
 
@@ -242,10 +236,6 @@ public class Mutation implements Writable {
     this.entries = tmutation.entries;
     this.values = ByteBufferUtil.toBytesList(tmutation.values);
 
-    if (tmutation.isSetSources()) {
-      this.replicationSources = new HashSet<>(tmutation.sources);
-    }
-
     if (this.row == null) {
       throw new IllegalArgumentException("null row");
     }
@@ -265,7 +255,6 @@ public class Mutation implements Writable {
     this.data = m.data;
     this.entries = m.entries;
     this.values = m.values;
-    this.replicationSources = m.replicationSources;
   }
 
   /**
@@ -1360,58 +1349,6 @@ public class Mutation implements Writable {
     return entries;
   }
 
-  /**
-   * Add a new element to the set of peers which this Mutation originated from
-   *
-   * @param peer the peer to add
-   * @since 1.7.0
-   * @deprecated The feature pertaining to this method was deprecated in 2.1.0, but this method was
-   *             overlooked when annotating the code. It is being marked as deprecated in 2.1.1 in
-   *             order to correct that oversight, and will be removed in 3.0.0 with the rest of the
-   *             code pertaining to this feature.
-   */
-  @Deprecated(since = "2.1.1")
-  public void addReplicationSource(String peer) {
-    if (replicationSources == null || replicationSources == EMPTY) {
-      replicationSources = new HashSet<>();
-    }
-
-    replicationSources.add(peer);
-  }
-
-  /**
-   * Set the replication peers which this Mutation originated from
-   *
-   * @param sources Set of peer names which have processed this update
-   * @since 1.7.0
-   * @deprecated The feature pertaining to this method was deprecated in 2.1.0, but this method was
-   *             overlooked when annotating the code. It is being marked as deprecated in 2.1.1 in
-   *             order to correct that oversight, and will be removed in 3.0.0 with the rest of the
-   *             code pertaining to this feature.
-   */
-  @Deprecated(since = "2.1.1")
-  public void setReplicationSources(Set<String> sources) {
-    requireNonNull(sources);
-    this.replicationSources = sources;
-  }
-
-  /**
-   * Return the replication sources for this Mutation
-   *
-   * @return An unmodifiable view of the replication sources
-   * @deprecated The feature pertaining to this method was deprecated in 2.1.0, but this method was
-   *             overlooked when annotating the code. It is being marked as deprecated in 2.1.1 in
-   *             order to correct that oversight, and will be removed in 3.0.0 with the rest of the
-   *             code pertaining to this feature.
-   */
-  @Deprecated(since = "2.1.1")
-  public Set<String> getReplicationSources() {
-    if (replicationSources == null) {
-      return EMPTY;
-    }
-    return Collections.unmodifiableSet(replicationSources);
-  }
-
   @Override
   public void readFields(DataInput in) throws IOException {
 
@@ -1454,9 +1391,9 @@ public class Mutation implements Writable {
 
     if ((first & 0x02) == 0x02) {
       int numMutations = WritableUtils.readVInt(in);
-      this.replicationSources = new HashSet<>();
       for (int i = 0; i < numMutations; i++) {
-        replicationSources.add(WritableUtils.readString(in));
+        // consume the replication sources that may have been previously serialized
+        WritableUtils.readString(in);
       }
     }
   }
@@ -1530,10 +1467,9 @@ public class Mutation implements Writable {
     final byte[] integerBuffer = new byte[5];
     serialize();
     byte hasValues = (values == null) ? 0 : (byte) 1;
-    if (!replicationSources.isEmpty()) {
-      // Use 2nd least-significant bit for whether or not we have replication sources
-      hasValues = (byte) (0x02 | hasValues);
-    }
+    // When replication sources were supported, we used the 2nd least-significant bit to denote
+    // their presence, but this is no longer used; kept here for historical explanation only
+    // hasValues = (byte) (0x02 | hasValues);
     out.write((byte) (0x80 | hasValues));
 
     UnsynchronizedBuffer.writeVInt(out, integerBuffer, row.length);
@@ -1548,12 +1484,6 @@ public class Mutation implements Writable {
       for (byte[] val : values) {
         UnsynchronizedBuffer.writeVInt(out, integerBuffer, val.length);
         out.write(val);
-      }
-    }
-    if ((0x02 & hasValues) == 0x02) {
-      UnsynchronizedBuffer.writeVInt(out, integerBuffer, replicationSources.size());
-      for (String source : replicationSources) {
-        WritableUtils.writeString(out, source);
       }
     }
   }
@@ -1591,9 +1521,6 @@ public class Mutation implements Writable {
     ByteBuffer otherData = m.serializedSnapshot();
     if (Arrays.equals(row, m.row) && entries == m.entries && myData.equals(otherData)) {
       // If two mutations don't have the same
-      if (!replicationSources.equals(m.replicationSources)) {
-        return false;
-      }
       if (values == null && m.values == null) {
         return true;
       }
@@ -1631,12 +1558,7 @@ public class Mutation implements Writable {
       this.serialize();
     }
     ByteBuffer data = serializedSnapshot();
-    TMutation tmutation =
-        new TMutation(ByteBuffer.wrap(row), data, ByteBufferUtil.toByteBuffers(values), entries);
-    if (!this.replicationSources.isEmpty()) {
-      tmutation.setSources(new ArrayList<>(replicationSources));
-    }
-    return tmutation;
+    return new TMutation(ByteBuffer.wrap(row), data, ByteBufferUtil.toByteBuffers(values), entries);
   }
 
   /**

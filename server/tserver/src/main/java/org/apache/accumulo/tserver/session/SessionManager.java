@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.tserver.session;
 
-import java.security.SecureRandom;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,9 +39,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
-import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
-import org.apache.accumulo.core.tabletserver.thrift.ScanState;
-import org.apache.accumulo.core.tabletserver.thrift.ScanType;
+import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
+import org.apache.accumulo.core.tabletscan.thrift.ScanState;
+import org.apache.accumulo.core.tabletscan.thrift.ScanType;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
@@ -57,7 +58,6 @@ import com.google.common.collect.Maps;
 public class SessionManager {
   private static final Logger log = LoggerFactory.getLogger(SessionManager.class);
 
-  private static final SecureRandom random = new SecureRandom();
   private final ConcurrentMap<Long,Session> sessions = new ConcurrentHashMap<>();
   private final long maxIdle;
   private final long maxUpdateIdle;
@@ -79,7 +79,7 @@ public class SessionManager {
   }
 
   public long createSession(Session session, boolean reserve) {
-    long sid = random.nextLong();
+    long sid = RANDOM.get().nextLong();
 
     synchronized (session) {
       Preconditions.checkArgument(session.state == State.NEW);
@@ -88,7 +88,7 @@ public class SessionManager {
     }
 
     while (sessions.putIfAbsent(sid, session) != null) {
-      sid = random.nextLong();
+      sid = RANDOM.get().nextLong();
     }
 
     return sid;

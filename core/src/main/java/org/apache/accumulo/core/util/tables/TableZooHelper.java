@@ -25,7 +25,6 @@ import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
@@ -37,8 +36,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 public class TableZooHelper implements AutoCloseable {
 
@@ -46,7 +45,7 @@ public class TableZooHelper implements AutoCloseable {
   // Per instance cache will expire after 10 minutes in case we
   // encounter an instance not used frequently
   private final Cache<TableZooHelper,TableMap> instanceToMapCache =
-      CacheBuilder.newBuilder().expireAfterAccess(10, MINUTES).build();
+      Caffeine.newBuilder().expireAfterAccess(10, MINUTES).build();
 
   public TableZooHelper(ClientContext context) {
     this.context = Objects.requireNonNull(context);
@@ -112,11 +111,7 @@ public class TableZooHelper implements AutoCloseable {
   }
 
   private TableMap getCachedTableMap() {
-    try {
-      return instanceToMapCache.get(this, () -> new TableMap(context));
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e);
-    }
+    return instanceToMapCache.get(this, k -> new TableMap(context));
   }
 
   public boolean tableNodeExists(TableId tableId) {

@@ -58,14 +58,6 @@ public interface AccumuloCluster {
   AccumuloClient createAccumuloClient(String user, AuthenticationToken token);
 
   /**
-   * Get the client configuration for the cluster
-   *
-   * @deprecated since 2.0.0, replaced by {@link #getClientProperties()}}
-   */
-  @Deprecated(since = "2.0.0")
-  org.apache.accumulo.core.client.ClientConfiguration getClientConfig();
-
-  /**
    * @return client connection info for cluster
    */
   Properties getClientProperties();

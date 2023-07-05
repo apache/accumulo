@@ -122,7 +122,6 @@ public class BatchWriterConfig implements Writable {
     } else {
       // make small, positive values that truncate to 0 when converted use the minimum millis
       // instead
-
       this.maxLatency = Math.max(1, timeUnit.toMillis(maxLatency));
     }
     return this;
@@ -157,7 +156,6 @@ public class BatchWriterConfig implements Writable {
     } else {
       // make small, positive values that truncate to 0 when converted use the minimum millis
       // instead
-
       this.timeout = Math.max(1, timeUnit.toMillis(timeout));
     }
     return this;

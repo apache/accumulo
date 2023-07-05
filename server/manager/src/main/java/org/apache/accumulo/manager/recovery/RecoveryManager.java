@@ -22,13 +22,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -52,8 +52,8 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 public class RecoveryManager {
 
@@ -70,7 +70,7 @@ public class RecoveryManager {
   public RecoveryManager(Manager manager, long timeToCacheExistsInMillis) {
     this.manager = manager;
     existenceCache =
-        CacheBuilder.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
+        Caffeine.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
             .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
 
     executor = ThreadPools.getServerThreadPools().createScheduledExecutorService(4,
@@ -144,8 +144,14 @@ public class RecoveryManager {
 
   private boolean exists(final Path path) throws IOException {
     try {
-      return existenceCache.get(path, () -> manager.getVolumeManager().exists(path));
-    } catch (ExecutionException e) {
+      return existenceCache.get(path, k -> {
+        try {
+          return manager.getVolumeManager().exists(path);
+        } catch (IOException e) {
+          throw new UncheckedIOException(e);
+        }
+      });
+    } catch (UncheckedIOException e) {
       throw new IOException(e);
     }
   }
@@ -198,11 +204,8 @@ public class RecoveryManager {
         synchronized (this) {
           if (!closeTasksQueued.contains(sortId) && !sortsQueued.contains(sortId)) {
             AccumuloConfiguration aconf = manager.getConfiguration();
-            @SuppressWarnings("deprecation")
             LogCloser closer = Property.createInstanceFromPropertyName(aconf,
-                aconf.resolve(Property.MANAGER_WAL_CLOSER_IMPLEMENTATION,
-                    Property.MANAGER_WALOG_CLOSER_IMPLEMETATION),
-                LogCloser.class, new HadoopLogCloser());
+                Property.MANAGER_WAL_CLOSER_IMPLEMENTATION, LogCloser.class, new HadoopLogCloser());
             Long delay = recoveryDelay.get(sortId);
             if (delay == null) {
               delay = aconf.getTimeInMillis(Property.MANAGER_RECOVERY_DELAY);

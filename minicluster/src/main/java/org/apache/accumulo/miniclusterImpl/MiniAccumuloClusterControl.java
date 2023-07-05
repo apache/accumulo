@@ -38,10 +38,10 @@ import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
@@ -59,6 +59,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
+import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -173,7 +174,9 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       int count =
           Math.min(limit, cluster.getConfig().getNumCompactors() - compactorProcesses.size());
       for (int i = 0; i < count; i++) {
-        compactorProcesses.add(cluster.exec(compactor, "-q", queueName).getProcess());
+        compactorProcesses.add(
+            cluster.exec(compactor, "-o", Property.COMPACTOR_QUEUE_NAME.getKey() + "=" + queueName)
+                .getProcess());
       }
     }
   }
@@ -188,7 +191,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     start(server, Collections.emptyMap(), Integer.MAX_VALUE);
   }
 
-  @SuppressWarnings("removal")
   public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit)
       throws IOException {
     if (limit <= 0) {
@@ -206,7 +208,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           }
         }
         break;
-      case MASTER:
       case MANAGER:
         if (managerProcess == null) {
           managerProcess = cluster._exec(Manager.class, server, configOverrides).getProcess();
@@ -261,10 +262,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   @Override
-  @SuppressWarnings("removal")
   public synchronized void stop(ServerType server, String hostname) throws IOException {
     switch (server) {
-      case MASTER:
       case MANAGER:
         if (managerProcess != null) {
           try {
@@ -402,12 +401,10 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     throw new UnsupportedOperationException();
   }
 
-  @SuppressWarnings("removal")
   public void killProcess(ServerType type, ProcessReference procRef)
       throws ProcessNotFoundException, InterruptedException {
     boolean found = false;
     switch (type) {
-      case MASTER:
       case MANAGER:
         if (procRef.getProcess().equals(managerProcess)) {
           try {

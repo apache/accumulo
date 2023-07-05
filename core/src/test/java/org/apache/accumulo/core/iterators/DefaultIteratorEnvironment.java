@@ -18,15 +18,9 @@
  */
 package org.apache.accumulo.core.iterators;
 
-import java.io.IOException;
-
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iteratorsImpl.system.MapFileIterator;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 
 public class DefaultIteratorEnvironment implements IteratorEnvironment {
 
@@ -39,14 +33,6 @@ public class DefaultIteratorEnvironment implements IteratorEnvironment {
 
   public DefaultIteratorEnvironment() {
     this.conf = DefaultConfiguration.getInstance();
-  }
-
-  @Deprecated(since = "2.0.0")
-  @Override
-  public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
-      throws IOException {
-    FileSystem fs = FileSystem.get(hadoopConf);
-    return new MapFileIterator(fs, mapFileName, hadoopConf);
   }
 
   @Override

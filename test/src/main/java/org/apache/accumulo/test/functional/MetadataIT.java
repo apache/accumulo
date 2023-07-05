@@ -22,7 +22,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,7 +34,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -131,7 +129,7 @@ public class MetadataIT extends AccumuloClusterHarness {
       try (Scanner s = c.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
         s.setRange(DeletesSection.getRange());
         while (s.stream().findAny().isEmpty()) {
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+          Thread.sleep(100);
         }
         assertEquals(0, c.tableOperations().listSplits(MetadataTable.NAME).size());
       }

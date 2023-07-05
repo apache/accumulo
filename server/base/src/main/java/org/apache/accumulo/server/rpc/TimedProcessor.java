@@ -33,7 +33,7 @@ public class TimedProcessor implements TProcessor {
 
   private final TProcessor other;
   private final ThriftMetrics thriftMetrics;
-  private long idleStart = 0;
+  private long idleStart;
 
   public TimedProcessor(TProcessor next) {
     this.other = next;

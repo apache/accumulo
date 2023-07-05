@@ -19,6 +19,7 @@
 package org.apache.accumulo.monitor.util.logging;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -45,8 +46,6 @@ import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginBuilderFactory;
-
-import com.google.gson.Gson;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -75,7 +74,6 @@ public class AccumuloMonitorAppender extends AbstractAppender {
 
   }
 
-  private final Gson gson = new Gson();
   private final HttpClient httpClient = HttpClient.newHttpClient();
   private final Supplier<Optional<URI>> monitorLocator;
 
@@ -118,7 +116,7 @@ public class AccumuloMonitorAppender extends AbstractAppender {
         pojo.message = event.getMessage().getFormattedMessage();
         pojo.stacktrace = throwableToStacktrace(event.getThrown());
 
-        String jsonEvent = gson.toJson(pojo);
+        String jsonEvent = GSON.get().toJson(pojo);
 
         var req = HttpRequest.newBuilder(uri).POST(BodyPublishers.ofString(jsonEvent, UTF_8))
             .setHeader("Content-Type", "application/json").build();

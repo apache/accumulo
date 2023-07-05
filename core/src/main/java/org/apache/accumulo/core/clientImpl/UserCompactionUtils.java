@@ -217,8 +217,6 @@ public class UserCompactionUtils {
         is.write(dout);
       }
 
-      CompactionStrategyConfigUtil.encode(dout, cc);
-
       encodeConfigurer(dout, cc.getConfigurer());
       encodeSelector(dout, cc.getSelector());
       encode(dout, cc.getExecutionHints());
@@ -259,8 +257,6 @@ public class UserCompactionUtils {
       }
 
       cc.setIterators(iterators);
-
-      CompactionStrategyConfigUtil.decode(cc, din);
 
       var configurer = decodeConfigurer(din);
       if (!isDefault(configurer)) {

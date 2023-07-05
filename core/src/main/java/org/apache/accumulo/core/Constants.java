@@ -35,6 +35,7 @@ public class Constants {
   // Zookeeper locations
   public static final String ZROOT = "/accumulo";
   public static final String ZINSTANCES = "/instances";
+  public static final String ZUSERS = "/users";
 
   public static final String ZTABLES = "/tables";
   public static final byte[] ZTABLES_INITIAL_ID = {'0'};
@@ -52,7 +53,6 @@ public class Constants {
   public static final String ZMANAGERS = "/managers";
   public static final String ZMANAGER_LOCK = ZMANAGERS + "/lock";
   public static final String ZMANAGER_GOAL_STATE = ZMANAGERS + "/goal_state";
-  public static final String ZMANAGER_REPLICATION_COORDINATOR_ADDR = ZMANAGERS + "/repl_coord_addr";
   public static final String ZMANAGER_TICK = ZMANAGERS + "/tick";
 
   public static final String ZGC = "/gc";
@@ -116,7 +116,6 @@ public class Constants {
 
   public static final int MAX_DATA_TO_PRINT = 64;
   public static final String CORE_PACKAGE_NAME = "org.apache.accumulo.core";
-  public static final String MAPFILE_EXTENSION = "map";
   public static final String GENERATED_TABLET_DIRECTORY_PREFIX = "t-";
 
   public static final String EXPORT_METADATA_FILE = "metadata.bin";

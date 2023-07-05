@@ -92,7 +92,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
     }
 
     AccumuloConfiguration config = SiteConfiguration.fromFile(path.toFile()).build();
-    var servicesConfig = new CompactionServicesConfig(config, log::warn);
+    var servicesConfig = new CompactionServicesConfig(config);
     ServiceEnvironment senv = createServiceEnvironment(config);
 
     Set<String> defaultServices = Set.of(DEFAULT, META, ROOT);

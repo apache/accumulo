@@ -27,7 +27,6 @@ import java.util.Optional;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.CompactionStrategyConfigUtil;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -66,14 +65,13 @@ public class CompactRange extends ManagerRepo {
     this.namespaceId = namespaceId;
 
     if (!compactionConfig.getIterators().isEmpty()
-        || !CompactionStrategyConfigUtil.isDefault(compactionConfig)
         || !compactionConfig.getExecutionHints().isEmpty()
         || !isDefault(compactionConfig.getConfigurer())
         || !isDefault(compactionConfig.getSelector())) {
       this.config = UserCompactionUtils.encode(compactionConfig);
     } else {
       log.debug(
-          "Using default compaction strategy. No user iterators or compaction strategy provided.");
+          "Using default compaction config. No user iterators or compaction config provided.");
     }
 
     if (compactionConfig.getStartRow() != null && compactionConfig.getEndRow() != null

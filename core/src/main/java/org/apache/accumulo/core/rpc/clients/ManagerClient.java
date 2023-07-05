@@ -25,10 +25,11 @@ import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
+
+import com.google.common.net.HostAndPort;
 
 public interface ManagerClient<C extends TServiceClient> {
 
@@ -54,7 +55,7 @@ public interface ManagerClient<C extends TServiceClient> {
       Throwable cause = tte.getCause();
       if (cause != null && cause instanceof UnknownHostException) {
         // do not expect to recover from this
-        throw new RuntimeException(tte);
+        throw new IllegalStateException(tte);
       }
       log.debug("Failed to connect to manager=" + manager + ", will retry... ", tte);
       return null;

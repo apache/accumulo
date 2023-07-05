@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -45,16 +44,18 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -113,7 +114,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       public void unableToMonitorLockNode(Exception e) {
         System.exit(-1);
       }
-    }, "foo".getBytes(UTF_8));
+    }, new ServiceLockData(UUID.randomUUID(), "foo", ThriftService.TSERV,
+        ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME));
 
     if (!gotLock) {
       System.err.println("Failed to get lock " + zPath);
@@ -153,7 +155,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
     Text midRow = new Text(mr);
 
-    SortedMap<StoredTabletFile,DataFileValue> splitMapFiles = null;
+    SortedMap<StoredTabletFile,DataFileValue> splitDataFiles = null;
 
     for (int i = 0; i < extents.length; i++) {
       KeyExtent extent = extents[i];
@@ -162,17 +164,17 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       String tdir =
           context.getTablesDirs().iterator().next() + "/" + extent.tableId() + "/" + dirName;
       MetadataTableUtil.addTablet(extent, dirName, context, TimeType.LOGICAL, zl);
-      SortedMap<TabletFile,DataFileValue> mapFiles = new TreeMap<>();
-      mapFiles.put(new TabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
+      SortedMap<ReferencedTabletFile,DataFileValue> dataFiles = new TreeMap<>();
+      dataFiles.put(new ReferencedTabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
           new DataFileValue(1000017 + i, 10000 + i));
 
       int tid = 0;
       TransactionWatcher.ZooArbitrator.start(context, Constants.BULK_ARBITRATOR_TYPE, tid);
       SortedMap<StoredTabletFile,DataFileValue> storedFiles =
-          new TreeMap<>(MetadataTableUtil.updateTabletDataFile(tid, extent, mapFiles,
+          new TreeMap<>(MetadataTableUtil.updateTabletDataFile(tid, extent, dataFiles,
               new MetadataTime(0, TimeType.LOGICAL), context, zl));
       if (i == extentToSplit) {
-        splitMapFiles = storedFiles;
+        splitDataFiles = storedFiles;
       }
     }
 
@@ -181,29 +183,29 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
     KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
 
-    splitPartiallyAndRecover(context, extent, high, low, .4, splitMapFiles, midRow,
+    splitPartiallyAndRecover(context, extent, high, low, .4, splitDataFiles, midRow,
         "localhost:1234", failPoint, zl);
   }
 
-  private static Map<Long,List<TabletFile>> getBulkFilesLoaded(ServerContext context,
+  private static Map<Long,List<ReferencedTabletFile>> getBulkFilesLoaded(ServerContext context,
       KeyExtent extent) {
-    Map<Long,List<TabletFile>> bulkFiles = new HashMap<>();
+    Map<Long,List<ReferencedTabletFile>> bulkFiles = new HashMap<>();
 
-    context.getAmple().readTablet(extent).getLoaded()
-        .forEach((path, txid) -> bulkFiles.computeIfAbsent(txid, k -> new ArrayList<>()).add(path));
+    context.getAmple().readTablet(extent).getLoaded().forEach((path, txid) -> bulkFiles
+        .computeIfAbsent(txid, k -> new ArrayList<>()).add(path.getTabletFile()));
 
     return bulkFiles;
   }
 
   private void splitPartiallyAndRecover(ServerContext context, KeyExtent extent, KeyExtent high,
-      KeyExtent low, double splitRatio, SortedMap<StoredTabletFile,DataFileValue> mapFiles,
+      KeyExtent low, double splitRatio, SortedMap<StoredTabletFile,DataFileValue> dataFiles,
       Text midRow, String location, int steps, ServiceLock zl) throws Exception {
 
     SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
     SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
     List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
 
-    MetadataTableUtil.splitDatafiles(midRow, splitRatio, new HashMap<>(), mapFiles,
+    MetadataTableUtil.splitDatafiles(midRow, splitRatio, new HashMap<>(), dataFiles,
         lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
 
     MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio, context, zl, Set.of());
@@ -215,7 +217,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     tabletMutator.mutate();
 
     if (steps >= 1) {
-      Map<Long,List<TabletFile>> bulkFiles = getBulkFilesLoaded(context, high);
+      Map<Long,List<ReferencedTabletFile>> bulkFiles = getBulkFilesLoaded(context, high);
 
       ManagerMetadataUtil.addNewTablet(context, low, "lowDir", instance, lowDatafileSizes,
           bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L, -1L, zl);
@@ -236,8 +238,10 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       ensureTabletHasNoUnexpectedMetadataEntries(context, low, lowDatafileSizes);
       ensureTabletHasNoUnexpectedMetadataEntries(context, high, highDatafileSizes);
 
-      Map<Long,? extends Collection<TabletFile>> lowBulkFiles = getBulkFilesLoaded(context, low);
-      Map<Long,? extends Collection<TabletFile>> highBulkFiles = getBulkFilesLoaded(context, high);
+      Map<Long,? extends Collection<ReferencedTabletFile>> lowBulkFiles =
+          getBulkFilesLoaded(context, low);
+      Map<Long,? extends Collection<ReferencedTabletFile>> highBulkFiles =
+          getBulkFilesLoaded(context, high);
 
       if (!lowBulkFiles.equals(highBulkFiles)) {
         throw new Exception(" " + lowBulkFiles + " != " + highBulkFiles + " " + low + " " + high);
@@ -248,12 +252,12 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       }
     } else {
       assertEquals(extent, fixedExtent);
-      ensureTabletHasNoUnexpectedMetadataEntries(context, extent, mapFiles);
+      ensureTabletHasNoUnexpectedMetadataEntries(context, extent, dataFiles);
     }
   }
 
   private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context, KeyExtent extent,
-      SortedMap<StoredTabletFile,DataFileValue> expectedMapFiles) throws Exception {
+      SortedMap<StoredTabletFile,DataFileValue> expectedDataFiles) throws Exception {
     try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       scanner.setRange(extent.toMetaRange());
 
@@ -308,9 +312,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
       assertTrue(sawPer);
 
-      SortedMap<StoredTabletFile,DataFileValue> fixedMapFiles =
+      SortedMap<StoredTabletFile,DataFileValue> fixedDataFiles =
           MetadataTableUtil.getFileAndLogEntries(context, extent).getSecond();
-      verifySame(expectedMapFiles, fixedMapFiles);
+      verifySame(expectedDataFiles, fixedDataFiles);
     }
   }
 

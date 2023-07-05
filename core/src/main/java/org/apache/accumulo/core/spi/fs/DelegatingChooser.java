@@ -89,7 +89,7 @@ public class DelegatingChooser implements VolumeChooser {
           + Property.GENERAL_ARBITRARY_PROP_PREFIX + DEFAULT_SCOPED_VOLUME_CHOOSER
           + " must be a valid " + VolumeChooser.class.getSimpleName() + " to use the "
           + getClass().getSimpleName();
-      throw new RuntimeException(msg);
+      throw new IllegalStateException(msg);
     }
 
     return createVolumeChooser(env, clazz, TABLE_CUSTOM_SUFFIX, env.getTable().orElseThrow(),
@@ -115,7 +115,7 @@ public class DelegatingChooser implements VolumeChooser {
             + Property.GENERAL_ARBITRARY_PROP_PREFIX + DEFAULT_SCOPED_VOLUME_CHOOSER
             + " must be a valid " + VolumeChooser.class.getSimpleName() + " to use the "
             + getClass().getSimpleName();
-        throw new RuntimeException(msg);
+        throw new IllegalStateException(msg);
       }
 
       property = DEFAULT_SCOPED_VOLUME_CHOOSER;
@@ -155,10 +155,10 @@ public class DelegatingChooser implements VolumeChooser {
         } else {
           return env.getServiceEnv().instantiate(className, VolumeChooser.class);
         }
-      } catch (Exception e) {
+      } catch (ReflectiveOperationException e) {
         String msg = "Failed to create instance for " + key + " configured to use " + className
             + " via " + property;
-        throw new RuntimeException(msg, e);
+        throw new IllegalStateException(msg, e);
       }
     });
   }

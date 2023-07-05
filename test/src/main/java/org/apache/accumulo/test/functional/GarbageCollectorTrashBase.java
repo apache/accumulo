@@ -29,8 +29,8 @@ import java.util.Iterator;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.server.ServerContext;
@@ -112,7 +112,7 @@ public class GarbageCollectorTrashBase extends ConfigurableMacBase {
         if (lfs.isDirectory()) {
           continue;
         }
-        TabletFile tf = new TabletFile(lfs.getPath());
+        ReferencedTabletFile tf = new ReferencedTabletFile(lfs.getPath());
         LOG.debug("File in trash: {}, tableId: {}", lfs.getPath(), tf.getTableId());
         if (tid.equals(tf.getTableId())) {
           count++;

@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
+import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Condition;
@@ -63,21 +64,19 @@ import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
 import org.apache.accumulo.core.dataImpl.thrift.TConditionalSession;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.accumulo.core.security.VisibilityParseException;
+import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.commons.collections4.map.LRUMap;
@@ -87,6 +86,8 @@ import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
+
+import com.google.common.net.HostAndPort;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
@@ -147,7 +148,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
         count--;
         return result;
       } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
 
@@ -226,7 +227,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
     @Override
     public void run() {
-      TabletClientService.Iface client = null;
+      TabletIngestClientService.Iface client = null;
 
       for (SessionID sid : sessions) {
         if (!sid.isActive()) {
@@ -478,7 +479,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
   private HashMap<HostAndPort,SessionID> cachedSessionIDs = new HashMap<>();
 
-  private SessionID reserveSessionID(HostAndPort location, TabletClientService.Iface client,
+  private SessionID reserveSessionID(HostAndPort location, TabletIngestClientService.Iface client,
       TInfo tinfo) throws ThriftSecurityException, TException {
     // avoid cost of repeatedly making RPC to create sessions, reuse sessions
     synchronized (cachedSessionIDs) {
@@ -547,18 +548,19 @@ class ConditionalWriterImpl implements ConditionalWriter {
     return activeSessions;
   }
 
-  private TabletClientService.Iface getClient(HostAndPort location) throws TTransportException {
-    TabletClientService.Iface client;
+  private TabletIngestClientService.Iface getClient(HostAndPort location)
+      throws TTransportException {
+    TabletIngestClientService.Iface client;
     if (timeout < context.getClientTimeoutInMillis()) {
-      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, context, timeout);
+      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, location, context, timeout);
     } else {
-      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, context);
+      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, location, context);
     }
     return client;
   }
 
   private void sendToServer(HostAndPort location, TabletServerMutations<QCMutation> mutations) {
-    TabletClientService.Iface client = null;
+    TabletIngestClientService.Iface client = null;
 
     TInfo tinfo = TraceUtil.traceInfo();
 
@@ -710,7 +712,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   }
 
   private void invalidateSession(long sessionId, HostAndPort location) throws TException {
-    TabletClientService.Iface client = null;
+    TabletIngestClientService.Iface client = null;
 
     TInfo tinfo = TraceUtil.traceInfo();
 

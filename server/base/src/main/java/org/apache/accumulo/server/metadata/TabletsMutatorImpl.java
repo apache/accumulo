@@ -61,7 +61,7 @@ public class TabletsMutatorImpl implements TabletsMutator {
         return metaWriter;
       }
     } catch (TableNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -85,7 +85,7 @@ public class TabletsMutatorImpl implements TabletsMutator {
         metaWriter.close();
       }
     } catch (MutationsRejectedException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
 
   }

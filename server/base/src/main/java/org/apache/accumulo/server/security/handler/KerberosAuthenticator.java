@@ -24,7 +24,6 @@ import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -63,7 +62,7 @@ public class KerberosAuthenticator implements Authenticator {
     zooCache = new ZooCache(context.getZooReader(), null);
     impersonation = new UserImpersonation(context.getConfiguration());
     zkAuthenticator.initialize(context);
-    zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
+    zkUserPath = context.zkUserPath();
   }
 
   @Override
@@ -103,7 +102,7 @@ public class KerberosAuthenticator implements Authenticator {
       }
     } catch (KeeperException | InterruptedException e) {
       log.error("Failed to initialize security", e);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -159,7 +158,7 @@ public class KerberosAuthenticator implements Authenticator {
       throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
       log.error("Interrupted trying to create node for user", e);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

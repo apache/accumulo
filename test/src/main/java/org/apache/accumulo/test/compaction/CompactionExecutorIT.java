@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -51,6 +52,7 @@ import org.apache.accumulo.core.client.admin.compaction.CompressionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.TooManyDeletesSelector;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -107,7 +109,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       if (Boolean.parseBoolean(params.getExecutionHints().getOrDefault("compact_all", "false"))) {
         return params
             .createPlanBuilder().addJob((short) 1,
-                executorIds.get(random.nextInt(executorIds.size())), params.getCandidates())
+                executorIds.get(RANDOM.get().nextInt(executorIds.size())), params.getCandidates())
             .build();
       }
 
@@ -120,7 +122,8 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
         params.getCandidates().stream().collect(Collectors.groupingBy(TestPlanner::getFirstChar))
             .values().forEach(files -> {
               for (int i = filesPerCompaction; i <= files.size(); i += filesPerCompaction) {
-                planBuilder.addJob((short) 1, executorIds.get(random.nextInt(executorIds.size())),
+                planBuilder.addJob((short) 1,
+                    executorIds.get(RANDOM.get().nextInt(executorIds.size())),
                     files.subList(i - filesPerCompaction, i));
               }
             });
@@ -177,7 +180,9 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
   public void cleanup() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().list().stream()
-          .filter(tableName -> !tableName.startsWith("accumulo.")).forEach(tableName -> {
+          .filter(
+              tableName -> !tableName.startsWith(Namespace.ACCUMULO.name() + Namespace.SEPARATOR))
+          .forEach(tableName -> {
             try {
               client.tableOperations().delete(tableName);
             } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {

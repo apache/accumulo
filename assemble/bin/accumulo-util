@@ -28,7 +28,6 @@ Commands:
   gen-monitor-cert    Generates Accumulo monitor certificate
   
 EOF
-  exit 1
 }
 
 function build_native() {
