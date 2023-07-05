@@ -148,7 +148,7 @@ public class ShellCreateNamespaceIT extends SharedMiniClusterBase {
     ts.exec("config -s " + sysPropName + "=" + sysPropVal1);
     ts.exec("config -s " + nsPropName + "=" + nsPropVal1 + " -ns " + srcNs);
 
-    ts.exec("createnamespace -cp " + srcNs + " " + destNs, true);
+    ts.exec("createnamespace --exclude-parent -cc " + srcNs + " " + destNs, true);
 
     ts.exec("config -s " + sysPropName + "=" + sysPropVal2);
 
@@ -181,13 +181,13 @@ public class ShellCreateNamespaceIT extends SharedMiniClusterBase {
 
   @Test
   public void copyTablePropsInvalidOptsTest() throws Exception {
-    String[] names = getUniqueNames(3);
+    String[] names = getUniqueNames(2);
 
     ts.exec("createnamespace " + names[0]);
     ts.exec("createnamespace " + names[1]);
 
-    // test -cc and -cp are mutually exclusive - expect this fail
-    ts.exec("createnamespace -cp " + names[0] + " -cc " + names[1] + " " + names[2], false);
+    // test --exclude-parent requires -cc option - expect this fail
+    ts.exec("createnamespace --exlcude-parent " + names[0] + " " + names[1], false);
   }
 
   @Test

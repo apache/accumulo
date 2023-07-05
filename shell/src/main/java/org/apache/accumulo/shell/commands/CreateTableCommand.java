@@ -57,7 +57,7 @@ public class CreateTableCommand extends Command {
   // copies configuration (property hierarchy: system, namespace, table) into table properties
   private Option createTableOptCopyConfig;
   // copies properties from target table, (omits system and namespace properties in configuration)
-  private Option createTableOptCopyProperties;
+  private Option createTableOptExcludeParentProps;
   private Option createTableOptSplit;
   private Option createTableOptTimeLogical;
   private Option createTableOptTimeMillis;
@@ -102,21 +102,14 @@ public class CreateTableCommand extends Command {
     }
 
     // allow only copy config or copy properties,
-    if (cl.hasOption(createTableOptCopyConfig.getOpt())
-        && cl.hasOption(createTableOptCopyProperties.getOpt())) {
-      throw new IllegalArgumentException(
-          "Specified copy configuration and copy properties, only one option allowed");
+    if (cl.hasOption(createTableOptExcludeParentProps.getLongOpt())
+        && !cl.hasOption(createTableOptCopyConfig.getOpt())) {
+      throw new IllegalArgumentException(createTableOptExcludeParentProps.getLongOpt()
+          + " only valid when using " + createTableOptCopyConfig.getLongOpt());
     }
 
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       final String oldTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
-      if (!shellState.getAccumuloClient().tableOperations().exists(oldTable)) {
-        throw new TableNotFoundException(null, oldTable, null);
-      }
-    }
-
-    if (cl.hasOption(createTableOptCopyProperties.getOpt())) {
-      final String oldTable = cl.getOptionValue(createTableOptCopyProperties.getOpt());
       if (!shellState.getAccumuloClient().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
       }
@@ -147,26 +140,22 @@ public class CreateTableCommand extends Command {
 
     // Copy configuration options if flag was set
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
-      String srcTable = createTableOptCopyConfig.getOpt();
-      final Map<String,String> configuration = shellState.getAccumuloClient().tableOperations()
-          .getConfiguration(cl.getOptionValue(srcTable));
-      configuration.entrySet().stream()
-          .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
-          .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
-    }
-
-    // Copy table property options if flag was set
-    if (cl.hasOption(createTableOptCopyProperties.getOpt())) {
-      // use table properties, not configuration (configuration is effective prop hierarchy)
-      String srcTable = cl.getOptionValue(createTableOptCopyProperties.getOpt());
-      if (!shellState.getAccumuloClient().tableOperations().exists(srcTable)) {
-        throw new IllegalArgumentException("Source table `" + srcTable + "` does not exist");
+      String srcTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
+      if (cl.hasOption(createTableOptExcludeParentProps.getLongOpt())) {
+        // copy properties, excludes parent properties in configuration
+        Map<String,String> tableProps =
+            shellState.getAccumuloClient().tableOperations().getTableProperties(srcTable);
+        tableProps.entrySet().stream()
+            .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+            .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
+      } else {
+        // copy configuration (include parent properties)
+        final Map<String,String> configuration =
+            shellState.getAccumuloClient().tableOperations().getConfiguration(srcTable);
+        configuration.entrySet().stream()
+            .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+            .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
       }
-      Map<String,String> tableProps =
-          shellState.getAccumuloClient().tableOperations().getTableProperties(srcTable);
-      tableProps.entrySet().stream()
-          .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
-          .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
     }
 
     // if no defaults selected, remove, even if copied from configuration or properties
@@ -322,8 +311,8 @@ public class CreateTableCommand extends Command {
 
     createTableOptCopyConfig =
         new Option("cc", "copy-config", true, "table to copy effective configuration from");
-    createTableOptCopyProperties = new Option("cp", "copy-properties", true,
-        "table to copy properties from (only table properties are copied)");
+    createTableOptExcludeParentProps = new Option(null, "exclude-parent", false,
+        "exclude parent(s) properties when copying configuration");
     createTableOptCopySplits =
         new Option("cs", "copy-splits", true, "table to copy current splits from");
     createTableOptSplit = new Option("sf", "splits-file", true,
@@ -339,7 +328,6 @@ public class CreateTableCommand extends Command {
     createTableOptInitProp =
         new Option("prop", "init-properties", true, "user defined initial properties");
     createTableOptCopyConfig.setArgName("table");
-    createTableOptCopyProperties.setArgName("table");
     createTableOptCopySplits.setArgName("table");
     createTableOptSplit.setArgName("filename");
     createTableOptFormatter.setArgName("className");
@@ -375,7 +363,7 @@ public class CreateTableCommand extends Command {
     o.addOptionGroup(timeGroup);
     o.addOption(createTableOptSplit);
     o.addOption(createTableOptCopyConfig);
-    o.addOption(createTableOptCopyProperties);
+    o.addOption(createTableOptExcludeParentProps);
     o.addOption(createTableNoDefaultIters);
     o.addOption(createTableOptEVC);
     o.addOption(createTableOptFormatter);

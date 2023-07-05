@@ -784,7 +784,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     ts.exec("config -s " + nsPropName + "=" + nsPropValue1 + " -ns " + srcNS);
 
     ts.exec("createtable " + srcTable);
-    ts.exec("createtable -cp " + srcTable + " " + destTable);
+    ts.exec("createtable --exclude-parent --copy-config " + srcTable + " " + destTable, true);
 
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       Map<String,String> tids = accumuloClient.tableOperations().tableIdMap();
@@ -832,15 +832,15 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     ts.exec("createtable " + names[0]);
     ts.exec("createtable " + names[1]);
 
-    // test -cc and -cp are mutually exclusive - expect this fail
-    ts.exec("createtable -cp " + names[0] + " -cc " + names[1] + " dest", false);
+    // test --expect-parent requires-cc expect this fail
+    ts.exec("createtable --exclude-parent " + names[0] + "dest", false);
   }
 
   @Test
   public void missingSrcCopyPropsTest() throws Exception {
     String[] names = getUniqueNames(2);
     // test command fail if src is not available
-    ts.exec("createtable -cp " + names[0] + " " + names[1], false);
+    ts.exec("createtable --exclude-parent -cc " + names[0] + " " + names[1], false);
   }
 
   @Test
@@ -858,7 +858,17 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     ts.exec("createtable " + names[1]);
 
     // expect to fail because target already exists
-    ts.exec("createtable -cp " + names[0] + " " + names[1], false);
+    ts.exec("createtable -cc " + names[0] + " " + names[1], false);
+  }
+
+  @Test
+  public void optionOrderingTest() throws Exception {
+    String[] names = getUniqueNames(3);
+
+    ts.exec("createtable " + names[0]);
+
+    ts.exec("createtable --exclude-parent --copy-config " + names[0] + " " + names[1], true);
+    ts.exec("createtable --copy-config " + names[0] + " --exclude-parent " + names[2], true);
   }
 
   private Collection<Text> generateNonBinarySplits(final int numItems, final int len) {
