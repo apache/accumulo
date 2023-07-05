@@ -44,7 +44,7 @@ public class RootTable {
    */
   public static final String ZROOT_TABLET_GC_CANDIDATES = ZROOT_TABLET + "/gc_candidates";
   /*
-   * ZK path relative to the zookeeper node where the root tablet gc candidates are stored.
+   * ZK path relative to the zookeeper node where the root tablet refresh entries are stored.
    */
   public static final String ZROOT_TABLET_REFRESHES = ZROOT_TABLET + "/refreshes";
 
