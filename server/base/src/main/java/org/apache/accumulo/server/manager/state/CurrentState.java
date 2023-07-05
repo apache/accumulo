@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.manager.state;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.TableId;
@@ -31,6 +32,8 @@ public interface CurrentState {
   Set<TableId> onlineTables();
 
   Set<TServerInstance> onlineTabletServers();
+
+  Map<String,Set<TServerInstance>> tServerResourceGroups();
 
   Set<TServerInstance> shutdownServers();
 

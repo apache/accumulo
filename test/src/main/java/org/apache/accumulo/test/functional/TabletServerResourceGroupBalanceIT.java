@@ -109,7 +109,7 @@ public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
     ntc1.withSplits(splits);
 
     Map<String,String> properties = new HashMap<>();
-    properties.put(Property.TABLE_ASSIGNMENT_GROUP.getKey(), "GROUP1");
+    properties.put("table.custom.assignment.group", "GROUP1");
 
     NewTableConfiguration ntc2 = new NewTableConfiguration();
     ntc2.withInitialHostingGoal(TabletHostingGoal.ALWAYS);

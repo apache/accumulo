@@ -22,7 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -85,6 +87,11 @@ public class MergeStateIT extends ConfigurableMacBase {
     @Override
     public Set<TServerInstance> onlineTabletServers() {
       return Collections.singleton(someTServer);
+    }
+
+    @Override
+    public Map<String,Set<TServerInstance>> tServerResourceGroups() {
+      return new HashMap<>();
     }
 
     @Override

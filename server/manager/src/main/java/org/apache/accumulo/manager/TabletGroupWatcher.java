@@ -37,11 +37,13 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -57,6 +59,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -81,7 +84,9 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
@@ -250,6 +255,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         CompactionJobGenerator compactionGenerator =
             new CompactionJobGenerator(new ServiceEnvironmentImpl(manager.getContext()));
 
+        final Configuration pluginConf = new ConfigurationImpl(manager.getConfiguration());
+        final Map<String,Set<TabletServerId>> resourceGroups = new HashMap<>();
+        manager.tServerResourceGroups().forEach((k, v) -> {
+          resourceGroups.put(k,
+              v.stream().map(s -> new TabletServerIdImpl(s)).collect(Collectors.toSet()));
+        });
+
         // Walk through the tablets in our store, and work tablets
         // towards their goal
         iter = store.iterator();
@@ -294,7 +306,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             return mStats != null ? mStats : new MergeStats(new MergeInfo());
           });
           TabletGoalState goal = manager.getGoalState(tm, mergeStats.getMergeInfo());
-          TabletState state = tm.getTabletState(currentTServers.keySet());
+          TabletState state = tm.getTabletState(currentTServers.keySet(), manager.tabletBalancer,
+              pluginConf, resourceGroups);
 
           final Location location = tm.getLocation();
           Location current = null;
@@ -308,30 +321,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               future != null ? future.getServerInstance() : null,
               current != null ? current.getServerInstance() : null, tm.getLogs().size());
 
-          // ELASTICITY_TODO: Do we remove this code block and just warn in
-          // getAssignmentsFromBalancer
-          // when a tablet is assigned outside of the resource group?
-          if (current != null && currentTServers.keySet().contains(current.getServerInstance())) {
-            // Check to see if the current location is in the set of TServerInstance's
-            // for this tables resource group
-            String assignmentGroup = tableConf.get(Property.TABLE_ASSIGNMENT_GROUP);
-            if (!currentTServerGrouping.get(assignmentGroup)
-                .contains(current.getServerInstance())) {
-              LOG.info(
-                  "Tablet {} assigned to resource group {}, but currently hosted by"
-                      + " tserver {} which is not in of that resource group. Unassigning tablet so"
-                      + "that it can be re-assigned to the correct group",
-                  tm.getExtent(), assignmentGroup, current.getServerInstance().getHostPort());
-              // override the TabletState, this tablet is not hosted in a TServer in
-              // the correct resourceGroup
-              state = TabletState.ASSIGNED_TO_WRONG_GROUP;
-              goal = TabletGoalState.UNASSIGNED;
-              if (!actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)) {
-                actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
-              }
-            }
-          }
-
           stats.update(tableId, state);
           mergeStats.update(tm.getExtent(), state, tm.hasChopped(), !tm.getLogs().isEmpty());
           sendChopRequest(mergeStats.getMergeInfo(), state, tm);
@@ -339,6 +328,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // Always follow through with assignments
           if (state == TabletState.ASSIGNED) {
             goal = TabletGoalState.HOSTED;
+          } else if (state == TabletState.ASSIGNED_TO_WRONG_GROUP) {
+            goal = TabletGoalState.UNASSIGNED;
           }
 
           // if we are shutting down all the tabletservers, we have to do it in order
@@ -404,8 +395,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                   tLists.assigned.add(new Assignment(tm.getExtent(),
                       future != null ? future.getServerInstance() : null, tm.getLast()));
                   break;
-                case ASSIGNED_TO_WRONG_GROUP:
-                  // goal state of HOSTED should not occur with this tablet state
+                default:
                   break;
               }
             } else {
@@ -1067,14 +1057,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                   "balancer assigned {} to a tablet server that is not current {} ignoring",
                   assignment.getKey(), assignment.getValue());
               continue;
-            }
-
-            final String resourceGroup =
-                manager.getConfiguration().get(Property.TABLE_ASSIGNMENT_GROUP);
-            if (!tLists.currentTServerGrouping.get(resourceGroup).contains(assignment.getValue())) {
-              Manager.log.warn(
-                  "balancer assigned {} to tablet server {} that is not in the assigned resource group {}",
-                  assignment.getKey(), assignment.getValue(), resourceGroup);
             }
 
             final UnassignedTablet unassignedTablet = unassigned.get(assignment.getKey());

@@ -1082,12 +1082,6 @@ public enum Property {
           + "also consider configuring the `" + NoDeleteConstraint.class.getName() + "` "
           + "constraint.",
       "2.0.0"),
-  TABLE_ASSIGNMENT_GROUP("table.assignment.group", Constants.DEFAULT_RESOURCE_GROUP_NAME,
-      PropertyType.STRING,
-      "Tablets for this table will be assigned to TabletServers that have a corresponding"
-          + " tserver.group property value.",
-      "4.0.0"),
-
   // Compactor properties
   @Experimental
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,

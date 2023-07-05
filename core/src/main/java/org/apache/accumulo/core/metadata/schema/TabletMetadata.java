@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
@@ -55,6 +56,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -75,6 +77,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.spi.balancer.TabletBalancer;
+import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -421,6 +425,11 @@ public class TabletMetadata {
   }
 
   public TabletState getTabletState(Set<TServerInstance> liveTServers) {
+    return getTabletState(liveTServers, null, null, null);
+  }
+
+  public TabletState getTabletState(Set<TServerInstance> liveTServers, TabletBalancer balancer,
+      Configuration conf, Map<String,Set<TabletServerId>> currentTServerGrouping) {
     ensureFetched(ColumnType.LOCATION);
     ensureFetched(ColumnType.LAST);
     ensureFetched(ColumnType.SUSPEND);
@@ -435,6 +444,12 @@ public class TabletMetadata {
       return liveTServers.contains(future.getServerInstance()) ? TabletState.ASSIGNED
           : TabletState.ASSIGNED_TO_DEAD_SERVER;
     } else if (current != null) {
+      if (balancer != null) {
+        if (!balancer.isHostedInResourceGroup(conf,
+            new TabletServerIdImpl(current.getServerInstance()), currentTServerGrouping)) {
+          return TabletState.ASSIGNED_TO_WRONG_GROUP;
+        }
+      }
       return liveTServers.contains(current.getServerInstance()) ? TabletState.HOSTED
           : TabletState.ASSIGNED_TO_DEAD_SERVER;
     } else if (getSuspend() != null) {

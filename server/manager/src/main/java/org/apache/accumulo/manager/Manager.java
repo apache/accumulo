@@ -211,7 +211,7 @@ public class Manager extends AbstractServer
 
   ServiceLock managerLock = null;
   private TServer clientService = null;
-  private volatile TabletBalancer tabletBalancer;
+  protected volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
 
   private ManagerState state = ManagerState.INITIAL;
@@ -1731,6 +1731,11 @@ public class Manager extends AbstractServer
   @Override
   public Set<TServerInstance> onlineTabletServers() {
     return tserverSet.getCurrentServers();
+  }
+
+  @Override
+  public Map<String,Set<TServerInstance>> tServerResourceGroups() {
+    return tserverSet.getCurrentServersGroups();
   }
 
   @Override

@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
+import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
@@ -69,9 +70,6 @@ public interface TabletBalancer {
     void addAssignment(TabletId tabletId, TabletServerId tabletServerId);
 
     /**
-     * Balancers can use this mapping in conjunction with {@link Property#TABLE_ASSIGNMENT_GROUP} to
-     * assign tablets to tablet servers within the corresponding resource group
-     *
      * @return map of resource group name to set of TServerInstance objects
      * @since 4.0.0
      */
@@ -104,9 +102,6 @@ public interface TabletBalancer {
     List<TabletMigration> migrationsOut();
 
     /**
-     * Balancers can use this mapping in conjunction with {@link Property#TABLE_ASSIGNMENT_GROUP} to
-     * assign tablets to tablet servers within the corresponding resource group
-     *
      * @return map of resource group name to set of TServerInstance objects
      * @since 4.0.0
      */
@@ -138,4 +133,15 @@ public interface TabletBalancer {
    * @return the time, in milliseconds, to wait before re-balancing.
    */
   long balance(BalanceParameters params);
+
+  /**
+   * Ask the balancer if the tablet is hosted by a TabletServer in the defined resource group
+   *
+   * @return true if TabletServer is in the configured resource group, false otherwise
+   * @since 4.0.0
+   */
+  default boolean isHostedInResourceGroup(Configuration conf, TabletServerId currentLocation,
+      Map<String,Set<TabletServerId>> currentTServerGrouping) {
+    return true;
+  }
 }
