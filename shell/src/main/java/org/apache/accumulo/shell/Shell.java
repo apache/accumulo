@@ -105,12 +105,12 @@ import org.apache.accumulo.shell.commands.ExecfileCommand;
 import org.apache.accumulo.shell.commands.ExitCommand;
 import org.apache.accumulo.shell.commands.ExportTableCommand;
 import org.apache.accumulo.shell.commands.ExtensionCommand;
-import org.apache.accumulo.shell.commands.FateCommand;
 import org.apache.accumulo.shell.commands.FlushCommand;
 import org.apache.accumulo.shell.commands.FormatterCommand;
 import org.apache.accumulo.shell.commands.GetAuthsCommand;
 import org.apache.accumulo.shell.commands.GetGroupsCommand;
 import org.apache.accumulo.shell.commands.GetSplitsCommand;
+import org.apache.accumulo.shell.commands.GetTabletHostingGoalCommand;
 import org.apache.accumulo.shell.commands.GrantCommand;
 import org.apache.accumulo.shell.commands.GrepCommand;
 import org.apache.accumulo.shell.commands.HelpCommand;
@@ -147,13 +147,13 @@ import org.apache.accumulo.shell.commands.SetAuthsCommand;
 import org.apache.accumulo.shell.commands.SetGroupsCommand;
 import org.apache.accumulo.shell.commands.SetIterCommand;
 import org.apache.accumulo.shell.commands.SetShellIterCommand;
+import org.apache.accumulo.shell.commands.SetTabletHostingGoalCommand;
 import org.apache.accumulo.shell.commands.SleepCommand;
 import org.apache.accumulo.shell.commands.SummariesCommand;
 import org.apache.accumulo.shell.commands.SystemPermissionsCommand;
 import org.apache.accumulo.shell.commands.TableCommand;
 import org.apache.accumulo.shell.commands.TablePermissionsCommand;
 import org.apache.accumulo.shell.commands.TablesCommand;
-import org.apache.accumulo.shell.commands.TabletHostingGoalCommand;
 import org.apache.accumulo.shell.commands.TraceCommand;
 import org.apache.accumulo.shell.commands.UserCommand;
 import org.apache.accumulo.shell.commands.UserPermissionsCommand;
@@ -190,6 +190,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 @AutoService(KeywordExecutable.class)
 public class Shell extends ShellOptions implements KeywordExecutable {
+
   public static final Logger log = LoggerFactory.getLogger(Shell.class);
   private static final Logger audit = LoggerFactory.getLogger(Shell.class.getName() + ".audit");
 
@@ -258,6 +259,34 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     this.writer = terminal.writer();
   }
 
+  private boolean authenticateUser(AccumuloClient client, AuthenticationToken token)
+      throws AccumuloException, AccumuloSecurityException {
+    return client.securityOperations().authenticateUser(client.whoami(), token);
+  }
+
+  private AuthenticationToken getAuthenticationToken(String principal, String authenticationString,
+      String passwordPrompt) {
+    AuthenticationToken token = null;
+    if (authenticationString == null
+        && clientProperties.containsKey(ClientProperty.AUTH_TOKEN.getKey())
+        && principal.equals(ClientProperty.AUTH_PRINCIPAL.getValue(clientProperties))) {
+      token = ClientProperty.getAuthenticationToken(clientProperties);
+    }
+    if (token == null) {
+      // Read password if the user explicitly asked for it, or didn't specify anything at all
+      if (PasswordConverter.STDIN.equals(authenticationString) || authenticationString == null) {
+        authenticationString = reader.readLine(passwordPrompt, '*');
+      }
+      if (authenticationString == null) {
+        // User cancel, e.g. Ctrl-D pressed
+        throw new ParameterException("No password or token option supplied");
+      } else {
+        token = new PasswordToken(authenticationString);
+      }
+    }
+    return token;
+  }
+
   /**
    * Configures the shell using the provided options. Not for client use.
    *
@@ -300,9 +329,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       return false;
     }
 
-    if (options.isDebugEnabled()) {
-      log.warn("Configure debugging through your logging configuration file");
-    }
     authTimeout = TimeUnit.MINUTES.toNanos(options.getAuthTimeout());
     disableAuthTimeout = options.isAuthTimeoutDisabled();
 
@@ -332,27 +358,13 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         exitCode = 1;
         return false;
       }
-      String password = options.getPassword();
-      AuthenticationToken token = null;
-      if (password == null && clientProperties.containsKey(ClientProperty.AUTH_TOKEN.getKey())
-          && principal.equals(ClientProperty.AUTH_PRINCIPAL.getValue(clientProperties))) {
-        token = ClientProperty.getAuthenticationToken(clientProperties);
-      }
-      if (token == null) {
-        // Read password if the user explicitly asked for it, or didn't specify anything at all
-        if (PasswordConverter.STDIN.equals(password) || password == null) {
-          password = reader.readLine("Password: ", '*');
-        }
-        if (password == null) {
-          // User cancel, e.g. Ctrl-D pressed
-          throw new ParameterException("No password or token option supplied");
-        } else {
-          token = new PasswordToken(password);
-        }
-      }
+      String authenticationString = options.getPassword();
+      final AuthenticationToken token =
+          getAuthenticationToken(principal, authenticationString, "Password: ");
       try {
         this.setTableName("");
         accumuloClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
+        authenticateUser(accumuloClient, token);
         context = (ClientContext) accumuloClient;
       } catch (Exception e) {
         printException(e);
@@ -393,15 +405,16 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(),
         new SystemPermissionsCommand(), new TablePermissionsCommand(), new UserPermissionsCommand(),
         new NamespacePermissionsCommand()};
-    Command[] stateCommands = {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(),
-        new FateCommand(), new NoTableCommand(), new SleepCommand(), new TableCommand(),
-        new UserCommand(), new WhoAmICommand()};
+    Command[] stateCommands =
+        {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new NoTableCommand(),
+            new SleepCommand(), new TableCommand(), new UserCommand(), new WhoAmICommand()};
     Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(),
         new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(), new DUCommand(),
         new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(),
-        new TabletHostingGoalCommand(), new OnlineCommand(), new RenameTableCommand(),
-        new TablesCommand(), new NamespacesCommand(), new CreateNamespaceCommand(),
-        new DeleteNamespaceCommand(), new RenameNamespaceCommand(), new SummariesCommand()};
+        new SetTabletHostingGoalCommand(), new GetTabletHostingGoalCommand(), new OnlineCommand(),
+        new RenameTableCommand(), new TablesCommand(), new NamespacesCommand(),
+        new CreateNamespaceCommand(), new DeleteNamespaceCommand(), new RenameNamespaceCommand(),
+        new SummariesCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(),
         new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(), new GetSplitsCommand(),
         new MergeCommand(), new SetGroupsCommand()};
@@ -701,16 +714,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           writer.println("Shell has been idle for too long. Please re-authenticate.");
           boolean authFailed = true;
           do {
-            String pwd = readMaskedLine(
-                "Enter current password for '" + accumuloClient.whoami() + "': ", '*');
-            if (pwd == null) {
-              writer.println();
-              return;
-            } // user canceled
-
+            final AuthenticationToken authToken = getAuthenticationToken(accumuloClient.whoami(),
+                null, "Enter current password for '" + accumuloClient.whoami() + "': ");
             try {
-              authFailed = !accumuloClient.securityOperations()
-                  .authenticateUser(accumuloClient.whoami(), new PasswordToken(pwd));
+              authFailed = !authenticateUser(accumuloClient, authToken);
             } catch (Exception e) {
               ++exitCode;
               printException(e);
@@ -1157,7 +1164,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       throws AccumuloException, AccumuloSecurityException {
     var newClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
     try {
-      newClient.securityOperations().authenticateUser(principal, token);
+      authenticateUser(newClient, token);
     } catch (AccumuloSecurityException e) {
       // new client can't authenticate; close and discard
       newClient.close();

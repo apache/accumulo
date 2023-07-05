@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>29</version>
+    <version>30</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
@@ -37,8 +37,6 @@
     design in the form of cell-level access labels and a server-side
     programming mechanism that can modify key/value pairs at various points in
     the data management process.</description>
-  <!-- this URL is where the site derived via the maven-site-plugin ends up,
-       not the generic site; currently not used -->
   <url>https://accumulo.apache.org</url>
   <!-- this is the year of inception at ASF -->
   <inceptionYear>2011</inceptionYear>
@@ -88,7 +86,6 @@
     <module>minicluster</module>
     <module>server/base</module>
     <module>server/compactor</module>
-    <module>server/compaction-coordinator</module>
     <module>server/gc</module>
     <module>server/manager</module>
     <module>server/monitor</module>
@@ -115,12 +112,6 @@
   <properties>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
-    <auto-service.version>1.0.1</auto-service.version>
-    <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.70</bouncycastle.version>
-    <!-- Curator version -->
-    <curator.version>5.5.0</curator.version>
-    <errorprone.version>2.18.0</errorprone.version>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
     <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
     <extraTestArgs />
@@ -129,7 +120,6 @@
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
     <failsafe.reuseForks>false</failsafe.reuseForks>
-    <hadoop.version>3.3.5</hadoop.version>
     <!-- prevent introduction of new compiler warnings -->
     <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
     <maven.compiler.release>11</maven.compiler.release>
@@ -137,41 +127,48 @@
     <maven.compiler.target>11</maven.compiler.target>
     <maven.javadoc.failOnWarnings>true</maven.javadoc.failOnWarnings>
     <maven.site.deploy.skip>true</maven.site.deploy.skip>
+    <maven.site.skip>true</maven.site.skip>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
+    <!-- versions-maven-plugin ignore patterns for snapshots, alpha, beta, milestones, and release candidates -->
+    <maven.version.ignore>.+-SNAPSHOT,(?i).*(alpha|beta)[0-9]*,(?i).*[.-](m|rc)[0-9]+</maven.version.ignore>
     <minimalJavaBuildVersion>11</minimalJavaBuildVersion>
-    <minimalMavenBuildVersion>3.5.0</minimalMavenBuildVersion>
-    <powermock.version>2.0.9</powermock.version>
+    <minimalMavenBuildVersion>3.6.0</minimalMavenBuildVersion>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2023-04-07T20:15:28Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2023-06-14T05:41:08Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
-    <slf4j.version>2.0.7</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
     <surefire.forkCount>1C</surefire.forkCount>
     <surefire.groups />
     <surefire.reuseForks>true</surefire.reuseForks>
-    <surefire.version>3.1.0</surefire.version>
-    <!-- Thrift version -->
-    <thrift.version>0.17.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
-    <!-- ZooKeeper version -->
-    <zookeeper.version>3.8.1</zookeeper.version>
+    <!-- dependency and plugin versions managed with properties -->
+    <version.auto-service>1.1.1</version.auto-service>
+    <version.bouncycastle>1.70</version.bouncycastle>
+    <version.curator>5.5.0</version.curator>
+    <version.errorprone>2.20.0</version.errorprone>
+    <version.hadoop>3.3.6</version.hadoop>
+    <version.opentelemetry>1.27.0</version.opentelemetry>
+    <version.powermock>2.0.9</version.powermock>
+    <version.slf4j>2.0.7</version.slf4j>
+    <version.thrift>0.17.0</version.thrift>
+    <version.zookeeper>3.8.1</version.zookeeper>
   </properties>
   <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
-        <version>2.15.1</version>
+        <version>2.15.2</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.11.0</version>
+        <version>1.11.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -179,21 +176,21 @@
         <!-- for dependency convergence between Micrometer and ZooKeeper -->
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
-        <version>4.1.92.Final</version>
+        <version>4.1.94.Final</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>io.opentelemetry</groupId>
         <artifactId>opentelemetry-bom</artifactId>
-        <version>1.26.0</version>
+        <version>${version.opentelemetry}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>io.opentelemetry</groupId>
         <artifactId>opentelemetry-bom-alpha</artifactId>
-        <version>1.26.0-alpha</version>
+        <version>${version.opentelemetry}-alpha</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -228,7 +225,7 @@
       <dependency>
         <groupId>org.glassfish.jaxb</groupId>
         <artifactId>jaxb-bom</artifactId>
-        <version>4.0.2</version>
+        <version>4.0.3</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -243,7 +240,7 @@
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
-        <version>5.10.0-M1</version>
+        <version>5.9.3</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -270,7 +267,7 @@
       <dependency>
         <groupId>com.google.auto.service</groupId>
         <artifactId>auto-service</artifactId>
-        <version>${auto-service.version}</version>
+        <version>${version.auto-service}</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.findbugs</groupId>
@@ -286,7 +283,7 @@
         <!-- converge transitive dependency version between guava and caffeine -->
         <groupId>com.google.errorprone</groupId>
         <artifactId>error_prone_annotations</artifactId>
-        <version>${errorprone.version}</version>
+        <version>${version.errorprone}</version>
       </dependency>
       <dependency>
         <!-- this is a runtime dependency of guava, no longer included with guava as of 27.1 -->
@@ -297,7 +294,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>31.1-jre</version>
+        <version>32.0.1-jre</version>
       </dependency>
       <dependency>
         <groupId>com.lmax</groupId>
@@ -312,12 +309,12 @@
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.15</version>
+        <version>1.16.0</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.12.0</version>
+        <version>2.13.0</version>
       </dependency>
       <dependency>
         <groupId>commons-logging</groupId>
@@ -329,11 +326,6 @@
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <version>4.13.2</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-compaction-coordinator</artifactId>
-        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -449,22 +441,22 @@
       <dependency>
         <groupId>org.apache.curator</groupId>
         <artifactId>curator-framework</artifactId>
-        <version>${curator.version}</version>
+        <version>${version.curator}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.curator</groupId>
         <artifactId>curator-test</artifactId>
-        <version>${curator.version}</version>
+        <version>${version.curator}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.datasketches</groupId>
         <artifactId>datasketches-java</artifactId>
-        <version>3.3.0</version>
+        <version>4.1.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-client</artifactId>
-        <version>${hadoop.version}</version>
+        <version>${version.hadoop}</version>
         <exclusions>
           <exclusion>
             <groupId>xerces</groupId>
@@ -475,27 +467,27 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-client-api</artifactId>
-        <version>${hadoop.version}</version>
+        <version>${version.hadoop}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-client-minicluster</artifactId>
-        <version>${hadoop.version}</version>
+        <version>${version.hadoop}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-client-runtime</artifactId>
-        <version>${hadoop.version}</version>
+        <version>${version.hadoop}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-distcp</artifactId>
-        <version>${hadoop.version}</version>
+        <version>${version.hadoop}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-minicluster</artifactId>
-        <version>${hadoop.version}</version>
+        <version>${version.hadoop}</version>
         <exclusions>
           <exclusion>
             <groupId>xerces</groupId>
@@ -506,7 +498,7 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-minikdc</artifactId>
-        <version>${hadoop.version}</version>
+        <version>${version.hadoop}</version>
         <exclusions>
           <exclusion>
             <groupId>org.slf4j</groupId>
@@ -517,12 +509,12 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-tools</artifactId>
-        <version>${hadoop.version}</version>
+        <version>${version.hadoop}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.thrift</groupId>
         <artifactId>libthrift</artifactId>
-        <version>${thrift.version}</version>
+        <version>${version.thrift}</version>
         <!-- exclude vulnerable lib see https://issues.apache.org/jira/browse/HTTPCLIENT-1803 -->
         <exclusions>
           <exclusion>
@@ -534,7 +526,7 @@
       <dependency>
         <groupId>org.apache.zookeeper</groupId>
         <artifactId>zookeeper</artifactId>
-        <version>${zookeeper.version}</version>
+        <version>${version.zookeeper}</version>
         <exclusions>
           <exclusion>
             <groupId>ch.qos.logback</groupId>
@@ -549,22 +541,22 @@
       <dependency>
         <groupId>org.apache.zookeeper</groupId>
         <artifactId>zookeeper-jute</artifactId>
-        <version>${zookeeper.version}</version>
+        <version>${version.zookeeper}</version>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcpkix-jdk15on</artifactId>
-        <version>${bouncycastle.version}</version>
+        <version>${version.bouncycastle}</version>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk15on</artifactId>
-        <version>${bouncycastle.version}</version>
+        <version>${version.bouncycastle}</version>
       </dependency>
       <dependency>
         <groupId>org.checkerframework</groupId>
         <artifactId>checker-qual</artifactId>
-        <version>3.34.0</version>
+        <version>3.35.0</version>
       </dependency>
       <dependency>
         <groupId>org.easymock</groupId>
@@ -589,7 +581,7 @@
       <dependency>
         <groupId>org.hibernate.validator</groupId>
         <artifactId>hibernate-validator</artifactId>
-        <version>8.0.0.Final</version>
+        <version>8.0.1.Final</version>
       </dependency>
       <dependency>
         <groupId>org.javassist</groupId>
@@ -599,7 +591,7 @@
       <dependency>
         <groupId>org.jboss.logging</groupId>
         <artifactId>jboss-logging</artifactId>
-        <version>3.5.0.Final</version>
+        <version>3.5.1.Final</version>
       </dependency>
       <dependency>
         <!-- force convergence of transitive dependency of hibernate-validator -->
@@ -614,9 +606,10 @@
         <version>2.2.1.Final</version>
       </dependency>
       <dependency>
+        <!-- stay on 3.21.0 for now due to https://github.com/apache/accumulo/issues/3446 -->
         <groupId>org.jline</groupId>
         <artifactId>jline</artifactId>
-        <version>3.23.0</version>
+        <version>3.21.0</version>
       </dependency>
       <dependency>
         <groupId>org.latencyutils</groupId>
@@ -638,33 +631,33 @@
       <dependency>
         <groupId>org.powermock</groupId>
         <artifactId>powermock-api-easymock</artifactId>
-        <version>${powermock.version}</version>
+        <version>${version.powermock}</version>
       </dependency>
       <dependency>
         <groupId>org.powermock</groupId>
         <artifactId>powermock-core</artifactId>
-        <version>${powermock.version}</version>
+        <version>${version.powermock}</version>
       </dependency>
       <dependency>
         <groupId>org.powermock</groupId>
         <artifactId>powermock-module-junit4</artifactId>
-        <version>${powermock.version}</version>
+        <version>${version.powermock}</version>
       </dependency>
       <dependency>
         <groupId>org.powermock</groupId>
         <artifactId>powermock-reflect</artifactId>
-        <version>${powermock.version}</version>
+        <version>${version.powermock}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
-        <version>${slf4j.version}</version>
+        <version>${version.slf4j}</version>
       </dependency>
       <dependency>
         <!-- version specified to converge transitive dependency of hadoop and curator -->
         <groupId>org.xerial.snappy</groupId>
         <artifactId>snappy-java</artifactId>
-        <version>1.1.9.1</version>
+        <version>1.1.10.1</version>
       </dependency>
       <dependency>
         <groupId>org.yaml</groupId>
@@ -687,7 +680,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.15.0</version>
+          <version>2.16.0</version>
         </plugin>
         <plugin>
           <groupId>com.mycila</groupId>
@@ -696,13 +689,12 @@
           <configuration>
             <licenseSets>
               <licenseSet>
-                <header>${rootlocation}/contrib/license-header.txt</header>
+                <header>${rootlocation}/src/build/license-header.txt</header>
                 <excludes combine.children="append">
                   <exclude>**/DEPENDENCIES</exclude>
                   <exclude>**/LICENSE</exclude>
                   <exclude>**/NOTICE</exclude>
                   <exclude>**/target/**</exclude>
-                  <exclude>contrib/javadoc11.patch</exclude>
                 </excludes>
               </licenseSet>
             </licenseSets>
@@ -729,7 +721,7 @@
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>4.7.3.4</version>
+          <version>4.7.3.5</version>
           <configuration>
             <xmlOutput>true</xmlOutput>
             <effort>Max</effort>
@@ -748,28 +740,8 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>3.3.1</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-remote-resources-plugin</artifactId>
-          <version>3.1.0</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-site-plugin</artifactId>
-          <version>4.0.0-M8</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>3.2.2</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-assembly-plugin</artifactId>
-          <version>3.6.0</version>
+          <version>3.3.0</version>
         </plugin>
         <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
@@ -798,23 +770,7 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-clean-plugin</artifactId>
-          <configuration>
-            <filesets>
-              <fileset>
-                <directory>./</directory>
-                <includes>
-                  <include>**/*.pyc</include>
-                  <include>**/*.so</include>
-                </includes>
-              </fileset>
-            </filesets>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.11.0</version>
           <configuration>
             <showDeprecation>true</showDeprecation>
             <showWarnings>true</showWarnings>
@@ -830,7 +786,7 @@
               <path>
                 <groupId>com.google.auto.service</groupId>
                 <artifactId>auto-service</artifactId>
-                <version>${auto-service.version}</version>
+                <version>${version.auto-service}</version>
               </path>
             </annotationProcessorPaths>
           </configuration>
@@ -923,9 +879,9 @@
         <plugin>
           <groupId>net.revelc.code.formatter</groupId>
           <artifactId>formatter-maven-plugin</artifactId>
-          <version>2.22.0</version>
+          <version>2.23.0</version>
           <configuration>
-            <configFile>${rootlocation}/contrib/Eclipse-Accumulo-Codestyle.xml</configFile>
+            <configFile>${rootlocation}/src/build/eclipse-codestyle.xml</configFile>
             <excludes>
               <exclude>**/thrift/*.java</exclude>
             </excludes>
@@ -968,16 +924,6 @@
               <exclude>**/thrift/*.java</exclude>
             </excludes>
           </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-dependency-plugin</artifactId>
-          <version>3.6.0</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-enforcer-plugin</artifactId>
-          <version>3.3.0</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -1144,6 +1090,10 @@
                   <property name="message" value="Use JUnit4+ @Test annotation instead of TestCase" />
                 </module>
                 <module name="RegexpSinglelineJava">
+                  <property name="format" value="import org[.]apache[.]accumulo[.]core[.]util[.]LazySingletons;" />
+                  <property name="message" value="Use static imports for LazySingletons for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
                   <property name="format" value="import org[.]junit[.]Assert;" />
                   <property name="message" value="Use static imports for Assert.* methods for consistency" />
                 </module>
@@ -1213,7 +1163,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.11.0</version>
+            <version>10.12.1</version>
           </dependency>
         </dependencies>
         <executions>
@@ -1583,6 +1533,10 @@
     <profile>
       <!-- mvn clean package javadoc:aggregate -DskipTests -Paggregate-javadocs -->
       <id>aggregate-javadocs</id>
+      <properties>
+        <!-- use at least 17 to avoid patching for JDK-8227487 JDK-8214856 and JDK-8215291 -->
+        <minimalJavaBuildVersion>17</minimalJavaBuildVersion>
+      </properties>
       <build>
         <pluginManagement>
           <plugins>
@@ -1737,7 +1691,7 @@
                 <path>
                   <groupId>com.google.errorprone</groupId>
                   <artifactId>error_prone_core</artifactId>
-                  <version>${errorprone.version}</version>
+                  <version>${version.errorprone}</version>
                 </path>
               </annotationProcessorPaths>
             </configuration>

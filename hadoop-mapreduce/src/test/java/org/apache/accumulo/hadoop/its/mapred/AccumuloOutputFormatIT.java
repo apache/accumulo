@@ -64,7 +64,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "1");
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
   }
 
   // Prevent regression of ACCUMULO-3709.

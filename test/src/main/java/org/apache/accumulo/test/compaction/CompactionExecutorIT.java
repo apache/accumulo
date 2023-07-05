@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -108,7 +109,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       if (Boolean.parseBoolean(params.getExecutionHints().getOrDefault("compact_all", "false"))) {
         return params
             .createPlanBuilder().addJob((short) 1,
-                executorIds.get(random.nextInt(executorIds.size())), params.getCandidates())
+                executorIds.get(RANDOM.get().nextInt(executorIds.size())), params.getCandidates())
             .build();
       }
 
@@ -121,7 +122,8 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
         params.getCandidates().stream().collect(Collectors.groupingBy(TestPlanner::getFirstChar))
             .values().forEach(files -> {
               for (int i = filesPerCompaction; i <= files.size(); i += filesPerCompaction) {
-                planBuilder.addJob((short) 1, executorIds.get(random.nextInt(executorIds.size())),
+                planBuilder.addJob((short) 1,
+                    executorIds.get(RANDOM.get().nextInt(executorIds.size())),
                     files.subList(i - filesPerCompaction, i));
               }
             });

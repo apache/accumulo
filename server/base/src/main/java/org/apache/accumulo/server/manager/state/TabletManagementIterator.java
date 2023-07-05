@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -53,6 +55,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
@@ -61,7 +64,9 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.slf4j.Logger;
@@ -86,6 +91,7 @@ public class TabletManagementIterator extends SkippingIterator {
   private static final String MIGRATIONS_OPTION = "migrations";
   private static final String MANAGER_STATE_OPTION = "managerState";
   private static final String SHUTTING_DOWN_OPTION = "shuttingDown";
+  private CompactionJobGenerator compactionGenerator;
 
   private static void setCurrentServers(final IteratorSetting cfg,
       final Set<TServerInstance> goodServers) {
@@ -265,7 +271,10 @@ public class TabletManagementIterator extends SkippingIterator {
   }
 
   public static void configureScanner(final ScannerBase scanner, final CurrentState state) {
+    // TODO so many columns are being fetch it may not make sense to fetch columns
     TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+    ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
+    ServerColumnFamily.SELECTED_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
     scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
     scanner.fetchColumnFamily(LastLocationColumnFamily.NAME);
@@ -274,6 +283,7 @@ public class TabletManagementIterator extends SkippingIterator {
     scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
     scanner.fetchColumnFamily(HostingColumnFamily.NAME);
     scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+    scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
     ServerColumnFamily.OPID_COLUMN.fetch(scanner);
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
     IteratorSetting tabletChange =
@@ -329,6 +339,7 @@ public class TabletManagementIterator extends SkippingIterator {
     if (shuttingDown != null) {
       current.removeAll(shuttingDown);
     }
+    compactionGenerator = new CompactionJobGenerator(env.getPluginEnv());
   }
 
   @Override
@@ -393,7 +404,7 @@ public class TabletManagementIterator extends SkippingIterator {
   private void computeTabletManagementActions(final TabletMetadata tm,
       final Set<ManagementAction> reasonsToReturnThisTablet) {
 
-    if (tm.isFutureAndCurrentLocationSet()) {
+    if (tm.isFutureAndCurrentLocationSet() || tm.isOperationIdAndCurrentLocationSet()) {
       // no need to check everything, we are in a known state where we want to return everything.
       reasonsToReturnThisTablet.add(ManagementAction.BAD_STATE);
       return;
@@ -418,8 +429,31 @@ public class TabletManagementIterator extends SkippingIterator {
         reasonsToReturnThisTablet.add(ManagementAction.NEEDS_SPLITTING);
       }
 
-      // TODO: Add compaction logic
+      // important to call this since reasonsToReturnThisTablet is passed to it
+      if (!compactionGenerator.generateJobs(tm, determineCompactionKinds(reasonsToReturnThisTablet))
+          .isEmpty()) {
+        reasonsToReturnThisTablet.add(ManagementAction.NEEDS_COMPACTING);
+      }
     }
 
+  }
+
+  private static final Set<CompactionKind> ALL_COMPACTION_KINDS =
+      Collections.unmodifiableSet(EnumSet.allOf(CompactionKind.class));
+  private static final Set<CompactionKind> SPLIT_COMPACTION_KINDS;
+
+  static {
+    var tmp = EnumSet.allOf(CompactionKind.class);
+    tmp.remove(CompactionKind.SYSTEM);
+    SPLIT_COMPACTION_KINDS = Collections.unmodifiableSet(tmp);
+  }
+
+  public static Set<CompactionKind>
+      determineCompactionKinds(Set<ManagementAction> reasonsToReturnThisTablet) {
+    if (reasonsToReturnThisTablet.contains(ManagementAction.NEEDS_SPLITTING)) {
+      return SPLIT_COMPACTION_KINDS;
+    } else {
+      return ALL_COMPACTION_KINDS;
+    }
   }
 }

@@ -59,7 +59,6 @@ import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -296,9 +295,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     if (scannerSamplerConfigImpl != null && !scannerSamplerConfigImpl.equals(samplerConfImpl)) {
       throw new SampleNotPresentException();
     }
-    for (TabletFile file : absFiles) {
+    for (StoredTabletFile file : absFiles) {
       var cs = CryptoFactoryLoader.getServiceForClientWithTable(systemConf, tableConf, tableId);
-      FileSystem fs = VolumeConfiguration.fileSystemForPath(file.getPathStr(), conf);
+      FileSystem fs = VolumeConfiguration.fileSystemForPath(file.getNormalizedPathStr(), conf);
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(file, fs, conf, cs).withTableConfiguration(tableCC).build();
       if (scannerSamplerConfigImpl != null) {

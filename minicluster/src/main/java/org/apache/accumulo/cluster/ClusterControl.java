@@ -21,8 +21,6 @@ package org.apache.accumulo.cluster;
 import java.io.IOException;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.minicluster.ServerType;
 
 /**
@@ -47,23 +45,6 @@ public interface ClusterControl {
    * successfully (return value of 0).
    */
   void adminStopAll() throws IOException;
-
-  /**
-   * Start instances of Compactors
-   *
-   * @param compactor compactor class
-   * @param limit number of compactors to start
-   * @param queueName name of queue
-   */
-  void startCompactors(Class<? extends Compactor> compactor, int limit, String queueName)
-      throws IOException;
-
-  /**
-   * Start an instance of CompactionCoordinator
-   *
-   * @param coordinator compaction coordinator class
-   */
-  void startCoordinator(Class<? extends CompactionCoordinator> coordinator) throws IOException;
 
   /**
    * Starts all occurrences of the given server

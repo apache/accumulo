@@ -21,6 +21,7 @@ package org.apache.accumulo.core.metadata.schema;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -33,11 +34,11 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -214,24 +215,10 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
-  default void
-      putExternalCompactionFinalStates(Collection<ExternalCompactionFinalState> finalStates) {
-    throw new UnsupportedOperationException();
-  }
-
-  default Stream<ExternalCompactionFinalState> getExternalCompactionFinalStates() {
-    throw new UnsupportedOperationException();
-  }
-
-  default void
-      deleteExternalCompactionFinalStates(Collection<ExternalCompactionId> statusesToDelete) {
-    throw new UnsupportedOperationException();
-  }
-
   /**
    * Return an encoded delete marker Mutation to delete the specified TabletFile path. A
    * ReferenceFile is used for the parameter because the Garbage Collector is optimized to store a
-   * directory for Tablet File. Otherwise, a {@link TabletFile} object could be used. The
+   * directory for Tablet File. Otherwise, a {@link ReferencedTabletFile} object could be used. The
    * tabletFilePathToRemove is validated and normalized before creating the mutation.
    *
    * @param tabletFilePathToRemove String full path of the TabletFile
@@ -306,11 +293,13 @@ public interface Ample {
   interface TabletUpdates<T> {
     T putPrevEndRow(Text per);
 
-    T putFile(TabletFile path, DataFileValue dfv);
+    T putFile(ReferencedTabletFile path, DataFileValue dfv);
+
+    T putFile(StoredTabletFile path, DataFileValue dfv);
 
     T deleteFile(StoredTabletFile path);
 
-    T putScan(TabletFile path);
+    T putScan(StoredTabletFile path);
 
     T deleteScan(StoredTabletFile path);
 
@@ -322,7 +311,7 @@ public interface Ample {
 
     T deleteLocation(Location location);
 
-    T putZooLock(ServiceLock zooLock);
+    T putZooLock(String zookeeperRoot, ServiceLock zooLock);
 
     T putDirName(String dirName);
 
@@ -334,9 +323,9 @@ public interface Ample {
 
     T putTime(MetadataTime time);
 
-    T putBulkFile(TabletFile bulkref, long tid);
+    T putBulkFile(ReferencedTabletFile bulkref, long tid);
 
-    T deleteBulkFile(TabletFile bulkref);
+    T deleteBulkFile(StoredTabletFile bulkref);
 
     T putChopped();
 
@@ -357,6 +346,10 @@ public interface Ample {
     T putOperation(TabletOperationId opId);
 
     T deleteOperation();
+
+    T putSelectedFiles(SelectedFiles selectedFiles);
+
+    T deleteSelectedFiles();
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {
@@ -422,16 +415,6 @@ public interface Ample {
     ConditionalTabletMutator requireLocation(Location location);
 
     /**
-     * Require that a tablet currently has the specified file.
-     */
-    ConditionalTabletMutator requireFile(StoredTabletFile path);
-
-    /**
-     * Require that a tablet does not have the specfied bulk load marker.
-     */
-    ConditionalTabletMutator requireAbsentBulkFile(TabletFile bulkref);
-
-    /**
      * Require that a tablet has the specified previous end row.
      */
     ConditionalTabletMutator requirePrevEndRow(Text per);
@@ -440,6 +423,18 @@ public interface Ample {
      * Requires the tablet to have the specified hosting goal before any changes are made.
      */
     ConditionalTabletMutator requireHostingGoal(TabletHostingGoal tabletHostingGoal);
+
+    /**
+     * Requires the specified external compaction to exists
+     */
+    ConditionalTabletMutator requireCompaction(ExternalCompactionId ecid);
+
+    /**
+     * For the specified columns, requires the tablets metadata to be the same at the time of update
+     * as what is in the passed in tabletMetadata object.
+     */
+    ConditionalTabletMutator requireSame(TabletMetadata tabletMetadata, ColumnType type,
+        ColumnType... otherTypes);
 
     /**
      * <p>
@@ -583,6 +578,48 @@ public interface Ample {
    * @param path The bulk directory filepath
    */
   default void removeBulkLoadInProgressFlag(String path) {
+    throw new UnsupportedOperationException();
+  }
+
+  interface Refreshes {
+    static class RefreshEntry {
+      private final ExternalCompactionId ecid;
+
+      private final KeyExtent extent;
+      private final TServerInstance tserver;
+
+      public RefreshEntry(ExternalCompactionId ecid, KeyExtent extent, TServerInstance tserver) {
+        this.ecid = Objects.requireNonNull(ecid);
+        this.extent = Objects.requireNonNull(extent);
+        this.tserver = Objects.requireNonNull(tserver);
+      }
+
+      public ExternalCompactionId getEcid() {
+        return ecid;
+      }
+
+      public KeyExtent getExtent() {
+        return extent;
+      }
+
+      public TServerInstance getTserver() {
+        return tserver;
+      }
+    }
+
+    void add(Collection<RefreshEntry> entries);
+
+    void delete(Collection<RefreshEntry> entries);
+
+    Stream<RefreshEntry> stream();
+  }
+
+  /**
+   * Refresh entries in the metadata table are used to track hosted tablets that need to have their
+   * metadata refreshed after a compaction. These entries ensure the refresh happens even in the
+   * case of process death.
+   */
+  default Refreshes refreshes(DataLevel dataLevel) {
     throw new UnsupportedOperationException();
   }
 }

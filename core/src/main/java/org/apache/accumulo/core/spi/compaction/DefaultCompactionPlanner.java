@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -34,7 +36,6 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 
 import com.google.common.base.Preconditions;
-import com.google.gson.Gson;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -110,12 +111,53 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class DefaultCompactionPlanner implements CompactionPlanner {
 
-  private static class ExecutorConfig {
+  public static class ExecutorConfig {
     String type;
     String name;
     String maxSize;
     Integer numThreads;
     String queue;
+
+    public String getType() {
+      return type;
+    }
+
+    public void setType(String type) {
+      this.type = type;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public void setName(String name) {
+      this.name = name;
+    }
+
+    public String getMaxSize() {
+      return maxSize;
+    }
+
+    public void setMaxSize(String maxSize) {
+      this.maxSize = maxSize;
+    }
+
+    public Integer getNumThreads() {
+      return numThreads;
+    }
+
+    public void setNumThreads(Integer numThreads) {
+      this.numThreads = numThreads;
+    }
+
+    public String getQueue() {
+      return queue;
+    }
+
+    public void setQueue(String queue) {
+      this.queue = queue;
+    }
+
   }
 
   private static class Executor {
@@ -146,7 +188,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   @Override
   public void init(InitParameters params) {
     ExecutorConfig[] execConfigs =
-        new Gson().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
+        GSON.get().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
 
     List<Executor> tmpExec = new ArrayList<>();
 

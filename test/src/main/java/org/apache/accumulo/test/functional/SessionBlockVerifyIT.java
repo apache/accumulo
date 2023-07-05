@@ -71,7 +71,7 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     siteConfig.put(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
     siteConfig.put(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "11");
     cfg.setSiteConfig(siteConfig);

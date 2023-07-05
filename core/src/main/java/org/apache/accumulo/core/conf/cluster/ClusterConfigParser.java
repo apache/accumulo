@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.yaml.snakeyaml.Yaml;
@@ -39,6 +40,16 @@ public class ClusterConfigParser {
 
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String[] SECTIONS = new String[] {"manager", "monitor", "gc", "tserver"};
+
+  private static final Set<String> VALID_CONFIG_KEYS =
+      Set.of("manager", "monitor", "gc", "tserver", "tservers_per_host", "sservers_per_host");
+
+  private static final Set<String> VALID_CONFIG_PREFIXES =
+      Set.of("compaction.compactor.", "sserver.");
+
+  private static final Predicate<String> VALID_CONFIG_SECTIONS =
+      section -> VALID_CONFIG_KEYS.contains(section)
+          || VALID_CONFIG_PREFIXES.stream().anyMatch(section::startsWith);
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
   public static Map<String,String> parseConfiguration(String configFile) throws IOException {
@@ -84,6 +95,12 @@ public class ClusterConfigParser {
 
   public static void outputShellVariables(Map<String,String> config, PrintStream out) {
 
+    // find invalid config sections and point the user to the first one
+    config.keySet().stream().filter(VALID_CONFIG_SECTIONS.negate()).findFirst()
+        .ifPresent(section -> {
+          throw new IllegalArgumentException("Unknown configuration section : " + section);
+        });
+
     for (String section : SECTIONS) {
       if (config.containsKey(section)) {
         out.printf(PROPERTY_FORMAT, section.toUpperCase() + "_HOSTS", config.get(section));
@@ -93,10 +110,6 @@ public class ClusterConfigParser {
         }
         System.err.println("WARN: " + section + " is missing");
       }
-    }
-
-    if (config.containsKey("compaction.coordinator")) {
-      out.printf(PROPERTY_FORMAT, "COORDINATOR_HOSTS", config.get("compaction.coordinator"));
     }
 
     String compactorPrefix = "compaction.compactor.";

@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -71,8 +72,9 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
     cfg.setSiteConfig(siteConfig);
     // ensure we have two tservers
-    if (cfg.getNumTservers() < 2) {
-      cfg.setNumTservers(2);
+    if (cfg.getClusterServerConfiguration().getTabletServerConfiguration()
+        .get(ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME) < 2) {
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
     }
   }
 

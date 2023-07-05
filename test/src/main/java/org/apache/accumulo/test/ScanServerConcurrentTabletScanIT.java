@@ -63,7 +63,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
         org.apache.hadoop.conf.Configuration coreSite) {
-      cfg.setNumScanServers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultScanServers(1);
       cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
       cfg.setProperty(Property.SSERV_MINTHREADS, "4");
     }
@@ -94,7 +94,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
     overrides.put(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION.getKey(),
         cacheEnabled ? "300m" : "0m");
     SharedMiniClusterBase.getCluster().getClusterControl().start(ServerType.SCAN_SERVER, overrides,
-        1);
+        1, null);
     while (zrw.getChildren(scanServerRoot).size() == 0) {
       Thread.sleep(500);
     }

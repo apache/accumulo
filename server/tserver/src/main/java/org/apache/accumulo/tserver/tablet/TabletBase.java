@@ -44,7 +44,6 @@ import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -129,7 +128,7 @@ public abstract class TabletBase {
 
   public abstract void returnMemIterators(List<InMemoryMap.MemoryIterator> iters);
 
-  public abstract Pair<Long,Map<TabletFile,DataFileValue>> reserveFilesForScan();
+  public abstract Pair<Long,Map<StoredTabletFile,DataFileValue>> reserveFilesForScan();
 
   public abstract void returnFilesForScan(long scanId);
 

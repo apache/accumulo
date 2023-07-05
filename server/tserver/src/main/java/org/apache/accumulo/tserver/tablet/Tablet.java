@@ -22,10 +22,9 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -54,7 +53,6 @@ import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
-import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.Deriver;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
@@ -64,7 +62,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
@@ -72,8 +69,8 @@ import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
@@ -83,7 +80,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatch;
 import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -91,17 +87,17 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.tablets.ConditionCheckerContext.ConditionChecker;
+import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.accumulo.server.tablets.TabletTime;
-import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.FileUtil;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -118,8 +114,6 @@ import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.scan.ScanParameters;
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -220,14 +214,15 @@ public class Tablet extends TabletBase {
 
   // Files that are currently in the process of bulk importing. Access to this is protected by the
   // tablet lock.
-  private final Set<TabletFile> bulkImporting = new HashSet<>();
+  private final Set<ReferencedTabletFile> bulkImporting = new HashSet<>();
 
   // Files that were successfully bulk imported. Using a concurrent map supports non-locking
   // operations on the key set which is useful for the periodic task that cleans up completed bulk
   // imports for all tablets. However the values of this map are ArrayList which do not support
   // concurrency. This is ok because all operations on the values are done while the tablet lock is
   // held.
-  private final ConcurrentHashMap<Long,List<TabletFile>> bulkImported = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Long,List<ReferencedTabletFile>> bulkImported =
+      new ConcurrentHashMap<>();
 
   private final int logId;
 
@@ -246,42 +241,39 @@ public class Tablet extends TabletBase {
   }
 
   private String chooseTabletDir() throws IOException {
-    VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(extent.tableId(), extent.endRow(), context);
-    String dirUri = tabletServer.getVolumeManager().choose(chooserEnv, context.getBaseUris())
-        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.tableId() + Path.SEPARATOR + dirName;
-    checkTabletDir(new Path(dirUri));
-    return dirUri;
+    return TabletNameGenerator.chooseTabletDir(context, extent, dirName,
+        dir -> checkTabletDir(new Path(dir)));
   }
 
-  TabletFile getNextDataFilename(FilePrefix prefix) throws IOException {
-    String extension = FileOperations.getNewFileExtension(tableConfiguration);
-    return new TabletFile(new Path(chooseTabletDir() + "/" + prefix.toPrefix()
-        + context.getUniqueNameAllocator().getNextName() + "." + extension));
+  ReferencedTabletFile getNextDataFilename(FilePrefix prefix) throws IOException {
+    return TabletNameGenerator.getNextDataFilename(prefix, context, extent, dirName,
+        dir -> checkTabletDir(new Path(dir)));
   }
 
-  TabletFile getNextDataFilenameForMajc(boolean propagateDeletes) throws IOException {
-    String tmpFileName = getNextDataFilename(
-        !propagateDeletes ? FilePrefix.MAJOR_COMPACTION_ALL_FILES : FilePrefix.MAJOR_COMPACTION)
-        .getMetaInsert() + "_tmp";
-    return new TabletFile(new Path(tmpFileName));
+  ReferencedTabletFile getNextDataFilenameForMajc(boolean propagateDeletes) throws IOException {
+    return TabletNameGenerator.getNextDataFilenameForMajc(propagateDeletes, context, extent,
+        dirName, dir -> checkTabletDir(new Path(dir)));
   }
 
-  private void checkTabletDir(Path path) throws IOException {
-    if (!checkedTabletDirs.contains(path)) {
-      FileStatus[] files = null;
-      try {
-        files = getTabletServer().getVolumeManager().listStatus(path);
-      } catch (FileNotFoundException ex) {
-        // ignored
+  private void checkTabletDir(Path path) {
+    try {
+      if (!checkedTabletDirs.contains(path)) {
+        FileStatus[] files = null;
+        try {
+          files = getTabletServer().getVolumeManager().listStatus(path);
+        } catch (FileNotFoundException ex) {
+          // ignored
+        }
+
+        if (files == null) {
+          log.debug("Tablet {} had no dir, creating {}", extent, path);
+
+          getTabletServer().getVolumeManager().mkdirs(path);
+        }
+        checkedTabletDirs.add(path);
       }
-
-      if (files == null) {
-        log.debug("Tablet {} had no dir, creating {}", extent, path);
-
-        getTabletServer().getVolumeManager().mkdirs(path);
-      }
-      checkedTabletDirs.add(path);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 
@@ -310,7 +302,7 @@ public class Tablet extends TabletBase {
 
     this.dirName = data.getDirectoryName();
 
-    for (Entry<Long,List<TabletFile>> entry : data.getBulkImported().entrySet()) {
+    for (Entry<Long,List<ReferencedTabletFile>> entry : data.getBulkImported().entrySet()) {
       this.bulkImported.put(entry.getKey(), new ArrayList<>(entry.getValue()));
     }
 
@@ -330,8 +322,8 @@ public class Tablet extends TabletBase {
       final CommitSession commitSession = getTabletMemory().getCommitSession();
       try {
         Set<String> absPaths = new HashSet<>();
-        for (TabletFile ref : datafiles.keySet()) {
-          absPaths.add(ref.getPathStr());
+        for (StoredTabletFile ref : datafiles.keySet()) {
+          absPaths.add(ref.getNormalizedPathStr());
         }
 
         tabletServer.recover(this.getTabletServer().getVolumeManager(), extent, logEntries,
@@ -452,8 +444,9 @@ public class Tablet extends TabletBase {
     }
   }
 
-  DataFileValue minorCompact(InMemoryMap memTable, TabletFile tmpDatafile, TabletFile newDatafile,
-      long queued, CommitSession commitSession, long flushId, MinorCompactionReason mincReason) {
+  DataFileValue minorCompact(InMemoryMap memTable, ReferencedTabletFile tmpDatafile,
+      ReferencedTabletFile newDatafile, long queued, CommitSession commitSession, long flushId,
+      MinorCompactionReason mincReason) {
     boolean failed = false;
     long start = System.currentTimeMillis();
     timer.incrementStatusMinor();
@@ -694,46 +687,7 @@ public class Tablet extends TabletBase {
   }
 
   public Pair<Long,CompactionConfig> getCompactionID() throws NoNodeException {
-    try {
-      String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
-          + "/" + extent.tableId() + Constants.ZTABLE_COMPACT_ID;
-
-      String[] tokens =
-          new String(context.getZooReaderWriter().getData(zTablePath), UTF_8).split(",");
-      long compactID = Long.parseLong(tokens[0]);
-
-      CompactionConfig overlappingConfig = null;
-
-      if (tokens.length > 1) {
-        Hex hex = new Hex();
-        ByteArrayInputStream bais =
-            new ByteArrayInputStream(hex.decode(tokens[1].split("=")[1].getBytes(UTF_8)));
-        DataInputStream dis = new DataInputStream(bais);
-
-        var compactionConfig = UserCompactionUtils.decodeCompactionConfig(dis);
-
-        KeyExtent ke = new KeyExtent(extent.tableId(), compactionConfig.getEndRow(),
-            compactionConfig.getStartRow());
-
-        if (ke.overlaps(extent)) {
-          overlappingConfig = compactionConfig;
-        }
-      }
-
-      if (overlappingConfig == null) {
-        overlappingConfig = new CompactionConfig(); // no config present, set to default
-      }
-
-      return new Pair<>(compactID, overlappingConfig);
-    } catch (InterruptedException | DecoderException | NumberFormatException e) {
-      throw new RuntimeException("Exception on " + extent + " getting compaction ID", e);
-    } catch (KeeperException ke) {
-      if (ke instanceof NoNodeException) {
-        throw (NoNodeException) ke;
-      } else {
-        throw new RuntimeException("Exception on " + extent + " getting compaction ID", ke);
-      }
-    }
+    return CompactionConfigStorage.getCompactionID(getContext(), extent);
   }
 
   private synchronized CommitSession finishPreparingMutations(long time) {
@@ -1190,7 +1144,7 @@ public class Tablet extends TabletBase {
     return true;
   }
 
-  private SplitRowSpec findSplitRow(Optional<SplitComputations> splitComputations) {
+  private synchronized SplitRowSpec findSplitRow(Optional<SplitComputations> splitComputations) {
 
     // never split the root tablet
     // check if we already decided that we can never split
@@ -1325,7 +1279,7 @@ public class Tablet extends TabletBase {
 
   // encapsulates results of computations needed to make determinations about splits
   private static class SplitComputations {
-    final Set<TabletFile> inputFiles;
+    final Set<StoredTabletFile> inputFiles;
 
     // cached result of calling FileUtil.findMidpoint
     final SortedMap<Double,Key> midPoint;
@@ -1333,7 +1287,7 @@ public class Tablet extends TabletBase {
     // the last row seen in the files, only set for the default tablet
     final Text lastRowForDefaultTablet;
 
-    private SplitComputations(Set<TabletFile> inputFiles, SortedMap<Double,Key> midPoint,
+    private SplitComputations(Set<StoredTabletFile> inputFiles, SortedMap<Double,Key> midPoint,
         Text lastRowForDefaultTablet) {
       this.inputFiles = inputFiles;
       this.midPoint = midPoint;
@@ -1359,7 +1313,7 @@ public class Tablet extends TabletBase {
       return Optional.empty();
     }
 
-    Set<TabletFile> files = getDatafileManager().getFiles();
+    Set<StoredTabletFile> files = getDatafileManager().getFiles();
     SplitComputations lastComputation = lastSplitComputation.get();
     if (lastComputation != null && lastComputation.inputFiles.equals(files)) {
       // the last computation is still relevant
@@ -1504,10 +1458,23 @@ public class Tablet extends TabletBase {
       throw new RuntimeException(msg);
     }
 
-    Optional<SplitComputations> splitComputations = null;
+    SplitRowSpec splitPoint = null;
     if (sp == null) {
       // call this outside of sync block
-      splitComputations = getSplitComputations();
+      var splitComputations = getSplitComputations();
+      splitPoint = findSplitRow(splitComputations);
+      if (splitPoint == null || splitPoint.row == null) {
+        // no reason to log anything here, findSplitRow will log reasons when it returns null
+        return null;
+      }
+    } else {
+      Text tsp = new Text(sp);
+      // This ratio is calculated before that tablet is closed and outside of a lock, so new files
+      // could arrive before the tablet is closed and locked. That is okay as the ratio is an
+      // estimate.
+      var ratio = FileUtil.estimatePercentageLTE(context, tableConfiguration, chooseTabletDir(),
+          extent.prevEndRow(), extent.endRow(), getDatafileManager().getFiles(), tsp);
+      splitPoint = new SplitRowSpec(ratio, tsp);
     }
 
     try {
@@ -1522,30 +1489,14 @@ public class Tablet extends TabletBase {
     // this info is used for optimization... it is ok if data files are missing
     // from the set... can still query and insert into the tablet while this
     // data file operation is happening
-    Map<TabletFile,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(context,
-        tableConfiguration, getDatafileManager().getFiles());
+    Map<StoredTabletFile,FileUtil.FileInfo> firstAndLastRows = FileUtil
+        .tryToGetFirstAndLastRows(context, tableConfiguration, getDatafileManager().getFiles());
 
     synchronized (this) {
       // java needs tuples ...
       TreeMap<KeyExtent,TabletData> newTablets = new TreeMap<>();
 
       long t1 = System.currentTimeMillis();
-      // choose a split point
-      SplitRowSpec splitPoint;
-      if (sp == null) {
-        splitPoint = findSplitRow(splitComputations);
-      } else {
-        Text tsp = new Text(sp);
-        var ratio = FileUtil.estimatePercentageLTE(context, tableConfiguration, chooseTabletDir(),
-            extent.prevEndRow(), extent.endRow(), getDatafileManager().getFiles(), tsp);
-        splitPoint = new SplitRowSpec(ratio, tsp);
-      }
-
-      if (splitPoint == null || splitPoint.row == null) {
-        log.info("had to abort split because splitRow was null");
-        closeState = CloseState.OPEN;
-        return null;
-      }
 
       closeState = CloseState.CLOSING;
       completeClose(true, false);
@@ -1556,7 +1507,7 @@ public class Tablet extends TabletBase {
       KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
       KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
 
-      String lowDirectoryName = UniqueNameAllocator.createTabletDirectoryName(context, midRow);
+      String lowDirectoryName = TabletNameGenerator.createTabletDirectoryName(context, midRow);
 
       // write new tablet information to MetadataTable
       SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
@@ -1665,14 +1616,14 @@ public class Tablet extends TabletBase {
     return splitCreationTime;
   }
 
-  public void importDataFiles(long tid, Map<TabletFile,DataFileInfo> fileMap, boolean setTime)
-      throws IOException {
-    Map<TabletFile,DataFileValue> entries = new HashMap<>(fileMap.size());
+  public void importDataFiles(long tid, Map<ReferencedTabletFile,DataFileInfo> fileMap,
+      boolean setTime) throws IOException {
+    Map<ReferencedTabletFile,DataFileValue> entries = new HashMap<>(fileMap.size());
     List<String> files = new ArrayList<>();
 
-    for (Entry<TabletFile,DataFileInfo> entry : fileMap.entrySet()) {
+    for (Entry<ReferencedTabletFile,DataFileInfo> entry : fileMap.entrySet()) {
       entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0L));
-      files.add(entry.getKey().getPathStr());
+      files.add(entry.getKey().getNormalizedPathStr());
     }
 
     // Clients timeout and will think that this operation failed.
@@ -1691,9 +1642,9 @@ public class Tablet extends TabletBase {
             "Timeout waiting " + (lockWait / 1000.) + " seconds to get tablet lock for " + extent);
       }
 
-      List<TabletFile> alreadyImported = bulkImported.get(tid);
+      List<ReferencedTabletFile> alreadyImported = bulkImported.get(tid);
       if (alreadyImported != null) {
-        for (TabletFile entry : alreadyImported) {
+        for (ReferencedTabletFile entry : alreadyImported) {
           if (fileMap.remove(entry) != null) {
             log.trace("Ignoring import of bulk file already imported: {}", entry);
           }
@@ -2016,7 +1967,7 @@ public class Tablet extends TabletBase {
   }
 
   public Map<StoredTabletFile,DataFileValue> updatePersistedTime(long bulkTime,
-      Map<TabletFile,DataFileValue> paths, long tid) {
+      Map<ReferencedTabletFile,DataFileValue> paths, long tid) {
     synchronized (timeLock) {
       if (bulkTime > persistedTime) {
         persistedTime = bulkTime;
@@ -2033,7 +1984,8 @@ public class Tablet extends TabletBase {
    * Update tablet file data from flush. Returns a StoredTabletFile if there are data entries.
    */
   public Optional<StoredTabletFile> updateTabletDataFile(long maxCommittedTime,
-      TabletFile newDatafile, DataFileValue dfv, Set<String> unusedWalLogs, long flushId) {
+      ReferencedTabletFile newDatafile, DataFileValue dfv, Set<String> unusedWalLogs,
+      long flushId) {
     synchronized (timeLock) {
       if (maxCommittedTime > persistedTime) {
         persistedTime = maxCommittedTime;
@@ -2066,7 +2018,7 @@ public class Tablet extends TabletBase {
   }
 
   @Override
-  public Pair<Long,Map<TabletFile,DataFileValue>> reserveFilesForScan() {
+  public Pair<Long,Map<StoredTabletFile,DataFileValue>> reserveFilesForScan() {
     return getDatafileManager().reserveFilesForScan();
   }
 
@@ -2153,14 +2105,15 @@ public class Tablet extends TabletBase {
     return goal == TabletHostingGoal.ONDEMAND;
   }
 
-  public void refresh() {
+  public void refresh(List<StoredTabletFile> scanEntries) {
     if (isClosing() || isClosed()) {
       // TODO this is just a best effort could close after this check, its a race condition.
       // Intentionally not being handled ATM.
       return;
     }
 
-    log.debug("Refreshing metadata for : {}", getExtent());
+    // ELASTICITY_TODO instead of reading the tablet metadata in this method, could just invalidate
+    // it forcing next scan to read it.
 
     // ELASTICITY_TODO this entire method is a hack at the moment with race conditions. Want to
     // move towards the tablet just using a cached TabletMetadata object and have a central orderly
@@ -2171,16 +2124,18 @@ public class Tablet extends TabletBase {
     TabletMetadata tabletMetadata =
         getContext().getAmple().readTablet(getExtent(), ColumnType.FILES);
 
-    Map<StoredTabletFile,DataFileValue> metadataFiles = tabletMetadata.getFilesMap();
-
-    Map<StoredTabletFile,DataFileValue> currentFiles = getDatafileManager().getDatafileSizes();
-
-    // TODO this is racy, it could add files that were just deleted by a compaction. Intentionally
+    // TODO this could have race conditions with minor compactions. Intentionally
     // not being handled ATM.
-    metadataFiles.forEach((f, v) -> {
-      if (!currentFiles.containsKey(f)) {
-        getDatafileManager().addFilesHack(f, v);
-      }
-    });
+    getDatafileManager().setFilesHack(tabletMetadata.getFilesMap());
+
+    if (!scanEntries.isEmpty()) {
+      // ELASTICITY_TODO this is a temporary hack. Should not always remove scan entries added by a
+      // compaction, need to check and see if they are actually in use by a scan. If in use need to
+      // add to a set to remove later. Also should use a conditional mutation to update, did not
+      // bother using conditional mutation as this is temporary.
+      var tabletMutator = getContext().getAmple().mutateTablet(extent);
+      scanEntries.forEach(tabletMutator::deleteScan);
+      tabletMutator.mutate();
+    }
   }
 }

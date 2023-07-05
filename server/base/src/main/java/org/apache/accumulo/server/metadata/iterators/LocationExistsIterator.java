@@ -20,7 +20,7 @@ package org.apache.accumulo.server.metadata.iterators;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -41,7 +41,7 @@ import com.google.common.base.Preconditions;
  */
 public class LocationExistsIterator extends WrappingIterator {
   private static final Collection<ByteSequence> LOC_FAMS =
-      List.of(new ArrayByteSequence(FutureLocationColumnFamily.STR_NAME),
+      Set.of(new ArrayByteSequence(FutureLocationColumnFamily.STR_NAME),
           new ArrayByteSequence(CurrentLocationColumnFamily.STR_NAME));
 
   @Override

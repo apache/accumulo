@@ -19,11 +19,15 @@
 
 package org.apache.accumulo.server.metadata;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.HostingColumnFamily.GOAL_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow;
 
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -33,17 +37,21 @@ import org.apache.accumulo.core.clientImpl.TabletHostingGoalUtil;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.iterators.LocationExistsIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
+import org.apache.accumulo.server.metadata.iterators.SetEqualityIterator;
 import org.apache.accumulo.server.metadata.iterators.TabletExistsIterator;
 import org.apache.hadoop.io.Text;
 
@@ -52,7 +60,7 @@ import com.google.common.base.Preconditions;
 public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.ConditionalTabletMutator>
     implements Ample.ConditionalTabletMutator, Ample.OperationRequirements {
 
-  private static final int INITIAL_ITERATOR_PRIO = 1000000;
+  public static final int INITIAL_ITERATOR_PRIO = 1000000;
 
   private final ConditionalMutation mutation;
   private final Consumer<ConditionalMutation> mutationConsumer;
@@ -67,7 +75,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   protected ConditionalTabletMutatorImpl(Ample.ConditionalTabletsMutator parent,
       ServerContext context, KeyExtent extent, Consumer<ConditionalMutation> mutationConsumer,
       BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer) {
-    super(context, new ConditionalMutation(extent.toMetaRow()));
+    super(new ConditionalMutation(extent.toMetaRow()));
     this.mutation = (ConditionalMutation) super.mutation;
     this.mutationConsumer = mutationConsumer;
     this.parent = parent;
@@ -96,24 +104,6 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
-  public Ample.ConditionalTabletMutator requireFile(StoredTabletFile path) {
-    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, PresentIterator.class);
-    Condition c = new Condition(DataFileColumnFamily.NAME, path.getMetaUpdateDeleteText())
-        .setValue(PresentIterator.VALUE).setIterators(is);
-    mutation.addCondition(c);
-    return this;
-  }
-
-  @Override
-  public Ample.ConditionalTabletMutator requireAbsentBulkFile(TabletFile bulkref) {
-    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    Condition c = new Condition(BulkFileColumnFamily.NAME, bulkref.getMetaInsertText());
-    mutation.addCondition(c);
-    return this;
-  }
-
-  @Override
   public Ample.ConditionalTabletMutator requirePrevEndRow(Text per) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition c =
@@ -128,6 +118,16 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition c = new Condition(GOAL_COLUMN.getColumnFamily(), GOAL_COLUMN.getColumnQualifier())
         .setValue(TabletHostingGoalUtil.toValue(goal).get());
+    mutation.addCondition(c);
+    return this;
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireCompaction(ExternalCompactionId ecid) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, PresentIterator.class);
+    Condition c = new Condition(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical())
+        .setValue(PresentIterator.VALUE).setIterators(is);
     mutation.addCondition(c);
     return this;
   }
@@ -161,6 +161,74 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     return this;
   }
 
+  private void requireSameSingle(TabletMetadata tabletMetadata, ColumnType type) {
+    switch (type) {
+      case PREV_ROW:
+        requirePrevEndRow(tabletMetadata.getPrevEndRow());
+        break;
+      case COMPACT_ID: {
+        Condition c =
+            new Condition(COMPACT_COLUMN.getColumnFamily(), COMPACT_COLUMN.getColumnQualifier());
+        if (tabletMetadata.getCompactId().isPresent()) {
+          c = c.setValue(Long.toString(tabletMetadata.getCompactId().getAsLong()));
+        }
+        mutation.addCondition(c);
+      }
+        break;
+      case FILES: {
+        // ELASTICITY_TODO compare values?
+        Condition c = SetEqualityIterator.createCondition(tabletMetadata.getFiles(),
+            stf -> TextUtil.getBytes(stf.getMetaUpdateDeleteText()), DataFileColumnFamily.NAME);
+        mutation.addCondition(c);
+      }
+        break;
+      case SELECTED: {
+        Condition c =
+            new Condition(SELECTED_COLUMN.getColumnFamily(), SELECTED_COLUMN.getColumnQualifier());
+        if (tabletMetadata.getSelectedFiles() != null) {
+          c = c.setValue(
+              Objects.requireNonNull(tabletMetadata.getSelectedFiles().getMetadataValue()));
+        }
+        mutation.addCondition(c);
+      }
+        break;
+      case ECOMP: {
+        Condition c =
+            SetEqualityIterator.createCondition(tabletMetadata.getExternalCompactions().keySet(),
+                ecid -> ecid.canonical().getBytes(UTF_8), ExternalCompactionColumnFamily.NAME);
+        mutation.addCondition(c);
+      }
+        break;
+      case LOCATION:
+        if (tabletMetadata.getLocation() == null) {
+          requireAbsentLocation();
+        } else {
+          requireLocation(tabletMetadata.getLocation());
+        }
+        break;
+      case LOADED: {
+        Condition c = SetEqualityIterator.createCondition(tabletMetadata.getLoaded().keySet(),
+            stf -> TextUtil.getBytes(stf.getMetaUpdateDeleteText()), BulkFileColumnFamily.NAME);
+        mutation.addCondition(c);
+      }
+
+        break;
+      default:
+        throw new UnsupportedOperationException("Column type " + type + " is not supported.");
+    }
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireSame(TabletMetadata tabletMetadata, ColumnType type,
+      ColumnType... otherTypes) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    requireSameSingle(tabletMetadata, type);
+    for (var ct : otherTypes) {
+      requireSameSingle(tabletMetadata, ct);
+    }
+    return this;
+  }
+
   @Override
   public void submit(Ample.RejectionHandler rejectionCheck) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
@@ -169,4 +237,5 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     mutationConsumer.accept(mutation);
     rejectionHandlerConsumer.accept(extent, rejectionCheck);
   }
+
 }

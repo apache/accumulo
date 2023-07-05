@@ -78,6 +78,8 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
@@ -112,6 +114,8 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
+import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.split.Splitter;
@@ -225,7 +229,6 @@ public class Manager extends AbstractServer
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
   private final AtomicBoolean managerUpgrading = new AtomicBoolean(false);
 
-  private final long waitTimeBetweenScans;
   private final long timeToCacheRecoveryWalExistence;
   private ExecutorService tableInformationStatusPool = null;
 
@@ -327,6 +330,7 @@ public class Manager extends AbstractServer
 
   private FateServiceHandler fateServiceHandler;
   private ManagerClientServiceHandler managerClientHandler;
+  private CompactionCoordinator compactionCoordinator;
 
   private int assignedOrHosted(TableId tableId) {
     int result = 0;
@@ -453,13 +457,8 @@ public class Manager extends AbstractServer
       log.info("SASL is not enabled, delegation tokens will not be available");
       delegationTokensAvailable = false;
     }
-    this.waitTimeBetweenScans =
-        aconf.getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
-    this.timeToCacheRecoveryWalExistence = this.waitTimeBetweenScans / 4;
-  }
-
-  public long getWaitTimeBetweenScans() {
-    return this.waitTimeBetweenScans;
+    this.timeToCacheRecoveryWalExistence =
+        aconf.getTimeInMillis(Property.MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
   }
 
   public InstanceId getInstanceID() {
@@ -615,6 +614,12 @@ public class Manager extends AbstractServer
 
   public Splitter getSplitter() {
     return splitter;
+  }
+
+  private CompactionJobQueues compactionJobQueues;
+
+  public CompactionJobQueues getCompactionQueues() {
+    return compactionJobQueues;
   }
 
   enum TabletGoalState {
@@ -1142,20 +1147,24 @@ public class Manager extends AbstractServer
     final ServerContext context = getContext();
     final String zroot = getZooKeeperRoot();
 
+    this.compactionJobQueues = new CompactionJobQueues();
+
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
     //
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
+    compactionCoordinator =
+        new CompactionCoordinator(context, tserverSet, security, compactionJobQueues);
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
 
     ServerAddress sa;
-    var processor =
-        ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler, haProxy, getContext());
+    var processor = ThriftProcessorTypes.getManagerTProcessor(fateServiceHandler,
+        compactionCoordinator, haProxy, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
@@ -1213,6 +1222,11 @@ public class Manager extends AbstractServer
       Thread.currentThread().interrupt();
     }
 
+    // Don't call run on the CompactionCoordinator until we have tservers.
+    Thread compactionCoordinatorThread =
+        Threads.createThread("CompactionCoordinator Thread", compactionCoordinator);
+    compactionCoordinatorThread.start();
+
     ZooReaderWriter zReaderWriter = context.getZooReaderWriter();
 
     try {
@@ -1231,6 +1245,9 @@ public class Manager extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Unable to read " + zroot + Constants.ZRECOVERY, e);
     }
+
+    this.splitter = new Splitter(context);
+    this.splitter.start();
 
     watchers.add(new TabletGroupWatcher(this,
         TabletStateStore.getStoreForLevel(DataLevel.USER, context, this), null) {
@@ -1323,17 +1340,20 @@ public class Manager extends AbstractServer
     }
 
     String address = sa.address.toString();
-    sld = new ServiceLockData(sld.getServerUUID(ThriftService.MANAGER), address,
-        ThriftService.MANAGER);
+    UUID uuid = sld.getServerUUID(ThriftService.MANAGER);
+    ServiceDescriptors descriptors = new ServiceDescriptors();
+    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER,
+        ThriftService.COORDINATOR}) {
+      descriptors.addService(new ServiceDescriptor(uuid, svc, address));
+    }
+
+    sld = new ServiceLockData(descriptors);
     log.info("Setting manager lock data to {}", sld.toString());
     try {
       managerLock.replaceLockData(sld);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception updating manager lock", e);
     }
-
-    this.splitter = new Splitter(context);
-    this.splitter.start();
 
     while (!clientService.isServing()) {
       sleepUninterruptibly(100, MILLISECONDS);
@@ -1358,6 +1378,13 @@ public class Manager extends AbstractServer
     }
 
     tableInformationStatusPool.shutdownNow();
+
+    compactionCoordinator.shutdown();
+    try {
+      compactionCoordinatorThread.join();
+    } catch (InterruptedException e) {
+      log.error("Exception compaction coordinator thread", e);
+    }
 
     // Signal that we want it to stop, and wait for it to do so.
     if (authenticationTokenKeyManager != null) {
@@ -1544,8 +1571,14 @@ public class Manager extends AbstractServer
         getHostname() + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
 
     UUID zooLockUUID = UUID.randomUUID();
-    ServiceLockData sld =
-        new ServiceLockData(zooLockUUID, managerClientAddress, ThriftService.MANAGER);
+
+    ServiceDescriptors descriptors = new ServiceDescriptors();
+    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER,
+        ThriftService.COORDINATOR}) {
+      descriptors.addService(new ServiceDescriptor(zooLockUUID, svc, managerClientAddress));
+    }
+
+    ServiceLockData sld = new ServiceLockData(descriptors);
     while (true) {
 
       ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();
@@ -1574,6 +1607,9 @@ public class Manager extends AbstractServer
   @Override
   public void update(LiveTServerSet current, Set<TServerInstance> deleted,
       Set<TServerInstance> added) {
+
+    compactionCoordinator.updateTServerSet(current, deleted, added);
+
     // if we have deleted or added tservers, then adjust our dead server list
     if (!deleted.isEmpty() || !added.isEmpty()) {
       DeadServerList obit = new DeadServerList(getContext());

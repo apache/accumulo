@@ -39,15 +39,13 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.PeekingIterator;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -113,28 +111,26 @@ class LoadFiles extends ManagerRepo {
     }
 
     void load(List<TabletMetadata> tablets, Files files) {
-      byte[] fam = TextUtil.getBytes(DataFileColumnFamily.NAME);
 
       for (TabletMetadata tablet : tablets) {
-        Map<TabletFile,DataFileValue> filesToLoad = new HashMap<>();
+        Map<ReferencedTabletFile,DataFileValue> filesToLoad = new HashMap<>();
 
         for (final Bulk.FileInfo fileInfo : files) {
-          filesToLoad.put(new TabletFile(new Path(bulkDir, fileInfo.getFileName())),
+          filesToLoad.put(new ReferencedTabletFile(new Path(bulkDir, fileInfo.getFileName())),
               new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries()));
         }
 
         // remove any files that were already loaded
-        filesToLoad.keySet().removeAll(tablet.getLoaded().keySet());
+        tablet.getLoaded().keySet().forEach(stf -> {
+          filesToLoad.keySet().remove(stf.getTabletFile());
+        });
 
         if (!filesToLoad.isEmpty()) {
           // ELASTICITY_TODO lets automatically call require prev end row
           var tabletMutator = conditionalMutator.mutateTablet(tablet.getExtent())
-              .requireAbsentOperation().requirePrevEndRow(tablet.getExtent().prevEndRow());
+              .requireAbsentOperation().requireSame(tablet, PREV_ROW, LOADED);
 
           filesToLoad.forEach((f, v) -> {
-            // ELASTICITY_TODO should not expect to see the bulk files there (as long there is only
-            // a single thread running this), not sure if the following require absent is needed
-            tabletMutator.requireAbsentBulkFile(f);
             tabletMutator.putBulkFile(f, tid);
             tabletMutator.putFile(f, v);
           });

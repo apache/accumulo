@@ -77,8 +77,9 @@ import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -97,6 +98,7 @@ import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
+import org.apache.accumulo.core.tabletserver.thrift.TTabletRefresh;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -176,15 +178,16 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
       tabletImports.forEach((tke, fileMap) -> {
-        Map<TabletFile,DataFileInfo> newFileMap = new HashMap<>();
+        Map<ReferencedTabletFile,DataFileInfo> newFileMap = new HashMap<>();
 
         for (Entry<String,DataFileInfo> mapping : fileMap.entrySet()) {
           Path path = new Path(dir, mapping.getKey());
           FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
           path = ns.makeQualified(path);
-          newFileMap.put(new TabletFile(path), mapping.getValue());
+          newFileMap.put(new ReferencedTabletFile(path), mapping.getValue());
         }
-        var files = newFileMap.keySet().stream().map(TabletFile::getPathStr).collect(toList());
+        var files = newFileMap.keySet().stream().map(ReferencedTabletFile::getNormalizedPathStr)
+            .collect(toList());
         server.updateBulkImportState(files, BulkImportState.INITIAL);
 
         Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));
@@ -1371,7 +1374,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   @Override
   public List<TKeyExtent> refreshTablets(TInfo tinfo, TCredentials credentials,
-      List<TKeyExtent> extents) throws TException {
+      List<TTabletRefresh> refreshes) throws TException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
@@ -1381,10 +1384,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     // handle that more expensive case if needed.
     var tabletsSnapshot = server.getOnlineTablets();
 
-    Set<KeyExtent> notFound = new HashSet<>();
+    Map<KeyExtent,TTabletRefresh> notFound = new HashMap<>();
 
-    for (var tExtent : extents) {
-      var extent = KeyExtent.fromThrift(tExtent);
+    for (var tTabletRefresh : refreshes) {
+      var extent = KeyExtent.fromThrift(tTabletRefresh.getExtent());
 
       var tablet = tabletsSnapshot.get(extent);
       if (tablet != null) {
@@ -1393,9 +1396,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         // and multiple concurrent refresh request), so defer doing this until after removing
         // functionality from the tablet. No need to make the change now and have to change it
         // later.
-        tablet.refresh();
+        tablet.refresh(
+            tTabletRefresh.getScanEntries().stream().map(StoredTabletFile::new).collect(toList()));
       } else {
-        notFound.add(extent);
+        notFound.put(extent, tTabletRefresh);
       }
     }
 
@@ -1411,7 +1415,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
             // Get the snapshot again, however this time nothing will be changing while we iterate
             // over the snapshot because all three locks are held.
             tabletsSnapshot = server.getOnlineTablets();
-            for (var extent : notFound) {
+            for (var extent : notFound.keySet()) {
               // TODO investigate if its safe to ignore tablets in the unopened set because they
               // have not yet read any metadata
               if (server.unopenedTablets.contains(extent)
@@ -1438,7 +1442,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       }
 
       for (var tablet : foundTablets) {
-        tablet.refresh();
+        tablet.refresh(notFound.get(tablet.getExtent()).getScanEntries().stream()
+            .map(StoredTabletFile::new).collect(toList()));
       }
 
       if (log.isDebugEnabled()) {

@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.gc;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +34,7 @@ import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
@@ -38,7 +43,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.manager.LiveTServerSet;
-import org.apache.accumulo.server.manager.state.TabletMetadataImposter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
@@ -62,11 +66,11 @@ public class GarbageCollectWriteAheadLogsTest {
   {
     try {
       tabletAssignedToServer1 = new TabletManagement(Set.of(),
-          new TabletMetadataImposter(extent, null, Location.current(server1), null, null, walogs,
-              false, TabletHostingGoal.ALWAYS, false));
+          TabletMetadata.builder(extent).putLocation(Location.current(server1))
+              .putHostingGoal(TabletHostingGoal.ALWAYS).build(LAST, SUSPEND, LOGS));
       tabletAssignedToServer2 = new TabletManagement(Set.of(),
-          new TabletMetadataImposter(extent, null, Location.current(server2), null, null, walogs,
-              false, TabletHostingGoal.NEVER, false));
+          TabletMetadata.builder(extent).putLocation(Location.current(server2))
+              .putHostingGoal(TabletHostingGoal.NEVER).build(LAST, SUSPEND, LOGS));
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
@@ -81,6 +85,7 @@ public class GarbageCollectWriteAheadLogsTest {
   public void testRemoveUnusedLog() throws Exception {
     ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
+    EasyMock.expect(fs.moveToTrash(EasyMock.anyObject())).andReturn(false).anyTimes();
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
 
@@ -96,13 +101,13 @@ public class GarbageCollectWriteAheadLogsTest {
     marker.removeWalMarker(server1, id);
     EasyMock.expectLastCall().once();
     EasyMock.replay(context, fs, marker, tserverSet);
-    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
-        tserverSet, marker, tabletOnServer1List) {
-      @Override
-      protected Map<UUID,Path> getSortedWALogs() {
-        return Collections.emptyMap();
-      }
-    };
+    GarbageCollectWriteAheadLogs gc =
+        new GarbageCollectWriteAheadLogs(context, fs, tserverSet, marker, tabletOnServer1List) {
+          @Override
+          protected Map<UUID,Path> getSortedWALogs() {
+            return Collections.emptyMap();
+          }
+        };
     gc.collect(status);
     EasyMock.verify(context, fs, marker, tserverSet);
   }
@@ -123,13 +128,13 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
     EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<>(WalState.CLOSED, path));
     EasyMock.replay(context, marker, tserverSet, fs);
-    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
-        tserverSet, marker, tabletOnServer1List) {
-      @Override
-      protected Map<UUID,Path> getSortedWALogs() {
-        return Collections.emptyMap();
-      }
-    };
+    GarbageCollectWriteAheadLogs gc =
+        new GarbageCollectWriteAheadLogs(context, fs, tserverSet, marker, tabletOnServer1List) {
+          @Override
+          protected Map<UUID,Path> getSortedWALogs() {
+            return Collections.emptyMap();
+          }
+        };
     gc.collect(status);
     EasyMock.verify(context, marker, tserverSet, fs);
   }
@@ -138,6 +143,7 @@ public class GarbageCollectWriteAheadLogsTest {
   public void deleteUnreferenceLogOnDeadServer() throws Exception {
     ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
+    EasyMock.expect(fs.moveToTrash(EasyMock.anyObject())).andReturn(false).anyTimes();
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
 
@@ -156,13 +162,13 @@ public class GarbageCollectWriteAheadLogsTest {
     marker.forget(server2);
     EasyMock.expectLastCall().once();
     EasyMock.replay(context, fs, marker, tserverSet);
-    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
-        tserverSet, marker, tabletOnServer1List) {
-      @Override
-      protected Map<UUID,Path> getSortedWALogs() {
-        return Collections.emptyMap();
-      }
-    };
+    GarbageCollectWriteAheadLogs gc =
+        new GarbageCollectWriteAheadLogs(context, fs, tserverSet, marker, tabletOnServer1List) {
+          @Override
+          protected Map<UUID,Path> getSortedWALogs() {
+            return Collections.emptyMap();
+          }
+        };
     gc.collect(status);
     EasyMock.verify(context, fs, marker, tserverSet);
   }
@@ -184,13 +190,13 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(marker.state(server2, id)).andReturn(new Pair<>(WalState.OPEN, path));
 
     EasyMock.replay(context, fs, marker, tserverSet);
-    GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
-        tserverSet, marker, tabletOnServer2List) {
-      @Override
-      protected Map<UUID,Path> getSortedWALogs() {
-        return Collections.emptyMap();
-      }
-    };
+    GarbageCollectWriteAheadLogs gc =
+        new GarbageCollectWriteAheadLogs(context, fs, tserverSet, marker, tabletOnServer2List) {
+          @Override
+          protected Map<UUID,Path> getSortedWALogs() {
+            return Collections.emptyMap();
+          }
+        };
     gc.collect(status);
     EasyMock.verify(context, fs, marker, tserverSet);
   }

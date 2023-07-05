@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.file.streams;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.InputStream;
-import java.security.SecureRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
@@ -30,8 +30,6 @@ import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
 public class RateLimitedInputStreamTest {
-
-  private static final SecureRandom random = new SecureRandom();
 
   @Test
   public void permitsAreProperlyAcquired() throws Exception {
@@ -49,7 +47,7 @@ public class RateLimitedInputStreamTest {
     long bytesRetrieved = 0;
     try (InputStream is = new RateLimitedInputStream(new RandomInputStream(), rateLimiter)) {
       for (int i = 0; i < 100; ++i) {
-        int count = Math.abs(random.nextInt()) % 65536;
+        int count = Math.abs(RANDOM.get().nextInt()) % 65536;
         int countRead = is.read(new byte[count]);
         assertEquals(count, countRead);
         bytesRetrieved += count;
@@ -62,7 +60,7 @@ public class RateLimitedInputStreamTest {
 
     @Override
     public int read() {
-      return random.nextInt() & 0xff;
+      return RANDOM.get().nextInt() & 0xff;
     }
 
     @Override

@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.conf.Property.INSTANCE_ZK_TIMEOUT;
 import static org.apache.accumulo.core.conf.Property.TSERV_WAL_MAX_SIZE;
 import static org.apache.accumulo.core.conf.Property.TSERV_WAL_REPLICATION;
 import static org.apache.accumulo.core.security.Authorizations.EMPTY;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.apache.accumulo.minicluster.ServerType.GARBAGE_COLLECTOR;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
@@ -83,7 +84,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     cfg.setProperty(TSERV_WAL_MAX_SIZE, "1M");
     cfg.setProperty(TSERV_WAL_REPLICATION, "1");
     cfg.setProperty(INSTANCE_ZK_TIMEOUT, "15s");
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
@@ -180,11 +181,11 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       byte[] value = new byte[10];
 
       for (int r = 0; r < row; r++) {
-        random.nextBytes(rowData);
+        RANDOM.get().nextBytes(rowData);
         Mutation m = new Mutation(rowData);
         for (int c = 0; c < col; c++) {
-          random.nextBytes(cq);
-          random.nextBytes(value);
+          RANDOM.get().nextBytes(cq);
+          RANDOM.get().nextBytes(value);
           m.put(CF, new Text(cq), new Value(value));
         }
         bw.addMutation(m);

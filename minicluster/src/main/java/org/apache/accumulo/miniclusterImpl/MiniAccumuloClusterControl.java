@@ -24,26 +24,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.coordinator.CompactionCoordinator;
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.minicluster.ServerType;
@@ -52,14 +43,11 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.tserver.ScanServer;
 import org.apache.accumulo.tserver.TabletServer;
-import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
-import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -72,10 +60,9 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   Process managerProcess = null;
   Process gcProcess = null;
   Process monitor = null;
-  Process coordinatorProcess = null;
-  final List<Process> tabletServerProcesses = new ArrayList<>();
-  final List<Process> scanServerProcesses = new ArrayList<>();
-  final List<Process> compactorProcesses = new ArrayList<>();
+  final Map<String,List<Process>> tabletServerProcesses = new HashMap<>();
+  final Map<String,List<Process>> scanServerProcesses = new HashMap<>();
+  final Map<String,List<Process>> compactorProcesses = new HashMap<>();
 
   public MiniAccumuloClusterControl(MiniAccumuloClusterImpl cluster) {
     requireNonNull(cluster);
@@ -131,56 +118,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     }
   }
 
-  private static TExternalCompactionList getRunningCompactions(ClientContext context)
-      throws TException {
-    Optional<HostAndPort> coordinatorHost =
-        ExternalCompactionUtil.findCompactionCoordinator(context);
-    if (coordinatorHost.isEmpty()) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
-    }
-    CompactionCoordinatorService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
-    try {
-      return client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
-    } finally {
-      ThriftUtil.returnClient(client, context);
-    }
-  }
-
-  @Override
-  public synchronized void startCoordinator(Class<? extends CompactionCoordinator> coordinator)
-      throws IOException {
-    if (coordinatorProcess == null) {
-      coordinatorProcess = cluster
-          ._exec(coordinator, ServerType.COMPACTION_COORDINATOR, new HashMap<>()).getProcess();
-      // Wait for coordinator to start
-      TExternalCompactionList metrics = null;
-      while (metrics == null) {
-        try {
-          metrics = getRunningCompactions(cluster.getServerContext());
-        } catch (TException e) {
-          log.debug(
-              "Error getting running compactions from coordinator, message: " + e.getMessage());
-          UtilWaitThread.sleep(250);
-        }
-      }
-    }
-  }
-
-  @Override
-  public synchronized void startCompactors(Class<? extends Compactor> compactor, int limit,
-      String queueName) throws IOException {
-    synchronized (compactorProcesses) {
-      int count =
-          Math.min(limit, cluster.getConfig().getNumCompactors() - compactorProcesses.size());
-      for (int i = 0; i < count; i++) {
-        compactorProcesses.add(
-            cluster.exec(compactor, "-o", Property.COMPACTOR_QUEUE_NAME.getKey() + "=" + queueName)
-                .getProcess());
-      }
-    }
-  }
-
   @Override
   public synchronized void startAllServers(ServerType server) throws IOException {
     start(server, null);
@@ -188,64 +125,117 @@ public class MiniAccumuloClusterControl implements ClusterControl {
 
   @Override
   public synchronized void start(ServerType server, String hostname) throws IOException {
-    start(server, Collections.emptyMap(), Integer.MAX_VALUE);
+    start(server, Collections.emptyMap(), Integer.MAX_VALUE, null);
   }
 
   public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit)
       throws IOException {
+    start(server, configOverrides, limit, null);
+  }
+
+  public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit,
+      Class<?> classOverride) throws IOException {
     if (limit <= 0) {
       return;
+    }
+
+    Class<?> classToUse;
+    if (classOverride != null) {
+      classToUse = classOverride;
+    } else {
+      switch (server) {
+        case COMPACTOR:
+          classToUse = Compactor.class;
+          break;
+        case SCAN_SERVER:
+          classToUse = ScanServer.class;
+          break;
+        case TABLET_SERVER:
+          classToUse = TabletServer.class;
+          break;
+        case GARBAGE_COLLECTOR:
+          classToUse = SimpleGarbageCollector.class;
+          break;
+        case MANAGER:
+          classToUse = Manager.class;
+          break;
+        case MONITOR:
+          classToUse = Monitor.class;
+          break;
+        case ZOOKEEPER:
+          classToUse = ZooKeeperServerMain.class;
+          break;
+        default:
+          throw new IllegalArgumentException("Unhandled server type: " + server);
+      }
     }
 
     switch (server) {
       case TABLET_SERVER:
         synchronized (tabletServerProcesses) {
-          int count = 0;
-          for (int i = tabletServerProcesses.size();
-              count < limit && i < cluster.getConfig().getNumTservers(); i++, ++count) {
-            tabletServerProcesses
-                .add(cluster._exec(TabletServer.class, server, configOverrides).getProcess());
+          Map<String,Integer> tserverGroups =
+              cluster.getConfig().getClusterServerConfiguration().getTabletServerConfiguration();
+          for (Entry<String,Integer> e : tserverGroups.entrySet()) {
+            List<Process> processes =
+                tabletServerProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
+            int count = 0;
+            for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
+              processes.add(cluster._exec(classToUse, server, configOverrides).getProcess());
+            }
           }
         }
         break;
       case MANAGER:
         if (managerProcess == null) {
-          managerProcess = cluster._exec(Manager.class, server, configOverrides).getProcess();
+          managerProcess = cluster._exec(classToUse, server, configOverrides).getProcess();
         }
         break;
       case ZOOKEEPER:
         if (zooKeeperProcess == null) {
-          zooKeeperProcess = cluster._exec(ZooKeeperServerMain.class, server, configOverrides,
-              cluster.getZooCfgFile().getAbsolutePath()).getProcess();
+          zooKeeperProcess = cluster
+              ._exec(classToUse, server, configOverrides, cluster.getZooCfgFile().getAbsolutePath())
+              .getProcess();
         }
         break;
       case GARBAGE_COLLECTOR:
         if (gcProcess == null) {
-          gcProcess =
-              cluster._exec(SimpleGarbageCollector.class, server, configOverrides).getProcess();
+          gcProcess = cluster._exec(classToUse, server, configOverrides).getProcess();
         }
         break;
       case MONITOR:
         if (monitor == null) {
-          monitor = cluster._exec(Monitor.class, server, configOverrides).getProcess();
+          monitor = cluster._exec(classToUse, server, configOverrides).getProcess();
         }
         break;
       case SCAN_SERVER:
         synchronized (scanServerProcesses) {
-          int count = 0;
-          for (int i = scanServerProcesses.size();
-              count < limit && i < cluster.getConfig().getNumScanServers(); i++, ++count) {
-            scanServerProcesses
-                .add(cluster._exec(ScanServer.class, server, configOverrides).getProcess());
+          Map<String,Integer> sserverGroups =
+              cluster.getConfig().getClusterServerConfiguration().getScanServerConfiguration();
+          for (Entry<String,Integer> e : sserverGroups.entrySet()) {
+            List<Process> processes =
+                scanServerProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
+            int count = 0;
+            for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
+              processes.add(cluster._exec(classToUse, server, configOverrides).getProcess());
+            }
           }
         }
         break;
-      case COMPACTION_COORDINATOR:
-        startCoordinator(CompactionCoordinator.class);
-        break;
       case COMPACTOR:
-        startCompactors(Compactor.class, cluster.getConfig().getNumCompactors(),
-            configOverrides.get("QUEUE_NAME"));
+        synchronized (compactorProcesses) {
+          Map<String,Integer> compactorGroups =
+              cluster.getConfig().getClusterServerConfiguration().getCompactorConfiguration();
+          for (Entry<String,Integer> e : compactorGroups.entrySet()) {
+            List<Process> processes =
+                compactorProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
+            int count = 0;
+            for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
+              processes.add(cluster
+                  .exec(classToUse, "-o", Property.COMPACTOR_QUEUE_NAME.getKey() + "=" + e.getKey())
+                  .getProcess());
+            }
+          }
+        }
         break;
       default:
         throw new UnsupportedOperationException("Cannot start process for " + server);
@@ -306,15 +296,17 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case TABLET_SERVER:
         synchronized (tabletServerProcesses) {
           try {
-            for (Process tserver : tabletServerProcesses) {
-              try {
-                cluster.stopProcessWithTimeout(tserver, 30, TimeUnit.SECONDS);
-              } catch (ExecutionException | TimeoutException e) {
-                log.warn("TabletServer did not fully stop after 30 seconds", e);
-              } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-              }
-            }
+            tabletServerProcesses.values().forEach(list -> {
+              list.forEach(process -> {
+                try {
+                  cluster.stopProcessWithTimeout(process, 30, TimeUnit.SECONDS);
+                } catch (ExecutionException | TimeoutException e) {
+                  log.warn("TabletServer did not fully stop after 30 seconds", e);
+                } catch (InterruptedException e) {
+                  Thread.currentThread().interrupt();
+                }
+              });
+            });
           } finally {
             tabletServerProcesses.clear();
           }
@@ -336,45 +328,36 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case SCAN_SERVER:
         synchronized (scanServerProcesses) {
           try {
-            for (Process sserver : scanServerProcesses) {
-              try {
-                cluster.stopProcessWithTimeout(sserver, 30, TimeUnit.SECONDS);
-              } catch (ExecutionException | TimeoutException e) {
-                log.warn("ScanServer did not fully stop after 30 seconds", e);
-              } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-              }
-            }
+            scanServerProcesses.values().forEach(list -> {
+              list.forEach(process -> {
+                try {
+                  cluster.stopProcessWithTimeout(process, 30, TimeUnit.SECONDS);
+                } catch (ExecutionException | TimeoutException e) {
+                  log.warn("TabletServer did not fully stop after 30 seconds", e);
+                } catch (InterruptedException e) {
+                  Thread.currentThread().interrupt();
+                }
+              });
+            });
           } finally {
             scanServerProcesses.clear();
-          }
-        }
-        break;
-      case COMPACTION_COORDINATOR:
-        if (coordinatorProcess != null) {
-          try {
-            cluster.stopProcessWithTimeout(coordinatorProcess, 30, TimeUnit.SECONDS);
-          } catch (ExecutionException | TimeoutException e) {
-            log.warn("CompactionCoordinator did not fully stop after 30 seconds", e);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-          } finally {
-            coordinatorProcess = null;
           }
         }
         break;
       case COMPACTOR:
         synchronized (compactorProcesses) {
           try {
-            for (Process compactor : compactorProcesses) {
-              try {
-                cluster.stopProcessWithTimeout(compactor, 30, TimeUnit.SECONDS);
-              } catch (ExecutionException | TimeoutException e) {
-                log.warn("Compactor did not fully stop after 30 seconds", e);
-              } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-              }
-            }
+            compactorProcesses.values().forEach(list -> {
+              list.forEach(process -> {
+                try {
+                  cluster.stopProcessWithTimeout(process, 30, TimeUnit.SECONDS);
+                } catch (ExecutionException | TimeoutException e) {
+                  log.warn("TabletServer did not fully stop after 30 seconds", e);
+                } catch (InterruptedException e) {
+                  Thread.currentThread().interrupt();
+                }
+              });
+            });
           } finally {
             compactorProcesses.clear();
           }
@@ -418,16 +401,20 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         break;
       case TABLET_SERVER:
         synchronized (tabletServerProcesses) {
-          for (Process tserver : tabletServerProcesses) {
-            if (procRef.getProcess().equals(tserver)) {
-              tabletServerProcesses.remove(tserver);
-              try {
-                cluster.stopProcessWithTimeout(tserver, 30, TimeUnit.SECONDS);
-              } catch (ExecutionException | TimeoutException e) {
-                log.warn("TabletServer did not fully stop after 30 seconds", e);
+          for (List<Process> plist : tabletServerProcesses.values()) {
+            Iterator<Process> iter = plist.iterator();
+            while (!found && iter.hasNext()) {
+              Process process = iter.next();
+              if (procRef.getProcess().equals(process)) {
+                iter.remove();
+                try {
+                  cluster.stopProcessWithTimeout(process, 30, TimeUnit.SECONDS);
+                } catch (ExecutionException | TimeoutException e) {
+                  log.warn("TabletServer did not fully stop after 30 seconds", e);
+                }
+                found = true;
+                break;
               }
-              found = true;
-              break;
             }
           }
         }
@@ -456,40 +443,39 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         break;
       case SCAN_SERVER:
         synchronized (scanServerProcesses) {
-          for (Process sserver : scanServerProcesses) {
-            if (procRef.getProcess().equals(sserver)) {
-              scanServerProcesses.remove(sserver);
-              try {
-                cluster.stopProcessWithTimeout(sserver, 30, TimeUnit.SECONDS);
-              } catch (ExecutionException | TimeoutException e) {
-                log.warn("ScanServer did not fully stop after 30 seconds", e);
+          for (List<Process> plist : scanServerProcesses.values()) {
+            Iterator<Process> iter = plist.iterator();
+            while (!found && iter.hasNext()) {
+              Process process = iter.next();
+              if (procRef.getProcess().equals(process)) {
+                iter.remove();
+                try {
+                  cluster.stopProcessWithTimeout(process, 30, TimeUnit.SECONDS);
+                } catch (ExecutionException | TimeoutException e) {
+                  log.warn("TabletServer did not fully stop after 30 seconds", e);
+                }
+                found = true;
+                break;
               }
-              found = true;
-              break;
             }
           }
         }
         break;
-      case COMPACTION_COORDINATOR:
-        if (procRef.getProcess().equals(coordinatorProcess)) {
-          try {
-            cluster.stopProcessWithTimeout(coordinatorProcess, 30, TimeUnit.SECONDS);
-          } catch (ExecutionException | TimeoutException e) {
-            log.warn("CompactionCoordinator did not fully stop after 30 seconds", e);
-          }
-          coordinatorProcess = null;
-          found = true;
-        }
-        break;
       case COMPACTOR:
         synchronized (compactorProcesses) {
-          for (Process compactor : compactorProcesses) {
-            if (procRef.getProcess().equals(compactor)) {
-              compactorProcesses.remove(compactor);
-              try {
-                cluster.stopProcessWithTimeout(compactor, 30, TimeUnit.SECONDS);
-              } catch (ExecutionException | TimeoutException e) {
-                log.warn("Compactor did not fully stop after 30 seconds", e);
+          for (List<Process> plist : compactorProcesses.values()) {
+            Iterator<Process> iter = plist.iterator();
+            while (!found && iter.hasNext()) {
+              Process process = iter.next();
+              if (procRef.getProcess().equals(process)) {
+                iter.remove();
+                try {
+                  cluster.stopProcessWithTimeout(process, 30, TimeUnit.SECONDS);
+                } catch (ExecutionException | TimeoutException e) {
+                  log.warn("TabletServer did not fully stop after 30 seconds", e);
+                }
+                found = true;
+                break;
               }
             }
           }

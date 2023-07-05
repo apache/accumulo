@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import java.net.URI;
+import java.util.Objects;
+
+import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
@@ -32,16 +36,18 @@ import org.apache.hadoop.io.Text;
  * As of 2.1, Tablet file paths should now be only absolute URIs with the removal of relative paths
  * in Upgrader9to10.upgradeRelativePaths()
  */
-public class StoredTabletFile extends TabletFile {
+public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   private final String metadataEntry;
+  private final ReferencedTabletFile referencedTabletFile;
 
   /**
    * Construct a tablet file using the string read from the metadata. Preserve the exact string so
    * the entry can be deleted.
    */
   public StoredTabletFile(String metadataEntry) {
-    super(new Path(metadataEntry));
+    super(new Path(URI.create(metadataEntry)));
     this.metadataEntry = metadataEntry;
+    this.referencedTabletFile = ReferencedTabletFile.of(getPath());
   }
 
   /**
@@ -60,15 +66,63 @@ public class StoredTabletFile extends TabletFile {
     return new Text(getMetaUpdateDelete());
   }
 
-  /**
-   * Validate that the provided reference matches what is in the metadata table.
-   *
-   * @param reference the relative path to check against
-   */
-  public void validate(String reference) {
-    if (!metadataEntry.equals(reference)) {
-      throw new IllegalStateException("The reference " + reference
-          + " does not match what was in the metadata: " + metadataEntry);
+  public ReferencedTabletFile getTabletFile() {
+    return referencedTabletFile;
+  }
+
+  public TableId getTableId() {
+    return referencedTabletFile.getTableId();
+  }
+
+  @Override
+  public String getFileName() {
+    return referencedTabletFile.getFileName();
+  }
+
+  public String getNormalizedPathStr() {
+    return referencedTabletFile.getNormalizedPathStr();
+  }
+
+  @Override
+  public int compareTo(StoredTabletFile o) {
+    if (equals(o)) {
+      return 0;
+    } else {
+      return metadataEntry.compareTo(o.metadataEntry);
     }
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    StoredTabletFile that = (StoredTabletFile) o;
+    return Objects.equals(metadataEntry, that.metadataEntry);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(metadataEntry);
+  }
+
+  @Override
+  public String toString() {
+    return metadataEntry;
+  }
+
+  /**
+   * Validates that the provided metadata string for the StoredTabletFile is valid.
+   */
+  public static void validate(String metadataEntry) {
+    ReferencedTabletFile.parsePath(new Path(URI.create(metadataEntry)));
+  }
+
+  public static StoredTabletFile of(final String metadataEntry) {
+    return new StoredTabletFile(metadataEntry);
+  }
+
 }

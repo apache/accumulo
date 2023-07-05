@@ -28,13 +28,13 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.io.Text;
 
@@ -69,16 +69,14 @@ class PopulateMetadata extends ManagerRepo {
       splitDirMap = Map.of();
     }
 
-    writeSplitsToMetadataTable(env.getContext().getAmple(), splits, splitDirMap,
-        env.getManagerLock());
+    writeSplitsToMetadataTable(env.getContext(), splits, splitDirMap, env.getManagerLock());
 
     return new FinishCreateTable(tableInfo);
   }
 
-  private void writeSplitsToMetadataTable(Ample ample, SortedSet<Text> splits, Map<Text,Text> data,
-      ServiceLock lock) {
-
-    try (var tabletsMutator = ample.mutateTablets()) {
+  private void writeSplitsToMetadataTable(ServerContext context, SortedSet<Text> splits,
+      Map<Text,Text> data, ServiceLock lock) {
+    try (var tabletsMutator = context.getAmple().mutateTablets()) {
       Text prevSplit = null;
       Iterable<Text> iter = () -> Stream.concat(splits.stream(), Stream.of((Text) null)).iterator();
       for (Text split : iter) {
@@ -92,7 +90,7 @@ class PopulateMetadata extends ManagerRepo {
         tabletMutator.putPrevEndRow(extent.prevEndRow());
         tabletMutator.putDirName(dirName);
         tabletMutator.putTime(new MetadataTime(0, tableInfo.getTimeType()));
-        tabletMutator.putZooLock(lock);
+        tabletMutator.putZooLock(context.getZooKeeperRoot(), lock);
         tabletMutator.putHostingGoal(tableInfo.getInitialHostingGoal());
         tabletMutator.mutate();
 

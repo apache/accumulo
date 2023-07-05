@@ -33,15 +33,24 @@ import org.apache.hadoop.fs.Path;
  * added to a tablet later as a new file reference, but within a different scope (process, thread,
  * code block, method, etc.) that uses a different class to represent the file in that scope.
  *
- * Unlike {@link TabletFile}, this class does not perform any validation or normalization on the
- * provided path.
+ * Unlike {@link ReferencedTabletFile}, this class does not perform any validation or normalization
+ * on the provided path.
  *
  * @since 3.0.0
  */
 public class UnreferencedTabletFile extends AbstractTabletFile<UnreferencedTabletFile> {
 
+  private final String fileName; // C0004.rf
+
   public UnreferencedTabletFile(FileSystem fs, Path path) {
     super(Objects.requireNonNull(fs).makeQualified(Objects.requireNonNull(path)));
+    this.fileName = path.getName();
+    ValidationUtil.validateFileName(fileName);
+  }
+
+  @Override
+  public String getFileName() {
+    return fileName;
   }
 
   @Override

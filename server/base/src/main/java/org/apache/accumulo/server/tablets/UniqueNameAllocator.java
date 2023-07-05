@@ -19,14 +19,11 @@
 package org.apache.accumulo.server.tablets;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-
-import java.security.SecureRandom;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.io.Text;
 
 /**
  * Allocates unique names for an accumulo instance. The names are unique for the lifetime of the
@@ -40,26 +37,16 @@ public class UniqueNameAllocator {
   private long next = 0;
   private long maxAllocated = 0;
   private String nextNamePath;
-  private static final SecureRandom random = new SecureRandom();
 
   public UniqueNameAllocator(ServerContext context) {
     this.context = context;
     nextNamePath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNEXT_FILE;
   }
 
-  public static String createTabletDirectoryName(ServerContext context, Text endRow) {
-    if (endRow == null) {
-      return MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
-    } else {
-      UniqueNameAllocator namer = context.getUniqueNameAllocator();
-      return Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
-    }
-  }
-
   public synchronized String getNextName() {
 
     while (next >= maxAllocated) {
-      final int allocate = 100 + random.nextInt(100);
+      final int allocate = 100 + RANDOM.get().nextInt(100);
 
       try {
         byte[] max = context.getZooReaderWriter().mutateExisting(nextNamePath, currentValue -> {

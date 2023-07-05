@@ -52,8 +52,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
@@ -1089,6 +1089,12 @@ public class CompactableImpl implements Compactable {
       return Optional.empty();
     }
 
+    if (kind == CompactionKind.SYSTEM || kind == CompactionKind.USER
+        || kind == CompactionKind.SELECTOR || kind == CompactionKind.CHOP) {
+      // ELASTICITY_TODO a hack added to disable system compactions for user tablets
+      return Optional.empty();
+    }
+
     servicesUsed.add(service);
 
     var files = tablet.getDatafiles();
@@ -1280,7 +1286,7 @@ public class CompactableImpl implements Compactable {
       TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg);
       tablet.incrementStatusMajor();
       var check = new CompactionCheck(service, kind, cInfo.checkCompactionId);
-      TabletFile tmpFileName = tablet.getNextDataFilenameForMajc(cInfo.propagateDeletes);
+      ReferencedTabletFile tmpFileName = tablet.getNextDataFilenameForMajc(cInfo.propagateDeletes);
       var compactEnv = new MajCEnv(kind, check, readLimiter, writeLimiter, cInfo.propagateDeletes);
 
       SortedMap<StoredTabletFile,DataFileValue> allFiles = tablet.getDatafiles();
@@ -1323,14 +1329,16 @@ public class CompactableImpl implements Compactable {
       Map<String,String> overrides =
           CompactableUtils.getOverrides(job.getKind(), tablet, cInfo.localHelper, job.getFiles());
 
-      TabletFile compactTmpName = tablet.getNextDataFilenameForMajc(cInfo.propagateDeletes);
+      ReferencedTabletFile compactTmpName =
+          tablet.getNextDataFilenameForMajc(cInfo.propagateDeletes);
 
       ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
 
+      // the following were commented out as this code should not be called anymore more
       ecInfo.meta = new ExternalCompactionMetadata(cInfo.jobFiles,
-          Sets.difference(cInfo.selectedFiles, cInfo.jobFiles), compactTmpName, compactorId,
+          /* Sets.difference(cInfo.selectedFiles, cInfo.jobFiles), */ compactTmpName, compactorId,
           job.getKind(), job.getPriority(), job.getExecutor(), cInfo.propagateDeletes,
-          cInfo.initiallySelectedAll, cInfo.checkCompactionId);
+          /* cInfo.initiallySelectedAll, */ cInfo.checkCompactionId);
 
       tablet.getContext().getAmple().mutateTablet(getExtent())
           .putExternalCompaction(externalCompactionId, ecInfo.meta).mutate();
@@ -1402,7 +1410,9 @@ public class CompactableImpl implements Compactable {
             extCompactionId);
       }
 
-      tablet.getContext().getAmple().deleteExternalCompactionFinalStates(List.of(extCompactionId));
+      throw new UnsupportedOperationException(
+          "This code no longer functions properly and needs to be removed");
+      // tablet.getContext().getAmple().deleteExternalCompactionFinalStates(List.of(extCompactionId));
     } finally {
       synchronized (this) {
         Preconditions.checkState(externalCompactionsCommitting.remove(extCompactionId));
@@ -1437,7 +1447,9 @@ public class CompactableImpl implements Compactable {
         log.debug("Ignoring request to fail external compaction that is unknown {}", ecid);
       }
 
-      tablet.getContext().getAmple().deleteExternalCompactionFinalStates(List.of(ecid));
+      throw new UnsupportedOperationException(
+          "This code no longer functions properly and needs to be removed");
+      // tablet.getContext().getAmple().deleteExternalCompactionFinalStates(List.of(ecid));
     } finally {
       synchronized (this) {
         Preconditions.checkState(externalCompactionsCommitting.remove(ecid));

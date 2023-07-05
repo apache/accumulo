@@ -29,6 +29,7 @@ import java.util.SortedSet;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -290,8 +291,8 @@ public interface TableOperations {
 
   /**
    * Starts a full major compaction of the tablets in the range (start, end]. If the config does not
-   * specify a compaction selector (or a deprecated strategy), then all files in a tablet are
-   * compacted. The compaction is performed even for tablets that have only one file.
+   * specify a compaction selector, then all files in a tablet are compacted. The compaction is
+   * performed even for tablets that have only one file.
    *
    * <p>
    * The following optional settings can only be set by one compact call per table at the same time.
@@ -1005,4 +1006,17 @@ public interface TableOperations {
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     throw new UnsupportedOperationException();
   }
+
+  /**
+   * Retrieve the hosting goal for a range of tablets in the specified table.
+   *
+   * @param tableName table name
+   * @param range tablet range
+   * @since 4.0.0
+   */
+  default Stream<HostingGoalForTablet> getTabletHostingGoal(final String tableName,
+      final Range range) throws TableNotFoundException {
+    throw new UnsupportedOperationException();
+  }
+
 }

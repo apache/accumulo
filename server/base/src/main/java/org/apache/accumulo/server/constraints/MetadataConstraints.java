@@ -36,6 +36,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -51,6 +52,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
@@ -87,8 +89,8 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.COMPACT_COLUMN,
           ServerColumnFamily.OPID_COLUMN,
           HostingColumnFamily.GOAL_COLUMN,
-          HostingColumnFamily.REQUESTED_COLUMN);
-
+          HostingColumnFamily.REQUESTED_COLUMN,
+              ServerColumnFamily.SELECTED_COLUMN);
   private static final Set<Text> validColumnFams =
       Set.of(BulkFileColumnFamily.NAME,
           LogColumnFamily.NAME,
@@ -128,6 +130,19 @@ public class MetadataConstraints implements Constraint {
       return addViolation(lst, intViolation);
     }
     return lst;
+  }
+
+  /*
+   * Validates the data file metadata is valid for a StoredDataFile.
+   */
+  private static ArrayList<Short> validateDataFilePath(ArrayList<Short> violations,
+      String metadata) {
+    try {
+      StoredTabletFile.validate(metadata);
+    } catch (RuntimeException e) {
+      violations = addViolation(violations, 12);
+    }
+    return violations;
   }
 
   @Override
@@ -206,6 +221,9 @@ public class MetadataConstraints implements Constraint {
       }
 
       if (columnFamily.equals(DataFileColumnFamily.NAME)) {
+        violations =
+            validateDataFilePath(violations, new String(columnUpdate.getColumnQualifier(), UTF_8));
+
         try {
           DataFileValue dfv = new DataFileValue(columnUpdate.getValue());
 
@@ -216,7 +234,8 @@ public class MetadataConstraints implements Constraint {
           violations = addViolation(violations, 1);
         }
       } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
-
+        violations =
+            validateDataFilePath(violations, new String(columnUpdate.getColumnQualifier(), UTF_8));
       } else if (HostingColumnFamily.GOAL_COLUMN.equals(columnFamily, columnQualifier)) {
         try {
           TabletHostingGoalUtil.fromValue(new Value(columnUpdate.getValue()));
@@ -229,8 +248,17 @@ public class MetadataConstraints implements Constraint {
         } catch (IllegalArgumentException e) {
           violations = addViolation(violations, 9);
         }
+      } else if (ServerColumnFamily.SELECTED_COLUMN.equals(columnFamily, columnQualifier)) {
+        try {
+          SelectedFiles.from(new String(columnUpdate.getValue(), UTF_8));
+        } catch (RuntimeException e) {
+          violations = addViolation(violations, 11);
+        }
       } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
         if (!columnUpdate.isDeleted() && !checkedBulk) {
+          violations = validateDataFilePath(violations,
+              new String(columnUpdate.getColumnQualifier(), UTF_8));
+
           // splits, which also write the time reference, are allowed to write this reference even
           // when
           // the transaction is not running because the other half of the tablet is holding a
@@ -359,6 +387,10 @@ public class MetadataConstraints implements Constraint {
         return "Malformed operation id";
       case 10:
         return "Malformed hosting goal";
+      case 11:
+        return "Malformed file selection value";
+      case 12:
+        return "Invalid data file metadata format";
     }
     return null;
   }

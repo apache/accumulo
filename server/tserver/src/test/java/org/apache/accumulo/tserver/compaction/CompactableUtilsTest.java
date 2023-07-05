@@ -20,8 +20,8 @@ package org.apache.accumulo.tserver.compaction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.tserver.tablet.CompactableUtils;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
+import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
 
@@ -29,10 +29,11 @@ public class CompactableUtilsTest {
 
   @Test
   public void testEquivalence() {
-    TabletFile expected = new TabletFile(
+    ReferencedTabletFile expected = new ReferencedTabletFile(
         new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
-    TabletFile tmpFile = new TabletFile(new Path(expected.getMetaInsert() + "_tmp"));
-    TabletFile dest = CompactableUtils.computeCompactionFileDest(tmpFile);
+    ReferencedTabletFile tmpFile =
+        new ReferencedTabletFile(new Path(expected.getMetaInsert() + "_tmp"));
+    ReferencedTabletFile dest = TabletNameGenerator.computeCompactionFileDest(tmpFile);
     assertEquals(expected, dest);
   }
 

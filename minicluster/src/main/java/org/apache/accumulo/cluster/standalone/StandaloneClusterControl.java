@@ -34,8 +34,6 @@ import java.util.Map.Entry;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.RemoteShell;
 import org.apache.accumulo.cluster.RemoteShellOptions;
-import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
@@ -369,15 +367,4 @@ public class StandaloneClusterControl implements ClusterControl {
     }
   }
 
-  @Override
-  public void startCompactors(Class<? extends Compactor> compactor, int limit, String queueName)
-      throws IOException {
-    throw new UnsupportedOperationException("Not yet implemented.");
-  }
-
-  @Override
-  public void startCoordinator(Class<? extends CompactionCoordinator> coordinator)
-      throws IOException {
-    throw new UnsupportedOperationException("Not yet implemented.");
-  }
 }

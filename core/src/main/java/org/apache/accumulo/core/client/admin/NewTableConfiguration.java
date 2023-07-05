@@ -194,6 +194,8 @@ public class NewTableConfiguration {
   /**
    * Enable building a sample data set on the new table using the given sampler configuration.
    *
+   * @return this
+   *
    * @since 1.8.0
    */
   public NewTableConfiguration enableSampling(SamplerConfiguration samplerConfiguration) {
@@ -207,6 +209,8 @@ public class NewTableConfiguration {
 
   /**
    * Enables creating summary statistics using {@link Summarizer}'s for the new table.
+   *
+   * @return this
    *
    * @since 2.0.0
    */
@@ -268,6 +272,7 @@ public class NewTableConfiguration {
    * settings.
    *
    * @param setting object specifying the properties of the iterator
+   * @return this
    *
    * @since 2.0.0
    *
@@ -282,6 +287,7 @@ public class NewTableConfiguration {
    *
    * @param setting object specifying the properties of the iterator
    * @param scopes enumerated set of iterator scopes
+   * @return this
    *
    * @since 2.0.0
    *
