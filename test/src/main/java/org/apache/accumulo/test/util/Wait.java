@@ -29,23 +29,37 @@ public class Wait {
     boolean isSatisfied() throws Exception;
   }
 
-  public static boolean waitFor(Condition condition) throws Exception {
-    return waitFor(condition, MAX_WAIT_MILLIS);
+  /**
+   * Wait for the provided condition - will throw an IllegalStateException is the wait exceeds the
+   * wait period.
+   */
+  public static void waitFor(Condition condition) throws Exception {
+    waitFor(condition, MAX_WAIT_MILLIS);
   }
 
-  public static boolean waitFor(final Condition condition, final long duration) throws Exception {
-    return waitFor(condition, duration, SLEEP_MILLIS);
+  /**
+   * Wait for the provided condition - will throw an IllegalStateException is the wait exceeds the
+   * wait period.
+   */
+  public static void waitFor(final Condition condition, final long duration) throws Exception {
+    waitFor(condition, duration, SLEEP_MILLIS);
   }
 
-  public static boolean waitFor(final Condition condition, final long duration,
-      final long sleepMillis) throws Exception {
+  /**
+   * Wait for the provided condition - will throw an IllegalStateException is the wait exceeds the
+   * wait period.
+   */
+  public static void waitFor(final Condition condition, final long duration, final long sleepMillis)
+      throws Exception {
 
     final long expiry = System.currentTimeMillis() + duration;
-    boolean conditionSatisfied = condition.isSatisfied();
-    while (!conditionSatisfied && System.currentTimeMillis() < expiry) {
+    boolean success = condition.isSatisfied();
+    while (!success && System.currentTimeMillis() < expiry) {
       TimeUnit.MILLISECONDS.sleep(sleepMillis);
-      conditionSatisfied = condition.isSatisfied();
+      success = condition.isSatisfied();
     }
-    return conditionSatisfied;
+    if (!success) {
+      throw new IllegalStateException("Failed to satisfy condition before timeout exceeded");
+    }
   }
 }
