@@ -76,6 +76,36 @@ public abstract class ClientTabletCache {
   }
 
   /**
+   * This method allows linear scans to host tablet ahead of time that they may read in the future.
+   * The goal of this method is to allow tablets to request hosting of tablet for a scan before the
+   * scan actually needs it. Below is an example of how this method could work with a scan when
+   * {@code minimumHostAhead=4} is passed and avoid the scan having to wait on tablet hosting.
+   *
+   * <ol>
+   * <li>4*2 tablets are initially hosted (the scan has to wait on this)</li>
+   * <li>The 1st,2nd,3rd, and 4th tablets are read by the scan</li>
+   * <li>The request to read the 5th tablets causes a request to host 4 more tablets (this would be
+   * the 9th,10th,11th, and 12th tablets)</li>
+   * <li>The 5th,6th,7th, and 8th tablet are read by the scan</li>
+   * <li>While the scan does the read above, the 9th,10th,11th, and 12th tablets are actually
+   * hosted. This happens concurrently with the scan above.</li>
+   * <li>When the scan goes to read the 9th tablet, hopefully its already hosted. Also attempting to
+   * read the 9th tablet will cause a request to host the 13th,14th,15th, and 16th tablets.</li>
+   * </ol>
+   *
+   * In the situation above, the goal is that while we are reading 4 hosted tablets the 4 following
+   * tablets are in the process of being hosted.
+   *
+   * @param minimumHostAhead Attempts to keep between minimumHostAhead and 2*minimumHostAhead
+   *        tablets following the found tablet hosted.
+   * @param hostAheadRange Only host following tablets that are within this range.
+   */
+  public abstract CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
+      LocationNeed locationNeed, int minimumHostAhead, Range hostAheadRange)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException;
+
+  /**
    * Finds the tablet that contains the given row.
    *
    * @param locationNeed When {@link LocationNeed#REQUIRED} is passed will only return a tablet if
@@ -85,9 +115,11 @@ public abstract class ClientTabletCache {
    * @return overlapping tablet. If no overlapping tablet exists, returns null. If location is
    *         required and the tablet currently has no location ,returns null.
    */
-  public abstract CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
+  public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
       LocationNeed locationNeed) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, InvalidTabletHostingRequestException;
+      TableNotFoundException, InvalidTabletHostingRequestException {
+    return findTablet(context, row, skipRow, locationNeed, 0, null);
+  }
 
   public CachedTablet findTabletWithRetry(ClientContext context, Text row, boolean skipRow,
       LocationNeed locationNeed) throws AccumuloException, AccumuloSecurityException,
