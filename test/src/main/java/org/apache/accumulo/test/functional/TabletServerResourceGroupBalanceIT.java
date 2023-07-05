@@ -20,12 +20,14 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -35,7 +37,10 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
@@ -46,6 +51,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -152,4 +158,60 @@ public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
 
   }
 
+  @Test
+  public void testResourceGroupBalanceWithNoTServers() throws Exception {
+
+    SortedSet<Text> splits = new TreeSet<>();
+    IntStream.range(97, 122).forEach(i -> splits.add(new Text(new String("" + i))));
+
+    Map<String,String> properties = new HashMap<>();
+    properties.put("table.custom.assignment.group", "GROUP2");
+
+    NewTableConfiguration ntc1 = new NewTableConfiguration();
+    ntc1.withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+    ntc1.withSplits(splits);
+    ntc1.setProperties(properties);
+
+    String[] names = this.getUniqueNames(1);
+    try (final AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+
+      client.tableOperations().create(names[0], ntc1);
+
+      assertEquals(0, getCountOfHostedTablets(client, names[0]));
+
+      Thread ingest = new Thread(() -> {
+        try {
+          ReadWriteIT.ingest(client, 1000, 1, 1, 0, names[0]);
+          ReadWriteIT.verify(client, 1000, 1, 1, 0, names[0]);
+        } catch (Exception e) {}
+      });
+      ingest.start();
+
+      assertEquals(0, getCountOfHostedTablets(client, names[0]));
+
+      // Start TabletServer for GROUP2
+      getCluster().getConfig().getClusterServerConfiguration()
+          .addTabletServerResourceGroup("GROUP2", 1);
+      getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+
+      client.instanceOperations().waitForBalance();
+      assertEquals(26, getCountOfHostedTablets(client, names[0]));
+      ingest.join();
+    }
+  }
+
+  private int getCountOfHostedTablets(AccumuloClient client, String tableName) throws Exception {
+
+    ClientTabletCache locator = ClientTabletCache.getInstance((ClientContext) client,
+        TableId.of(client.tableOperations().tableIdMap().get(tableName)));
+    locator.invalidateCache();
+    AtomicInteger locations = new AtomicInteger(0);
+    locator.findTablets((ClientContext) client, Collections.singletonList(new Range()), (ct, r) -> {
+      if (ct.getTserverLocation().isPresent()) {
+        locations.incrementAndGet();
+      }
+    }, LocationNeed.NOT_REQUIRED);
+    return locations.get();
+  }
 }
