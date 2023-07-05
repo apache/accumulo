@@ -693,7 +693,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
   @Test
   public void copyConfigOptionsTest() throws Exception {
     String[] names = getUniqueNames(2);
-    String srcNS = "src_ns_" + names[0];
+    String srcNS = "ns1"; // + names[0];
 
     String srcTable = srcNS + ".src_table_" + names[1];
     String destTable = srcNS + ".dest_table_" + names[1];
@@ -720,9 +720,10 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       // used to grab values directly from ZooKeeper to bypass hierarchy
       PropStore propStore = getCluster().getServerContext().getPropStore();
 
+      TableId destId = TableId.of(accumuloClient.tableOperations().tableIdMap().get(destTable));
+
       // the Zk node should have all effective properties copied from configuration
-      var vp1 = propStore
-          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(destTable))));
+      var vp1 = propStore.get(TablePropKey.of(getCluster().getServerContext(), destId));
       assertEquals(sysPropValue1, vp1.asMap().get(sysPropName));
       assertEquals(nsPropValue1, vp1.asMap().get(nsPropName));
 
@@ -831,8 +832,33 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     ts.exec("createtable " + names[0]);
     ts.exec("createtable " + names[1]);
 
-    // expect this to throw IllegalArgumentException
+    // test -cc and -cp are mutually exclusive - expect this fail
     ts.exec("createtable -cp " + names[0] + " -cc " + names[1] + " dest", false);
+  }
+
+  @Test
+  public void missingSrcCopyPropsTest() throws Exception {
+    String[] names = getUniqueNames(2);
+    // test command fail if src is not available
+    ts.exec("createtable -cp " + names[0] + " " + names[1], false);
+  }
+
+  @Test
+  public void missingSrcCopyConfigTest() throws Exception {
+    String[] names = getUniqueNames(2);
+    /// test command fail if src is not available
+    ts.exec("createtable -cc " + names[0] + " " + names[1], false);
+  }
+
+  @Test
+  public void destExistsTest() throws Exception {
+    String[] names = getUniqueNames(2);
+
+    ts.exec("createtable " + names[0]);
+    ts.exec("createtable " + names[1]);
+
+    // expect to fail because target already exists
+    ts.exec("createtable -cp " + names[0] + " " + names[1], false);
   }
 
   private Collection<Text> generateNonBinarySplits(final int numItems, final int len) {

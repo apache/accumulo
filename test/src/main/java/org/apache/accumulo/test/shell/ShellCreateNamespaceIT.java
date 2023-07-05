@@ -181,13 +181,46 @@ public class ShellCreateNamespaceIT extends SharedMiniClusterBase {
 
   @Test
   public void copyTablePropsInvalidOptsTest() throws Exception {
-    String[] names = getUniqueNames(2);
+    String[] names = getUniqueNames(3);
 
     ts.exec("createnamespace " + names[0]);
     ts.exec("createnamespace " + names[1]);
 
-    // expect this to throw IllegalArgumentException
-    ts.exec("createnamespace -cp " + names[0] + " -cc " + names[1] + " dest", false);
+    // test -cc and -cp are mutually exclusive - expect this fail
+    ts.exec("createnamespace -cp " + names[0] + " -cc " + names[1] + " " + names[2], false);
+  }
+
+  @Test
+  public void missingSrcCopyPropsTest() throws Exception {
+    String[] names = getUniqueNames(2);
+    // test -cc and -cp are mutually exclusive expect this fail
+    ts.exec("createnamespace -cp " + names[0] + " " + names[1], false);
+  }
+
+  @Test
+  public void missingSrcCopyConfigTest() throws Exception {
+    String[] names = getUniqueNames(2);
+    // test command fail if src is not available
+    ts.exec("createnamespace -cc " + names[0] + " " + names[1], false);
+  }
+
+  @Test
+  public void destExistsTest() throws Exception {
+    String[] names = getUniqueNames(2);
+
+    ts.exec("createnamespace " + names[0]);
+    ts.exec("createnamespace " + names[1]);
+    // expect to fail because target already exists
+    ts.exec("createnamespace -cp " + names[0] + " " + names[1], false);
+  }
+
+  @Test
+  public void duplicateNamespaceTest() throws Exception {
+    String[] names = getUniqueNames(2);
+
+    ts.exec("createnamespace " + names[0]);
+    // expect to fail because target already exists
+    ts.exec("createnamespace " + names[0], false);
   }
 
 }

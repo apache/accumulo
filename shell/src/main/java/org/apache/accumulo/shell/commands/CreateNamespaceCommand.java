@@ -45,28 +45,37 @@ public class CreateNamespaceCommand extends Command {
       TableNotFoundException, IOException, ClassNotFoundException, NamespaceExistsException,
       NamespaceNotFoundException {
 
-    getOptions();
+    // validate that copy config and copy properties options are mutually exclusive.
+    if (cl.hasOption(createNamespaceOptCopyConfig.getOpt())
+        && cl.hasOption(createNamespaceOptCopyProperties.getOpt())) {
+      throw new IllegalArgumentException("Cannot specify both copy-config and copy-properties");
+    }
 
     String namespace = cl.getArgs()[0];
 
     shellState.getAccumuloClient().namespaceOperations().create(namespace);
-
+    if (!shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
+      throw new IllegalArgumentException("Could not create namespace `" + namespace + "`");
+    }
     Map<String,String> propsToSet = null;
 
     // Copy configuration options if flag was set
     if (cl.hasOption(createNamespaceOptCopyConfig.getOpt())) {
       String srcNs = cl.getOptionValue(createNamespaceOptCopyConfig.getOpt());
-      if (shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
-        propsToSet = shellState.getAccumuloClient().namespaceOperations().getConfiguration(srcNs);
+      if (!srcNs.isEmpty() && !shellState.getAccumuloClient().namespaceOperations().exists(srcNs)) {
+        throw new NamespaceNotFoundException(null, srcNs, null);
       }
+      propsToSet = shellState.getAccumuloClient().namespaceOperations().getConfiguration(srcNs);
     }
 
+    // copy only namespace specific properties
     if (cl.hasOption(createNamespaceOptCopyProperties.getOpt())) {
       String srcNs = cl.getOptionValue(createNamespaceOptCopyProperties.getOpt());
-      if (shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
-        propsToSet =
-            shellState.getAccumuloClient().namespaceOperations().getNamespaceProperties(srcNs);
+      if (!srcNs.isEmpty() && !shellState.getAccumuloClient().namespaceOperations().exists(srcNs)) {
+        throw new NamespaceNotFoundException(null, srcNs, null);
       }
+      propsToSet =
+          shellState.getAccumuloClient().namespaceOperations().getNamespaceProperties(srcNs);
     }
 
     if (propsToSet != null) {

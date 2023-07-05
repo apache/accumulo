@@ -101,6 +101,13 @@ public class CreateTableCommand extends Command {
           new TreeSet<>(shellState.getAccumuloClient().tableOperations().listSplits(oldTable)));
     }
 
+    // allow only copy config or copy properties,
+    if (cl.hasOption(createTableOptCopyConfig.getOpt())
+        && cl.hasOption(createTableOptCopyProperties.getOpt())) {
+      throw new IllegalArgumentException(
+          "Specified copy configuration and copy properties, only one option allowed");
+    }
+
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       final String oldTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
       if (!shellState.getAccumuloClient().tableOperations().exists(oldTable)) {
@@ -140,8 +147,9 @@ public class CreateTableCommand extends Command {
 
     // Copy configuration options if flag was set
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
+      String srcTable = createTableOptCopyConfig.getOpt();
       final Map<String,String> configuration = shellState.getAccumuloClient().tableOperations()
-          .getConfiguration(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
+          .getConfiguration(cl.getOptionValue(srcTable));
       configuration.entrySet().stream()
           .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
           .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
@@ -149,14 +157,11 @@ public class CreateTableCommand extends Command {
 
     // Copy table property options if flag was set
     if (cl.hasOption(createTableOptCopyProperties.getOpt())) {
-      // allow only copy config or copy properties,
-      if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
-        throw new IllegalArgumentException(
-            "Specified copy configuration and copy properties, only one option allowed");
-      }
-
-      String srcTable = cl.getOptionValue(createTableOptCopyProperties.getOpt());
       // use table properties, not configuration (configuration is effective prop hierarchy)
+      String srcTable = cl.getOptionValue(createTableOptCopyProperties.getOpt());
+      if (!shellState.getAccumuloClient().tableOperations().exists(srcTable)) {
+        throw new IllegalArgumentException("Source table `" + srcTable + "` does not exist");
+      }
       Map<String,String> tableProps =
           shellState.getAccumuloClient().tableOperations().getTableProperties(srcTable);
       tableProps.entrySet().stream()
