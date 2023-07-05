@@ -470,9 +470,9 @@ public class MetadataSchema {
 
   }
 
-  public static class ExternalCompactionSection {
+  public static class ScanServerFileReferenceSection {
     private static final Section section =
-        new Section(RESERVED_PREFIX + "ecomp", true, RESERVED_PREFIX + "ecomq", false);
+        new Section(RESERVED_PREFIX + "sserv", true, RESERVED_PREFIX + "sserx", false);
 
     public static Range getRange() {
       return section.getRange();
@@ -483,9 +483,9 @@ public class MetadataSchema {
     }
   }
 
-  public static class ScanServerFileReferenceSection {
+  public static class RefreshSection {
     private static final Section section =
-        new Section(RESERVED_PREFIX + "sserv", true, RESERVED_PREFIX + "sserx", false);
+        new Section(RESERVED_PREFIX + "refresh", true, RESERVED_PREFIX + "refresi", false);
 
     public static Range getRange() {
       return section.getRange();
