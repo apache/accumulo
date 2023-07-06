@@ -79,6 +79,7 @@ public class TestIngest {
     public int stride;
     public String columnFamily = "colf";
     public ColumnVisibility columnVisibility = new ColumnVisibility();
+    public int flushAfterRows = 0;
 
     public IngestParams(Properties props) {
       clientProps = props;
@@ -142,6 +143,10 @@ public class TestIngest {
         description = "place columns in this column family", converter = VisibilityConverter.class)
     ColumnVisibility columnVisibility = new ColumnVisibility();
 
+    @Parameter(names = {"-fr", "--flushAfterRows"},
+        description = "flush after N rows, 0 is default and means disabled")
+    int flushAfterRows = 0;
+
     protected void populateIngestPrams(IngestParams params) {
       params.createTable = createTable;
       params.numsplits = numsplits;
@@ -156,6 +161,7 @@ public class TestIngest {
       params.stride = stride;
       params.columnFamily = columnFamily;
       params.columnVisibility = columnVisibility;
+      params.flushAfterRows = flushAfterRows;
     }
 
     public IngestParams getIngestPrams() {
@@ -357,6 +363,10 @@ public class TestIngest {
       }
       if (bw != null) {
         bw.addMutation(m);
+        if ((params.flushAfterRows != 0) && (i % params.flushAfterRows == 0)) {
+          bw.flush();
+          accumuloClient.tableOperations().flush(params.tableName, null, null, true);
+        }
       }
     }
 

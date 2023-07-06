@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import java.net.URI;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -32,13 +33,13 @@ public class ScanServerRefTabletFile extends TabletFile {
   private final Text colq;
 
   public ScanServerRefTabletFile(String file, String serverAddress, UUID serverLockUUID) {
-    super(new Path(file));
+    super(new Path(URI.create(file)));
     this.colf = new Text(serverAddress);
     this.colq = new Text(serverLockUUID.toString());
   }
 
   public ScanServerRefTabletFile(String file, Text colf, Text colq) {
-    super(new Path(file));
+    super(new Path(URI.create(file)));
     this.colf = colf;
     this.colq = colq;
   }

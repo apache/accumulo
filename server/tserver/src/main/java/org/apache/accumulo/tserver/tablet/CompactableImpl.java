@@ -579,14 +579,15 @@ public class CompactableImpl implements Compactable {
      * @param newFile The file produced by a compaction. If the compaction failed, this can be null.
      */
     void completed(CompactionJob job, Set<StoredTabletFile> jobFiles,
-        Optional<StoredTabletFile> newFile) {
+        Optional<StoredTabletFile> newFile, boolean successful) {
       Preconditions.checkArgument(!jobFiles.isEmpty());
       Preconditions.checkState(allCompactingFiles.removeAll(jobFiles));
       if (newFile.isPresent()) {
         choppedFiles.add(newFile.orElseThrow());
       }
 
-      if ((job.getKind() == CompactionKind.USER || job.getKind() == CompactionKind.SELECTOR)) {
+      if (successful
+          && (job.getKind() == CompactionKind.USER || job.getKind() == CompactionKind.SELECTOR)) {
         selectedCompactionCompleted(job, jobFiles, newFile);
       }
     }
@@ -1258,9 +1259,7 @@ public class CompactableImpl implements Compactable {
       Optional<StoredTabletFile> metaFile, boolean successful) {
     synchronized (this) {
       Preconditions.checkState(removeJob(job));
-      if (successful) {
-        fileMgr.completed(job, jobFiles, metaFile);
-      }
+      fileMgr.completed(job, jobFiles, metaFile, successful);
 
       if (!compactionRunning) {
         notifyAll();
@@ -1288,7 +1287,6 @@ public class CompactableImpl implements Compactable {
     CompactionStats stats = new CompactionStats();
 
     boolean successful = false;
-
     try {
       TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg);
       tablet.incrementStatusMajor();
@@ -1306,7 +1304,6 @@ public class CompactableImpl implements Compactable {
           compactFiles, allFiles, kind, tmpFileName);
 
       TabletLogger.compacted(getExtent(), job, newFile.orElse(null));
-
       successful = true;
     } catch (CompactionCanceledException cce) {
       log.debug("Compaction canceled {} ", getExtent());
@@ -1388,11 +1385,10 @@ public class CompactableImpl implements Compactable {
 
       ExternalCompactionInfo ecInfo = externalCompactions.get(extCompactionId);
 
-      boolean successful = false;
-
       if (ecInfo != null) {
         log.debug("Attempting to commit external compaction {}", extCompactionId);
         Optional<StoredTabletFile> metaFile = Optional.empty();
+        boolean successful = false;
         try {
           metaFile =
               tablet.getDatafileManager().bringMajorCompactionOnline(ecInfo.meta.getJobFiles(),
