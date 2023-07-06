@@ -257,8 +257,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           if (state == TabletState.ASSIGNED) {
             goal = TabletGoalState.HOSTED;
           }
-          Manager.log.debug("[{}] Shutting down all Tservers: {}, dependentCount: {} Extent: {}, state: {}, goal: {}", store.name(), 
-              manager.serversToShutdown.equals(currentTServers.keySet()), dependentWatcher == null? "null" : dependentWatcher.assignedOrHosted(), tls.extent, state, goal);
+          Manager.log.debug(
+              "[{}] Shutting down all Tservers: {}, dependentCount: {} Extent: {}, state: {}, goal: {}",
+              store.name(), manager.serversToShutdown.equals(currentTServers.keySet()),
+              dependentWatcher == null ? "null" : dependentWatcher.assignedOrHosted(), tls.extent,
+              state, goal);
 
           // if we are shutting down all the tabletservers, we have to do it in order
           if ((goal == TabletGoalState.SUSPENDED && state == TabletState.HOSTED)
@@ -310,7 +313,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 TServerConnection client =
                     manager.tserverSet.getConnection(location.getServerInstance());
                 if (client != null) {
-                  Manager.log.debug("[{}] Requesting TabletServer {} unload {} {}", store.name(), location.getServerInstance(), tls.extent, goal.howUnload());
+                  Manager.log.debug("[{}] Requesting TabletServer {} unload {} {}", store.name(),
+                      location.getServerInstance(), tls.extent, goal.howUnload());
                   client.unloadTablet(manager.managerLock, tls.extent, goal.howUnload(),
                       manager.getSteadyTime());
                   unloaded++;

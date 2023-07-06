@@ -48,7 +48,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
@@ -96,18 +95,18 @@ public class CloseScannerIT extends AccumuloClusterHarness {
   public void testIsolatedScannerPreventsTServerShutdown() throws Exception {
 
     // 2 TabletServers started for this test, shut them down so we only have 1.
-//    getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-//    ((MiniAccumuloClusterControl) getClusterControl()).start(ServerType.TABLET_SERVER,
-//        Collections.emptyMap(), 1);
+    // getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+    // ((MiniAccumuloClusterControl) getClusterControl()).start(ServerType.TABLET_SERVER,
+    // Collections.emptyMap(), 1);
 
     String tableName = getUniqueNames(1)[0];
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-//      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
-      
-//      Thread.sleep(120_000);
-      
+      // Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
+
+      // Thread.sleep(120_000);
+
       client.tableOperations().create(tableName);
 
       // wait for everything to be hosted and balanced
@@ -158,30 +157,32 @@ public class CloseScannerIT extends AccumuloClusterHarness {
       // getClusterControl().stopAllServers(ServerType.TABLET_SERVER)
       // could potentially send a kill -9 to the process. Shut the tablet
       // servers down in a more graceful way.
-      
-      Locations locs = client.tableOperations().locate(tableName, Collections.singletonList(TabletsSection.getRange()));
-      locs.groupByTablet().keySet().stream().map(tid -> locs.getTabletLocation(tid)).forEach(location -> {
-        HostAndPort address = HostAndPort.fromString(location);
-        String addressWithSession = address.toString();
-        var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
-            + Constants.ZTSERVERS + "/" + address.toString());
-        long sessionId =
-            ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
-        if (sessionId != 0) {
-          addressWithSession = address.toString() + "[" + Long.toHexString(sessionId) + "]";
-        }
 
-        final String finalAddress = addressWithSession;
-        System.out.println("Attempting to shutdown TabletServer at: " + address.toString());
-        try {
-          ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
-              c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
-                  getCluster().getServerContext().rpcCreds(), finalAddress, false));
-        } catch (AccumuloException | AccumuloSecurityException e) {
-          fail("Error shutting down TabletServer", e);
-        }
-        
-      });
+      Locations locs = client.tableOperations().locate(tableName,
+          Collections.singletonList(TabletsSection.getRange()));
+      locs.groupByTablet().keySet().stream().map(tid -> locs.getTabletLocation(tid))
+          .forEach(location -> {
+            HostAndPort address = HostAndPort.fromString(location);
+            String addressWithSession = address.toString();
+            var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
+                + Constants.ZTSERVERS + "/" + address.toString());
+            long sessionId =
+                ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
+            if (sessionId != 0) {
+              addressWithSession = address.toString() + "[" + Long.toHexString(sessionId) + "]";
+            }
+
+            final String finalAddress = addressWithSession;
+            System.out.println("Attempting to shutdown TabletServer at: " + address.toString());
+            try {
+              ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
+                  c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
+                      getCluster().getServerContext().rpcCreds(), finalAddress, false));
+            } catch (AccumuloException | AccumuloSecurityException e) {
+              fail("Error shutting down TabletServer", e);
+            }
+
+          });
 
       Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
 
