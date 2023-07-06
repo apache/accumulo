@@ -42,4 +42,11 @@ public class TableCounts {
   public int suspended() {
     return counts[TabletState.SUSPENDED.ordinal()];
   }
+
+  @Override
+  public String toString() {
+    return "unassigned: " + unassigned() + " assigned: " + assigned() + " assignedToDeadServers: "
+        + assignedToDeadServers() + " hosted: " + hosted() + " suspended: " + suspended();
+  }
+
 }

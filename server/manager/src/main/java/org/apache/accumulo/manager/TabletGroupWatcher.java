@@ -334,6 +334,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
         stats.end(managerState);
+        Manager.log.info("[{}] End stats collection: {}", store.name(), stats);
 
         // Report changes
         for (TabletState state : TabletState.values()) {

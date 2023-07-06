@@ -79,4 +79,10 @@ public class TableStats {
   public synchronized long lastScanFinished() {
     return endScan;
   }
+
+  @Override
+  public String toString() {
+    return "last: " + last.toString();
+  }
+
 }

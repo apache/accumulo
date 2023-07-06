@@ -48,6 +48,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterControl;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
@@ -95,15 +97,15 @@ public class CloseScannerIT extends AccumuloClusterHarness {
   public void testIsolatedScannerPreventsTServerShutdown() throws Exception {
 
     // 2 TabletServers started for this test, shut them down so we only have 1.
-    // getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    // ((MiniAccumuloClusterControl) getClusterControl()).start(ServerType.TABLET_SERVER,
-    // Collections.emptyMap(), 1);
+    getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+    ((MiniAccumuloClusterControl) getClusterControl()).start(ServerType.TABLET_SERVER,
+        Collections.emptyMap(), 1);
 
     String tableName = getUniqueNames(1)[0];
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      // Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
+      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
 
       // Thread.sleep(120_000);
 
@@ -184,7 +186,7 @@ public class CloseScannerIT extends AccumuloClusterHarness {
 
           });
 
-      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
+      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 0);
 
     }
   }
