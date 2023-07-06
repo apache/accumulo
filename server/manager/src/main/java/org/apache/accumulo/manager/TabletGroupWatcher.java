@@ -43,7 +43,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -255,7 +254,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         CompactionJobGenerator compactionGenerator =
             new CompactionJobGenerator(new ServiceEnvironmentImpl(manager.getContext()));
 
-        final Configuration pluginConf = new ConfigurationImpl(manager.getConfiguration());
         final Map<String,Set<TabletServerId>> resourceGroups = new HashMap<>();
         manager.tServerResourceGroups().forEach((k, v) -> {
           resourceGroups.put(k,
@@ -307,7 +305,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           });
           TabletGoalState goal = manager.getGoalState(tm, mergeStats.getMergeInfo());
           TabletState state = tm.getTabletState(currentTServers.keySet(), manager.tabletBalancer,
-              pluginConf, resourceGroups);
+              new ConfigurationImpl(tableConf), resourceGroups);
 
           final Location location = tm.getLocation();
           Location current = null;

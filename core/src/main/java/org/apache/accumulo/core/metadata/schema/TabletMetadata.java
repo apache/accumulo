@@ -444,14 +444,16 @@ public class TabletMetadata {
       return liveTServers.contains(future.getServerInstance()) ? TabletState.ASSIGNED
           : TabletState.ASSIGNED_TO_DEAD_SERVER;
     } else if (current != null) {
-      if (balancer != null) {
-        if (!balancer.isHostedInResourceGroup(conf,
+
+      if (liveTServers.contains(current.getServerInstance())) {
+        if (balancer != null && !balancer.isHostedInResourceGroup(conf,
             new TabletServerIdImpl(current.getServerInstance()), currentTServerGrouping)) {
           return TabletState.ASSIGNED_TO_WRONG_GROUP;
         }
+        return TabletState.HOSTED;
+      } else {
+        return TabletState.ASSIGNED_TO_DEAD_SERVER;
       }
-      return liveTServers.contains(current.getServerInstance()) ? TabletState.HOSTED
-          : TabletState.ASSIGNED_TO_DEAD_SERVER;
     } else if (getSuspend() != null) {
       return TabletState.SUSPENDED;
     } else {

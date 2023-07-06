@@ -19,15 +19,18 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -69,6 +72,7 @@ public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       cfg.setProperty(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT, "2");
       cfg.setProperty(Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT, "10s");
+      cfg.setProperty(Property.TSERV_MIGRATE_MAXCONCURRENT, "50");
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.getClusterServerConfiguration().addTabletServerResourceGroup("GROUP1", 1);
     }
@@ -96,9 +100,13 @@ public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
       final var zLockPath = ServiceLock.path(zpath + "/" + child);
       ZcStat stat = new ZcStat();
       Optional<ServiceLockData> sld = ServiceLock.getLockData(zk, zLockPath, stat);
-      HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
-      String resourceGroup = sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
-      tservers.put(client.toString(), resourceGroup);
+      try {
+        HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
+        String resourceGroup = sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
+        tservers.put(client.toString(), resourceGroup);
+      } catch (NoSuchElementException nsee) {
+        // We are starting and stopping servers, so it's possible for this to occur.
+      }
     }
     return tservers;
 
@@ -154,6 +162,8 @@ public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
       assertEquals("GROUP1", tserverGroups.get(l2.getHostAndPort().toString()));
       locations.forEach(loc -> assertEquals(l2, loc.getLocation()));
 
+      client.tableOperations().delete(names[0]);
+      client.tableOperations().delete(names[1]);
     }
 
   }
@@ -172,23 +182,26 @@ public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
     ntc1.withSplits(splits);
     ntc1.setProperties(properties);
 
-    String[] names = this.getUniqueNames(1);
+    String tableName = this.getUniqueNames(1)[0];
     try (final AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      client.tableOperations().create(names[0], ntc1);
+      client.tableOperations().create(tableName, ntc1);
 
-      assertEquals(0, getCountOfHostedTablets(client, names[0]));
+      assertEquals(0, getCountOfHostedTablets(client, tableName));
 
+      AtomicReference<Exception> error = new AtomicReference<>();
       Thread ingest = new Thread(() -> {
         try {
-          ReadWriteIT.ingest(client, 1000, 1, 1, 0, names[0]);
-          ReadWriteIT.verify(client, 1000, 1, 1, 0, names[0]);
-        } catch (Exception e) {}
+          ReadWriteIT.ingest(client, 1000, 1, 1, 0, tableName);
+          ReadWriteIT.verify(client, 1000, 1, 1, 0, tableName);
+        } catch (Exception e) {
+          error.set(e);
+        }
       });
       ingest.start();
 
-      assertEquals(0, getCountOfHostedTablets(client, names[0]));
+      assertEquals(0, getCountOfHostedTablets(client, tableName));
 
       // Start TabletServer for GROUP2
       getCluster().getConfig().getClusterServerConfiguration()
@@ -196,9 +209,70 @@ public class TabletServerResourceGroupBalanceIT extends SharedMiniClusterBase {
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
       client.instanceOperations().waitForBalance();
-      assertEquals(26, getCountOfHostedTablets(client, names[0]));
+      assertEquals(26, getCountOfHostedTablets(client, tableName));
       ingest.join();
+      assertNull(error.get());
+
+      client.tableOperations().delete(tableName);
+      // Stop all tablet servers because there is no way to just stop
+      // the GROUP2 server yet.
+      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getCluster().getConfig().getClusterServerConfiguration().clearTServerResourceGroups();
+      getCluster().getConfig().getClusterServerConfiguration()
+          .addTabletServerResourceGroup("GROUP1", 1);
+      getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+
     }
+  }
+
+  @Test
+  public void testResourceGroupPropertyChange() throws Exception {
+
+    SortedSet<Text> splits = new TreeSet<>();
+    IntStream.range(97, 122).forEach(i -> splits.add(new Text(new String("" + i))));
+
+    NewTableConfiguration ntc1 = new NewTableConfiguration();
+    ntc1.withInitialHostingGoal(TabletHostingGoal.ALWAYS);
+    ntc1.withSplits(splits);
+
+    String tableName = this.getUniqueNames(1)[0];
+    try (final AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+
+      client.tableOperations().create(tableName, ntc1);
+      client.instanceOperations().waitForBalance();
+
+      assertEquals(26, getCountOfHostedTablets(client, tableName));
+
+      Map<String,String> tserverGroups = getTServerGroups();
+      assertEquals(2, tserverGroups.size());
+
+      Ample ample = ((ClientContext) client).getAmple();
+      String tableId = client.tableOperations().tableIdMap().get(tableName);
+      List<TabletMetadata> locations = ample.readTablets().forTable(TableId.of(tableId))
+          .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
+      assertEquals(26, locations.size());
+      Location l1 = locations.get(0).getLocation();
+      assertEquals("default", tserverGroups.get(l1.getHostAndPort().toString()));
+      locations.forEach(loc -> assertEquals(l1, loc.getLocation()));
+
+      client.tableOperations().setProperty(tableName, "table.custom.assignment.group", "GROUP1");
+      // Wait 2x the MAC default Manager TGW interval
+      Thread.sleep(10_000);
+      client.instanceOperations().waitForBalance();
+
+      assertEquals(26, getCountOfHostedTablets(client, tableName));
+
+      locations = ample.readTablets().forTable(TableId.of(tableId))
+          .fetch(TabletMetadata.ColumnType.LOCATION).build().stream().collect(Collectors.toList());
+      assertEquals(26, locations.size());
+      Location l2 = locations.get(0).getLocation();
+      assertEquals("GROUP1", tserverGroups.get(l2.getHostAndPort().toString()));
+      locations.forEach(loc -> assertEquals(l2, loc.getLocation()));
+
+      client.tableOperations().delete(tableName);
+    }
+
   }
 
   private int getCountOfHostedTablets(AccumuloClient client, String tableName) throws Exception {

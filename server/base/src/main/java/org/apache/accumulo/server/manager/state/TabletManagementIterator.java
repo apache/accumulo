@@ -94,7 +94,6 @@ public class TabletManagementIterator extends SkippingIterator {
   private static final String SERVERS_OPTION = "servers";
   private static final String TABLES_OPTION = "tables";
   private static final String MERGES_OPTION = "merges";
-  private static final String DEBUG_OPTION = "debug";
   private static final String MIGRATIONS_OPTION = "migrations";
   private static final String MANAGER_STATE_OPTION = "managerState";
   private static final String SHUTTING_DOWN_OPTION = "shuttingDown";
@@ -267,7 +266,7 @@ public class TabletManagementIterator extends SkippingIterator {
   }
 
   private boolean shouldReturnDueToLocation(final TabletMetadata tm,
-      final Set<TableId> onlineTables, final Set<TServerInstance> current, final boolean debug) {
+      final Set<TableId> onlineTables, final Set<TServerInstance> current) {
 
     if (migrations.contains(tm.getExtent())) {
       return true;
@@ -277,9 +276,9 @@ public class TabletManagementIterator extends SkippingIterator {
     final boolean shouldBeOnline =
         onlineTables.contains(tm.getTableId()) && tm.getOperationId() == null;
 
-    TabletState state = tm.getTabletState(current, balancer, env.getPluginEnv().getConfiguration(),
-        tserverResourceGroups);
-    if (debug) {
+    TabletState state = tm.getTabletState(current, balancer,
+        env.getPluginEnv().getConfiguration(tm.getTableId()), tserverResourceGroups);
+    if (LOG.isDebugEnabled()) {
       LOG.debug("{} is {}. Table is {}line. Tablet hosting goal is {}, hostingRequested: {}",
           tm.getExtent(), state, (shouldBeOnline ? "on" : "off"), tm.getHostingGoal(),
           tm.getHostingRequested());
@@ -353,7 +352,6 @@ public class TabletManagementIterator extends SkippingIterator {
   private final Set<TableId> onlineTables = new HashSet<>();
   private final Map<String,Set<TabletServerId>> tserverResourceGroups = new HashMap<>();
   private final Map<TableId,MergeInfo> merges = new HashMap<>();
-  private boolean debug = false;
   private final Set<KeyExtent> migrations = new HashSet<>();
   private ManagerState managerState = ManagerState.NORMAL;
   private IteratorEnvironment env;
@@ -369,7 +367,6 @@ public class TabletManagementIterator extends SkippingIterator {
     onlineTables.addAll(parseTableIDs(options.get(TABLES_OPTION)));
     tserverResourceGroups.putAll(parseTServerResourceGroups(options));
     merges.putAll(parseMerges(options.get(MERGES_OPTION)));
-    debug = options.containsKey(DEBUG_OPTION);
     migrations.addAll(parseMigrations(options.get(MIGRATIONS_OPTION)));
     String managerStateOptionValue = options.get(MANAGER_STATE_OPTION);
     try {
@@ -387,6 +384,7 @@ public class TabletManagementIterator extends SkippingIterator {
     final AccumuloConfiguration conf = new ConfigurationCopy(env.getPluginEnv().getConfiguration());
     balancer = Property.createInstanceFromPropertyName(conf, Property.MANAGER_TABLET_BALANCER,
         TabletBalancer.class, new SimpleLoadBalancer());
+    LOG.debug("Balancer is set to {}", balancer.getClass().getSimpleName());
   }
 
   @Override
@@ -464,25 +462,29 @@ public class TabletManagementIterator extends SkippingIterator {
       reasonsToReturnThisTablet.add(ManagementAction.IS_MERGING);
     }
 
-    if (shouldReturnDueToLocation(tm, onlineTables, current, debug)) {
+    if (shouldReturnDueToLocation(tm, onlineTables, current)) {
       reasonsToReturnThisTablet.add(ManagementAction.NEEDS_LOCATION_UPDATE);
     }
 
     if (tm.getOperationId() == null) {
-      final long splitThreshold =
-          ConfigurationTypeHelper.getFixedMemoryAsBytes(this.env.getPluginEnv()
-              .getConfiguration(tm.getTableId()).get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
-      if (shouldReturnDueToSplit(tm, splitThreshold)) {
-        reasonsToReturnThisTablet.add(ManagementAction.NEEDS_SPLITTING);
-      }
-
-      // important to call this since reasonsToReturnThisTablet is passed to it
-      if (!compactionGenerator.generateJobs(tm, determineCompactionKinds(reasonsToReturnThisTablet))
-          .isEmpty()) {
-        reasonsToReturnThisTablet.add(ManagementAction.NEEDS_COMPACTING);
+      try {
+        final long splitThreshold =
+            ConfigurationTypeHelper.getFixedMemoryAsBytes(this.env.getPluginEnv()
+                .getConfiguration(tm.getTableId()).get(Property.TABLE_SPLIT_THRESHOLD.getKey()));
+        if (shouldReturnDueToSplit(tm, splitThreshold)) {
+          reasonsToReturnThisTablet.add(ManagementAction.NEEDS_SPLITTING);
+        }
+        // important to call this since reasonsToReturnThisTablet is passed to it
+        if (!compactionGenerator
+            .generateJobs(tm, determineCompactionKinds(reasonsToReturnThisTablet)).isEmpty()) {
+          reasonsToReturnThisTablet.add(ManagementAction.NEEDS_COMPACTING);
+        }
+      } catch (NullPointerException e) {
+        LOG.info(
+            "Unable to determine if tablet {} should split or compact, maybe table was deleted?",
+            tm.getExtent());
       }
     }
-
   }
 
   private static final Set<CompactionKind> ALL_COMPACTION_KINDS =
