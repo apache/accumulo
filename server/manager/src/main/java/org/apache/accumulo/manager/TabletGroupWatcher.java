@@ -257,16 +257,24 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           if (state == TabletState.ASSIGNED) {
             goal = TabletGoalState.HOSTED;
           }
-          Manager.log.debug(
-              "[{}] Shutting down all Tservers: {}, dependentCount: {} Extent: {}, state: {}, goal: {}",
-              store.name(), manager.serversToShutdown.equals(currentTServers.keySet()),
-              dependentWatcher == null ? "null" : dependentWatcher.assignedOrHosted(), tls.extent,
-              state, goal);
+          if (Manager.log.isTraceEnabled()) {
+            Manager.log.trace(
+                "[{}] Shutting down all Tservers: {}, dependentCount: {} Extent: {}, state: {}, goal: {}",
+                store.name(), manager.serversToShutdown.equals(currentTServers.keySet()),
+                dependentWatcher == null ? "null" : dependentWatcher.assignedOrHosted(), tls.extent,
+                state, goal);
+          }
 
           // if we are shutting down all the tabletservers, we have to do it in order
           if ((goal == TabletGoalState.SUSPENDED && state == TabletState.HOSTED)
               && manager.serversToShutdown.equals(currentTServers.keySet())) {
-            if (dependentWatcher != null && dependentWatcher.assignedOrHosted() > 0) {
+            // If the stats object in the dependentWatcher is empty, then no tablets
+            // are being reported as needing to be hosted (everything is fine). If
+            // everything is fine, or there are still assigned or hosted tablets,
+            // then we cannot suspend the tablets for this watcher yet. Continue
+            // to host these tablets.
+            if (dependentWatcher != null && (dependentWatcher.getStats().isEmpty()
+                || dependentWatcher.assignedOrHosted() > 0)) {
               goal = TabletGoalState.HOSTED;
             }
           }
@@ -313,7 +321,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 TServerConnection client =
                     manager.tserverSet.getConnection(location.getServerInstance());
                 if (client != null) {
-                  Manager.log.debug("[{}] Requesting TabletServer {} unload {} {}", store.name(),
+                  Manager.log.trace("[{}] Requesting TabletServer {} unload {} {}", store.name(),
                       location.getServerInstance(), tls.extent, goal.howUnload());
                   client.unloadTablet(manager.managerLock, tls.extent, goal.howUnload(),
                       manager.getSteadyTime());
@@ -334,7 +342,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
         stats.end(managerState);
-        Manager.log.info("[{}] End stats collection: {}", store.name(), stats);
+        Manager.log.trace("[{}] End stats collection: {}", store.name(), stats);
 
         // Report changes
         for (TabletState state : TabletState.values()) {

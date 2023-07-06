@@ -45,8 +45,10 @@ public class TableCounts {
 
   @Override
   public String toString() {
-    return "unassigned: " + unassigned() + " assigned: " + assigned() + " assignedToDeadServers: "
-        + assignedToDeadServers() + " hosted: " + hosted() + " suspended: " + suspended();
+    return new StringBuilder().append("unassigned: ").append(unassigned()).append(", assigned: ")
+        .append(assigned()).append(", assignedToDeadServers: ").append(assignedToDeadServers())
+        .append(", hosted: ").append(hosted()).append(", suspended: ").append(suspended())
+        .toString();
   }
 
 }

@@ -82,7 +82,7 @@ public class TableStats {
 
   @Override
   public String toString() {
-    return "last: " + last.toString();
+    return new StringBuilder().append("last: ").append(last.toString()).toString();
   }
 
 }
