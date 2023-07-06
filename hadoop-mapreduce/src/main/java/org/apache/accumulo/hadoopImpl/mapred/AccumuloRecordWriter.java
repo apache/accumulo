@@ -89,7 +89,7 @@ public class AccumuloRecordWriter implements RecordWriter<Text,Mutation> {
    */
   @Override
   public void write(Text table, Mutation mutation) throws IOException {
-    if (table == null || table.toString().isEmpty()) {
+    if (table == null || table.getLength() == 0) {
       table = this.defaultTableName;
     }
 
