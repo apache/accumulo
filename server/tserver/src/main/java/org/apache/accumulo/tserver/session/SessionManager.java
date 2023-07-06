@@ -27,8 +27,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -61,7 +63,7 @@ public class SessionManager {
   private final ConcurrentMap<Long,Session> sessions = new ConcurrentHashMap<>();
   private final long maxIdle;
   private final long maxUpdateIdle;
-  private final List<Session> idleSessions = new ArrayList<>();
+  private final BlockingQueue<Session> deferredCleanupQueue = new LinkedBlockingQueue<>();
   private final Long expiredSessionMarker = (long) -1;
   private final AccumuloConfiguration aconf;
   private final ServerContext ctx;
@@ -209,11 +211,17 @@ public class SessionManager {
       }
 
       if (doCleanup) {
-        session.cleanup();
+        cleanup(session);
       }
     }
 
     return session;
+  }
+
+  private void cleanup(Session session) {
+    if (!session.cleanup()) {
+      deferredCleanupQueue.add(session);
+    }
   }
 
   private void sweep(final long maxIdle, final long maxUpdateIdle) {
@@ -239,22 +247,10 @@ public class SessionManager {
       }
     }
 
-    // do clean up outside of lock for TabletServer in a synchronized block for simplicity vice a
-    // synchronized list
+    // do clean up outside of lock for TabletServer
+    deferredCleanupQueue.drainTo(sessionsToCleanup);
 
-    synchronized (idleSessions) {
-      sessionsToCleanup.addAll(idleSessions);
-      idleSessions.clear();
-    }
-
-    // perform cleanup for all of the sessions
-    for (Session session : sessionsToCleanup) {
-      if (!session.cleanup()) {
-        synchronized (idleSessions) {
-          idleSessions.add(session);
-        }
-      }
-    }
+    sessionsToCleanup.forEach(this::cleanup);
   }
 
   public void removeIfNotAccessed(final long sessionId, final long delay) {
@@ -282,7 +278,7 @@ public class SessionManager {
               log.info("Closing not accessed session from user=" + session2.getUser() + ", client="
                   + session2.client + ", duration=" + delay + "ms");
               sessions.remove(sessionId);
-              session2.cleanup();
+              cleanup(session2);
             }
           }
         }
@@ -299,13 +295,11 @@ public class SessionManager {
 
     Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 
-    synchronized (idleSessions) {
-      /**
-       * Add sessions so that get the list returned in the active scans call
-       */
-      for (Session session : idleSessions) {
-        copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
-      }
+    /**
+     * Add sessions so that get the list returned in the active scans call
+     */
+    for (Session session : deferredCleanupQueue) {
+      copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
     }
 
     List.of(sessions.entrySet(), copiedIdleSessions).forEach(set -> set.forEach(entry -> {
@@ -341,13 +335,11 @@ public class SessionManager {
     final long ct = System.currentTimeMillis();
     final Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 
-    synchronized (idleSessions) {
-      /**
-       * Add sessions so that get the list returned in the active scans call
-       */
-      for (Session session : idleSessions) {
-        copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
-      }
+    /**
+     * Add sessions so that get the list returned in the active scans call
+     */
+    for (Session session : deferredCleanupQueue) {
+      copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
     }
 
     List.of(sessions.entrySet(), copiedIdleSessions).forEach(s -> s.forEach(entry -> {
