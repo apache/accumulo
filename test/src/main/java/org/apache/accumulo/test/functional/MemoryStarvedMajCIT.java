@@ -149,7 +149,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
         ReadWriteIT.ingest(client, 100, 100, 100, 0, table);
         compactionThread.start();
 
-        assertTrue(waitFor(() -> MAJC_PAUSED.intValue() > 0));
+        waitFor(() -> MAJC_PAUSED.intValue() > 0);
 
         MemoryStarvedScanIT.freeServerMemory(client);
         compactionThread.interrupt();
