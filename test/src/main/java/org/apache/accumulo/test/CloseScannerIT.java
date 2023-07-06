@@ -94,7 +94,7 @@ public class CloseScannerIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testIsolatedScannerPreventsTServerShutdown() throws Exception {
+  public void testIsolatedScannerPreventsOnlyTServerShutdown() throws Exception {
 
     // 2 TabletServers started for this test, shut them down so we only have 1.
     getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -106,8 +106,6 @@ public class CloseScannerIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
-
-      // Thread.sleep(120_000);
 
       client.tableOperations().create(tableName);
 

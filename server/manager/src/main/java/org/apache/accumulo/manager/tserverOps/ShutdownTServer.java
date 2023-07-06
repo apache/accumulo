@@ -72,7 +72,7 @@ public class ShutdownTServer extends ManagerRepo {
             return 0;
           } else {
             log.info("tablet server {} still has tablets for tables: {}", server,
-                status.tableMap.keySet());
+                (status.tableMap == null) ? "null" : status.tableMap.keySet());
           }
         } catch (TTransportException ex) {
           // expected
