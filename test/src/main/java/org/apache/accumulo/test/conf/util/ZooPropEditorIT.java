@@ -20,7 +20,6 @@ package org.apache.accumulo.test.conf.util;
 
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 
@@ -76,13 +75,13 @@ public class ZooPropEditorIT extends SharedMiniClusterBase {
           "true");
       client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "false");
 
-      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500));
+      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
 
       ZooPropEditor tool = new ZooPropEditor();
       // before - check setup correct
-      assertTrue(Wait.waitFor(() -> client.tableOperations().getTableProperties(table)
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500));
+      Wait.waitFor(() -> client.tableOperations().getTableProperties(table)
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
 
       // set table property (table.bloom.enabled=true)
       String[] setTablePropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-t", table,
@@ -90,48 +89,48 @@ public class ZooPropEditorIT extends SharedMiniClusterBase {
       tool.execute(setTablePropArgs);
 
       // after set - check prop changed in ZooKeeper
-      assertTrue(Wait.waitFor(() -> client.tableOperations().getTableProperties(table)
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500));
+      Wait.waitFor(() -> client.tableOperations().getTableProperties(table)
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
 
       String[] deleteTablePropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-t", table,
           "-d", Property.TABLE_BLOOM_ENABLED.getKey()};
       tool.execute(deleteTablePropArgs);
 
       // after delete - check map entry is null (removed from ZooKeeper)
-      assertTrue(Wait.waitFor(() -> client.tableOperations().getTableProperties(table)
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()) == null, 5000, 500));
+      Wait.waitFor(() -> client.tableOperations().getTableProperties(table)
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()) == null, 5000, 500);
 
       // set system property (changed from setup)
-      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500));
+      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
 
       String[] setSystemPropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-s",
           Property.TABLE_BLOOM_ENABLED.getKey() + "=false"};
       tool.execute(setSystemPropArgs);
 
       // after set - check map entry is false
-      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500));
+      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
 
       // set namespace property (changed from setup)
-      assertTrue(Wait.waitFor(() -> client.namespaceOperations().getNamespaceProperties(namespace)
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500));
+      Wait.waitFor(() -> client.namespaceOperations().getNamespaceProperties(namespace)
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
 
       String[] setNamespacePropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-ns",
           namespace, "-s", Property.TABLE_BLOOM_ENABLED.getKey() + "=false"};
       tool.execute(setNamespacePropArgs);
 
       // after set - check map entry is false
-      assertTrue(Wait.waitFor(() -> client.namespaceOperations().getNamespaceProperties(namespace)
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500));
+      Wait.waitFor(() -> client.namespaceOperations().getNamespaceProperties(namespace)
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
 
       String[] deleteNamespacePropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-ns",
           namespace, "-d", Property.TABLE_BLOOM_ENABLED.getKey()};
       tool.execute(deleteNamespacePropArgs);
 
       // after set - check map entry is false
-      assertTrue(Wait.waitFor(() -> client.namespaceOperations().getNamespaceProperties(namespace)
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()) == null, 5000, 500));
+      Wait.waitFor(() -> client.namespaceOperations().getNamespaceProperties(namespace)
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()) == null, 5000, 500);
 
     }
   }
