@@ -141,15 +141,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
 
   @Override
   public boolean isPropertySet(final Property property) {
-
-    Map<String,String> theseProps = getSnapshot();
-
-    if (theseProps.get(property.getKey()) != null) {
-      return true;
-    }
-
-    return getParent().isPropertySet(property);
-
+    return getSnapshot().get(property.getKey()) != null || getParent().isPropertySet(property);
   }
 
   public @NonNull Map<String,String> getSnapshot() {

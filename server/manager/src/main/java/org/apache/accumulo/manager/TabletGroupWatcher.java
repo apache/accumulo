@@ -37,6 +37,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -57,6 +58,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -81,7 +83,9 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
@@ -209,6 +213,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
 
+      final long waitTimeBetweenScans = manager.getConfiguration()
+          .getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
+
       int totalUnloaded = 0;
       int unloaded = 0;
       ClosableIterator<TabletManagement> iter = null;
@@ -228,7 +235,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
 
         if (currentTServers.isEmpty()) {
-          eventListener.waitForEvents(manager.getWaitTimeBetweenScans());
+          eventListener.waitForEvents(waitTimeBetweenScans);
           synchronized (this) {
             lastScanServers = Collections.emptySortedSet();
           }
@@ -247,6 +254,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         CompactionJobGenerator compactionGenerator =
             new CompactionJobGenerator(new ServiceEnvironmentImpl(manager.getContext()));
 
+        final Map<String,Set<TabletServerId>> resourceGroups = new HashMap<>();
+        manager.tServerResourceGroups().forEach((k, v) -> {
+          resourceGroups.put(k,
+              v.stream().map(s -> new TabletServerIdImpl(s)).collect(Collectors.toSet()));
+        });
+
         // Walk through the tablets in our store, and work tablets
         // towards their goal
         iter = store.iterator();
@@ -264,6 +277,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 tm.getExtent() + " is both assigned and hosted, which should never happen: " + this,
                 tm.getExtent().toMetaRow());
           }
+          if (tm.isOperationIdAndCurrentLocationSet()) {
+            throw new BadLocationStateException(tm.getExtent()
+                + " has both operation id and current location, which should never happen: " + this,
+                tm.getExtent().toMetaRow());
+          }
 
           final TableId tableId = tm.getTableId();
           // ignore entries for tables that do not exist in zookeeper
@@ -277,7 +295,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             flushChanges(tLists, wals);
             tLists.reset();
             unloaded = 0;
-            eventListener.waitForEvents(manager.getWaitTimeBetweenScans());
+            eventListener.waitForEvents(waitTimeBetweenScans);
           }
           final TableConfiguration tableConf = manager.getContext().getTableConfiguration(tableId);
 
@@ -286,7 +304,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             return mStats != null ? mStats : new MergeStats(new MergeInfo());
           });
           TabletGoalState goal = manager.getGoalState(tm, mergeStats.getMergeInfo());
-          TabletState state = tm.getTabletState(currentTServers.keySet());
+          TabletState state = tm.getTabletState(currentTServers.keySet(), manager.tabletBalancer,
+              new ConfigurationImpl(tableConf), resourceGroups);
 
           final Location location = tm.getLocation();
           Location current = null;
@@ -300,30 +319,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               future != null ? future.getServerInstance() : null,
               current != null ? current.getServerInstance() : null, tm.getLogs().size());
 
-          // ELASTICITY_TODO: Do we remove this code block and just warn in
-          // getAssignmentsFromBalancer
-          // when a tablet is assigned outside of the resource group?
-          if (current != null && currentTServers.keySet().contains(current.getServerInstance())) {
-            // Check to see if the current location is in the set of TServerInstance's
-            // for this tables resource group
-            String assignmentGroup = tableConf.get(Property.TABLE_ASSIGNMENT_GROUP);
-            if (!currentTServerGrouping.get(assignmentGroup)
-                .contains(current.getServerInstance())) {
-              LOG.info(
-                  "Tablet {} assigned to resource group {}, but currently hosted by"
-                      + " tserver {} which is not in of that resource group. Unassigning tablet so"
-                      + "that it can be re-assigned to the correct group",
-                  tm.getExtent(), assignmentGroup, current.getServerInstance().getHostPort());
-              // override the TabletState, this tablet is not hosted in a TServer in
-              // the correct resourceGroup
-              state = TabletState.ASSIGNED_TO_WRONG_GROUP;
-              goal = TabletGoalState.UNASSIGNED;
-              if (!actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)) {
-                actions.add(ManagementAction.NEEDS_LOCATION_UPDATE);
-              }
-            }
-          }
-
           stats.update(tableId, state);
           mergeStats.update(tm.getExtent(), state, tm.hasChopped(), !tm.getLogs().isEmpty());
           sendChopRequest(mergeStats.getMergeInfo(), state, tm);
@@ -331,6 +326,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // Always follow through with assignments
           if (state == TabletState.ASSIGNED) {
             goal = TabletGoalState.HOSTED;
+          } else if (state == TabletState.ASSIGNED_TO_WRONG_GROUP) {
+            goal = TabletGoalState.UNASSIGNED;
           }
 
           // if we are shutting down all the tabletservers, we have to do it in order
@@ -366,7 +363,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // ELASITICITY_TODO the case where a planner generates compactions at time T1 for tablet
           // and later at time T2 generates nothing for the same tablet is not being handled. At
           // time T1 something could have been queued. However at time T2 we will not clear those
-          // entries from the queue because we see nothing here for that case.
+          // entries from the queue because we see nothing here for that case. After a full
+          // metadata scan could remove any tablets that were not updated during the scan.
 
           if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)) {
             if (goal == TabletGoalState.HOSTED) {
@@ -395,8 +393,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                   tLists.assigned.add(new Assignment(tm.getExtent(),
                       future != null ? future.getServerInstance() : null, tm.getLast()));
                   break;
-                case ASSIGNED_TO_WRONG_GROUP:
-                  // goal state of HOSTED should not occur with this tablet state
+                default:
                   break;
               }
             } else {
@@ -462,8 +459,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
         if (manager.tserverSet.getCurrentServers().equals(currentTServers.keySet())) {
           Manager.log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(),
-              manager.getWaitTimeBetweenScans() / 1000.));
-          eventListener.waitForEvents(manager.getWaitTimeBetweenScans());
+              waitTimeBetweenScans / 1000.));
+          eventListener.waitForEvents(waitTimeBetweenScans);
         } else {
           Manager.log.info("Detected change in current tserver set, re-running state machine.");
         }
@@ -1058,14 +1055,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                   "balancer assigned {} to a tablet server that is not current {} ignoring",
                   assignment.getKey(), assignment.getValue());
               continue;
-            }
-
-            final String resourceGroup =
-                manager.getConfiguration().get(Property.TABLE_ASSIGNMENT_GROUP);
-            if (!tLists.currentTServerGrouping.get(resourceGroup).contains(assignment.getValue())) {
-              Manager.log.warn(
-                  "balancer assigned {} to tablet server {} that is not in the assigned resource group {}",
-                  assignment.getKey(), assignment.getValue(), resourceGroup);
             }
 
             final UnassignedTablet unassignedTablet = unassigned.get(assignment.getKey());

@@ -140,7 +140,7 @@ public class RootClientTabletCache extends ClientTabletCache {
 
   @Override
   public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
-      LocationNeed locationNeed) {
+      LocationNeed locationNeed, int hostAheadCount, Range hostAheadRange) {
 
     CachedTablet cachedTablet = getRootTabletLocation(context);
 

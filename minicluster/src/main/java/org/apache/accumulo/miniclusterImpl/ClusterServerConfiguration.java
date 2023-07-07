@@ -96,7 +96,17 @@ public class ClusterServerConfiguration {
     while (iter.hasNext()) {
       String resourceGroup = iter.next();
       if (!resourceGroup.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME)) {
-        compactors.remove(resourceGroup);
+        iter.remove();
+      }
+    }
+  }
+
+  public void clearTServerResourceGroups() {
+    Iterator<String> iter = tservers.keySet().iterator();
+    while (iter.hasNext()) {
+      String resourceGroup = iter.next();
+      if (!resourceGroup.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME)) {
+        iter.remove();
       }
     }
   }

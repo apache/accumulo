@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.iteratortest.testcases;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.TreeMap;
 
@@ -38,7 +39,6 @@ import org.slf4j.LoggerFactory;
  * Test case that verifies that an iterator can use the generated instance from {@code deepCopy}.
  */
 public class ReSeekTestCase implements IteratorTestCase {
-  private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(ReSeekTestCase.class);
 
   /**
@@ -67,7 +67,7 @@ public class ReSeekTestCase implements IteratorTestCase {
     final Range origRange = testInput.getRange();
     final Collection<ByteSequence> origFamilies = testInput.getFamilies();
     final boolean origInclusive = testInput.isInclusive();
-    int reseekCount = random.nextInt(RESEEK_INTERVAL);
+    int reseekCount = RANDOM.get().nextInt(RESEEK_INTERVAL);
 
     int i = 0;
     while (skvi.hasTop()) {

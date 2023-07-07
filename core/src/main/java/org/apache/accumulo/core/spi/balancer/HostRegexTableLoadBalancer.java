@@ -19,10 +19,10 @@
 package org.apache.accumulo.core.spi.balancer;
 
 import static java.util.concurrent.TimeUnit.HOURS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -92,7 +92,6 @@ import com.google.common.collect.Multimap;
  */
 public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
-  private static final SecureRandom random = new SecureRandom();
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
 
   private static final Logger LOG = LoggerFactory.getLogger(HostRegexTableLoadBalancer.class);
@@ -416,7 +415,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
                 String poolName = getPoolNameForTable(table);
                 SortedMap<TabletServerId,TServerStatus> currentView = currentGrouped.get(poolName);
                 if (currentView != null) {
-                  int skip = random.nextInt(currentView.size());
+                  int skip = RANDOM.get().nextInt(currentView.size());
                   Iterator<TabletServerId> iter = currentView.keySet().iterator();
                   for (int i = 0; i < skip; i++) {
                     iter.next();

@@ -22,7 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -47,6 +49,8 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
@@ -57,7 +61,6 @@ import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.CurrentState;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MergeState;
-import org.apache.accumulo.server.manager.state.TabletMetadataImposter;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
@@ -85,6 +88,11 @@ public class MergeStateIT extends ConfigurableMacBase {
     @Override
     public Set<TServerInstance> onlineTabletServers() {
       return Collections.singleton(someTServer);
+    }
+
+    @Override
+    public Map<String,Set<TServerInstance>> tServerResourceGroups() {
+      return new HashMap<>();
     }
 
     @Override
@@ -219,9 +227,10 @@ public class MergeStateIT extends ConfigurableMacBase {
       // take it offline
       m = TabletColumnFamily.createPrevRowMutation(tablet);
       List<LogEntry> walogs = Collections.emptyList();
-      metaDataStateStore.unassign(Collections.singletonList(
-          new TabletMetadataImposter(tablet, null, Location.current(state.someTServer), null, null,
-              walogs, false, TabletHostingGoal.ALWAYS, false)),
+      metaDataStateStore.unassign(
+          Collections.singletonList(TabletMetadata.builder(tablet)
+              .putLocation(Location.current(state.someTServer))
+              .putHostingGoal(TabletHostingGoal.ALWAYS).build(ColumnType.LAST, ColumnType.SUSPEND)),
           null);
 
       // now we can split

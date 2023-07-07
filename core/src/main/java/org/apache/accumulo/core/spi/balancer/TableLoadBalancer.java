@@ -23,12 +23,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -37,6 +39,7 @@ import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,18 +49,18 @@ import org.slf4j.LoggerFactory;
  * TabletBalancer classes.
  * <p>
  * Note that in versions prior to 4.0 this class would pass all known TabletServers to the Table
- * load balancers. In version 4.0 this changed with the introduction of
- * {@link Property#TABLE_ASSIGNMENT_GROUP} such that this balancer now only passes the TabletServers
- * that have the corresponding {@link Property#TSERV_GROUP_NAME} property to the Table load
- * balancer.
+ * load balancers. In version 4.0 this changed with the introduction of the
+ * {@link TABLE_ASSIGNMENT_GROUP_PROPERTY} table property. If defined, this balancer passes the
+ * TabletServers that have the corresponding {@link Property#TSERV_GROUP_NAME} property to the Table
+ * load balancer.
  *
  * @since 2.1.0
  */
-// ELASTICITY_TODO: Should we deprecate this balancer in 3.0 and rename it
-// in 4.0 due to the behavior change?
 public class TableLoadBalancer implements TabletBalancer {
 
   private static final Logger log = LoggerFactory.getLogger(TableLoadBalancer.class);
+
+  public static final String TABLE_ASSIGNMENT_GROUP_PROPERTY = "table.custom.assignment.group";
 
   protected BalancerEnvironment environment;
   Map<TableId,TabletBalancer> perTableBalancers = new HashMap<>();
@@ -81,6 +84,14 @@ public class TableLoadBalancer implements TabletBalancer {
       return environment.getConfiguration(table).get(Property.TABLE_LOAD_BALANCER.getKey());
     }
     return null;
+  }
+
+  protected String getResourceGroupNameForTable(TableId tid) {
+    String resourceGroup = environment.getConfiguration(tid).get(TABLE_ASSIGNMENT_GROUP_PROPERTY);
+    if (!StringUtils.isEmpty(resourceGroup)) {
+      return resourceGroup;
+    }
+    return Constants.DEFAULT_RESOURCE_GROUP_NAME;
   }
 
   protected TabletBalancer getBalancerForTable(TableId tableId) {
@@ -131,20 +142,10 @@ public class TableLoadBalancer implements TabletBalancer {
         resourceGroup == null ? Constants.DEFAULT_RESOURCE_GROUP_NAME : resourceGroup;
     Set<TabletServerId> tserversInGroup = groupedTServers.get(groupName);
     if (tserversInGroup == null || tserversInGroup.isEmpty()) {
-      if (groupName.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME)) {
-        throw new IllegalStateException(
-            "There are no TabletServers in the default resource group!");
-      } else {
-        log.warn("No TabletServers in assignment group {}, using Tablet Servers in default group",
-            groupName);
-        groupName = Constants.DEFAULT_RESOURCE_GROUP_NAME;
-        tserversInGroup = groupedTServers.get(groupName);
-        if (tserversInGroup == null || tserversInGroup.isEmpty()) {
-          throw new IllegalStateException(
-              "There are no TabletServers in the default resource group!");
-        }
-      }
+      log.warn("No TabletServers in assignment group {}", groupName);
+      return null;
     }
+    log.trace("{} TabletServers in group: {}", tserversInGroup.size(), groupName);
     SortedMap<TabletServerId,TServerStatus> group = new TreeMap<>();
     final String groupNameInUse = groupName;
     tserversInGroup.forEach(tsid -> {
@@ -165,14 +166,27 @@ public class TableLoadBalancer implements TabletBalancer {
     params.unassignedTablets().forEach((tid, lastTserver) -> groupedUnassigned
         .computeIfAbsent(tid.getTable(), k -> new HashMap<>()).put(tid, lastTserver));
     for (Entry<TableId,Map<TabletId,TabletServerId>> e : groupedUnassigned.entrySet()) {
-      Map<TabletId,TabletServerId> newAssignments = new HashMap<>();
+      final String tableResourceGroup = getResourceGroupNameForTable(e.getKey());
+      log.trace("Table {} is set to use resource group: {}", e.getKey(), tableResourceGroup);
+      final Map<TabletId,TabletServerId> newAssignments = new HashMap<>();
       // get the group of tservers for this table
-      SortedMap<TabletServerId,TServerStatus> groupedTServers = getCurrentSetForTable(
-          params.currentStatus(), params.currentResourceGroups(),
-          environment.getConfiguration(e.getKey()).get(Property.TABLE_ASSIGNMENT_GROUP.getKey()));
+      final SortedMap<TabletServerId,TServerStatus> groupedTServers = getCurrentSetForTable(
+          params.currentStatus(), params.currentResourceGroups(), tableResourceGroup);
+      if (groupedTServers == null) {
+        // group for table does not contain any tservers, warning already logged
+        continue;
+      }
       getBalancerForTable(e.getKey()).getAssignments(new AssignmentParamsImpl(groupedTServers,
           params.currentResourceGroups(), e.getValue(), newAssignments));
-      newAssignments.forEach(params::addAssignment);
+
+      newAssignments.forEach((tid, tsid) -> {
+        if (!groupedTServers.containsKey(tsid)) {
+          log.warn(
+              "table balancer assigned {} to tablet server {} that is not in the assigned resource group {}",
+              tid, tsid, tableResourceGroup);
+        }
+        params.addAssignment(tid, tsid);
+      });
     }
   }
 
@@ -181,11 +195,14 @@ public class TableLoadBalancer implements TabletBalancer {
     long minBalanceTime = 5_000;
     // Iterate over the tables and balance each of them
     for (TableId tableId : environment.getTableIdMap().values()) {
+      final String tableResourceGroup = getResourceGroupNameForTable(tableId);
       // get the group of tservers for this table
-      SortedMap<TabletServerId,
-          TServerStatus> groupedTServers = getCurrentSetForTable(params.currentStatus(),
-              params.currentResourceGroups(),
-              environment.getConfiguration(tableId).get(Property.TABLE_ASSIGNMENT_GROUP.getKey()));
+      SortedMap<TabletServerId,TServerStatus> groupedTServers = getCurrentSetForTable(
+          params.currentStatus(), params.currentResourceGroups(), tableResourceGroup);
+      if (groupedTServers == null) {
+        // group for table does not contain any tservers, warning already logged
+        continue;
+      }
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
       long tableBalanceTime =
           getBalancerForTable(tableId).balance(new BalanceParamsImpl(groupedTServers,
@@ -197,4 +214,26 @@ public class TableLoadBalancer implements TabletBalancer {
     }
     return minBalanceTime;
   }
+
+  @Override
+  public boolean isHostedInResourceGroup(Configuration conf, TabletServerId currentLocation,
+      Map<String,Set<TabletServerId>> currentTServerGrouping) {
+    Objects.requireNonNull(conf, "conf cannot be null");
+    Objects.requireNonNull(currentLocation, "current location cannot be null");
+    Objects.requireNonNull(currentTServerGrouping, "tserver grouping cannot be null");
+    String property = Constants.DEFAULT_RESOURCE_GROUP_NAME;
+    if (conf.get(TABLE_ASSIGNMENT_GROUP_PROPERTY) != null) {
+      property = conf.get(TABLE_ASSIGNMENT_GROUP_PROPERTY);
+    }
+    Set<TabletServerId> tservers = currentTServerGrouping.get(property);
+    if (tservers == null) {
+      log.warn("No TabletServers for group {} ", property);
+      // return true as there are no tablet servers in the defined group
+      // We don't want to cause churn
+      return true;
+    }
+    return tservers.contains(currentLocation);
+
+  }
+
 }

@@ -19,11 +19,10 @@
 package org.apache.accumulo.server.manager.state;
 
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -31,6 +30,10 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
+import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,9 +42,11 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
 
   private static final Logger log = LoggerFactory.getLogger(ZooTabletStateStore.class);
   private final Ample ample;
+  private final ServerContext ctx;
 
-  ZooTabletStateStore(ClientContext context) {
+  ZooTabletStateStore(ServerContext context) {
     super(context);
+    this.ctx = context;
     this.ample = context.getAmple();
   }
 
@@ -60,7 +65,17 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
       public TabletManagement next() {
         finished = true;
         TabletMetadata tm = ample.readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL);
-        return new TabletManagement(Set.of(ManagementAction.NEEDS_LOCATION_UPDATE), tm);
+
+        var actions = EnumSet.of(ManagementAction.NEEDS_LOCATION_UPDATE);
+
+        CompactionJobGenerator cjg = new CompactionJobGenerator(new ServiceEnvironmentImpl(ctx));
+        var jobs = cjg.generateJobs(tm,
+            EnumSet.of(CompactionKind.SYSTEM, CompactionKind.USER, CompactionKind.SELECTOR));
+        if (!jobs.isEmpty()) {
+          actions.add(ManagementAction.NEEDS_COMPACTING);
+        }
+
+        return new TabletManagement(actions, tm);
       }
 
       @Override

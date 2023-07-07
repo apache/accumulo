@@ -211,7 +211,7 @@ public class Manager extends AbstractServer
 
   ServiceLock managerLock = null;
   private TServer clientService = null;
-  private volatile TabletBalancer tabletBalancer;
+  protected volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
 
   private ManagerState state = ManagerState.INITIAL;
@@ -232,7 +232,6 @@ public class Manager extends AbstractServer
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
   private final AtomicBoolean managerUpgrading = new AtomicBoolean(false);
 
-  private final long waitTimeBetweenScans;
   private final long timeToCacheRecoveryWalExistence;
   private ExecutorService tableInformationStatusPool = null;
 
@@ -461,13 +460,8 @@ public class Manager extends AbstractServer
       log.info("SASL is not enabled, delegation tokens will not be available");
       delegationTokensAvailable = false;
     }
-    this.waitTimeBetweenScans =
-        aconf.getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
-    this.timeToCacheRecoveryWalExistence = this.waitTimeBetweenScans / 4;
-  }
-
-  public long getWaitTimeBetweenScans() {
-    return this.waitTimeBetweenScans;
+    this.timeToCacheRecoveryWalExistence =
+        aconf.getTimeInMillis(Property.MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
   }
 
   public InstanceId getInstanceID() {
@@ -1737,6 +1731,11 @@ public class Manager extends AbstractServer
   @Override
   public Set<TServerInstance> onlineTabletServers() {
     return tserverSet.getCurrentServers();
+  }
+
+  @Override
+  public Map<String,Set<TServerInstance>> tServerResourceGroups() {
+    return tserverSet.getCurrentServersGroups();
   }
 
   @Override
