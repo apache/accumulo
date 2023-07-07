@@ -122,11 +122,9 @@ public class MetricsUtil {
   }
 
   // Centralize any specific string formatting for metric names and/or tags.
-  public static String formatString(String name, boolean replaceDot) {
+  public static String formatString(String name) {
     // Ensure strings are not split by the metrics registry naming scheme.
-    if (replaceDot) {
-      return name.replace(".", "_").toLowerCase();
-    }
+    // Add special character eliminations here.
     return name.toLowerCase();
   }
 

@@ -96,7 +96,6 @@ public class CompactionJobPriorityQueue {
   private final TreeMap<CjpqKey,CompactionJobQueues.MetaJob> jobQueue;
   private final int maxSize;
   private AtomicLong rejectedJobs;
-  private AtomicLong queuedJobs;
   private AtomicLong dequeuedJobs;
 
   // This map tracks what jobs a tablet currently has in the queue. Its used to efficiently remove
@@ -113,7 +112,6 @@ public class CompactionJobPriorityQueue {
     this.tabletJobs = new HashMap<>();
     this.executorId = executorId;
     this.rejectedJobs = new AtomicLong(0);
-    this.queuedJobs = new AtomicLong(0);
     this.dequeuedJobs = new AtomicLong(0);
   }
 
@@ -143,7 +141,7 @@ public class CompactionJobPriorityQueue {
     return true;
   }
 
-  public long getSize() {
+  public long getMaxSize() {
     return maxSize;
   }
 
@@ -156,7 +154,7 @@ public class CompactionJobPriorityQueue {
   }
 
   public long getQueuedJobs() {
-    return queuedJobs.get();
+    return tabletJobs.size();
   }
 
   public synchronized CompactionJobQueues.MetaJob poll() {
@@ -171,7 +169,6 @@ public class CompactionJobPriorityQueue {
         tabletJobs.remove(extent);
       }
     }
-    queuedJobs.set(jobQueue.size());
     return first == null ? null : first.getValue();
   }
 
@@ -209,7 +206,6 @@ public class CompactionJobPriorityQueue {
 
     var key = new CjpqKey(job);
     jobQueue.put(key, new CompactionJobQueues.MetaJob(job, tabletMetadata));
-    queuedJobs.getAndIncrement();
     return key;
   }
 }

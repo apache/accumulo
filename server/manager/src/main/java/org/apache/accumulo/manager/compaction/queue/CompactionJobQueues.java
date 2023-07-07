@@ -19,9 +19,8 @@
 package org.apache.accumulo.manager.compaction.queue;
 
 import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -53,8 +52,16 @@ public class CompactionJobQueues {
     }
   }
 
-  public Set<Map.Entry<CompactionExecutorId,CompactionJobPriorityQueue>> getQueues() {
-    return priorityQueues.entrySet();
+  public KeySetView<CompactionExecutorId,CompactionJobPriorityQueue> getQueueIds() {
+    return priorityQueues.keySet();
+  }
+
+  public long getQueueSize(CompactionExecutorId executorId) {
+    // Handle if the queue no longer exists.
+    if (priorityQueues.get(executorId) == null) {
+      return 0;
+    }
+    return priorityQueues.get(executorId).getQueuedJobs();
   }
 
   public long getQueueCount() {
