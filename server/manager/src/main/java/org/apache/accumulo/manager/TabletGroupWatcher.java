@@ -65,6 +65,7 @@ import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -269,12 +270,33 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           if ((goal == TabletGoalState.SUSPENDED && state == TabletState.HOSTED)
               && manager.serversToShutdown.equals(currentTServers.keySet())) {
             if (dependentWatcher != null) {
+              // If the dependentWatcher is for the user tables, check to see
+              // that user tables exist.
+              DataLevel dependentLevel = dependentWatcher.store.getLevel();
+              boolean userTablesExist = true;
+              switch (dependentLevel) {
+                case USER:
+                  Set<TableId> onlineTables = manager.onlineTables();
+                  onlineTables.remove(RootTable.ID);
+                  onlineTables.remove(MetadataTable.ID);
+                  userTablesExist = !onlineTables.isEmpty();
+                  break;
+                case METADATA:
+                case ROOT:
+                default:
+                  break;
+              }
               // If the stats object in the dependentWatcher is empty, then it
               // currently does not have data about what is hosted or not. In
               // that case host these tablets until the dependent watcher can
               // gather some data.
               final Map<TableId,TableCounts> stats = dependentWatcher.getStats();
-              if (stats == null || stats.isEmpty() || assignedOrHosted(stats) > 0) {
+              if (dependentLevel == DataLevel.USER) {
+                if (userTablesExist
+                    && (stats == null || stats.isEmpty() || assignedOrHosted(stats) > 0)) {
+                  goal = TabletGoalState.HOSTED;
+                }
+              } else if (stats == null || stats.isEmpty() || assignedOrHosted(stats) > 0) {
                 goal = TabletGoalState.HOSTED;
               }
             }

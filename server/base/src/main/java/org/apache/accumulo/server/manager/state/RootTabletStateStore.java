@@ -21,12 +21,13 @@ package org.apache.accumulo.server.manager.state;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 
 class RootTabletStateStore extends MetaDataStateStore {
 
-  RootTabletStateStore(ClientContext context, CurrentState state) {
-    super(context, state, RootTable.NAME);
+  RootTabletStateStore(DataLevel level, ClientContext context, CurrentState state) {
+    super(level, context, state, RootTable.NAME);
   }
 
   @Override

@@ -46,6 +46,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -112,7 +113,7 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testShutdownOnlyTServer() throws Exception {
+  public void testShutdownOnlyTServerWithUserTable() throws Exception {
 
     // 2 TabletServers started for this test, shut them down so we only have 1.
     getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -177,6 +178,55 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
       // servers down in a more graceful way.
 
       Locations locs = client.tableOperations().locate(tableName,
+          Collections.singletonList(TabletsSection.getRange()));
+      locs.groupByTablet().keySet().stream().map(tid -> locs.getTabletLocation(tid))
+          .forEach(location -> {
+            HostAndPort address = HostAndPort.fromString(location);
+            String addressWithSession = address.toString();
+            var zLockPath = ServiceLock.path(getCluster().getServerContext().getZooKeeperRoot()
+                + Constants.ZTSERVERS + "/" + address.toString());
+            long sessionId =
+                ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
+            if (sessionId != 0) {
+              addressWithSession = address.toString() + "[" + Long.toHexString(sessionId) + "]";
+            }
+
+            final String finalAddress = addressWithSession;
+            System.out.println("Attempting to shutdown TabletServer at: " + address.toString());
+            try {
+              ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
+                  c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
+                      getCluster().getServerContext().rpcCreds(), finalAddress, false));
+            } catch (AccumuloException | AccumuloSecurityException e) {
+              fail("Error shutting down TabletServer", e);
+            }
+
+          });
+
+      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 0);
+
+    }
+  }
+
+  @Test
+  public void testShutdownOnlyTServerWithoutUserTable() throws Exception {
+
+    // 2 TabletServers started for this test, shut them down so we only have 1.
+    getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+    ((MiniAccumuloClusterControl) getClusterControl()).start(ServerType.TABLET_SERVER,
+        Collections.emptyMap(), 1);
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
+
+      client.instanceOperations().waitForBalance();
+
+      // getClusterControl().stopAllServers(ServerType.TABLET_SERVER)
+      // could potentially send a kill -9 to the process. Shut the tablet
+      // servers down in a more graceful way.
+
+      Locations locs = client.tableOperations().locate(RootTable.NAME,
           Collections.singletonList(TabletsSection.getRange()));
       locs.groupByTablet().keySet().stream().map(tid -> locs.getTabletLocation(tid))
           .forEach(location -> {
