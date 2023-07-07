@@ -50,6 +50,7 @@ public class Session {
     return true;
   }
 
+  @Override
   public String toString() {
     return getClass().getSimpleName() + " " + state + " startTime:" + startTime + " lastAccessTime:"
         + lastAccessTime + " client:" + client;
