@@ -49,4 +49,9 @@ public class Session {
   public boolean cleanup() {
     return true;
   }
+
+  public String toString() {
+    return getClass().getSimpleName() + " " + state + " startTime:" + startTime + " lastAccessTime:"
+        + lastAccessTime + " client:" + client;
+  }
 }

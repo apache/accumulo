@@ -18,19 +18,24 @@
  */
 package org.apache.accumulo.tserver.session;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -44,6 +49,7 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ScanState;
 import org.apache.accumulo.core.tabletserver.thrift.ScanType;
 import org.apache.accumulo.core.util.MapCounter;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.scan.ScanRunState;
@@ -63,7 +69,7 @@ public class SessionManager {
   private final ConcurrentMap<Long,Session> sessions = new ConcurrentHashMap<>();
   private final long maxIdle;
   private final long maxUpdateIdle;
-  private final BlockingQueue<Session> deferredCleanupQueue = new LinkedBlockingQueue<>();
+  private final BlockingQueue<Session> deferredCleanupQueue = new ArrayBlockingQueue<>(5000);
   private final Long expiredSessionMarker = (long) -1;
   private final AccumuloConfiguration aconf;
   private final ServerContext ctx;
@@ -220,12 +226,30 @@ public class SessionManager {
 
   private void cleanup(Session session) {
     if (!session.cleanup()) {
-      deferredCleanupQueue.add(session);
+      var retry = Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS)
+          .incrementBy(25, MILLISECONDS).maxWait(5, SECONDS).backOffFactor(1.5)
+          .logInterval(1, MINUTES).createRetry();
+
+      while (!deferredCleanupQueue.offer(session)) {
+        if (session.cleanup()) {
+          break;
+        }
+
+        try {
+          retry.waitForNextAttempt(log, "Cleanup session " + session);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new RuntimeException(e);
+        }
+        retry.logRetry(log, "Cleanup session " + session);
+      }
+
+      retry.logCompletion(log, "Cleanup session " + session);
     }
   }
 
   private void sweep(final long maxIdle, final long maxUpdateIdle) {
-    List<Session> sessionsToCleanup = new ArrayList<>();
+    List<Session> sessionsToCleanup = new LinkedList<>();
     Iterator<Session> iter = sessions.values().iterator();
     while (iter.hasNext()) {
       Session session = iter.next();
@@ -249,6 +273,10 @@ public class SessionManager {
 
     // do clean up outside of lock for TabletServer
     deferredCleanupQueue.drainTo(sessionsToCleanup);
+
+    // make a pass through and remove everything that can be cleaned up before calling the
+    // cleanup(Session) method which may block when it can not clean up a session.
+    sessionsToCleanup.removeIf(Session::cleanup);
 
     sessionsToCleanup.forEach(this::cleanup);
   }
