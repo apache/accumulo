@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -37,6 +38,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -72,12 +74,17 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -211,6 +218,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           m.put("cf", "cq", new Value());
           bw.addMutation(m);
           bw.flush();
+          // flush often to create multiple files to compact
           c.tableOperations().flush(tableName, null, null, true);
         }
       }
@@ -251,6 +259,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           m.put("cf", "cq", new Value());
           bw.addMutation(m);
           bw.flush();
+          // flush often to create multiple files to compact
           client.tableOperations().flush(table1, null, null, true);
         }
       }
@@ -276,6 +285,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           m.put("cf", "cq", new Value());
           bw.addMutation(m);
           bw.flush();
+          // flush often to create multiple files to compact
           client.tableOperations().flush(table1, null, null, true);
         }
       }
@@ -307,6 +317,70 @@ public class CompactionIT extends AccumuloClusterHarness {
   }
 
   @Test
+  public void testErrorDuringUserCompaction() throws Exception {
+    final String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table1);
+      client.tableOperations().setProperty(table1, Property.TABLE_FILE_MAX.getKey(), "1001");
+      client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.getKey(), "1001");
+      TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table1));
+
+      ReadWriteIT.ingest(client, MAX_DATA, 1, 1, 0, "colf", table1, 1);
+
+      Ample ample = ((ClientContext) client).getAmple();
+      TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();
+      TabletMetadata tm = tms.iterator().next();
+      assertEquals(1000, tm.getFiles().size());
+
+      IteratorSetting setting = new IteratorSetting(50, "error", ErrorThrowingIterator.class);
+      setting.addOption(ErrorThrowingIterator.TIMES, "3");
+      client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
+      client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
+
+      tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();
+      tm = tms.iterator().next();
+      assertEquals(1, tm.getFiles().size());
+
+      ReadWriteIT.verify(client, MAX_DATA, 1, 1, 0, table1);
+
+    }
+  }
+
+  @Test
+  public void testErrorDuringCompactionNoOutput() throws Exception {
+    final String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table1);
+      client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.getKey(), "51");
+      TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table1));
+
+      ReadWriteIT.ingest(client, 50, 1, 1, 0, "colf", table1, 1);
+      ReadWriteIT.verify(client, 50, 1, 1, 0, table1);
+
+      Ample ample = ((ClientContext) client).getAmple();
+      TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build();
+      TabletMetadata tm = tms.iterator().next();
+      assertEquals(50, tm.getFiles().size());
+
+      IteratorSetting setting = new IteratorSetting(50, "ageoff", AgeOffFilter.class);
+      setting.addOption("ttl", "0");
+      setting.addOption("currentTime", Long.toString(System.currentTimeMillis() + 86400));
+      client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
+
+      // Since this iterator is on the top, it will throw an error 3 times, then allow the
+      // ageoff iterator to do its work.
+      IteratorSetting setting2 = new IteratorSetting(51, "error", ErrorThrowingIterator.class);
+      setting2.addOption(ErrorThrowingIterator.TIMES, "3");
+      client.tableOperations().attachIterator(table1, setting2, EnumSet.of(IteratorScope.majc));
+      client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
+
+      assertThrows(NoSuchElementException.class, () -> ample.readTablets().forTable(tid)
+          .fetch(ColumnType.FILES).build().iterator().next());
+      assertEquals(0, client.createScanner(table1).stream().count());
+    }
+  }
+
+  @Test
   public void testTableDeletedDuringUserCompaction() throws Exception {
     final String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -317,6 +391,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           m.put("cf", "cq", new Value());
           bw.addMutation(m);
           bw.flush();
+          // flush often to create multiple files to compact
           client.tableOperations().flush(table1, null, null, true);
         }
       }
@@ -585,6 +660,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           m.put("f1", "q1", "v" + i);
           writer.addMutation(m);
           writer.flush();
+          // flush often to create multiple files to compact
           c.tableOperations().flush(tableName, null, null, true);
         }
       }
