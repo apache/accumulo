@@ -57,13 +57,14 @@ public class QueueMetrics implements MetricsProducer {
       queueCount.set(compactionJobQueues.getQueueCount());
     }
 
-
     for (CompactionExecutorId ceid : compactionJobQueues.getQueueIds()) {
       // Normalize the queueId to match metrics tag naming convention.
       String queueId = formatString(ceid.toString());
 
       // Register queues by ID rather than by object as queues can be deleted.
-      Gauge.builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH, ceid, id -> compactionJobQueues.getQueueSize(id))
+      Gauge
+          .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH, ceid,
+              id -> compactionJobQueues.getQueueSize(id))
           .description("Length of priority queues")
           .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
 
