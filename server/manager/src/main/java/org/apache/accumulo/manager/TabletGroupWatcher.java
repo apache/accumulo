@@ -268,14 +268,15 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // if we are shutting down all the tabletservers, we have to do it in order
           if ((goal == TabletGoalState.SUSPENDED && state == TabletState.HOSTED)
               && manager.serversToShutdown.equals(currentTServers.keySet())) {
-            // If the stats object in the dependentWatcher is empty, then no tablets
-            // are being reported as needing to be hosted (everything is fine). If
-            // everything is fine, or there are still assigned or hosted tablets,
-            // then we cannot suspend the tablets for this watcher yet. Continue
-            // to host these tablets.
-            if (dependentWatcher != null && (dependentWatcher.getStats().isEmpty()
-                || dependentWatcher.assignedOrHosted() > 0)) {
-              goal = TabletGoalState.HOSTED;
+            if (dependentWatcher != null) {
+              // If the stats object in the dependentWatcher is empty, then it
+              // currently does not have data about what is hosted or not. In
+              // that case host these tablets until the dependent watcher can
+              // gather some data.
+              final Map<TableId,TableCounts> stats = dependentWatcher.getStats();
+              if (stats == null || stats.isEmpty() || assignedOrHosted(stats) > 0) {
+                goal = TabletGoalState.HOSTED;
+              }
             }
           }
 
@@ -523,8 +524,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   private int assignedOrHosted() {
+    return assignedOrHosted(stats.getLast());
+  }
+
+  private int assignedOrHosted(Map<TableId,TableCounts> last) {
     int result = 0;
-    for (TableCounts counts : stats.getLast().values()) {
+    for (TableCounts counts : last.values()) {
       result += counts.assigned() + counts.hosted();
     }
     return result;
