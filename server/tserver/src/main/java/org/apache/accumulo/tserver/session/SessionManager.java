@@ -236,15 +236,15 @@ public class SessionManager {
         }
 
         try {
-          retry.waitForNextAttempt(log, "Cleanup session " + session);
+          retry.waitForNextAttempt(log, "Unable to cleanup session or defer cleanup " + session);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
-        retry.logRetry(log, "Cleanup session " + session);
+        retry.logRetry(log, "Unable to cleanup session or defer cleanup " + session);
       }
 
-      retry.logCompletion(log, "Cleanup session " + session);
+      retry.logCompletion(log, "Cleaned up session or deferred cleanup " + session);
     }
   }
 
