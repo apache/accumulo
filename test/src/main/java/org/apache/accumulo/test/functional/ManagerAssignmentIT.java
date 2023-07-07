@@ -166,8 +166,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       Predicate<TabletMetadata> alwaysHostedOrCurrentNotNull =
           t -> (t.getHostingGoal() == TabletHostingGoal.ALWAYS && t.hasCurrent());
 
-      assertTrue(Wait.waitFor(() -> alwaysHostedOrCurrentNotNull
-          .test(getManagerTabletInfo(c, tableId, null).getTabletMetadata()), 60000, 250));
+      Wait.waitFor(() -> alwaysHostedOrCurrentNotNull
+          .test(getManagerTabletInfo(c, tableId, null).getTabletMetadata()), 60000, 250);
 
       final TabletMetadata always = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(alwaysHostedOrCurrentNotNull.test(always));
@@ -179,8 +179,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.NEVER);
       Predicate<TabletMetadata> neverHostedOrCurrentNull =
           t -> (t.getHostingGoal() == TabletHostingGoal.NEVER && !t.hasCurrent());
-      assertTrue(Wait.waitFor(() -> neverHostedOrCurrentNull
-          .test(getManagerTabletInfo(c, tableId, null).getTabletMetadata()), 60000, 250));
+      Wait.waitFor(() -> neverHostedOrCurrentNull
+          .test(getManagerTabletInfo(c, tableId, null).getTabletMetadata()), 60000, 250);
 
       final TabletMetadata never = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(neverHostedOrCurrentNull.test(never));
@@ -192,9 +192,9 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ONDEMAND);
       Predicate<TabletMetadata> ondemandHosted =
           t -> t.getHostingGoal() == TabletHostingGoal.ONDEMAND;
-      assertTrue(Wait.waitFor(
+      Wait.waitFor(
           () -> ondemandHosted.test(getManagerTabletInfo(c, tableId, null).getTabletMetadata()),
-          60000, 250));
+          60000, 250);
       final TabletMetadata ondemand = getManagerTabletInfo(c, tableId, null).getTabletMetadata();
       assertTrue(ondemandHosted.test(ondemand));
       assertNull(ondemand.getLocation());
@@ -216,7 +216,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     String tableId = c.tableOperations().tableIdMap().get(tableName);
 
     // The initial set of tablets should be unassigned
-    assertTrue(Wait.waitFor(() -> getTabletStats(c, tableId).isEmpty(), 60000, 50));
+    Wait.waitFor(() -> getTabletStats(c, tableId).isEmpty(), 60000, 50);
 
     assertEquals(0, ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
         .getTabletHostingRequestCount());
@@ -227,7 +227,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     assertTrue(ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
         .getTabletHostingRequestCount() > 0);
 
-    assertTrue(Wait.waitFor(() -> getTabletStats(c, tableId).size() == 4, 60000, 50));
+    Wait.waitFor(() -> getTabletStats(c, tableId).size() == 4, 60000, 50);
 
     // offline table to force unassign tablets without having to wait for the tablet unloader
     c.tableOperations().offline(tableName, true);
@@ -237,7 +237,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     // online the table again, confirm still no tablets hosted
     c.tableOperations().online(tableName, true);
 
-    assertTrue(Wait.waitFor(() -> getTabletStats(c, tableId).isEmpty(), 60000, 50));
+    Wait.waitFor(() -> getTabletStats(c, tableId).isEmpty(), 60000, 50);
     assertEquals(0, ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
         .getTabletHostingRequestCount());
 

@@ -20,7 +20,6 @@ package org.apache.accumulo.test.compaction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -295,7 +294,7 @@ public class ExternalCompactionTestUtils {
   public static void waitForRunningCompactions(ServerContext ctx, TableId tid,
       Set<ExternalCompactionId> idsToWaitFor) throws Exception {
 
-    assertTrue(Wait.waitFor(() -> {
+    Wait.waitFor(() -> {
       Set<ExternalCompactionId> seen;
       try (TabletsMetadata tm =
           ctx.getAmple().readTablets().forTable(tid).fetch(ColumnType.ECOMP).build()) {
@@ -304,7 +303,7 @@ public class ExternalCompactionTestUtils {
       }
 
       return Collections.disjoint(seen, idsToWaitFor);
-    }));
+    });
   }
 
   public static int confirmCompactionRunning(ServerContext ctx, Set<ExternalCompactionId> ecids)

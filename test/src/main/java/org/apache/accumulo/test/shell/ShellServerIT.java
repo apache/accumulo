@@ -493,10 +493,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   protected void checkTableForProperty(final AccumuloClient client, final String tableName,
       final String expectedKey, final String expectedValue) throws Exception {
-    assertTrue(
-        Wait.waitFor(() -> client.tableOperations().getConfiguration(tableName).get(expectedKey)
-            .equals(expectedValue), 5000, 500),
-        "Failed to find expected value for key: " + expectedKey);
+    Wait.waitFor(
+        () -> client.tableOperations().getConfiguration(tableName).get(expectedKey)
+            .equals(expectedValue),
+        5000, 500, "Failed to find expected value for key: " + expectedKey);
   }
 
   @Test
