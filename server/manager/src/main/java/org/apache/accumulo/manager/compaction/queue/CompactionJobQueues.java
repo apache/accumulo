@@ -57,35 +57,23 @@ public class CompactionJobQueues {
   }
 
   public long getQueueMaxSize(CompactionExecutorId executorId) {
-    // Handle if the queue no longer exists.
-    if (priorityQueues.get(executorId) == null) {
-      return 0;
-    }
-    return priorityQueues.get(executorId).getMaxSize();
+    var prioQ = priorityQueues.get(executorId);
+    return prioQ == null ? 0 : prioQ.getMaxSize();
   }
 
   public long getQueuedJobs(CompactionExecutorId executorId) {
-    // Handle if the queue no longer exists.
-    if (priorityQueues.get(executorId) == null) {
-      return 0;
-    }
-    return priorityQueues.get(executorId).getQueuedJobs();
+    var prioQ = priorityQueues.get(executorId);
+    return prioQ == null ? 0 : prioQ.getQueuedJobs();
   }
 
   public long getDequeuedJobs(CompactionExecutorId executorId) {
-    // Handle if the queue no longer exists.
-    if (priorityQueues.get(executorId) == null) {
-      return 0;
-    }
-    return priorityQueues.get(executorId).getDequeuedJobs();
+    var prioQ = priorityQueues.get(executorId);
+    return prioQ == null ? 0 : prioQ.getDequeuedJobs();
   }
 
   public long getRejectedJobs(CompactionExecutorId executorId) {
-    // Handle if the queue no longer exists.
-    if (priorityQueues.get(executorId) == null) {
-      return 0;
-    }
-    return priorityQueues.get(executorId).getRejectedJobs();
+    var prioQ = priorityQueues.get(executorId);
+    return prioQ == null ? 0 : prioQ.getRejectedJobs();
   }
 
   public long getQueueCount() {
