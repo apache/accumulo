@@ -67,9 +67,11 @@ public class SyncingClientTabletCache extends ClientTabletCache {
 
   @Override
   public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
-      LocationNeed locationNeed) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, InvalidTabletHostingRequestException {
-    return syncLocator().findTablet(context, row, skipRow, locationNeed);
+      LocationNeed locationNeed, int minimumHostAhead, Range hostAheadRange)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
+    return syncLocator().findTablet(context, row, skipRow, locationNeed, minimumHostAhead,
+        hostAheadRange);
   }
 
   @Override

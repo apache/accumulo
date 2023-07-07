@@ -93,36 +93,36 @@ public class TabletMetadata {
 
   private static final Logger log = LoggerFactory.getLogger(TabletMetadata.class);
 
-  protected TableId tableId;
+  private TableId tableId;
   private Text prevEndRow;
   private boolean sawPrevEndRow = false;
   private Text oldPrevEndRow;
   private boolean sawOldPrevEndRow = false;
-  protected Text endRow;
-  protected Location location;
+  private Text endRow;
+  private Location location;
   private Map<StoredTabletFile,DataFileValue> files;
   private List<StoredTabletFile> scans;
   private Map<StoredTabletFile,Long> loadedFiles;
   private SelectedFiles selectedFiles;
-  protected EnumSet<ColumnType> fetchedCols;
-  protected KeyExtent extent;
-  protected Location last;
-  protected SuspendingTServer suspend;
+  private EnumSet<ColumnType> fetchedCols;
+  private KeyExtent extent;
+  private Location last;
+  private SuspendingTServer suspend;
   private String dirName;
   private MetadataTime time;
   private String cloned;
   private SortedMap<Key,Value> keyValues;
   private OptionalLong flush = OptionalLong.empty();
-  protected List<LogEntry> logs;
+  private List<LogEntry> logs;
   private OptionalLong compact = OptionalLong.empty();
   private Double splitRatio = null;
   private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
-  protected boolean chopped = false;
-  protected TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
-  protected boolean onDemandHostingRequested = false;
+  private boolean chopped = false;
+  private TabletHostingGoal goal = TabletHostingGoal.ONDEMAND;
+  private boolean onDemandHostingRequested = false;
   private TabletOperationId operationId;
-  protected boolean futureAndCurrentLocationSet = false;
-  protected boolean operationIdAndCurrentLocationSet = false;
+  private boolean futureAndCurrentLocationSet = false;
+  private boolean operationIdAndCurrentLocationSet = false;
 
   public static TabletMetadataBuilder builder(KeyExtent extent) {
     return new TabletMetadataBuilder(extent);

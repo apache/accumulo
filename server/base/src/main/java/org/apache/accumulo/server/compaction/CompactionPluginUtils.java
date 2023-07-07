@@ -151,16 +151,27 @@ public class CompactionPluginUtils {
         .collect(Collectors.toSet());
   }
 
-  public static Map<String,String> computeOverrides(CompactionConfig compactionConfig,
+  public static Map<String,String> computeOverrides(Optional<CompactionConfig> compactionConfig,
       ServerContext context, KeyExtent extent, Set<CompactableFile> files) {
 
-    if (!UserCompactionUtils.isDefault(compactionConfig.getConfigurer())) {
+    if (compactionConfig.isPresent()
+        && !UserCompactionUtils.isDefault(compactionConfig.orElseThrow().getConfigurer())) {
       return CompactionPluginUtils.computeOverrides(context, extent, files,
-          compactionConfig.getConfigurer());
+          compactionConfig.orElseThrow().getConfigurer());
     }
 
-    return null;
+    var tableConf = context.getTableConfiguration(extent.tableId());
 
+    var configurorClass = tableConf.get(Property.TABLE_COMPACTION_CONFIGURER);
+    if (configurorClass == null || configurorClass.isBlank()) {
+      return Map.of();
+    }
+
+    var opts =
+        tableConf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_CONFIGURER_OPTS);
+
+    return CompactionPluginUtils.computeOverrides(context, extent, files,
+        new PluginConfig(configurorClass, opts));
   }
 
   public static Map<String,String> computeOverrides(ServerContext context, KeyExtent extent,

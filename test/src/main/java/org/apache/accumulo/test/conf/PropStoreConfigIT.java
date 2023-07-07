@@ -39,6 +39,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -88,7 +89,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
   public void clear() throws Exception {
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
       client.instanceOperations().modifyProperties(Map::clear);
-      assertTrue(Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500));
+      Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500);
     }
   }
 
@@ -106,19 +107,19 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       client.instanceOperations().setProperty(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
       client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "false");
 
-      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500));
-      assertTrue(Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500));
+      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
+      Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
 
       // revert sys, and then over-ride to true with table prop
       client.instanceOperations().removeProperty(Property.TABLE_BLOOM_ENABLED.getKey());
       client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
 
-      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500));
-      assertTrue(Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
-          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500));
+      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
+      Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
 
     }
   }
@@ -137,21 +138,21 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       log.info("Tables: {}", client.tableOperations().list());
 
       client.instanceOperations().setProperty(Property.TABLE_BLOOM_SIZE.getKey(), "12345");
-      assertTrue(Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
-          .get(Property.TABLE_BLOOM_SIZE.getKey()).equals("12345"), 5000, 500));
+      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
+          .get(Property.TABLE_BLOOM_SIZE.getKey()).equals("12345"), 5000, 500);
       assertEquals("12345",
           client.tableOperations().getConfiguration(table).get(Property.TABLE_BLOOM_SIZE.getKey()));
 
       client.namespaceOperations().setProperty(namespace, Property.TABLE_BLOOM_SIZE.getKey(),
           "23456");
-      assertTrue(Wait.waitFor(() -> client.namespaceOperations().getConfiguration(namespace)
-          .get(Property.TABLE_BLOOM_SIZE.getKey()).equals("23456"), 5000, 500));
+      Wait.waitFor(() -> client.namespaceOperations().getConfiguration(namespace)
+          .get(Property.TABLE_BLOOM_SIZE.getKey()).equals("23456"), 5000, 500);
       assertEquals("23456",
           client.tableOperations().getConfiguration(table).get(Property.TABLE_BLOOM_SIZE.getKey()));
 
       client.tableOperations().setProperty(table, Property.TABLE_BLOOM_SIZE.getKey(), "34567");
-      assertTrue(Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
-          .get(Property.TABLE_BLOOM_SIZE.getKey()).equals("34567"), 5000, 500));
+      Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
+          .get(Property.TABLE_BLOOM_SIZE.getKey()).equals("34567"), 5000, 500);
       assertEquals("12345", client.instanceOperations().getSystemConfiguration()
           .get(Property.TABLE_BLOOM_SIZE.getKey()));
       assertEquals("23456", client.namespaceOperations().getConfiguration(namespace)
@@ -195,7 +196,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       final String maxOpenFiles = config.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey());
 
       client.instanceOperations().modifyProperties(Map::clear);
-      assertTrue(Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500));
+      Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500);
 
       // Properties should be empty to start
       final int numProps = properties.size();
@@ -206,7 +207,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       });
 
       // Verify system properties added
-      assertTrue(Wait.waitFor(() -> getStoredConfiguration().size() > numProps, 5000, 500));
+      Wait.waitFor(() -> getStoredConfiguration().size() > numProps, 5000, 500);
 
       // Verify properties updated
       properties = getStoredConfiguration();
@@ -290,7 +291,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       // final long origMaxMem = getMemoryAsBytes(config.get(Property.TSERV_MAXMEM.getKey()));
 
       client.instanceOperations().modifyProperties(Map::clear);
-      assertTrue(Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500));
+      Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500);
 
       // should be empty to start
       final int numProps = properties.size();
@@ -305,7 +306,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       });
 
       // Verify system properties added
-      assertTrue(Wait.waitFor(() -> getStoredConfiguration().size() > numProps, 5000, 500));
+      Wait.waitFor(() -> getStoredConfiguration().size() > numProps, 5000, 500);
 
       // verify properties updated
       properties = getStoredConfiguration();
@@ -322,7 +323,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       // should be restored
       client.instanceOperations().modifyProperties(Map::clear);
 
-      assertTrue(Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500));
+      Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500);
 
       // verify default system config restored
       config = client.instanceOperations().getSystemConfiguration();
@@ -416,7 +417,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       original.put(Property.TABLE_BLOOM_SIZE.getKey(), "1000");
     });
 
-    assertTrue(Wait.waitFor(() -> props.get().size() > propsSize, 5000, 500));
+    Wait.waitFor(() -> props.get().size() > propsSize, 5000, 500);
 
     // verify properties updated
     properties = props.get();
@@ -435,7 +436,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
     });
 
     // Wait for clear
-    assertTrue(Wait.waitFor(() -> props.get().size() == propsSize, 5000, 500));
+    Wait.waitFor(() -> props.get().size() == propsSize, 5000, 500);
 
     // verify default system config restored
     config = fullConfig.get();
@@ -629,16 +630,18 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
     expected.put("table.custom.D", iterations * 7 + "");
     expected.put("table.custom.E", iterations * 19 + "");
 
-    assertTrue(Wait.waitFor(() -> {
+    final var IS_NOT_CUSTOM_TABLE_PROP =
+        Pattern.compile("table[.]custom[.][ABCDEF]").asMatchPredicate().negate();
+    Wait.waitFor(() -> {
       var tableProps = new HashMap<>(propShim.getProperties());
-      tableProps.keySet().removeIf(key -> !key.matches("table[.]custom[.][ABCDEF]"));
+      tableProps.keySet().removeIf(IS_NOT_CUSTOM_TABLE_PROP);
       boolean equal = expected.equals(tableProps);
       if (!equal) {
         log.info(
             "Waiting for properties to converge. Actual:" + tableProps + " Expected:" + expected);
       }
       return equal;
-    }));
+    });
 
     // now that there are not other thread modifying properties, make a modification to check that
     // the returned map

@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -49,13 +50,11 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TabletHostingGoal;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -314,10 +313,6 @@ public class SplitIT extends AccumuloClusterHarness {
       assertEquals(totalSplits, new HashSet<>(c.tableOperations().listSplits(tableName)),
           "Did not see expected splits");
 
-      // ELASTICITY_TODO the following could be removed after #3309. Currently scanning an ondemand
-      // table with lots of tablets will cause the test to timeout.
-      c.tableOperations().setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
-
       log.debug("Verifying {} rows ingested into {}", numRows, tableName);
       VerifyIngest.verifyIngest(c, params);
     }
@@ -334,8 +329,8 @@ public class SplitIT extends AccumuloClusterHarness {
   private Pair<Integer,Integer> getRandomSplitBounds(int upperBound) {
     Preconditions.checkArgument(upperBound > 1, "upperBound must be greater than 1");
 
-    int start = random.nextInt(upperBound);
-    int end = random.nextInt(upperBound - 1);
+    int start = RANDOM.get().nextInt(upperBound);
+    int end = RANDOM.get().nextInt(upperBound - 1);
 
     // ensure start is less than end and that end is not equal to start
     if (end >= start) {

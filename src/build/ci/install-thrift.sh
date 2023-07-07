@@ -24,7 +24,7 @@ set -e
 
 thriftdefault="0.16.0"
 rootDir=$(git rev-parse --show-toplevel 2>/dev/null) || ver=$thriftdefault
-ver=$({ xmllint --shell "$rootDir/pom.xml" <<<'xpath /*[local-name()="project"]/*[local-name()="properties"]/*[local-name()="thrift.version"]/text()' | grep content= | cut -f2 -d=; } 2>/dev/null || echo "$thriftdefault")
+ver=$({ xmllint --shell "$rootDir/pom.xml" <<<'xpath /*[local-name()="project"]/*[local-name()="properties"]/*[local-name()="version.thrift"]/text()' | grep content= | cut -f2 -d=; } 2>/dev/null || echo "$thriftdefault")
 ver=${ver%%-*}
 
 sudo wget "https://dist.apache.org/repos/dist/dev/accumulo/devtools/thrift-$ver/thrift" -O /usr/local/bin/thrift &&
