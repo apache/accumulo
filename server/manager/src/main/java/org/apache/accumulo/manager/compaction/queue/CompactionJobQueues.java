@@ -56,12 +56,36 @@ public class CompactionJobQueues {
     return priorityQueues.keySet();
   }
 
-  public long getQueueSize(CompactionExecutorId executorId) {
+  public long getQueueMaxSize(CompactionExecutorId executorId) {
+    // Handle if the queue no longer exists.
+    if (priorityQueues.get(executorId) == null) {
+      return 0;
+    }
+    return priorityQueues.get(executorId).getMaxSize();
+  }
+
+  public long getQueuedJobs(CompactionExecutorId executorId) {
     // Handle if the queue no longer exists.
     if (priorityQueues.get(executorId) == null) {
       return 0;
     }
     return priorityQueues.get(executorId).getQueuedJobs();
+  }
+
+  public long getDequeuedJobs(CompactionExecutorId executorId) {
+    // Handle if the queue no longer exists.
+    if (priorityQueues.get(executorId) == null) {
+      return 0;
+    }
+    return priorityQueues.get(executorId).getDequeuedJobs();
+  }
+
+  public long getRejectedJobs(CompactionExecutorId executorId) {
+    // Handle if the queue no longer exists.
+    if (priorityQueues.get(executorId) == null) {
+      return 0;
+    }
+    return priorityQueues.get(executorId).getRejectedJobs();
   }
 
   public long getQueueCount() {

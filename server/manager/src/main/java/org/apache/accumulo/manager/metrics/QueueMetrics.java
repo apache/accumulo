@@ -64,25 +64,25 @@ public class QueueMetrics implements MetricsProducer {
       // Register queues by ID rather than by object as queues can be deleted.
       Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH, ceid,
-              id -> compactionJobQueues.getQueueSize(id))
+              id -> compactionJobQueues.getQueueMaxSize(id))
           .description("Length of priority queues")
           .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
 
       Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED, ceid,
-              id -> compactionJobQueues.getQueueSize(id))
+              id -> compactionJobQueues.getQueuedJobs(id))
           .description("Count of queued jobs")
           .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
 
       Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED, ceid,
-              id -> compactionJobQueues.getQueueSize(id))
+              id -> compactionJobQueues.getDequeuedJobs(id))
           .description("Count of jobs dequeued")
           .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
 
       Gauge
           .builder(METRICS_COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED, ceid,
-              id -> compactionJobQueues.getQueueSize(id))
+              id -> compactionJobQueues.getRejectedJobs(id))
           .description("Count of rejected jobs")
           .tags(Tags.concat(getCommonTags(), "queue.id", queueId)).register(meterRegistry);
     }
