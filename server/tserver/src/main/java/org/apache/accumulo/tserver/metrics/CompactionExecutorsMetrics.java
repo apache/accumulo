@@ -49,12 +49,21 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
   private final Map<CompactionExecutorId,ExMetrics> exCeMetricsMap = new HashMap<>();
   private MeterRegistry registry = null;
 
-  private static class CeMetrics {
-    AtomicInteger queued;
-    AtomicInteger running;
+  // public so it can be closed by outside callers
+  public static class CeMetrics implements AutoCloseable {
+    private AtomicInteger queued;
+    private AtomicInteger running;
 
-    IntSupplier runningSupplier;
-    IntSupplier queuedSupplier;
+    private IntSupplier runningSupplier;
+    private IntSupplier queuedSupplier;
+
+    @Override
+    public void close() {
+      runningSupplier = () -> 0;
+      queuedSupplier = () -> 0;
+      running.set(0);
+      queued.set(0);
+    }
   }
 
   private static class ExMetrics {
@@ -71,8 +80,8 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
         minimumRefreshDelay, minimumRefreshDelay, TimeUnit.MILLISECONDS));
   }
 
-  public synchronized AutoCloseable addExecutor(CompactionExecutorId ceid,
-      IntSupplier runningSupplier, IntSupplier queuedSupplier) {
+  public synchronized CeMetrics addExecutor(CompactionExecutorId ceid, IntSupplier runningSupplier,
+      IntSupplier queuedSupplier) {
 
     synchronized (ceMetricsMap) {
 
@@ -92,14 +101,7 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
 
       ceMetricsList = List.copyOf(ceMetricsMap.values());
 
-      return () -> {
-
-        cem.runningSupplier = () -> 0;
-        cem.queuedSupplier = () -> 0;
-
-        cem.running.set(0);
-        cem.queued.set(0);
-      };
+      return cem;
     }
 
   }

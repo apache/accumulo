@@ -424,7 +424,7 @@ public class CompactableImplFileManagerTest {
     }
 
     void completed(TestCompactionJob job, StoredTabletFile newFile) {
-      super.completed(job, job.getSTFiles(), Optional.ofNullable(newFile));
+      super.completed(job, job.getSTFiles(), Optional.ofNullable(newFile), true);
     }
 
     @Override

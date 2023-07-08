@@ -34,6 +34,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.server.ServerContext;
@@ -342,6 +343,71 @@ public class MetadataConstraintsTest {
     violations = mc.check(createEnv(), m);
     assertNull(violations);
 
+    // Missing beginning of path
+    m = new Mutation(new Text("0;foo"));
+    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("5"));
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(2, violations.size());
+    assertEquals(Short.valueOf((short) 9), violations.get(0));
+    assertNotNull(mc.getViolationDescription(violations.get(0)));
+    // No DataFileColumnFamily included
+    assertEquals(Short.valueOf((short) 8), violations.get(1));
+
+    // Missing tables directory in path
+    m = new Mutation(new Text("0;foo"));
+    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/2b/t-001/C00.rf"),
+        new Value("5"));
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(2, violations.size());
+    assertEquals(Short.valueOf((short) 9), violations.get(0));
+    // No DataFileColumnFamily included
+    assertEquals(Short.valueOf((short) 8), violations.get(1));
+
+  }
+
+  @Test
+  public void testDataFileCheck() {
+    testFileMetadataValidation(DataFileColumnFamily.NAME, new DataFileValue(1, 1).encodeAsValue());
+  }
+
+  @Test
+  public void testScanFileCheck() {
+    testFileMetadataValidation(ScanFileColumnFamily.NAME, new Value());
+  }
+
+  private void testFileMetadataValidation(Text columnFamily, Value value) {
+    MetadataConstraints mc = new TestMetadataConstraints();
+    Mutation m;
+    List<Short> violations;
+
+    // Missing beginning of path
+    m = new Mutation(new Text("0;foo"));
+    m.put(columnFamily, new Text("/someFile"), value);
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 9), violations.get(0));
+    assertNotNull(mc.getViolationDescription(violations.get(0)));
+
+    // Missing tables directory in path
+    m = new Mutation(new Text("0;foo"));
+    m.put(columnFamily, new Text("hdfs://nn1/a/accumulo/2b/t-001/C00.rf"),
+        new DataFileValue(1, 1).encodeAsValue());
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 9), violations.get(0));
+
+    // Should pass validation
+    m = new Mutation(new Text("0;foo"));
+    m.put(columnFamily, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/C00.rf"),
+        new DataFileValue(1, 1).encodeAsValue());
+    violations = mc.check(createEnv(), m);
+    assertNull(violations);
+
+    assertNotNull(mc.getViolationDescription((short) 9));
   }
 
 }
