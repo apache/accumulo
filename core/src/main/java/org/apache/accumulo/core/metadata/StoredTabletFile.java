@@ -168,9 +168,9 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   private static TabletFileCq deserialize(String json) {
     final TabletFileCqMetadataGson metadata =
         gson.fromJson(Objects.requireNonNull(json), TabletFileCqMetadataGson.class);
-    // If we have previously enforced the inclusive/exclusive of a range then can just set that here
+    // If we have previously enforced the exclusive/inclusive of a range then can just set that here
     return new TabletFileCq(new Path(URI.create(metadata.path)),
-        new Range(decodeRow(metadata.startRow), true, decodeRow(metadata.endRow), false));
+        new Range(decodeRow(metadata.startRow), false, decodeRow(metadata.endRow), true));
   }
 
   public static String serialize(String path) {
@@ -181,12 +181,12 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     final TabletFileCqMetadataGson metadata = new TabletFileCqMetadataGson();
     metadata.path = Objects.requireNonNull(path);
 
-    // TODO - Add validation on start/end rows inclusive/exclusive in a Range if not null
-    // If we can guarantee start is inclusive and end is exclusive then we don't need to encode
+    // TODO - Add validation on start/end rows exclusive/inclusive in a Range if not null?
+    // If we can guarantee start is exlusive and end is inclusive then we don't need to encode
     // those boolean values or store them.
     // Should we validate and enforce this when we serialize here or even earlier when we crate the
     // TabletFile object with a range?
-    metadata.startRow = encodeRow(Objects.requireNonNull(range).getStartKey());
+    metadata.startRow = encodeRow(range.getStartKey());
     metadata.endRow = encodeRow(range.getEndKey());
 
     return gson.toJson(metadata);
