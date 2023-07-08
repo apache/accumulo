@@ -144,7 +144,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
    * Validates that the provided metadata string for the StoredTabletFile is valid.
    */
   public static void validate(String metadataEntry) {
-    ReferencedTabletFile.parsePath(new Path(URI.create(metadataEntry)));
+    ReferencedTabletFile.parsePath(deserialize(metadataEntry).path);
   }
 
   public static StoredTabletFile of(final Text metadataEntry) {

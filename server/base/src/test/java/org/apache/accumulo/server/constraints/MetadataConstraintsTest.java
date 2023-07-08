@@ -345,25 +345,41 @@ public class MetadataConstraintsTest {
 
     // Missing beginning of path
     m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("/someFile"), new Value("5"));
-    violations = mc.check(createEnv(), m);
-    assertNotNull(violations);
-    assertEquals(2, violations.size());
-    assertEquals(Short.valueOf((short) 9), violations.get(0));
-    assertNotNull(mc.getViolationDescription(violations.get(0)));
-    // No DataFileColumnFamily included
-    assertEquals(Short.valueOf((short) 8), violations.get(1));
-
-    // Missing tables directory in path
-    m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME, new Text("hdfs://nn1/a/accumulo/2b/t-001/C00.rf"),
+    m.put(BulkFileColumnFamily.NAME, new Text(StoredTabletFile
+        .of(URI.create("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), new Range())
+        .getMetadata().replace("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile", "/someFile")),
         new Value("5"));
     violations = mc.check(createEnv(), m);
     assertNotNull(violations);
-    assertEquals(2, violations.size());
+    assertEquals(1, violations.size());
     assertEquals(Short.valueOf((short) 9), violations.get(0));
+    assertNotNull(mc.getViolationDescription(violations.get(0)));
+
+    // Missing tables directory in path
+    m = new Mutation(new Text("0;foo"));
+    m.put(BulkFileColumnFamily.NAME,
+        new Text(StoredTabletFile
+            .of(URI.create("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), new Range())
+            .getMetadata().replace("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile",
+                "hdfs://1.2.3.4/accumulo/2a/t-0003/someFile")),
+        new Value("5"));
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 9), violations.get(0));
+
     // No DataFileColumnFamily included
-    assertEquals(Short.valueOf((short) 8), violations.get(1));
+    m = new Mutation(new Text("0;foo"));
+    m.put(BulkFileColumnFamily.NAME,
+        StoredTabletFile
+            .of(URI.create("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), new Range())
+            .getMetadataText(),
+        new Value("5"));
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 8), violations.get(0));
+    assertNotNull(mc.getViolationDescription(violations.get(0)));
 
   }
 
@@ -384,7 +400,19 @@ public class MetadataConstraintsTest {
 
     // Missing beginning of path
     m = new Mutation(new Text("0;foo"));
-    m.put(columnFamily, new Text("/someFile"), value);
+    m.put(columnFamily, new Text(StoredTabletFile
+        .of(URI.create("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), new Range())
+        .getMetadata().replace("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile", "/someFile")),
+        value);
+    violations = mc.check(createEnv(), m);
+    assertNotNull(violations);
+    assertEquals(1, violations.size());
+    assertEquals(Short.valueOf((short) 9), violations.get(0));
+    assertNotNull(mc.getViolationDescription(violations.get(0)));
+
+    // Bad Json - only path so should fail parsing
+    m = new Mutation(new Text("0;foo"));
+    m.put(columnFamily, new Text("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), value);
     violations = mc.check(createEnv(), m);
     assertNotNull(violations);
     assertEquals(1, violations.size());
@@ -393,7 +421,11 @@ public class MetadataConstraintsTest {
 
     // Missing tables directory in path
     m = new Mutation(new Text("0;foo"));
-    m.put(columnFamily, new Text("hdfs://nn1/a/accumulo/2b/t-001/C00.rf"),
+    m.put(columnFamily,
+        new Text(StoredTabletFile
+            .of(URI.create("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), new Range())
+            .getMetadata().replace("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile",
+                "hdfs://1.2.3.4/accumulo/2a/t-0003/someFile")),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
     assertNotNull(violations);
@@ -402,7 +434,10 @@ public class MetadataConstraintsTest {
 
     // Should pass validation
     m = new Mutation(new Text("0;foo"));
-    m.put(columnFamily, new Text("hdfs://nn1/a/accumulo/tables/2b/t-001/C00.rf"),
+    m.put(columnFamily,
+        StoredTabletFile
+            .of(URI.create("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"), new Range())
+            .getMetadataText(),
         new DataFileValue(1, 1).encodeAsValue());
     violations = mc.check(createEnv(), m);
     assertNull(violations);
