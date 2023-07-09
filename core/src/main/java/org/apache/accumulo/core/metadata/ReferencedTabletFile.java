@@ -235,4 +235,8 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
     return new ReferencedTabletFile(path);
   }
 
+  public static ReferencedTabletFile of(final Path path, Range range) {
+    return new ReferencedTabletFile(path, range);
+  }
+
 }
