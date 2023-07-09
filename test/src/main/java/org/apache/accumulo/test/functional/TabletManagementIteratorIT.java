@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
@@ -415,6 +416,11 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     @Override
     public ManagerState getManagerState() {
       return ManagerState.NORMAL;
+    }
+
+    @Override
+    public Map<Long,Map<String,String>> getCompactionHints() {
+      return Map.of();
     }
 
     @Override

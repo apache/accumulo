@@ -241,8 +241,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         int[] counts = new int[TabletState.values().length];
         stats.begin();
 
-        CompactionJobGenerator compactionGenerator =
-            new CompactionJobGenerator(new ServiceEnvironmentImpl(manager.getContext()));
+        CompactionJobGenerator compactionGenerator = new CompactionJobGenerator(
+            new ServiceEnvironmentImpl(manager.getContext()), manager.getCompactionHints());
 
         // Walk through the tablets in our store, and work tablets
         // towards their goal

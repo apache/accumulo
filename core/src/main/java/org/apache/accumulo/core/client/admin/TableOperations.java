@@ -305,8 +305,23 @@ public interface TableOperations {
    * </ul>
    *
    * <p>
-   * If two threads call this method concurrently for the same table and set one or more of the
-   * above then one thread will fail.
+   * Starting with Accumulo 4.0 concurrent compactions can be initiated on a table with different
+   * configuration. Prior to 4.0 if this were done, then only one would work and the others would
+   * throw an exception. When concurrent compactions with different configuration run each tablet
+   * will be compacted once for each user initiated compaction in some arbitrary order. For example
+   * consider the following situation.
+   *
+   * <OL>
+   * <LI>Table A has three tablets Tab1, Tab2, Tab3</LI>
+   * <LI>This method is called to initiate a compaction on Tablets Tab1 and Tab2 with iterators
+   * I1</LI>
+   * <LI>This method is called to initiate a compaction on Tablets Tab2 and Tab3 with iterators
+   * I2</LI>
+   * <LI>Tablet Tab1 will compact with iterator I1</LI>
+   * <LI>Two compactions will happen for tablet Tab2. It will either compact with iterators I1 and
+   * then I2 OR it will compact with iterators I2 and then I1.</LI>
+   * <LI>Tablet Tab3 will compact with iterator I2</LI>
+   * </OL>
    *
    * @param tableName the table to compact
    * @param config the configuration to use

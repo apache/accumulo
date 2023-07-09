@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.manager.state;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -66,6 +67,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.LazySingletons;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -74,6 +76,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * Iterator used by the TabletGroupWatcher threads in the Manager. This iterator returns
@@ -81,7 +84,6 @@ import com.google.common.collect.Sets;
  * Manager.
  */
 public class TabletManagementIterator extends SkippingIterator {
-
   private static final Logger LOG = LoggerFactory.getLogger(TabletManagementIterator.class);
 
   private static final String SERVERS_OPTION = "servers";
@@ -91,6 +93,7 @@ public class TabletManagementIterator extends SkippingIterator {
   private static final String MIGRATIONS_OPTION = "migrations";
   private static final String MANAGER_STATE_OPTION = "managerState";
   private static final String SHUTTING_DOWN_OPTION = "shuttingDown";
+  private static final String COMPACTION_HINTS_OPTIONS = "compactionHints";
   private CompactionJobGenerator compactionGenerator;
 
   private static void setCurrentServers(final IteratorSetting cfg,
@@ -151,6 +154,11 @@ public class TabletManagementIterator extends SkippingIterator {
     if (servers != null) {
       cfg.addOption(SHUTTING_DOWN_OPTION, Joiner.on(",").join(servers));
     }
+  }
+
+  private static void setCompactionHints(final IteratorSetting cfg,
+      Map<Long,Map<String,String>> allHints) {
+    cfg.addOption(COMPACTION_HINTS_OPTIONS, LazySingletons.GSON.get().toJson(allHints));
   }
 
   private static Set<KeyExtent> parseMigrations(final String migrations) {
@@ -216,6 +224,14 @@ public class TabletManagementIterator extends SkippingIterator {
       }
     }
     return result;
+  }
+
+  private static Map<Long,Map<String,String>> parseCompactionHints(String json) {
+    if (json == null) {
+      return Map.of();
+    }
+    Type tt = new TypeToken<Map<Long,Map<String,String>>>() {}.getType();
+    return LazySingletons.GSON.get().fromJson(json, tt);
   }
 
   private static boolean shouldReturnDueToSplit(final TabletMetadata tm,
@@ -299,6 +315,7 @@ public class TabletManagementIterator extends SkippingIterator {
           Sets.union(state.migrationsSnapshot(), state.getUnassignmentRequest()));
       TabletManagementIterator.setManagerState(tabletChange, state.getManagerState());
       TabletManagementIterator.setShuttingDown(tabletChange, state.shutdownServers());
+      setCompactionHints(tabletChange, state.getCompactionHints());
     }
     scanner.addScanIterator(tabletChange);
   }
@@ -339,7 +356,8 @@ public class TabletManagementIterator extends SkippingIterator {
     if (shuttingDown != null) {
       current.removeAll(shuttingDown);
     }
-    compactionGenerator = new CompactionJobGenerator(env.getPluginEnv());
+    compactionGenerator = new CompactionJobGenerator(env.getPluginEnv(),
+        parseCompactionHints(options.get(COMPACTION_HINTS_OPTIONS)));
   }
 
   @Override

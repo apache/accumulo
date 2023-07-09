@@ -29,7 +29,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.manager.tableOps.compact.cancel.CancelCompactions;
+import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.zookeeper.KeeperException;
 
 public class PreDeleteTable extends ManagerRepo {
@@ -66,7 +66,13 @@ public class PreDeleteTable extends ManagerRepo {
   public Repo<Manager> call(long tid, Manager environment) throws Exception {
     try {
       preventFutureCompactions(environment);
-      CancelCompactions.mutateZooKeeper(tid, tableId, environment);
+
+      var idsToCancel =
+          CompactionConfigStorage.getAllConfig(environment.getContext(), tableId::equals).keySet();
+
+      for (var idToCancel : idsToCancel) {
+        CompactionConfigStorage.deleteConfig(environment.getContext(), idToCancel);
+      }
       return new DeleteTable(namespaceId, tableId);
     } finally {
       Utils.unreserveTable(environment, tableId, tid, false);

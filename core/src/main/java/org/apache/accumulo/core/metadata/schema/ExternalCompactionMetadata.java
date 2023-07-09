@@ -42,11 +42,11 @@ public class ExternalCompactionMetadata {
   private final short priority;
   private final CompactionExecutorId ceid;
   private final boolean propagateDeletes;
-  private final Long compactionId;
+  private final Long fateTxId;
 
   public ExternalCompactionMetadata(Set<StoredTabletFile> jobFiles,
       ReferencedTabletFile compactTmpName, String compactorId, CompactionKind kind, short priority,
-      CompactionExecutorId ceid, boolean propagateDeletes, Long compactionId) {
+      CompactionExecutorId ceid, boolean propagateDeletes, Long fateTxId) {
     this.jobFiles = Objects.requireNonNull(jobFiles);
     this.compactTmpName = Objects.requireNonNull(compactTmpName);
     this.compactorId = Objects.requireNonNull(compactorId);
@@ -54,7 +54,7 @@ public class ExternalCompactionMetadata {
     this.priority = priority;
     this.ceid = Objects.requireNonNull(ceid);
     this.propagateDeletes = propagateDeletes;
-    this.compactionId = compactionId;
+    this.fateTxId = fateTxId;
   }
 
   public Set<StoredTabletFile> getJobFiles() {
@@ -85,8 +85,8 @@ public class ExternalCompactionMetadata {
     return propagateDeletes;
   }
 
-  public Long getCompactionId() {
-    return compactionId;
+  public Long getFateTxId() {
+    return fateTxId;
   }
 
   // ELASTICITY_TODO remove this code when removing compaction code from tserver
@@ -96,6 +96,11 @@ public class ExternalCompactionMetadata {
 
   // ELASTICITY_TODO remove this code when removing compaction code from tserver
   public boolean getInitiallySelecteAll() {
+    throw new UnsupportedOperationException();
+  }
+
+  // ELASTICITY_TODO remove this code when removing compaction code from tserver
+  public Long getCompactionId() {
     throw new UnsupportedOperationException();
   }
 
@@ -109,7 +114,7 @@ public class ExternalCompactionMetadata {
     String executorId;
     short priority;
     boolean propDels;
-    Long compactionId;
+    Long fateTxId;
   }
 
   public String toJson() {
@@ -122,7 +127,7 @@ public class ExternalCompactionMetadata {
     jData.executorId = ((CompactionExecutorIdImpl) ceid).getExternalName();
     jData.priority = priority;
     jData.propDels = propagateDeletes;
-    jData.compactionId = compactionId;
+    jData.fateTxId = fateTxId;
     return GSON.get().toJson(jData);
   }
 
@@ -133,7 +138,7 @@ public class ExternalCompactionMetadata {
         jData.inputs.stream().map(StoredTabletFile::new).collect(toSet()),
         new ReferencedTabletFile(new Path(jData.tmp)), jData.compactor,
         CompactionKind.valueOf(jData.kind), jData.priority,
-        CompactionExecutorIdImpl.externalId(jData.executorId), jData.propDels, jData.compactionId);
+        CompactionExecutorIdImpl.externalId(jData.executorId), jData.propDels, jData.fateTxId);
   }
 
   @Override

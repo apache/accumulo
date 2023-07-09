@@ -72,6 +72,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
@@ -350,6 +351,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             break;
           case SELECTED:
             qualifiers.add(SELECTED_COLUMN);
+            break;
+          case COMPACTED:
+            families.add(CompactedColumnFamily.NAME);
             break;
           default:
             throw new IllegalArgumentException("Unknown col type " + colToFetch);

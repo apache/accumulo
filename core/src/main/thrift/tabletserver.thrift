@@ -111,7 +111,7 @@ struct TExternalCompactionJob {
   5:string outputFile
   6:bool propagateDeletes
   7:TCompactionKind kind
-  8:i64 userCompactionId
+  8:i64 fateTxId
   9:map<string, string> overrides
 }
 

@@ -108,6 +108,9 @@ public class TabletRefresher {
       Supplier<Set<TServerInstance>> onlineTserversSupplier,
       Map<TabletMetadata.Location,List<TTabletRefresh>> refreshesNeeded) {
 
+    // make a copy as it will be mutated in this method
+    refreshesNeeded = new HashMap<>(refreshesNeeded);
+
     Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
         .incrementBy(100, MILLISECONDS).maxWait(1, SECONDS).backOffFactor(1.5)
         .logInterval(3, MINUTES).createRetry();
