@@ -21,6 +21,7 @@ package org.apache.accumulo.core.metadata;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.util.Comparator;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.Key;
@@ -49,6 +50,9 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   private final String metadataEntry;
   private final ReferencedTabletFile referencedTabletFile;
   private final String metadataEntryPath;
+
+  private static final Comparator<StoredTabletFile> comparator = Comparator
+      .comparing(StoredTabletFile::getMetadataPath).thenComparing(StoredTabletFile::getRange);
 
   /**
    * Construct a tablet file using the string read from the metadata. Preserve the exact string so
@@ -114,7 +118,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     if (equals(o)) {
       return 0;
     } else {
-      return metadataEntry.compareTo(o.metadataEntry);
+      return comparator.compare(this, o);
     }
   }
 
