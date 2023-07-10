@@ -189,4 +189,8 @@ public abstract class ScanSession extends Session implements ScanInfo {
     return true;
   }
 
+  @Override
+  public String toString() {
+    return super.toString() + " tableId:" + getTableId();
+  }
 }
