@@ -31,9 +31,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
-import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -54,7 +53,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -68,6 +66,7 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.compaction.ExternalCompaction_1_IT.TestFilter;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
@@ -91,12 +90,6 @@ public class ExternalCompactionTestUtils {
 
   public static String row(int r) {
     return String.format("r:%04d", r);
-  }
-
-  public static Stream<ExternalCompactionFinalState> getFinalStatesForTable(AccumuloCluster cluster,
-      TableId tid) {
-    return cluster.getServerContext().getAmple().getExternalCompactionFinalStates()
-        .filter(state -> state.getExtent().tableId().equals(tid));
   }
 
   public static void compact(final AccumuloClient client, String table1, int modulus,
@@ -197,6 +190,7 @@ public class ExternalCompactionTestUtils {
     clProps.put(ClientProperty.BATCH_WRITER_LATENCY_MAX.getKey(), "2s");
     cfg.setClientProps(clProps);
 
+    // configure the compaction services to use the queues
     cfg.setProperty("tserver.compaction.major.service.cs1.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs1.planner.opts.executors",
@@ -295,6 +289,21 @@ public class ExternalCompactionTestUtils {
       }
     } while (ecids.isEmpty());
     return ecids;
+  }
+
+  public static void waitForRunningCompactions(ServerContext ctx, TableId tid,
+      Set<ExternalCompactionId> idsToWaitFor) throws Exception {
+
+    Wait.waitFor(() -> {
+      Set<ExternalCompactionId> seen;
+      try (TabletsMetadata tm =
+          ctx.getAmple().readTablets().forTable(tid).fetch(ColumnType.ECOMP).build()) {
+        seen = tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream())
+            .collect(Collectors.toSet());
+      }
+
+      return Collections.disjoint(seen, idsToWaitFor);
+    });
   }
 
   public static int confirmCompactionRunning(ServerContext ctx, Set<ExternalCompactionId> ecids)

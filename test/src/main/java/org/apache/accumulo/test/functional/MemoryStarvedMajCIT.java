@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.test.util.Wait.waitFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -54,7 +55,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.setMemory(ServerType.TABLET_SERVER, 256, MemoryUnit.MEGABYTE);
       // Configure the LowMemoryDetector in the TabletServer
       // check on 1s intervals and set low mem condition if more than 80% of
@@ -148,12 +149,9 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
         ReadWriteIT.ingest(client, 100, 100, 100, 0, table);
         compactionThread.start();
 
-        while (paused <= 0) {
-          Thread.sleep(1000);
-          paused = MAJC_PAUSED.intValue();
-        }
+        waitFor(() -> MAJC_PAUSED.intValue() > 0);
 
-        MemoryStarvedScanIT.freeServerMemory(client, table);
+        MemoryStarvedScanIT.freeServerMemory(client);
         compactionThread.interrupt();
         compactionThread.join();
         assertNull(error.get());

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
@@ -76,13 +77,13 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
         try (BatchWriter bw = client.createBatchWriter(tableName)) {
           while (bytesWritten < BYTES_TO_WRITE) {
             byte[] rowKey = new byte[32];
-            random.nextBytes(rowKey);
+            RANDOM.get().nextBytes(rowKey);
 
             byte[] qual = new byte[32];
-            random.nextBytes(qual);
+            RANDOM.get().nextBytes(qual);
 
             byte[] value = new byte[1024];
-            random.nextBytes(value);
+            RANDOM.get().nextBytes(value);
 
             Mutation m = new Mutation(rowKey);
             m.put(new byte[0], qual, value);

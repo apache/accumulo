@@ -21,7 +21,6 @@ package org.apache.accumulo.test.functional;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Map;
@@ -120,7 +119,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
       cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
     });
 
-    mac.getConfig().setNumTservers(1);
+    mac.getConfig().getClusterServerConfiguration().setNumDefaultTabletServers(1);
     mac.start();
     // Enabled kerberos auth
     Configuration conf = new Configuration(false);
@@ -189,6 +188,6 @@ public class KerberosRenewalIT extends AccumuloITBase {
       assertEquals("d", entry.getValue().toString());
     }
     client.tableOperations().delete(tableName);
-    assertTrue(Wait.waitFor(() -> !client.tableOperations().exists(tableName), 20_000L, 200L));
+    Wait.waitFor(() -> !client.tableOperations().exists(tableName), 20_000L, 200L);
   }
 }

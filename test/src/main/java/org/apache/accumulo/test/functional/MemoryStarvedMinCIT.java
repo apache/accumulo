@@ -53,7 +53,7 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.setMemory(ServerType.TABLET_SERVER, 256, MemoryUnit.MEGABYTE);
       // Configure the LowMemoryDetector in the TabletServer
       // check on 1s intervals and set low mem condition if more than 80% of
@@ -153,7 +153,7 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
           paused = MINC_PAUSED.intValue();
         }
 
-        MemoryStarvedScanIT.freeServerMemory(client, table);
+        MemoryStarvedScanIT.freeServerMemory(client);
         ingestThread.interrupt();
         ingestThread.join();
         assertNull(error.get());

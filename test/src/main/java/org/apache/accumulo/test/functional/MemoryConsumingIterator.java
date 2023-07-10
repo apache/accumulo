@@ -39,6 +39,8 @@ public class MemoryConsumingIterator extends WrappingIterator {
 
   private static final List<byte[]> BUFFERS = new ArrayList<>();
 
+  private static final int TEN_MiB = 10 * 1024 * 1024;
+
   public static void freeBuffers() {
     BUFFERS.clear();
   }
@@ -56,13 +58,12 @@ public class MemoryConsumingIterator extends WrappingIterator {
 
     int amountToConsume = 0;
     if (freeMemory > minimumFreeMemoryThreshold) {
-      amountToConsume = (int) (freeMemory - (minimumFreeMemoryThreshold - 10485760));
+      amountToConsume = (int) (freeMemory - (minimumFreeMemoryThreshold - TEN_MiB));
     }
-    if (amountToConsume > Integer.MAX_VALUE) {
+    if (amountToConsume < 0) {
       throw new IllegalStateException(
-          "Unsupported memory size for tablet server when using this iterator");
+          "Overflow. Unsupported memory size for tablet server when using this iterator");
     }
-    amountToConsume = Math.max(0, amountToConsume);
     LOG.info("max: {}, free: {}, minFree: {}, amountToConsume: {}", maxConfiguredMemory, freeMemory,
         minimumFreeMemoryThreshold, amountToConsume);
     return amountToConsume;

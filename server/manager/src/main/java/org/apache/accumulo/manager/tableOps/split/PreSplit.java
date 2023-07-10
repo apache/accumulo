@@ -36,7 +36,7 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.server.tablets.UniqueNameAllocator;
+import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,7 +139,7 @@ public class PreSplit extends ManagerRepo {
     List<String> dirs = new ArrayList<>();
 
     splitInfo.getSplits().forEach(split -> {
-      String dirName = UniqueNameAllocator.createTabletDirectoryName(manager.getContext(), split);
+      String dirName = TabletNameGenerator.createTabletDirectoryName(manager.getContext(), split);
       dirs.add(dirName);
       log.trace("{} allocated dir name {}", FateTxId.formatTid(tid), dirName);
     });

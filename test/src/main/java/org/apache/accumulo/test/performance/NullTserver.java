@@ -71,6 +71,7 @@ import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
+import org.apache.accumulo.core.tabletserver.thrift.TTabletRefresh;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -298,7 +299,7 @@ public class NullTserver {
 
     @Override
     public List<TKeyExtent> refreshTablets(TInfo tinfo, TCredentials credentials,
-        List<TKeyExtent> extents) throws TException {
+        List<TTabletRefresh> refreshes) throws TException {
       return List.of();
     }
   }

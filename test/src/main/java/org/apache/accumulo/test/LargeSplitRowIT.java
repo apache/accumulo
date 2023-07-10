@@ -66,7 +66,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
 
     Map<String,String> siteConfig = Map.of(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
     cfg.setSiteConfig(siteConfig);
@@ -235,7 +235,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       // Make sure a split occurs
       Wait.Condition splitsToBePresent =
           () -> client.tableOperations().listSplits(tableName).stream().findAny().isPresent();
-      assertTrue(Wait.waitFor(splitsToBePresent, SECONDS.toMillis(60L), 250L));
+      Wait.waitFor(splitsToBePresent, SECONDS.toMillis(60L), 250L);
     }
   }
 

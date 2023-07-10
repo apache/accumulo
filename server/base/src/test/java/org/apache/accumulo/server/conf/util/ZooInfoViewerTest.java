@@ -134,82 +134,6 @@ public class ZooInfoViewerTest {
     assertEquals(2, opts.getTables().size());
   }
 
-  @Test
-  public void fetchInstancesFromZk() throws Exception {
-
-    String instAName = "INST_A";
-    InstanceId instA = InstanceId.of(UUID.randomUUID());
-    String instBName = "INST_B";
-    InstanceId instB = InstanceId.of(UUID.randomUUID());
-
-    ZooReader zooReader = createMock(ZooReader.class);
-    String namePath = ZROOT + ZINSTANCES;
-    expect(zooReader.getChildren(eq(namePath))).andReturn(List.of(instAName, instBName)).once();
-    expect(zooReader.getData(eq(namePath + "/" + instAName)))
-        .andReturn(instA.canonical().getBytes(UTF_8)).once();
-    expect(zooReader.getData(eq(namePath + "/" + instBName)))
-        .andReturn(instB.canonical().getBytes(UTF_8)).once();
-    replay(zooReader);
-
-    ZooInfoViewer viewer = new ZooInfoViewer();
-    Map<String,InstanceId> instanceMap = viewer.readInstancesFromZk(zooReader);
-
-    log.trace("id map returned: {}", instanceMap);
-    assertEquals(Map.of(instAName, instA, instBName, instB), instanceMap);
-    verify(zooReader);
-  }
-
-  /**
-   * Expect that instance id passed is returned, instance name and zooReader are ignored.
-   */
-  @Test
-  public void instanceIdOption() throws Exception {
-
-    String instAName = "INST_A";
-    InstanceId instA = InstanceId.of(UUID.randomUUID());
-    String instBName = "INST_B";
-    InstanceId instB = InstanceId.of(UUID.randomUUID());
-
-    ZooReader zooReader = createMock(ZooReader.class);
-    String namePath = ZROOT + ZINSTANCES;
-    expect(zooReader.getChildren(eq(namePath))).andReturn(List.of(instAName, instBName)).once();
-    expect(zooReader.getData(eq(namePath + "/" + instAName)))
-        .andReturn(instA.canonical().getBytes(UTF_8)).once();
-    expect(zooReader.getData(eq(namePath + "/" + instBName)))
-        .andReturn(instB.canonical().getBytes(UTF_8)).once();
-    replay(zooReader);
-
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
-    opts.parseArgs(ZooInfoViewer.class.getName(), new String[] {"--instanceName", instBName});
-
-    ZooInfoViewer viewer = new ZooInfoViewer();
-    InstanceId found = viewer.getInstanceId(zooReader, opts);
-
-    assertEquals(instB, found);
-
-    verify(zooReader);
-  }
-
-  /**
-   *
-   */
-  @Test
-  public void instanceNameTest() {
-    String uuid = UUID.randomUUID().toString();
-    ZooReader zooReader = createMock(ZooReader.class);
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
-    opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"--instanceId", uuid, "--instanceName", "foo"});
-    replay(zooReader);
-
-    ZooInfoViewer viewer = new ZooInfoViewer();
-    InstanceId found = viewer.getInstanceId(zooReader, opts);
-
-    assertEquals(InstanceId.of(uuid), found);
-
-    verify(zooReader);
-  }
-
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "test generated output")
   @Test
   public void instanceIdOutputTest() throws Exception {
@@ -226,7 +150,7 @@ public class ZooInfoViewerTest {
 
     ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
     opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"--instanceId", uuid, "--print-instances", "--outfile", testFileName});
+        new String[] {"--print-instances", "--outfile", testFileName});
 
     ZooInfoViewer viewer = new ZooInfoViewer();
     viewer.generateReport(InstanceId.of(uuid), opts, zooReader);
@@ -262,8 +186,8 @@ public class ZooInfoViewerTest {
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
 
     ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
-    opts.parseArgs(ZooInfoViewer.class.getName(), new String[] {"--instanceName", instanceName,
-        "--print-instances", "--outfile", testFileName});
+    opts.parseArgs(ZooInfoViewer.class.getName(),
+        new String[] {"--print-instances", "--outfile", testFileName});
 
     ZooInfoViewer viewer = new ZooInfoViewer();
     viewer.generateReport(InstanceId.of(uuid), opts, zooReader);
@@ -364,7 +288,7 @@ public class ZooInfoViewerTest {
 
     ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
     opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"--instanceId", uuid, "--print-props", "--outfile", testFileName});
+        new String[] {"--print-props", "--outfile", testFileName});
 
     ZooInfoViewer viewer = new ZooInfoViewer();
     viewer.generateReport(InstanceId.of(uuid), opts, zooReader);
@@ -426,7 +350,7 @@ public class ZooInfoViewerTest {
 
     ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
     opts.parseArgs(ZooInfoViewer.class.getName(),
-        new String[] {"--instanceName", instanceName, "--print-id-map", "--outfile", testFileName});
+        new String[] {"--print-id-map", "--outfile", testFileName});
 
     ZooInfoViewer viewer = new ZooInfoViewer();
     viewer.generateReport(InstanceId.of(uuid), opts, zooReader);

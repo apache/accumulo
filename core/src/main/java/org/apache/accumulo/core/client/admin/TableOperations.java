@@ -29,6 +29,7 @@ import java.util.SortedSet;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -1005,4 +1006,17 @@ public interface TableOperations {
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     throw new UnsupportedOperationException();
   }
+
+  /**
+   * Retrieve the hosting goal for a range of tablets in the specified table.
+   *
+   * @param tableName table name
+   * @param range tablet range
+   * @since 4.0.0
+   */
+  default Stream<HostingGoalForTablet> getTabletHostingGoal(final String tableName,
+      final Range range) throws TableNotFoundException {
+    throw new UnsupportedOperationException();
+  }
+
 }

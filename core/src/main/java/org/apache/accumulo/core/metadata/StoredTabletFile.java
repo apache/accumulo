@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import java.net.URI;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.TableId;
@@ -44,7 +45,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
    * the entry can be deleted.
    */
   public StoredTabletFile(String metadataEntry) {
-    super(new Path(metadataEntry));
+    super(new Path(URI.create(metadataEntry)));
     this.metadataEntry = metadataEntry;
     this.referencedTabletFile = ReferencedTabletFile.of(getPath());
   }
@@ -73,20 +74,13 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return referencedTabletFile.getTableId();
   }
 
-  public String getNormalizedPathStr() {
-    return referencedTabletFile.getNormalizedPathStr();
+  @Override
+  public String getFileName() {
+    return referencedTabletFile.getFileName();
   }
 
-  /**
-   * Validate that the provided reference matches what is in the metadata table.
-   *
-   * @param reference the relative path to check against
-   */
-  public void validate(String reference) {
-    if (!metadataEntry.equals(reference)) {
-      throw new IllegalStateException("The reference " + reference
-          + " does not match what was in the metadata: " + metadataEntry);
-    }
+  public String getNormalizedPathStr() {
+    return referencedTabletFile.getNormalizedPathStr();
   }
 
   @Override
@@ -118,6 +112,13 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   @Override
   public String toString() {
     return metadataEntry;
+  }
+
+  /**
+   * Validates that the provided metadata string for the StoredTabletFile is valid.
+   */
+  public static void validate(String metadataEntry) {
+    ReferencedTabletFile.parsePath(new Path(URI.create(metadataEntry)));
   }
 
   public static StoredTabletFile of(final String metadataEntry) {

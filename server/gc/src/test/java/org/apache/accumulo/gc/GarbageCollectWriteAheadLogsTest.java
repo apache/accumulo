@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.gc;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +34,7 @@ import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
@@ -38,7 +43,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.manager.LiveTServerSet;
-import org.apache.accumulo.server.manager.state.TabletMetadataImposter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
@@ -62,11 +66,11 @@ public class GarbageCollectWriteAheadLogsTest {
   {
     try {
       tabletAssignedToServer1 = new TabletManagement(Set.of(),
-          new TabletMetadataImposter(extent, null, Location.current(server1), null, null, walogs,
-              false, TabletHostingGoal.ALWAYS, false));
+          TabletMetadata.builder(extent).putLocation(Location.current(server1))
+              .putHostingGoal(TabletHostingGoal.ALWAYS).build(LAST, SUSPEND, LOGS));
       tabletAssignedToServer2 = new TabletManagement(Set.of(),
-          new TabletMetadataImposter(extent, null, Location.current(server2), null, null, walogs,
-              false, TabletHostingGoal.NEVER, false));
+          TabletMetadata.builder(extent).putLocation(Location.current(server2))
+              .putHostingGoal(TabletHostingGoal.NEVER).build(LAST, SUSPEND, LOGS));
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }

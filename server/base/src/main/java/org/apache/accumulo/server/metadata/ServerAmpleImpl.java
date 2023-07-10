@@ -50,13 +50,11 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactionSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
+import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
@@ -96,6 +94,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {
     String zpath = context.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES;
     try {
+      // TODO calling create seems unnecessary and is possibly racy and inefficient
       context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
         RootGcCandidates rgcc = new RootGcCandidates(currJson);
@@ -246,55 +245,6 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void
-      putExternalCompactionFinalStates(Collection<ExternalCompactionFinalState> finalStates) {
-    try (BatchWriter writer = context.createBatchWriter(DataLevel.USER.metaTable())) {
-      String prefix = ExternalCompactionSection.getRowPrefix();
-      for (ExternalCompactionFinalState finalState : finalStates) {
-        Mutation m = new Mutation(prefix + finalState.getExternalCompactionId().canonical());
-        m.put("", "", finalState.toJson());
-        writer.addMutation(m);
-      }
-    } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new IllegalStateException(e);
-    }
-  }
-
-  @Override
-  public Stream<ExternalCompactionFinalState> getExternalCompactionFinalStates() {
-    Scanner scanner;
-    try {
-      scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY);
-    } catch (TableNotFoundException e) {
-      throw new IllegalStateException(e);
-    }
-
-    scanner.setRange(ExternalCompactionSection.getRange());
-    int pLen = ExternalCompactionSection.getRowPrefix().length();
-    return scanner.stream()
-        .map(e -> ExternalCompactionFinalState.fromJson(
-            ExternalCompactionId.of(e.getKey().getRowData().toString().substring(pLen)),
-            e.getValue().toString()));
-  }
-
-  @Override
-  public void
-      deleteExternalCompactionFinalStates(Collection<ExternalCompactionId> statusesToDelete) {
-    try (BatchWriter writer = context.createBatchWriter(DataLevel.USER.metaTable())) {
-      String prefix = ExternalCompactionSection.getRowPrefix();
-      for (ExternalCompactionId ecid : statusesToDelete) {
-        Mutation m = new Mutation(prefix + ecid.canonical());
-        m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
-        writer.addMutation(m);
-      }
-      log.debug("Deleted external compaction final state entries for external compactions: {}",
-          statusesToDelete);
-    } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new IllegalStateException(e);
-    }
-  }
-
-  @Override
   public void putScanServerFileReferences(Collection<ScanServerRefTabletFile> scanRefs) {
     try (BatchWriter writer = context.createBatchWriter(DataLevel.USER.metaTable())) {
       String prefix = ScanServerFileReferenceSection.getRowPrefix();
@@ -359,6 +309,11 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  @Override
+  public Refreshes refreshes(DataLevel dataLevel) {
+    return new RefreshesImpl(context, dataLevel);
   }
 
 }

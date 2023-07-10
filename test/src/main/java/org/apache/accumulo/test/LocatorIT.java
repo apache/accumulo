@@ -127,10 +127,10 @@ public class LocatorIT extends AccumuloClusterHarness {
       ranges.clear();
 
       tableOps.setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
-      assertTrue(Wait.waitFor(
+      Wait.waitFor(
           () -> alwaysHostedAndCurrentNotNull.test(
               ManagerAssignmentIT.getManagerTabletInfo(client, tableId, null).getTabletMetadata()),
-          60000, 250));
+          60000, 250);
 
       ranges.add(r1);
       Locations ret = tableOps.locate(tableName, ranges);
@@ -148,10 +148,10 @@ public class LocatorIT extends AccumuloClusterHarness {
       // ELASTICITY_TODO split does not set hosting goal, so this throws exception
       assertThrows(AccumuloException.class, () -> tableOps.locate(tableName, ranges));
       tableOps.setTabletHostingGoal(tableName, new Range(), TabletHostingGoal.ALWAYS);
-      assertTrue(Wait.waitFor(
+      Wait.waitFor(
           () -> alwaysHostedAndCurrentNotNull.test(
               ManagerAssignmentIT.getManagerTabletInfo(client, tableId, null).getTabletMetadata()),
-          60000, 250));
+          60000, 250);
 
       ret = tableOps.locate(tableName, ranges);
       assertContains(ret, tservers, Map.of(r1, Set.of(t2), r2, Set.of(t2, t3)),
@@ -169,10 +169,10 @@ public class LocatorIT extends AccumuloClusterHarness {
       // TabletGroupWatcher interval set to 5s
       Thread.sleep(7000);
 
-      assertTrue(Wait.waitFor(
+      Wait.waitFor(
           () -> alwaysHostedAndCurrentNotNull.test(ManagerAssignmentIT
               .getManagerTabletInfo(client, tableId, new Text("r")).getTabletMetadata()),
-          60000, 250));
+          60000, 250);
 
       ArrayList<Range> ranges2 = new ArrayList<>();
       ranges2.add(r1);

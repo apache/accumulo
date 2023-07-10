@@ -20,7 +20,6 @@ package org.apache.accumulo.test.compaction;
 
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE3;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE4;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE5;
@@ -28,33 +27,26 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.co
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionCompleted;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionRunning;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getFinalStatesForTable;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getRunningCompactions;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.row;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.waitForCompactionStartAndReturnEcids;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Collections;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -87,12 +79,15 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
   public void tearDown() throws Exception {
     // The ExternalDoNothingCompactor needs to be restarted between tests
     getCluster().getClusterControl().stop(ServerType.COMPACTOR);
+    getCluster().getConfig().getClusterServerConfiguration().clearCompactorResourceGroups();
   }
 
   @Test
   public void testSplitCancelsExternalCompaction() throws Exception {
 
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE1);
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);
+    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+        ExternalDoNothingCompactor.class);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
@@ -140,97 +135,11 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testExternalCompactionsSucceedsRunWithTableOffline() throws Exception {
-
-    getCluster().getClusterControl().stop(ServerType.COMPACTOR);
-
-    String table1 = this.getUniqueNames(1)[0];
-    try (AccumuloClient client =
-        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
-
-      createTable(client, table1, "cs2");
-      // set compaction ratio to 1 so that majc occurs naturally, not user compaction
-      // user compaction blocks merge
-      client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.toString(), "1.0");
-      // cause multiple rfiles to be created
-      writeData(client, table1);
-      writeData(client, table1);
-      writeData(client, table1);
-      writeData(client, table1);
-
-      TableId tid = getCluster().getServerContext().getTableId(table1);
-      // Confirm that no final state is in the metadata table
-      assertEquals(0, getFinalStatesForTable(getCluster(), tid).count());
-
-      // Offline the table when the compaction starts
-      final AtomicBoolean succeededInTakingOffline = new AtomicBoolean(false);
-      Thread t = new Thread(() -> {
-        try (AccumuloClient client2 =
-            Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
-          TExternalCompactionList metrics2 = getRunningCompactions(getCluster().getServerContext());
-          while (metrics2.getCompactions() == null) {
-            metrics2 = getRunningCompactions(getCluster().getServerContext());
-            if (metrics2.getCompactions() == null) {
-              UtilWaitThread.sleep(50);
-            }
-          }
-          LOG.info("Taking table offline");
-          client2.tableOperations().offline(table1, false);
-          succeededInTakingOffline.set(true);
-        } catch (Exception e) {
-          LOG.error("Error: ", e);
-        }
-      });
-      t.start();
-
-      // Start the compactor
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
-
-      // Wait for the compaction to start by waiting for 1 external compaction column
-      Set<ExternalCompactionId> ecids = ExternalCompactionTestUtils
-          .waitForCompactionStartAndReturnEcids(getCluster().getServerContext(), tid);
-
-      // Confirm that this ECID shows up in RUNNING set
-      int matches = ExternalCompactionTestUtils
-          .confirmCompactionRunning(getCluster().getServerContext(), ecids);
-      assertTrue(matches > 0);
-
-      t.join();
-      if (!succeededInTakingOffline.get()) {
-        fail("Failed to offline table");
-      }
-
-      confirmCompactionCompleted(getCluster().getServerContext(), ecids,
-          TCompactionState.SUCCEEDED);
-
-      // Confirm that final state is in the metadata table
-      assertEquals(1, getFinalStatesForTable(getCluster(), tid).count());
-
-      // Online the table
-      client.tableOperations().online(table1);
-
-      // wait for compaction to be committed by tserver or test timeout
-      long finalStateCount = getFinalStatesForTable(getCluster(), tid).count();
-      while (finalStateCount > 0) {
-        finalStateCount = getFinalStatesForTable(getCluster(), tid).count();
-        if (finalStateCount > 0) {
-          UtilWaitThread.sleep(50);
-        }
-      }
-
-      // We need to cancel the compaction or delete the table here because we initiate a user
-      // compaction above in the test. Even though the external compaction was cancelled
-      // because we split the table, FaTE will continue to queue up a compaction
-      client.tableOperations().delete(table1);
-
-      getCluster().getClusterControl().stop(ServerType.COMPACTOR);
-    }
-  }
-
-  @Test
   public void testUserCompactionCancellation() throws Exception {
 
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE3);
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE3, 1);
+    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+        ExternalDoNothingCompactor.class);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
@@ -265,7 +174,9 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
   @Test
   public void testDeleteTableCancelsUserExternalCompaction() throws Exception {
 
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE4);
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE4, 1);
+    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+        ExternalDoNothingCompactor.class);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
@@ -294,7 +205,10 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
 
   @Test
   public void testDeleteTableCancelsExternalCompaction() throws Exception {
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE5);
+
+    getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE5, 1);
+    getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+        ExternalDoNothingCompactor.class);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =

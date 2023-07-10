@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,7 +65,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setDefaultMemory(1, MemoryUnit.GIGABYTE);
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "10M");
     cfg.setSiteConfig(siteConfig);
@@ -187,7 +189,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
     Text row = new Text("row"), cq = new Text("cq"), cf = new Text("cf");
 
     for (int i = 0; i < num; ++i) {
-      Long k = ((random.nextLong() & 0x7fffffffffffffffL) % (end - start)) + start;
+      Long k = ((RANDOM.get().nextLong() & 0x7fffffffffffffffL) % (end - start)) + start;
       key.set(String.format("k_%010d", k));
       Range range = null;
       Key acuKey;

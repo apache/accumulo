@@ -114,7 +114,8 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.manager.compaction.CompactionCoordinator;
+import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
+import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.split.Splitter;
@@ -228,7 +229,6 @@ public class Manager extends AbstractServer
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
   private final AtomicBoolean managerUpgrading = new AtomicBoolean(false);
 
-  private final long waitTimeBetweenScans;
   private final long timeToCacheRecoveryWalExistence;
   private ExecutorService tableInformationStatusPool = null;
 
@@ -465,13 +465,8 @@ public class Manager extends AbstractServer
       log.info("SASL is not enabled, delegation tokens will not be available");
       delegationTokensAvailable = false;
     }
-    this.waitTimeBetweenScans =
-        aconf.getTimeInMillis(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL);
-    this.timeToCacheRecoveryWalExistence = this.waitTimeBetweenScans / 4;
-  }
-
-  public long getWaitTimeBetweenScans() {
-    return this.waitTimeBetweenScans;
+    this.timeToCacheRecoveryWalExistence =
+        aconf.getTimeInMillis(Property.MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
   }
 
   public InstanceId getInstanceID() {
@@ -627,6 +622,12 @@ public class Manager extends AbstractServer
 
   public Splitter getSplitter() {
     return splitter;
+  }
+
+  private CompactionJobQueues compactionJobQueues;
+
+  public CompactionJobQueues getCompactionQueues() {
+    return compactionJobQueues;
   }
 
   enum TabletGoalState {
@@ -1154,13 +1155,16 @@ public class Manager extends AbstractServer
     final ServerContext context = getContext();
     final String zroot = getZooKeeperRoot();
 
+    this.compactionJobQueues = new CompactionJobQueues();
+
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
     //
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
-    compactionCoordinator = new CompactionCoordinator(context, tserverSet, security);
+    compactionCoordinator =
+        new CompactionCoordinator(context, tserverSet, security, compactionJobQueues);
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =
@@ -1249,6 +1253,9 @@ public class Manager extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Unable to read " + zroot + Constants.ZRECOVERY, e);
     }
+
+    this.splitter = new Splitter(context);
+    this.splitter.start();
 
     watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null) {
       @Override
@@ -1352,9 +1359,6 @@ public class Manager extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception updating manager lock", e);
     }
-
-    this.splitter = new Splitter(context);
-    this.splitter.start();
 
     while (!clientService.isServing()) {
       sleepUninterruptibly(100, MILLISECONDS);

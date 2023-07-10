@@ -47,6 +47,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
@@ -402,7 +403,7 @@ class DatafileManager {
     VolumeManager vm = tablet.getTabletServer().getContext().getVolumeManager();
     long t1, t2;
 
-    ReferencedTabletFile newDatafile = CompactableUtils.computeCompactionFileDest(tmpDatafile);
+    ReferencedTabletFile newDatafile = TabletNameGenerator.computeCompactionFileDest(tmpDatafile);
 
     if (vm.exists(newDatafile.getPath())) {
       log.error("Target data file already exist " + newDatafile, new Exception());
@@ -512,9 +513,10 @@ class DatafileManager {
   }
 
   // ELASTICITY_TODO remove this method
-  public void addFilesHack(StoredTabletFile file, DataFileValue dfv) {
+  public void setFilesHack(Map<StoredTabletFile,DataFileValue> files) {
     synchronized (tablet) {
-      datafileSizes.put(file, dfv);
+      datafileSizes.clear();
+      datafileSizes.putAll(files);
     }
   }
 }

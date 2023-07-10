@@ -67,6 +67,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -535,8 +536,9 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
   @Override
   public CachedTablet findTablet(ClientContext context, Text row, boolean skipRow,
-      LocationNeed locationNeed) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, InvalidTabletHostingRequestException {
+      LocationNeed locationNeed, int minimumHostAhead, Range hostAheadRange)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      InvalidTabletHostingRequestException {
 
     OpTimer timer = null;
 
@@ -556,13 +558,72 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
           String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
-    if (tl != null && locationNeed == LocationNeed.REQUIRED && tl.getTserverLocation().isEmpty()) {
-      requestTabletHosting(context, List.of(tl));
-      return null;
+    if (tl != null && locationNeed == LocationNeed.REQUIRED) {
+      // Look at the next (minimumHostAhead * 2) tablets and return which ones need hosting. See the
+      // javadoc in the superclass of this method for more details.
+      Map<KeyExtent,CachedTablet> extentsToHost = findExtentsToHost(context, minimumHostAhead * 2,
+          hostAheadRange, lcSession, tl, locationNeed);
+
+      if (!extentsToHost.isEmpty()) {
+        if (extentsToHost.containsKey(tl.getExtent()) || extentsToHost.size() >= minimumHostAhead) {
+          requestTabletHosting(context, extentsToHost.values());
+        }
+      }
+
+      if (tl.getTserverLocation().isEmpty()) {
+        return null;
+      }
     }
 
     return tl;
 
+  }
+
+  private Map<KeyExtent,CachedTablet> findExtentsToHost(ClientContext context, int hostAheadCount,
+      Range hostAheadRange, LockCheckerSession lcSession, CachedTablet firstTablet,
+      LocationNeed locationNeed) throws AccumuloException, TableNotFoundException,
+      InvalidTabletHostingRequestException, AccumuloSecurityException {
+
+    // its only expected that this method is called when location need is required
+    Preconditions.checkArgument(locationNeed == LocationNeed.REQUIRED);
+
+    Map<KeyExtent,CachedTablet> extentsToHost;
+
+    if (hostAheadCount > 0) {
+      extentsToHost = new HashMap<>();
+      if (firstTablet.getTserverLocation().isEmpty()) {
+        extentsToHost.put(firstTablet.getExtent(), firstTablet);
+      }
+
+      KeyExtent extent = firstTablet.getExtent();
+
+      var currTablet = extent;
+
+      for (int i = 0; i < hostAheadCount; i++) {
+        if (currTablet.endRow() == null || !hostAheadRange.contains(new Key(currTablet.endRow()))) {
+          break;
+        }
+
+        CachedTablet followingTablet =
+            _findTablet(context, currTablet.endRow(), true, false, true, lcSession, locationNeed);
+
+        if (followingTablet == null) {
+          break;
+        }
+
+        currTablet = followingTablet.getExtent();
+
+        if (followingTablet.getTserverLocation().isEmpty()
+            && !followingTablet.wasHostingRequested()) {
+          extentsToHost.put(followingTablet.getExtent(), followingTablet);
+        }
+      }
+    } else if (firstTablet.getTserverLocation().isEmpty()) {
+      extentsToHost = Map.of(firstTablet.getExtent(), firstTablet);
+    } else {
+      extentsToHost = Map.of();
+    }
+    return extentsToHost;
   }
 
   @Override

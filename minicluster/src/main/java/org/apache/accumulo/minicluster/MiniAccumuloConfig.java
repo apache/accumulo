@@ -56,8 +56,9 @@ public class MiniAccumuloConfig {
    *
    * @param numTservers the number of tablet servers that mini accumulo cluster should start
    */
+  // ELASTICITY_TODO: Deprecate in 3.0.0 and remove in elasticity on the merge
   public MiniAccumuloConfig setNumTservers(int numTservers) {
-    impl.setNumTservers(numTservers);
+    // impl.setNumTservers(numTservers);
     return this;
   }
 
@@ -67,8 +68,9 @@ public class MiniAccumuloConfig {
    * @param numScanServers the number of scan servers that mini accumulo cluster should start
    * @since 2.1.0
    */
+  // ELASTICITY_TODO: Deprecate in 3.0.0 and remove in elasticity on the merge
   public MiniAccumuloConfig setNumScanServers(int numScanServers) {
-    impl.setNumScanServers(numScanServers);
+    // impl.setNumScanServers(numScanServers);
     return this;
   }
 
@@ -224,8 +226,10 @@ public class MiniAccumuloConfig {
   /**
    * @return the number of tservers configured for this cluster
    */
+  // ELASTICITY_TODO: Deprecate in 3.0.0 and remove in elasticity on the merge
   public int getNumTservers() {
-    return impl.getNumTservers();
+    return impl.getClusterServerConfiguration().getTabletServerConfiguration().values().stream()
+        .reduce(0, Integer::sum);
   }
 
   /**

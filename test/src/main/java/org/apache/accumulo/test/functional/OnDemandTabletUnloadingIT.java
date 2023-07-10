@@ -94,8 +94,8 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
     metricConsumer.start();
 
     SharedMiniClusterBase.startMiniClusterWithConfig((cfg, core) -> {
-      cfg.setNumTservers(1);
-      cfg.setNumScanServers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultScanServers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL,
           Integer.toString(managerTabletGroupWatcherInterval));
       cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL,

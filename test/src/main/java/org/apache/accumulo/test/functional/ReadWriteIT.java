@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.STANDALONE_CAPABLE_CLUSTER;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -154,7 +155,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
               "Using HTTPS since monitor ssl keystore configuration was observed in accumulo configuration");
           SSLContext ctx = SSLContext.getInstance("TLSv1.2");
           TrustManager[] tm = {new TestTrustManager()};
-          ctx.init(new KeyManager[0], tm, random);
+          ctx.init(new KeyManager[0], tm, RANDOM.get());
           SSLContext.setDefault(ctx);
           HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
           HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
@@ -196,12 +197,18 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   public static void ingest(AccumuloClient accumuloClient, int rows, int cols, int width,
       int offset, String colf, String tableName) throws Exception {
+    ingest(accumuloClient, rows, cols, width, offset, colf, tableName, 0);
+  }
+
+  public static void ingest(AccumuloClient accumuloClient, int rows, int cols, int width,
+      int offset, String colf, String tableName, int flushAfterRows) throws Exception {
     IngestParams params = new IngestParams(accumuloClient.properties(), tableName, rows);
     params.cols = cols;
     params.dataSize = width;
     params.startRow = offset;
     params.columnFamily = colf;
     params.createTable = true;
+    params.flushAfterRows = flushAfterRows;
     TestIngest.ingest(accumuloClient, params);
   }
 

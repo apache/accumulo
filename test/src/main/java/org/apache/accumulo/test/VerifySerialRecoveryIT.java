@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -57,7 +58,7 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
   public static byte[] randomHex(int n) {
     byte[] binary = new byte[n];
     byte[] hex = new byte[n * 2];
-    random.nextBytes(binary);
+    RANDOM.get().nextBytes(binary);
     int count = 0;
     for (byte x : binary) {
       hex[count++] = HEXCHARS[(x >> 4) & 0xf];
@@ -73,7 +74,7 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "20");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());

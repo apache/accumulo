@@ -37,7 +37,6 @@ import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
-import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector.Selection;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -72,6 +71,7 @@ import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
+import org.apache.accumulo.server.compaction.CompactionPluginUtils;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
@@ -137,60 +137,8 @@ public class CompactableUtils {
 
     var opts = tconf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_CONFIGURER_OPTS);
 
-    return computeOverrides(tablet, files, new PluginConfig(configurorClass, opts));
-  }
-
-  static Map<String,String> computeOverrides(Tablet tablet, Set<CompactableFile> files,
-      PluginConfig cfg) {
-    CompactionConfigurer configurer = CompactableUtils.newInstance(tablet.getTableConfiguration(),
-        cfg.getClassName(), CompactionConfigurer.class);
-
-    final ServiceEnvironment senv = new ServiceEnvironmentImpl(tablet.getContext());
-
-    configurer.init(new CompactionConfigurer.InitParameters() {
-      @Override
-      public Map<String,String> getOptions() {
-        return cfg.getOptions();
-      }
-
-      @Override
-      public PluginEnvironment getEnvironment() {
-        return senv;
-      }
-
-      @Override
-      public TableId getTableId() {
-        return tablet.getExtent().tableId();
-      }
-    });
-
-    var overrides = configurer.override(new CompactionConfigurer.InputParameters() {
-      @Override
-      public Collection<CompactableFile> getInputFiles() {
-        return files;
-      }
-
-      @Override
-      public PluginEnvironment getEnvironment() {
-        return senv;
-      }
-
-      @Override
-      public TableId getTableId() {
-        return tablet.getExtent().tableId();
-      }
-
-      @Override
-      public TabletId getTabletId() {
-        return new TabletIdImpl(tablet.getExtent());
-      }
-    });
-
-    if (overrides.getOverrides().isEmpty()) {
-      return null;
-    }
-
-    return overrides.getOverrides();
+    return CompactionPluginUtils.computeOverrides(tablet.getContext(), tablet.getExtent(), files,
+        new PluginConfig(configurorClass, opts));
   }
 
   static <T> T newInstance(AccumuloConfiguration tableConfig, String className,
@@ -354,7 +302,8 @@ public class CompactableUtils {
     @Override
     public Map<String,String> getConfigOverrides(Set<CompactableFile> files) {
       if (!UserCompactionUtils.isDefault(compactionConfig.getConfigurer())) {
-        return computeOverrides(tablet, files, compactionConfig.getConfigurer());
+        return CompactionPluginUtils.computeOverrides(tablet.getContext(), tablet.getExtent(),
+            files, compactionConfig.getConfigurer());
       }
 
       return null;
@@ -447,18 +396,6 @@ public class CompactableUtils {
     var dfv = new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
     return datafileManager.bringMajorCompactionOnline(compactFiles.keySet(), compactTmpName,
         cInfo.checkCompactionId, cInfo.selectedFiles, dfv, Optional.empty());
-  }
-
-  public static ReferencedTabletFile computeCompactionFileDest(ReferencedTabletFile tmpFile) {
-    String newFilePath = tmpFile.getMetaInsert();
-    int idx = newFilePath.indexOf("_tmp");
-    if (idx > 0) {
-      newFilePath = newFilePath.substring(0, idx);
-    } else {
-      throw new IllegalArgumentException(
-          "Expected compaction tmp file " + tmpFile.getMetaInsert() + " to have suffix '_tmp'");
-    }
-    return new ReferencedTabletFile(new Path(newFilePath));
   }
 
 }

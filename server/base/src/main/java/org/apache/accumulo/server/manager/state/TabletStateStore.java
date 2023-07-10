@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -112,11 +111,11 @@ public interface TabletStateStore extends Iterable<TabletManagement> {
     return getStoreForLevel(DataLevel.of(extent.tableId()), context);
   }
 
-  public static TabletStateStore getStoreForLevel(DataLevel level, ClientContext context) {
+  public static TabletStateStore getStoreForLevel(DataLevel level, ServerContext context) {
     return getStoreForLevel(level, context, null);
   }
 
-  public static TabletStateStore getStoreForLevel(DataLevel level, ClientContext context,
+  public static TabletStateStore getStoreForLevel(DataLevel level, ServerContext context,
       CurrentState state) {
 
     TabletStateStore tss;
