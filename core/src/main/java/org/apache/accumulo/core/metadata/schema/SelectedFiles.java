@@ -89,7 +89,7 @@ public class SelectedFiles {
             try {
               out.value(file);
             } catch (IOException e) {
-              throw new RuntimeException("Failed to add file " + file + " to the JSON files array",
+              throw new UncheckedIOException("Failed to add file " + file + " to the JSON files array",
                   e);
             }
           });
