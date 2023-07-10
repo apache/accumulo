@@ -84,8 +84,15 @@ public class SelectedFiles {
       out.name("selAll").value(selectedFiles.initiallySelectedAll());
       out.name("files").beginArray();
       // sort the data to make serialized json comparable
-     selectedFiles.getFiles().stream()
-          .map(StoredTabletFile::getMetaUpdateDelete).sorted().forEach(out::value);
+      selectedFiles.getFiles().stream().map(StoredTabletFile::getMetaUpdateDelete).sorted()
+          .forEach(file -> {
+            try {
+              out.value(file);
+            } catch (IOException e) {
+              throw new RuntimeException("Failed to add file " + file + " to the JSON files array",
+                  e);
+            }
+          });
       out.endArray();
       out.endObject();
     }
@@ -113,8 +120,8 @@ public class SelectedFiles {
             }
             in.endArray();
             break;
-        default:
-           throw new IllegalArgumentException("Uknown field name : "+name);
+          default:
+            throw new IllegalArgumentException("Unknown field name : " + name);
         }
       }
       in.endObject();
