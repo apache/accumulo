@@ -99,7 +99,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -210,8 +209,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       CompactionConfig config = new CompactionConfig()
           .setSelector(new PluginConfig(ErrorThrowingSelector.class.getName(), Map.of()))
           .setWait(true);
-      Assertions.assertThrows(AccumuloException.class,
-          () -> c.tableOperations().compact(tableName, config));
+      assertThrows(AccumuloException.class, () -> c.tableOperations().compact(tableName, config));
 
       List<String> rows = new ArrayList<>();
       c.createScanner(tableName).forEach((k, v) -> rows.add(k.getRow().toString()));
@@ -724,7 +722,7 @@ public class CompactionIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testConncurrentWithIterators() throws Exception {
+  public void testConcurrentWithIterators() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       String tableName = getUniqueNames(1)[0];

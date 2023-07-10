@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -67,7 +69,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.LazySingletons;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -158,7 +159,7 @@ public class TabletManagementIterator extends SkippingIterator {
 
   private static void setCompactionHints(final IteratorSetting cfg,
       Map<Long,Map<String,String>> allHints) {
-    cfg.addOption(COMPACTION_HINTS_OPTIONS, LazySingletons.GSON.get().toJson(allHints));
+    cfg.addOption(COMPACTION_HINTS_OPTIONS, GSON.get().toJson(allHints));
   }
 
   private static Set<KeyExtent> parseMigrations(final String migrations) {
@@ -231,7 +232,7 @@ public class TabletManagementIterator extends SkippingIterator {
       return Map.of();
     }
     Type tt = new TypeToken<Map<Long,Map<String,String>>>() {}.getType();
-    return LazySingletons.GSON.get().fromJson(json, tt);
+    return GSON.get().fromJson(json, tt);
   }
 
   private static boolean shouldReturnDueToSplit(final TabletMetadata tm,
