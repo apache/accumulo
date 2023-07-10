@@ -19,11 +19,11 @@
 package org.apache.accumulo.tserver.session;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.ArrayBlockingQueue;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class SessionManagerTest {
@@ -47,10 +47,10 @@ public class SessionManagerTest {
   public void testTestcode() {
     // test behavior of test class
     TestSession session = new TestSession(2);
-    Assertions.assertFalse(session.cleanup());
-    Assertions.assertFalse(session.cleanup());
-    Assertions.assertTrue(session.cleanup());
-    Assertions.assertTrue(session.cleanup());
+    assertFalse(session.cleanup());
+    assertFalse(session.cleanup());
+    assertTrue(session.cleanup());
+    assertTrue(session.cleanup());
   }
 
   @Test
