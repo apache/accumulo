@@ -70,6 +70,9 @@ public class ShutdownTServer extends ManagerRepo {
             connection.halt(manager.getManagerLock());
             log.info("tablet server asked to halt {}", server);
             return 0;
+          } else {
+            log.info("tablet server {} still has tablets for tables: {}", server,
+                (status.tableMap == null) ? "null" : status.tableMap.keySet());
           }
         } catch (TTransportException ex) {
           // expected

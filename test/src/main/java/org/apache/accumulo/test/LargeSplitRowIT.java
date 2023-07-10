@@ -235,7 +235,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       // Make sure a split occurs
       Wait.Condition splitsToBePresent =
           () -> client.tableOperations().listSplits(tableName).stream().findAny().isPresent();
-      assertTrue(Wait.waitFor(splitsToBePresent, SECONDS.toMillis(60L), 250L));
+      Wait.waitFor(splitsToBePresent, SECONDS.toMillis(60L), 250L);
     }
   }
 

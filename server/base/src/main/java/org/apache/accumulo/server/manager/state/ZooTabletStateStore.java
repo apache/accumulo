@@ -29,6 +29,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -45,10 +46,17 @@ class ZooTabletStateStore implements TabletStateStore {
   private static final Logger log = LoggerFactory.getLogger(ZooTabletStateStore.class);
   private final Ample ample;
   private final ClientContext context;
+  private final DataLevel level;
 
-  ZooTabletStateStore(ClientContext context) {
+  ZooTabletStateStore(DataLevel level, ClientContext context) {
+    this.level = level;
     this.context = context;
     this.ample = context.getAmple();
+  }
+
+  @Override
+  public DataLevel getLevel() {
+    return level;
   }
 
   @Override

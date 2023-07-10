@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.fs.Path;
 
@@ -38,6 +39,11 @@ class LoggingTabletStateStore implements TabletStateStore {
 
   LoggingTabletStateStore(TabletStateStore tss) {
     this.wrapped = tss;
+  }
+
+  @Override
+  public DataLevel getLevel() {
+    return wrapped.getLevel();
   }
 
   @Override
