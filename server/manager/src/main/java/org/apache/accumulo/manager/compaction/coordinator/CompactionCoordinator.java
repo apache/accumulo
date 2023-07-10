@@ -462,8 +462,7 @@ public class CompactionCoordinator implements CompactionCoordinatorService.Iface
 
   private void checkTabletDir(KeyExtent extent, Path path) {
     try {
-      ;
-      if (CHECKED_TABLET_DIRS.getIfPresent(path) != 1) {
+      if (CHECKED_TABLET_DIRS.getIfPresent(path) == null) {
         FileStatus[] files = null;
         try {
           files = ctx.getVolumeManager().listStatus(path);
