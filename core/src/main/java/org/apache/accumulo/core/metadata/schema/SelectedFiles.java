@@ -82,12 +82,10 @@ public class SelectedFiles {
       out.beginObject();
       out.name("txid").value(FateTxId.formatTid(selectedFiles.getFateTxId()));
       out.name("selAll").value(selectedFiles.initiallySelectedAll());
-      List<String> sortedFiles = selectedFiles.getFiles().stream()
-          .map(StoredTabletFile::getMetaUpdateDelete).sorted().collect(Collectors.toList());
       out.name("files").beginArray();
-      for (String file : sortedFiles) {
-        out.value(file);
-      }
+      // sort the data to make serialized json comparable
+     selectedFiles.getFiles().stream()
+          .map(StoredTabletFile::getMetaUpdateDelete).sorted().forEach(out::value);
       out.endArray();
       out.endObject();
     }
@@ -115,6 +113,8 @@ public class SelectedFiles {
             }
             in.endArray();
             break;
+        default:
+           throw new IllegalArgumentException("Uknown field name : "+name);
         }
       }
       in.endObject();
