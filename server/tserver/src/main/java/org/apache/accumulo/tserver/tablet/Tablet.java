@@ -894,6 +894,7 @@ public class Tablet extends TabletBase {
   public void close(boolean saveState) throws IOException {
     initiateClose(saveState);
     completeClose(saveState, true);
+    log.info("Tablet {} closed.", this.extent);
   }
 
   void initiateClose(boolean saveState) {

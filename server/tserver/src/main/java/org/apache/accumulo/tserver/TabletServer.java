@@ -401,6 +401,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   void requestStop() {
+    log.info("Stop requested.");
     serverStopRequested = true;
   }
 

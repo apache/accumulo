@@ -27,6 +27,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -40,16 +41,24 @@ class MetaDataStateStore implements TabletStateStore {
   protected final CurrentState state;
   private final String targetTableName;
   private final Ample ample;
+  private final DataLevel level;
 
-  protected MetaDataStateStore(ClientContext context, CurrentState state, String targetTableName) {
+  protected MetaDataStateStore(DataLevel level, ClientContext context, CurrentState state,
+      String targetTableName) {
+    this.level = level;
     this.context = context;
     this.state = state;
     this.ample = context.getAmple();
     this.targetTableName = targetTableName;
   }
 
-  MetaDataStateStore(ClientContext context, CurrentState state) {
-    this(context, state, MetadataTable.NAME);
+  MetaDataStateStore(DataLevel level, ClientContext context, CurrentState state) {
+    this(level, context, state, MetadataTable.NAME);
+  }
+
+  @Override
+  public DataLevel getLevel() {
+    return level;
   }
 
   @Override

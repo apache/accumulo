@@ -37,6 +37,11 @@ import org.apache.hadoop.fs.Path;
 public interface TabletStateStore extends Iterable<TabletLocationState> {
 
   /**
+   * Get the level for this state store
+   */
+  DataLevel getLevel();
+
+  /**
    * Identifying name for this tablet state store.
    */
   String name();
@@ -112,13 +117,13 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
     TabletStateStore tss;
     switch (level) {
       case ROOT:
-        tss = new ZooTabletStateStore(context);
+        tss = new ZooTabletStateStore(level, context);
         break;
       case METADATA:
-        tss = new RootTabletStateStore(context, state);
+        tss = new RootTabletStateStore(level, context, state);
         break;
       case USER:
-        tss = new MetaDataStateStore(context, state);
+        tss = new MetaDataStateStore(level, context, state);
         break;
       default:
         throw new IllegalArgumentException("Unknown level " + level);
