@@ -27,6 +27,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
@@ -43,7 +44,7 @@ public class ZooTabletStateStoreTest {
     Ample ample = EasyMock.createMock(Ample.class);
     expect(context.getAmple()).andReturn(ample).anyTimes();
     EasyMock.replay(context, ample);
-    ZooTabletStateStore tstore = new ZooTabletStateStore(context);
+    ZooTabletStateStore tstore = new ZooTabletStateStore(DataLevel.ROOT, context);
 
     String sessionId = "this is my unique session data";
     TServerInstance server =

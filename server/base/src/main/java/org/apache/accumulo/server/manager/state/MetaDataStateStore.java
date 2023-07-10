@@ -26,6 +26,7 @@ import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
@@ -35,19 +36,27 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
   protected final CurrentState state;
   private final String targetTableName;
   private final Ample ample;
+  private final DataLevel level;
   protected final ArrayBlockingQueue<TabletManagement> knownStateChanges =
       new ArrayBlockingQueue<>(1_000);
 
-  protected MetaDataStateStore(ClientContext context, CurrentState state, String targetTableName) {
+  protected MetaDataStateStore(DataLevel level, ClientContext context, CurrentState state,
+      String targetTableName) {
     super(context);
+    this.level = level;
     this.context = context;
     this.state = state;
     this.ample = context.getAmple();
     this.targetTableName = targetTableName;
   }
 
-  MetaDataStateStore(ClientContext context, CurrentState state) {
-    this(context, state, MetadataTable.NAME);
+  MetaDataStateStore(DataLevel level, ClientContext context, CurrentState state) {
+    this(level, context, state, MetadataTable.NAME);
+  }
+
+  @Override
+  public DataLevel getLevel() {
+    return level;
   }
 
   @Override

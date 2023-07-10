@@ -28,6 +28,7 @@ import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -42,12 +43,19 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
 
   private static final Logger log = LoggerFactory.getLogger(ZooTabletStateStore.class);
   private final Ample ample;
+  private final DataLevel level;
   private final ServerContext ctx;
 
-  ZooTabletStateStore(ServerContext context) {
+  ZooTabletStateStore(DataLevel level, ServerContext context) {
     super(context);
     this.ctx = context;
+    this.level = level;
     this.ample = context.getAmple();
+  }
+
+  @Override
+  public DataLevel getLevel() {
+    return level;
   }
 
   @Override

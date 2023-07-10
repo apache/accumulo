@@ -68,6 +68,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -310,12 +311,47 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           if (state == TabletState.ASSIGNED) {
             goal = TabletGoalState.HOSTED;
           }
+          if (Manager.log.isTraceEnabled()) {
+            Manager.log.trace(
+                "[{}] Shutting down all Tservers: {}, dependentCount: {} Extent: {}, state: {}, goal: {}",
+                store.name(), manager.serversToShutdown.equals(currentTServers.keySet()),
+                dependentWatcher == null ? "null" : dependentWatcher.assignedOrHosted(),
+                tm.getExtent(), state, goal);
+          }
 
           // if we are shutting down all the tabletservers, we have to do it in order
           if ((goal == TabletGoalState.SUSPENDED && state == TabletState.HOSTED)
               && manager.serversToShutdown.equals(currentTServers.keySet())) {
-            if (dependentWatcher != null && dependentWatcher.assignedOrHosted() > 0) {
-              goal = TabletGoalState.HOSTED;
+            if (dependentWatcher != null) {
+              // If the dependentWatcher is for the user tables, check to see
+              // that user tables exist.
+              DataLevel dependentLevel = dependentWatcher.store.getLevel();
+              boolean userTablesExist = true;
+              switch (dependentLevel) {
+                case USER:
+                  Set<TableId> onlineTables = manager.onlineTables();
+                  onlineTables.remove(RootTable.ID);
+                  onlineTables.remove(MetadataTable.ID);
+                  userTablesExist = !onlineTables.isEmpty();
+                  break;
+                case METADATA:
+                case ROOT:
+                default:
+                  break;
+              }
+              // If the stats object in the dependentWatcher is empty, then it
+              // currently does not have data about what is hosted or not. In
+              // that case host these tablets until the dependent watcher can
+              // gather some data.
+              final Map<TableId,TableCounts> stats = dependentWatcher.getStats();
+              if (dependentLevel == DataLevel.USER) {
+                if (userTablesExist
+                    && (stats == null || stats.isEmpty() || assignedOrHosted(stats) > 0)) {
+                  goal = TabletGoalState.HOSTED;
+                }
+              } else if (stats == null || stats.isEmpty() || assignedOrHosted(stats) > 0) {
+                goal = TabletGoalState.HOSTED;
+              }
             }
           }
 
@@ -414,6 +450,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
         // provide stats after flushing changes to avoid race conditions w/ delete table
         stats.end(managerState);
+        Manager.log.trace("[{}] End stats collection: {}", store.name(), stats);
 
         // Report changes
         for (TabletState state : TabletState.values()) {
@@ -594,8 +631,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   private int assignedOrHosted() {
+    return assignedOrHosted(stats.getLast());
+  }
+
+  private int assignedOrHosted(Map<TableId,TableCounts> last) {
     int result = 0;
-    for (TableCounts counts : stats.getLast().values()) {
+    for (TableCounts counts : last.values()) {
       result += counts.assigned() + counts.hosted();
     }
     return result;
