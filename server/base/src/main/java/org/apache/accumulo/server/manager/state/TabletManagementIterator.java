@@ -363,6 +363,8 @@ public class TabletManagementIterator extends SkippingIterator {
     topValue = null;
 
     final Set<ManagementAction> actions = new HashSet<>();
+    LOG.trace("Manager State: {}, TServer count: {}, online table count: {}", managerState,
+        current.size(), onlineTables.size());
     while (getSource().hasTop()) {
       final Key k = getSource().getTopKey();
       final Value v = getSource().getTopValue();

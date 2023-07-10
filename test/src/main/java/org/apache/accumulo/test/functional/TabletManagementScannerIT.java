@@ -124,10 +124,12 @@ public class TabletManagementScannerIT extends SharedMiniClusterBase {
       TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
 
       // wait for the tablets to exist in the metadata table. The tablets
-      // will not be hosted so the current location will be empty.
+      // will not be hosted so the current location will be empty. Passing null
+      // to the TabletManagementScanner should cause all tablets to be returned
+      // by the TabletManagementIterator.
       try (TabletManagementScanner s = new TabletManagementScanner((ClientContext) c,
-          new Range(TabletsSection.encodeRow(tableId, null)), null, MetadataTable.NAME, mods)) {
-        Wait.waitFor(() -> Iterators.size(s) == 26, 10000, 250);
+          new Range(TabletsSection.getRange(tableId)), null, MetadataTable.NAME, mods)) {
+        Wait.waitFor(() -> Iterators.size(s) == 26, 10_000, 250);
       }
 
       // set the tablet hosting goal on the first half of the tablets
